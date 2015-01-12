@@ -173,7 +173,7 @@ CMN_SMCL = $(call CMN_MCL1,$1,$(filter %.c,$2),$(filter %.cpp,$2),CMN_SCL)
 FILTER_SDEPS = $(if $1,$(if $(filter $(subst |, ,$(word 2,$1)),$?),$(firstword $1) )$(call FILTER_SDEPS,$(wordlist 3,999999,$1)))
 
 # $1 - target, $2 - objects, $3 - CMN_RMCL or CMN_SMCL
-CMN_MCL = $(call $3,$(dir $(firstword $(filter %$(OBJ_SUFFIX),$2))),$(filter $(SRC),$? $(call FILTER_SDEPS,$(SDEPS))))
+CMN_MCL = $(call $3,$(dir $(firstword $(filter %$(OBJ_SUFFIX),$2))),$(sort $(filter $(SRC),$? $(call FILTER_SDEPS,$(SDEPS)))))
 
 define COMPILTERS_TEMPLATE
 # $$1 - target, $$2 - objects
@@ -238,8 +238,8 @@ CMN_MKCL1 = $(if \
 CMN_MKCL = $(call CMN_MKCL1,$1,$(notdir $(PCH)),$(filter-out $(WITH_PCH),$2),$(filter $(WITH_PCH),$2))
 
 # $1 - target, $2 - objects
-KLIB_LD  = $(call CMN_MKCL,$(dir $(firstword $(filter %$(OBJ_SUFFIX),$2))),$(filter $(SRC),$? $(call FILTER_SDEPS,$(SDEPS))))$(KLIB_LD1)
-DRV_LD   = $(call CMN_MKCL,$(dir $(firstword $(filter %$(OBJ_SUFFIX),$2))),$(filter $(SRC),$? $(call FILTER_SDEPS,$(SDEPS))))$(DRV_LD1)
+KLIB_LD  = $(call CMN_MKCL,$(dir $(firstword $(filter %$(OBJ_SUFFIX),$2))),$(sort $(filter $(SRC),$? $(call FILTER_SDEPS,$(SDEPS)))))$(KLIB_LD1)
+DRV_LD   = $(call CMN_MKCL,$(dir $(firstword $(filter %$(OBJ_SUFFIX),$2))),$(sort $(filter $(SRC),$? $(call FILTER_SDEPS,$(SDEPS)))))$(DRV_LD1)
 
 # $1 - target, $2 - pch-source, $3 - pch
 PCH_KCC  = $(call SUPRESS,PCHKCC $2)$(call CMN_KCL,$(dir $1),$2,/Yc$3 /Yl$(basename $(notdir $2)) /Fp$(dir $1)$(basename $3)_c.pch $(CFLAGS))
