@@ -60,11 +60,15 @@ else
 $(error Unknown OSVARIANT, set to either WINXP,WIN7,WIN8 or WIN81)
 endif
 
-# set EXE_MANIFEST=" /MANIFEST:EMBED"
-# set DLL_MANIFEST=" /MANIFEST:EMBED"
-#  or
-# set EXE_MANIFEST=$(newline)$(if $(VERBOSE:1=),@)"%SDK%\bin\mt.exe" -nologo -manifest $(ospath).manifest -outputresource:$(ospath);1 ^&^& del $(ospath).manifest$(DEL_ON_FAIL)
-# set DLL_MANIFEST=$(newline)$(if $(VERBOSE:1=),@)"%SDK%\bin\mt.exe" -nologo -manifest $(ospath).manifest -outputresource:$(ospath);2 ^&^& del $(ospath).manifest$(DEL_ON_FAIL)
+ifdef MAY_EMBED_MANIFEST
+EXE_MANIFEST := " /MANIFEST:EMBED"
+DLL_MANIFEST := " /MANIFEST:EMBED"
+else
+EXE_MANIFEST = $(call DEL_ON_FAIL,$1.manifest)$(newline)$(if \
+  $(VERBOSE:1=),@)if exist $(ospath).manifest ($($(TMD)MT1) -nologo -manifest $(ospath).manifest -outputresource:$(ospath);1 && del $(ospath).manifest)$(DEL_ON_FAIL)
+DLL_MANIFEST = $(call DEL_ON_FAIL,$1.manifest)$(newline)$(if \
+  $(VERBOSE:1=),@)if exist $(ospath).manifest ($($(TMD)MT1) -nologo -manifest $(ospath).manifest -outputresource:$(ospath);2 && del $(ospath).manifest)$(DEL_ON_FAIL)
+endif
 
 # some external sources want WIN32 to be defined
 APPDEFS += $(if $(filter %64,$(UCPU)),LLP64,ILP32) WIN32 CRT_SECURE_NO_DEPRECATE _CRT_SECURE_NO_WARNINGS
@@ -90,7 +94,7 @@ CMN_LIBS = /OUT:$$(call ospath,$1) /INCREMENTAL:NO $(if $(filter %D,$(TARGET)),/
 
 define EXE_LD_TEMPLATE
 $(empty)
-EXE_$v_LD1 = $$(call SUPRESS,LINK   $$1)$$(VS$$(TMD)LD) /nologo $(call CMN_LIBS,$$1,$$2,$v)$(if $(filter-out S,$v),$$(EXE_MANIFEST))
+EXE_$v_LD1 = $$(call SUPRESS,LINK   $$1)$$(VS$$(TMD)LD) /nologo $(call CMN_LIBS,$$1,$$2,$v)$$(EXE_MANIFEST)
 endef
 $(eval $(foreach v,R $(VARIANTS_FILTER),$(EXE_LD_TEMPLATE)))
 
@@ -99,7 +103,7 @@ define DLL_LD_TEMPLATE
 $(empty)
 DLL_$v_LD1 = $$(call SUPRESS,LINK   $$1)$$(VS$$(TMD)LD) /nologo /DLL $$(if $$(DEF),/DEF:$$(call ospath,$$(DEF))) $(call \
               CMN_LIBS,$$1,$$2,$v) /IMPLIB:$$(call ospath,$$(patsubst $$(DLL_DIR)/$(DLL_PREFIX)%$(DLL_SUFFIX),$$(IMP_DIR)/$(IMP_PREFIX)$(call \
-              VARIANT_IMP_PREFIX,$v)%$(IMP_SUFFIX),$$1))$$(if $$(DEF),$$(DEL_ON_FAIL))$(if $(filter-out S,$v),$$(DLL_MANIFEST))
+              VARIANT_IMP_PREFIX,$v)%$(IMP_SUFFIX),$$1))$$(if $$(DEF),$$(DEL_ON_FAIL))$$(DLL_MANIFEST)
 endef
 $(eval $(foreach v,R $(VARIANTS_FILTER),$(DLL_LD_TEMPLATE)))
 
@@ -451,6 +455,7 @@ $(if $(LIB),$(LIB_AUX_TEMPLATE))
 $(if $(DLL),$(DLL_AUX_TEMPLATE))
 $(if $(KLIB),$(KLIB_AUX_TEMPLATE))
 $(DRV_RULES)
-CLEAN += $(RES) $(foreach x,$(BLD_TARGETS),$($x_RES))
+# note: EXE_AUX_TEMPLATE adds value to EXE_RES, so must use $$($x_RES)
+CLEAN += $(RES) $(foreach x,$(BLD_TARGETS),$$($x_RES))
 NO_TARGET_RES:=
 endef
