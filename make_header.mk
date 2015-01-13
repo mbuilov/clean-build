@@ -44,7 +44,7 @@ VARIANT_IMP_PREFIX = $(if $(filter-out R,$1),$1_)
 # PREDEFINES         = $(if $(filter %D,$(TARGET)),_DEBUG) TARGET_$(patsubst %D,%,$(TARGET)) \
                        $(if $(filter sparc% mips% ppc%,$(CPU)),B_ENDIAN,L_ENDIAN) \
                        $(if $(filter arm% sparc% mips% ppc%,$(CPU)),ADDRESS_NEEDALIGN)
-# APPDEFS :=
+# APPDEFS =
 # KRNDEFS =
 
 # avoid execution of $(DEF_HEAD_CODE) by make_defs.mk - $(DEF_HEAD_CODE) will be evaluated at end of this file
@@ -71,11 +71,6 @@ OSVARS := $(foreach r,$(BLD_VARS) $(foreach t,$(BLD_TARGETS),$(addprefix $t_,$(T
 
 # defines target kernel sources to build
 KSYSTEM ?= $(OS)
-
-# compute values of $(PREDEFINES) and $(DEFINCLUDE) only once
-# NOTE: default dirs like $(BLDINC_DIR) must now be defined
-PREDEFINES1 := $(PREDEFINES)
-DEFINCLUDE1 := $(DEFINCLUDE)
 
 # $1 - source file, $2 - $(SDEPS) - list of pairs: <source file> <dependency1>|<dependency2>|...
 EXTRACT_SRC_DEPS = $(if $2,$(if $(filter $1,$(firstword $2)),$(subst |, ,$(word 2,$2)) )$(call EXTRACT_SRC_DEPS,$1,$(wordlist 3,999999,$2)))
@@ -309,8 +304,8 @@ WITH_PCH    :=
 USE         :=
 SRC         :=
 SDEPS       :=
-DEFINES     := $(PREDEFINES1)
-CMNINCLUDE  := $(DEFINCLUDE1)
+DEFINES     := $(PREDEFINES)
+CMNINCLUDE  := $(DEFINCLUDE)
 INCLUDE     :=
 CFLAGS      :=
 CXXFLAGS    :=
