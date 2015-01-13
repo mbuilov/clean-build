@@ -25,6 +25,7 @@ NEEDED_TOOLS += MC1    # full path in quotes
 NEEDED_TOOLS += RC1    # full path in quotes
 NEEDED_TOOLS += TMC1   # full path in quotes
 NEEDED_TOOLS += TRC1   # full path in quotes
+NEEDED_TOOLS += MT     # full path in quotes
 
 ifneq ($(words $(foreach x,$(NEEDED_TOOLS),$($x))),$(words $(NEEDED_TOOLS)))
 
@@ -72,8 +73,10 @@ UMTINC := $(SDK)\Include
 
 MC1  := $(call qpath,$(SDK)\bin$(if $(filter %64,$(UCPU)),\x64)\MC.Exe)
 RC1  := $(call qpath,$(SDK)\bin$(if $(filter %64,$(UCPU)),\x64)\RC.Exe)
+MT1  := $(call qpath,$(SDK)\bin$(if $(filter %64,$(UCPU)),\x64)\MT.Exe)
 TMC1 := $(call qpath,$(SDK)\bin$(if $(filter %64,$(TCPU)),\x64)\MC.Exe)
 TRC1 := $(call qpath,$(SDK)\bin$(if $(filter %64,$(TCPU)),\x64)\RC.Exe)
+TMT1 := $(call qpath,$(SDK)\bin$(if $(filter %64,$(TCPU)),\x64)\MT.Exe)
 
 endif
 
@@ -90,8 +93,10 @@ UMTINC := $(SDK)\Include\um $(SDK)\Include\shared
 
 MC1  := $(call qpath,$(SDK)\bin$(if $(filter %64,$(UCPU)),\x64,\x86)\mc.exe)
 RC1  := $(call qpath,$(SDK)\bin$(if $(filter %64,$(UCPU)),\x64,\x86)\rc.exe)
+MT1  := $(call qpath,$(SDK)\bin$(if $(filter %64,$(UCPU)),\x64,\x86)\mt.exe)
 TMC1 := $(call qpath,$(SDK)\bin$(if $(filter %64,$(TCPU)),\x64,\x86)\mc.exe)
 TRC1 := $(call qpath,$(SDK)\bin$(if $(filter %64,$(TCPU)),\x64,\x86)\rc.exe)
+TMT1 := $(call qpath,$(SDK)\bin$(if $(filter %64,$(TCPU)),\x64,\x86)\mt.exe)
 
 endif
 
@@ -108,8 +113,10 @@ UMTINC := $(WDK)\Include\um $(WDK)\Include\shared
 
 MC1  := $(call qpath,$(WDK)\bin$(if $(filter %64,$(UCPU)),\x64,\x86)\mc.exe)
 RC1  := $(call qpath,$(WDK)\bin$(if $(filter %64,$(UCPU)),\x64,\x86)\rc.exe)
+MT1  := $(call qpath,$(WDK)\bin$(if $(filter %64,$(UCPU)),\x64,\x86)\mt.exe)
 TMC1 := $(call qpath,$(WDK)\bin$(if $(filter %64,$(TCPU)),\x64,\x86)\mc.exe)
 TRC1 := $(call qpath,$(WDK)\bin$(if $(filter %64,$(TCPU)),\x64,\x86)\rc.exe)
+TMT1 := $(call qpath,$(WDK)\bin$(if $(filter %64,$(TCPU)),\x64,\x86)\mt.exe)
 
 endif
 
@@ -187,7 +194,6 @@ SIGNTOOL := $(call qpath,$(WDK)\bin\$(if $(filter %64,$(KCPU)),x64,x86)\SignTool
 
 endif
 
-AUTOCONFIGURED := 1
 endif # !NO_AUTOCONF
 
 ifdef VAUTO
