@@ -47,7 +47,7 @@ JAR_LD   = $(call JAVA_CC,$(filter $(JSRC),$?))$(JAR_LD1)
 # $2 - sources:     $(call FIXPATH,$(JSRC))
 # $3 - objdir:      $(call FORM_OBJ_DIR,JAR)
 define JAR_TEMPLATE
-$(call ADD_UNIQ_DIR_RULES,$3)
+$(call ADD_DIR_RULES,$3)
 $(call STD_TARGET_VARS,$1)
 $1: JSRC      := $2
 $1: OBJDIR    := $3
@@ -70,7 +70,7 @@ JAR_RULES = $(if $(JAR),$(call JAR_TEMPLATE,$(call FORM_JTRG,JAR),$(call FIXPATH
 
 # this file normally included at end of target Makefile
 define DEFINE_JTARGETS_EVAL
-$(if $(DEBUG),$(eval $(DEBUG_JTARGETS)))
+$(if $(MDEBUG),$(eval $(DEBUG_JTARGETS)))
 $(eval $(JAR_RULES))
 $(DEF_TAIL_CODE)
 endef

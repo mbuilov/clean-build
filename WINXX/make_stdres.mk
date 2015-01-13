@@ -79,7 +79,7 @@ $$(TRG_RC): $(WIN_RC_PRODUCT_DEFS_HEADER) | $(BLDSRC_DIR)
 TRG_RES := $(call FORM_OBJ_DIR,$1)/$1_$2.res
 $$(TRG_RES): $$(TRG_RC) | $3
 	$$(call RC,$$@,$$<)
-$(call ADD_UNIQ_DIR_RULES,$3)
+$(call ADD_DIR_RULES,$3)
 CLEAN += $$(TRG_RC)
 $1_RES += $$(TRG_RES)
 endef

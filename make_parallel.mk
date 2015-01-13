@@ -25,7 +25,7 @@ MAKE_CURRENT_MAKEFILE1 = $(call normp,$(patsubst $(TOP)/%,%,$(CURDIR)/)$2$(notdi
 MAKE_CURRENT_MAKEFILE2 = $(call MAKE_CURRENT_MAKEFILE1,$1,$(call GET_VPREFIX,$1))
 MAKE_CURRENT_MAKEFILE = $(call MAKE_CURRENT_MAKEFILE2,$(call NORM_MAKEFILE,$1))
 
-# TO_MAKE list is something like:
+# $(TO_MAKE) list is something like:
 # gen1.mk gen2.mk cmn.mk:gen1.mk,gen2.mk serv.mk:cmn.mk
 $(CURRENT_MAKEFILE_TM): $(foreach x,$(TO_MAKE),$(call MAKE_MAKEFILE_TIMESTAMP,$(call \
   MAKE_CURRENT_MAKEFILE,$(firstword $(subst $$(TOP),$(TOP)/,$(subst :, ,$(subst $(TOP)/,$$(TOP),$x)))))))
@@ -54,7 +54,7 @@ $(eval $(foreach x,$(TO_MAKE),$(call INCLUDE_TEMPLATE1,$(subst $$(TOP),$(TOP)/,$
 SUB_LEVEL := $(wordlist 2,999999,$(SUB_LEVEL))
 
 ifdef TOOL_MODE
-$(error $$(DEF_TAIL_CODE) was not executed at end of target makefile!)
+$(error $$(DEF_TAIL_CODE) was not evaluated at end of target makefile!)
 endif
 
 $(DEF_TAIL_CODE)

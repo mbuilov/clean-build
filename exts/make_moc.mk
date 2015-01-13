@@ -5,7 +5,7 @@ ifndef MOC_SRC_PATTERN
 define MOC_SRC_PATTERN
 MOC_SRC_DIR := $(BLDSRC_DIR)/MOC$(MOC_DIR_NAME)_$3$2
 $3MOC_SRC := $$(addprefix $$(MOC_SRC_DIR)/,$(patsubst %.h,%_moc.cpp,$(notdir $1)))
-$$(eval $$(call ADD_UNIQ_DIR_RULES,$$(MOC_SRC_DIR)))
+$$(call ADD_DIR_RULES,$$(MOC_SRC_DIR))
 $(foreach x,$1,$(newline)$$(MOC_SRC_DIR)/$(patsubst %.h,%_moc.cpp,$(notdir $x)): $x | $$(MOC_SRC_DIR)
 	$$(call SUPRESS,MOC    $$@)$(MOC) -i -f$$(call ospath,$$(call abspath,$$<)) \
   $$(call ospath,$$(call abspath,$$<)) -o $$(call ospath,$$@))

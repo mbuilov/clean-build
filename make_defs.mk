@@ -18,18 +18,19 @@ MAKEFLAGS += --no-builtin-rules --no-builtin-variables
 
 include $(MTOP)/make_functions.mk
 
-# make_features.mk must define:
+# project's make_features.mk must define something like:
 # SUPPORTED_OSES    := WINXX SOLARIS LINUX
 # SUPPORTED_CPUS    := x86 x86_64 sparc sparc64 armv5 mips24k ppc
 # SUPPORTED_TARGETS := PROJECT PROJECTD
-include $(TOP)/make/make_features.mk
+PROJECT_FEATURES ?= $(TOP)/make/make_features.mk
+include $(PROJECT_FEATURES)
 
-# current makefile path relative from $(TOP) directory
+# make current makefile path relative to $(TOP) directory
 CURRENT_MAKEFILE := $(subst \,/,$(firstword $(MAKEFILE_LIST)))
-CURRENT_MAKEFILE := $(patsubst $(TOP)/%,%,$(if $(filter $(TOP)/%,$(CURRENT_MAKEFILE)),$(CURRENT_MAKEFILE),$(call normp,$(CURDIR)/$(CURRENT_MAKEFILE))))
+CURRENT_MAKEFILE := $(patsubst $(TOP)/%,%,$(if $(filter $(TOP)/%,$(CURRENT_MAKEFILE)),$(CURRENT_MAKEFILE),$(abspath $(CURDIR)/$(CURRENT_MAKEFILE))))
 
 # check that we are building right sources
-ifneq ($(filter /%,$(CURRENT_MAKEFILE)),)
+ifneq ($(call isrelpath,$(CURRENT_MAKEFILE)),)
 $(error TOP=$(TOP) is not the root directory of current makefile $(CURRENT_MAKEFILE))
 endif
 
@@ -45,6 +46,7 @@ $(error unknown OS=$(OS), please pick one of: $(SUPPORTED_OSES))
 endif
 
 # NOTE: don't use CPU variable in target makefiles, use UCPU or KCPU instead
+# CPU variable contains default value for UCPU, KCPU, TCPU
 
 # CPU for user-level
 ifndef UCPU
@@ -82,13 +84,15 @@ $(error unknown $(if $(TCPU),T)CPU=$(TCPU), please pick one of: $(SUPPORTED_CPUS
 endif
 
 # what to build
-# to check for DEBUG, use $(filter %D,$(TARGET))
 ifndef TARGET
 $(error TARGET undefined, example: $(SUPPORTED_TARGETS))
 endif
 ifeq ($(filter $(TARGET),$(SUPPORTED_TARGETS)),)
 $(error unknown TARGET=$(TARGET), please pick one of: $(SUPPORTED_TARGETS))
 endif
+
+# $(DEBUG) is non-empty for DEBUG targets like PROJECTD
+DEBUG := $(filter %D,$(TARGET))
 
 # run via $(MAKE) V=1 for verbose output
 ifeq ("$(origin V)","command line")
@@ -107,12 +111,13 @@ endif
 
 # run via $(MAKE) D=1 to debug makefiles
 ifeq ("$(origin D)","command line")
-DEBUG := $D
+MDEBUG := $D
 else
-DEBUG:=
+MDEBUG:=
 endif
 
-# supress output of executed build tool, print some message instead like "CC  source.c"
+# supress output of executed build tool, print some pretty message instead, like "CC  source.c"
+# print $(MF) relative to current directory
 ifeq ($(VERBOSE),1)
 ifdef INFOMF
 SUPRESS = $(info $(patsubst $(patsubst $(TOP)/%,%,$(CURDIR))/%,%,$(MF))$(if $(MCONT),@$(words $(MCONT))):)
@@ -126,8 +131,8 @@ SUPRESS = @$(info $(COLORIZE))
 endif
 
 # standard target-specific variables
-# $1       - target file to build
-# $(MF)    - name of makefile which specifies how to build the target
+# $1       - target file to build (absolute path)
+# $(MF)    - name of makefile which specifies how to build the target (path relative to $(TOP))
 # $(MCONT) - number of section in makefile which includes make_continue.mk
 # $(TMD)   - T if target is built in TOOL_MODE
 define STD_TARGET_VARS
@@ -173,7 +178,7 @@ DEF_BLD_DIR := $(XTOP)/bld/$(OS)-$(KCPU)-$(UCPU)-$(TARGET)
 DEF_BLDINC_DIR := $(DEF_BLD_DIR)/include
 DEF_BLDSRC_DIR := $(DEF_BLD_DIR)/src
 
-# directory for makefiles timestamps
+# directory for makefiles timestamps (to support dependencies between makefiles)
 BLD_MAKEFILES_TIMESTAMPS_DIR := $(DEF_BLD_DIR)/mk_stm
 $(BLD_MAKEFILES_TIMESTAMPS_DIR):
 	$(call SUPRESS,MKDIR  $@)$(call MKDIR,$@)
@@ -193,27 +198,24 @@ BLDSRC_DIR := $(DEF_BLDSRC_DIR)
 endef
 SET_DEFAULT_DIRS := $(SET_DEFAULT_DIRS1)
 
-# make_features.mk may forward-reference some of default dirs,
-# ensure they are defined when we will use defs from make_features.mk
+# $(PROJECT_FEATURES) makefile may forward-reference some of default dirs,
+# ensure they are defined when we will use defs from $(PROJECT_FEATURES)
 $(eval $(SET_DEFAULT_DIRS))
 
 # add rules to create directories $1
 DIR_RULES:=
-define ADD_DIR_RULES_TEMPL
-DIR_RULES += $1
-$1:
+ADD_DIR_RULES_TEMPLATE = DIR_RULES := $(sort $(DIR_RULES) $1)
+ADD_DIR_RULES = $(eval $(ADD_DIR_RULES_TEMPLATE))
+
+# $x - directory to create
+# note: this template used by make_all.mk
+define DIR_TEMPLATE
+$x:
 	$$(call SUPRESS,MKDIR  $$@)$$(call MKDIR,$$@)
 endef
-ADD_DIR_RULES_TEMPL1 = $(if $1,$(ADD_DIR_RULES_TEMPL))
 
-ADD_UNIQ_DIR_RULES_TEMPLATE = $(if $(filter $(BLD_MAKEFILES_TIMESTAMPS_DIR),$1),$(error \
-  $(BLD_MAKEFILES_TIMESTAMPS_DIR) is reserved directory for makefiles timestamps))$(call \
-  ADD_DIR_RULES_TEMPL1,$(filter-out $(DIR_RULES),$1))
-
-ADD_UNIQ_DIR_RULES = $(eval $(ADD_UNIQ_DIR_RULES_TEMPLATE))
-ADD_DIR_RULES = $(call ADD_UNIQ_DIR_RULES,$(sort $1))
-
-$(call ADD_UNIQ_DIR_RULES,$(DEF_BIN_DIR) $(DEF_LIB_DIR) $(DEF_BLD_DIR) $(DEF_BLDINC_DIR) $(DEF_BLDSRC_DIR))
+# for rules for default dirs
+$(call ADD_DIR_RULES,$(DEF_BIN_DIR) $(DEF_LIB_DIR) $(DEF_BLD_DIR) $(DEF_BLDINC_DIR) $(DEF_BLDSRC_DIR))
 
 # NOTE: to allow parallel builds for different combinations of
 #  $(OS)/$(KCPU)/$(UCPU)/$(TARGET) tool dir must be unique for each such combination
@@ -224,8 +226,9 @@ TOOL_BASE := $(TOOL_BASE)
 # where tools are built, $1 - TOOL_BASE, $2 - TCPU
 MK_TOOLS_DIR = $1/TOOL-$2-$(TARGET)/bin
 
-# call with $1 - TOOL_BASE, $2 - TCPU, $3 - tool name(s) to get path to the tools executables
-GET_TOOLS = $(addsuffix $(TOOL_SUFFIX),$(addprefix $(MK_TOOLS_DIR)/,$3))
+# call with $1 - TOOL_BASE, $2 - TCPU, $3 - tool name(s) to get paths to the tools executables
+# note: it's possible to dinamically define value of $(TOOL_SUFFIX) from tool name $x
+GET_TOOLS = $(foreach x,$(addprefix $(MK_TOOLS_DIR)/,$3),$(addsuffix $(TOOL_SUFFIX),$x))
 
 # get path to a tool $1 for current $(TOOL_BASE) and $(TCPU)
 GET_TOOL = $(call GET_TOOLS,$(TOOL_BASE),$(TCPU),$1)
@@ -242,18 +245,20 @@ BLDSRC_DIR := $(TOOLS_DIR)/bld/src
 endef
 TOOL_OVERRIDE_DIRS := $(TOOL_OVERRIDE_DIRS1)
 
-$(call ADD_UNIQ_DIR_RULES,$(addprefix $(TOOLS_DIR)/,bin obj lib bld bld/include bld/src))
+# for rules for tool dirs
+$(call ADD_DIR_RULES,$(addprefix $(TOOLS_DIR)/,bin obj lib bld bld/include bld/src))
 
 # compute values of next variables right after +=, not at call time:
 # CLEAN          - files/directories list to delete on $(MAKE) clean
-# CLEAN_COMMANDS - code to $(eval) to get clean commands to execute on $(MAKE) clean
+# CLEAN_COMMANDS - code to $(eval) to get clean commands to execute on $(MAKE) clean - see make_all.mk
 CLEAN:=
 CLEAN_COMMANDS:=
 
 # add $(VPREFIX) (path to directory of currently executing makefile relative to $(CURDIR)) value to non-absolute paths
-FIXPATH = $(foreach x,$1,$(if $(call isrelpath,$x),$(VPREFIX))$x)
+# make absolute paths
+FIXPATH = $(abspath $(foreach x,$1,$(if $(call isrelpath,$x),$(VPREFIX))$x))
 
-# $(CURRENT_DEPS)        - dependencies to add to all leaf sources for the targets
+# $(CURRENT_DEPS)        - dependencies to add to all leaf prerequisites for the targets
 # $(VPREFIX)             - relative path from $(CURDIR) to currently processing makefile, either empty or dir/
 # $(CURRENT_MAKEFILE_TM) - timestamp of currently processing makefile,
 #                          timestamp is updated after all targets of current makefile are successfully built
@@ -272,7 +277,7 @@ PROCESSED_MAKEFILES:=
 #  - so we know if this file was processed from make_continue.mk, remove 2 from $(MAKE_CONT)
 #  - if next time this file will be processed not from make_continue.mk, clean $(MAKE_CONT)
 # NOTE: make_defs.mk may be included before make_parallel.mk,
-#  to not execute $(DEF_HEAD_CODE) there define DEF_HEAD_CODE_PROCESSED
+#  to not execute $(DEF_HEAD_CODE) there define DEF_HEAD_CODE_PROCESSED variable
 define DEF_HEAD_CODE
 ifeq ($(filter 2,$(MAKE_CONT)),)
 MAKE_CONT:=
@@ -284,7 +289,7 @@ endif
 else
 MAKE_CONT := $(filter-out 2,$(MAKE_CONT))
 endif
-ifdef DEBUG
+ifdef MDEBUG
 $$(info $(subst 1,.,$(subst 1 ,.,$(SUB_LEVEL))) $(CURRENT_MAKEFILE)$(if $(MAKE_CONT),+$(words $(MAKE_CONT)))$(if $(CURRENT_DEPS), : $(patsubst $(TOP)/%,%,$(CURRENT_DEPS))))
 endif
 ifdef TOOL_MODE
@@ -296,15 +301,12 @@ DEF_HEAD_CODE_PROCESSED := 1
 endef
 
 # code to $(eval) at end of each makefile
-define DEF_TAIL_CODE1
-$(if $(SUB_LEVEL),TOOL_MODE:=$(newline)DEF_HEAD_CODE_PROCESSED:=,include $(MTOP)/make_all.mk)
-endef
-DEF_TAIL_CODE = $(eval $(DEF_TAIL_CODE1))
+DEF_TAIL_CODE = $(eval $(if $(SUB_LEVEL),TOOL_MODE:=$(newline)DEF_HEAD_CODE_PROCESSED:=,include $(MTOP)/make_all.mk))
 
 # get target variants list or default variant R
 # $1 - EXE,LIB,...
 # $2 - variants filter function (VARIANTS_FILTER), must be defined at time of $(eval)
-# NOTE: add R to filter to not filter-out default variant R
+# NOTE: add R to filter pattern to not filter-out default variant R
 GET_VARIANTS = $(patsubst ,R,$(filter R $(call $2,$1),$(wordlist 2,999999,$($1))))
 
 # get target name
@@ -315,7 +317,7 @@ GET_TARGET_NAME = $(firstword $($1))
 # $1 - targets to build (value of $(BLD_TARGETS))
 # $2 - function to form target file name (FORM_TRG), must be defined at time of $(eval)
 # $3 - variants filter function (VARIANTS_FILTER), must be defined at time of $(eval)
-ifdef DEBUG
+ifdef MDEBUG
 define DEBUG_TARGETS1
 ifneq ($$($t),)
 $$(foreach v,$$(call GET_VARIANTS,$t,$3),$$(info $$(if $$(TOOL_MODE),[TOOL]: )$t $$(subst \
@@ -331,18 +333,22 @@ endif
 # add target-specific prefix (EXE_,LIB_,DLL,...) to distinguish objects for the targets with equal names
 FORM_OBJ_DIR = $(OBJ_DIR)/$1_$(GET_TARGET_NAME)$(if $(filter-out R,$2),_$2)
 
-# add generated files to build sequence
+# add generated files $1 to build sequence
 define ADD_GENERATED1
 $(STD_TARGET_VARS)
 $(CURRENT_MAKEFILE_TM): $1
 CLEAN += $1
 $1: $(CURRENT_DEPS) | $2
-$(call ADD_UNIQ_DIR_RULES_TEMPLATE,$2)
+$(call ADD_DIR_RULES_TEMPLATE,$2)
 endef
-ADD_GENERATED = $(eval $(call ADD_GENERATED1,$1,$(patsubst %/,%,$(sort $(dir $1)))))
+ADD_GENERATED = $(eval $(call ADD_GENERATED1,$1,$(patsubst %/,%,$(dir $1))))
 
-MULTI_TARGETS :=
-MULTI_TARGET_NUM :=
+# processed multi-target rules
+MULTI_TARGETS:=
+
+# to count each call of $(MULTI_TARGET)
+MULTI_TARGET_NUM:=
+
 # when some tool generates many files, call the tool only once
 # $1 - list of generated files
 # $2 - prerequisites
@@ -353,11 +359,18 @@ $1: $2 $(CURRENT_DEPS)
   $(MULTI_TARGET_NUM)))$$(call SUPRESS,MGEN   $$@)$(subst $$(newline),$$$$(newline),$3$(foreach x,$1,$$(newline)$$(call SUPRESS,TOUCH  $x)$$(call TOUCH,$x)))))
 MULTI_TARGET_NUM += 1
 endef
+
 MULTI_TARGET_SEQ = $(if $(word 2,$1),$(word 2,$1): $(firstword $1)$(newline)$(call MULTI_TARGET_SEQ,$(wordlist 2,999999,$1)))
+
 # NOTE: don't use $@ in rule because it may have different values,
 #       don't use $(lastword $^) - tail of list of prerequisites may have different values
 MULTI_TARGET_CHECK = $(if $(filter-out $(words x$3x),$(words x$(subst $$@, ,$3)x)),$(info Warning: don't use $$@ in rule:$(newline)$3))$(if \
   $(filter-out $(words x$(strip $3)x),$(words x$(subst $$(lastword $$^), 1 ,$(strip $3))x)),$(info Warning: don't use $$(lastword $$^) in rule:$(newline)$3))
+
+# when some tool generates many files, call the tool only once
+# $1 - list of generated files
+# $2 - prerequisites
+# $3 - rule
 MULTI_TARGET = $(MULTI_TARGET_CHECK)$(eval $(MULTI_TARGET_SEQ)$(MULTI_TARGET_RULE))
 
 endif # MAKE_DEFS_INCLUDED

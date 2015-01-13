@@ -1,6 +1,7 @@
 ifndef MAKE_HEADER_INCLUDED
 
 # this file normally included at beginning of target Makefile
+# used for building C/C++ libs, dlls, executables
 MAKE_HEADER_INCLUDED := 1
 
 # separate group of defines for each build target type (EXE,LIB,DLL,...)
@@ -39,11 +40,11 @@ VARIANT_LIB_PREFIX = $(if $(filter-out R,$1),$1_)
 # NOTE: and so no variants for DLL allowed for UNIX
 VARIANT_IMP_PREFIX = $(if $(filter-out R,$1),$1_)
 
-# make_features.mk included by make_defs.mk must define something like:
-# DEFINCLUDE         = $(TOP)/include
-# PREDEFINES         = $(if $(filter %D,$(TARGET)),_DEBUG) TARGET_$(patsubst %D,%,$(TARGET)) \
-                       $(if $(filter sparc% mips% ppc%,$(CPU)),B_ENDIAN,L_ENDIAN) \
-                       $(if $(filter arm% sparc% mips% ppc%,$(CPU)),ADDRESS_NEEDALIGN)
+# $(PROJECT_FEATURES) makefile included by make_defs.mk must define something like:
+# DEFINCLUDE = $(TOP)/include
+# PREDEFINES = $(if $(filter %D,$(TARGET)),_DEBUG) TARGET_$(patsubst %D,%,$(TARGET)) \
+               $(if $(filter sparc% mips% ppc%,$(CPU)),B_ENDIAN,L_ENDIAN) \
+               $(if $(filter arm% sparc% mips% ppc%,$(CPU)),ADDRESS_NEEDALIGN)
 # APPDEFS =
 # KRNDEFS =
 
@@ -112,6 +113,7 @@ SUBST_DEFINES = $(subst $$(space),$(space),$1)
 STRING_DEFINE = "$(subst $(space),$$(space),$(subst ",\",$1))"
 
 # add $(VPREFIX) to relative-path includes preserving include order
+# note: do not touch $(SYSINCLUDE) - it may contain paths with spaces
 # $1 - EXE,DLL,LIB,...
 TRG_INCLUDE = $(call FIXPATH,$($1_INCLUDE) $(INCLUDE) $(CMNINCLUDE)) $(SYSINCLUDE)
 
@@ -162,7 +164,7 @@ DEP_IMPS = $(addsuffix $(IMP_SUFFIX),$(addprefix $(IMP_DIR)/$(IMP_PREFIX)$(DEP_I
 # $5 - objects:     $(addprefix $4/,$(call OBJS,$2))
 # $v - R,P,S,<empty>
 define EXE_TEMPLATE
-$(call ADD_UNIQ_DIR_RULES,$4)
+$(call ADD_DIR_RULES,$4)
 $(call OBJ_RULES,EXE,CC,$(filter %.c,$2),$3,$v)
 $(call OBJ_RULES,EXE,CXX,$(filter %.cpp,$2),$3,$v)
 $(call STD_TARGET_VARS,$1)
@@ -196,7 +198,7 @@ EXE_RULES = $(if $(EXE),$(foreach v,$(call GET_VARIANTS,EXE,VARIANTS_FILTER),$(n
 # $5 - objects:     $(addprefix $4/,$(call OBJS,$2))
 # $v - R,P,D,S,<empty>
 define LIB_TEMPLATE
-$(call ADD_UNIQ_DIR_RULES,$4)
+$(call ADD_DIR_RULES,$4)
 $(call OBJ_RULES,LIB,CC,$(filter %.c,$2),$3,$v)
 $(call OBJ_RULES,LIB,CXX,$(filter %.cpp,$2),$3,$v)
 $(call STD_TARGET_VARS,$1)
@@ -224,7 +226,7 @@ LIB_RULES = $(if $(LIB),$(foreach v,$(call GET_VARIANTS,LIB,VARIANTS_FILTER),$(n
 # $5 - objects:     $(addprefix $4/,$(call OBJS,$2))
 # $v - R,S,<empty>
 define DLL_TEMPLATE
-$(call ADD_UNIQ_DIR_RULES,$4)
+$(call ADD_DIR_RULES,$4)
 $(call OBJ_RULES,DLL,CC,$(filter %.c,$2),$3,$v)
 $(call OBJ_RULES,DLL,CXX,$(filter %.cpp,$2),$3,$v)
 $(call STD_TARGET_VARS,$1)
@@ -259,7 +261,7 @@ DLL_RULES = $(if $(DLL),$(foreach v,$(call GET_VARIANTS,DLL,VARIANTS_FILTER),$(n
 # $4 - objdir:      $(call FORM_OBJ_DIR,KLIB)
 # $5 - objects:     $(addprefix $4/,$(call OBJS,$2))
 define KLIB_TEMPLATE
-$(call ADD_UNIQ_DIR_RULES,$4)
+$(call ADD_DIR_RULES,$4)
 $(call OBJ_RULES,KLIB,CC,$(filter %.c,$2),$3)
 $(call OBJ_RULES,KLIB,ASM,$(filter %.asm,$2),$3)
 $(call STD_TARGET_VARS,$1)
