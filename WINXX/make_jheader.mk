@@ -1,12 +1,12 @@
-ifeq ($(JAVA),)
+ifndef JAVA
 JAVA := java.exe
 endif
 
-ifeq ($(JAVAC),)
+ifndef JAVAC
 JAVAC := javac.exe
 endif
 
-ifeq ($(JARC),)
+ifndef JARC
 JARC := jar.exe
 endif
 
