@@ -47,7 +47,7 @@ JAR_LD   = $(call JAVA_CC,$(filter $(JSRC),$?))$(JAR_LD1)
 # $2 - sources:     $(call FIXPATH,$(JSRC))
 # $3 - objdir:      $(call FORM_OBJ_DIR,JAR)
 define JAR_TEMPLATE
-$(call ADD_DIR_RULES,$3)
+NEEDED_DIRS += $3
 $(call STD_TARGET_VARS,$1)
 $1: JSRC      := $2
 $1: OBJDIR    := $3

@@ -164,7 +164,7 @@ DEP_IMPS = $(addsuffix $(IMP_SUFFIX),$(addprefix $(IMP_DIR)/$(IMP_PREFIX)$(DEP_I
 # $5 - objects:     $(addprefix $4/,$(call OBJS,$2))
 # $v - R,P,S,<empty>
 define EXE_TEMPLATE
-$(call ADD_DIR_RULES,$4)
+NEEDED_DIRS += $4
 $(call OBJ_RULES,EXE,CC,$(filter %.c,$2),$3,$v)
 $(call OBJ_RULES,EXE,CXX,$(filter %.cpp,$2),$3,$v)
 $(call STD_TARGET_VARS,$1)
@@ -198,7 +198,7 @@ EXE_RULES = $(if $(EXE),$(foreach v,$(call GET_VARIANTS,EXE,VARIANTS_FILTER),$(n
 # $5 - objects:     $(addprefix $4/,$(call OBJS,$2))
 # $v - R,P,D,S,<empty>
 define LIB_TEMPLATE
-$(call ADD_DIR_RULES,$4)
+NEEDED_DIRS += $4
 $(call OBJ_RULES,LIB,CC,$(filter %.c,$2),$3,$v)
 $(call OBJ_RULES,LIB,CXX,$(filter %.cpp,$2),$3,$v)
 $(call STD_TARGET_VARS,$1)
@@ -226,7 +226,7 @@ LIB_RULES = $(if $(LIB),$(foreach v,$(call GET_VARIANTS,LIB,VARIANTS_FILTER),$(n
 # $5 - objects:     $(addprefix $4/,$(call OBJS,$2))
 # $v - R,S,<empty>
 define DLL_TEMPLATE
-$(call ADD_DIR_RULES,$4)
+NEEDED_DIRS += $4
 $(call OBJ_RULES,DLL,CC,$(filter %.c,$2),$3,$v)
 $(call OBJ_RULES,DLL,CXX,$(filter %.cpp,$2),$3,$v)
 $(call STD_TARGET_VARS,$1)
@@ -261,7 +261,7 @@ DLL_RULES = $(if $(DLL),$(foreach v,$(call GET_VARIANTS,DLL,VARIANTS_FILTER),$(n
 # $4 - objdir:      $(call FORM_OBJ_DIR,KLIB)
 # $5 - objects:     $(addprefix $4/,$(call OBJS,$2))
 define KLIB_TEMPLATE
-$(call ADD_DIR_RULES,$4)
+NEEDED_DIRS += $4
 $(call OBJ_RULES,KLIB,CC,$(filter %.c,$2),$3)
 $(call OBJ_RULES,KLIB,ASM,$(filter %.asm,$2),$3)
 $(call STD_TARGET_VARS,$1)

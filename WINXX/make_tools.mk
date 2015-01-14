@@ -34,8 +34,9 @@ RM    = $(call xcmd,RM1,$1,$(LIM))
 #                        if not exist aaa/bbb
 #                        mkdir aaa/bbb
 # mkdir aaa - fail
-MKDIR1 = if not exist $1 mkdir $1
-MKDIR = $(call MKDIR1,$(ospath))
+#MKDIR1 = if not exist $1 mkdir $1
+# assume MKDIR is called only if directory does not exist
+MKDIR = mkdir $(ospath)
 SED  := sed.exe -b
 SED_EXPR = "$1"
 CAT   = type $(ospath)

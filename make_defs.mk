@@ -202,20 +202,14 @@ SET_DEFAULT_DIRS := $(SET_DEFAULT_DIRS1)
 # ensure they are defined when we will use defs from $(PROJECT_FEATURES)
 $(eval $(SET_DEFAULT_DIRS))
 
-# add rules to create directories $1
-DIR_RULES:=
-ADD_DIR_RULES_TEMPLATE = DIR_RULES := $(sort $(DIR_RULES) $1)
-ADD_DIR_RULES = $(eval $(ADD_DIR_RULES_TEMPLATE))
+# needed directories
+NEEDED_DIRS:=
 
-# $x - directory to create
-# note: this template used by make_all.mk
-define DIR_TEMPLATE
-$x:
-	$$(call SUPRESS,MKDIR  $$@)$$(call MKDIR,$$@)
-endef
+# function to add directories to list of needed dirs
+ADD_DIR_RULES = $(eval NEEDED_DIRS += $1)
 
-# for rules for default dirs
-$(call ADD_DIR_RULES,$(DEF_BIN_DIR) $(DEF_LIB_DIR) $(DEF_BLD_DIR) $(DEF_BLDINC_DIR) $(DEF_BLDSRC_DIR))
+# needed default dirs
+NEEDED_DIRS += $(DEF_BIN_DIR) $(DEF_LIB_DIR) $(DEF_BLD_DIR) $(DEF_BLDINC_DIR) $(DEF_BLDSRC_DIR)
 
 # NOTE: to allow parallel builds for different combinations of
 #  $(OS)/$(KCPU)/$(UCPU)/$(TARGET) tool dir must be unique for each such combination
@@ -245,8 +239,8 @@ BLDSRC_DIR := $(TOOLS_DIR)/bld/src
 endef
 TOOL_OVERRIDE_DIRS := $(TOOL_OVERRIDE_DIRS1)
 
-# for rules for tool dirs
-$(call ADD_DIR_RULES,$(addprefix $(TOOLS_DIR)/,bin obj lib bld bld/include bld/src))
+# needed tool dirs
+NEEDED_DIRS += $(addprefix $(TOOLS_DIR)/,bin obj lib bld bld/include bld/src)
 
 # compute values of next variables right after +=, not at call time:
 # CLEAN          - files/directories list to delete on $(MAKE) clean
@@ -339,7 +333,7 @@ $(STD_TARGET_VARS)
 $(CURRENT_MAKEFILE_TM): $1
 CLEAN += $1
 $1: $(CURRENT_DEPS) | $2
-$(call ADD_DIR_RULES_TEMPLATE,$2)
+NEEDED_DIRS += $2
 endef
 ADD_GENERATED = $(eval $(call ADD_GENERATED1,$1,$(patsubst %/,%,$(dir $1))))
 
@@ -355,8 +349,9 @@ MULTI_TARGET_NUM:=
 # $3 - rule
 define MULTI_TARGET_RULE
 $1: $2 $(CURRENT_DEPS)
-	$$(subst $$$$(newline),$$(newline),$$(if $$(filter $(words $(MULTI_TARGET_NUM)),$$(MULTI_TARGETS)),,$$(eval MULTI_TARGETS += $(words \
-  $(MULTI_TARGET_NUM)))$$(call SUPRESS,MGEN   $$@)$(subst $$(newline),$$$$(newline),$3$(foreach x,$1,$$(newline)$$(call SUPRESS,TOUCH  $x)$$(call TOUCH,$x)))))
+	$$(if $$(filter $(words $(MULTI_TARGET_NUM)),$$(MULTI_TARGETS)),,$$(eval MULTI_TARGETS += $(words \
+  $(MULTI_TARGET_NUM)))$$(call SUPRESS,MGEN   $$@)$$(subst $$$$(newline),$$(newline),$(subst \
+  $$(newline),$$$$(newline),$3$(foreach x,$1,$$(newline)$$(call SUPRESS,TOUCH  $x)$$(call TOUCH,$x)))))
 MULTI_TARGET_NUM += 1
 endef
 

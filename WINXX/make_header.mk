@@ -21,7 +21,7 @@ YASM := yasm.exe $(if $(filter %64,$(KCPU)),-f win64 -m amd64,-f win32 -m x86)
 endif
 
 # environment variable LIB holds path to system libraries,
-# but we have own meaning of variable LIB (static library target)
+# but we have our own meaning of variable LIB (static library target)
 # so undefine it
 LIB :=
 
@@ -394,7 +394,7 @@ MC_H       := $$(MC_H_DIR)/$(basename $(notdir $2)).h
 MC_RC      := $$(MC_SRC_DIR)/$(basename $(notdir $2)).rc
 $$(MC_H) $$(MC_RC): | $$(MC_H_DIR) $$(MC_SRC_DIR)
 CLEAN += $$(MC_H) $$(MC_SRC_DIR)
-$$(call ADD_DIR_RULES,$$(MC_H_DIR) $$(MC_SRC_DIR))
+NEEDED_DIRS += $$(MC_H_DIR) $$(MC_SRC_DIR)
 $$(call MULTI_TARGET,$$(MC_H) $$(MC_RC),$(call FIXPATH,$2),$$$$(call MC,$$(MC_H) $$(MC_RC)) -h $$(call \
   ospath,$$(MC_H_DIR)) -r $$(call ospath,$$(MC_SRC_DIR)) $$$$(call ospath,$$$$<))
 endef
@@ -407,7 +407,7 @@ ADD_MC_RULE = $(eval $(ADD_MC_RULE1))
 # NOTE: generated .res added to CLEAN list in $(OS_DEFINE_TARGETS)
 define ADD_RES_RULE1
 AUX_RES := $5/$(basename $(notdir $2)).res
-$(call ADD_DIR_RULES_TEMPLATE,$5)
+NEEDED_DIRS += $5
 $$(AUX_RES): $(call FIXPATH,$2 $4) | $5
 	$$(call RC,$$@,$$<,$3)
 $1_RES_WINXX += $$(AUX_RES)
@@ -422,7 +422,7 @@ ADD_RES_RULE = $(eval $(call ADD_RES_RULE1,$1,$2,$3,$4,$(call FORM_OBJ_DIR,$1)))
 define DRV_TEMPLATE
 $(call STD_RES_TEMPLATE,DRV)
 $(call KPCH_TEMPLATE,DRV)
-$(call ADD_DIR_RULES,$4)
+NEEDED_DIRS += $4
 $(call OBJ_RULES,DRV,CC,$(filter %.c,$2),$3)
 $(call STD_TARGET_VARS,$1)
 $1: SRC        := $2

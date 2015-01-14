@@ -3,9 +3,9 @@ ifdef SUB_LEVEL
 $(error Don't include make_all.mk directly, instead execute $$(DEF_TAIL_CODE) at end of $(CURRENT_MAKEFILE))
 endif
 
-# rules to create directories
-# note: don't call mkdir for sub-directories to avoid races
-$(eval $(foreach x,$(DIR_RULES),$(newline)$(if $(filter $x/%,$(DIR_RULES)),$x:,$(DIR_TEMPLATE))))
+# rules to create needed directories
+$(sort $(NEEDED_DIRS)):
+	$(call SUPRESS,MKDIR  $@)$(call MKDIR,$@)
 
 $(PROCESSED_MAKEFILES): | $(BLD_MAKEFILES_TIMESTAMPS_DIR)
 	$(call SUPRESS,TOUCH  $@)$(call TOUCH,$@)

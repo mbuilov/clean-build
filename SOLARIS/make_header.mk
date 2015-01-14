@@ -126,7 +126,7 @@ FLEX  = $(call SUPRESS,FLEX   $2)flex -o$1 $2
 # $4 - objdir:      $(call FORM_OBJ_DIR,DRV)
 # $5 - objects:     $(addprefix $4/,$(call OBJS,$2))
 define DRV_TEMPLATE
-$(call ADD_DIR_RULES,$4)
+NEEDED_DIRS += $4
 $(call OBJ_RULES,DRV,CC,$(filter %.c,$2),$3)
 $(call OBJ_RULES,DRV,ASM,$(filter %.asm,$2),$3)
 $(call STD_TARGET_VARS,$1)

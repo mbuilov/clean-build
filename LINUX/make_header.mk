@@ -6,7 +6,7 @@ ifneq ($(filter default undefined,$(origin CXX)),)
 CXX := g++
 endif
 
-ifeq ($(MODULES_PATH),)
+ifndef MODULES_PATH
 MODULES_PATH := /lib/modules/$(shell uname -r)/build
 endif
 
@@ -209,7 +209,7 @@ endef
 # $3 - blddir:      $(BLD_DIR)/DRV_$(DRV)
 # $4 - klibs:       $(addprefix $(KLIB_PREFIX),$(addsuffix $(KLIB_SUFFIX),$(KLIBS)))
 define DRV_TEMPLATE
-$(call ADD_DIR_RULES,$3)
+NEEDED_DIRS += $3
 # copy sources
 $(foreach x,$2,$(call COPY_FILE_RULE,$3,$x))
 # copy klibs
