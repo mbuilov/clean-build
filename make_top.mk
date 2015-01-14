@@ -14,11 +14,11 @@ endif
 endef
 CHECK_TOP = $(eval $(CHECK_TOP1))
 
-ifeq ($(TOP),)
+ifndef TOP
 $(error TOP undefined, example: C:/opt/project,/home/oper/project)
 endif
 $(call CHECK_TOP,TOP)
 
-ifneq ($(XTOP),)
+ifdef XTOP
 $(call CHECK_TOP,XTOP)
 endif
