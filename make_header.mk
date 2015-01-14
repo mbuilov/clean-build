@@ -73,20 +73,22 @@ OSVARS := $(foreach r,$(BLD_VARS) $(foreach t,$(BLD_TARGETS),$(addprefix $t_,$(T
 # defines target kernel sources to build
 KSYSTEM ?= $(OS)
 
-# $1 - source file, $2 - $(SDEPS) - list of pairs: <source file> <dependency1>|<dependency2>|...
+# $1 - source files, $2 - $(SDEPS) - list of pairs: <source file> <dependency1>|<dependency2>|...
 EXTRACT_SRC_DEPS = $(if $2,$(if $(filter $1,$(firstword $2)),$(subst |, ,$(word 2,$2)) )$(call EXTRACT_SRC_DEPS,$1,$(wordlist 3,999999,$2)))
 
 # rule that defines how to build object from source
-# $1 - EXE,LIB,... $2 - CXX,CC,ASM,... $3 - source to compile, $4 - deps, $5 - variant (non-empty!), $6 - objdir
+# $1 - EXE,LIB,... $2 - CXX,CC,ASM,... $3 - source to compile, $4 - deps, $5 - variant (non-empty!), $6 - objdir, $7 - $(basename $(notdir $3))
 define OBJ_RULE
 $(empty)
-$6/$(basename $(notdir $3))$(OBJ_SUFFIX): $3 $(call EXTRACT_SRC_DEPS,$3,$4) $(CURRENT_DEPS) | $6
+$6/$7.d $6/$7$(OBJ_SUFFIX): $3 $(call EXTRACT_SRC_DEPS,$3,$4) $(CURRENT_DEPS) | $6
 	$$(call $1_$5_$2,$$@,$$<)
+-include $6/$7.d
+CLEAN += $6/$7.d
 endef
 
 # rule that defines how to build objects from sources
 # $1 - EXE,LIB,... $2 - CXX,CC,ASM,... $3 - sources to compile, $4 - deps, $5 - variant (if empty, then R)
-OBJ_RULES2 = $(foreach x,$3,$(call OBJ_RULE,$1,$2,$x,$4,$5,$6))
+OBJ_RULES2 = $(foreach x,$3,$(call OBJ_RULE,$1,$2,$x,$4,$5,$6,$(basename $(notdir $x))))
 OBJ_RULES1 = $(call OBJ_RULES2,$1,$2,$3,$4,$5,$(call FORM_OBJ_DIR,$1,$5))
 OBJ_RULES = $(call OBJ_RULES1,$1,$2,$3,$4,$(patsubst ,R,$5))
 
@@ -128,7 +130,7 @@ TRG_DEPS = $(subst | ,|,$(call FIXPATH,$(subst |,| ,$(SDEPS) $($1_SDEPS))))
 TRG_MAP = $(call FIXPATH,$(firstword $(if $($1_MAP),$($1_MAP),$(MAP))))
 TRG_DEF = $(call FIXPATH,$(firstword $(if $($1_DEF),$($1_DEF),$(DEF))))
 
-# objects to build for the target
+# objects and auto-deps to build for the target
 # NOTE: not all $(OBJS) may be built from the $(SRC) - some objects may be built from generated sources
 OBJS = $(addsuffix $(OBJ_SUFFIX),$(basename $(notdir $1)))
 
