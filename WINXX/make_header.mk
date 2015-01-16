@@ -134,9 +134,21 @@ CMN_SCL  = $(CMN_CL1) /MT$(if $(filter %D,$(TARGET)),d)
 
 ifdef SEQ
 
+INCLUDING_FILE_PATTERN ?= Note: including file:
+INCLUDING_FILE_PATTERN1 := $(INCLUDING_FILE_PATTERN)
+
+UM_DEPS_INCLUDE_FILTER ?= /c:"microsoft sdks" /c:"microsoft visual studio"
+UM_DEPS_INCLUDE_FILTER1 := $(UM_DEPS_INCLUDE_FILTER)
+
+# $1 - target object file, $2 - source
+SED_DEPS_SCRIPT = s@$(INCLUDING_FILE_PATTERN1) *@@;s@\\@/@g;s@ @\\ @g;H;1s|.*|$1: $2 &|;s@.*@& \\@p;x;s@.*@&:@;x;$${x;p}
+
+# $1 - target object file, $2 - source
+GENERATE_DEPS = | findstr "$(INCLUDING_FILE_PATTERN1)" $(if $(UM_DEPS_INCLUDE_FILTER1),| findstr /v /i )$(UM_DEPS_INCLUDE_FILTER1))| sed.exe -n "$(SED_DEPS_SCRIPT)" > $(basename $1).d & cmd /c exit 0
+
 # $1 - target, $2 - source, $3 - compiler
-CMN_CC   = $(call SUPRESS,CC     $1)$(call $3,$(dir $1),$2,$(CFLAGS))
-CMN_CXX  = $(call SUPRESS,CXX    $1)$(call $3,$(dir $1),$2,$(CXXFLAGS))
+CMN_CC   = $(call SUPRESS,CC     $1)$(call $3,$(dir $1),$2,$(CFLAGS))$(if $(NO_DEPS),, && ($(call $3,$(dir $1),$2,$(CFLAGS) /Zs /showIncludes)$(GENERATE_DEPS)))
+CMN_CXX  = $(call SUPRESS,CXX    $1)$(call $3,$(dir $1),$2,$(CXXFLAGS))$(if $(NO_DEPS),, && ($(call $3,$(dir $1),$2,$(CXXFLAGS) /Zs /showIncludes)$(GENERATE_DEPS)))
 
 # $1 - target, $2 - source
 define COMPILTERS_TEMPLATE
@@ -166,7 +178,7 @@ CMN_MCL2 = $(if \
             $6,$(call SUPRESS,MPCXX  $6)$(call $7,$1,$6,/MP /Yu$2 /Fp$1$(basename $2)_cpp.pch /FI$2 $(CXXFLAGS))$(newline))
 
 # $1 - outdir, $2 - C-sources, $3 - CXX-sources, $4 - compiler
-CMN_MCL1 = $(call CMN_MCL2,$1,$(notdir $(PCH)),$(filter-out $(WITH_PCH),$2),$(filter-out \
+CMN_MCL1 = $(call CMN_MCL2,$1,$(PCH),$(filter-out $(WITH_PCH),$2),$(filter-out \
             $(WITH_PCH),$3),$(filter $(WITH_PCH),$2),$(filter $(WITH_PCH),$3),$4)
 
 # $1 - outdir, $2 - sources
@@ -223,8 +235,14 @@ CMN_KCL  = $(WKCL) /nologo /c $(KERN_FLAGS) $(call SUBST_DEFINES,$(addprefix /D,
 
 ifdef SEQ
 
+KM_DEPS_INCLUDE_FILTER ?= /c:"winddk"
+KM_DEPS_INCLUDE_FILTER1 := $(KM_DEPS_INCLUDE_FILTER)
+
+# $1 - target object file, $2 - source
+GENERATE_KDEPS = | findstr "$(INCLUDING_FILE_PATTERN1)" $(if $(KM_DEPS_INCLUDE_FILTER1),| findstr /v /i )$(KM_DEPS_INCLUDE_FILTER1))| sed.exe -n "$(SED_DEPS_SCRIPT)" > $(basename $1).d & cmd /c exit 0
+
 # $1 - target, $2 - source
-CMN_KCC   = $(call SUPRESS,KCC    $2)$(call CMN_KCL,$(dir $1),$2,$(CFLAGS))
+CMN_KCC   = $(call SUPRESS,KCC    $2)$(call CMN_KCL,$(dir $1),$2,$(CFLAGS))$(if $(NO_DEPS),, && ($(call CMN_KCL,$(dir $1),$2,$(CFLAGS) /Zs /showIncludes)$(GENERATE_KDEPS)))
 KLIB_R_CC = $(CMN_KCC)
 DRV_R_CC  = $(CMN_KCC)
 KLIB_LD   = $(KLIB_LD1)
@@ -239,7 +257,7 @@ CMN_MKCL1 = $(if \
             $4,$(call SUPRESS,MPKCC  $4)$(call CMN_KCL,$1,$4,/MP /Yu$2 /Fp$1$(basename $2)_c.pch /FI$2 $(CFLAGS))$(newline))
 
 # $1 - outdir, $2 - C-sources
-CMN_MKCL = $(call CMN_MKCL1,$1,$(notdir $(PCH)),$(filter-out $(WITH_PCH),$2),$(filter $(WITH_PCH),$2))
+CMN_MKCL = $(call CMN_MKCL1,$1,$(PCH),$(filter-out $(WITH_PCH),$2),$(filter $(WITH_PCH),$2))
 
 # $1 - target, $2 - objects
 KLIB_LD  = $(call CMN_MKCL,$(dir $(firstword $(filter %$(OBJ_SUFFIX),$2))),$(sort $(filter $(SRC),$? $(call FILTER_SDEPS,$(SDEPS)))))$(KLIB_LD1)
@@ -267,16 +285,16 @@ CLEAN += $$(if $$(filter %.c,$$(TRG_WITH_PCH)),$$(PCH_C_SRC)) $$(if $$(filter %.
 endef
 define PCH_TEMPLATE2
 $(empty)
-$5: PCH := $$(TRG_PCH)
+$5: PCH := $$(notdir $$(TRG_PCH))
 $5: WITH_PCH := $$(TRG_WITH_PCH)
 $$(PCH_C_SRC) $$(PCH_CXX_SRC): | $(BLDSRC_DIR)
-	$(if $(VERBOSE:1=),@)echo #include "$$(notdir $$(PCH))" > $$@
+	$(if $(VERBOSE:1=),@)echo #include "$$(PCH)" > $$@
 PCH_C_OBJ := $4/$1_$2_$3_c$(OBJ_SUFFIX)
 PCH_CXX_OBJ := $4/$1_$2_$3_cpp$(OBJ_SUFFIX)
 $$(PCH_C_OBJ): $$(PCH_C_SRC) $(CURRENT_DEPS) | $4
-	$$(call PCH_$v_CC,$$@,$$<,$$(notdir $$(PCH)))
+	$$(call PCH_$v_CC,$$@,$$<,$$(PCH))
 $$(PCH_CXX_OBJ): $$(PCH_CXX_SRC) $(CURRENT_DEPS) | $4
-	$$(call PCH_$v_CXX,$$@,$$<,$$(notdir $$(PCH)))
+	$$(call PCH_$v_CXX,$$@,$$<,$$(PCH))
 PCH_OBJS := $$(if $$(filter %.c,$$(TRG_WITH_PCH)),$$(PCH_C_OBJ)) $$(if $$(filter %.cpp,$$(TRG_WITH_PCH)),$$(PCH_CXX_OBJ))
 $5: $$(PCH_OBJS)
 CLEAN += $$(PCH_OBJS)
@@ -295,14 +313,14 @@ ifndef SEQ
 # $4 - $(call FORM_OBJ_DIR,$1), $5 - $(call FORM_TRG,$1)
 define KPCH_TEMPLATE1
 TRG_PCH := $(if $($1_PCH),$($1_PCH),$(PCH))
-$5: PCH := $$(TRG_PCH)
+$5: PCH := $$(notdir $$(TRG_PCH))
 $5: WITH_PCH := $(call FIXPATH,$(WITH_PCH) $($1_WITH_PCH))
 PCH_C_SRC := $(BLDSRC_DIR)/$1_$2_$3_c.c
 $$(PCH_C_SRC): | $(BLDSRC_DIR)
-	$(if $(VERBOSE:1=),@)echo #include "$$(notdir $$(PCH))" > $$@
+	$(if $(VERBOSE:1=),@)echo #include "$$(PCH)" > $$@
 PCH_C_OBJ := $4/$1_$2_$3_c$(OBJ_SUFFIX)
 $$(PCH_C_OBJ): $$(PCH_C_SRC) $(CURRENT_DEPS) | $4
-	$$(call PCH_KCC,$$@,$$<,$$(notdir $$(PCH)))
+	$$(call PCH_KCC,$$@,$$<,$$(PCH))
 $5: $$(PCH_C_OBJ)
 CLEAN += $$(PCH_C_OBJ) $$(PCH_C_SRC) $4/$3_c.pch
 endef
