@@ -16,6 +16,11 @@ MAKE_DEFS_INCLUDED := 1
 # disable builtin rules and variables
 MAKEFLAGS += --no-builtin-rules --no-builtin-variables
 
+# don't generate dependencies when cleaning up
+ifneq ($(filter clean,$(MAKECMDGOALS)),)
+NO_DEPS := 1
+endif
+
 include $(MTOP)/make_functions.mk
 
 # project's make_features.mk must define something like:
