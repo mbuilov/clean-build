@@ -80,7 +80,7 @@ EXTRACT_SRC_DEPS = $(if $2,$(if $(filter $1,$(firstword $2)),$(subst |, ,$(word 
 # $1 - EXE,LIB,... $2 - CXX,CC,ASM,... $3 - source to compile, $4 - deps, $5 - variant (non-empty!), $6 - objdir, $7 - $(basename $(notdir $3))
 define OBJ_RULE
 $(empty)
-$6/$7.d $6/$7$(OBJ_SUFFIX): $3 $(call EXTRACT_SRC_DEPS,$3,$4) $(CURRENT_DEPS) | $6
+$6/$7$(OBJ_SUFFIX): $3 $(call EXTRACT_SRC_DEPS,$3,$4) $(CURRENT_DEPS) | $6
 	$$(call $1_$5_$2,$$@,$$<)
 -include $6/$7.d
 CLEAN += $6/$7.d
