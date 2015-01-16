@@ -105,8 +105,8 @@ LIB_D_LD  = $(call SUPRESS,LD     $1)$($(TMD)LD) -r --warn-common -o $1 $2 $(LDF
 KLIB_LD   = $(call SUPRESS,KLD    $1)$(KLD) -r --warn-common -o $1 $2 $(LDFLAGS)
 
 # $1 - target, $2 - source
-UCPU_FLAGS := $(if $(filter %D,$(TARGET)),-ggdb,-g -O2)
-CC_PARAMS = -pipe -c -Wall $(UCPU_FLAGS) $(call SUBST_DEFINES,$(addprefix -D,$(DEFINES))) $(addprefix -I,$(INCLUDE)) -MMD -MP
+UCPU_FLAGS := $(if $(filter %D,$(TARGET)),-ggdb,-g -O2) $(if $(NO_DEPS),,-MMD -MP)
+CC_PARAMS = -pipe -c -Wall $(UCPU_FLAGS) $(call SUBST_DEFINES,$(addprefix -D,$(DEFINES))) $(addprefix -I,$(INCLUDE))
 CMN_CXX  = $(if $(filter $2,$(WITH_PCH)),$(call SUPRESS,PCXX   $2)$($(TMD)CXX) -I$(dir $1) -include $(basename \
             $(notdir $(PCH)))_pch_cxx.h,$(call SUPRESS,CXX    $2)$($(TMD)CXX)) $(CC_PARAMS) $(CXXFLAGS)
 CMN_CC   = $(if $(filter $2,$(WITH_PCH)),$(call SUPRESS,PCC    $2)$($(TMD)CC) -I$(dir $1) -include $(basename \
@@ -141,7 +141,8 @@ PCH_DLL_R_CC   = $(PCH_CC) -fpic -o $1 $2
 PCH_LIB_D_CXX  = $(PCH_DLL_R_CXX)
 PCH_LIB_D_CC   = $(PCH_DLL_R_CC)
 
-KLIB_PARAMS = -pipe -c $(KERN_COMPILE_OPTIONS) $(call SUBST_DEFINES,$(addprefix -D,$(DEFINES))) $(addprefix -I,$(INCLUDE)) -MMD -MP $(CFLAGS)
+KCPU_FLAGS := $(if $(NO_DEPS),,-MMD -MP)
+KLIB_PARAMS = -pipe -c $(KERN_COMPILE_OPTIONS) $(call SUBST_DEFINES,$(addprefix -D,$(DEFINES))) $(addprefix -I,$(INCLUDE)) $(KCPU_FLAGS) $(CFLAGS)
 KLIB_R_CC  = $(if $(filter-out %.d,$1),$(if $(filter $2,$(WITH_PCH)),$(call SUPRESS,PKCC   $2)$(KCC) -I$(dir $1) -include $(basename \
               $(notdir $(PCH)))_pch_c.h,$(call SUPRESS,KCC    $2)$(KCC)) $(KLIB_PARAMS) -o $1 $2)
 
@@ -164,7 +165,7 @@ ifneq ($$(filter %.c,$$(TRG_WITH_PCH)),)
 C_GCH := $2/$$(basename $$(notdir $$(TRG_PCH)))_pch_c.h
 $$(C_GCH).gch: $$(CURRENT_DEPS) | $2
 	$$(call PCH_$1_$v_CC,$$@,$$(PCH))
--include $$(C_GCH).d
+$(if $(NO_DEPS),,-include $$(C_GCH).d)
 $$(addprefix $2/,$$(addsuffix $(OBJ_SUFFIX),$$(basename $$(notdir $$(filter %.c,$$(TRG_WITH_PCH)))))): $$(C_GCH).gch
 CLEAN += $$(C_GCH).gch $$(C_GCH).d
 endif
@@ -172,7 +173,7 @@ ifneq ($$(filter %.cpp,$$(TRG_WITH_PCH)),)
 CXX_GCH := $2/$$(basename $$(notdir $$(TRG_PCH)))_pch_cxx.h
 $$(CXX_GCH).gch: $$(CURRENT_DEPS) | $2
 	$$(call PCH_$1_$v_CXX,$$@,$$(PCH))
--include $$(CXX_GCH).d
+$(if $(NO_DEPS),,-include $$(CXX_GCH).d)
 $$(addprefix $2/,$$(addsuffix $(OBJ_SUFFIX),$$(basename $$(notdir $$(filter %.cpp,$$(TRG_WITH_PCH)))))): $$(CXX_GCH).gch
 CLEAN += $$(CXX_GCH).gch $$(CXX_GCH).d
 endif
