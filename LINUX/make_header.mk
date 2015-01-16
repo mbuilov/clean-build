@@ -178,8 +178,9 @@ CLEAN += $$(CXX_GCH).gch $$(CXX_GCH).d
 endif
 endef
 
-PCH_TEMPLATE2 = $(if $($t),$(if $($t_PCH)$(PCH),$(if $($t_WITH_PCH)$(WITH_PCH),$(foreach \
-  v,$(call GET_VARIANTS,$t,VARIANTS_FILTER),$(newline)$(call PCH_TEMPLATE1,$t,$(call FORM_OBJ_DIR,$t,$v),$(call FORM_TRG,$t,$v))))))
+PCH_TEMPLATE2 = $(if $($t),$(if $(word 2,$(firstword $($t_PCH)$(PCH)) $(firstword $($t_WITH_PCH)$(WITH_PCH))),$(foreach \
+  v,$(call GET_VARIANTS,$t,VARIANTS_FILTER),$(newline)$(call PCH_TEMPLATE1,$t,$(call FORM_OBJ_DIR,$t,$v),$(call FORM_TRG,$t,$v))),$(foreach \
+  v,$(call GET_VARIANTS,$t,VARIANTS_FILTER),$(call FORM_TRG,$t,$v): WITH_PCH:=$(newline))))
 
 # code to eval to build with precompiled headers
 PCH_TEMPLATES = $(foreach t,EXE LIB DLL KLIB,$(PCH_TEMPLATE2))
