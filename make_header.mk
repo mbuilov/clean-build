@@ -82,7 +82,7 @@ define OBJ_RULE
 $(empty)
 $6/$7$(OBJ_SUFFIX): $3 $(call EXTRACT_SRC_DEPS,$3,$4) $(CURRENT_DEPS) | $6
 	$$(call $1_$5_$2,$$@,$$<)
--include $6/$7.d
+$(if $(NO_DEPS),,-include $6/$7.d)
 CLEAN += $6/$7.d
 endef
 
