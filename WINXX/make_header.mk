@@ -144,7 +144,7 @@ UM_DEPS_INCLUDE_FILTER1 := $(UM_DEPS_INCLUDE_FILTER)
 SED_DEPS_SCRIPT = s@$(INCLUDING_FILE_PATTERN1) *@@;s@\\@/@g;s@ @\\ @g;H;1s|.*|$1: $2 &|;s@.*@& \\@p;x;s@.*@&:@;x;$${x;p}
 
 # $1 - target object file, $2 - source
-GENERATE_DEPS = | findstr "$(INCLUDING_FILE_PATTERN1)" $(if $(UM_DEPS_INCLUDE_FILTER1),| findstr /v /i )$(UM_DEPS_INCLUDE_FILTER1))| sed.exe -n "$(SED_DEPS_SCRIPT)" > $(basename $1).d & cmd /c exit 0
+GENERATE_DEPS = | findstr "$(INCLUDING_FILE_PATTERN1)" $(if $(UM_DEPS_INCLUDE_FILTER1),| findstr /v /i )$(UM_DEPS_INCLUDE_FILTER1)| sed.exe -n "$(SED_DEPS_SCRIPT)" > $(basename $1).d
 
 # $1 - target, $2 - source, $3 - compiler
 CMN_CC   = $(call SUPRESS,CC     $1)$(call $3,$(dir $1),$2,$(CFLAGS))$(if $(NO_DEPS),, && ($(call $3,$(dir $1),$2,$(CFLAGS) /Zs /showIncludes)$(GENERATE_DEPS)))
@@ -239,7 +239,7 @@ KM_DEPS_INCLUDE_FILTER ?= /c:"winddk"
 KM_DEPS_INCLUDE_FILTER1 := $(KM_DEPS_INCLUDE_FILTER)
 
 # $1 - target object file, $2 - source
-GENERATE_KDEPS = | findstr "$(INCLUDING_FILE_PATTERN1)" $(if $(KM_DEPS_INCLUDE_FILTER1),| findstr /v /i )$(KM_DEPS_INCLUDE_FILTER1)| sed.exe -n "$(SED_DEPS_SCRIPT)" > $(basename $1).d & cmd /c exit 0
+GENERATE_KDEPS = | findstr "$(INCLUDING_FILE_PATTERN1)" $(if $(KM_DEPS_INCLUDE_FILTER1),| findstr /v /i )$(KM_DEPS_INCLUDE_FILTER1)| sed.exe -n "$(SED_DEPS_SCRIPT)" > $(basename $1).d
 
 # $1 - target, $2 - source
 CMN_KCC   = $(call SUPRESS,KCC    $2)$(call CMN_KCL,$(dir $1),$2,$(CFLAGS))$(if $(NO_DEPS),, && ($(call CMN_KCL,$(dir $1),$2,$(CFLAGS) /Zs /showIncludes)$(GENERATE_KDEPS)))
