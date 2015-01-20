@@ -2,7 +2,21 @@
 
 rem find .top
 setlocal
-for %%x in (. .. ..\.. ..\..\.. ..\..\..\.. ..\..\..\..\.. ..\..\..\..\..\.. ..\..\..\..\..\..\.. ..\..\..\..\..\..\..\.. ..\..\..\..\..\..\..\..\..) do if exist %%x\.top (
+for %%x in (
+.
+..
+..\..
+..\..\..
+..\..\..\..
+..\..\..\..\..
+..\..\..\..\..\..
+..\..\..\..\..\..\..
+..\..\..\..\..\..\..\..
+..\..\..\..\..\..\..\..\..
+..\..\..\..\..\..\..\..\..\..
+..\..\..\..\..\..\..\..\..\..\..
+..\..\..\..\..\..\..\..\..\..\..\..
+) do if exist %%x\.top (
 	set XX=%%x
 	goto :run
 )
@@ -16,16 +30,6 @@ set XX=%CD%
 popd
 
 rem replace \ with / in path to .top
-:repeat
-for /f "tokens=1* delims=\" %%i in ("%XX%") do (
-	set XX=%%j
-	if defined XX (
-		set XX=%%i/%%j
-		goto repeat
-	) else (
-		set XX=%%i
-	)
-)
-endlocal & set TOP=%XX%
+endlocal & set TOP=%XX:\=/%
 
 gnumake.exe %*
