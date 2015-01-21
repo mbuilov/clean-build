@@ -95,24 +95,39 @@ KLIB_LD  = $(call SUPRESS,KLD    $1)$(KLD) -r -o $1 $2 $(LDFLAGS)
 DRV_LD   = $(call SUPRESS,KLD    $1)$(KLD) -r -o $1 $2 $(if \
             $(KLIBS),$(addprefix -L,$(LIB_DIR)) $(addprefix -l$(KLIB_NAME_PREFIX),$(KLIBS))) $(LDFLAGS)
 
-# $1 - target, $2 - source
-UCPU_FLAGS := $(if $(filter %D,$(TARGET)),-g -DDEBUG,-O)
-CC_PARAMS = -c $(UCPU_FLAGS) $(call SUBST_DEFINES,$(addprefix -D,$(DEFINES))) $(addprefix -I,$(INCLUDE))
-CMN_CXX  = $(call SUPRESS,CXX    $2)$($(TMD)CXX) $(CC_PARAMS) $(CXXFLAGS)
-CMN_CC   = $(call SUPRESS,CC     $2)$($(TMD)CC) $(CC_PARAMS) $(CFLAGS)
+open_brace  := (
+close_brace := )
 
-EXE_R_CXX = $(CMN_CXX) -o $1 $2
-EXE_R_CC  = $(CMN_CC) -o $1 $2
+# $1 - target, $2 - source, $5 - prefixes of system includes
+SED_DEPS_SCRIPT = 1x;1s@.*@$2: $3 \\@;1x;/^COMPILATION_FAILED$$/H;s@^COMPILATION_FAILED$$@/&@;/^$(tab)*\//!p;s@^/COMPILATION_FAILED$$@@;/^$(tab)*\//!s@.*@|@;/|/!s@^$(tab)*@@;$(subst \
+$(space),,$(foreach x,$5,s@$x.*@|@;))/|/!H;/|/!s@.*@&:@;/|/!x;/|/!s@.*@& \\@;/|/!x;$$x;$$H;$$s@.*@@;$$H;$$x;$$s@|@@;/|/d;w $4
+
+# $1 - compiler with options, $2 - target, $3 - source, $4 - $(basename $2).d, $5 - prefixes of system includes
+WRAP_COMPILER = $(if $(NO_DEPS),,$(open_brace))$1$(if $(NO_DEPS),, -H 2>&1 || echo COMPILATION_FAILED$(close_brace) | \
+sed -n '$(SED_DEPS_SCRIPT)' && if grep COMPILATION_FAILED $4 > /dev/null; then rm $4 && false; fi)
+
+UDEPS_INCLUDE_FILTER ?= /usr/include/
+
+# $1 - target, $2 - source, $3 - aux flags
+UCPU_FLAGS := $(if $(filter %D,$(TARGET)),-g -DDEBUG,-O)
+CC_PARAMS = $(UCPU_FLAGS) $(call SUBST_DEFINES,$(addprefix -D,$(DEFINES))) $(addprefix -I,$(INCLUDE))
+CMN_CXX  = $(call SUPRESS,CXX    $2)$(call WRAP_COMPILER,$($(TMD)CXX) $(CC_PARAMS) $(CXXFLAGS) -c -o $1 $2 $3,$1,$2,$(basename $1).d,$(UDEPS_INCLUDE_FILTER))
+CMN_CC   = $(call SUPRESS,CC     $2)$(call WRAP_COMPILER,$($(TMD)CC) $(CC_PARAMS) $(CFLAGS) -c -o $1 $2 $3,$1,$2,$(basename $1).d,$(UDEPS_INCLUDE_FILTER))
+
+EXE_R_CXX = $(CMN_CXX)
+EXE_R_CC  = $(CMN_CC)
 LIB_R_CXX = $(EXE_R_CXX)
 LIB_R_CC  = $(EXE_R_CC)
-DLL_R_CXX = $(CMN_CXX) -KPIC -o $1 $2
-DLL_R_CC  = $(CMN_CC) -KPIC -o $1 $2
+DLL_R_CXX = $(call CMN_CXX,$1,$2,-KPIC)
+DLL_R_CC  = $(call CMN_CC,$1,$2,-KPIC)
 LIB_D_CXX = $(DLL_R_CXX)
 LIB_D_CC  = $(DLL_R_CC)
 
+KDEPS_INCLUDE_FILTER ?= /usr/include/
+
 KCPU_FLAGS := $(if $(filter %D,$(TARGET)),-g -DDEBUG,-O)
-KLIB_R_CC = $(call SUPRESS,KCC    $2)$(KCC) -c $(KCPU_FLAGS) $(call \
-            SUBST_DEFINES,$(addprefix -D,$(DEFINES))) $(addprefix -I,$(INCLUDE)) $(CFLAGS) -o $1 $2
+KCC_PARAMS = $(KCPU_FLAGS) $(call SUBST_DEFINES,$(addprefix -D,$(DEFINES))) $(addprefix -I,$(INCLUDE)) $(CFLAGS)
+KLIB_R_CC = $(call SUPRESS,KCC    $2)$(call WRAP_COMPILER,$(KCC) $(KCC_PARAMS) -c -o $1 $2,$1,$2,$(basename $1).d,$(KDEPS_INCLUDE_FILTER))
 DRV_R_CC  = $(KLIB_R_CC)
 
 KLIB_R_ASM ?= $(call SUPRESS,ASM    $2)$(YASM) -o $1 $2 $(ASMFLAGS)
