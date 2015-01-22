@@ -98,7 +98,7 @@ DRV_LD   = $(call SUPRESS,KLD    $1)$(KLD) -r -o $1 $2 $(if \
 open_brace  := (
 close_brace := )
 
-# $1 - target, $2 - source, $5 - prefixes of system includes
+# $2 - target, $3 - source, $4 - $(basename $2).d, $5 - prefixes of system includes
 SED_DEPS_SCRIPT = 1x;1s@.*@$2: $3 \\@;1x;/^COMPILATION_FAILED$$/H;s@^COMPILATION_FAILED$$@/&@;/^$(tab)*\//!p;s@^/COMPILATION_FAILED$$@@;/^$(tab)*\//!s@.*@|@;/|/!s@^$(tab)*@@;$(subst \
 $(space),,$(foreach x,$5,s@$x.*@|@;))/|/!H;/|/!s@.*@&:@;/|/!x;/|/!s@.*@& \\@;/|/!x;$$x;$$H;$$s@.*@@;$$H;$$x;$$s@|@@;/|/d;w $4
 
