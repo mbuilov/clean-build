@@ -3,7 +3,7 @@ ifndef MOC_SRC_PATTERN
 # $2 - build target name, may be empty
 # $3 - EXE_,LIB_,DLL_,... may be empty
 define MOC_SRC_PATTERN
-MOC_SRC_DIR := $(BLDSRC_DIR)/MOC$(MOC_DIR_NAME)_$3$2
+MOC_SRC_DIR := $(BLDSRC_DIR)/MOC_$(MOC_DIR_NAME)$(addprefix _,$3$2)
 $3MOC_SRC := $$(addprefix $$(MOC_SRC_DIR)/,$(patsubst %.h,%_moc.cpp,$(notdir $1)))
 NEEDED_DIRS += $$(MOC_SRC_DIR)
 $(foreach x,$1,$(newline)$$(MOC_SRC_DIR)/$(patsubst %.h,%_moc.cpp,$(notdir $x)): $x | $$(MOC_SRC_DIR)
