@@ -2,15 +2,16 @@
 non-recursive build system based on GNU make
 
 status: pre-alfa
-license: not selected yet
+
+to do: examples
+
+license: GPLv2
 
 main features:
 
 - non-recursive build
 - massive parallelism (almost unlimited scaling by CPU number)
+- cross-platform, using mostly native tools (no cygwin, java, etc..)
 - cross-makefiles dependencies
 - support for precompiled headers
-
-unimplemented yet:
-
-- auto-dependencies generation
+- support for auto dependencies generation
