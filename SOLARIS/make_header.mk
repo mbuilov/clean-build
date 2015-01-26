@@ -95,16 +95,16 @@ KLIB_LD  = $(call SUPRESS,KLD    $1)$(KLD) -r -o $1 $2 $(LDFLAGS)
 DRV_LD   = $(call SUPRESS,KLD    $1)$(KLD) -r -o $1 $2 $(if \
             $(KLIBS),$(addprefix -L,$(LIB_DIR)) $(addprefix -l$(KLIB_NAME_PREFIX),$(KLIBS))) $(LDFLAGS)
 
-open_brace  := (
-close_brace := )
-
 # $2 - target, $3 - source, $4 - $(basename $2).d, $5 - prefixes of system includes
-SED_DEPS_SCRIPT = 1x;1s@.*@$2: $3 \\@;1x;/^COMPILATION_FAILED$$/H;s@^COMPILATION_FAILED$$@/&@;/^$(tab)*\//!p;s@^/COMPILATION_FAILED$$@@;/^$(tab)*\//!s@.*@|@;/|/!s@^$(tab)*@@;$(subst \
-$(space),,$(foreach x,$5,s@$x.*@|@;))/|/!H;/|/!s@.*@&:@;/|/!x;/|/!s@.*@& \\@;/|/!x;$$x;$$H;$$s@.*@@;$$H;$$x;$$s@|@@;/|/d;w $4
+SED_DEPS_SCRIPT = 1x;1s@.*@$2: $3 \\@;1x;/^COMPILATION_FAILED$$/H;s@^COMPILATION_FAILED$$@/&@;/^$(tab)*\//!p;/^$(tab)*\//!s@.*@|@;s@^/COMPILATION_FAILED$$@|@;/^|/!s@^$(tab)*@@;$(subst \
+$(space),,$(foreach x,$5,s@^$x.*@|@;))/^|/!H;/^|/!s@.*@&:@;/^|/!x;/^|/!s@.*@& \\@;/^|/!x;$$x;$$H;$$s@.*@@;$$H;$$x;$$s@^|@@;/^|/d;w $4
 
 # $1 - compiler with options, $2 - target, $3 - source, $4 - $(basename $2).d, $5 - prefixes of system includes
-WRAP_COMPILER = $(if $(NO_DEPS),,$(open_brace))$1$(if $(NO_DEPS),, -H 2>&1 || echo COMPILATION_FAILED$(close_brace) | \
-sed -n '$(SED_DEPS_SCRIPT)' && if grep COMPILATION_FAILED $4 > /dev/null; then rm $4 && false; fi)
+ifdef NO_DEPS
+WRAP_COMPILER = $1
+else
+WRAP_COMPILER = ($1 -H 2>&1 || echo COMPILATION_FAILED) | sed -n '$(SED_DEPS_SCRIPT)' && if grep COMPILATION_FAILED $4 > /dev/null; then rm $4 && false; fi
+endif
 
 UDEPS_INCLUDE_FILTER ?= /usr/include/
 
