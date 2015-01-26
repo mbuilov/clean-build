@@ -137,18 +137,26 @@ ifdef SEQ
 INCLUDING_FILE_PATTERN ?= Note: including file:
 INCLUDING_FILE_PATTERN1 := $(INCLUDING_FILE_PATTERN)
 
-UM_DEPS_INCLUDE_FILTER ?= /c:"microsoft sdks" /c:"microsoft visual studio"
-UM_DEPS_INCLUDE_FILTER1 := $(UM_DEPS_INCLUDE_FILTER)
+UDEPS_INCLUDE_FILTER ?= c:\\program?files?(x86)\\microsoft?visual?studio?10.0\\vc\\include\\
+UDEPS_INCLUDE_FILTER1 := $(UDEPS_INCLUDE_FILTER)
 
-# $1 - target object file, $2 - source
-SED_DEPS_SCRIPT = s@$(INCLUDING_FILE_PATTERN1) *@@;s@\\@/@g;s@ @\\ @g;H;1s|.*|$1: $2 &|;s@.*@& \\@p;x;s@.*@&:@;x;$${x;p}
+# $2 - target object file, $3 - source, $4 - $(basename $2).d, $5 - prefixes of system includes to filter out
+SED_DEPS_SCRIPT = 1{x;s@.*@$2: $3 \\@;x;};/^$(notdir $3)$$/d;\
+/^COMPILATION_FAILED/{H;s@^COMPILATION_FAILED@$(INCLUDING_FILE_PATTERN1) &@;};\
+/^$(INCLUDING_FILE_PATTERN1) /!{p;s@.*@|@;};s@^$(INCLUDING_FILE_PATTERN1) COMPILATION_FAILED@|@;\
+/^$(INCLUDING_FILE_PATTERN1) /{s@^$(INCLUDING_FILE_PATTERN1)  *@@;$(subst \
+?, ,$(subst $(space),,$(foreach x,$5,s@^$x.*@|@I;)))s@ @\\ @g;};/^|/!{H;s@.*@&:@;x;s@.*@& \\@;x;};$${x;H;s@.*@@;H;x;s@^|@@;};/^|/d;w $4
 
-# $1 - target object file, $2 - source
-GENERATE_DEPS = | findstr "$(INCLUDING_FILE_PATTERN1)" $(if $(UM_DEPS_INCLUDE_FILTER1),| findstr /v /i )$(UM_DEPS_INCLUDE_FILTER1)| sed.exe -n "$(SED_DEPS_SCRIPT)" > $(basename $1).d
+# $1 - compiler with options, $2 - target object, $3 - source, $4 - $(basename $2).d, $5 - prefixes of system includes
+ifdef NO_DEPS
+WRAP_COMPILER = $1
+else
+WRAP_COMPILER = ($1 /showIncludes 2>&1 || echo COMPILATION_FAILED) | sed.exe -n "$(SED_DEPS_SCRIPT)" && findstr /b COMPILATION_FAILED $(call ospath,$4) > NUL & if errorlevel 1 (cmd /c exit 0) else (del $(call ospath,$4) && cmd /c exit 1)
+endif
 
 # $1 - target, $2 - source, $3 - compiler
-CMN_CC   = $(call SUPRESS,CC     $1)$(call $3,$(dir $1),$2,$(CFLAGS))$(if $(NO_DEPS),, && ($(call $3,$(dir $1),$2,$(CFLAGS) /Zs /showIncludes)$(GENERATE_DEPS)))
-CMN_CXX  = $(call SUPRESS,CXX    $1)$(call $3,$(dir $1),$2,$(CXXFLAGS))$(if $(NO_DEPS),, && ($(call $3,$(dir $1),$2,$(CXXFLAGS) /Zs /showIncludes)$(GENERATE_DEPS)))
+CMN_CC   = $(call SUPRESS,CC     $2)$(call WRAP_COMPILER,$(call $3,$(dir $1),$2,$(CFLAGS)),$1,$2,$(basename $1).d,$(UDEPS_INCLUDE_FILTER1))
+CMN_CXX  = $(call SUPRESS,CXX    $2)$(call WRAP_COMPILER,$(call $3,$(dir $1),$2,$(CXXFLAGS)),$1,$2,$(basename $1).d,$(UDEPS_INCLUDE_FILTER1))
 
 # $1 - target, $2 - source
 define COMPILTERS_TEMPLATE
@@ -235,14 +243,11 @@ CMN_KCL  = $(WKCL) /nologo /c $(KERN_FLAGS) $(call SUBST_DEFINES,$(addprefix /D,
 
 ifdef SEQ
 
-KM_DEPS_INCLUDE_FILTER ?= /c:"winddk"
-KM_DEPS_INCLUDE_FILTER1 := $(KM_DEPS_INCLUDE_FILTER)
-
-# $1 - target object file, $2 - source
-GENERATE_KDEPS = | findstr "$(INCLUDING_FILE_PATTERN1)" $(if $(KM_DEPS_INCLUDE_FILTER1),| findstr /v /i )$(KM_DEPS_INCLUDE_FILTER1)| sed.exe -n "$(SED_DEPS_SCRIPT)" > $(basename $1).d
+KDEPS_INCLUDE_FILTER ?= c:\\winddk\\
+KDEPS_INCLUDE_FILTER1 := $(KDEPS_INCLUDE_FILTER)
 
 # $1 - target, $2 - source
-CMN_KCC   = $(call SUPRESS,KCC    $2)$(call CMN_KCL,$(dir $1),$2,$(CFLAGS))$(if $(NO_DEPS),, && ($(call CMN_KCL,$(dir $1),$2,$(CFLAGS) /Zs /showIncludes)$(GENERATE_KDEPS)))
+CMN_KCC   = $(call SUPRESS,KCC    $2)$(call WRAP_COMPILER,$(call CMN_KCL,$(dir $1),$2,$(CFLAGS)),$1,$2,$(basename $1).d,$(KDEPS_INCLUDE_FILTER1))
 KLIB_R_CC = $(CMN_KCC)
 DRV_R_CC  = $(CMN_KCC)
 KLIB_LD   = $(KLIB_LD1)
