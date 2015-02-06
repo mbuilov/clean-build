@@ -265,8 +265,8 @@ CMN_MKCL1 = $(if \
 CMN_MKCL = $(call CMN_MKCL1,$1,$(PCH),$(filter-out $(WITH_PCH),$2),$(filter $(WITH_PCH),$2))
 
 # $1 - target, $2 - objects
-KLIB_LD  = $(call CMN_MKCL,$(dir $(firstword $(filter %$(OBJ_SUFFIX),$2))),$(sort $(filter $(SRC),$? $(call FILTER_SDEPS,$(SDEPS)))))$(KLIB_LD1)
-DRV_LD   = $(call CMN_MKCL,$(dir $(firstword $(filter %$(OBJ_SUFFIX),$2))),$(sort $(filter $(SRC),$? $(call FILTER_SDEPS,$(SDEPS)))))$(DRV_LD1)
+KLIB_LD  = $(call CMN_MKCL,$(dir $(firstword $(filter %$(OBJ_SUFFIX),$2))),$(sort $(filter $(filter %.c,$(SRC)),$? $(call FILTER_SDEPS,$(SDEPS)))))$(KLIB_LD1)
+DRV_LD   = $(call CMN_MKCL,$(dir $(firstword $(filter %$(OBJ_SUFFIX),$2))),$(sort $(filter $(filter %.c,$(SRC)),$? $(call FILTER_SDEPS,$(SDEPS)))))$(DRV_LD1)
 
 # $1 - target, $2 - pch-source, $3 - pch
 PCH_KCC  = $(call SUPRESS,PCHKCC $2)$(call CMN_KCL,$(dir $1),$2,/Yc$3 /Yl$(basename $(notdir $2)) /Fp$(dir $1)$(basename $3)_c.pch $(CFLAGS))
