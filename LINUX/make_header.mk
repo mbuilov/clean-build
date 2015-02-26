@@ -201,10 +201,10 @@ ADD_WITH_PCH = $(eval $1_WITH_PCH += $2$(call \
 
 endif # NO_PCH
 
-# $1 - dest dir, $2 - file
+# $1 - dest dir, $2 - file, $3 - aux dep
 define COPY_FILE_RULE
 $(empty)
-$1/$(notdir $2): $2 | $1
+$1/$(notdir $2): $2 $3 | $1
 	$$(call SUPRESS,CP     $$@)cp -f$(if $(VERBOSE:0=),v) $$< $$@
 endef
 
@@ -216,7 +216,7 @@ endef
 define DRV_TEMPLATE
 NEEDED_DIRS += $4
 # copy sources
-$(foreach x,$2,$(call COPY_FILE_RULE,$4,$x))
+$(foreach x,$2,$(call COPY_FILE_RULE,$4,$x,$(call EXTRACT_SRC_DEPS,$x,$3)))
 # copy klibs
 $(foreach x,$5,$(call COPY_FILE_RULE,$4,$(LIB_DIR)/$x))
 $(call STD_TARGET_VARS,$1)
@@ -226,7 +226,7 @@ $4/Makefile: | $4
   echo "$(DRV_PREFIX)$(DRV)-objs := $(notdir $(2:.c=.o)) $5" >> $$@ && \
   echo "EXTRA_CFLAGS += $(addprefix -D,$(EXTRA_DRV_DEFINES)) $(addprefix -I,$(call TRG_INCLUDE,DRV))" >> $$@
 # call kbuild
-$4/$(DRV_PREFIX)$(DRV)$(DRV_SUFFIX): $(addprefix $4/,$(notdir $2) $5) $(call EXTRACT_SRC_DEPS,$2,$3) $(CURRENT_DEPS) | $4/Makefile
+$4/$(DRV_PREFIX)$(DRV)$(DRV_SUFFIX): $(addprefix $4/,$(notdir $2) $5) $(CURRENT_DEPS) | $4/Makefile
 	+$$(call SUPRESS,KBUILD $$@)$(KMAKE) V=$(VERBOSE) CC="$(KCC)" LD="$(KLD)" AR="$(AR)" $(addprefix \
   KBUILD_EXTRA_SYMBOLS=,$(KBUILD_EXTRA_SYMBOLS)) -C $(MODULES_PATH) M=$$(patsubst %/,%,$$(dir $$@)) $(addprefix ARCH=,$(ARCH))
 $1: $4/$(DRV_PREFIX)$(DRV)$(DRV_SUFFIX) | $(BIN_DIR)
