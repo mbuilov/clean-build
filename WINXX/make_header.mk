@@ -115,15 +115,16 @@ $(eval $(foreach v,R $(VARIANTS_FILTER),$(LIB_LD_TEMPLATE)))
 
 KLIB_LD1 = $(call SUPRESS,KLIB   $1)$(WKLD) /lib /nologo /OUT:$(call ospath,$1 $2 $(RES)) $(if $(filter %D,$(TARGET)),,/LTCG) $(LDFLAGS)
 
+ifndef APP_FLAGS
 ifneq ($(filter %D,$(TARGET)),)
 APP_FLAGS := /X /GF /W3 /EHsc /Od /Zi /RTCc /RTCsu /GS
 else
 APP_FLAGS := /X /GF /W3 /EHsc /Ox /GL /Gy
 endif
-
 APP_FLAGS += /wd4251# 'class' needs to have dll-interface to be used by clients of class...
 APP_FLAGS += /wd4275# non dll-interface class 'class' used as base for dll-interface class 'class'
 APP_FLAGS += /wd4996# 'strdup': The POSIX name for this item is deprecated...
+endif
 
 # $1 - outdir, $2 - sources, $3 - flags
 CMN_CL1  = $(VS$(TMD)CL) /nologo /c $(APP_FLAGS) $(call SUBST_DEFINES,$(addprefix /D,$(DEFINES))) $(call \
@@ -231,10 +232,12 @@ DRV_LD1  = $(call SUPRESS,KLINK  $1)$(DRV_LNK) /OUT:$(call ospath,$1 $2 $(RES)) 
            $(KLIBS),/LIBPATH:$(call ospath,$(LIB_DIR))) $(addsuffix $(KLIB_SUFFIX),$(addprefix \
            $(KLIB_PREFIX),$(KLIBS))) $(call pqpath,/LIBPATH:,$(call ospath,$(SYSLIBPATH))) $(SYSLIBS) $(LDFLAGS)
 
+ifndef KERN_FLAGS
 ifneq ($(filter %D,$(TARGET)),)
 KERN_FLAGS := /X /GF /W3 /GR- /Gz /Zl /GS- /Oi /Z7 /Od
 else
 KERN_FLAGS := /X /GF /W3 /GR- /Gz /Zl /GS- /Ox /GL /Gy
+endif
 endif
 
 # $1 - outdir, $2 - sources, $3 - flags

@@ -104,9 +104,18 @@ LIB_P_LD  = $(call SUPRESS,LD     $1)$($(TMD)LD) -r --warn-common -o $1 $2 $(LDF
 LIB_D_LD  = $(call SUPRESS,LD     $1)$($(TMD)LD) -r --warn-common -o $1 $2 $(LDFLAGS)
 KLIB_LD   = $(call SUPRESS,KLD    $1)$(KLD) -r --warn-common -o $1 $2 $(LDFLAGS)
 
+DEPS_FLAGS := $(if $(NO_DEPS),,-MMD -MP)
+
+ifndef APP_FLAGS
+ifneq ($(filter %D,$(TARGET)),)
+APP_FLAGS := -Wall -ggdb
+else
+APP_FLAGS := -Wall -g -O2
+endif
+endif
+
 # $1 - target, $2 - source
-UCPU_FLAGS := $(if $(filter %D,$(TARGET)),-ggdb,-g -O2) $(if $(NO_DEPS),,-MMD -MP)
-CC_PARAMS = -pipe -c -Wall $(UCPU_FLAGS) $(call SUBST_DEFINES,$(addprefix -D,$(DEFINES))) $(addprefix -I,$(INCLUDE))
+CC_PARAMS = -pipe -c $(APP_FLAGS) $(DEPS_FLAGS) $(call SUBST_DEFINES,$(addprefix -D,$(DEFINES))) $(addprefix -I,$(INCLUDE))
 CMN_CXX  = $(if $(filter $2,$(WITH_PCH)),$(call SUPRESS,PCXX   $2)$($(TMD)CXX) -I$(dir $1) -include $(basename \
             $(notdir $(PCH)))_pch_cxx.h,$(call SUPRESS,CXX    $2)$($(TMD)CXX)) $(CC_PARAMS) $(CXXFLAGS)
 CMN_CC   = $(if $(filter $2,$(WITH_PCH)),$(call SUPRESS,PCC    $2)$($(TMD)CC) -I$(dir $1) -include $(basename \
@@ -141,8 +150,7 @@ PCH_DLL_R_CC   = $(PCH_CC) -fpic -o $1 $2
 PCH_LIB_D_CXX  = $(PCH_DLL_R_CXX)
 PCH_LIB_D_CC   = $(PCH_DLL_R_CC)
 
-KCPU_FLAGS := $(if $(NO_DEPS),,-MMD -MP)
-KLIB_PARAMS = -pipe -c $(KERN_COMPILE_OPTIONS) $(call SUBST_DEFINES,$(addprefix -D,$(DEFINES))) $(addprefix -I,$(INCLUDE)) $(KCPU_FLAGS) $(CFLAGS)
+KLIB_PARAMS = -pipe -c $(KERN_FLAGS) $(DEPS_FLAGS) $(call SUBST_DEFINES,$(addprefix -D,$(DEFINES))) $(addprefix -I,$(INCLUDE)) $(CFLAGS)
 KLIB_R_CC  = $(if $(filter-out %.d,$1),$(if $(filter $2,$(WITH_PCH)),$(call SUPRESS,PKCC   $2)$(KCC) -I$(dir $1) -include $(basename \
               $(notdir $(PCH)))_pch_c.h,$(call SUPRESS,KCC    $2)$(KCC)) $(KLIB_PARAMS) -o $1 $2)
 

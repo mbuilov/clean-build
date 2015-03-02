@@ -108,9 +108,16 @@ endif
 
 UDEPS_INCLUDE_FILTER ?= /usr/include/
 
+ifndef APP_FLAGS
+ifneq ($(filter %D,$(TARGET)),)
+APP_FLAGS := -g -DDEBUG
+else
+APP_FLAGS := -O
+endif
+endif
+
 # $1 - target, $2 - source, $3 - aux flags
-UCPU_FLAGS := $(if $(filter %D,$(TARGET)),-g -DDEBUG,-O)
-CC_PARAMS = $(UCPU_FLAGS) $(call SUBST_DEFINES,$(addprefix -D,$(DEFINES))) $(addprefix -I,$(INCLUDE))
+CC_PARAMS = $(APP_FLAGS) $(call SUBST_DEFINES,$(addprefix -D,$(DEFINES))) $(addprefix -I,$(INCLUDE))
 CMN_CXX  = $(call SUPRESS,CXX    $2)$(call WRAP_COMPILER,$($(TMD)CXX) $(CC_PARAMS) $(CXXFLAGS) -c -o $1 $2 $3,$1,$2,$(basename $1).d,$(UDEPS_INCLUDE_FILTER))
 CMN_CC   = $(call SUPRESS,CC     $2)$(call WRAP_COMPILER,$($(TMD)CC) $(CC_PARAMS) $(CFLAGS) -c -o $1 $2 $3,$1,$2,$(basename $1).d,$(UDEPS_INCLUDE_FILTER))
 
@@ -125,8 +132,15 @@ LIB_D_CC  = $(DLL_R_CC)
 
 KDEPS_INCLUDE_FILTER ?= /usr/include/
 
-KCPU_FLAGS := $(if $(filter %D,$(TARGET)),-g -DDEBUG,-O)
-KCC_PARAMS = $(KCPU_FLAGS) $(call SUBST_DEFINES,$(addprefix -D,$(DEFINES))) $(addprefix -I,$(INCLUDE)) $(CFLAGS)
+ifndef KERN_FLAGS
+ifneq ($(filter %D,$(TARGET)),)
+KERN_FLAGS := -g -DDEBUG
+else
+KERN_FLAGS := -O
+endif
+endif
+
+KCC_PARAMS = $(KERN_FLAGS) $(call SUBST_DEFINES,$(addprefix -D,$(DEFINES))) $(addprefix -I,$(INCLUDE)) $(CFLAGS)
 KLIB_R_CC = $(call SUPRESS,KCC    $2)$(call WRAP_COMPILER,$(KCC) $(KCC_PARAMS) -c -o $1 $2,$1,$2,$(basename $1).d,$(KDEPS_INCLUDE_FILTER))
 DRV_R_CC  = $(KLIB_R_CC)
 
