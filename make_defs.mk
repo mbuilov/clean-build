@@ -21,6 +21,7 @@ ifneq ($(filter clean,$(MAKECMDGOALS)),)
 NO_DEPS := 1
 endif
 
+include $(MTOP)/make_top.mk
 include $(MTOP)/make_functions.mk
 
 # project's make_features.mk must define something like:
@@ -28,19 +29,11 @@ include $(MTOP)/make_functions.mk
 # SUPPORTED_CPUS    := x86 x86_64 sparc sparc64 armv5 mips24k ppc
 # SUPPORTED_TARGETS := PROJECT PROJECTD
 PROJECT_FEATURES ?= $(TOP)/make/make_features.mk
-include $(PROJECT_FEATURES)
+-include $(PROJECT_FEATURES)
 
-# make current makefile path relative to $(TOP) directory
-CURRENT_MAKEFILE := $(subst \,/,$(firstword $(MAKEFILE_LIST)))
-CURRENT_MAKEFILE := $(patsubst $(TOP)/%,%,$(if $(filter $(TOP)/%,$(CURRENT_MAKEFILE)),$(CURRENT_MAKEFILE),$(abspath $(CURDIR)/$(CURRENT_MAKEFILE))))
-
-# check that we are building right sources
-ifneq ($(call isrelpath,$(CURRENT_MAKEFILE)),)
-$(error TOP=$(TOP) is not the root directory of current makefile $(CURRENT_MAKEFILE))
+ifndef SUPPORTED_OSES
+$(error either not found or bad file $(PROJECT_FEATURES), check TOP environment variable, $(notdir $(PROJECT_FEATURES)) must define SUPPORTED_OSES)
 endif
-
-# directory for built files
-XTOP ?= $(TOP)
 
 # target OS
 ifndef OS
@@ -168,6 +161,18 @@ COLORIZE1 = $(if\
 COLORIZE = $(call COLORIZE1,$(firstword $1),$(wordlist 2,9999,$1),$1)
 
 include $(MTOP)/$(OS)/make_tools.mk
+
+# make current makefile path relative to $(TOP) directory
+CURRENT_MAKEFILE := $(subst \,/,$(firstword $(MAKEFILE_LIST)))
+CURRENT_MAKEFILE := $(patsubst $(TOP)/%,%,$(if $(filter $(TOP)/%,$(CURRENT_MAKEFILE)),$(CURRENT_MAKEFILE),$(abspath $(CURDIR)/$(CURRENT_MAKEFILE))))
+
+# check that we are building right sources
+ifneq ($(call isrelpath,$(CURRENT_MAKEFILE)),1)
+$(error TOP=$(TOP) is not the root directory of current makefile $(CURRENT_MAKEFILE))
+endif
+
+# directory for built files
+XTOP ?= $(TOP)
 
 # output directories:
 # bin - for executables, dlls, res
