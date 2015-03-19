@@ -108,12 +108,14 @@ endif
 
 UDEPS_INCLUDE_FILTER ?= /usr/include/
 
-ifndef APP_FLAGS
 ifneq ($(filter %D,$(TARGET)),)
-APP_FLAGS := -g -DDEBUG
+DEF_APP_FLAGS := -g -DDEBUG
 else
-APP_FLAGS := -O
+DEF_APP_FLAGS := -O
 endif
+
+ifndef APP_FLAGS
+APP_FLAGS := $(DEF_APP_FLAGS)
 endif
 
 # $1 - target, $2 - source, $3 - aux flags
