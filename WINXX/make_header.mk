@@ -115,15 +115,17 @@ $(eval $(foreach v,R $(VARIANTS_FILTER),$(LIB_LD_TEMPLATE)))
 
 KLIB_LD1 = $(call SUPRESS,KLIB   $1)$(WKLD) /lib /nologo /OUT:$(call ospath,$1 $2) $(if $(filter %D,$(TARGET)),,/LTCG) $(LDFLAGS)
 
-ifndef APP_FLAGS
 ifneq ($(filter %D,$(TARGET)),)
-APP_FLAGS := /X /GF /W3 /EHsc /Od /Zi /RTCc /RTCsu /GS
+DEF_APP_FLAGS := /X /GF /W3 /EHsc /Od /Zi /RTCc /RTCsu /GS
 else
-APP_FLAGS := /X /GF /W3 /EHsc /Ox /GL /Gy
+DEF_APP_FLAGS := /X /GF /W3 /EHsc /Ox /GL /Gy
 endif
-APP_FLAGS += /wd4251# 'class' needs to have dll-interface to be used by clients of class...
-APP_FLAGS += /wd4275# non dll-interface class 'class' used as base for dll-interface class 'class'
-APP_FLAGS += /wd4996# 'strdup': The POSIX name for this item is deprecated...
+DEF_APP_FLAGS += /wd4251# 'class' needs to have dll-interface to be used by clients of class...
+DEF_APP_FLAGS += /wd4275# non dll-interface class 'class' used as base for dll-interface class 'class'
+DEF_APP_FLAGS += /wd4996# 'strdup': The POSIX name for this item is deprecated...
+
+ifndef APP_FLAGS
+APP_FLAGS := $(DEF_APP_FLAGS)
 endif
 
 # $1 - outdir, $2 - sources, $3 - flags

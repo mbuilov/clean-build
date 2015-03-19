@@ -106,12 +106,14 @@ KLIB_LD   = $(call SUPRESS,KLD    $1)$(KLD) -r --warn-common -o $1 $2 $(LDFLAGS)
 
 DEPS_FLAGS := $(if $(NO_DEPS),,-MMD -MP)
 
-ifndef APP_FLAGS
 ifneq ($(filter %D,$(TARGET)),)
-APP_FLAGS := -Wall -ggdb
+DEF_APP_FLAGS := -Wall -ggdb
 else
-APP_FLAGS := -Wall -g -O2
+DEF_APP_FLAGS := -Wall -g -O2
 endif
+
+ifndef APP_FLAGS
+APP_FLAGS := $(DEF_APP_FLAGS)
 endif
 
 # $1 - target, $2 - source
