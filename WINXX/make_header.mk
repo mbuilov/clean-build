@@ -109,11 +109,11 @@ $(eval $(foreach v,R $(VARIANTS_FILTER),$(DLL_LD_TEMPLATE)))
 
 define LIB_LD_TEMPLATE
 $(empty)
-LIB_$v_LD1 = $$(call SUPRESS,LIB    $$1)$$(VS$$(TMD)LD) /lib /nologo /OUT:$$(call ospath,$$1 $$2 $$(RES)) $(if $(filter %D,$(TARGET)),,/LTCG) $$(LDFLAGS)
+LIB_$v_LD1 = $$(call SUPRESS,LIB    $$1)$$(VS$$(TMD)LD) /lib /nologo /OUT:$$(call ospath,$$1 $$2) $(if $(filter %D,$(TARGET)),,/LTCG) $$(LDFLAGS)
 endef
 $(eval $(foreach v,R $(VARIANTS_FILTER),$(LIB_LD_TEMPLATE)))
 
-KLIB_LD1 = $(call SUPRESS,KLIB   $1)$(WKLD) /lib /nologo /OUT:$(call ospath,$1 $2 $(RES)) $(if $(filter %D,$(TARGET)),,/LTCG) $(LDFLAGS)
+KLIB_LD1 = $(call SUPRESS,KLIB   $1)$(WKLD) /lib /nologo /OUT:$(call ospath,$1 $2) $(if $(filter %D,$(TARGET)),,/LTCG) $(LDFLAGS)
 
 ifndef APP_FLAGS
 ifneq ($(filter %D,$(TARGET)),)
@@ -366,12 +366,14 @@ define LIB_AUX_TEMPLATE2
 $(empty)
 $5: SRC := $1
 $5: SDEPS := $2
-$5: RES := $(RES) $(LIB_RES)
-$5: $1 $3 $(RES) $(LIB_RES)
+$5: $1 $3
 $(if $4,CLEAN += $6/vc*.pdb)
 endef
 LIB_AUX_TEMPLATE1 = $(foreach v,$(call GET_VARIANTS,LIB,VARIANTS_FILTER),$(call LIB_AUX_TEMPLATE2,$1,$2,$3,$4,$(call FORM_TRG,LIB,$v),$(call FORM_OBJ_DIR,LIB,$v)))
 define LIB_AUX_TEMPLATE
+ifneq ($(RES)$(LIB_RES),)
+$$(warning "don't link resource(s) $(strip $(RES) $(LIB_RES)) into static library: linker will ignore resources in static library")
+endif
 $(call PCH_TEMPLATE,LIB)
 $(call LIB_AUX_TEMPLATE1,$(call TRG_SRC,LIB),$(call TRG_DEPS,LIB),$(call TRG_ALL_DEPS,LIB),$(filter %D,$(TARGET)))
 endef
@@ -400,14 +402,18 @@ endef
 define KLIB_AUX_TEMPLATE1
 $1: SRC := $2
 $1: SDEPS := $(call TRG_DEPS,KLIB)
-$1: RES := $(RES) $(KLIB_RES)
-$1: $2 $(call TRG_ALL_DEPS,KLIB) $(RES) $(KLIB_RES)
+$1: $2 $(call TRG_ALL_DEPS,KLIB)
 $(call KPCH_TEMPLATE,KLIB)
 ifneq ($(filter %D,$(TARGET)),)
 CLEAN += $(call FORM_OBJ_DIR,KLIB)/vc*.pdb
 endif
 endef
-KLIB_AUX_TEMPLATE = $(call KLIB_AUX_TEMPLATE1,$(call FORM_TRG,KLIB),$(call TRG_SRC,KLIB))
+define KLIB_AUX_TEMPLATE
+ifneq ($(RES)$(KLIB_RES),)
+$$(warning "don't link resource(s) $(strip $(RES) $(KLIB_RES)) into static library: linker will ignore resources in static library")
+endif
+$(call KLIB_AUX_TEMPLATE1,$(call FORM_TRG,KLIB),$(call TRG_SRC,KLIB))
+endef
 
 # add rule to make auxiliary res for the target and generate header from .mc-file
 # note: defines MC_H and MC_RC variables - absolute pathnames of generated .h and .rc files
