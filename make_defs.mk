@@ -167,7 +167,7 @@ CURRENT_MAKEFILE := $(subst \,/,$(firstword $(MAKEFILE_LIST)))
 CURRENT_MAKEFILE := $(patsubst $(TOP)/%,%,$(if $(filter $(TOP)/%,$(CURRENT_MAKEFILE)),$(CURRENT_MAKEFILE),$(abspath $(CURDIR)/$(CURRENT_MAKEFILE))))
 
 # check that we are building right sources
-ifneq ($(call isrelpath,$(CURRENT_MAKEFILE)),1)
+ifeq ($(call isrelpath,$(CURRENT_MAKEFILE)),)
 $(error TOP=$(TOP) is not the root directory of current makefile $(CURRENT_MAKEFILE))
 endif
 
