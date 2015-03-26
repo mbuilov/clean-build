@@ -61,8 +61,8 @@ $(error Unknown OSVARIANT, set to either WINXP,WIN7,WIN8 or WIN81)
 endif
 
 ifdef MAY_EMBED_MANIFEST
-EXE_MANIFEST := " /MANIFEST:EMBED"
-DLL_MANIFEST := " /MANIFEST:EMBED"
+EXE_MANIFEST := $(space)/MANIFEST:EMBED
+DLL_MANIFEST := $(space)/MANIFEST:EMBED
 else
 EXE_MANIFEST = $(call DEL_ON_FAIL,$1.manifest)$(newline)$(if \
   $(VERBOSE:1=),@)if exist $(ospath).manifest ($($(TMD)MT1) -nologo -manifest $(ospath).manifest -outputresource:$(ospath);1 && del $(ospath).manifest)$(DEL_ON_FAIL)
