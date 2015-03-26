@@ -196,6 +196,7 @@ CMN_MCL1 = $(call CMN_MCL2,$1,$(PCH),$(filter-out $(WITH_PCH),$2),$(filter-out \
 CMN_RMCL = $(call CMN_MCL1,$1,$(filter %.c,$2),$(filter %.cpp,$2),CMN_RCL)
 CMN_SMCL = $(call CMN_MCL1,$1,$(filter %.c,$2),$(filter %.cpp,$2),CMN_SCL)
 
+# also recompile sources that are depend on changed sources
 # $1 - $(SDEPS) - list of pairs: <source file> <dependency1>|<dependency2>|...
 FILTER_SDEPS = $(if $1,$(if $(filter $(subst |, ,$(word 2,$1)),$?),$(firstword $1) )$(call FILTER_SDEPS,$(wordlist 3,999999,$1)))
 
