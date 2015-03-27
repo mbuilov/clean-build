@@ -34,12 +34,12 @@ FORM_JAR_BUNDLES = $(if $1,$(call pqpath,-C ,$(call ospath,$(call FIXPATH,$(firs
 FORM_CLASS_PATH = -classpath $(call qpath,$(subst $(space),$(PATHSEP),$(strip $(ospath))))
 
 # $1 - sources
-JAVA_CC1 = $(call SUPRESS,JAVAC  $1) $(JAVAC) $(JAVAC_OPTIONS) $(JCFLAGS) -d $(call ospath,$(OBJDIR)) $(ospath) $(if $(strip \
+JAVA_CC1 = $(call SUPRESS,JAVAC,$1) $(JAVAC) $(JAVAC_OPTIONS) $(JCFLAGS) -d $(call ospath,$(OBJDIR)) $(ospath) $(if $(strip \
             $(CLASSPATH)$(EXTJARS)$(JARS)),$(call FORM_CLASS_PATH,$(CLASSPATH) $(EXTJARS) $(addprefix $(BIN_DIR)/,$(addsuffix .jar,$(JARS)))))$(newline)
 JAVA_CC  = $(if $1,$(JAVA_CC1))
 
 # $1 - target
-JAR_LD1  = $(call SUPRESS,JAR    $1)$(JARC) $(JRFLAGS) -cf$(if $(MANIFEST),m) $(ospath) $(call ospath,$(call FIXPATH,$(MANIFEST))) -C $(call \
+JAR_LD1  = $(call SUPRESS,JAR,$1)$(JARC) $(JRFLAGS) -cf$(if $(MANIFEST),m) $(ospath) $(call ospath,$(call FIXPATH,$(MANIFEST))) -C $(call \
             ospath,$(OBJDIR)) . $(call FORM_JAR_BUNDLES,$(BUNDLES))$(DEL_ON_FAIL)
 JAR_LD   = $(call JAVA_CC,$(filter $(JSRC),$?))$(JAR_LD1)
 

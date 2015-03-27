@@ -25,8 +25,8 @@ endif
 # so undefine it
 LIB :=
 
-MC  = $(call SUPRESS,MC     $1)$($(TMD)MC1) $(if $(VERBOSE:1=),,-v)
-RC  = $(call SUPRESS,RC     $1)$($(TMD)RC1) $(if $(VERBOSE:1=),,/v) $(SUPRESS_RC_LOGO) $3 $(call \
+MC  = $(call SUPRESS,$(TMD)MC,$1)$($(TMD)MC1) $(if $(VERBOSE:1=),,-v)
+RC  = $(call SUPRESS,$(TMD)RC,$1)$($(TMD)RC1) $(if $(VERBOSE:1=),,/v) $(SUPRESS_RC_LOGO) $3 $(call \
   pqpath,/I,$(VS$(TMD)INC) $(UM$(TMD)INC)) /fo$(ospath) $(call ospath,$2)
 
 EXE_SUFFIX := .exe
@@ -94,14 +94,14 @@ CMN_LIBS = /OUT:$$(call ospath,$1) /INCREMENTAL:NO $(if $(filter %D,$(TARGET)),/
 
 define EXE_LD_TEMPLATE
 $(empty)
-EXE_$v_LD1 = $$(call SUPRESS,LINK   $$1)$$(VS$$(TMD)LD) /nologo $(call CMN_LIBS,$$1,$$2,$v)$$(EXE_MANIFEST)
+EXE_$v_LD1 = $$(call SUPRESS,$(TMD)LINK,$$1)$$(VS$$(TMD)LD) /nologo $(call CMN_LIBS,$$1,$$2,$v)$$(EXE_MANIFEST)
 endef
 $(eval $(foreach v,R $(VARIANTS_FILTER),$(EXE_LD_TEMPLATE)))
 
 # Link.exe has a bug: it may not delete target dll if DEF was specified and were errors while building the dll
 define DLL_LD_TEMPLATE
 $(empty)
-DLL_$v_LD1 = $$(call SUPRESS,LINK   $$1)$$(VS$$(TMD)LD) /nologo /DLL $$(if $$(DEF),/DEF:$$(call ospath,$$(DEF))) $(call \
+DLL_$v_LD1 = $$(call SUPRESS,$(TMD)LINK,$$1)$$(VS$$(TMD)LD) /nologo /DLL $$(if $$(DEF),/DEF:$$(call ospath,$$(DEF))) $(call \
               CMN_LIBS,$$1,$$2,$v) /IMPLIB:$$(call ospath,$$(patsubst $$(DLL_DIR)/$(DLL_PREFIX)%$(DLL_SUFFIX),$$(IMP_DIR)/$(IMP_PREFIX)$(call \
               VARIANT_IMP_PREFIX,$v)%$(IMP_SUFFIX),$$1))$$(if $$(DEF),$$(DEL_ON_FAIL))$$(DLL_MANIFEST)
 endef
@@ -109,11 +109,11 @@ $(eval $(foreach v,R $(VARIANTS_FILTER),$(DLL_LD_TEMPLATE)))
 
 define LIB_LD_TEMPLATE
 $(empty)
-LIB_$v_LD1 = $$(call SUPRESS,LIB    $$1)$$(VS$$(TMD)LD) /lib /nologo /OUT:$$(call ospath,$$1 $$2) $(if $(filter %D,$(TARGET)),,/LTCG) $$(LDFLAGS)
+LIB_$v_LD1 = $$(call SUPRESS,$(TMD)LIB,$$1)$$(VS$$(TMD)LD) /lib /nologo /OUT:$$(call ospath,$$1 $$2) $(if $(filter %D,$(TARGET)),,/LTCG) $$(LDFLAGS)
 endef
 $(eval $(foreach v,R $(VARIANTS_FILTER),$(LIB_LD_TEMPLATE)))
 
-KLIB_LD1 = $(call SUPRESS,KLIB   $1)$(WKLD) /lib /nologo /OUT:$(call ospath,$1 $2) $(if $(filter %D,$(TARGET)),,/LTCG) $(LDFLAGS)
+KLIB_LD1 = $(call SUPRESS,KLIB,$1)$(WKLD) /lib /nologo /OUT:$(call ospath,$1 $2) $(if $(filter %D,$(TARGET)),,/LTCG) $(LDFLAGS)
 
 ifneq ($(filter %D,$(TARGET)),)
 DEF_APP_FLAGS := /X /GF /W3 /EHsc /Od /Zi /RTCc /RTCsu /GS
@@ -158,8 +158,8 @@ WRAP_COMPILER = ($1 /showIncludes 2>&1 || echo COMPILATION_FAILED) | sed.exe -n 
 endif
 
 # $1 - target, $2 - source, $3 - compiler
-CMN_CC   = $(call SUPRESS,CC     $2)$(call WRAP_COMPILER,$(call $3,$(dir $1),$2,$(CFLAGS)),$1,$2,$(basename $1).d,$(UDEPS_INCLUDE_FILTER1))
-CMN_CXX  = $(call SUPRESS,CXX    $2)$(call WRAP_COMPILER,$(call $3,$(dir $1),$2,$(CXXFLAGS)),$1,$2,$(basename $1).d,$(UDEPS_INCLUDE_FILTER1))
+CMN_CC   = $(call SUPRESS,$(TMD)CC,$2)$(call WRAP_COMPILER,$(call $3,$(dir $1),$2,$(CFLAGS)),$1,$2,$(basename $1).d,$(UDEPS_INCLUDE_FILTER1))
+CMN_CXX  = $(call SUPRESS,$(TMD)CXX,$2)$(call WRAP_COMPILER,$(call $3,$(dir $1),$2,$(CXXFLAGS)),$1,$2,$(basename $1).d,$(UDEPS_INCLUDE_FILTER1))
 
 # $1 - target, $2 - source
 define COMPILTERS_TEMPLATE
@@ -183,10 +183,10 @@ else # !SEQ
 
 # $1 - outdir, $2 - pch, $3 - non-pch C, $4 - non-pch CXX, $5 - pch C, $6 - pch CXX, $7 - compiler
 CMN_MCL2 = $(if \
-            $3,$(call SUPRESS,MCC    $3)$(call $7,$1,$3,/MP $(CFLAGS))$(newline))$(if \
-            $4,$(call SUPRESS,MCXX   $4)$(call $7,$1,$4,/MP $(CXXFLAGS))$(newline))$(if \
-            $5,$(call SUPRESS,MPCC   $5)$(call $7,$1,$5,/MP /Yu$2 /Fp$1$(basename $2)_c.pch /FI$2 $(CFLAGS))$(newline))$(if \
-            $6,$(call SUPRESS,MPCXX  $6)$(call $7,$1,$6,/MP /Yu$2 /Fp$1$(basename $2)_cpp.pch /FI$2 $(CXXFLAGS))$(newline))
+            $3,$(call SUPRESS,$(TMD)MCC,$3)$(call $7,$1,$3,/MP $(CFLAGS))$(newline))$(if \
+            $4,$(call SUPRESS,$(TMD)MCXX,$4)$(call $7,$1,$4,/MP $(CXXFLAGS))$(newline))$(if \
+            $5,$(call SUPRESS,$(TMD)MPCC,$5)$(call $7,$1,$5,/MP /Yu$2 /Fp$1$(basename $2)_c.pch /FI$2 $(CFLAGS))$(newline))$(if \
+            $6,$(call SUPRESS,$(TMD)MPCXX,$6)$(call $7,$1,$6,/MP /Yu$2 /Fp$1$(basename $2)_cpp.pch /FI$2 $(CXXFLAGS))$(newline))
 
 # $1 - outdir, $2 - C-sources, $3 - CXX-sources, $4 - compiler
 CMN_MCL1 = $(call CMN_MCL2,$1,$(PCH),$(filter-out $(WITH_PCH),$2),$(filter-out \
@@ -209,8 +209,8 @@ EXE_$v_LD  = $$(call CMN_MCL,$$1,$$2,CMN_$vMCL)$$(EXE_$v_LD1)
 DLL_$v_LD  = $$(call CMN_MCL,$$1,$$2,CMN_$vMCL)$$(DLL_$v_LD1)
 LIB_$v_LD  = $$(call CMN_MCL,$$1,$$2,CMN_$vMCL)$$(LIB_$v_LD1)
 # $$1 - target, $$2 - pch-source, $$3 - pch
-PCH_$v_CC  = $$(call SUPRESS,PCHCC  $$2)$$(call CMN_$vCL,$$(dir $$1),$$2,/Yc$$3 /Yl$$(basename $$(notdir $$2)) /Fp$$(dir $$1)$$(basename $$3)_c.pch $$(CFLAGS))
-PCH_$v_CXX = $$(call SUPRESS,PCHCXX $$2)$$(call CMN_$vCL,$$(dir $$1),$$2,/Yc$$3 /Yl$$(basename $$(notdir $$2)) /Fp$$(dir $$1)$$(basename $$3)_cpp.pch $$(CXXFLAGS))
+PCH_$v_CC  = $$(call SUPRESS,$(TMD)PCHCC,$$2)$$(call CMN_$vCL,$$(dir $$1),$$2,/Yc$$3 /Yl$$(basename $$(notdir $$2)) /Fp$$(dir $$1)$$(basename $$3)_c.pch $$(CFLAGS))
+PCH_$v_CXX = $$(call SUPRESS,$(TMD)PCHCXX,$$2)$$(call CMN_$vCL,$$(dir $$1),$$2,/Yc$$3 /Yl$$(basename $$(notdir $$2)) /Fp$$(dir $$1)$$(basename $$3)_cpp.pch $$(CXXFLAGS))
 $(empty)
 endef
 $(eval $(foreach v,R $(VARIANTS_FILTER),$(COMPILTERS_TEMPLATE)))
@@ -231,7 +231,7 @@ DRV_LNK := $(WKLD) /nologo /INCREMENTAL:NO $(if $(filter %D,$(TARGET)),/DEBUG,/L
              /MACHINE:$(if $(filter %64,$(KCPU)),x64,x86)
 
 # $1 - target, $2 - objects
-DRV_LD1  = $(call SUPRESS,KLINK  $1)$(DRV_LNK) /OUT:$(call ospath,$1 $2 $(RES)) $(if \
+DRV_LD1  = $(call SUPRESS,KLINK,$1)$(DRV_LNK) /OUT:$(call ospath,$1 $2 $(RES)) $(if \
            $(KLIBS),/LIBPATH:$(call ospath,$(LIB_DIR))) $(addsuffix $(KLIB_SUFFIX),$(addprefix \
            $(KLIB_PREFIX),$(KLIBS))) $(call pqpath,/LIBPATH:,$(call ospath,$(SYSLIBPATH))) $(SYSLIBS) $(LDFLAGS)
 
@@ -253,7 +253,7 @@ KDEPS_INCLUDE_FILTER ?= c:\\winddk\\
 KDEPS_INCLUDE_FILTER1 := $(KDEPS_INCLUDE_FILTER)
 
 # $1 - target, $2 - source
-CMN_KCC   = $(call SUPRESS,KCC    $2)$(call WRAP_COMPILER,$(call CMN_KCL,$(dir $1),$2,$(CFLAGS)),$1,$2,$(basename $1).d,$(KDEPS_INCLUDE_FILTER1))
+CMN_KCC   = $(call SUPRESS,KCC,$2)$(call WRAP_COMPILER,$(call CMN_KCL,$(dir $1),$2,$(CFLAGS)),$1,$2,$(basename $1).d,$(KDEPS_INCLUDE_FILTER1))
 KLIB_R_CC = $(CMN_KCC)
 DRV_R_CC  = $(CMN_KCC)
 KLIB_LD   = $(KLIB_LD1)
@@ -264,8 +264,8 @@ else # !SEQ
 
 # $1 - outdir, $2 - pch, $3 - non-pch sources, $4 - pch sources
 CMN_MKCL1 = $(if \
-            $3,$(call SUPRESS,MKCC   $3)$(call CMN_KCL,$1,$3,/MP $(CFLAGS))$(newline))$(if \
-            $4,$(call SUPRESS,MPKCC  $4)$(call CMN_KCL,$1,$4,/MP /Yu$2 /Fp$1$(basename $2)_c.pch /FI$2 $(CFLAGS))$(newline))
+            $3,$(call SUPRESS,MKCC,$3)$(call CMN_KCL,$1,$3,/MP $(CFLAGS))$(newline))$(if \
+            $4,$(call SUPRESS,MPKCC,$4)$(call CMN_KCL,$1,$4,/MP /Yu$2 /Fp$1$(basename $2)_c.pch /FI$2 $(CFLAGS))$(newline))
 
 # $1 - outdir, $2 - C-sources
 CMN_MKCL = $(call CMN_MKCL1,$1,$(PCH),$(filter-out $(WITH_PCH),$2),$(filter $(WITH_PCH),$2))
@@ -275,14 +275,14 @@ KLIB_LD  = $(call CMN_MKCL,$(dir $(firstword $(filter %$(OBJ_SUFFIX),$2))),$(sor
 DRV_LD   = $(call CMN_MKCL,$(dir $(firstword $(filter %$(OBJ_SUFFIX),$2))),$(sort $(filter $(filter %.c,$(SRC)),$? $(call FILTER_SDEPS,$(SDEPS)))))$(DRV_LD1)
 
 # $1 - target, $2 - pch-source, $3 - pch
-PCH_KCC  = $(call SUPRESS,PCHKCC $2)$(call CMN_KCL,$(dir $1),$2,/Yc$3 /Yl$(basename $(notdir $2)) /Fp$(dir $1)$(basename $3)_c.pch $(CFLAGS))
+PCH_KCC  = $(call SUPRESS,PCHKCC,$2)$(call CMN_KCL,$(dir $1),$2,/Yc$3 /Yl$(basename $(notdir $2)) /Fp$(dir $1)$(basename $3)_c.pch $(CFLAGS))
 
 endif # !SEQ
 
-KLIB_R_ASM ?= $(call SUPRESS,ASM    $2)$(YASM) -o $(call ospath,$1 $2) $(ASMFLAGS)
+KLIB_R_ASM ?= $(call SUPRESS,ASM,$2)$(YASM) -o $(call ospath,$1 $2) $(ASMFLAGS)
 
-BISON = $(call SUPRESS,BISON  $2)$(CD) && bison.exe -d --fixed-output-files $(call ospath,$(call abspath,$2))
-FLEX  = $(call SUPRESS,FLEX   $2)flex.exe -o$(call ospath,$1 $2)
+BISON = $(call SUPRESS,BISON,$2)$(CD) && bison.exe -d --fixed-output-files $(call ospath,$(call abspath,$2))
+FLEX  = $(call SUPRESS,FLEX,$2)flex.exe -o$(call ospath,$1 $2)
 
 ifndef SEQ
 # $1 - EXE,LIB,DLL, $2 - $(call GET_TARGET_NAME,$1), $3 - $$(basename $$(notdir $$(TRG_PCH))),

@@ -33,6 +33,14 @@ toupper = $(subst a,A,$(subst b,B,$(subst c,C,$(subst d,D,$(subst e,E,$(subst f,
   i,I,$(subst i,J,$(subst k,K,$(subst l,L,$(subst m,M,$(subst n,N,$(subst o,O,$(subst p,P,$(subst q,Q,$(subst r,R,$(subst \
   s,S,$(subst t,T,$(subst u,U,$(subst v,V,$(subst w,W,$(subst x,X,$(subst y,Y,$(subst z,Z,$1))))))))))))))))))))))))))
 
+# replace ABCDEFGHIJKLMNOPQRSTUVWXYZ characters with .
+repl1 = $(subst A,.,$(subst B,.,$(subst C,.,$(subst D,.,$(subst E,.,$(subst F,.,$(subst G,.,$(subst H,.,$(subst I,.,$(subst J,.,$(subst K,.,$(subst L,.,$(subst M,.,$(subst N,.,$(subst O,.,$(subst P,.,$(subst Q,.,$(subst R,.,$(subst S,.,$(subst T,.,$(subst U,.,$(subst V,.,$(subst W,.,$(subst X,.,$(subst Y,.,$(subst Z,.,$1))))))))))))))))))))))))))
+
+padto1 = $(subst .,       ,$(subst ..,      ,$(subst ...,     ,$(subst ....,    ,$(subst .....,   ,$(subst ......,  ,$(subst ......., ,$1)))))))
+
+# return string of spaces to add to given argument to align argument length to fixed width
+padto = $(call padto1,$(repl1))
+
 # call function $1 many times with arguments from list $2 groupped by $3 elements
 # and with auxiliary argument $4, separating function calls with $5
 xargs = $(call $1,$(wordlist 1,$3,$2),$4)$(if \

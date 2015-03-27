@@ -95,14 +95,14 @@ CMN_LIBS  = -pipe -o $1 $2 $(WLPREFIX)--warn-common $(WLPREFIX)--no-demangle $(a
             -L,$(LIB_DIR)) $(addprefix -l$(call VARIANT_LIB_PREFIX,$3),$(LIBS)) $(addprefix \
             -l,$(DLLS))) $(addprefix -L,$(SYSLIBPATH)) $(addprefix -l,$(SYSLIBS)) $(LDFLAGS)
 
-EXE_R_LD  = $(call SUPRESS,LD     $1)$($(TMD)$(COMPILER)) $(call CMN_LIBS,$1,$2,R)
-EXE_P_LD  = $(call SUPRESS,LD     $1)$($(TMD)$(COMPILER)) $(call CMN_LIBS,$1,$2,P) -pie
-DLL_R_LD  = $(call SUPRESS,LD     $1)$($(TMD)$(COMPILER)) -shared -Xlinker --no-undefined $(addprefix \
+EXE_R_LD  = $(call SUPRESS,$(TMD)LD,$1)$($(TMD)$(COMPILER)) $(call CMN_LIBS,$1,$2,R)
+EXE_P_LD  = $(call SUPRESS,$(TMD)LD,$1)$($(TMD)$(COMPILER)) $(call CMN_LIBS,$1,$2,P) -pie
+DLL_R_LD  = $(call SUPRESS,$(TMD)LD,$1)$($(TMD)$(COMPILER)) -shared -Xlinker --no-undefined $(addprefix \
              $(WLPREFIX)--version-script=,$(MAP)) $(call CMN_LIBS,$1,$2,D)
-LIB_R_LD  = $(call SUPRESS,AR     $1)$($(TMD)AR) -crs $1 $2
-LIB_P_LD  = $(call SUPRESS,LD     $1)$($(TMD)LD) -r --warn-common -o $1 $2 $(LDFLAGS)
-LIB_D_LD  = $(call SUPRESS,LD     $1)$($(TMD)LD) -r --warn-common -o $1 $2 $(LDFLAGS)
-KLIB_LD   = $(call SUPRESS,KLD    $1)$(KLD) -r --warn-common -o $1 $2 $(LDFLAGS)
+LIB_R_LD  = $(call SUPRESS,$(TMD)AR,$1)$($(TMD)AR) -crs $1 $2
+LIB_P_LD  = $(call SUPRESS,$(TMD)LD,$1)$($(TMD)LD) -r --warn-common -o $1 $2 $(LDFLAGS)
+LIB_D_LD  = $(call SUPRESS,$(TMD)LD,$1)$($(TMD)LD) -r --warn-common -o $1 $2 $(LDFLAGS)
+KLIB_LD   = $(call SUPRESS,KLD,$1)$(KLD) -r --warn-common -o $1 $2 $(LDFLAGS)
 
 DEPS_FLAGS := $(if $(NO_DEPS),,-MMD -MP)
 
@@ -118,13 +118,13 @@ endif
 
 # $1 - target, $2 - source
 CC_PARAMS = -pipe -c $(APP_FLAGS) $(DEPS_FLAGS) $(call SUBST_DEFINES,$(addprefix -D,$(DEFINES))) $(addprefix -I,$(INCLUDE))
-CMN_CXX  = $(if $(filter $2,$(WITH_PCH)),$(call SUPRESS,PCXX   $2)$($(TMD)CXX) -I$(dir $1) -include $(basename \
-            $(notdir $(PCH)))_pch_cxx.h,$(call SUPRESS,CXX    $2)$($(TMD)CXX)) $(CC_PARAMS) $(CXXFLAGS)
-CMN_CC   = $(if $(filter $2,$(WITH_PCH)),$(call SUPRESS,PCC    $2)$($(TMD)CC) -I$(dir $1) -include $(basename \
-            $(notdir $(PCH)))_pch_c.h,$(call SUPRESS,CC     $2)$($(TMD)CC)) $(CC_PARAMS) -std=c99 -pedantic $(CFLAGS)
+CMN_CXX  = $(if $(filter $2,$(WITH_PCH)),$(call SUPRESS,P$(TMD)CXX,$2)$($(TMD)CXX) -I$(dir $1) -include $(basename \
+            $(notdir $(PCH)))_pch_cxx.h,$(call SUPRESS,$(TMD)CXX,$2)$($(TMD)CXX)) $(CC_PARAMS) $(CXXFLAGS)
+CMN_CC   = $(if $(filter $2,$(WITH_PCH)),$(call SUPRESS,P$(TMD)CC,$2)$($(TMD)CC) -I$(dir $1) -include $(basename \
+            $(notdir $(PCH)))_pch_c.h,$(call SUPRESS,$(TMD)CC,$2)$($(TMD)CC)) $(CC_PARAMS) -std=c99 -pedantic $(CFLAGS)
 
-PCH_CXX  = $(call SUPRESS,PCHCXX $2)$($(TMD)CXX) $(CC_PARAMS) $(CXXFLAGS)
-PCH_CC   = $(call SUPRESS,PCHCC  $2)$($(TMD)CC) $(CC_PARAMS) -std=c99 -pedantic $(CFLAGS)
+PCH_CXX  = $(call SUPRESS,$(TMD)PCHCXX,$2)$($(TMD)CXX) $(CC_PARAMS) $(CXXFLAGS)
+PCH_CC   = $(call SUPRESS,$(TMD)PCHCC,$2)$($(TMD)CC) $(CC_PARAMS) -std=c99 -pedantic $(CFLAGS)
 
 EXE_R_CXX  = $(CMN_CXX) -o $1 $2
 EXE_R_CC   = $(CMN_CC) -o $1 $2
@@ -153,15 +153,15 @@ PCH_LIB_D_CXX  = $(PCH_DLL_R_CXX)
 PCH_LIB_D_CC   = $(PCH_DLL_R_CC)
 
 KLIB_PARAMS = -pipe -c $(KERN_FLAGS) $(DEPS_FLAGS) $(call SUBST_DEFINES,$(addprefix -D,$(DEFINES))) $(addprefix -I,$(INCLUDE)) $(CFLAGS)
-KLIB_R_CC  = $(if $(filter-out %.d,$1),$(if $(filter $2,$(WITH_PCH)),$(call SUPRESS,PKCC   $2)$(KCC) -I$(dir $1) -include $(basename \
-              $(notdir $(PCH)))_pch_c.h,$(call SUPRESS,KCC    $2)$(KCC)) $(KLIB_PARAMS) -o $1 $2)
+KLIB_R_CC  = $(if $(filter-out %.d,$1),$(if $(filter $2,$(WITH_PCH)),$(call SUPRESS,PKCC,$2)$(KCC) -I$(dir $1) -include $(basename \
+              $(notdir $(PCH)))_pch_c.h,$(call SUPRESS,KCC,$2)$(KCC)) $(KLIB_PARAMS) -o $1 $2)
 
-PCH_KLIB_R_CC = $(if $(filter-out %.d,$1),$(call SUPRESS,PCHKLI $2)$(KCC) $(KLIB_PARAMS) -o $1 $2)
+PCH_KLIB_R_CC = $(if $(filter-out %.d,$1),$(call SUPRESS,PCHKLIB,$2)$(KCC) $(KLIB_PARAMS) -o $1 $2)
 
-KLIB_R_ASM ?= $(if $(filter-out %.d,$1),$(call SUPRESS,ASM    $2)$(YASM) -o $1 $2 $(ASMFLAGS))
+KLIB_R_ASM ?= $(if $(filter-out %.d,$1),$(call SUPRESS,ASM,$2)$(YASM) -o $1 $2 $(ASMFLAGS))
 
-BISON = $(call SUPRESS,BISON  $2)cd $1; bison -d --fixed-output-files $(abspath $2)
-FLEX  = $(call SUPRESS,FLEX   $2)flex -o$1 $2
+BISON = $(call SUPRESS,BISON,$2)cd $1; bison -d --fixed-output-files $(abspath $2)
+FLEX  = $(call SUPRESS,FLEX,$2)flex -o$1 $2
 
 ifndef NO_PCH
 
@@ -215,7 +215,7 @@ endif # NO_PCH
 define COPY_FILE_RULE
 $(empty)
 $1/$(notdir $2): $2 $3 | $1
-	$$(call SUPRESS,CP     $$@)cp -f$(if $(VERBOSE:0=),v) $$< $$@
+	$$(call SUPRESS,CP,$$@)cp -f$(if $(VERBOSE:0=),v) $$< $$@
 endef
 
 # $1 - target file: $(call FORM_TRG,DRV)
@@ -232,15 +232,15 @@ $(foreach x,$5,$(call COPY_FILE_RULE,$4,$(LIB_DIR)/$x))
 $(call STD_TARGET_VARS,$1)
 # generate Makefile for kbuild
 $4/Makefile: | $4
-	$$(call SUPRESS,GEN    $$@)echo "obj-m += $(DRV_PREFIX)$(DRV).o" > $$@ && \
+	$$(call SUPRESS,GEN,$$@)echo "obj-m += $(DRV_PREFIX)$(DRV).o" > $$@ && \
   echo "$(DRV_PREFIX)$(DRV)-objs := $(notdir $(2:.c=.o)) $5" >> $$@ && \
   echo "EXTRA_CFLAGS += $(addprefix -D,$(EXTRA_DRV_DEFINES)) $(addprefix -I,$(call TRG_INCLUDE,DRV))" >> $$@
 # call kbuild
 $4/$(DRV_PREFIX)$(DRV)$(DRV_SUFFIX): $(addprefix $4/,$(notdir $2) $5) $(CURRENT_DEPS) | $4/Makefile
-	+$$(call SUPRESS,KBUILD $$@)$(KMAKE) V=$(VERBOSE) CC="$(KCC)" LD="$(KLD)" AR="$(AR)" $(addprefix \
+	+$$(call SUPRESS,KBUILD,$$@)$(KMAKE) V=$(VERBOSE) CC="$(KCC)" LD="$(KLD)" AR="$(AR)" $(addprefix \
   KBUILD_EXTRA_SYMBOLS=,$(KBUILD_EXTRA_SYMBOLS)) -C $(MODULES_PATH) M=$$(patsubst %/,%,$$(dir $$@)) $(addprefix ARCH=,$(ARCH))
 $1: $4/$(DRV_PREFIX)$(DRV)$(DRV_SUFFIX) | $(BIN_DIR)
-	$$(call SUPRESS,CP     $$@)cp -f$(if $(VERBOSE:0=),v) $$< $$@
+	$$(call SUPRESS,CP,$$@)cp -f$(if $(VERBOSE:0=),v) $$< $$@
 $(CURRENT_MAKEFILE_TM): $1
 CLEAN += $1 $4
 endef

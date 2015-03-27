@@ -87,12 +87,12 @@ CMN_LIBS = -ztext -xnolib -o $1 $2 $(addprefix -R,$(strip $(RPATH))) $(if $(stri
            -L,$(LIB_DIR)) $(addprefix -l$(call VARIANT_LIB_PREFIX,$3),$(LIBS)) $(addprefix \
            -l,$(DLLS))) $(addprefix -L,$(SYSLIBPATH)) $(addprefix -l,$(SYSLIBS)) $(if \
            $(filter CXX,$(COMPILER)),-lCstd -lCrun) -lc $(LDFLAGS)
-EXE_R_LD = $(call SUPRESS,LD     $1)$($(TMD)$(COMPILER)) $(call CMN_LIBS,$1,$2,R)
-DLL_R_LD = $(call SUPRESS,LD     $1)$($(TMD)$(COMPILER)) -zdefs -G $(addprefix -M,$(MAP)) $(call CMN_LIBS,$1,$2,D)
-LIB_R_LD = $(call SUPRESS,AR     $1)$($(TMD)AR) -c -r $1 $2
+EXE_R_LD = $(call SUPRESS,$(TMD)LD,$1)$($(TMD)$(COMPILER)) $(call CMN_LIBS,$1,$2,R)
+DLL_R_LD = $(call SUPRESS,$(TMD)LD,$1)$($(TMD)$(COMPILER)) -zdefs -G $(addprefix -M,$(MAP)) $(call CMN_LIBS,$1,$2,D)
+LIB_R_LD = $(call SUPRESS,$(TMD)AR,$1)$($(TMD)AR) -c -r $1 $2
 LIB_D_LD = $(LIB_R_LD)
-KLIB_LD  = $(call SUPRESS,KLD    $1)$(KLD) -r -o $1 $2 $(LDFLAGS)
-DRV_LD   = $(call SUPRESS,KLD    $1)$(KLD) -r -o $1 $2 $(if \
+KLIB_LD  = $(call SUPRESS,KLD,$1)$(KLD) -r -o $1 $2 $(LDFLAGS)
+DRV_LD   = $(call SUPRESS,KLD,$1)$(KLD) -r -o $1 $2 $(if \
             $(KLIBS),$(addprefix -L,$(LIB_DIR)) $(addprefix -l$(KLIB_NAME_PREFIX),$(KLIBS))) $(LDFLAGS)
 
 # $2 - target, $3 - source, $4 - $(basename $2).d, $5 - prefixes of system includes
@@ -120,8 +120,8 @@ endif
 
 # $1 - target, $2 - source, $3 - aux flags
 CC_PARAMS = $(APP_FLAGS) $(call SUBST_DEFINES,$(addprefix -D,$(DEFINES))) $(addprefix -I,$(INCLUDE))
-CMN_CXX  = $(call SUPRESS,CXX    $2)$(call WRAP_COMPILER,$($(TMD)CXX) $(CC_PARAMS) $(CXXFLAGS) -c -o $1 $2 $3,$1,$2,$(basename $1).d,$(UDEPS_INCLUDE_FILTER))
-CMN_CC   = $(call SUPRESS,CC     $2)$(call WRAP_COMPILER,$($(TMD)CC) $(CC_PARAMS) $(CFLAGS) -c -o $1 $2 $3,$1,$2,$(basename $1).d,$(UDEPS_INCLUDE_FILTER))
+CMN_CXX  = $(call SUPRESS,$(TMD)CXX,$2)$(call WRAP_COMPILER,$($(TMD)CXX) $(CC_PARAMS) $(CXXFLAGS) -c -o $1 $2 $3,$1,$2,$(basename $1).d,$(UDEPS_INCLUDE_FILTER))
+CMN_CC   = $(call SUPRESS,$(TMD)CC,$2)$(call WRAP_COMPILER,$($(TMD)CC) $(CC_PARAMS) $(CFLAGS) -c -o $1 $2 $3,$1,$2,$(basename $1).d,$(UDEPS_INCLUDE_FILTER))
 
 EXE_R_CXX = $(CMN_CXX)
 EXE_R_CC  = $(CMN_CC)
@@ -143,13 +143,13 @@ endif
 endif
 
 KCC_PARAMS = $(KERN_FLAGS) $(call SUBST_DEFINES,$(addprefix -D,$(DEFINES))) $(addprefix -I,$(INCLUDE)) $(CFLAGS)
-KLIB_R_CC = $(call SUPRESS,KCC    $2)$(call WRAP_COMPILER,$(KCC) $(KCC_PARAMS) -c -o $1 $2,$1,$2,$(basename $1).d,$(KDEPS_INCLUDE_FILTER))
+KLIB_R_CC = $(call SUPRESS,KCC,$2)$(call WRAP_COMPILER,$(KCC) $(KCC_PARAMS) -c -o $1 $2,$1,$2,$(basename $1).d,$(KDEPS_INCLUDE_FILTER))
 DRV_R_CC  = $(KLIB_R_CC)
 
-KLIB_R_ASM ?= $(call SUPRESS,ASM    $2)$(YASM) -o $1 $2 $(ASMFLAGS)
+KLIB_R_ASM ?= $(call SUPRESS,ASM,$2)$(YASM) -o $1 $2 $(ASMFLAGS)
 
-BISON = $(call SUPRESS,BISON  $2)cd $1; bison -d --fixed-output-files $(abspath $2)
-FLEX  = $(call SUPRESS,FLEX   $2)flex -o$1 $2
+BISON = $(call SUPRESS,BISON,$2)cd $1; bison -d --fixed-output-files $(abspath $2)
+FLEX  = $(call SUPRESS,FLEX,$2)flex -o$1 $2
 
 # $1 - target file: $(call FORM_TRG,DRV)
 # $2 - sources:     $(call TRG_SRC,DRV)

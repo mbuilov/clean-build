@@ -7,7 +7,7 @@ MOC_SRC_DIR := $(BLDSRC_DIR)/MOC_$(MOC_DIR_NAME)$(addprefix _,$3$2)
 $3MOC_SRC := $$(addprefix $$(MOC_SRC_DIR)/,$(patsubst %.h,%_moc.cpp,$(notdir $1)))
 NEEDED_DIRS += $$(MOC_SRC_DIR)
 $(foreach x,$1,$(newline)$$(MOC_SRC_DIR)/$(patsubst %.h,%_moc.cpp,$(notdir $x)): $x | $$(MOC_SRC_DIR)
-	$$(call SUPRESS,MOC    $$@)$(MOC) -i -f$$(call ospath,$$(call abspath,$$<)) \
+	$$(call SUPRESS,MOC,$$@)$(MOC) -i -f$$(call ospath,$$(call abspath,$$<)) \
   $$(call ospath,$$(call abspath,$$<)) -o $$(call ospath,$$@))
 CLEAN += $$($3MOC_SRC)
 endef

@@ -140,25 +140,26 @@ $1: TMD   := $(if $(TOOL_MODE),T)
 endef
 
 # print in color called tool
-COLORIZE1 = $(if\
-  $(filter CC,$1),[01;31mCC[0m     $2,$(if\
-  $(filter CXX,$1),[01;36mCXX[0m    $2,$(if\
-  $(filter JAVAC,$1),[01;36mJAVAC[0m   $2,$(if\
-  $(filter AR,$1),[01;32mAR[0m     $2,$(if\
-  $(filter LD,$1),[01;33mLD[0m     $2,$(if\
-  $(filter JAR,$1),[01;33mJAR[0m    $2,$(if\
-  $(filter KCC,$1),[00;31mKCC[0m    $2,$(if\
-  $(filter KLD,$1),[00;33mKLD[0m    $2,$(if\
-  $(filter ASM,$1),[00;37mASM[0m    $2,$(if\
-  $(filter MKDIR,$1),[00;36mMKDIR[0m  $2,$(if\
-  $(filter TOUCH,$1),[00;36mTOUCH[0m  $2,$(if\
-  $(filter CP,$1),[00;36mCP[0m     $2,$(if\
-  $(filter TCXX,$1),[00;32mTCXX[0m   $2,$(if\
-  $(filter TCC,$1),[00;32mTCC[0m    $2,$(if\
-  $(filter TLD,$1),[00;32mTLD[0m    $2,$(if\
-  $(filter GEN,$1),[01;32mGEN[0m    $2,$(if\
-  $(filter MGEN,$1),[01;32mMGEN[0m   $2,$3)))))))))))))))))
-COLORIZE = $(call COLORIZE1,$(firstword $1),$(wordlist 2,9999,$1),$1)
+TOOL_IN_COLOR = $(if\
+  $(filter CC,$1),[01;31mCC[0m,$(if\
+  $(filter CXX,$1),[01;36mCXX[0m,$(if\
+  $(filter JAVAC,$1),[01;36mJAVAC[0m,$(if\
+  $(filter AR,$1),[01;32mAR[0m,$(if\
+  $(filter LD,$1),[01;33mLD[0m,$(if\
+  $(filter JAR,$1),[01;33mJAR[0m,$(if\
+  $(filter KCC,$1),[00;31mKCC[0m,$(if\
+  $(filter KLD,$1),[00;33mKLD[0m,$(if\
+  $(filter ASM,$1),[00;37mASM[0m,$(if\
+  $(filter MKDIR,$1),[00;36mMKDIR[0m,$(if\
+  $(filter TOUCH,$1),[00;36mTOUCH[0m,$(if\
+  $(filter CP,$1),[00;36mCP[0m,$(if\
+  $(filter TCXX,$1),[00;32mTCXX[0m,$(if\
+  $(filter TCC,$1),[00;32mTCC[0m,$(if\
+  $(filter TLD,$1),[00;32mTLD[0m,$(if\
+  $(filter GEN,$1),[01;32mGEN[0m,$(if\
+  $(filter MGEN,$1),[01;32mMGEN[0m,$1)))))))))))))))))
+
+COLORIZE = $(TOOL_IN_COLOR)$(padto)$2
 
 include $(MTOP)/$(OS)/make_tools.mk
 
@@ -191,7 +192,7 @@ DEF_BLDSRC_DIR := $(DEF_BLD_DIR)/src
 # directory for makefiles timestamps (to support dependencies between makefiles)
 BLD_MAKEFILES_TIMESTAMPS_DIR := $(DEF_BLD_DIR)/mk_stm
 $(BLD_MAKEFILES_TIMESTAMPS_DIR):
-	$(call SUPRESS,MKDIR  $@)$(call MKDIR,$@)
+	$(call SUPRESS,MKDIR,$@)$(call MKDIR,$@)
 
 # make makefile timestamp file name
 # $1 - $(CURRENT_MAKEFILE)
@@ -360,8 +361,8 @@ MULTI_TARGET_NUM:=
 define MULTI_TARGET_RULE
 $1: $2 $(CURRENT_DEPS)
 	$$(if $$(filter $(words $(MULTI_TARGET_NUM)),$$(MULTI_TARGETS)),,$$(eval MULTI_TARGETS += $(words \
-  $(MULTI_TARGET_NUM)))$$(call SUPRESS,MGEN   $$@)$$(subst $$$$(newline),$$(newline),$(subst \
-  $$(newline),$$$$(newline),$3$(foreach x,$1,$$(newline)$$(call SUPRESS,TOUCH  $x)$$(call TOUCH,$x)))))
+  $(MULTI_TARGET_NUM)))$$(call SUPRESS,MGEN,$$@)$$(subst $$$$(newline),$$(newline),$(subst \
+  $$(newline),$$$$(newline),$3$(foreach x,$1,$$(newline)$$(call SUPRESS,TOUCH,$x)$$(call TOUCH,$x)))))
 MULTI_TARGET_NUM += 1
 endef
 

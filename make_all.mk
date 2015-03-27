@@ -5,10 +5,10 @@ endif
 
 # rules to create needed directories
 $(sort $(NEEDED_DIRS)):
-	$(call SUPRESS,MKDIR  $@)$(call MKDIR,$@)
+	$(call SUPRESS,MKDIR,$@)$(call MKDIR,$@)
 
 $(PROCESSED_MAKEFILES): | $(BLD_MAKEFILES_TIMESTAMPS_DIR)
-	$(call SUPRESS,TOUCH  $@)$(call TOUCH,$@)
+	$(call SUPRESS,TOUCH,$@)$(call TOUCH,$@)
 
 all: $(PROCESSED_MAKEFILES)
 	@:
