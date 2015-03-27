@@ -16,7 +16,7 @@ LIM := 100
 endif
 
 # don't colorize output
-COLORIZE = $1
+TOOL_IN_COLOR = $1
 
 # convert slashes
 # NOTE: no spaces allowed in paths the $(MAKE) works with
