@@ -140,24 +140,24 @@ $1: TMD   := $(if $(TOOL_MODE),T)
 endef
 
 # print in color called tool
-TOOL_IN_COLOR = $(if\
-  $(filter CC,$1),[01;31mCC[0m,$(if\
-  $(filter CXX,$1),[01;36mCXX[0m,$(if\
-  $(filter JAVAC,$1),[01;36mJAVAC[0m,$(if\
-  $(filter AR,$1),[01;32mAR[0m,$(if\
-  $(filter LD,$1),[01;33mLD[0m,$(if\
-  $(filter JAR,$1),[01;33mJAR[0m,$(if\
-  $(filter KCC,$1),[00;31mKCC[0m,$(if\
-  $(filter KLD,$1),[00;33mKLD[0m,$(if\
-  $(filter ASM,$1),[00;37mASM[0m,$(if\
-  $(filter MKDIR,$1),[00;36mMKDIR[0m,$(if\
-  $(filter TOUCH,$1),[00;36mTOUCH[0m,$(if\
-  $(filter CP,$1),[00;36mCP[0m,$(if\
-  $(filter TCXX,$1),[00;32mTCXX[0m,$(if\
-  $(filter TCC,$1),[00;32mTCC[0m,$(if\
-  $(filter TLD,$1),[00;32mTLD[0m,$(if\
-  $(filter GEN,$1),[01;32mGEN[0m,$(if\
-  $(filter MGEN,$1),[01;32mMGEN[0m,$1)))))))))))))))))
+TOOL_IN_COLOR = $(subst |,,$(subst \
+  |CC|,[01;31mCC[0m,$(subst \
+  |AR|,[01;32mAR[0m,$(subst \
+  |LD|,[01;33mLD[0m,$(subst \
+  |CP|,[00;36mCP[0m,$(subst \
+  |CXX|,[01;36mCXX[0m,$(subst \
+  |JAR|,[01;33mJAR[0m,$(subst \
+  |KCC|,[00;31mKCC[0m,$(subst \
+  |KLD|,[00;33mKLD[0m,$(subst \
+  |ASM|,[00;37mASM[0m,$(subst \
+  |TCC|,[00;32mTCC[0m,$(subst \
+  |TLD|,[00;32mTLD[0m,$(subst \
+  |GEN|,[01;32mGEN[0m,$(subst \
+  |TCXX|,[00;32mTCXX[0m,$(subst \
+  |MGEN|,[01;32mMGEN[0m,$(subst \
+  |JAVAC|,[01;36mJAVAC[0m,$(subst \
+  |MKDIR|,[00;36mMKDIR[0m,$(subst \
+  |TOUCH|,[00;36mTOUCH[0m,|$1|))))))))))))))))))
 
 COLORIZE = $(TOOL_IN_COLOR)$(padto)$2
 
