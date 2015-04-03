@@ -55,6 +55,6 @@ TOUCH1 = if not exist $1 (rem. > $1) else (copy /B $1+,, $1$(SUPPRESS_CP_OUTPUT)
 TOUCH = $(call TOUCH1,$(ospath))
 
 # delete target if failed to build it and exit shell with some error code
-DEL_ON_FAIL = || ($(DEL) & cmd /c exit 1)
+DEL_ON_FAIL = || ($(foreach x,$1,$(call DEL,$x) &) cmd /c exit 1)
 
 TOOL_SUFFIX := .exe
