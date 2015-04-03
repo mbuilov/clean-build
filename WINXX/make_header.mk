@@ -65,12 +65,12 @@ $(error Unknown OSVARIANT, set to either WINXP,WIN7,WIN8 or WIN81)
 endif
 
 ifdef MAY_EMBED_MANIFEST
-EXE_MANIFEST := $(space)/MANIFEST:EMBED
-DLL_MANIFEST := $(space)/MANIFEST:EMBED
+EMBED_EXE_MANIFEST := $(space)/MANIFEST:EMBED
+DLL_MANIFEST_OPTION := $(space)/MANIFEST:EMBED
 else
-EXE_MANIFEST = $(call DEL_ON_FAIL,$1.manifest)$(newline)$(if \
+EMBED_EXE_MANIFEST = $(call DEL_ON_FAIL,$1.manifest)$(newline)$(if \
   $(VERBOSE:1=),@)if exist $(ospath).manifest ($($(TMD)MT1) -nologo -manifest $(ospath).manifest -outputresource:$(ospath);1 && del $(ospath).manifest)$(DEL_ON_FAIL)
-DLL_MANIFEST = $(call DEL_ON_FAIL,$1.manifest)$(newline)$(if \
+EMBED_DLL_MANIFEST = $(newline)$(if \
   $(VERBOSE:1=),@)if exist $(ospath).manifest ($($(TMD)MT1) -nologo -manifest $(ospath).manifest -outputresource:$(ospath);2 && del $(ospath).manifest)$(DEL_ON_FAIL)
 endif
 
@@ -104,11 +104,13 @@ endef
 $(eval $(foreach v,R $(VARIANTS_FILTER),$(EXE_LD_TEMPLATE)))
 
 # Link.exe has a bug: it may not delete target dll if DEF was specified and were errors while building the dll
+DEL_ON_DLL_FAIL = $(if $(DEF)$(EMBED_DLL_MANIFEST),$(call DEL_ON_FAIL,$(if $(DEF),$1) $(if $(EMBED_DLL_MANIFEST),$1.manifest)))
+
 define DLL_LD_TEMPLATE
 $(empty)
 DLL_$v_LD1 = $$(call SUPRESS,$(TMD)LINK,$$1)$$(VS$$(TMD)LD) /nologo /DLL $$(if $$(DEF),/DEF:$$(call ospath,$$(DEF))) $(call \
               CMN_LIBS,$$1,$$2,$v) /IMPLIB:$$(call ospath,$$(patsubst $$(DLL_DIR)/$(DLL_PREFIX)%$(DLL_SUFFIX),$$(IMP_DIR)/$(IMP_PREFIX)$(call \
-              VARIANT_IMP_PREFIX,$v)%$(IMP_SUFFIX),$$1))$$(if $$(DEF),$$(DEL_ON_FAIL))$$(DLL_MANIFEST)
+              VARIANT_IMP_PREFIX,$v)%$(IMP_SUFFIX),$$1))$(DLL_MANIFEST_OPTION)$$(DEL_ON_DLL_FAIL)$$(EMBED_DLL_MANIFEST)
 endef
 $(eval $(foreach v,R $(VARIANTS_FILTER),$(DLL_LD_TEMPLATE)))
 
