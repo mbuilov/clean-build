@@ -50,12 +50,16 @@ PREDEFINES += WINXX $(OSVARIANT)
 
 ifeq ($(OSVARIANT),WIN81)
 PREDEFINES += WINVER=0x0603 _WIN32_WINNT=0x0603
+SUBSYSTEM_VER := 6.03
 else ifeq ($(OSVARIANT),WIN8)
 PREDEFINES += WINVER=0x0602 _WIN32_WINNT=0x0602
+SUBSYSTEM_VER := 6.02
 else ifeq ($(OSVARIANT),WIN7)
 PREDEFINES += WINVER=0x0601 _WIN32_WINNT=0x0601
+SUBSYSTEM_VER := 6.01
 else ifeq ($(OSVARIANT),WINXP)
 PREDEFINES += WINVER=0x0501 _WIN32_WINNT=0x0501
+SUBSYSTEM_VER := $(if $(filter %64,$(UCPU)),5.02,5.01)
 else
 $(error Unknown OSVARIANT, set to either WINXP,WIN7,WIN8 or WIN81)
 endif
@@ -90,7 +94,8 @@ CMN_LIBS = /OUT:$$(call ospath,$1) /INCREMENTAL:NO $(if $(filter %D,$(TARGET)),/
            $$(strip $$(LIBS)$$(DLLS)),/LIBPATH:$$(call ospath,$$(LIB_DIR))) $$(addsuffix \
            $(LIB_SUFFIX),$$(addprefix $(LIB_PREFIX)$(call VARIANT_LIB_PREFIX,$3),$$(LIBS))) $$(addsuffix \
            $$(IMP_SUFFIX),$$(addprefix $(IMP_PREFIX)$(call VARIANT_IMP_PREFIX,$3),$$(DLLS))) $$(call \
-            pqpath,/LIBPATH:,$$(VS$$(TMD)LIB) $$(UM$$(TMD)LIB) $$(call ospath,$$(SYSLIBPATH))) $$(SYSLIBS) $$(LDFLAGS)
+            pqpath,/LIBPATH:,$$(VS$$(TMD)LIB) $$(UM$$(TMD)LIB) $$(call ospath,$$(SYSLIBPATH))) $$(SYSLIBS) \
+           /SUBSYSTEM:CONSOLE,$(SUBSYSTEM_VER) $$(LDFLAGS)
 
 define EXE_LD_TEMPLATE
 $(empty)
@@ -220,15 +225,11 @@ endif # !SEQ
 DRV_LNK := $(WKLD) /nologo /INCREMENTAL:NO $(if $(filter %D,$(TARGET)),/DEBUG,/LTCG /OPT:REF) /DRIVER /FULLBUILD \
              /NODEFAULTLIB /SAFESEH:NO /MANIFEST:NO /MERGE:_PAGE=PAGE /MERGE:_TEXT=.text /MERGE:.rdata=.text \
              /SECTION:INIT,d /ENTRY:DriverEntry /ALIGN:0x40 /BASE:0x10000 /STACK:0x40000,0x1000 \
+             /MACHINE:$(if $(filter %64,$(KCPU)),x64,x86) \
              /SUBSYSTEM:NATIVE,$(if \
               $(filter WIN81,$(OSVARIANT)),6.03,$(if \
               $(filter WIN8,$(OSVARIANT)),6.02,$(if \
-              $(filter WIN7,$(OSVARIANT)),6.01,5.01))) \
-             /OSVERSION:$(if \
-              $(filter WIN81,$(OSVARIANT)),6.03,$(if \
-              $(filter WIN8,$(OSVARIANT)),6.02,$(if \
-              $(filter WIN7,$(OSVARIANT)),6.01,5.01))) \
-             /MACHINE:$(if $(filter %64,$(KCPU)),x64,x86)
+              $(filter WIN7,$(OSVARIANT)),6.01,$(if $(filter %64,$(KCPU)),5.02,5.01))))
 
 # $1 - target, $2 - objects
 DRV_LD1  = $(call SUPRESS,KLINK,$1)$(DRV_LNK) /OUT:$(call ospath,$1 $2 $(RES)) $(if \
