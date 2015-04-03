@@ -390,23 +390,24 @@ $(call LIB_AUX_TEMPLATE1,$(call TRG_SRC,LIB),$(call TRG_DEPS,LIB),$(call TRG_ALL
 endef
 
 # $1 - $(call TRG_SRC,DLL), $2 - $(call TRG_DEPS,DLL), $3 - $(call TRG_ALL_DEPS,DLL), $4 - $(filter %D,$(TARGET)), $5 - $(call FORM_TRG,DLL,$v), $6 - $(call FORM_OBJ_DIR,DLL,$v)
-# $7 - $(IMP_DIR)/$(IMP_PREFIX)$(call VARIANT_IMP_PREFIX,$v)$(call GET_TARGET_NAME,DLL), $v - R,S
+# $7 - $(IMP_DIR)/$(IMP_PREFIX)$(call VARIANT_IMP_PREFIX,$v)$(call GET_TARGET_NAME,DLL), $8 - $(call TRG_DEF,DLL), $v - R,S
 define DLL_AUX_TEMPLATE2
 $(empty)
 $5: SRC := $1
 $5: SDEPS := $2
 $5: DLL_DIR := $(DLL_DIR)
-$5: $1 $3
+$5: $1 $3 $8
 # note: ; - empty rule: imp is always updated if dll was updated
 $7$(IMP_SUFFIX): $5;
 $(if $4,CLEAN += $6/vc*.pdb $(patsubst %$(DLL_SUFFIX),%.pdb,$5) $(addprefix $7,$(IMP_SUFFIX) .exp))
 endef
 DLL_AUX_TEMPLATE1 = $(foreach v,$(call GET_VARIANTS,DLL,VARIANTS_FILTER),$(call \
-  DLL_AUX_TEMPLATE2,$1,$2,$3,$4,$(call FORM_TRG,DLL,$v),$(call FORM_OBJ_DIR,DLL,$v),$(IMP_DIR)/$(IMP_PREFIX)$(call VARIANT_IMP_PREFIX,$v)$5))
+  DLL_AUX_TEMPLATE2,$1,$2,$3,$4,$(call FORM_TRG,DLL,$v),$(call FORM_OBJ_DIR,DLL,$v),$(IMP_DIR)/$(IMP_PREFIX)$(call VARIANT_IMP_PREFIX,$v)$5,$6))
 define DLL_AUX_TEMPLATE
 $(call STD_RES_TEMPLATE,DLL)
 $(call PCH_TEMPLATE,DLL)
-$(call DLL_AUX_TEMPLATE1,$(call TRG_SRC,DLL),$(call TRG_DEPS,DLL),$(call TRG_ALL_DEPS,DLL),$(filter %D,$(TARGET)),$(call GET_TARGET_NAME,DLL))
+$(call DLL_AUX_TEMPLATE1,$(call TRG_SRC,DLL),$(call TRG_DEPS,DLL),$(call TRG_ALL_DEPS,DLL),$(filter \
+  %D,$(TARGET)),$(call GET_TARGET_NAME,DLL),$(call TRG_DEF,DLL))
 endef
 
 # $1 - $(call FORM_TRG,KLIB), $2 - $(call TRG_SRC,KLIB)
