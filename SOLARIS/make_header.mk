@@ -67,9 +67,15 @@ DRV_SUFFIX :=
 DLL_DIR = $(LIB_DIR)
 IMP_DIR = $(LIB_DIR)
 
-PREDEFINES += SOLARIS UNIX $(OSVARIANT) __FUNCTION__=\"\"
-APPDEFS    += $(if $(filter %64,$(UCPU)),LP64,ILP32) _REENTRANT
-KRNDEFS    += $(if $(filter %64,$(KCPU)),LP64,ILP32) _KERNEL
+ifndef OS_PREDEFINES
+OS_PREDEFINES := SOLARIS UNIX $(OSVARIANT) __FUNCTION__=\"\"
+endif
+ifndef OS_APPDEFS
+OS_APPDEFS := $(if $(filter %64,$(UCPU)),LP64,ILP32) _REENTRANT
+endif
+ifndef OS_KRNDEFS
+OS_KRNDEFS := $(if $(filter %64,$(KCPU)),LP64,ILP32) _KERNEL
+endif
 
 # supported target variants:
 # R - default variant (position-dependent code for EXE, position-independent code for DLL)

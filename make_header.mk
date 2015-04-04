@@ -53,6 +53,11 @@ MAKE_DEFS_INCLUDED_BY := make_header.mk
 include $(MTOP)/make_defs.mk
 include $(MTOP)/$(OS)/make_header.mk
 
+# add defines from $(MTOP)/$(OS)/make_header.mk
+PREDEFINES += $(OS_PREDEFINES)
+APPDEFS    += $(OS_APPDEFS)
+KRNDEFS    += $(OS_KRNDEFS)
+
 # $(BLD_TARGETS) is now defined, define $(DEBUG_TARGETS) code
 # FORM_TRG and VARIANTS_FILTER are defined later
 DEBUG_TARGETS := $(call GET_DEBUG_TARGETS,$(BLD_TARGETS),FORM_TRG,VARIANTS_FILTER)
