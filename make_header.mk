@@ -112,7 +112,7 @@ FORM_TRG = $(if \
 
 # subst $(space) with space character in defines passed to C-compiler
 SUBST_DEFINES = $(subst $$(space),$(space),$1)
-STRING_DEFINE = "$(subst $(space),$$(space),$(subst ",\",$1))"
+STRING_DEFINE = "$(subst $(space),$$$$(space),$(subst ",\",$1))"
 
 # add $(VPREFIX) to relative-path includes preserving include order
 # note: do not touch $(SYSINCLUDE) - it may contain paths with spaces
@@ -300,9 +300,9 @@ $(DEF_TAIL_CODE)
 endef
 DEFINE_TARGETS = $(if $(DEFINE_TARGETS_EVAL),)
 
-endif # MAKE_HEADER_INCLUDED
-
-# reset variables modifiable in target makefiles
+# code to be called at beginning of makefile
+define PREPARE_VARS
+$(RESET_TRG_VARS)
 PCH         :=
 WITH_PCH    :=
 USE         :=
@@ -325,13 +325,35 @@ RPATH       := $(INST_RPATH)
 MAP         :=
 DEF         :=
 KLIBS       :=
+endef
 
-# reset build targets and target-specific variables
-$(eval $(RESET_TRG_VARS))
+# allow to join two or more makefiles in one makefile:
+# include $(MTOP)/make_header.mk
+# LIB = xxx1
+# SRC = xxx.c
+# $(MAKE_CONTINUE)
+# LIB = xxx2
+# SRC = xxx.c
+# ...
+# $(DEFINE_TARGETS)
+
+# increment SUB_LEVEL, mark MAKE_CONT, eval tail code with $(DEFINE_TARGETS)
+# and start next circle - restore SUB_LEVEL and simulate including of "make_header.mk"
+define MAKE_CONTINUE_EVAL
+$(eval SUB_LEVEL := $(SUB_LEVEL) 1)
+$(eval MAKE_CONT := $(MAKE_CONT) 2)
+$(DEFINE_TARGETS_EVAL)
+$(eval SUB_LEVEL := $(wordlist 2,999999,$(SUB_LEVEL)))
+$(eval $(PREPARE_VARS))
+$(eval $(DEF_HEAD_CODE))
+$(eval MAKE_CONT += 1)
+endef
+MAKE_CONTINUE = $(if $(if $1,$(SAVE_VARS))$(MAKE_CONTINUE_EVAL)$(if $1,$(RESTORE_VARS)),)
+
+endif # MAKE_HEADER_INCLUDED
+
+# reset build targets, target-specific variables and variables modifiable in target makefiles
+$(eval $(PREPARE_VARS))
 
 # define bin/lib/obj/etc... dirs
 $(eval $(DEF_HEAD_CODE))
-
-# used by make_continue.mk
-MAKE_CONTINUE_HEADER = $(eval include $(MTOP)/make_header.mk)
-MAKE_CONTINUE_FOOTER = $(DEFINE_TARGETS)

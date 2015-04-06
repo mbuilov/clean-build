@@ -76,9 +76,9 @@ $(DEF_TAIL_CODE)
 endef
 DEFINE_JTARGETS = $(if $(DEFINE_JTARGETS_EVAL),)
 
-endif # MAKE_JHEADER_INCLUDED
-
-# reset variables modifiable in target makefiles
+# code to be called at beginning of makefile
+define PREPARE_JVARS
+JAR         :=
 JSRC        :=
 JARS        :=
 EXTJARS     :=
@@ -89,13 +89,25 @@ JCFLAGS     :=
 JRFLAGS     :=
 JARACTIONS  :=
 JAREXT      := .jar
+endef
 
-# reset build targets
-JAR         :=
+# increment SUB_LEVEL, mark MAKE_CONT, eval tail code with $(DEFINE_JTARGETS)
+# and start next circle - restore SUB_LEVEL and simulate including of "make_jheader.mk"
+define MAKE_JCONTINUE_EVAL
+SUB_LEVEL := $(SUB_LEVEL) 1
+MAKE_CONT := $(MAKE_CONT) 2
+$(DEFINE_JTARGETS)
+SUB_LEVEL := $(wordlist 2,999999,$(SUB_LEVEL))
+$(eval $(PREPARE_JVARS))
+$(eval $(DEF_HEAD_CODE))
+MAKE_CONT += 1
+endef
+MAKE_JCONTINUE = $(if $(if $1,$(SAVE_VARS))$(MAKE_JCONTINUE_EVAL)$(if $1,$(RESTORE_VARS)),)
+
+endif # MAKE_JHEADER_INCLUDED
+
+# reset build targets, target-specific variables and variables modifiable in target makefiles
+$(eval $(PREPARE_JVARS))
 
 # define bin/lib/obj/etc... dirs
 $(eval $(DEF_HEAD_CODE))
-
-# used by make_continue.mk
-MAKE_CONTINUE_HEADER = $(eval include $(MTOP)/make_jheader.mk)
-MAKE_CONTINUE_FOOTER = $(DEFINE_JTARGETS)
