@@ -379,6 +379,10 @@ MULTI_TARGET_CHECK = $(if $(filter-out $(words x$3x),$(words x$(subst $$@, ,$3)x
 # $3 - rule
 MULTI_TARGET = $(MULTI_TARGET_CHECK)$(eval $(MULTI_TARGET_SEQ)$(MULTI_TARGET_RULE))
 
+# may be used to save vars before $(MAKE_CONTINUE) and restore after
+SAVE_VARS = $(eval $(foreach v,$1,$(newline)$v_:=$($v)))
+RESTORE_VARS = $(eval $(foreach v,$1,$(newline)$v:=$($v_)))
+
 endif # MAKE_DEFS_INCLUDED
 
 ifndef MAKE_DEFS_INCLUDED_BY
