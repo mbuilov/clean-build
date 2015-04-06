@@ -59,6 +59,7 @@ DEBUG_TARGETS := $(call GET_DEBUG_TARGETS,$(BLD_TARGETS),FORM_TRG,VARIANTS_FILTE
 
 # template to prepend value of $(OS)-dependent variables to variable $r, then clear $(OS)-dependent variables
 # NOTE: preferred values must be first: $r_$(OS) is preferred over $r_$(OSVARIANT) and so on
+ifdef OSVARIANT
 define OSVAR
 $r:=$$(strip $$($r_$(OS)) $$($r_$(OSVARIANT)) $$($r_$(OSTYPE)) $$($r))
 $r_$(OS):=
@@ -66,6 +67,14 @@ $r_$(OSVARIANT):=
 $r_$(OSTYPE):=
 $(empty)
 endef
+else
+define OSVAR
+$r:=$$(strip $$($r_$(OS)) $$($r_$(OSTYPE)) $$($r))
+$r_$(OS):=
+$r_$(OSTYPE):=
+$(empty)
+endef
+endif
 
 # code for adding OS-specific values to variables, then clearing OS-specific values
 OSVARS := $(foreach r,$(BLD_VARS) $(foreach t,$(BLD_TARGETS),$(addprefix $t_,$(TRG_VARS))),$(OSVAR))
