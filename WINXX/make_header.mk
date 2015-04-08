@@ -99,7 +99,7 @@ CMN_LIBS = /OUT:$$(call ospath,$1) /INCREMENTAL:NO $(if $(filter %D,$(TARGET)),/
 
 define EXE_LD_TEMPLATE
 $(empty)
-EXE_$v_LD1 = $$(call SUPRESS,$(TMD)LINK,$$1)$$(VS$$(TMD)LD) /nologo $(call CMN_LIBS,$$1,$$2,$v)$$(EXE_MANIFEST)
+EXE_$v_LD1 = $$(call SUPRESS,$(TMD)LINK,$$1)$$(VS$$(TMD)LD) /nologo $(call CMN_LIBS,$$1,$$2,$v)$$(EMBED_EXE_MANIFEST)
 endef
 $(eval $(foreach v,R $(VARIANTS_FILTER),$(EXE_LD_TEMPLATE)))
 
