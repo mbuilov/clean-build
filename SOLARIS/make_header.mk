@@ -120,7 +120,7 @@ else
 DEF_APP_FLAGS := -O
 endif
 
-ifndef APP_FLAGS
+ifeq (undefined,$(origin APP_FLAGS))
 APP_FLAGS := $(DEF_APP_FLAGS)
 endif
 
@@ -140,12 +140,14 @@ LIB_D_CC  = $(DLL_R_CC)
 
 KDEPS_INCLUDE_FILTER ?= /usr/include/
 
-ifndef KERN_FLAGS
 ifneq ($(filter %D,$(TARGET)),)
-KERN_FLAGS := -g -DDEBUG
+DEF_KERN_FLAGS := -g -DDEBUG
 else
-KERN_FLAGS := -O
+DEF_KERN_FLAGS := -O
 endif
+
+ifeq (undefined,$(origin KERN_FLAGS))
+KERN_FLAGS := $(DEF_KERN_FLAGS)
 endif
 
 KCC_PARAMS = $(KERN_FLAGS) $(call SUBST_DEFINES,$(addprefix -D,$(DEFINES))) $(addprefix -I,$(INCLUDE)) $(CFLAGS)

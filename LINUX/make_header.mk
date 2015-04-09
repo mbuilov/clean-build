@@ -99,14 +99,22 @@ CMN_LIBS  = -pipe -o $1 $2 $(WLPREFIX)--warn-common $(WLPREFIX)--no-demangle $(a
             -L,$(LIB_DIR)) $(addprefix -l$(call VARIANT_LIB_PREFIX,$3),$(LIBS)) $(addprefix \
             -l,$(DLLS))) $(addprefix -L,$(SYSLIBPATH)) $(addprefix -l,$(SYSLIBS)) $(LDFLAGS)
 
+ifeq (undefined,$(origin STD_SOFLAGS))
+STD_SOFLAGS := -shared -Xlinker --no-undefined
+endif
+
+ifeq (undefined,$(origin STD_LIBFLAGS))
+STD_LIBFLAGS := -r --warn-common
+endif
+
 EXE_R_LD  = $(call SUPRESS,$(TMD)LD,$1)$($(TMD)$(COMPILER)) $(call CMN_LIBS,$1,$2,R)
 EXE_P_LD  = $(call SUPRESS,$(TMD)LD,$1)$($(TMD)$(COMPILER)) $(call CMN_LIBS,$1,$2,P) -pie
-DLL_R_LD  = $(call SUPRESS,$(TMD)LD,$1)$($(TMD)$(COMPILER)) -shared -Xlinker --no-undefined $(addprefix \
+DLL_R_LD  = $(call SUPRESS,$(TMD)LD,$1)$($(TMD)$(COMPILER)) $(STD_SOFLAGS) $(addprefix \
              $(WLPREFIX)--version-script=,$(MAP)) $(call CMN_LIBS,$1,$2,D)
 LIB_R_LD  = $(call SUPRESS,$(TMD)AR,$1)$($(TMD)AR) -crs $1 $2
-LIB_P_LD  = $(call SUPRESS,$(TMD)LD,$1)$($(TMD)LD) -r --warn-common -o $1 $2 $(LDFLAGS)
-LIB_D_LD  = $(call SUPRESS,$(TMD)LD,$1)$($(TMD)LD) -r --warn-common -o $1 $2 $(LDFLAGS)
-KLIB_LD   = $(call SUPRESS,KLD,$1)$(KLD) -r --warn-common -o $1 $2 $(LDFLAGS)
+LIB_P_LD  = $(call SUPRESS,$(TMD)LD,$1)$($(TMD)LD) $(STD_LIBFLAGS) -o $1 $2 $(LDFLAGS)
+LIB_D_LD  = $(call SUPRESS,$(TMD)LD,$1)$($(TMD)LD) $(STD_LIBFLAGS) -o $1 $2 $(LDFLAGS)
+KLIB_LD   = $(call SUPRESS,KLD,$1)$(KLD) $(STD_LIBFLAGS) -o $1 $2 $(LDFLAGS)
 
 DEPS_FLAGS := $(if $(NO_DEPS),,-MMD -MP)
 
@@ -116,12 +124,12 @@ else
 DEF_APP_FLAGS := -Wall -g -O2
 endif
 
-ifndef APP_FLAGS
+ifeq (undefined,$(origin APP_FLAGS))
 APP_FLAGS := $(DEF_APP_FLAGS)
 endif
 
-ifndef DEF_CFLAGS
-DEF_CFLAGS := -std=c99 -pedantic
+ifeq (undefined,$(origin STD_CFLAGS))
+STD_CFLAGS := -std=c99 -pedantic
 endif
 
 # $1 - target, $2 - source
@@ -129,10 +137,10 @@ CC_PARAMS = -pipe -c $(APP_FLAGS) $(DEPS_FLAGS) $(call SUBST_DEFINES,$(addprefix
 CMN_CXX  = $(if $(filter $2,$(WITH_PCH)),$(call SUPRESS,P$(TMD)CXX,$2)$($(TMD)CXX) -I$(dir $1) -include $(basename \
             $(notdir $(PCH)))_pch_cxx.h,$(call SUPRESS,$(TMD)CXX,$2)$($(TMD)CXX)) $(CC_PARAMS) $(CXXFLAGS)
 CMN_CC   = $(if $(filter $2,$(WITH_PCH)),$(call SUPRESS,P$(TMD)CC,$2)$($(TMD)CC) -I$(dir $1) -include $(basename \
-            $(notdir $(PCH)))_pch_c.h,$(call SUPRESS,$(TMD)CC,$2)$($(TMD)CC)) $(CC_PARAMS) $(DEF_CFLAGS) $(CFLAGS)
+            $(notdir $(PCH)))_pch_c.h,$(call SUPRESS,$(TMD)CC,$2)$($(TMD)CC)) $(CC_PARAMS) $(STD_CFLAGS) $(CFLAGS)
 
 PCH_CXX  = $(call SUPRESS,$(TMD)PCHCXX,$2)$($(TMD)CXX) $(CC_PARAMS) $(CXXFLAGS)
-PCH_CC   = $(call SUPRESS,$(TMD)PCHCC,$2)$($(TMD)CC) $(CC_PARAMS) $(DEF_CFLAGS) $(CFLAGS)
+PCH_CC   = $(call SUPRESS,$(TMD)PCHCC,$2)$($(TMD)CC) $(CC_PARAMS) $(STD_CFLAGS) $(CFLAGS)
 
 EXE_R_CXX  = $(CMN_CXX) -o $1 $2
 EXE_R_CC   = $(CMN_CC) -o $1 $2

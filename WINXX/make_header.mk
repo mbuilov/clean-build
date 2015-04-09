@@ -140,7 +140,7 @@ DEF_APP_FLAGS += /wd4251# 'class' needs to have dll-interface to be used by clie
 DEF_APP_FLAGS += /wd4275# non dll-interface class 'class' used as base for dll-interface class 'class'
 DEF_APP_FLAGS += /wd4996# 'strdup': The POSIX name for this item is deprecated...
 
-ifndef APP_FLAGS
+ifeq (undefined,$(origin APP_FLAGS))
 APP_FLAGS := $(DEF_APP_FLAGS)
 endif
 
@@ -247,12 +247,14 @@ DRV_LD1  = $(call SUPRESS,KLINK,$1)$(DRV_LNK) /OUT:$(call ospath,$1 $2 $(RES)) $
            $(KLIBS),/LIBPATH:$(call ospath,$(LIB_DIR))) $(addsuffix $(KLIB_SUFFIX),$(addprefix \
            $(KLIB_PREFIX),$(KLIBS))) $(call pqpath,/LIBPATH:,$(call ospath,$(SYSLIBPATH))) $(SYSLIBS) $(LDFLAGS)
 
-ifndef KERN_FLAGS
 ifneq ($(filter %D,$(TARGET)),)
-KERN_FLAGS := /X /GF /W3 /GR- /Gz /Zl /GS- /Oi /Z7 /Od
+DEF_KERN_FLAGS := /X /GF /W3 /GR- /Gz /Zl /GS- /Oi /Z7 /Od
 else
-KERN_FLAGS := /X /GF /W3 /GR- /Gz /Zl /GS- /Ox /GL /Gy
+DEF_KERN_FLAGS := /X /GF /W3 /GR- /Gz /Zl /GS- /Ox /GL /Gy
 endif
+
+ifeq (undefined,$(origin KERN_FLAGS))
+KERN_FLAGS := $(DEF_KERN_FLAGS)
 endif
 
 # $1 - outdir, $2 - sources, $3 - flags
