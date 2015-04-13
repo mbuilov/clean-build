@@ -1,0 +1,2 @@
+SYSLIBPATH += $(UMLIB)
+SYSLIBS    += Psapi.Lib

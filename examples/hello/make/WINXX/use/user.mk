@@ -1,0 +1,2 @@
+SYSLIBPATH += $(UMLIB)
+SYSLIBS    += User32.Lib
