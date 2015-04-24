@@ -99,6 +99,10 @@ CMN_LIBS  = -pipe -o $1 $2 $(WLPREFIX)--warn-common $(WLPREFIX)--no-demangle $(a
             -L,$(LIB_DIR)) $(addprefix -l$(call VARIANT_LIB_PREFIX,$3),$(LIBS)) $(addprefix \
             -l,$(DLLS))) $(addprefix -L,$(SYSLIBPATH)) $(addprefix -l,$(SYSLIBS)) $(LDFLAGS)
 
+ifeq (undefined,$(origin STD_EXEFLAGS))
+STD_EXEFLAGS :=
+endif
+
 ifeq (undefined,$(origin STD_SOFLAGS))
 STD_SOFLAGS := -shared -Xlinker --no-undefined
 endif
@@ -107,8 +111,8 @@ ifeq (undefined,$(origin STD_LIBFLAGS))
 STD_LIBFLAGS := -r --warn-common
 endif
 
-EXE_R_LD  = $(call SUPRESS,$(TMD)LD,$1)$($(TMD)$(COMPILER)) $(call CMN_LIBS,$1,$2,R)
-EXE_P_LD  = $(call SUPRESS,$(TMD)LD,$1)$($(TMD)$(COMPILER)) $(call CMN_LIBS,$1,$2,P) -pie
+EXE_R_LD  = $(call SUPRESS,$(TMD)LD,$1)$($(TMD)$(COMPILER)) $(STD_EXEFLAGS) $(call CMN_LIBS,$1,$2,R)
+EXE_P_LD  = $(call SUPRESS,$(TMD)LD,$1)$($(TMD)$(COMPILER)) $(STD_EXEFLAGS) $(call CMN_LIBS,$1,$2,P) -pie
 DLL_R_LD  = $(call SUPRESS,$(TMD)LD,$1)$($(TMD)$(COMPILER)) $(STD_SOFLAGS) $(addprefix \
              $(WLPREFIX)--version-script=,$(MAP)) $(call CMN_LIBS,$1,$2,D)
 LIB_R_LD  = $(call SUPRESS,$(TMD)AR,$1)$($(TMD)AR) -crs $1 $2
