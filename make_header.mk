@@ -299,10 +299,11 @@ KLIB_RULES = $(if $(KLIB),$(call KLIB_RULES1,$(call FORM_TRG,KLIB),$(call TRG_SR
 # this code is normally evaluated at end of target Makefile
 define DEFINE_TARGETS_EVAL
 # print what we will build
-$(if $(DEBUG),$(eval $(DEBUG_TARGETS)))
+$(if $(MDEBUG),$(eval $(DEBUG_TARGETS)))
 # prepend values of $(OS)-dependent variables, then clear them
 # eval _before_ using any of $(BLD_VARS)
 $(eval $(OSVARS))
+$(if $(MDEBUG),$(if $(USE),$(info using: $(USE))))
 $(eval include $(addsuffix .mk,$(addprefix $(TOP)/make/$(OS)/use/,$(USE))))
 # if there are rules to generate sources - eval them before defining objects for the target
 $(eval $(GENERATE_SRC_RULES))
