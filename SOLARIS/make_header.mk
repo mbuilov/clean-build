@@ -88,17 +88,42 @@ VARIANT_LIB_MAP = $(if $(filter DLL,$1),D,$2)
 # the same default variant of DLL may be linked with EXE or DLL
 VARIANT_IMP_MAP := R
 
+# default flags for EXE-linker
+ifeq (undefined,$(origin DEF_EXE_FLAGS))
+DEF_EXE_FLAGS :=
+endif
+
+# default flags for shared objects linker
+ifeq (undefined,$(origin DEF_SO_FLAGS))
+DEF_SO_FLAGS := -zdefs -G
+endif
+
+# default flags for kernel library linker
+ifeq (undefined,$(origin DEF_KLD_FLAGS))
+DEF_KLD_FLAGS := -r
+endif
+
+# default flags for static library archiver
+ifeq (undefined,$(origin DEF_AR_FLAGS))
+DEF_AR_FLAGS := -c -r
+endif
+
+# default flags for shared objects
+ifeq (undefined,$(origin DEF_SHARED_FLAGS))
+DEF_SHARED_FLAGS := -ztext -xnolib
+endif
+
 # $1 - target, $2 - objects, $3 - variant
-CMN_LIBS = -ztext -xnolib -o $1 $2 $(addprefix -R,$(strip $(RPATH))) $(if $(strip $(LIBS)$(DLLS)),$(addprefix \
+CMN_LIBS = $(DEF_SHARED_FLAGS) -o $1 $2 $(addprefix -R,$(strip $(RPATH))) $(if $(strip $(LIBS)$(DLLS)),$(addprefix \
            -L,$(LIB_DIR)) $(addprefix -l$(call VARIANT_LIB_PREFIX,$3),$(LIBS)) $(addprefix \
            -l,$(DLLS))) $(addprefix -L,$(SYSLIBPATH)) $(addprefix -l,$(SYSLIBS)) $(if \
            $(filter CXX,$(COMPILER)),-lCstd -lCrun) -lc $(LDFLAGS)
-EXE_R_LD = $(call SUPRESS,$(TMD)LD,$1)$($(TMD)$(COMPILER)) $(call CMN_LIBS,$1,$2,R)
-DLL_R_LD = $(call SUPRESS,$(TMD)LD,$1)$($(TMD)$(COMPILER)) -zdefs -G $(addprefix -M,$(MAP)) $(call CMN_LIBS,$1,$2,D)
-LIB_R_LD = $(call SUPRESS,$(TMD)AR,$1)$($(TMD)AR) -c -r $1 $2
+EXE_R_LD = $(call SUPRESS,$(TMD)LD,$1)$($(TMD)$(COMPILER)) $(DEF_EXE_FLAGS) $(call CMN_LIBS,$1,$2,R)
+DLL_R_LD = $(call SUPRESS,$(TMD)LD,$1)$($(TMD)$(COMPILER)) $(DEF_SO_FLAGS) $(addprefix -M,$(MAP)) $(call CMN_LIBS,$1,$2,D)
+LIB_R_LD = $(call SUPRESS,$(TMD)AR,$1)$($(TMD)AR) $(DEF_AR_FLAGS) $1 $2
 LIB_D_LD = $(LIB_R_LD)
-KLIB_LD  = $(call SUPRESS,KLD,$1)$(KLD) -r -o $1 $2 $(LDFLAGS)
-DRV_LD   = $(call SUPRESS,KLD,$1)$(KLD) -r -o $1 $2 $(if \
+KLIB_LD  = $(call SUPRESS,KLD,$1)$(KLD) $(DEF_KLD_FLAGS) -o $1 $2 $(LDFLAGS)
+DRV_LD   = $(call SUPRESS,KLD,$1)$(KLD) $(DEF_KLD_FLAGS) -o $1 $2 $(if \
             $(KLIBS),$(addprefix -L,$(LIB_DIR)) $(addprefix -l$(KLIB_NAME_PREFIX),$(KLIBS))) $(LDFLAGS)
 
 # $2 - target, $3 - source, $4 - $(basename $2).d, $5 - prefixes of system includes
@@ -126,8 +151,10 @@ endif
 
 # $1 - target, $2 - source, $3 - aux flags
 CC_PARAMS = $(APP_FLAGS) $(call SUBST_DEFINES,$(addprefix -D,$(DEFINES))) $(addprefix -I,$(INCLUDE))
-CMN_CXX  = $(call SUPRESS,$(TMD)CXX,$2)$(call WRAP_COMPILER,$($(TMD)CXX) $(CC_PARAMS) $(CXXFLAGS) -c -o $1 $2 $3,$1,$2,$(basename $1).d,$(UDEPS_INCLUDE_FILTER))
-CMN_CC   = $(call SUPRESS,$(TMD)CC,$2)$(call WRAP_COMPILER,$($(TMD)CC) $(CC_PARAMS) $(CFLAGS) -c -o $1 $2 $3,$1,$2,$(basename $1).d,$(UDEPS_INCLUDE_FILTER))
+CMN_CC   = $(call SUPRESS,$(TMD)CC,$2)$(call \
+  WRAP_COMPILER,$($(TMD)CC) $(CC_PARAMS) $(CFLAGS) -c -o $1 $2 $3,$1,$2,$(basename $1).d,$(UDEPS_INCLUDE_FILTER))
+CMN_CXX  = $(call SUPRESS,$(TMD)CXX,$2)$(call \
+  WRAP_COMPILER,$($(TMD)CXX) $(CC_PARAMS) $(CXXFLAGS) -c -o $1 $2 $3,$1,$2,$(basename $1).d,$(UDEPS_INCLUDE_FILTER))
 
 EXE_R_CXX = $(CMN_CXX)
 EXE_R_CC  = $(CMN_CC)
