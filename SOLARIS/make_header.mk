@@ -149,12 +149,16 @@ ifeq (undefined,$(origin APP_FLAGS))
 APP_FLAGS := $(DEF_APP_FLAGS)
 endif
 
+ifeq (undefined,$(origin DEF_CXXFLAGS))
+DEF_CXXFLAGS := -features=extensions
+endif
+
 # $1 - target, $2 - source, $3 - aux flags
 CC_PARAMS = $(APP_FLAGS) $(call SUBST_DEFINES,$(addprefix -D,$(DEFINES))) $(addprefix -I,$(INCLUDE))
 CMN_CC   = $(call SUPRESS,$(TMD)CC,$2)$(call \
   WRAP_COMPILER,$($(TMD)CC) $(CC_PARAMS) $(CFLAGS) -c -o $1 $2 $3,$1,$2,$(basename $1).d,$(UDEPS_INCLUDE_FILTER))
 CMN_CXX  = $(call SUPRESS,$(TMD)CXX,$2)$(call \
-  WRAP_COMPILER,$($(TMD)CXX) $(CC_PARAMS) $(CXXFLAGS) -c -o $1 $2 $3,$1,$2,$(basename $1).d,$(UDEPS_INCLUDE_FILTER))
+  WRAP_COMPILER,$($(TMD)CXX) $(CC_PARAMS) $(DEF_CXXFLAGS) $(CXXFLAGS) -c -o $1 $2 $3,$1,$2,$(basename $1).d,$(UDEPS_INCLUDE_FILTER))
 
 EXE_R_CXX = $(CMN_CXX)
 EXE_R_CC  = $(CMN_CC)
