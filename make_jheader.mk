@@ -94,13 +94,13 @@ endef
 # increment SUB_LEVEL, mark MAKE_CONT, eval tail code with $(DEFINE_JTARGETS)
 # and start next circle - restore SUB_LEVEL and simulate including of "make_jheader.mk"
 define MAKE_JCONTINUE_EVAL
-SUB_LEVEL := $(SUB_LEVEL) 1
-MAKE_CONT := $(MAKE_CONT) 2
-$(DEFINE_JTARGETS)
-SUB_LEVEL := $(wordlist 2,999999,$(SUB_LEVEL))
+$(eval SUB_LEVEL := $(SUB_LEVEL) 1)
+$(eval MAKE_CONT := $(MAKE_CONT) 2)
+$(DEFINE_JTARGETS_EVAL)
+$(eval SUB_LEVEL := $(wordlist 2,999999,$(SUB_LEVEL)))
 $(eval $(PREPARE_JVARS))
 $(eval $(DEF_HEAD_CODE))
-MAKE_CONT += 1
+$(eval MAKE_CONT += 1)
 endef
 MAKE_JCONTINUE = $(if $(if $1,$(SAVE_VARS))$(MAKE_JCONTINUE_EVAL)$(if $1,$(RESTORE_VARS)),)
 
