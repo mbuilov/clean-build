@@ -88,23 +88,33 @@ OS_KRNDEFS := $(if $(filter %64,$(KCPU)),LLP64 _WIN64 _AMD64_,ILP32 _WIN32 _X86_
 endif
 
 # supported target variants:
-# R - dynamicaly linked multi-threaded libc (default)
-# S - statically linked multithreaded libc
-VARIANTS_FILTER := S
+# R  - dynamicaly linked multi-threaded libc (default)
+# S  - statically linked multithreaded libc
+# RU - same as R, but with unicode support
+# SU - same as S, but with unicode support
+VARIANTS_FILTER := S RU SU
 
 # use the same variant of static library as target EXE or DLL
-VARIANT_LIB_MAP = $2
+# use appropriate R or S variant of non-UNI_ static library for RU or SU variant of target EXE or DLL
+VARIANT_LIB_MAP = $(if $(filter UNI_%,$l),$2,$(subst U,,$2))
 
 # use the same variant of dynamic library as target EXE or DLL
-VARIANT_IMP_MAP = $2
+# use appropriate R or S variant of non-UNI_ dynamic library for RU or SU variant of target EXE or DLL
+VARIANT_IMP_MAP = $(if $(filter UNI_%,$d),$2,$(subst U,,$2))
+
+# check that library name built as RU/SU variant started with UNI_ prefix
+# $1 - IMP or LIB
+# $v - variant name: R,S,RU,SU
+# $$1 - target library name
+CHECK_UNI_NAME1 = $(if $(filter UNI_%,$1),,$(error library '$1' name must start with UNI_ prefix to build it as $2 variant))
+CHECK_UNI_NAME = $(if $(filter %U,$v),$$(call CHECK_UNI_NAME1,$$(patsubst $(call VARIANT_$1_PREFIX,$v)%$($1_SUFFIX),%,$$(notdir $$1)),$v))
 
 # $1 - target, $2 - objects, $3 - variant
+# note: target variable is not used in VARIANT_LIB_MAP and VARIANT_IMP_MAP, so may pass XXX as first parameter of MAKE_DEP_LIBS and MAKE_DEP_IMPS
 CMN_LIBS = /OUT:$$(call ospath,$1) /INCREMENTAL:NO $(if $(filter %D,$(TARGET)),/DEBUG,/LTCG /OPT:REF) $$(call ospath,$2 $$(RES)) $$(if \
-           $$(strip $$(LIBS)$$(DLLS)),/LIBPATH:$$(call ospath,$$(LIB_DIR))) $$(addsuffix \
-           $(LIB_SUFFIX),$$(addprefix $(LIB_PREFIX)$(call VARIANT_LIB_PREFIX,$3),$$(LIBS))) $$(addsuffix \
-           $$(IMP_SUFFIX),$$(addprefix $(IMP_PREFIX)$(call VARIANT_IMP_PREFIX,$3),$$(DLLS))) $$(call \
-            pqpath,/LIBPATH:,$$(VS$$(TMD)LIB) $$(UM$$(TMD)LIB) $$(call ospath,$$(SYSLIBPATH))) $$(SYSLIBS) \
-           $$(if $$(filter /SUBSYSTEM:%,$$(LDFLAGS)),,/SUBSYSTEM:CONSOLE,$(SUBSYSTEM_VER)) $$(LDFLAGS)
+           $$(strip $$(LIBS)$$(DLLS)),/LIBPATH:$$(call ospath,$$(LIB_DIR))) $$(call MAKE_DEP_LIBS,XXX,$3,$$(LIBS)) $$(call \
+            MAKE_DEP_IMPS,XXX,$3,$$(DLLS)) $$(call pqpath,/LIBPATH:,$$(VS$$(TMD)LIB) $$(UM$$(TMD)LIB) $$(call \
+            ospath,$$(SYSLIBPATH))) $$(SYSLIBS) $$(if $$(filter /SUBSYSTEM:%,$$(LDFLAGS)),,/SUBSYSTEM:CONSOLE,$(SUBSYSTEM_VER)) $$(LDFLAGS)
 
 define EXE_LD_TEMPLATE
 $(empty)
@@ -125,7 +135,7 @@ $(eval $(foreach v,R $(VARIANTS_FILTER),$(DLL_LD_TEMPLATE)))
 
 define LIB_LD_TEMPLATE
 $(empty)
-LIB_$v_LD1 = $$(call SUPRESS,$(TMD)LIB,$$1)$$(VS$$(TMD)LD) /lib /nologo /OUT:$$(call ospath,$$1 $$2) $(if $(filter %D,$(TARGET)),,/LTCG) $$(LDFLAGS)
+LIB_$v_LD1 = $(call CHECK_UNI_NAME,LIB)$$(call SUPRESS,$(TMD)LIB,$$1)$$(VS$$(TMD)LD) /lib /nologo /OUT:$$(call ospath,$$1 $$2) $(if $(filter %D,$(TARGET)),,/LTCG) $$(LDFLAGS)
 endef
 $(eval $(foreach v,R $(VARIANTS_FILTER),$(LIB_LD_TEMPLATE)))
 
@@ -150,6 +160,8 @@ CMN_CL1  = $(VS$(TMD)CL) /nologo /c $(APP_FLAGS) $(call SUBST_DEFINES,$(addprefi
 
 CMN_RCL  = $(CMN_CL1) /MD$(if $(filter %D,$(TARGET)),d)
 CMN_SCL  = $(CMN_CL1) /MT$(if $(filter %D,$(TARGET)),d)
+CMN_RUCL = $(CMN_RCL) /DUNICODE /D_UNICODE
+CMN_SUCL = $(CMN_SCL) /DUNICODE /D_UNICODE
 
 ifdef SEQ
 
@@ -197,26 +209,28 @@ APP_FLAGS += $(FORCE_SYNC_PDB) #/FS
 
 else # !SEQ
 
-# $1 - outdir, $2 - pch, $3 - non-pch C, $4 - non-pch CXX, $5 - pch C, $6 - pch CXX, $7 - compiler
+# $1 - outdir, $2 - pch, $3 - non-pch C, $4 - non-pch CXX, $5 - pch C, $6 - pch CXX, $7 - compiler, $8 - aux compiler flags
 CMN_MCL2 = $(if \
-            $3,$(call SUPRESS,$(TMD)MCC,$3)$(call $7,$1,$3,/MP $(CFLAGS))$(newline))$(if \
-            $4,$(call SUPRESS,$(TMD)MCXX,$4)$(call $7,$1,$4,/MP $(CXXFLAGS))$(newline))$(if \
-            $5,$(call SUPRESS,$(TMD)MPCC,$5)$(call $7,$1,$5,/MP /Yu$2 /Fp$1$(basename $2)_c.pch /FI$2 $(CFLAGS))$(newline))$(if \
-            $6,$(call SUPRESS,$(TMD)MPCXX,$6)$(call $7,$1,$6,/MP /Yu$2 /Fp$1$(basename $2)_cpp.pch /FI$2 $(CXXFLAGS))$(newline))
+            $3,$(call SUPRESS,$(TMD)MCC,$3)$(call $7,$1,$3,$8/MP $(CFLAGS))$(newline))$(if \
+            $4,$(call SUPRESS,$(TMD)MCXX,$4)$(call $7,$1,$4,$8/MP $(CXXFLAGS))$(newline))$(if \
+            $5,$(call SUPRESS,$(TMD)MPCC,$5)$(call $7,$1,$5,$8/MP /Yu$2 /Fp$1$(basename $2)_c.pch /FI$2 $(CFLAGS))$(newline))$(if \
+            $6,$(call SUPRESS,$(TMD)MPCXX,$6)$(call $7,$1,$6,$8/MP /Yu$2 /Fp$1$(basename $2)_cpp.pch /FI$2 $(CXXFLAGS))$(newline))
 
-# $1 - outdir, $2 - C-sources, $3 - CXX-sources, $4 - compiler
+# $1 - outdir, $2 - C-sources, $3 - CXX-sources, $4 - compiler, $5 - aux compiler flags
 CMN_MCL1 = $(call CMN_MCL2,$1,$(PCH),$(filter-out $(WITH_PCH),$2),$(filter-out \
-            $(WITH_PCH),$3),$(filter $(WITH_PCH),$2),$(filter $(WITH_PCH),$3),$4)
+            $(WITH_PCH),$3),$(filter $(WITH_PCH),$2),$(filter $(WITH_PCH),$3),$4,$5)
 
-# $1 - outdir, $2 - sources
-CMN_RMCL = $(call CMN_MCL1,$1,$(filter %.c,$2),$(filter %.cpp,$2),CMN_RCL)
-CMN_SMCL = $(call CMN_MCL1,$1,$(filter %.c,$2),$(filter %.cpp,$2),CMN_SCL)
+# $1 - outdir, $2 - sources, $3 - aux compiler flags
+CMN_RMCL = $(call CMN_MCL1,$1,$(filter %.c,$2),$(filter %.cpp,$2),CMN_RCL,$3)
+CMN_SMCL = $(call CMN_MCL1,$1,$(filter %.c,$2),$(filter %.cpp,$2),CMN_SCL,$3)
+CMN_RUMCL = $(call CMN_RMCL,$1,$2,/DUNICODE /D_UNICODE )
+CMN_SUMCL = $(call CMN_SMCL,$1,$2,/DUNICODE /D_UNICODE )
 
 # also recompile sources that are depend on changed sources
 # $1 - $(SDEPS) - list of pairs: <source file> <dependency1>|<dependency2>|...
 FILTER_SDEPS = $(if $1,$(if $(filter $(subst |, ,$(word 2,$1)),$?),$(firstword $1) )$(call FILTER_SDEPS,$(wordlist 3,999999,$1)))
 
-# $1 - target, $2 - objects, $3 - CMN_RMCL or CMN_SMCL
+# $1 - target, $2 - objects, $3 - CMN_RMCL, CMN_SMCL, CMN_RUMCL, CMN_SUMCL
 CMN_MCL = $(call $3,$(dir $(firstword $(filter %$(OBJ_SUFFIX),$2))),$(sort $(filter $(SRC),$? $(call FILTER_SDEPS,$(SDEPS)))))
 
 define COMPILTERS_TEMPLATE
