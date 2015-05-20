@@ -149,29 +149,34 @@ TRG_DEF = $(call FIXPATH,$(firstword $(if $($1_DEF),$($1_DEF),$(DEF))))
 OBJS = $(addsuffix $(OBJ_SUFFIX),$(basename $(notdir $1)))
 
 # get prefix of dependent LIB,
-# arguments: $1 - EXE,DLL, $2 - variant of EXE or DLL
+# arguments: $1 - target EXE,DLL, $2 - variant of target EXE or DLL, $l - dependent static library name
 # VARIANT_LIB_MAP - function that defines which variant of static library LIB to link with EXE or DLL
-#  arguments: $1 - EXE,DLL, $2 - variant of EXE or DLL
+#  arguments: $1 - target EXE,DLL, $2 - variant of target EXE or DLL, $l - dependent static library name
 #  returns:   variant of dependent LIB
 DEP_LIB_PREFIX = $(call VARIANT_LIB_PREFIX,$(VARIANT_LIB_MAP))
 
 # get prefix of dependent DLL,
-# arguments: $1 - EXE,DLL, $2 - variant of EXE or DLL
+# arguments: $1 - target EXE,DLL, $2 - variant of target EXE or DLL, $d - dependent dynamic library name
 # VARIANT_IMP_MAP - function that defines which variant of dynamic library DLL to link with EXE or DLL
-#  arguments: $1 - EXE,DLL, $2 - variant of EXE or DLL
+#  arguments: $1 - target EXE,DLL, $2 - variant of target EXE or DLL, $d - dependent dynamic library name
 #  returns:   variant of dependent DLL
 DEP_IMP_PREFIX = $(call VARIANT_IMP_PREFIX,$(VARIANT_IMP_MAP))
+
+# make file names of dependent libs
+# $1 - EXE,DLL $2 - R,P,S,<empty> $3 - names of dependent libs
+MAKE_DEP_LIBS = $(addsuffix $(LIB_SUFFIX),$(addprefix $(LIB_PREFIX),$(foreach l,$3,$(DEP_LIB_PREFIX)$l)))
+MAKE_DEP_IMPS = $(addsuffix $(IMP_SUFFIX),$(addprefix $(IMP_PREFIX),$(foreach d,$3,$(DEP_IMP_PREFIX)$d)))
 
 # static libraries target depends on
 # $1 - EXE,DLL $2 - R,P,S,<empty>
 TRG_LIBS = $(LIBS) $($1_LIBS)
-DEP_LIBS = $(addsuffix $(LIB_SUFFIX),$(addprefix $(LIB_DIR)/$(LIB_PREFIX)$(DEP_LIB_PREFIX),$(TRG_LIBS)))
+DEP_LIBS = $(addprefix $(LIB_DIR)/,$(call MAKE_DEP_LIBS,$1,$2,$(TRG_LIBS)))
 
 # dynamic libraries target depends on
 # assume when building DLL, $(DLL_LD) generates implementation library for DLL in $(IMP_DIR) and DLL itself in $(DLL_DIR)
 # $1 - EXE,DLL $2 - P,R,S,<empty>
 TRG_DLLS = $(DLLS) $($1_DLLS)
-DEP_IMPS = $(addsuffix $(IMP_SUFFIX),$(addprefix $(IMP_DIR)/$(IMP_PREFIX)$(DEP_IMP_PREFIX),$(TRG_DLLS)))
+DEP_IMPS = $(addprefix $(IMP_DIR)/,$(call MAKE_DEP_IMPS,$1,$2,$(TRG_DLLS)))
 
 # $1 - target file: $(call FORM_TRG,EXE,$v)
 # $2 - sources:     $(call TRG_SRC,EXE)
