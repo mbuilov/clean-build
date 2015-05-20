@@ -150,6 +150,10 @@ ifeq (undefined,$(origin APP_FLAGS))
 APP_FLAGS := $(DEF_APP_FLAGS)
 endif
 
+ifeq (undefined,$(origin DEF_CXXFLAGS))
+DEF_CXXFLAGS:=
+endif
+
 ifeq (undefined,$(origin DEF_CFLAGS))
 DEF_CFLAGS := -std=c99 -pedantic
 endif
@@ -157,11 +161,11 @@ endif
 # $1 - target, $2 - source
 CC_PARAMS = -pipe -c $(APP_FLAGS) $(DEPS_FLAGS) $(call SUBST_DEFINES,$(addprefix -D,$(DEFINES))) $(addprefix -I,$(INCLUDE))
 CMN_CXX  = $(if $(filter $2,$(WITH_PCH)),$(call SUPRESS,P$(TMD)CXX,$2)$($(TMD)CXX) -I$(dir $1) -include $(basename \
-            $(notdir $(PCH)))_pch_cxx.h,$(call SUPRESS,$(TMD)CXX,$2)$($(TMD)CXX)) $(CC_PARAMS) $(CXXFLAGS)
+            $(notdir $(PCH)))_pch_cxx.h,$(call SUPRESS,$(TMD)CXX,$2)$($(TMD)CXX)) $(CC_PARAMS) $(DEF_CXXFLAGS) $(CXXFLAGS)
 CMN_CC   = $(if $(filter $2,$(WITH_PCH)),$(call SUPRESS,P$(TMD)CC,$2)$($(TMD)CC) -I$(dir $1) -include $(basename \
             $(notdir $(PCH)))_pch_c.h,$(call SUPRESS,$(TMD)CC,$2)$($(TMD)CC)) $(CC_PARAMS) $(DEF_CFLAGS) $(CFLAGS)
 
-PCH_CXX  = $(call SUPRESS,$(TMD)PCHCXX,$2)$($(TMD)CXX) $(CC_PARAMS) $(CXXFLAGS)
+PCH_CXX  = $(call SUPRESS,$(TMD)PCHCXX,$2)$($(TMD)CXX) $(CC_PARAMS) $(DEF_CXXFLAGS) $(CXXFLAGS)
 PCH_CC   = $(call SUPRESS,$(TMD)PCHCC,$2)$($(TMD)CC) $(CC_PARAMS) $(DEF_CFLAGS) $(CFLAGS)
 
 EXE_R_CXX  = $(CMN_CXX) -o $1 $2
