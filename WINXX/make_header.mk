@@ -63,7 +63,7 @@ $(error Unknown OSVARIANT, set to either WINXP,WIN7,WIN8 or WIN81)
 endif
 
 # evaluate once
-CONST_SUBSYSTEM_VER := $(SUBSYSTEM_VER)
+SUBSYSTEM_VER := $(SUBSYSTEM_VER)
 
 ifndef OS_PREDEFINES
 OS_PREDEFINES := WINXX $(OSVARIANT) $(WINVER_DEFINES)
@@ -104,7 +104,7 @@ CMN_LIBS = /OUT:$$(call ospath,$1) /INCREMENTAL:NO $(if $(filter %D,$(TARGET)),/
            $(LIB_SUFFIX),$$(addprefix $(LIB_PREFIX)$(call VARIANT_LIB_PREFIX,$3),$$(LIBS))) $$(addsuffix \
            $$(IMP_SUFFIX),$$(addprefix $(IMP_PREFIX)$(call VARIANT_IMP_PREFIX,$3),$$(DLLS))) $$(call \
             pqpath,/LIBPATH:,$$(VS$$(TMD)LIB) $$(UM$$(TMD)LIB) $$(call ospath,$$(SYSLIBPATH))) $$(SYSLIBS) \
-           /SUBSYSTEM:CONSOLE,$(CONST_SUBSYSTEM_VER) $$(LDFLAGS)
+           $$(if $$(filter /SUBSYSTEM:%,$$(LDFLAGS)),,/SUBSYSTEM:CONSOLE,$(SUBSYSTEM_VER)) $$(LDFLAGS)
 
 define EXE_LD_TEMPLATE
 $(empty)
