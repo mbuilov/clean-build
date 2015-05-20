@@ -86,7 +86,7 @@ VARIANTS_FILTER = $(if \
                    $(filter EXE,$1),P,$(if \
                    $(filter LIB,$1),P D))
 
-# use the same variant of static library as target EXE
+# use the same variant (R or P) of static library as target EXE
 # use D-variant of static library for DLL
 VARIANT_LIB_MAP = $(if $(filter DLL,$1),D,$2)
 
