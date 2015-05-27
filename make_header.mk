@@ -357,13 +357,11 @@ endef
 # ...
 # $(DEFINE_TARGETS)
 
-# increment SUB_LEVEL, mark MAKE_CONT, eval tail code with $(DEFINE_TARGETS)
-# and start next circle - restore SUB_LEVEL and simulate including of "make_header.mk"
+# increment MAKE_CONT, eval tail code with $(DEFINE_TARGETS)
+# and start next circle - simulate including of "make_header.mk"
 define MAKE_CONTINUE_EVAL
-$(eval SUB_LEVEL := $(SUB_LEVEL) 1)
 $(eval MAKE_CONT := $(MAKE_CONT) 2)
 $(DEFINE_TARGETS_EVAL)
-$(eval SUB_LEVEL := $(wordlist 2,999999,$(SUB_LEVEL)))
 $(eval $(PREPARE_VARS))
 $(eval $(DEF_HEAD_CODE))
 $(eval MAKE_CONT += 1)
