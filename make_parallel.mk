@@ -12,7 +12,7 @@ endif
 # allow to execute $(DEF_HEAD_CODE) in next included make_parallel.mk
 DEF_HEAD_CODE_PROCESSED:=
 
-SUB_LEVEL := $(SUB_LEVEL) 1
+SUB_LEVEL := $(CURRENT_MAKEFILE_TM) $(SUB_LEVEL)
 
 # add $(VPREFIX) if makefile $1 is not $(TOP)-related, add /Makefile if $1 is a directory
 NORM_MAKEFILE = $(if $(filter-out $(TOP)/%,$1),$(VPREFIX))$1$(if $(filter-out %.mk,$1),/Makefile)
