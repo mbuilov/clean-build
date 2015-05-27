@@ -278,14 +278,17 @@ PROCESSED_MAKEFILES:=
 # 1) add $(CURRENT_MAKEFILE_TM) to build
 # 2) change bin,lib/obj dirs in TOOL_MODE or restore them to default values in non-TOOL_MODE
 # NOTE:
-#  make_continue.mk always adds 2 to $(MAKE_CONT) before including $(MAKE_CONTINUE_HEADER)
-#  - so we know if this file was processed from make_continue.mk, remove 2 from $(MAKE_CONT)
-#  - if next time this file will be processed not from make_continue.mk, clean $(MAKE_CONT)
+#  $(MAKE_CONTINUE) always adds 2 to $(MAKE_CONT) before expanding $(DEF_HEAD_CODE)
+#  - so we know if $(DEF_HEAD_CODE) expanded from $(MAKE_CONTINUE) - remove 2 from $(MAKE_CONT) in this case
+#  - if $(DEF_HEAD_CODE) was expanded not from $(MAKE_CONTINUE) - reset $(MAKE_CONT)
 # NOTE: make_defs.mk may be included before make_parallel.mk,
-#  to not execute $(DEF_HEAD_CODE) there define DEF_HEAD_CODE_PROCESSED variable
+#  to not execute $(DEF_HEAD_CODE) in make_parallel.mk, define DEF_HEAD_CODE_PROCESSED variable
 define DEF_HEAD_CODE
 ifeq ($(filter 2,$(MAKE_CONT)),)
 MAKE_CONT:=
+ifdef MDEBUG
+$$(info $(subst 1,.,$(subst 1 ,.,$(SUB_LEVEL))) $(CURRENT_MAKEFILE)$(if $(CURRENT_DEPS), : $(patsubst $(TOP)/%,$$$$(TOP)/%,$(CURRENT_DEPS))))
+endif
 ifneq ($(filter $(CURRENT_MAKEFILE_TM),$(PROCESSED_MAKEFILES)),)
 $$(info Warning: makefile $(CURRENT_MAKEFILE) is already processed!)
 else
@@ -293,9 +296,6 @@ PROCESSED_MAKEFILES += $(CURRENT_MAKEFILE_TM)
 endif
 else
 MAKE_CONT := $(filter-out 2,$(MAKE_CONT))
-endif
-ifdef MDEBUG
-$$(info $(subst 1,.,$(subst 1 ,.,$(SUB_LEVEL))) $(CURRENT_MAKEFILE)$(if $(MAKE_CONT),+$(words $(MAKE_CONT)))$(if $(CURRENT_DEPS), : $(patsubst $(TOP)/%,%,$(CURRENT_DEPS))))
 endif
 ifdef TOOL_MODE
 $(TOOL_OVERRIDE_DIRS)
@@ -326,7 +326,7 @@ ifdef MDEBUG
 define DEBUG_TARGETS1
 ifneq ($$($t),)
 $$(foreach v,$$(call GET_VARIANTS,$t,$3),$$(info $$(if $$(TOOL_MODE),[TOOL]: )$t $$(subst \
-  R ,,$$v ):= $$(call GET_TARGET_NAME,$t) ($$(patsubst $(TOP)/%,%,$$(call $2,$t,$$v)))))
+  R ,,$$v )= $$(call GET_TARGET_NAME,$t) '$$(patsubst $(TOP)/%,%,$$(call $2,$t,$$v))'))
 endif
 endef
 GET_DEBUG_TARGETS = $(foreach t,$1,$(newline)$(DEBUG_TARGETS1))
