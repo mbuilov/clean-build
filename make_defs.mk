@@ -274,6 +274,11 @@ CURRENT_MAKEFILE_TM := $(call MAKE_MAKEFILE_TIMESTAMP,$(CURRENT_MAKEFILE))
 # list of all processed makefiles
 PROCESSED_MAKEFILES:=
 
+# convert list "make1 make2 make3" -> "..."
+ifdef MDEBUG
+MAKEFILES_LEVEL = $(if $1,.$(call MAKEFILES_LEVEL,$(wordlist 2,999999,$1)))
+endif
+
 # code to $(eval) at beginning of each makefile
 # 1) add $(CURRENT_MAKEFILE_TM) to build
 # 2) change bin,lib/obj dirs in TOOL_MODE or restore them to default values in non-TOOL_MODE
@@ -287,7 +292,7 @@ define DEF_HEAD_CODE
 ifeq ($(filter 2,$(MAKE_CONT)),)
 MAKE_CONT:=
 ifdef MDEBUG
-$$(info $(subst 1,.,$(subst 1 ,.,$(SUB_LEVEL))) $(CURRENT_MAKEFILE)$(if $(CURRENT_DEPS), : $(patsubst $(TOP)/%,$$$$(TOP)/%,$(CURRENT_DEPS))))
+$$(info $(call MAKEFILES_LEVEL,$(SUB_LEVEL)) $(CURRENT_MAKEFILE)$(if $(CURRENT_DEPS), : $(patsubst $(TOP)/%,$$$$(TOP)/%,$(CURRENT_DEPS))))
 endif
 ifneq ($(filter $(CURRENT_MAKEFILE_TM),$(PROCESSED_MAKEFILES)),)
 $$(info Warning: makefile $(CURRENT_MAKEFILE) is already processed!)
@@ -306,7 +311,7 @@ DEF_HEAD_CODE_PROCESSED := 1
 endef
 
 # code to $(eval) at end of each makefile
-DEF_TAIL_CODE = $(eval $(if $(SUB_LEVEL),TOOL_MODE:=$(newline)DEF_HEAD_CODE_PROCESSED:=,include $(MTOP)/make_all.mk))
+DEF_TAIL_CODE = $(eval $(if $(SUB_LEVEL)$(filter 2,$(MAKE_CONT)),TOOL_MODE:=$(newline)DEF_HEAD_CODE_PROCESSED:=,include $(MTOP)/make_all.mk))
 
 # get target variants list or default variant R
 # $1 - EXE,LIB,...
