@@ -477,7 +477,8 @@ ADD_MC_RULE = $(eval $(ADD_MC_RULE1))
 define ADD_RES_RULE1
 AUX_RES := $5/$(basename $(notdir $2)).res
 NEEDED_DIRS += $5
-$$(AUX_RES): $(call FIXPATH,$2 $4) | $5
+$2: $(CURRENT_DEPS)
+$$(AUX_RES): $(call FIXPATH,$2 $4) $(CURRENT_DEPS) | $5
 	$$(call RC,$$@,$$<,$3)
 $1_RES_WINXX += $$(AUX_RES)
 endef
