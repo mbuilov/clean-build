@@ -92,6 +92,7 @@ $2: $(RES) $$($1_RES)
 $2: RES := $(RES) $$($1_RES)
 endef
 
+# don't add standard resource to the tool or if adding such resource is explicitly disabled in makefile via NO_TARGET_RES variable
 define STD_RES_TEMPLATE
 $(if $(TOOL_MODE),,$(if $(NO_TARGET_RES),,$(call STD_RES_TEMPLATE1,$1,$(call GET_TARGET_NAME,$1),$(call FORM_OBJ_DIR,$1))))
 $(foreach v,$(call GET_VARIANTS,$1,VARIANTS_FILTER),$(call ADD_STD_RES_TEMPLATE1,$1,$(call FORM_TRG,$1,$v)))
