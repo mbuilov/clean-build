@@ -32,7 +32,13 @@ PROJECT_FEATURES ?= $(TOP)/make/make_features.mk
 -include $(PROJECT_FEATURES)
 
 ifndef SUPPORTED_OSES
-$(error either not found or bad file $(PROJECT_FEATURES), check TOP environment variable, $(notdir $(PROJECT_FEATURES)) must define SUPPORTED_OSES)
+$(error SUPPORTED_OSES not defined, it may be defined in $(subst $(TOP),$$(TOP),$(PROJECT_FEATURES)))
+endif
+ifndef SUPPORTED_CPUS
+$(error SUPPORTED_CPUS not defined, it may be defined in $(subst $(TOP),$$(TOP),$(PROJECT_FEATURES)))
+endif
+ifndef SUPPORTED_TARGETS
+$(error SUPPORTED_TARGETS not defined, it may be defined in $(subst $(TOP),$$(TOP),$(PROJECT_FEATURES)))
 endif
 
 # target OS
