@@ -24,7 +24,7 @@ DEBUG_JTARGETS := $(call GET_DEBUG_TARGETS,$(BLD_JTARGETS),FORM_JTRG)
 FORM_JTRG = $(if \
             $(filter JAR,$1),$(BIN_DIR)/$($1)$(JAREXT))
 
-JAVAC_OPTIONS := $(if $(JLINT),-Xlint) $(if $(filter %D,$(TARGET)),-g)
+JAVAC_OPTIONS := $(if $(JLINT),-Xlint) $(if $(DEBUG),-g)
 
 # $1 - list of bundles to add to the .jar: dir1 name1 dir2 name2...
 FORM_JAR_BUNDLES = $(if $1,$(call pqpath,-C ,$(call ospath,$(call FIXPATH,$(firstword $1)))) $(call \

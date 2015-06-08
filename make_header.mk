@@ -42,7 +42,7 @@ VARIANT_IMP_PREFIX = $(if $(filter-out R,$1),$1_)
 
 # $(PROJECT_FEATURES) makefile included by make_defs.mk must define something like:
 # DEFINCLUDE = $(TOP)/include
-# PREDEFINES = $(if $(filter %D,$(TARGET)),_DEBUG) TARGET_$(patsubst %D,%,$(TARGET)) \
+# PREDEFINES = $(if $(DEBUG),_DEBUG) TARGET_$(patsubst %D,%,$(TARGET)) \
                $(if $(filter sparc% mips% ppc%,$(CPU)),B_ENDIAN,L_ENDIAN) \
                $(if $(filter arm% sparc% mips% ppc%,$(CPU)),ADDRESS_NEEDALIGN)
 # APPDEFS =

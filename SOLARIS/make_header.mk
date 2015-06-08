@@ -139,7 +139,7 @@ endif
 
 UDEPS_INCLUDE_FILTER ?= /usr/include/
 
-ifneq ($(filter %D,$(TARGET)),)
+ifdef DEBUG
 DEF_APP_FLAGS := -g -DDEBUG
 else
 DEF_APP_FLAGS := -O
@@ -171,7 +171,7 @@ LIB_D_CC  = $(DLL_R_CC)
 
 KDEPS_INCLUDE_FILTER ?= /usr/include/
 
-ifneq ($(filter %D,$(TARGET)),)
+ifdef DEBUG
 DEF_KERN_FLAGS := -g -DDEBUG
 else
 DEF_KERN_FLAGS := -O

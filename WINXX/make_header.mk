@@ -111,7 +111,7 @@ CHECK_UNI_NAME = $(if $(filter %U,$v),$$(call CHECK_UNI_NAME1,$$(patsubst $(call
 
 # $1 - target, $2 - objects, $3 - variant
 # note: target variable is not used in VARIANT_LIB_MAP and VARIANT_IMP_MAP, so may pass XXX as first parameter of MAKE_DEP_LIBS and MAKE_DEP_IMPS
-CMN_LIBS = /OUT:$$(call ospath,$1) /INCREMENTAL:NO $(if $(filter %D,$(TARGET)),/DEBUG,/LTCG /OPT:REF) $$(call ospath,$2 $$(RES)) $$(if \
+CMN_LIBS = /OUT:$$(call ospath,$1) /INCREMENTAL:NO $(if $(DEBUG),/DEBUG,/LTCG /OPT:REF) $$(call ospath,$2 $$(RES)) $$(if \
            $$(strip $$(LIBS)$$(DLLS)),/LIBPATH:$$(call ospath,$$(LIB_DIR))) $$(call MAKE_DEP_LIBS,XXX,$3,$$(LIBS)) $$(call \
             MAKE_DEP_IMPS,XXX,$3,$$(DLLS)) $$(call pqpath,/LIBPATH:,$$(VS$$(TMD)LIB) $$(UM$$(TMD)LIB) $$(call \
             ospath,$$(SYSLIBPATH))) $$(SYSLIBS) $$(if $$(filter /SUBSYSTEM:%,$$(LDFLAGS)),,/SUBSYSTEM:CONSOLE,$(SUBSYSTEM_VER)) $$(LDFLAGS)
@@ -135,13 +135,13 @@ $(eval $(foreach v,R $(VARIANTS_FILTER),$(DLL_LD_TEMPLATE)))
 
 define LIB_LD_TEMPLATE
 $(empty)
-LIB_$v_LD1 = $(call CHECK_UNI_NAME,LIB)$$(call SUPRESS,$(TMD)LIB,$$1)$$(VS$$(TMD)LD) /lib /nologo /OUT:$$(call ospath,$$1 $$2) $(if $(filter %D,$(TARGET)),,/LTCG) $$(LDFLAGS)
+LIB_$v_LD1 = $(call CHECK_UNI_NAME,LIB)$$(call SUPRESS,$(TMD)LIB,$$1)$$(VS$$(TMD)LD) /lib /nologo /OUT:$$(call ospath,$$1 $$2) $(if $(DEBUG),,/LTCG) $$(LDFLAGS)
 endef
 $(eval $(foreach v,R $(VARIANTS_FILTER),$(LIB_LD_TEMPLATE)))
 
-KLIB_LD1 = $(call SUPRESS,KLIB,$1)$(WKLD) /lib /nologo /OUT:$(call ospath,$1 $2) $(if $(filter %D,$(TARGET)),,/LTCG) $(LDFLAGS)
+KLIB_LD1 = $(call SUPRESS,KLIB,$1)$(WKLD) /lib /nologo /OUT:$(call ospath,$1 $2) $(if $(DEBUG),,/LTCG) $(LDFLAGS)
 
-ifneq ($(filter %D,$(TARGET)),)
+ifdef DEBUG
 DEF_APP_FLAGS := /X /GF /W3 /EHsc /Od /Zi /RTCc /RTCsu /GS
 else
 DEF_APP_FLAGS := /X /GF /W3 /EHsc /Ox /GL /Gy
@@ -158,8 +158,8 @@ endif
 CMN_CL1  = $(VS$(TMD)CL) /nologo /c $(APP_FLAGS) $(call SUBST_DEFINES,$(addprefix /D,$(DEFINES))) $(call \
             pqpath,/I,$(call ospath,$(INCLUDE)) $(VS$(TMD)INC) $(UM$(TMD)INC)) /Fo$(ospath) /Fd$(ospath) $3 $(call ospath,$2)
 
-CMN_RCL  = $(CMN_CL1) /MD$(if $(filter %D,$(TARGET)),d)
-CMN_SCL  = $(CMN_CL1) /MT$(if $(filter %D,$(TARGET)),d)
+CMN_RCL  = $(CMN_CL1) /MD$(if $(DEBUG),d)
+CMN_SCL  = $(CMN_CL1) /MT$(if $(DEBUG),d)
 CMN_RUCL = $(CMN_RCL) /DUNICODE /D_UNICODE
 CMN_SUCL = $(CMN_SCL) /DUNICODE /D_UNICODE
 
@@ -182,7 +182,8 @@ SED_DEPS_SCRIPT = 1{x;s@.*@$2: $3 \\@;x;};/^$(notdir $3)$$/d;\
 ifdef NO_DEPS
 WRAP_COMPILER = $1
 else
-WRAP_COMPILER = ($1 /showIncludes 2>&1 || echo COMPILATION_FAILED) | sed.exe -n "$(SED_DEPS_SCRIPT)" && findstr /b COMPILATION_FAILED $(call ospath,$4) > NUL & if errorlevel 1 (cmd /c exit 0) else (del $(call ospath,$4) && cmd /c exit 1)
+WRAP_COMPILER = ($1 /showIncludes 2>&1 || echo COMPILATION_FAILED) | sed.exe -n "$(SED_DEPS_SCRIPT)" && findstr /b COMPILATION_FAILED $(call \
+  ospath,$4) > NUL & if errorlevel 1 (cmd /c exit 0) else (del $(call ospath,$4) && cmd /c exit 1)
 endif
 
 # $1 - target, $2 - source, $3 - compiler
@@ -247,7 +248,7 @@ $(eval $(foreach v,R $(VARIANTS_FILTER),$(COMPILTERS_TEMPLATE)))
 
 endif # !SEQ
 
-DRV_LNK := $(WKLD) /nologo /INCREMENTAL:NO $(if $(filter %D,$(TARGET)),/DEBUG,/LTCG /OPT:REF) /DRIVER /FULLBUILD \
+DRV_LNK := $(WKLD) /nologo /INCREMENTAL:NO $(if $(DEBUG),/DEBUG,/LTCG /OPT:REF) /DRIVER /FULLBUILD \
              /NODEFAULTLIB /SAFESEH:NO /MANIFEST:NO /MERGE:_PAGE=PAGE /MERGE:_TEXT=.text /MERGE:.rdata=.text \
              /SECTION:INIT,d /ENTRY:DriverEntry /ALIGN:0x40 /BASE:0x10000 /STACK:0x40000,0x1000 \
              /MACHINE:$(if $(filter %64,$(KCPU)),x64,x86) \
@@ -261,7 +262,7 @@ DRV_LD1  = $(call SUPRESS,KLINK,$1)$(DRV_LNK) /OUT:$(call ospath,$1 $2 $(RES)) $
            $(KLIBS),/LIBPATH:$(call ospath,$(LIB_DIR))) $(addsuffix $(KLIB_SUFFIX),$(addprefix \
            $(KLIB_PREFIX),$(KLIBS))) $(call pqpath,/LIBPATH:,$(call ospath,$(SYSLIBPATH))) $(SYSLIBS) $(LDFLAGS)
 
-ifneq ($(filter %D,$(TARGET)),)
+ifdef DEBUG
 DEF_KERN_FLAGS := /X /GF /W3 /GR- /Gz /Zl /GS- /Oi /Z7 /Od
 else
 DEF_KERN_FLAGS := /X /GF /W3 /GR- /Gz /Zl /GS- /Ox /GL /Gy
@@ -382,57 +383,62 @@ ADD_WITH_PCH = $(eval $1_WITH_PCH += $2)
 TRG_ALL_DEPS1 = $(if $1,$(word 2,$1) $(call TRG_ALL_DEPS1,$(wordlist 3,999999,$1)))
 TRG_ALL_DEPS = $(call FIXPATH,$(subst |, ,$(call TRG_ALL_DEPS1,$(SDEPS) $($1_SDEPS))))
 
-# $1 - $(call TRG_SRC,EXE), $2 - $(call TRG_DEPS,EXE), $3 - $(call TRG_ALL_DEPS,EXE), $4 - $(filter %D,$(TARGET)), $5 - $(call FORM_TRG,EXE,$v), $6 - $(call FORM_OBJ_DIR,EXE,$v), $v - R,S
+# $1 - $(call TRG_SRC,EXE), $2 - $(call TRG_DEPS,EXE), $3 - $(call TRG_ALL_DEPS,EXE), $4 - $(call FORM_TRG,EXE,$v), $5 - $(call FORM_OBJ_DIR,EXE,$v), $v - R,S
 define EXE_AUX_TEMPLATE2
 $(empty)
-$5: SRC := $1
-$5: SDEPS := $2
-$5: $1 $3
-$(if $4,CLEAN += $6/vc*.pdb $(patsubst %$(EXE_SUFFIX),%.pdb,$5))
+$4: SRC := $1
+$4: SDEPS := $2
+$4: $1 $3
+ifdef DEBUG
+CLEAN += $5/vc*.pdb $(patsubst %$(EXE_SUFFIX),%.pdb,$4)
+endif
 endef
-EXE_AUX_TEMPLATE1 = $(foreach v,$(call GET_VARIANTS,EXE,VARIANTS_FILTER),$(call EXE_AUX_TEMPLATE2,$1,$2,$3,$4,$(call FORM_TRG,EXE,$v),$(call FORM_OBJ_DIR,EXE,$v)))
+EXE_AUX_TEMPLATE1 = $(foreach v,$(call GET_VARIANTS,EXE,VARIANTS_FILTER),$(call EXE_AUX_TEMPLATE2,$1,$2,$3,$(call FORM_TRG,EXE,$v),$(call FORM_OBJ_DIR,EXE,$v)))
 define EXE_AUX_TEMPLATE
 $(call STD_RES_TEMPLATE,EXE)
 $(call PCH_TEMPLATE,EXE)
-$(call EXE_AUX_TEMPLATE1,$(call TRG_SRC,EXE),$(call TRG_DEPS,EXE),$(call TRG_ALL_DEPS,EXE),$(filter %D,$(TARGET)))
+$(call EXE_AUX_TEMPLATE1,$(call TRG_SRC,EXE),$(call TRG_DEPS,EXE),$(call TRG_ALL_DEPS,EXE))
 endef
 
-# $1 - $(call TRG_SRC,LIB), $2 - $(call TRG_DEPS,LIB), $3 - $(call TRG_ALL_DEPS,LIB), $4 - $(filter %D,$(TARGET)), $5 - $(call FORM_TRG,LIB,$v), $6 - $(call FORM_OBJ_DIR,LIB,$v), $v - R,S
+# $1 - $(call TRG_SRC,LIB), $2 - $(call TRG_DEPS,LIB), $3 - $(call TRG_ALL_DEPS,LIB), $4 - $(call FORM_TRG,LIB,$v), $5 - $(call FORM_OBJ_DIR,LIB,$v), $v - R,S
 define LIB_AUX_TEMPLATE2
 $(empty)
-$5: SRC := $1
-$5: SDEPS := $2
-$5: $1 $3
-$(if $4,CLEAN += $6/vc*.pdb)
+$4: SRC := $1
+$4: SDEPS := $2
+$4: $1 $3
+ifdef DEBUG
+CLEAN += $5/vc*.pdb
+endif
 endef
-LIB_AUX_TEMPLATE1 = $(foreach v,$(call GET_VARIANTS,LIB,VARIANTS_FILTER),$(call LIB_AUX_TEMPLATE2,$1,$2,$3,$4,$(call FORM_TRG,LIB,$v),$(call FORM_OBJ_DIR,LIB,$v)))
+LIB_AUX_TEMPLATE1 = $(foreach v,$(call GET_VARIANTS,LIB,VARIANTS_FILTER),$(call LIB_AUX_TEMPLATE2,$1,$2,$3,$(call FORM_TRG,LIB,$v),$(call FORM_OBJ_DIR,LIB,$v)))
 define LIB_AUX_TEMPLATE
 ifneq ($(RES)$(LIB_RES),)
 $$(warning "don't link resource(s) $(strip $(RES) $(LIB_RES)) into static library: linker will ignore resources in static library")
 endif
 $(call PCH_TEMPLATE,LIB)
-$(call LIB_AUX_TEMPLATE1,$(call TRG_SRC,LIB),$(call TRG_DEPS,LIB),$(call TRG_ALL_DEPS,LIB),$(filter %D,$(TARGET)))
+$(call LIB_AUX_TEMPLATE1,$(call TRG_SRC,LIB),$(call TRG_DEPS,LIB),$(call TRG_ALL_DEPS,LIB))
 endef
 
-# $1 - $(call TRG_SRC,DLL), $2 - $(call TRG_DEPS,DLL), $3 - $(call TRG_ALL_DEPS,DLL), $4 - $(filter %D,$(TARGET)), $5 - $(call FORM_TRG,DLL,$v), $6 - $(call FORM_OBJ_DIR,DLL,$v)
-# $7 - $(IMP_DIR)/$(IMP_PREFIX)$(call VARIANT_IMP_PREFIX,$v)$(call GET_TARGET_NAME,DLL), $8 - $(call TRG_DEF,DLL), $v - R,S
+# $1 - $(call TRG_SRC,DLL), $2 - $(call TRG_DEPS,DLL), $3 - $(call TRG_ALL_DEPS,DLL), $4 - $(call FORM_TRG,DLL,$v), $5 - $(call FORM_OBJ_DIR,DLL,$v)
+# $6 - $(IMP_DIR)/$(IMP_PREFIX)$(call VARIANT_IMP_PREFIX,$v)$(call GET_TARGET_NAME,DLL), $7 - $(call TRG_DEF,DLL), $v - R,S
 define DLL_AUX_TEMPLATE2
 $(empty)
-$5: SRC := $1
-$5: SDEPS := $2
-$5: DLL_DIR := $(DLL_DIR)
-$5: $1 $3 $8
+$4: SRC := $1
+$4: SDEPS := $2
+$4: DLL_DIR := $(DLL_DIR)
+$4: $1 $3 $7
 # note: ; - empty rule: imp is always updated if dll was updated
-$7$(IMP_SUFFIX): $5;
-$(if $4,CLEAN += $6/vc*.pdb $(patsubst %$(DLL_SUFFIX),%.pdb,$5) $(addprefix $7,$(IMP_SUFFIX) .exp))
+$6$(IMP_SUFFIX): $4;
+ifdef DEBUG
+CLEAN += $5/vc*.pdb $(patsubst %$(DLL_SUFFIX),%.pdb,$4) $(addprefix $6,$(IMP_SUFFIX) .exp)
+endif
 endef
 DLL_AUX_TEMPLATE1 = $(foreach v,$(call GET_VARIANTS,DLL,VARIANTS_FILTER),$(call \
-  DLL_AUX_TEMPLATE2,$1,$2,$3,$4,$(call FORM_TRG,DLL,$v),$(call FORM_OBJ_DIR,DLL,$v),$(IMP_DIR)/$(IMP_PREFIX)$(call VARIANT_IMP_PREFIX,$v)$5,$6))
+  DLL_AUX_TEMPLATE2,$1,$2,$3,$(call FORM_TRG,DLL,$v),$(call FORM_OBJ_DIR,DLL,$v),$(IMP_DIR)/$(IMP_PREFIX)$(call VARIANT_IMP_PREFIX,$v)$4,$5))
 define DLL_AUX_TEMPLATE
 $(call STD_RES_TEMPLATE,DLL)
 $(call PCH_TEMPLATE,DLL)
-$(call DLL_AUX_TEMPLATE1,$(call TRG_SRC,DLL),$(call TRG_DEPS,DLL),$(call TRG_ALL_DEPS,DLL),$(filter \
-  %D,$(TARGET)),$(call GET_TARGET_NAME,DLL),$(call TRG_DEF,DLL))
+$(call DLL_AUX_TEMPLATE1,$(call TRG_SRC,DLL),$(call TRG_DEPS,DLL),$(call TRG_ALL_DEPS,DLL),$(call GET_TARGET_NAME,DLL),$(call TRG_DEF,DLL))
 endef
 
 # $1 - $(call FORM_TRG,KLIB), $2 - $(call TRG_SRC,KLIB)
@@ -441,7 +447,7 @@ $1: SRC := $2
 $1: SDEPS := $(call TRG_DEPS,KLIB)
 $1: $2 $(call TRG_ALL_DEPS,KLIB)
 $(call KPCH_TEMPLATE,KLIB)
-ifneq ($(filter %D,$(TARGET)),)
+ifdef DEBUG
 CLEAN += $(call FORM_OBJ_DIR,KLIB)/vc*.pdb
 endif
 endef
@@ -514,7 +520,7 @@ $1: $(addsuffix $(KLIB_SUFFIX),$(addprefix $(LIB_DIR)/$(KLIB_PREFIX),$(KLIBS))) 
 	$$(call DRV_LD,$$@,$$(filter %$(OBJ_SUFFIX),$$^))
 $(CURRENT_MAKEFILE_TM): $1
 CLEAN += $1 $5
-ifneq ($(filter %D,$(TARGET)),)
+ifdef DEBUG
 CLEAN += $4/vc*.pdb $(BIN_DIR)/$(DRV_PREFIX)$(DRV).pdb
 endif
 endef

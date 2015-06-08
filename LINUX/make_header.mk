@@ -140,7 +140,7 @@ KLIB_LD   = $(call SUPRESS,KLD,$1)$(KLD) $(DEF_KLD_FLAGS) -o $1 $2 $(LDFLAGS)
 
 DEPS_FLAGS := $(if $(NO_DEPS),,-MMD -MP)
 
-ifneq ($(filter %D,$(TARGET)),)
+ifdef DEBUG
 DEF_APP_FLAGS := -Wall -ggdb
 else
 DEF_APP_FLAGS := -Wall -g -O2
