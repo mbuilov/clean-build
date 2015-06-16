@@ -62,12 +62,13 @@ else
 $(error Unknown OSVARIANT, set to either WINXP,WIN7,WIN8 or WIN81)
 endif
 
-# evaluate once
-SUBSYSTEM_VER := $(SUBSYSTEM_VER)
+SUBSYSTEM_KVER ?= $(SUBSYSTEM_VER)
+OS_PREDEFINES ?= WINXX $(OSVARIANT) $(WINVER_DEFINES)
 
-ifndef OS_PREDEFINES
-OS_PREDEFINES := WINXX $(OSVARIANT) $(WINVER_DEFINES)
-endif
+# evaluate once
+SUBSYSTEM_VER  := $(SUBSYSTEM_VER)
+SUBSYSTEM_KVER := $(SUBSYSTEM_KVER)
+OS_PREDEFINES  := $(OS_PREDEFINES)
 
 ifdef MAY_EMBED_MANIFEST
 EMBED_EXE_MANIFEST := $(space)/MANIFEST:EMBED
@@ -251,11 +252,7 @@ endif # !SEQ
 DRV_LNK := $(WKLD) /nologo /INCREMENTAL:NO $(if $(DEBUG),/DEBUG,/LTCG /OPT:REF) /DRIVER /FULLBUILD \
              /NODEFAULTLIB /SAFESEH:NO /MANIFEST:NO /MERGE:_PAGE=PAGE /MERGE:_TEXT=.text /MERGE:.rdata=.text \
              /SECTION:INIT,d /ENTRY:DriverEntry /ALIGN:0x40 /BASE:0x10000 /STACK:0x40000,0x1000 \
-             /MACHINE:$(if $(filter %64,$(KCPU)),x64,x86) \
-             /SUBSYSTEM:NATIVE,$(if \
-              $(filter WIN81,$(OSVARIANT)),6.03,$(if \
-              $(filter WIN8,$(OSVARIANT)),6.02,$(if \
-              $(filter WIN7,$(OSVARIANT)),6.01,$(if $(filter %64,$(KCPU)),5.02,5.01))))
+             /MACHINE:$(if $(filter %64,$(KCPU)),x64,x86) /SUBSYSTEM:NATIVE,$(SUBSYSTEM_KVER)
 
 # $1 - target, $2 - objects
 DRV_LD1  = $(call SUPRESS,KLINK,$1)$(DRV_LNK) /OUT:$(call ospath,$1 $2 $(RES)) $(if \
