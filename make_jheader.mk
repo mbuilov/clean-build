@@ -34,8 +34,8 @@ FORM_JAR_BUNDLES = $(if $1,$(call pqpath,-C ,$(call ospath,$(call FIXPATH,$(firs
 FORM_CLASS_PATH = -classpath $(call qpath,$(subst $(space),$(PATHSEP),$(strip $(ospath))))
 
 # $1 - sources
-JAVA_CC1 = $(call SUPRESS,JAVAC,$1) $(JAVAC) $(JAVAC_OPTIONS) $(JCFLAGS) -classpath $(call ospath,$(OBJDIR)) -d $(call ospath,$(OBJDIR)) $(ospath) $(if \
-  $(strip $(CLASSPATH)$(EXTJARS)$(JARS)),$(call FORM_CLASS_PATH,$(CLASSPATH) $(EXTJARS) $(addprefix $(BIN_DIR)/,$(addsuffix .jar,$(JARS)))))$(newline)
+JAVA_CC1 = $(call SUPRESS,JAVAC,$1) $(JAVAC) $(JAVAC_OPTIONS) $(JCFLAGS) -d $(call ospath,$(OBJDIR)) $(ospath) $(call \
+  FORM_CLASS_PATH,$(OBJDIR) $(CLASSPATH) $(EXTJARS) $(addprefix $(BIN_DIR)/,$(addsuffix .jar,$(JARS))))$(newline)
 JAVA_CC  = $(if $1,$(JAVA_CC1))
 
 # $1 - target
