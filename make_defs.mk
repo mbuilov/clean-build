@@ -124,12 +124,12 @@ endif
 # print $(MF) relative to current directory
 ifeq ($(VERBOSE),1)
 ifdef INFOMF
-SUPRESS = $(info $(patsubst $(patsubst $(TOP)/%,%,$(CURDIR))/%,%,$(MF))$(if $(MCONT),@$(words $(MCONT))):)
+SUPRESS = $(info $(patsubst $(patsubst $(TOP)/%,%,$(CURDIR))/%,%,$(MF))$(MCONT):)
 else
 SUPRESS:=
 endif
 else ifdef INFOMF
-SUPRESS = @$(info $(patsubst $(patsubst $(TOP)/%,%,$(CURDIR))/%,%,$(MF))$(if $(MCONT),@$(words $(MCONT))):$(COLORIZE))
+SUPRESS = @$(info $(patsubst $(patsubst $(TOP)/%,%,$(CURDIR))/%,%,$(MF))$(MCONT):$(COLORIZE))
 else
 SUPRESS = @$(info $(COLORIZE))
 endif
@@ -141,7 +141,7 @@ endif
 # $(TMD)   - T if target is built in TOOL_MODE
 define STD_TARGET_VARS
 $1: MF    := $(CURRENT_MAKEFILE)
-$1: MCONT := $(MAKE_CONT)
+$1: MCONT := $(if $(MAKE_CONT),@$(words $(subst 1x,1 x,$(MAKE_CONT)x)))
 $1: TMD   := $(if $(TOOL_MODE),T)
 endef
 
@@ -317,7 +317,10 @@ DEF_HEAD_CODE_PROCESSED := 1
 endef
 
 # code to $(eval) at end of each makefile
-DEF_TAIL_CODE = $(eval $(if $(SUB_LEVEL)$(filter 2,$(MAKE_CONT)),TOOL_MODE:=$(newline)DEF_HEAD_CODE_PROCESSED:=,include $(MTOP)/make_all.mk))
+# include $(MTOP)/make_all.mk only if SUB_LEVEL is empty and will not continue
+# if called from $(MAKE_CONTINUE), $1 - list of vars to save - check if needed to save TOOL_MODE
+DEF_TAIL_CODE = $(eval $(if $(SUB_LEVEL)$(filter 2,$(MAKE_CONT)),$(if \
+  $(filter TOOL_MODE,$1),,TOOL_MODE:=$(newline))DEF_HEAD_CODE_PROCESSED:=,include $(MTOP)/make_all.mk))
 
 # get target variants list or default variant R
 # $1 - EXE,LIB,...
