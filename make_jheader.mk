@@ -35,23 +35,24 @@ FORM_CLASS_PATH = -classpath $(call qpath,$(subst $(space),$(PATHSEP),$(strip $(
 
 # $1 - sources
 JAVA_CC1 = $(call SUPRESS,JAVAC,$1) $(JAVAC) $(JAVAC_OPTIONS) $(JCFLAGS) -d $(call ospath,$(OBJDIR)) $(ospath) $(call \
-  FORM_CLASS_PATH,$(OBJDIR) $(CLASSPATH) $(EXTJARS) $(addprefix $(BIN_DIR)/,$(addsuffix .jar,$(JARS))))$(newline)
+  FORM_CLASS_PATH,$(OBJDIR) $(CLASSPATH) $(EXTJARS) $(JARS))$(newline)
 JAVA_CC  = $(if $1,$(JAVA_CC1))
 
 # $1 - target
 JAR_LD1  = $(call SUPRESS,JAR,$1)$(JARC) $(JRFLAGS) -cf$(if $(MANIFEST),m) $(ospath) $(call ospath,$(call FIXPATH,$(MANIFEST))) -C $(call \
             ospath,$(OBJDIR)) . $(call FORM_JAR_BUNDLES,$(BUNDLES))$(DEL_ON_FAIL)
-JAR_LD   = $(call JAVA_CC,$(filter $(JSRC),$?))$(JAR_LD1)
+JAR_LD   = $(call JAVA_CC,$(if $(filter $(JARS) $(EXTJARS),$?),$(JSRC),$(filter $(JSRC),$?)))$(JAR_LD1)
 
 # $1 - target file: $(call FORM_JTRG,JAR)
 # $2 - sources:     $(call FIXPATH,$(JSRC))
 # $3 - objdir:      $(call FORM_OBJ_DIR,JAR)
+# $4 - jars:        $(addprefix $(BIN_DIR)/,$(addsuffix .jar,$(JARS)))
 define JAR_TEMPLATE
 NEEDED_DIRS += $3
 $(call STD_TARGET_VARS,$1)
 $1: JSRC      := $2
 $1: OBJDIR    := $3
-$1: JARS      := $(JARS)
+$1: JARS      := $4
 $1: EXTJARS   := $(EXTJARS)
 $1: CLASSPATH := $(CLASSPATH)
 $1: BUNDLES   := $(BUNDLES)
@@ -59,14 +60,15 @@ $1: VPREFIX   := $(VPREFIX)
 $1: MANIFEST  := $(MANIFEST)
 $1: JCFLAGS   := $(JCFLAGS)
 $1: JRFLAGS   := $(JRFLAGS)
-$1: $(addprefix $(BIN_DIR)/,$(addsuffix .jar,$(JARS))) $2 $(CURRENT_DEPS) | $(BIN_DIR) $3
+$1: $(EXTJARS) $4 $2 $(CURRENT_DEPS) | $(BIN_DIR) $3
 	$$(eval COMMANDS := $(subst $$,$$$$,$(JARACTIONS)))$$(COMMANDS)$$(call JAR_LD,$$@)
 $(CURRENT_MAKEFILE_TM): $1
 CLEAN += $3 $1
 endef
 
 # how to build .jar library template
-JAR_RULES = $(if $(JAR),$(call JAR_TEMPLATE,$(call FORM_JTRG,JAR),$(call FIXPATH,$(JSRC)),$(call FORM_OBJ_DIR,JAR)))
+JAR_RULES = $(if $(JAR),$(call JAR_TEMPLATE,$(call FORM_JTRG,JAR),$(call \
+  FIXPATH,$(JSRC)),$(call FORM_OBJ_DIR,JAR),$(addprefix $(BIN_DIR)/,$(addsuffix .jar,$(JARS)))))
 
 # this file normally included at end of target Makefile
 define DEFINE_JTARGETS_EVAL
