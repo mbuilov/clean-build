@@ -1,4 +1,4 @@
-OSVARIANTS := WINXP WIN7 WIN8 WIN81
+OSVARIANTS := WINXP WIN7 WIN8 WIN81 WIN10
 
 ifeq ($(filter $(OSVARIANT),$(OSVARIANTS)),)
 $(error OSVARIANT undefined or has wrong value, pick on of: $(OSVARIANTS))
@@ -54,7 +54,7 @@ VSLD   := $(call qpath,$(VS)\VC\bin$(if $(filter %64,$(UCPU)),\amd64)\link.exe)
 VSCL   := $(call qpath,$(VS)\VC\bin$(if $(filter %64,$(UCPU)),\amd64)\cl.exe)
 
 VSTLIB := $(VS)\VC\lib$(if $(filter %64,$(TCPU)),\amd64)
-VSTINC := $(VS)\VC\include
+VSTINC := $(VSINC)
 VSTLD  := $(call qpath,$(VS)\VC\bin$(if $(filter %64,$(TCPU)),\amd64)\link.exe)
 VSTCL  := $(call qpath,$(VS)\VC\bin$(if $(filter %64,$(TCPU)),\amd64)\cl.exe)
 
@@ -69,7 +69,7 @@ endif
 UMLIB  := $(SDK)\Lib$(if $(filter %64,$(UCPU)),\x64)
 UMINC  := $(SDK)\Include
 UMTLIB := $(SDK)\Lib$(if $(filter %64,$(TCPU)),\x64)
-UMTINC := $(SDK)\Include
+UMTINC := $(UMINC)
 
 MC1  := $(call qpath,$(SDK)\bin$(if $(filter %64,$(UCPU)),\x64)\MC.Exe)
 RC1  := $(call qpath,$(SDK)\bin$(if $(filter %64,$(UCPU)),\x64)\RC.Exe)
@@ -86,17 +86,17 @@ ifndef SDK
 $(error SDK undefined, example: "C:\Program Files (x86)\Windows Kits\8.0")
 endif
 
-UMLIB  := $(SDK)\Lib\Win8\um$(if $(filter %64,$(UCPU)),\x64,\x86)
+UMLIB  := $(SDK)\Lib\Win8\um\$(if $(filter %64,$(UCPU)),x64,x86)
 UMINC  := $(SDK)\Include\um $(SDK)\Include\shared
-UMTLIB := $(SDK)\Lib\Win8\um$(if $(filter %64,$(TCPU)),\x64,\x86)
-UMTINC := $(SDK)\Include\um $(SDK)\Include\shared
+UMTLIB := $(SDK)\Lib\Win8\um\$(if $(filter %64,$(TCPU)),x64,x86)
+UMTINC := $(UMINC)
 
-MC1  := $(call qpath,$(SDK)\bin$(if $(filter %64,$(UCPU)),\x64,\x86)\mc.exe)
-RC1  := $(call qpath,$(SDK)\bin$(if $(filter %64,$(UCPU)),\x64,\x86)\rc.exe)
-MT1  := $(call qpath,$(SDK)\bin$(if $(filter %64,$(UCPU)),\x64,\x86)\mt.exe)
-TMC1 := $(call qpath,$(SDK)\bin$(if $(filter %64,$(TCPU)),\x64,\x86)\mc.exe)
-TRC1 := $(call qpath,$(SDK)\bin$(if $(filter %64,$(TCPU)),\x64,\x86)\rc.exe)
-TMT1 := $(call qpath,$(SDK)\bin$(if $(filter %64,$(TCPU)),\x64,\x86)\mt.exe)
+MC1  := $(call qpath,$(SDK)\bin\$(if $(filter %64,$(UCPU)),x64,x86)\mc.exe)
+RC1  := $(call qpath,$(SDK)\bin\$(if $(filter %64,$(UCPU)),x64,x86)\rc.exe)
+MT1  := $(call qpath,$(SDK)\bin\$(if $(filter %64,$(UCPU)),x64,x86)\mt.exe)
+TMC1 := $(call qpath,$(SDK)\bin\$(if $(filter %64,$(TCPU)),x64,x86)\mc.exe)
+TRC1 := $(call qpath,$(SDK)\bin\$(if $(filter %64,$(TCPU)),x64,x86)\rc.exe)
+TMT1 := $(call qpath,$(SDK)\bin\$(if $(filter %64,$(TCPU)),x64,x86)\mt.exe)
 
 endif
 
@@ -106,17 +106,34 @@ ifndef WDK
 $(error WDK undefined, example: "C:\Program Files (x86)\Windows Kits\8.1")
 endif
 
-UMLIB  := $(WDK)\Lib\winv6.3\um$(if $(filter %64,$(UCPU)),\x64,\x86)
+UMLIB  := $(WDK)\Lib\winv6.3\um\$(if $(filter %64,$(UCPU)),x64,x86)
 UMINC  := $(WDK)\Include\um $(WDK)\Include\shared
-UMTLIB := $(WDK)\Lib\winv6.3\um$(if $(filter %64,$(TCPU)),\x64,\x86)
-UMTINC := $(WDK)\Include\um $(WDK)\Include\shared
+UMTLIB := $(WDK)\Lib\winv6.3\um\$(if $(filter %64,$(TCPU)),x64,x86)
+UMTINC := $(UMINC)
 
-MC1  := $(call qpath,$(WDK)\bin$(if $(filter %64,$(UCPU)),\x64,\x86)\mc.exe)
-RC1  := $(call qpath,$(WDK)\bin$(if $(filter %64,$(UCPU)),\x64,\x86)\rc.exe)
-MT1  := $(call qpath,$(WDK)\bin$(if $(filter %64,$(UCPU)),\x64,\x86)\mt.exe)
-TMC1 := $(call qpath,$(WDK)\bin$(if $(filter %64,$(TCPU)),\x64,\x86)\mc.exe)
-TRC1 := $(call qpath,$(WDK)\bin$(if $(filter %64,$(TCPU)),\x64,\x86)\rc.exe)
-TMT1 := $(call qpath,$(WDK)\bin$(if $(filter %64,$(TCPU)),\x64,\x86)\mt.exe)
+endif
+
+ifeq ($(OSVARIANT),WIN10)
+
+ifndef WDK
+$(error WDK undefined, example: "C:\Program Files (x86)\Windows Kits\10")
+endif
+
+UMLIB  := $(WDK)\Lib\10.0.10240.0\um\$(if $(filter %64,$(UCPU)),x64,x86) $(WDK)\Lib\10.0.10240.0\ucrt\$(if $(filter %64,$(UCPU)),x64,x86)
+UMINC  := $(WDK)\Include\10.0.10240.0\um $(WDK)\Include\10.0.10240.0\ucrt $(WDK)\Include\10.0.10240.0\shared
+UMTLIB := $(WDK)\Lib\10.0.10240.0\um\$(if $(filter %64,$(TCPU)),x64,x86) $(WDK)\Lib\10.0.10240.0\ucrt\$(if $(filter %64,$(TCPU)),x64,x86)
+UMTINC := $(UMINC)
+
+endif
+
+ifneq ($(filter WIN81 WIN10,$(OSVARIANT)),)
+
+MC1  := $(call qpath,$(WDK)\bin\$(if $(filter %64,$(UCPU)),x64,x86)\mc.exe)
+RC1  := $(call qpath,$(WDK)\bin\$(if $(filter %64,$(UCPU)),x64,x86)\rc.exe)
+MT1  := $(call qpath,$(WDK)\bin\$(if $(filter %64,$(UCPU)),x64,x86)\mt.exe)
+TMC1 := $(call qpath,$(WDK)\bin\$(if $(filter %64,$(TCPU)),x64,x86)\mc.exe)
+TRC1 := $(call qpath,$(WDK)\bin\$(if $(filter %64,$(TCPU)),x64,x86)\rc.exe)
+TMT1 := $(call qpath,$(WDK)\bin\$(if $(filter %64,$(TCPU)),x64,x86)\mt.exe)
 
 endif
 
