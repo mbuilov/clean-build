@@ -46,7 +46,10 @@ DRV_SUFFIX := .sys
 DLL_DIR = $(BIN_DIR)
 IMP_DIR = $(LIB_DIR)
 
-ifeq ($(OSVARIANT),WIN81)
+ifeq ($(OSVARIANT),WIN10)
+WINVER_DEFINES ?= WINVER=0x0A00 _WIN32_WINNT=0x0A00
+SUBSYSTEM_VER ?= 6.03
+else ifeq ($(OSVARIANT),WIN81)
 WINVER_DEFINES ?= WINVER=0x0603 _WIN32_WINNT=0x0603
 SUBSYSTEM_VER ?= 6.03
 else ifeq ($(OSVARIANT),WIN8)
@@ -150,6 +153,7 @@ endif
 DEF_APP_FLAGS += /wd4251# 'class' needs to have dll-interface to be used by clients of class...
 DEF_APP_FLAGS += /wd4275# non dll-interface class 'class' used as base for dll-interface class 'class'
 DEF_APP_FLAGS += /wd4996# 'strdup': The POSIX name for this item is deprecated...
+DEF_APP_FLAGS += /wd4001# nonstandard extension 'single line comment' was used
 
 ifeq (undefined,$(origin APP_FLAGS))
 APP_FLAGS := $(DEF_APP_FLAGS)
