@@ -4,7 +4,14 @@ $(error Don't include make_all.mk directly, instead execute $$(DEF_TAIL_CODE) at
 endif
 
 # rules to create needed directories
-$(sort $(NEEDED_DIRS)):
+
+GET_DIR = $(patsubst %/,%,$(subst ./,,$(filter %/,$(dir $1))))
+SPLIT_DIRS = $(if $1,$1 $(call SPLIT_DIRS,$(GET_DIR)))
+NEEDED_DIRS := $(sort $(call SPLIT_DIRS,$(patsubst $(XTOP)/%,%,$(NEEDED_DIRS))))
+
+$(eval $(foreach x,$(NEEDED_DIRS),$(addprefix $(newline)$(XTOP)/$x:| $(XTOP)/,$(call GET_DIR,$x))))
+
+$(addprefix $(XTOP)/,$(NEEDED_DIRS)):
 	$(call SUPRESS,MKDIR,$@)$(call MKDIR,$@)
 
 $(PROCESSED_MAKEFILES): | $(BLD_MAKEFILES_TIMESTAMPS_DIR)
