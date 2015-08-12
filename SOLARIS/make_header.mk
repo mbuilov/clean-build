@@ -1,13 +1,13 @@
 ifneq ($(filter default undefined,$(origin CC)),)
 # 64-bit arch: CC="cc -m64"
 # 32-bit arch: CC="cc -m32"
-CC := cc -m$(if $(filter %64,$(KCPU)),64,32)
+CC := cc -m$(if $(filter %64,$(UCPU)),64,32)
 endif
 
 ifneq ($(filter default undefined,$(origin CXX)),)
 # 64-bit arch: CXX="CC -m64"
 # 32-bit arch: CXX="CC -m32"
-CXX := CC -m$(if $(filter %64,$(KCPU)),64,32)
+CXX := CC -m$(if $(filter %64,$(UCPU)),64,32)
 endif
 
 ifneq ($(filter default undefined,$(origin AR)),)
@@ -17,13 +17,13 @@ endif
 ifneq ($(filter default undefined,$(origin TCC)),)
 # 64-bit arch: TCC="cc -m64"
 # 32-bit arch: TCC="cc -m32"
-TCC := cc -m$(if $(filter %64,$(KCPU)),64,32)
+TCC := cc -m$(if $(filter %64,$(TCPU)),64,32)
 endif
 
 ifneq ($(filter default undefined,$(origin TCXX)),)
 # 64-bit arch: TCXX="CC -m64"
 # 32-bit arch: TCXX="CC -m32"
-TCXX := CC -m$(if $(filter %64,$(KCPU)),64,32)
+TCXX := CC -m$(if $(filter %64,$(TCPU)),64,32)
 endif
 
 ifneq ($(filter default undefined,$(origin TAR)),)
@@ -149,14 +149,22 @@ ifeq (undefined,$(origin APP_FLAGS))
 APP_FLAGS := $(DEF_APP_FLAGS)
 endif
 
+# disable some C++ compiler warnings
+# badargtype2w - (Anachronism) when passing pointers to functions
+# wbadasg      - (Anachronism) assigning extern "C" ...
+
 ifeq (undefined,$(origin DEF_CXXFLAGS))
-DEF_CXXFLAGS := -features=extensions
+DEF_CXXFLAGS := -erroff=badargtype2w,wbadasg
+endif
+
+ifeq (undefined,$(origin DEF_CFLAGS))
+DEF_CFLAGS:=
 endif
 
 # $1 - target, $2 - source, $3 - aux flags
 CC_PARAMS = $(APP_FLAGS) $(call SUBST_DEFINES,$(addprefix -D,$(DEFINES))) $(addprefix -I,$(INCLUDE))
 CMN_CC   = $(call SUPRESS,$(TMD)CC,$2)$(call \
-  WRAP_COMPILER,$($(TMD)CC) $(CC_PARAMS) $(CFLAGS) -c -o $1 $2 $3,$1,$2,$(basename $1).d,$(UDEPS_INCLUDE_FILTER))
+  WRAP_COMPILER,$($(TMD)CC) $(CC_PARAMS) $(DEF_CFLAGS) $(CFLAGS) -c -o $1 $2 $3,$1,$2,$(basename $1).d,$(UDEPS_INCLUDE_FILTER))
 CMN_CXX  = $(call SUPRESS,$(TMD)CXX,$2)$(call \
   WRAP_COMPILER,$($(TMD)CXX) $(CC_PARAMS) $(DEF_CXXFLAGS) $(CXXFLAGS) -c -o $1 $2 $3,$1,$2,$(basename $1).d,$(UDEPS_INCLUDE_FILTER))
 
