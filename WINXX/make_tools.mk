@@ -10,9 +10,9 @@ OSTYPE := WINDOWS
 # for Windows 2000 and later  - 2047 chars;
 # for Windows XP and later    - 8191 chars (max 31 path arguments of 260 chars length each);
 # maximum number of args passed via command line
-ifeq ($(LIM),)
+ifndef DEL_ARGS_LIMIT
 # for Windows XP and later, assuming that maximum length of each arg is 80 chars
-LIM := 100
+DEL_ARGS_LIMIT := 100
 endif
 
 # don't colorize output
@@ -28,7 +28,7 @@ isrelpath = $(if $(word 2,$(subst :, ,$1)),,1)
 
 DEL   = (if exist $(ospath) del /F /Q $(ospath))
 RM1   = $(if $(VERBOSE:1=),@)for %%f in ($(ospath)) do if exist %%f\NUL (rd /S /Q %%f) else if exist %%f (del /F /Q %%f)
-RM    = $(call xcmd,RM1,$1,$(LIM))
+RM    = $(call xcmd,RM1,$1,$(DEL_ARGS_LIMIT))
 # NOTE! there are races in MKDIR - if make spawns two parallel jobs:
 # if not exist aaa
 #                        if not exist aaa/bbb
