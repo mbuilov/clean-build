@@ -19,27 +19,27 @@ AR := ar
 endif
 
 ifneq ($(filter default undefined,$(origin TCC)),)
-TCC := gcc
+TCC := $(CC)
 endif
 
 ifneq ($(filter default undefined,$(origin TCXX)),)
-TCXX := g++
+TCXX := $(CXX)
 endif
 
 ifneq ($(filter default undefined,$(origin TLD)),)
-TLD := ld
+TLD := $(LD)
 endif
 
 ifneq ($(filter default undefined,$(origin TAR)),)
-TAR := ar
+TAR := $(AR)
 endif
 
 ifneq ($(filter default undefined,$(origin KCC)),)
-KCC := gcc
+KCC := $(CC)
 endif
 
 ifneq ($(filter default undefined,$(origin KLD)),)
-KLD := ld
+KLD := $(LD)
 endif
 
 ifneq ($(filter default undefined,$(origin KMAKE)),)
