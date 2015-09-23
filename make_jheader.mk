@@ -60,7 +60,7 @@ $1: VPREFIX   := $(VPREFIX)
 $1: MANIFEST  := $(MANIFEST)
 $1: JCFLAGS   := $(JCFLAGS)
 $1: JRFLAGS   := $(JRFLAGS)
-$1: $(EXTJARS) $4 $2 $(CURRENT_DEPS) | $(BIN_DIR) $3
+$1: $(EXTJARS) $4 $2 $(MANIFEST) $(CURRENT_DEPS) | $(BIN_DIR) $3
 	$$(eval COMMANDS := $(subst $$,$$$$,$(JARACTIONS)))$$(COMMANDS)$$(call JAR_LD,$$@)
 $(CURRENT_MAKEFILE_TM): $1
 CLEAN += $3 $1
