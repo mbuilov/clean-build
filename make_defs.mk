@@ -285,6 +285,22 @@ ifdef MDEBUG
 MAKEFILES_LEVEL = $(if $1,.$(call MAKEFILES_LEVEL,$(wordlist 2,999999,$1)))
 endif
 
+# functions to support cross-makefiles dependencies
+
+# add $(VPREFIX) if makefile $1 is not $(TOP)-related, add /Makefile if $1 is a directory
+NORM_MAKEFILE = $(if $(filter-out $(TOP)/%,$1),$(VPREFIX))$1$(if $(filter-out %.mk,$1),/Makefile)
+
+# compute VPREFIX to included normalized makefile $1
+GET_VPREFIX = $(if $(filter $(TOP)/%,$1),$(call reldir,$(CURDIR),$(dir $1)),$(filter-out ./,$(dir $(call normp,$1))))
+
+# make $(TOP)-relative path to included makefile $1, $2 - VPREFIX for included makefile
+MAKE_CURRENT_MAKEFILE1 = $(call normp,$(patsubst $(TOP)/%,%,$(CURDIR)/)$2$(notdir $1))
+MAKE_CURRENT_MAKEFILE2 = $(call MAKE_CURRENT_MAKEFILE1,$1,$(call GET_VPREFIX,$1))
+MAKE_CURRENT_MAKEFILE = $(call MAKE_CURRENT_MAKEFILE2,$(call NORM_MAKEFILE,$1))
+
+# convert list of makefiles to list of makefiles timestamps
+GET_MAKEFILE_DEPS = $(foreach x,$1,$(call MAKE_MAKEFILE_TIMESTAMP,$(call MAKE_CURRENT_MAKEFILE,$x)))
+
 # code to $(eval) at beginning of each makefile
 # 1) add $(CURRENT_MAKEFILE_TM) to build
 # 2) change bin,lib/obj dirs in TOOL_MODE or restore them to default values in non-TOOL_MODE
@@ -314,6 +330,10 @@ else
 $(SET_DEFAULT_DIRS)
 endif
 DEF_HEAD_CODE_PROCESSED := 1
+ifdef DEP_MAKEFILES
+CURRENT_DEPS := $(sort $(CURRENT_DEPS) $(call GET_MAKEFILE_DEPS,$(DEP_MAKEFILES)))
+DEP_MAKEFILES:=
+endif
 endef
 
 # code to $(eval) at end of each makefile
