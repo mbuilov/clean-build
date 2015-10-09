@@ -43,10 +43,18 @@ ifneq ($(filter default undefined,$(origin KLD)),)
 KLD := ld $(if $(filter %64,$(KCPU)),-64)
 endif
 
-ifneq ($(filter default undefined,$(origin YASM)),)
+ifndef YASMC
 # intel64: YASM="yasm -f elf64 -m amd64"
 # imtel32: YASM="yasm -f elf32 -m x86"
 YASM := yasm -f $(if $(filter %64,$(KCPU)),elf64,elf32) $(if $(filter x86%,$(KCPU)),-m $(if $(filter %64,$(KCPU)),amd64,x86))
+endif
+
+ifndef FLEXC
+FLEXC := flex
+endif
+
+ifndef BISONC
+BISONC := bison
 endif
 
 EXE_SUFFIX :=
@@ -193,10 +201,10 @@ KCC_PARAMS = $(KERN_FLAGS) $(call SUBST_DEFINES,$(addprefix -D,$(DEFINES))) $(ad
 KLIB_R_CC = $(call SUPRESS,KCC,$2)$(call WRAP_COMPILER,$(KCC) $(KCC_PARAMS) -c -o $1 $2,$1,$2,$(basename $1).d,$(KDEPS_INCLUDE_FILTER))
 DRV_R_CC  = $(KLIB_R_CC)
 
-KLIB_R_ASM ?= $(call SUPRESS,ASM,$2)$(YASM) -o $1 $2 $(ASMFLAGS)
+KLIB_R_ASM ?= $(call SUPRESS,ASM,$2)$(YASMC) -o $1 $2 $(ASMFLAGS)
 
-BISON = $(call SUPRESS,BISON,$2)cd $1; bison -d --fixed-output-files $(abspath $2)
-FLEX  = $(call SUPRESS,FLEX,$2)flex -o$1 $2
+BISON = $(call SUPRESS,BISON,$2)cd $1; $(BISONC) -d --fixed-output-files $(abspath $2)
+FLEX  = $(call SUPRESS,FLEX,$2)$(FLEXC) -o$1 $2
 
 # $1 - target file: $(call FORM_TRG,DRV)
 # $2 - sources:     $(call TRG_SRC,DRV)

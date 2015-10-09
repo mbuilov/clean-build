@@ -46,8 +46,16 @@ ifneq ($(filter default undefined,$(origin KMAKE)),)
 KMAKE := $(MAKE)
 endif
 
-ifneq ($(filter default undefined,$(origin YASM)),)
-YASM := yasm -f $(if $(filter %64,$(KCPU)),elf64,elf32) $(if $(filter x86%,$(KCPU)),-m $(if $(filter %64,$(KCPU)),amd64,x86))
+ifndef YASMC
+YASMC := yasm -f $(if $(filter %64,$(KCPU)),elf64,elf32) $(if $(filter x86%,$(KCPU)),-m $(if $(filter %64,$(KCPU)),amd64,x86))
+endif
+
+ifndef FLEXC
+FLEXC := flex
+endif
+
+ifndef BISONC
+BISONC := bison
 endif
 
 EXE_SUFFIX :=
@@ -200,10 +208,10 @@ KLIB_R_CC  = $(if $(filter-out %.d,$1),$(if $(filter $2,$(WITH_PCH)),$(call SUPR
 
 PCH_KLIB_R_CC = $(if $(filter-out %.d,$1),$(call SUPRESS,PCHKLIB,$2)$(KCC) $(KLIB_PARAMS) -o $1 $2)
 
-KLIB_R_ASM ?= $(if $(filter-out %.d,$1),$(call SUPRESS,ASM,$2)$(YASM) -o $1 $2 $(ASMFLAGS))
+KLIB_R_ASM ?= $(if $(filter-out %.d,$1),$(call SUPRESS,ASM,$2)$(YASMC) -o $1 $2 $(ASMFLAGS))
 
-BISON = $(call SUPRESS,BISON,$2)cd $1; bison -d --fixed-output-files $(abspath $2)
-FLEX  = $(call SUPRESS,FLEX,$2)flex -o$1 $2
+BISON = $(call SUPRESS,BISON,$2)cd $1; $(BISONC) -d --fixed-output-files $(abspath $2)
+FLEX  = $(call SUPRESS,FLEX,$2)$(FLEXC) -o$1 $2
 
 ifndef NO_PCH
 

@@ -16,8 +16,16 @@ endif
 
 include $(MTOP)/WINXX/autoconf.mk
 
-ifndef YASM
+ifndef YASMC
 YASM := yasm.exe $(if $(filter %64,$(KCPU)),-f win64 -m amd64,-f win32 -m x86)
+endif
+
+ifndef FLEXC
+FLEXC := flex.exe
+endif
+
+ifndef BISONC
+BISONC := bison.exe
 endif
 
 # environment variable LIB holds path to system libraries,
@@ -314,10 +322,10 @@ PCH_KCC  = $(call SUPRESS,PCHKCC,$2)$(call CMN_KCL,$(dir $1),$2,/Yc$3 /Yl$(basen
 
 endif # !SEQ
 
-KLIB_R_ASM ?= $(call SUPRESS,ASM,$2)$(YASM) -o $(call ospath,$1 $2) $(ASMFLAGS)
+KLIB_R_ASM ?= $(call SUPRESS,ASM,$2)$(YASMC) -o $(call ospath,$1 $2) $(ASMFLAGS)
 
-BISON = $(call SUPRESS,BISON,$2)$(CD) && bison.exe -d --fixed-output-files $(call ospath,$(call abspath,$2))
-FLEX  = $(call SUPRESS,FLEX,$2)flex.exe -o$(call ospath,$1 $2)
+BISON = $(call SUPRESS,BISON,$2)$(CD) && $(BISONC) -d --fixed-output-files $(call ospath,$(call abspath,$2))
+FLEX  = $(call SUPRESS,FLEX,$2)$(FLEXC) -o$(call ospath,$1 $2)
 
 ifndef SEQ
 # $1 - EXE,LIB,DLL, $2 - $(call GET_TARGET_NAME,$1), $3 - $$(basename $$(notdir $$(TRG_PCH))),
