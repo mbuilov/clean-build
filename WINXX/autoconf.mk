@@ -211,6 +211,22 @@ SIGNTOOL := $(call qpath,$(WDK)\bin\$(if $(filter %64,$(KCPU)),x64,x86)\SignTool
 
 endif
 
+ifneq ($(filter WIN10,$(OSVARIANT)),)
+
+ifndef WDK
+$(error WDK undefined, example: "C:\Program Files (x86)\Windows Kits\10")
+endif
+
+KMLIB := $(WDK)\Lib\10.0.10240.0\km\$(if $(filter %64,$(KCPU)),x64,x86)
+KMINC := $(WDK)\Include\10.0.10240.0\km $(WDK)\Include\10.0.10240.0\km\crt $(WDK)\Include\10.0.10240.0\shared
+WKLD  := $(call qpath,$(VS)\VC\bin$(if $(filter %64,$(KCPU)),\amd64)\link.exe)
+WKCL  := $(call qpath,$(VS)\VC\bin$(if $(filter %64,$(KCPU)),\amd64)\cl.exe)
+
+INF2CAT  := $(call qpath,$(WDK)\bin\x86\Inf2Cat.exe)
+SIGNTOOL := $(call qpath,$(WDK)\bin\$(if $(filter %64,$(KCPU)),x64,x86)\SignTool.exe)
+
+endif
+
 endif # !NO_AUTOCONF
 
 ifdef VAUTO
