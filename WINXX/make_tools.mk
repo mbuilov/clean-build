@@ -38,7 +38,7 @@ RM    = $(call xcmd,RM1,$1,$(DEL_ARGS_LIMIT))
 # assume MKDIR is called only if directory does not exist
 MKDIR = mkdir $(ospath)
 SED  := sed.exe -b
-SED_EXPR = "$1"
+SED_EXPR = "$(subst %,%%,$1)"
 CAT   = type $(ospath)
 open_brace:=(
 close_brace:=)
