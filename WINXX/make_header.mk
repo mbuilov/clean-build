@@ -1,10 +1,10 @@
 include $(MTOP)/$(OS)/make_stdres.mk
 
-# run via $(MAKE) S=1 to compile sources sequentially
+# run via $(MAKE) S=1 to compile each source individually
+ifndef SEQ_BUILD
 ifeq ("$(origin S)","command line")
-SEQ := $S
-else
-SEQ:=
+SEQ_BUILD := $S
+endif
 endif
 
 # run via $(MAKE) A=1 to show autoconf results
@@ -176,7 +176,7 @@ CMN_SCL  = $(CMN_CL1) /MT$(if $(DEBUG),d)
 CMN_RUCL = $(CMN_RCL) /DUNICODE /D_UNICODE
 CMN_SUCL = $(CMN_SCL) /DUNICODE /D_UNICODE
 
-ifdef SEQ
+ifdef SEQ_BUILD
 
 INCLUDING_FILE_PATTERN ?= Note: including file:
 INCLUDING_FILE_PATTERN1 := $(INCLUDING_FILE_PATTERN)
@@ -221,7 +221,7 @@ $(eval $(foreach v,R $(VARIANTS_FILTER),$(COMPILTERS_TEMPLATE)))
 
 APP_FLAGS += $(FORCE_SYNC_PDB) #/FS
 
-else # !SEQ
+else # !SEQ_BUILD
 
 # $1 - outdir, $2 - pch, $3 - non-pch C, $4 - non-pch CXX, $5 - pch C, $6 - pch CXX, $7 - compiler, $8 - aux compiler flags
 CMN_MCL2 = $(if \
@@ -259,7 +259,7 @@ $(empty)
 endef
 $(eval $(foreach v,R $(VARIANTS_FILTER),$(COMPILTERS_TEMPLATE)))
 
-endif # !SEQ
+endif # !SEQ_BUILD
 
 DRV_LNK := $(WKLD) /nologo /INCREMENTAL:NO $(if $(DEBUG),/DEBUG,/LTCG /OPT:REF) /DRIVER /FULLBUILD \
              /NODEFAULTLIB /SAFESEH:NO /MANIFEST:NO /MERGE:_PAGE=PAGE /MERGE:_TEXT=.text /MERGE:.rdata=.text \
@@ -285,7 +285,7 @@ endif
 CMN_KCL  = $(WKCL) /nologo /c $(KERN_FLAGS) $(call SUBST_DEFINES,$(addprefix /D,$(DEFINES))) $(call \
             pqpath,/I,$(call ospath,$(INCLUDE)) $(KMINC)) /Fo$(ospath) /Fd$(ospath) $3 $(call ospath,$2)
 
-ifdef SEQ
+ifdef SEQ_BUILD
 
 KDEPS_INCLUDE_FILTER ?= c:\\winddk\\
 KDEPS_INCLUDE_FILTER1 := $(KDEPS_INCLUDE_FILTER)
@@ -303,7 +303,7 @@ endif
 
 KERN_FLAGS += $(FORCE_SYNC_PDB_KERN) #/FS
 
-else # !SEQ
+else # !SEQ_BUILD
 
 # $1 - outdir, $2 - pch, $3 - non-pch sources, $4 - pch sources
 CMN_MKCL1 = $(if \
@@ -320,14 +320,14 @@ DRV_LD   = $(call CMN_MKCL,$(dir $(firstword $(filter %$(OBJ_SUFFIX),$2))),$(sor
 # $1 - target, $2 - pch-source, $3 - pch
 PCH_KCC  = $(call SUPRESS,PCHKCC,$2)$(call CMN_KCL,$(dir $1),$2,/Yc$3 /Yl$(basename $(notdir $2)) /Fp$(dir $1)$(basename $3)_c.pch $(CFLAGS))
 
-endif # !SEQ
+endif # !SEQ_BUILD
 
 KLIB_R_ASM ?= $(call SUPRESS,ASM,$2)$(YASMC) -o $(call ospath,$1 $2) $(ASMFLAGS)
 
 BISON = $(call SUPRESS,BISON,$2)$(CD) && $(BISONC) -d --fixed-output-files $(call ospath,$(call abspath,$2))
 FLEX  = $(call SUPRESS,FLEX,$2)$(FLEXC) -o$(call ospath,$1 $2)
 
-ifndef SEQ
+ifndef SEQ_BUILD
 # $1 - EXE,LIB,DLL, $2 - $(call GET_TARGET_NAME,$1), $3 - $$(basename $$(notdir $$(TRG_PCH))),
 # $4 - $(call FORM_OBJ_DIR,$1,$v), $5 - $(call FORM_TRG,$1,$v), $v - R,S
 define PCH_TEMPLATE1
@@ -360,9 +360,9 @@ PCH_TEMPLATE3 = $(PCH_TEMPLATE1)$(foreach v,$(call GET_VARIANTS,$1,VARIANTS_FILT
 PCH_TEMPLATE = $(if $(word 2,$(firstword $($1_PCH)$(PCH)) $(firstword $(WITH_PCH)$($1_WITH_PCH))),$(call \
   PCH_TEMPLATE3,$1,$(call GET_TARGET_NAME,$1),$$(basename $$(notdir $$(TRG_PCH)))),$(foreach \
   v,$(call GET_VARIANTS,$1,VARIANTS_FILTER),$(call FORM_TRG,$1,$v): WITH_PCH:=$(newline)))
-endif # !SEQ
+endif # !SEQ_BUILD
 
-ifndef SEQ
+ifndef SEQ_BUILD
 # $1 - KLIB,DRV, $2 - $($1), $3 - $$(basename $$(notdir $$(TRG_PCH))),
 # $4 - $(call FORM_OBJ_DIR,$1), $5 - $(call FORM_TRG,$1)
 define KPCH_TEMPLATE1
@@ -380,7 +380,7 @@ CLEAN += $$(PCH_C_OBJ) $$(PCH_C_SRC) $4/$3_c.pch
 endef
 KPCH_TEMPLATE = $(if $(word 2,$(firstword $($1_PCH)$(PCH)) $(firstword $(WITH_PCH)$($1_WITH_PCH))),$(call \
   KPCH_TEMPLATE1,$1,$($1),$$(basename $$(notdir $$(TRG_PCH))),$(call FORM_OBJ_DIR,$1),$(call FORM_TRG,$1)),$(call FORM_TRG,$1): WITH_PCH:=)
-endif # !SEQ
+endif # !SEQ_BUILD
 
 # function to add (generated?) sources to $({EXE,LIB,DLL,...}_WITH_PCH) list - to compile sources with pch header
 # $1 - EXE,LIB,DLL,... $2 - sources
