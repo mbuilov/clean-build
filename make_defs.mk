@@ -24,6 +24,9 @@ endif
 include $(MTOP)/make_top.mk
 include $(MTOP)/make_functions.mk
 
+# $(DEBUG) is non-empty for DEBUG targets like PROJECTD
+DEBUG := $(filter %D,$(TARGET))
+
 # project's make_features.mk must define something like:
 # SUPPORTED_OSES    := WINXX SOLARIS LINUX
 # SUPPORTED_CPUS    := x86 x86_64 sparc sparc64 armv5 mips24k ppc
@@ -94,9 +97,6 @@ endif
 ifeq ($(filter $(TARGET),$(SUPPORTED_TARGETS)),)
 $(error unknown TARGET=$(TARGET), please pick one of: $(SUPPORTED_TARGETS))
 endif
-
-# $(DEBUG) is non-empty for DEBUG targets like PROJECTD
-DEBUG := $(filter %D,$(TARGET))
 
 # run via $(MAKE) V=1 for verbose output
 ifeq ("$(origin V)","command line")
