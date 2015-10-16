@@ -7,6 +7,10 @@ SEQ_BUILD := $S
 endif
 endif
 
+ifeq ($(SEQ_BUILD),0)
+SEQ_BUILD:=
+endif
+
 # run via $(MAKE) A=1 to show autoconf results
 ifeq ("$(origin A)","command line")
 VAUTO := $A
@@ -195,6 +199,7 @@ SED_DEPS_SCRIPT = 1{x;s@.*@$2: $3 \\@;x;};/^$(notdir $3)$$/d;\
 ifdef NO_DEPS
 WRAP_COMPILER = $1
 else
+STRING_DEFINE = "$(subst $(space),$$$$(space),$(subst ","",$1))"
 WRAP_COMPILER = ($1 /showIncludes 2>&1 || echo COMPILATION_FAILED) | sed.exe -n "$(SED_DEPS_SCRIPT)" && findstr /b COMPILATION_FAILED $(call \
   ospath,$4) > NUL & if errorlevel 1 (cmd /c exit 0) else (del $(call ospath,$4) && cmd /c exit 1)
 endif
