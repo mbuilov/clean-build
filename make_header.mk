@@ -126,7 +126,7 @@ FORM_TRG = $(if \
 
 # subst $(space) with space character in defines passed to C-compiler
 SUBST_DEFINES = $(subst $$(space),$(space),$1)
-STRING_DEFINE = "$(subst $(space),$$$$(space),$(subst ",\",$1))"
+STRING_DEFINE ?= "$(subst $(space),$$$$(space),$(subst ",\",$1))"
 
 # add $(VPREFIX) to relative-path includes preserving include order
 # note: do not touch $(SYSINCLUDE) - it may contain paths with spaces
