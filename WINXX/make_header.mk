@@ -183,6 +183,7 @@ CMN_SUCL = $(CMN_SCL) /DUNICODE /D_UNICODE
 ifdef SEQ_BUILD
 
 INCLUDING_FILE_PATTERN ?= Note: including file:
+INCLUDING_FILE_PATTERN ?= \xd0\x9f\xd1\x80\xd0\xb8\xd0\xbc\xd0\xb5\xd1\x87\xd0\xb0\xd0\xbd\xd0\xb8\xd0\xb5\x3a\x20\xd0\xb2\xd0\xba\xd0\xbb\xd1\x8e\xd1\x87\xd0\xb5\xd0\xbd\xd0\xb8\xd0\xb5\x20\xd1\x84\xd0\xb0\xd0\xb9\xd0\xbb\xd0\xb0:
 INCLUDING_FILE_PATTERN1 := $(INCLUDING_FILE_PATTERN)
 
 UDEPS_INCLUDE_FILTER ?= c:\\program?files?(x86)\\microsoft?visual?studio?10.0\\vc\\include\\
