@@ -504,6 +504,9 @@ $1_RES_WINXX += $$(AUX_RES)
 endef
 ADD_RES_RULE = $(eval $(call ADD_RES_RULE1,$1,$2,$3,$4,$(call FORM_OBJ_DIR,$1)))
 
+# used to specify path to some resource for rc.exe via /DMY_BMP=$(call RC_DEFINE_PATH,$(TOP)/xx/yy/tt.bmp)
+RC_DEFINE_PATH="\"$(subst \,\\,$(ospath))\""
+
 # $1 - target file: $(call FORM_TRG,DRV)
 # $2 - sources:     $(call TRG_SRC,DRV)
 # $3 - deps:        $(call TRG_DEPS,DRV)
