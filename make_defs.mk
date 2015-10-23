@@ -197,8 +197,9 @@ DEF_BLDSRC_DIR := $(DEF_BLD_DIR)/src
 
 # directory for makefiles timestamps (to support dependencies between makefiles)
 BLD_MAKEFILES_TIMESTAMPS_DIR := $(DEF_BLD_DIR)/mk_stm
-$(BLD_MAKEFILES_TIMESTAMPS_DIR):
-	$(call SUPRESS,MKDIR,$@)$(call MKDIR,$@)
+
+# needed directories
+NEEDED_DIRS := $(BLD_MAKEFILES_TIMESTAMPS_DIR)
 
 # make makefile timestamp file name
 # $1 - $(CURRENT_MAKEFILE)
@@ -218,9 +219,6 @@ SET_DEFAULT_DIRS := $(SET_DEFAULT_DIRS1)
 # $(PROJECT_FEATURES) makefile may forward-reference some of default dirs,
 # ensure they are defined when we will use defs from $(PROJECT_FEATURES)
 $(eval $(SET_DEFAULT_DIRS))
-
-# needed directories
-NEEDED_DIRS:=
 
 # function to add directories to list of needed dirs
 ADD_DIR_RULES = $(eval NEEDED_DIRS += $1)
