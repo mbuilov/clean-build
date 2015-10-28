@@ -351,9 +351,9 @@ $$(PCH_C_SRC) $$(PCH_CXX_SRC): | $(BLDSRC_DIR)
 	$(if $(VERBOSE:1=),@)echo #include "$$(PCH)" > $$@
 PCH_C_OBJ := $4/$1_$2_$3_c$(OBJ_SUFFIX)
 PCH_CXX_OBJ := $4/$1_$2_$3_cpp$(OBJ_SUFFIX)
-$$(PCH_C_OBJ): $$(PCH_C_SRC) $(CURRENT_DEPS) | $4
+$$(PCH_C_OBJ): $$(PCH_C_SRC) | $4 $(ORDER_DEPS)
 	$$(call PCH_$v_CC,$$@,$$<,$$(PCH))
-$$(PCH_CXX_OBJ): $$(PCH_CXX_SRC) $(CURRENT_DEPS) | $4
+$$(PCH_CXX_OBJ): $$(PCH_CXX_SRC) | $4 $(ORDER_DEPS)
 	$$(call PCH_$v_CXX,$$@,$$<,$$(PCH))
 PCH_OBJS := $$(if $$(filter %.c,$$(TRG_WITH_PCH)),$$(PCH_C_OBJ)) $$(if $$(filter %.cpp,$$(TRG_WITH_PCH)),$$(PCH_CXX_OBJ))
 $5: $$(PCH_OBJS)
@@ -379,7 +379,7 @@ PCH_C_SRC := $(BLDSRC_DIR)/$1_$2_$3_c.c
 $$(PCH_C_SRC): | $(BLDSRC_DIR)
 	$(if $(VERBOSE:1=),@)echo #include "$$(PCH)" > $$@
 PCH_C_OBJ := $4/$1_$2_$3_c$(OBJ_SUFFIX)
-$$(PCH_C_OBJ): $$(PCH_C_SRC) $(CURRENT_DEPS) | $4
+$$(PCH_C_OBJ): $$(PCH_C_SRC) | $4 $(ORDER_DEPS)
 	$$(call PCH_KCC,$$@,$$<,$$(PCH))
 $5: $$(PCH_C_OBJ)
 CLEAN += $$(PCH_C_OBJ) $$(PCH_C_SRC) $4/$3_c.pch
@@ -498,7 +498,7 @@ ADD_MC_RULE = $(eval $(ADD_MC_RULE1))
 define ADD_RES_RULE1
 AUX_RES := $5/$(basename $(notdir $2)).res
 NEEDED_DIRS += $5
-$$(AUX_RES): $(call FIXPATH,$2 $4) $(CURRENT_DEPS) | $5
+$$(AUX_RES): $(call FIXPATH,$2 $4) | $5 $(ORDER_DEPS)
 	$$(call RC,$$@,$$<,$3)
 $1_RES_WINXX += $$(AUX_RES)
 endef
@@ -528,7 +528,7 @@ $1: CFLAGS     := $(CFLAGS) $(DRV_CFLAGS)
 $1: LDFLAGS    := $(LDFLAGS) $(DRV_LDFLAGS)
 $1: SYSLIBS    := $(SYSLIBS) $(DRV_SYSLIBS)
 $1: SYSLIBPATH := $(SYSLIBPATH) $(DRV_SYSLIBPATH)
-$1: $(addsuffix $(KLIB_SUFFIX),$(addprefix $(LIB_DIR)/$(KLIB_PREFIX),$(KLIBS))) $5 $2 $(call TRG_ALL_DEPS,DRV) $(CURRENT_DEPS) | $(BIN_DIR)
+$1: $(addsuffix $(KLIB_SUFFIX),$(addprefix $(LIB_DIR)/$(KLIB_PREFIX),$(KLIBS))) $5 $2 $(call TRG_ALL_DEPS,DRV) | $(BIN_DIR) $(ORDER_DEPS)
 	$$(call DRV_LD,$$@,$$(filter %$(OBJ_SUFFIX),$$^))
 $(CURRENT_MAKEFILE_TM): $1
 CLEAN += $1 $5

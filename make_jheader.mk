@@ -61,7 +61,7 @@ $1: BUNDLES   := $(BUNDLES)
 $1: VPREFIX   := $(VPREFIX)
 $1: JCFLAGS   := $(JCFLAGS)
 $1: JRFLAGS   := $(JRFLAGS)
-$1: $(EXTJARS) $5 $2 $3 $(CURRENT_DEPS) | $(BIN_DIR) $4
+$1: $(EXTJARS) $5 $2 $3 | $(BIN_DIR) $4 $(ORDER_DEPS)
 	$$(eval COMMANDS := $(subst $$,$$$$,$(JARACTIONS)))$$(COMMANDS)$$(call JAR_LD,$$@)
 $(CURRENT_MAKEFILE_TM): $1
 CLEAN += $4 $1

@@ -223,7 +223,7 @@ $3: PCH := $$(call FIXPATH,$$(TRG_PCH))
 $3: WITH_PCH := $$(call FIXPATH,$$(TRG_WITH_PCH))
 ifneq ($$(filter %.c,$$(TRG_WITH_PCH)),)
 C_GCH := $2/$$(basename $$(notdir $$(TRG_PCH)))_pch_c.h
-$$(C_GCH).gch: $$(CURRENT_DEPS) | $2
+$$(C_GCH).gch: | $2 $$(ORDER_DEPS)
 	$$(call PCH_$1_$v_CC,$$@,$$(PCH))
 $(if $(NO_DEPS),,-include $$(C_GCH).d)
 $$(addprefix $2/,$$(addsuffix $(OBJ_SUFFIX),$$(basename $$(notdir $$(filter %.c,$$(TRG_WITH_PCH)))))): $$(C_GCH).gch
@@ -231,7 +231,7 @@ CLEAN += $$(C_GCH).gch $$(C_GCH).d
 endif
 ifneq ($$(filter %.cpp,$$(TRG_WITH_PCH)),)
 CXX_GCH := $2/$$(basename $$(notdir $$(TRG_PCH)))_pch_cxx.h
-$$(CXX_GCH).gch: $$(CURRENT_DEPS) | $2
+$$(CXX_GCH).gch: | $2 $$(ORDER_DEPS)
 	$$(call PCH_$1_$v_CXX,$$@,$$(PCH))
 $(if $(NO_DEPS),,-include $$(CXX_GCH).d)
 $$(addprefix $2/,$$(addsuffix $(OBJ_SUFFIX),$$(basename $$(notdir $$(filter %.cpp,$$(TRG_WITH_PCH)))))): $$(CXX_GCH).gch
@@ -286,7 +286,7 @@ $4/Makefile: | $4
   echo "$(DRV_PREFIX)$(DRV)-objs := $(notdir $(2:.c=.o)) $5" >> $$@ && \
   echo "EXTRA_CFLAGS += $(addprefix -D,$(EXTRA_DRV_DEFINES)) $(addprefix -I,$(call TRG_INCLUDE,DRV))" >> $$@
 # call kbuild
-$4/$(DRV_PREFIX)$(DRV)$(DRV_SUFFIX): $(addprefix $4/,$(notdir $2) $5) $(CURRENT_DEPS) | $4/Makefile
+$4/$(DRV_PREFIX)$(DRV)$(DRV_SUFFIX): $(addprefix $4/,$(notdir $2) $5) | $4/Makefile $(ORDER_DEPS)
 	+$$(call SUPRESS,KBUILD,$$@)$(KMAKE) V=$(VERBOSE) CC="$(KCC)" LD="$(KLD)" AR="$(AR)" $(addprefix \
   KBUILD_EXTRA_SYMBOLS=,$(KBUILD_EXTRA_SYMBOLS)) -C $(MODULES_PATH) M=$$(patsubst %/,%,$$(dir $$@)) $(addprefix ARCH=,$(ARCH))
 $1: $4/$(DRV_PREFIX)$(DRV)$(DRV_SUFFIX) | $(BIN_DIR)

@@ -267,11 +267,11 @@ CLEAN_COMMANDS:=
 # make absolute paths
 FIXPATH = $(abspath $(foreach x,$1,$(if $(call isrelpath,$x),$(VPREFIX))$x))
 
-# $(CURRENT_DEPS)        - dependencies to add to all leaf prerequisites for the targets
+# $(ORDER_DEPS)          - order-only dependencies to add to all leaf prerequisites for the targets
 # $(VPREFIX)             - relative path from $(CURDIR) to currently processing makefile, either empty or dir/
 # $(CURRENT_MAKEFILE_TM) - timestamp of currently processing makefile,
 #                          timestamp is updated after all targets of current makefile are successfully built
-CURRENT_DEPS:=
+ORDER_DEPS:=
 VPREFIX := $(filter-out ./,$(dir $(patsubst $(CURDIR)/%,%,$(subst \,/,$(firstword $(MAKEFILE_LIST))))))
 CURRENT_MAKEFILE_TM := $(call MAKE_MAKEFILE_TIMESTAMP,$(CURRENT_MAKEFILE))
 
@@ -312,7 +312,7 @@ define DEF_HEAD_CODE
 ifeq ($(filter 2,$(MAKE_CONT)),)
 MAKE_CONT:=
 ifdef MDEBUG
-$$(info $(call MAKEFILES_LEVEL,$(SUB_LEVEL)) $(CURRENT_MAKEFILE)$(if $(CURRENT_DEPS), : $(patsubst $(TOP)/%,$$$$(TOP)/%,$(CURRENT_DEPS))))
+$$(info $(call MAKEFILES_LEVEL,$(SUB_LEVEL)) $(CURRENT_MAKEFILE)$(if $(ORDER_DEPS), | $(patsubst $(TOP)/%,$$$$(TOP)/%,$(ORDER_DEPS))))
 endif
 ifneq ($(filter $(CURRENT_MAKEFILE_TM),$(PROCESSED_MAKEFILES)),)
 $$(info Warning: makefile $(CURRENT_MAKEFILE) is already processed!)
@@ -329,7 +329,7 @@ $(SET_DEFAULT_DIRS)
 endif
 DEF_HEAD_CODE_PROCESSED := 1
 ifdef DEP_MAKEFILES
-CURRENT_DEPS := $(sort $(CURRENT_DEPS) $(call GET_MAKEFILE_DEPS,$(DEP_MAKEFILES)))
+ORDER_DEPS := $(sort $(ORDER_DEPS) $(call GET_MAKEFILE_DEPS,$(DEP_MAKEFILES)))
 DEP_MAKEFILES:=
 endif
 endef
@@ -375,7 +375,7 @@ define ADD_GENERATED1
 $(STD_TARGET_VARS)
 $(CURRENT_MAKEFILE_TM): $1
 CLEAN += $1
-$1: $(CURRENT_DEPS) | $2
+$1: | $2 $(ORDER_DEPS)
 NEEDED_DIRS += $2
 endef
 ADD_GENERATED = $(eval $(call ADD_GENERATED1,$1,$(patsubst %/,%,$(dir $1))))
@@ -391,7 +391,7 @@ MULTI_TARGET_NUM:=
 # $2 - prerequisites
 # $3 - rule
 define MULTI_TARGET_RULE
-$1: $2 $(CURRENT_DEPS)
+$1: $2 | $(ORDER_DEPS)
 	$$(if $$(filter $(words $(MULTI_TARGET_NUM)),$$(MULTI_TARGETS)),,$$(eval MULTI_TARGETS += $(words \
   $(MULTI_TARGET_NUM)))$$(call SUPRESS,MGEN,$$@)$$(subst $$$$(newline),$$(newline),$(subst \
   $$(newline),$$$$(newline),$3$(foreach x,$1,$$(newline)$$(call SUPRESS,TOUCH,$x)$$(call TOUCH,$x)))))

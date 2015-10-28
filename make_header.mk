@@ -94,7 +94,7 @@ EXTRACT_SRC_DEPS = $(if $2,$(if $(filter $1,$(firstword $2)),$(subst |, ,$(word 
 # $1 - EXE,LIB,... $2 - CXX,CC,ASM,... $3 - source to compile, $4 - deps, $5 - variant (non-empty!), $6 - objdir, $7 - $(basename $(notdir $3))
 define OBJ_RULE
 $(empty)
-$6/$7$(OBJ_SUFFIX): $3 $(call EXTRACT_SRC_DEPS,$3,$4) $(CURRENT_DEPS) | $6
+$6/$7$(OBJ_SUFFIX): $3 $(call EXTRACT_SRC_DEPS,$3,$4) | $6 $(ORDER_DEPS)
 	$$(call $1_$5_$2,$$@,$$<)
 $(if $(NO_DEPS),,-include $6/$7.d)
 CLEAN += $6/$7.d
@@ -201,7 +201,7 @@ $1: LDFLAGS    := $(LDFLAGS) $(EXE_LDFLAGS)
 $1: SYSLIBS    := $(SYSLIBS) $(EXE_SYSLIBS)
 $1: SYSLIBPATH := $(SYSLIBPATH) $(EXE_SYSLIBPATH)
 $1: RPATH      := $(RPATH) $(EXE_RPATH)
-$1: $(call DEP_LIBS,EXE,$v) $(call DEP_IMPS,EXE,$v) $5 $(CURRENT_DEPS) | $(BIN_DIR)
+$1: $(call DEP_LIBS,EXE,$v) $(call DEP_IMPS,EXE,$v) $5 | $(BIN_DIR) $(ORDER_DEPS)
 	$$(call EXE_$v_LD,$$@,$$(filter %$(OBJ_SUFFIX),$$^))
 $(CURRENT_MAKEFILE_TM): $1
 CLEAN += $1 $5
@@ -229,7 +229,7 @@ $1: DEFINES    := $(APPDEFS) $(DEFINES) $(LIB_DEFINES)
 $1: CFLAGS     := $(CFLAGS) $(LIB_CFLAGS)
 $1: CXXFLAGS   := $(CXXFLAGS) $(LIB_CXXFLAGS)
 $1: LDFLAGS    := $(LDFLAGS) $(LIB_LDFLAGS)
-$1: $5 $(CURRENT_DEPS) | $(LIB_DIR)
+$1: $5 | $(LIB_DIR) $(ORDER_DEPS)
 	$$(call LIB_$v_LD,$$@,$$(filter %$(OBJ_SUFFIX),$$^))
 $(CURRENT_MAKEFILE_TM): $1
 CLEAN += $1 $5
@@ -265,7 +265,7 @@ $1: SYSLIBPATH := $(SYSLIBPATH) $(DLL_SYSLIBPATH)
 $1: RPATH      := $(RPATH) $(DLL_RPATH)
 $1: MAP        := $(call TRG_MAP,DLL)
 $1: DEF        := $(call TRG_DEF,DLL)
-$1: $(call DEP_LIBS,DLL,$v) $(call DEP_IMPS,DLL,$v) $5 $(CURRENT_DEPS) | $(sort $(DLL_DIR) $(IMP_DIR))
+$1: $(call DEP_LIBS,DLL,$v) $(call DEP_IMPS,DLL,$v) $5 | $(sort $(DLL_DIR) $(IMP_DIR)) $(ORDER_DEPS)
 	$$(call DLL_$v_LD,$$@,$$(filter %$(OBJ_SUFFIX),$$^))
 $(CURRENT_MAKEFILE_TM): $1
 CLEAN += $1 $5
@@ -291,7 +291,7 @@ $1: DEFINES    := $(KRNDEFS) $(DEFINES) $(KLIB_DEFINES)
 $1: CFLAGS     := $(CFLAGS) $(KLIB_CFLAGS)
 $1: ASMFLAGS   := $(ASMFLAGS) $(KLIB_ASMFLAGS)
 $1: LDFLAGS    := $(LDFLAGS) $(KLIB_LDFLAGS)
-$1: $5 $(CURRENT_DEPS) | $(LIB_DIR)
+$1: $5 | $(LIB_DIR) $(ORDER_DEPS)
 	$$(call KLIB_LD,$$@,$$(filter %$(OBJ_SUFFIX),$$^))
 $(CURRENT_MAKEFILE_TM): $1
 CLEAN += $1 $5

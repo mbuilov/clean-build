@@ -223,7 +223,7 @@ $1: DEFINES    := $(KRNDEFS) $(DEFINES) $(DRV_DEFINES)
 $1: CFLAGS     := $(CFLAGS) $(DRV_CFLAGS)
 $1: ASMFLAGS   := $(ASMFLAGS) $(DRV_ASMFLAGS)
 $1: LDFLAGS    := $(LDFLAGS) $(DRV_LDFLAGS)
-$1: $(addsuffix $(KLIB_SUFFIX),$(addprefix $(LIB_DIR)/$(KLIB_PREFIX),$(KLIBS))) $5 $(CURRENT_DEPS) | $(BIN_DIR)
+$1: $(addsuffix $(KLIB_SUFFIX),$(addprefix $(LIB_DIR)/$(KLIB_PREFIX),$(KLIBS))) $5 | $(BIN_DIR) $(ORDER_DEPS)
 	$$(call DRV_LD,$$@,$$(filter %$(OBJ_SUFFIX),$$^))
 $(CURRENT_MAKEFILE_TM): $1
 CLEAN += $1 $5
