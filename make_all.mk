@@ -26,3 +26,4 @@ clean:
 .PHONY: all clean $(MAKEFILE_LIST)
 .DEFAULT_GOAL := all
 .SUFFIXES:
+.DELETE_ON_ERROR:
