@@ -1,3 +1,5 @@
+OSTYPE := WINDOWS
+
 ifndef JAVA
 JAVA := java.exe
 endif

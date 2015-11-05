@@ -1,3 +1,5 @@
+OSTYPE := UNIX
+
 ifneq ($(filter default undefined,$(origin CC)),)
 CC := gcc
 endif

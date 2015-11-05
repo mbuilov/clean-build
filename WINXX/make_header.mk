@@ -1,4 +1,6 @@
-include $(MTOP)/$(OS)/make_stdres.mk
+OSTYPE := WINDOWS
+
+include $(MTOP)/WINXX/make_stdres.mk
 
 # run via $(MAKE) S=1 to compile each source individually
 ifndef SEQ_BUILD
@@ -21,7 +23,7 @@ endif
 include $(MTOP)/WINXX/autoconf.mk
 
 ifndef YASMC
-YASM := yasm.exe $(if $(filter %64,$(KCPU)),-f win64 -m amd64,-f win32 -m x86)
+YASMC := yasm.exe $(if $(filter %64,$(KCPU)),-f win64 -m amd64,-f win32 -m x86)
 endif
 
 ifndef FLEXC
@@ -182,8 +184,8 @@ CMN_SUCL = $(CMN_SCL) /DUNICODE /D_UNICODE
 
 ifdef SEQ_BUILD
 
+#INCLUDING_FILE_PATTERN ?= \xd0\x9f\xd1\x80\xd0\xb8\xd0\xbc\xd0\xb5\xd1\x87\xd0\xb0\xd0\xbd\xd0\xb8\xd0\xb5\x3a\x20\xd0\xb2\xd0\xba\xd0\xbb\xd1\x8e\xd1\x87\xd0\xb5\xd0\xbd\xd0\xb8\xd0\xb5\x20\xd1\x84\xd0\xb0\xd0\xb9\xd0\xbb\xd0\xb0:
 INCLUDING_FILE_PATTERN ?= Note: including file:
-INCLUDING_FILE_PATTERN ?= \xd0\x9f\xd1\x80\xd0\xb8\xd0\xbc\xd0\xb5\xd1\x87\xd0\xb0\xd0\xbd\xd0\xb8\xd0\xb5\x3a\x20\xd0\xb2\xd0\xba\xd0\xbb\xd1\x8e\xd1\x87\xd0\xb5\xd0\xbd\xd0\xb8\xd0\xb5\x20\xd1\x84\xd0\xb0\xd0\xb9\xd0\xbb\xd0\xb0:
 INCLUDING_FILE_PATTERN1 := $(INCLUDING_FILE_PATTERN)
 
 UDEPS_INCLUDE_FILTER ?= c:\\program?files?(x86)\\microsoft?visual?studio?10.0\\vc\\include\\

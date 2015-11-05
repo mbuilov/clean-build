@@ -1,3 +1,5 @@
+OSTYPE := UNIX
+
 ifneq ($(filter default undefined,$(origin CC)),)
 # 64-bit arch: CC="cc -m64"
 # 32-bit arch: CC="cc -m32"

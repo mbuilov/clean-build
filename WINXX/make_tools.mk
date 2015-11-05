@@ -3,8 +3,6 @@
 # syncronize make output for parallel builds
 MAKEFLAGS += -O
 
-OSTYPE := WINDOWS
-
 # max command line length
 # for Windows 95 and later    - 127 chars;
 # for Windows 2000 and later  - 2047 chars;

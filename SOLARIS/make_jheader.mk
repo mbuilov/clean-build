@@ -1,3 +1,5 @@
+OSTYPE := UNIX
+
 ifndef JAVA
 JAVA := java
 endif

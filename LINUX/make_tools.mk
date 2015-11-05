@@ -1,7 +1,5 @@
 # this file included by LINUX/make_header.mk
 
-OSTYPE := UNIX
-
 # don't convert paths
 ospath = $1
 

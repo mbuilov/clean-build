@@ -11,7 +11,7 @@ MAKE_DEFS_INCLUDED := 1
 # $? - prerequisites newer than the target
 
 # standard defines & checks
-# NOTE: $(OS), $(SUPPORTED_OSES), $(CPU) or $(UCPU),$(KCPU),$(TCPU), $(SUPPORTED_CPUS), $(TARGET) and $(SUPPORTED_TARGETS) must be defined
+# NOTE: $(OS) (may be $(BUILD_OS)), $(SUPPORTED_OSES), $(CPU) or $(UCPU),$(KCPU),$(TCPU), $(SUPPORTED_CPUS), $(TARGET) and $(SUPPORTED_TARGETS) must be defined
 
 # disable builtin rules and variables
 MAKEFLAGS += --no-builtin-rules --no-builtin-variables
@@ -44,50 +44,66 @@ ifndef SUPPORTED_TARGETS
 $(error SUPPORTED_TARGETS not defined, it may be defined in $(subst $(TOP),$$(TOP),$(PROJECT_FEATURES)))
 endif
 
-# target OS
+# OS - operating system we are building for
 ifndef OS
 $(error OS undefined, example: $(SUPPORTED_OSES))
-endif
-ifeq ($(filter $(OS),$(SUPPORTED_OSES)),)
+else ifeq ($(filter $(OS),$(SUPPORTED_OSES)),)
 $(error unknown OS=$(OS), please pick one of: $(SUPPORTED_OSES))
 endif
 
+# BUILD_OS - operating system we are building on
+ifndef BUILD_OS
+BUILD_OS := $(OS)
+else ifeq ($(filter $(BUILD_OS),$(SUPPORTED_OSES)),)
+$(error unknown BUILD_OS=$(BUILD_OS), please pick one of: $(SUPPORTED_OSES))
+endif
+
 # NOTE: don't use CPU variable in target makefiles, use UCPU or KCPU instead
+
 # CPU variable contains default value for UCPU, KCPU, TCPU
+ifdef CPU
+ifeq ($(filter $(CPU),$(SUPPORTED_CPUS)),)
+$(error unknown CPU=$(CPU), please pick one of: $(SUPPORTED_CPUS))
+endif
+endif
 
 # CPU for user-level
-ifndef UCPU
+ifdef UCPU
+ifeq ($(filter $(UCPU),$(SUPPORTED_CPUS)),)
+$(error unknown UCPU=$(UCPU), please pick one of: $(SUPPORTED_CPUS))
+endif
+else
 ifndef CPU
 $(error UCPU or CPU undefined, example: $(SUPPORTED_CPUS))
 else
 UCPU := $(CPU)
 endif
 endif
+
 # CPU for kernel-level
-ifndef KCPU
+ifdef KCPU
+ifeq ($(filter $(KCPU),$(SUPPORTED_CPUS)),)
+$(error unknown KCPU=$(KCPU), please pick one of: $(SUPPORTED_CPUS))
+endif
+else
 ifndef CPU
 $(error KCPU or CPU undefined, example: $(SUPPORTED_CPUS))
 else
 KCPU := $(CPU)
 endif
 endif
+
 # CPU for build-tools
-ifndef TCPU
+ifdef TCPU
+ifeq ($(filter $(TCPU),$(SUPPORTED_CPUS)),)
+$(error unknown TCPU=$(TCPU), please pick one of: $(SUPPORTED_CPUS))
+endif
+else
 ifndef CPU
 $(error TCPU or CPU undefined, example: $(SUPPORTED_CPUS))
 else
 TCPU := $(CPU)
 endif
-endif
-
-ifeq ($(filter $(UCPU),$(SUPPORTED_CPUS)),)
-$(error unknown $(if $(UCPU),U)CPU=$(UCPU), please pick one of: $(SUPPORTED_CPUS))
-endif
-ifeq ($(filter $(KCPU),$(SUPPORTED_CPUS)),)
-$(error unknown $(if $(KCPU),K)CPU=$(KCPU), please pick one of: $(SUPPORTED_CPUS))
-endif
-ifeq ($(filter $(TCPU),$(SUPPORTED_CPUS)),)
-$(error unknown $(if $(TCPU),T)CPU=$(TCPU), please pick one of: $(SUPPORTED_CPUS))
 endif
 
 # what to build
@@ -167,7 +183,7 @@ TOOL_IN_COLOR = $(subst |,,$(subst \
 
 COLORIZE = $(TOOL_IN_COLOR)$(padto)$2
 
-include $(MTOP)/$(OS)/make_tools.mk
+include $(MTOP)/$(BUILD_OS)/make_tools.mk
 
 # make current makefile path relative to $(TOP) directory
 CURRENT_MAKEFILE := $(subst \,/,$(firstword $(MAKEFILE_LIST)))
@@ -236,7 +252,7 @@ TOOL_BASE := $(TOOL_BASE)
 MK_TOOLS_DIR = $1/TOOL-$2-$(TARGET)/bin
 
 # call with $1 - TOOL_BASE, $2 - TCPU, $3 - tool name(s) to get paths to the tools executables
-# note: it's possible to dinamically define value of $(TOOL_SUFFIX) from tool name $x
+# note: it's possible to dynamically define value of $(TOOL_SUFFIX) from tool name $x
 GET_TOOLS = $(foreach x,$(addprefix $(MK_TOOLS_DIR)/,$3),$(addsuffix $(TOOL_SUFFIX),$x))
 
 # get path to a tool $1 for current $(TOOL_BASE) and $(TCPU)
