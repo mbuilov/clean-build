@@ -1,11 +1,5 @@
 # this file included by SOLARIS/make_header.mk
 
-# don't convert paths
-ospath = $1
-
-# absolute paths started with /
-isrelpath = $(filter-out /%,$1)
-
 DEL   = rm -f $1
 RM    = $(if $(VERBOSE:1=),@)rm -rf $1
 MKDIR = mkdir -p $1
