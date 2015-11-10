@@ -185,6 +185,12 @@ COLORIZE = $(TOOL_IN_COLOR)$(padto)$2
 
 include $(MTOP)/$(BUILD_OS)/make_tools.mk
 
+# for UNIX: don't convert paths
+ospath ?= $1
+
+# for UNIX: absolute paths are started with /
+isrelpath ?= $(filter-out /%,$1)
+
 # make current makefile path relative to $(TOP) directory
 CURRENT_MAKEFILE := $(subst \,/,$(firstword $(MAKEFILE_LIST)))
 CURRENT_MAKEFILE := $(patsubst $(TOP)/%,%,$(if $(filter $(TOP)/%,$(CURRENT_MAKEFILE)),$(CURRENT_MAKEFILE),$(abspath $(CURDIR)/$(CURRENT_MAKEFILE))))
