@@ -136,6 +136,13 @@ else
 MDEBUG:=
 endif
 
+# run via $(MAKE) C=1 to check makefiles
+ifeq ("$(origin C)","command line")
+MCHECK := $C
+else
+MCHECK:=
+endif
+
 # supress output of executed build tool, print some pretty message instead, like "CC  source.c"
 # print $(MF) relative to current directory
 ifeq ($(VERBOSE),1)
