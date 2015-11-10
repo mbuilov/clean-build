@@ -1,6 +1,7 @@
 ifndef MAKE_JHEADER_INCLUDED
 
 # this file normally included at beginning of target Makefile
+# used for building java sources
 MAKE_JHEADER_INCLUDED := 1
 
 # run via $(MAKE) L=1 to run java compiler with -Xlint
