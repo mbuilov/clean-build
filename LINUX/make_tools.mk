@@ -1,11 +1,5 @@
 # this file included by LINUX/make_header.mk
 
-# don't convert paths
-ospath = $1
-
-# absolute paths started with /
-isrelpath = $(filter-out /%,$1)
-
 DEL   = rm -f$(if $(VERBOSE:0=),v) $1
 RM    = $(if $(VERBOSE:1=),@)rm -rf$(if $(VERBOSE:0=),v) $1
 MKDIR = mkdir -p$(if $(VERBOSE:0=),v) $1
