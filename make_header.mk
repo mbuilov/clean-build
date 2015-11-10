@@ -297,6 +297,12 @@ $(CURRENT_MAKEFILE_TM): $1
 CLEAN += $1 $5
 endef
 
+ifdef MCHECK
+CHECK_RULES = $(if \
+  $(if $(EXE)$(DLL),,$(LIBS)),$(warning $(CURRENT_MAKEFILE): warning: LIBS = $(LIBS) is not used when building EXE or DLL)) $(if \
+  $(if $(DRV),,$(KLIBS)),$(warning $(CURRENT_MAKEFILE): warning: KLIBS = $(KLIBS) is not used when building DRV))
+endif
+
 # how to build static library for driver
 KLIB_RULES1 = $(call KLIB_TEMPLATE,$1,$2,$3,$4,$(addprefix $4/,$(call OBJS,$2)))
 KLIB_RULES = $(if $(KLIB),$(call KLIB_RULES1,$(call FORM_TRG,KLIB),$(call TRG_SRC,KLIB),$(call TRG_DEPS,KLIB),$(call FORM_OBJ_DIR,KLIB)))
@@ -314,7 +320,7 @@ $(eval include $(addsuffix .mk,$(addprefix $(TOP)/make/$(OS)/use/,$(USE))))
 $(eval $(GENERATE_SRC_RULES))
 # evaluate $(OS)-specific default targets before defining common default targets to allow additional $(OS)-specific dependencies on targets
 $(eval $(OS_DEFINE_TARGETS))
-$(eval $(EXE_RULES)$(LIB_RULES)$(DLL_RULES)$(KLIB_RULES))
+$(eval $(CHECK_RULES)$(EXE_RULES)$(LIB_RULES)$(DLL_RULES)$(KLIB_RULES))
 $(if $(TOOL_MODE),$(if $(KLIB)$(DRV),$(error cannot build drivers in tool mode)))
 $(DEF_TAIL_CODE)
 endef
