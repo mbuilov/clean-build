@@ -492,19 +492,22 @@ $$(call MULTI_TARGET,$$(MC_H) $$(MC_RC),$(call FIXPATH,$2),$$$$(call MC,$$(MC_H)
 endef
 ADD_MC_RULE = $(eval $(ADD_MC_RULE1))
 
+# rules to build auxiliary resources, must be function-like macro
+WINXX_RES_RULES=
+
 # add rule to make auxiliary res for the target
-# note: defines AUX_RES variable - pathname of to be built .res file
 # $1 - EXE,DLL,... $2 - rc name, $3 - options for RC, $4 - optional deps for .res, $5 - $(call FORM_OBJ_DIR,$1)
 # NOTE: EXE,DLL,...-target dependency on $(AUX_RES) is added in ADD_STD_RES_TEMPLATE1 or in LIB_AUX_TEMPLATE2
 # NOTE: generated .res added to CLEAN list in $(OS_DEFINE_TARGETS)
 define ADD_RES_RULE1
 AUX_RES := $5/$(basename $(notdir $2)).res
 NEEDED_DIRS += $5
+$$(AUX_RES): RES_OPTS := $3
 $$(AUX_RES): $(call FIXPATH,$2 $4) | $5 $(ORDER_DEPS)
-	$$(call RC,$$@,$$<,$3)
-$1_RES_WINXX += $$(AUX_RES)
+	$$(call RC,$$@,$$<,$$(RES_OPTS))
+$1_RES += $$(AUX_RES)
 endef
-ADD_RES_RULE = $(eval $(call ADD_RES_RULE1,$1,$2,$3,$4,$(call FORM_OBJ_DIR,$1)))
+ADD_RES_RULE = $(eval WINXX_RES_RULES += $(subst $(newline),$$(newline),$(call ADD_RES_RULE1,$1,$2,$3,$4,$(call FORM_OBJ_DIR,$1))))
 
 # used to specify path to some resource for rc.exe via /DMY_BMP=$(call RC_DEFINE_PATH,$(TOP)/xx/yy/tt.bmp)
 RC_DEFINE_PATH="\"$(subst \,\\,$(ospath))\""
@@ -545,12 +548,14 @@ DRV_RULES = $(if $(DRV),$(call DRV_RULES1,$(call FORM_TRG,DRV),$(call TRG_SRC,DR
 
 # this code is normally evaluated at end of target Makefile
 define OS_DEFINE_TARGETS
+$(subst $$(newline),$(newline),$(value WINXX_RES_RULES))
 $(if $(EXE),$(EXE_AUX_TEMPLATE))
 $(if $(LIB),$(LIB_AUX_TEMPLATE))
 $(if $(DLL),$(DLL_AUX_TEMPLATE))
 $(if $(KLIB),$(KLIB_AUX_TEMPLATE))
 $(DRV_RULES)
-# note: EXE_AUX_TEMPLATE adds value to EXE_RES, so must use $$($x_RES)
+# note: EXE_AUX_TEMPLATE adds value to EXE_RES in STD_RES_TEMPLATE1, so must use $$($x_RES)
 CLEAN += $(RES) $(foreach x,$(BLD_TARGETS),$$($x_RES))
+WINXX_RES_RULES=
 NO_TARGET_RES:=
 endef
