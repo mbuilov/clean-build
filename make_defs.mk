@@ -160,7 +160,7 @@ endif
 # standard target-specific variables
 # $1       - target file to build (absolute path)
 # $(MF)    - name of makefile which specifies how to build the target (path relative to $(TOP))
-# $(MCONT) - number of section in makefile which includes make_continue.mk
+# $(MCONT) - number of section in makefile which calls $(MAKE_CONTINUE)
 # $(TMD)   - T if target is built in TOOL_MODE
 define STD_TARGET_VARS
 $1: MF    := $(CURRENT_MAKEFILE)
