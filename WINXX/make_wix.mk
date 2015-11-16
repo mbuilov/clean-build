@@ -1,23 +1,27 @@
 ifndef MAKE_WIX_INCLUDED
 
-ifndef WIX_BIN_DIR
-$(error WIX_BIN_DIR is not defined, example: C:\Program Files (x86)\WiX Toolset v3.10\bin)
-endif
-
-WIX_CANDLE   ?= $(WIX_BIN_DIR)/candle.exe
-WIX_LIGHT    ?= $(WIX_BIN_DIR)/light.exe
-WIX_EXTS_DIR ?= $(call unspaces,$(WIX_BIN_DIR))
-
 # this file normally included at beginning of target Makefile
 # used for building WIX (Windows Installer Xml) installer
 MAKE_WIX_INCLUDED := 1
 
-# what we may build by including make_wix.mk (for ex. INSTALLER := my_installer)
-BLD_WIX_TARGETS := MSI INSTALLER
+ifndef WIX
+$(error WIX is not defined, example: C:\Program Files (x86)\WiX Toolset v3.10\)
+endif
 
 # avoid execution of $(DEF_HEAD_CODE) by make_defs.mk - $(DEF_HEAD_CODE) will be evaluated at end of this file
 MAKE_DEFS_INCLUDED_BY := make_wix.mk
 include $(MTOP)/make_defs.mk
+
+# what we may build by including make_wix.mk (for ex. INSTALLER := my_installer)
+BLD_WIX_TARGETS := MSI INSTALLER
+
+# remove unneeded quotes
+WIX := $(call unspaces,$(subst ",,$(WIX)))
+
+# add quotes, if needed
+WIX_CANDLE   ?= $(call qpath,$(WIX)bin\candle.exe)
+WIX_LIGHT    ?= $(call qpath,$(WIX)bin\light.exe)
+WIX_EXTS_DIR ?= $(call unspaces,$(WIX)bin)
 
 # compile .wxs file
 # $1 - .wixobj, $2 - .wxs
