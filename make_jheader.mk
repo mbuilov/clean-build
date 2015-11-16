@@ -29,7 +29,7 @@ FORM_JTRG = $(if \
 JAVAC_OPTIONS := $(if $(JLINT),-Xlint) $(if $(DEBUG),-g)
 
 # $1 - list of bundles to add to the .jar: dir1 name1 dir2 name2...
-FORM_JAR_BUNDLES = $(if $1,$(call pqpath,-C ,$(call ospath,$(call FIXPATH,$(firstword $1)))) $(call \
+FORM_JAR_BUNDLES = $(if $1,$(call qpath,$(call ospath,$(call FIXPATH,$(firstword $1))),-C ) $(call \
   qpath,$(call ospath,$(word 2,$1))) $(call FORM_JAR_BUNDLES,$(wordlist 3,999999,$1)))
 
 # $1 - entries for classpath list

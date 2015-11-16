@@ -26,11 +26,11 @@ WIX_EXTS_DIR ?= $(call unspaces,$(WIX)bin)
 # compile .wxs file
 # $1 - .wixobj, $2 - .wxs
 WIXOBJ_CL = $(call SUPRESS,CANDLE,$2)$(WIX_CANDLE) -nologo $(if $(VERBOSE:0=),-v) $(call ospath,$2) $(call \
-             pqpath,-I,$(call ospath,$(WINCLUDE))) -out $(call ospath,$1)
+             qpath,$(call ospath,$(WINCLUDE)),-I) -out $(call ospath,$1)
 
 # build installer .exe file
 # $1 - target .msi, $2 - objects .wxsobj
-MSI_LD = $(call SUPRESS,LIGHT,$1)$(WIX_LIGHT) -nologo $(if $(VERBOSE:0=),-v) $(call pqpath,-ext ,$(WEXTS)) $(call ospath,$2) -out $(call ospath,$1)
+MSI_LD = $(call SUPRESS,LIGHT,$1)$(WIX_LIGHT) -nologo $(if $(VERBOSE:0=),-v) $(call qpath,$(WEXTS),-ext ) $(call ospath,$2) -out $(call ospath,$1)
 
 # build installer .msi file
 INSTALLER_LD = $(MSI_LD)

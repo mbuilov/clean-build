@@ -41,7 +41,7 @@ LIB :=
 
 MC  = $(call SUPRESS,$(TMD)MC,$1)$($(TMD)MC1) $(if $(VERBOSE:1=),,-v)
 RC  = $(call SUPRESS,$(TMD)RC,$1)$($(TMD)RC1) $(if $(VERBOSE:1=),,/v) $(SUPRESS_RC_LOGO) $3 $(call \
-  pqpath,/I,$(VS$(TMD)INC) $(UM$(TMD)INC)) /fo$(ospath) $(call ospath,$2)
+  qpath,$(VS$(TMD)INC) $(UM$(TMD)INC),/I) /fo$(ospath) $(call ospath,$2)
 
 EXE_SUFFIX := .exe
 OBJ_SUFFIX := .obj
@@ -131,8 +131,8 @@ CHECK_UNI_NAME = $(if $(filter %U,$v),$$(call CHECK_UNI_NAME1,$$(patsubst $(call
 # note: target variable is not used in VARIANT_LIB_MAP and VARIANT_IMP_MAP, so may pass XXX as first parameter of MAKE_DEP_LIBS and MAKE_DEP_IMPS
 CMN_LIBS = /OUT:$$(call ospath,$1) /INCREMENTAL:NO $(if $(DEBUG),/DEBUG,/LTCG /OPT:REF) $$(call ospath,$2 $$(RES)) $$(if \
            $$(strip $$(LIBS)$$(DLLS)),/LIBPATH:$$(call ospath,$$(LIB_DIR))) $$(call MAKE_DEP_LIBS,XXX,$3,$$(LIBS)) $$(call \
-            MAKE_DEP_IMPS,XXX,$3,$$(DLLS)) $$(call pqpath,/LIBPATH:,$$(VS$$(TMD)LIB) $$(UM$$(TMD)LIB) $$(call \
-            ospath,$$(SYSLIBPATH))) $$(SYSLIBS) $$(if $$(filter /SUBSYSTEM:%,$$(LDFLAGS)),,/SUBSYSTEM:CONSOLE,$(SUBSYSTEM_VER)) $$(LDFLAGS)
+            MAKE_DEP_IMPS,XXX,$3,$$(DLLS)) $$(call qpath,$$(VS$$(TMD)LIB) $$(UM$$(TMD)LIB) $$(call \
+            ospath,$$(SYSLIBPATH)),/LIBPATH:) $$(SYSLIBS) $$(if $$(filter /SUBSYSTEM:%,$$(LDFLAGS)),,/SUBSYSTEM:CONSOLE,$(SUBSYSTEM_VER)) $$(LDFLAGS)
 
 define EXE_LD_TEMPLATE
 $(empty)
@@ -175,7 +175,7 @@ endif
 
 # $1 - outdir, $2 - sources, $3 - flags
 CMN_CL1  = $(VS$(TMD)CL) /nologo /c $(APP_FLAGS) $(call SUBST_DEFINES,$(addprefix /D,$(DEFINES))) $(call \
-            pqpath,/I,$(call ospath,$(INCLUDE)) $(VS$(TMD)INC) $(UM$(TMD)INC)) /Fo$(ospath) /Fd$(ospath) $3 $(call ospath,$2)
+            qpath,$(call ospath,$(INCLUDE)) $(VS$(TMD)INC) $(UM$(TMD)INC),/I) /Fo$(ospath) /Fd$(ospath) $3 $(call ospath,$2)
 
 CMN_RCL  = $(CMN_CL1) /MD$(if $(DEBUG),d)
 CMN_SCL  = $(CMN_CL1) /MT$(if $(DEBUG),d)
@@ -274,10 +274,10 @@ DRV_LNK := $(WKLD) /nologo /INCREMENTAL:NO $(if $(DEBUG),/DEBUG,/LTCG /OPT:REF) 
              /SECTION:INIT,d /ENTRY:DriverEntry /ALIGN:0x40 /BASE:0x10000 /STACK:0x40000,0x1000 \
              /MACHINE:$(if $(filter %64,$(KCPU)),x64,x86) /SUBSYSTEM:NATIVE,$(SUBSYSTEM_KVER)
 
-# $1 - target, $2 - objects
+# $1 - target, $2 - object
 DRV_LD1  = $(call SUPRESS,KLINK,$1)$(DRV_LNK) /OUT:$(call ospath,$1 $2 $(RES)) $(if \
            $(KLIBS),/LIBPATH:$(call ospath,$(LIB_DIR))) $(addsuffix $(KLIB_SUFFIX),$(addprefix \
-           $(KLIB_PREFIX),$(KLIBS))) $(call pqpath,/LIBPATH:,$(call ospath,$(SYSLIBPATH))) $(SYSLIBS) $(LDFLAGS)
+           $(KLIB_PREFIX),$(KLIBS))) $(call qpath,$(call ospath,$(SYSLIBPATH)),/LIBPATH:) $(SYSLIBS) $(LDFLAGS)
 
 ifdef DEBUG
 DEF_KERN_FLAGS := /X /GF /W3 /GR- /Gz /Zl /GS- /Oi /Z7 /Od
@@ -291,7 +291,7 @@ endif
 
 # $1 - outdir, $2 - sources, $3 - flags
 CMN_KCL  = $(WKCL) /nologo /c $(KERN_FLAGS) $(call SUBST_DEFINES,$(addprefix /D,$(DEFINES))) $(call \
-            pqpath,/I,$(call ospath,$(INCLUDE)) $(KMINC)) /Fo$(ospath) /Fd$(ospath) $3 $(call ospath,$2)
+            qpath,$(call ospath,$(INCLUDE)) $(KMINC),/I) /Fo$(ospath) /Fd$(ospath) $3 $(call ospath,$2)
 
 ifdef SEQ_BUILD
 

@@ -18,12 +18,8 @@ unspaces = $(subst $(space),?,$1)
 ifaddq = $(if $(word 2,$1),"$1",$1)
 
 # convert back ? to spaces in paths adding some prefix
-# if called like $(call prefq,-I,a?b cd) gives -I"a b" -Icd
-pqpath = $(foreach x,$2,$1$(call ifaddq,$(subst ?, ,$x)))
-
-# convert back ? to spaces in paths
-# if called with $(call qpath,a?b cd) gives "a b" cd
-qpath = $(foreach x,$1,$(call ifaddq,$(subst ?, ,$x)))
+# if called like $(call qpath,a?b cd,-I) gives -I"a b" -Icd
+qpath = $(foreach x,$1,$2$(call ifaddq,$(subst ?, ,$x)))
 
 tolower = $(subst A,a,$(subst B,b,$(subst C,c,$(subst D,d,$(subst E,e,$(subst F,f,$(subst G,g,$(subst H,h,$(subst \
   I,i,$(subst J,i,$(subst K,k,$(subst L,l,$(subst M,m,$(subst N,n,$(subst O,o,$(subst P,p,$(subst Q,q,$(subst R,r,$(subst \
@@ -45,7 +41,7 @@ padto = $(call padto1,$(repl1))
 # and with auxiliary argument $4, separating function calls with $5
 xargs = $(call $1,$(wordlist 1,$3,$2),$4)$(if \
          $(word $(words 1 $(wordlist 1,$3,$2)),$2),$5$(call \
-          xargs,$1,$(wordlist $(words 1 $(wordlist 1,$3,$2)),$(words $2),$2),$3,$4,$5))
+          xargs,$1,$(wordlist $(words 1 $(wordlist 1,$3,$2)),$(words $2),$2)))
 
 # assuming that function $1($(sublist $2),$4) will return shell command
 # generate many shell commands separated by $(newline) - each command will be executed in new subshell
