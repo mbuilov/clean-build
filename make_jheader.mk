@@ -11,6 +11,7 @@ else
 JLINT:=
 endif
 
+# what we may build by including make_jheader.mk (for ex. JAR := my_jar)
 BLD_JTARGETS := JAR
 
 # avoid execution of $(DEF_HEAD_CODE) by make_defs.mk - $(DEF_HEAD_CODE) will be evaluated at end of this file
@@ -18,7 +19,7 @@ MAKE_DEFS_INCLUDED_BY := make_jheader.mk
 include $(MTOP)/make_defs.mk
 include $(MTOP)/$(OS)/make_jheader.mk
 
-# $(BLD_JTARGETS) is now defined, define $(DEBUG_JTARGETS)
+# define code to print debug info about built targets
 DEBUG_JTARGETS := $(call GET_DEBUG_TARGETS,$(BLD_JTARGETS),FORM_JTRG)
 
 # make target filename, $1 - JAR
@@ -80,7 +81,7 @@ $(DEF_TAIL_CODE)
 endef
 DEFINE_JTARGETS = $(if $(DEFINE_JTARGETS_EVAL),)
 
-# code to be called at beginning of makefile
+# code to be called at beginning of target makefile
 define PREPARE_JVARS
 JAR         :=
 JSRC        :=
