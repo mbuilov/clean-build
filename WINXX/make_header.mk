@@ -521,7 +521,7 @@ define DRV_TEMPLATE
 $(call STD_RES_TEMPLATE,DRV)
 $(call KPCH_TEMPLATE,DRV)
 NEEDED_DIRS += $4
-$(call OBJ_RULES,DRV,CC,$(filter %.c,$2),$3)
+$(call OBJ_RULES,DRV,CC,$(filter %.c,$2),$3,$4)
 $(call STD_TARGET_VARS,$1)
 $1: SRC        := $2
 $1: SDEPS      := $3

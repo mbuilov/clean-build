@@ -18,7 +18,10 @@ MAKE_HEADER_INCLUDED := 1
 # DLL  - dynamic library, variants:         R,S
 # if variant is not specified, default variant R will be built, else - only specified variants (add R to build also default variant)
 
-# build target variants:
+# what we may build by including make_header.mk (for ex. LIB := my_lib)
+BLD_TARGETS := EXE LIB DLL KLIB DRV
+
+# NOTE: after target name may be specified one or more build target variants (for ex. EXE := my_exe R S):
 # R - default build variant:
 #  EXE  - position-dependent code   (UNIX), dynamicaly linked multi-threaded libc (WINDOWS)
 #  LIB  - position-dependent code   (UNIX), dynamicaly linked multi-threaded libc (WINDOWS)
@@ -26,7 +29,6 @@ MAKE_HEADER_INCLUDED := 1
 # P - position-independent code in executables      (for EXE and LIB) (only UNIX)
 # D - position-independent code in shared libraries (only for LIB)    (only UNIX)
 # S - statically linked multithreaded libc          (for all targets) (only WINDOWS)
-BLD_TARGETS := EXE LIB DLL KLIB DRV
 
 # list of variables that may be target-dependent - each target may have own value of next variables (EXE_PCH, LIB_USE and so on)
 TRG_VARS := PCH WITH_PCH USE SRC SDEPS DEFINES INCLUDE CFLAGS CXXFLAGS ASMFLAGS LDFLAGS SYSLIBS SYSLIBPATH SYSINCLUDE DLLS LIBS RES RPATH MAP DEF
@@ -58,8 +60,8 @@ PREDEFINES += $(OS_PREDEFINES)
 APPDEFS    += $(OS_APPDEFS)
 KRNDEFS    += $(OS_KRNDEFS)
 
-# $(BLD_TARGETS) is now defined, define $(DEBUG_TARGETS) code
-# FORM_TRG and VARIANTS_FILTER are defined later
+# define code to print debug info about built targets
+# note: FORM_TRG and VARIANTS_FILTER are defined later
 DEBUG_TARGETS := $(call GET_DEBUG_TARGETS,$(BLD_TARGETS),FORM_TRG,VARIANTS_FILTER)
 
 # template to prepend value of $(OS)-dependent variables to variable $r, then clear $(OS)-dependent variables
@@ -91,20 +93,19 @@ KSYSTEM ?= $(OS)
 EXTRACT_SRC_DEPS = $(if $2,$(if $(filter $1,$(firstword $2)),$(subst |, ,$(word 2,$2)) )$(call EXTRACT_SRC_DEPS,$1,$(wordlist 3,999999,$2)))
 
 # rule that defines how to build object from source
-# $1 - EXE,LIB,... $2 - CXX,CC,ASM,... $3 - source to compile, $4 - deps, $5 - variant (non-empty!), $6 - objdir, $7 - $(basename $(notdir $3))
+# $1 - EXE,LIB,... $2 - CXX,CC,ASM,... $3 - source to compile, $4 - deps, $5 - objdir, $6 - variant (non-empty!), $7 - $(basename $(notdir $3))
 define OBJ_RULE
 $(empty)
-$6/$7$(OBJ_SUFFIX): $3 $(call EXTRACT_SRC_DEPS,$3,$4) | $6 $(ORDER_DEPS)
-	$$(call $1_$5_$2,$$@,$$<)
-$(if $(NO_DEPS),,-include $6/$7.d)
-CLEAN += $6/$7.d
+$5/$7$(OBJ_SUFFIX): $3 $(call EXTRACT_SRC_DEPS,$3,$4) | $5 $(ORDER_DEPS)
+	$$(call $1_$6_$2,$$@,$$<)
+$(if $(NO_DEPS),,-include $5/$7.d)
+CLEAN += $5/$7.d
 endef
 
 # rule that defines how to build objects from sources
-# $1 - EXE,LIB,... $2 - CXX,CC,ASM,... $3 - sources to compile, $4 - deps, $5 - variant (if empty, then R)
+# $1 - EXE,LIB,... $2 - CXX,CC,ASM,... $3 - sources to compile, $4 - deps, $5 - objdir, $6 - variant (if empty, then R)
 OBJ_RULES2 = $(foreach x,$3,$(call OBJ_RULE,$1,$2,$x,$4,$5,$6,$(basename $(notdir $x))))
-OBJ_RULES1 = $(call OBJ_RULES2,$1,$2,$3,$4,$5,$(call FORM_OBJ_DIR,$1,$5))
-OBJ_RULES = $(call OBJ_RULES1,$1,$2,$3,$4,$(patsubst ,R,$5))
+OBJ_RULES = $(call OBJ_RULES2,$1,$2,$3,$4,$5,$(patsubst ,R,$6))
 
 # code for resetting build targets like EXE,LIB,... and target-specific variables like EXE_SRC,LIB_INCLUDE,...
 RESET_TRG_VARS := $(subst $(space),,$(foreach x,$(BLD_TARGETS) $(foreach t,$(BLD_TARGETS),$(addprefix $t_,$(TRG_VARS))),$(newline)$x:=))
@@ -145,6 +146,7 @@ TRG_MAP = $(call FIXPATH,$(firstword $(if $($1_MAP),$($1_MAP),$(MAP))))
 TRG_DEF = $(call FIXPATH,$(firstword $(if $($1_DEF),$($1_DEF),$(DEF))))
 
 # objects and auto-deps to build for the target
+# $1 - sources to compile
 # NOTE: not all $(OBJS) may be built from the $(SRC) - some objects may be built from generated sources
 OBJS = $(addsuffix $(OBJ_SUFFIX),$(basename $(notdir $1)))
 
@@ -186,8 +188,8 @@ DEP_IMPS = $(addprefix $(IMP_DIR)/,$(call MAKE_DEP_IMPS,$1,$2,$(TRG_DLLS)))
 # $v - R,P,S,<empty>
 define EXE_TEMPLATE
 NEEDED_DIRS += $4
-$(call OBJ_RULES,EXE,CC,$(filter %.c,$2),$3,$v)
-$(call OBJ_RULES,EXE,CXX,$(filter %.cpp,$2),$3,$v)
+$(call OBJ_RULES,EXE,CC,$(filter %.c,$2),$3,$4,$v)
+$(call OBJ_RULES,EXE,CXX,$(filter %.cpp,$2),$3,$4,$v)
 $(call STD_TARGET_VARS,$1)
 $1: COMPILER   := $(if $(filter %.cpp,$2),CXX,CC)
 $1: LIB_DIR    := $(LIB_DIR)
@@ -220,8 +222,8 @@ EXE_RULES = $(if $(EXE),$(foreach v,$(call GET_VARIANTS,EXE,VARIANTS_FILTER),$(n
 # $v - R,P,D,S,<empty>
 define LIB_TEMPLATE
 NEEDED_DIRS += $4
-$(call OBJ_RULES,LIB,CC,$(filter %.c,$2),$3,$v)
-$(call OBJ_RULES,LIB,CXX,$(filter %.cpp,$2),$3,$v)
+$(call OBJ_RULES,LIB,CC,$(filter %.c,$2),$3,$4,$v)
+$(call OBJ_RULES,LIB,CXX,$(filter %.cpp,$2),$3,$4,$v)
 $(call STD_TARGET_VARS,$1)
 $1: COMPILER   := $(if $(filter %.cpp,$2),CXX,CC)
 $1: INCLUDE    := $(call TRG_INCLUDE,LIB)
@@ -248,8 +250,8 @@ LIB_RULES = $(if $(LIB),$(foreach v,$(call GET_VARIANTS,LIB,VARIANTS_FILTER),$(n
 # $v - R,S,<empty>
 define DLL_TEMPLATE
 NEEDED_DIRS += $4
-$(call OBJ_RULES,DLL,CC,$(filter %.c,$2),$3,$v)
-$(call OBJ_RULES,DLL,CXX,$(filter %.cpp,$2),$3,$v)
+$(call OBJ_RULES,DLL,CC,$(filter %.c,$2),$3,$4,$v)
+$(call OBJ_RULES,DLL,CXX,$(filter %.cpp,$2),$3,$4,$v)
 $(call STD_TARGET_VARS,$1)
 $1: COMPILER   := $(if $(filter %.cpp,$2),CXX,CC)
 $1: LIB_DIR    := $(LIB_DIR)
@@ -283,8 +285,8 @@ DLL_RULES = $(if $(DLL),$(foreach v,$(call GET_VARIANTS,DLL,VARIANTS_FILTER),$(n
 # $5 - objects:     $(addprefix $4/,$(call OBJS,$2))
 define KLIB_TEMPLATE
 NEEDED_DIRS += $4
-$(call OBJ_RULES,KLIB,CC,$(filter %.c,$2),$3)
-$(call OBJ_RULES,KLIB,ASM,$(filter %.asm,$2),$3)
+$(call OBJ_RULES,KLIB,CC,$(filter %.c,$2),$3,$4)
+$(call OBJ_RULES,KLIB,ASM,$(filter %.asm,$2),$3,$4)
 $(call STD_TARGET_VARS,$1)
 $1: INCLUDE    := $(call TRG_INCLUDE,KLIB)
 $1: DEFINES    := $(KRNDEFS) $(DEFINES) $(KLIB_DEFINES)
@@ -326,7 +328,7 @@ $(DEF_TAIL_CODE)
 endef
 DEFINE_TARGETS = $(if $(DEFINE_TARGETS_EVAL),)
 
-# code to be called at beginning of makefile
+# code to be called at beginning of target makefile
 define PREPARE_VARS
 $(RESET_TRG_VARS)
 PCH         :=

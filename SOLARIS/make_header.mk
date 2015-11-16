@@ -215,8 +215,8 @@ FLEX  = $(call SUPRESS,FLEX,$2)$(FLEXC) -o$1 $2
 # $5 - objects:     $(addprefix $4/,$(call OBJS,$2))
 define DRV_TEMPLATE
 NEEDED_DIRS += $4
-$(call OBJ_RULES,DRV,CC,$(filter %.c,$2),$3)
-$(call OBJ_RULES,DRV,ASM,$(filter %.asm,$2),$3)
+$(call OBJ_RULES,DRV,CC,$(filter %.c,$2),$3,$4)
+$(call OBJ_RULES,DRV,ASM,$(filter %.asm,$2),$3,$4)
 $(call STD_TARGET_VARS,$1)
 $1: LIB_DIR    := $(LIB_DIR)
 $1: KLIBS      := $(KLIBS)
