@@ -41,7 +41,7 @@ padto = $(call padto1,$(repl1))
 # and with auxiliary argument $4, separating function calls with $5
 xargs = $(call $1,$(wordlist 1,$3,$2),$4)$(if \
          $(word $(words 1 $(wordlist 1,$3,$2)),$2),$5$(call \
-          xargs,$1,$(wordlist $(words 1 $(wordlist 1,$3,$2)),$(words $2),$2)))
+          xargs,$1,$(wordlist $(words 1 $(wordlist 1,$3,$2)),$(words $2),$2),$3,$4,$5))
 
 # assuming that function $1($(sublist $2),$4) will return shell command
 # generate many shell commands separated by $(newline) - each command will be executed in new subshell
