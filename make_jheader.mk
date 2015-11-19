@@ -36,8 +36,13 @@ MAKE_BUNDLE_DEPS = $(if $1,$(VPREFIX)$(firstword $1)/$(word 2,$1) $(call MAKE_BU
 # $1 - entries for classpath list
 FORM_CLASS_PATH = -classpath $(call qpath,$(subst $(space),$(PATHSEP),$(strip $(ospath))))
 
+ifndef JAVAC_OPTIONS
 JAVAC_OPTIONS  := $(if $(JLINT),-Xlint) $(if $(DEBUG),-g)
+endif
+
+ifndef SCALAC_OPTIONS
 SCALAC_OPTIONS := $(if $(DEBUG),-g:vars)
+endif
 
 # compile $1 - .java sources
 JAVA_CC1 = $(call SUPRESS,JAVAC,$1)$(JAVAC) $(JAVAC_OPTIONS) $(JAVAC_FLAGS) -d $(call ospath,$(OBJDIR)) $(ospath) $(call \
@@ -54,23 +59,29 @@ SCALA_CC  = $(if $1,$(if $(SCALAC),$(SCALA_CC1),$(error \
 JAR_LD1  = $(call SUPRESS,JAR,$1)$(JARC) $(JRFLAGS) -cf$(if $(MANIFEST),m) $(ospath) $(call ospath,$(MANIFEST)) -C $(call \
             ospath,$(OBJDIR)) . $(call FORM_JAR_BUNDLES,$(ALL_BUNDLES))$(DEL_ON_FAIL)
 
-JAR_LD   = $(if $(filter $(JARS) $(EXTJARS),$?),$(call SCALA_CC,$(SCALA),$(JSRC))$(call JAVA_CC,$(JSRC)),\
-            $(call SCALA_CC,$(filter $(SCALA),$?),$(JSRC))$(call JAVA_CC,$(filter $(JSRC),$?)))$(JAR_LD1)
+# rebuild all sources if any of $(JARS) or $(EXTJARS) is newer that the target jar
+# rebuild all $(SCALA) if any of $(JSCALA) is newer that the target jar
+# else rebuild only changed sources
+JAR_LD   = $(if $(filter $(JARS) $(EXTJARS),$?),$(call SCALA_CC,$(SCALA),$(JSCALA))$(call JAVA_CC,$(JSRC)),$(call \
+            SCALA_CC,$(if $(filter $(JSCALA),$?),$(SCALA),$(filter $(SCALA),$?)),$(JSCALA))$(call \
+            JAVA_CC,$(filter $(JSRC),$?)))$(JAR_LD1)
 
 # $1 - target file: $(call FORM_JTRG,JAR)
 # $2 - sources:     $(call FIXPATH,$(JSRC))
 # $3 - sources:     $(call FIXPATH,$(SCALA))
-# $4 - manifest:    $(call FIXPATH,$(MANIFEST))
-# $5 - objdir:      $(call FORM_OBJ_DIR,JAR)
-# $6 - jars:        $(addprefix $(BIN_DIR)/,$(addsuffix .jar,$(JARS)))
+# $4 - sources:     $(call FIXPATH,$(JSCALA))
+# $5 - manifest:    $(call FIXPATH,$(MANIFEST))
+# $6 - objdir:      $(call FORM_OBJ_DIR,JAR)
+# $7 - jars:        $(addprefix $(BIN_DIR)/,$(addsuffix .jar,$(JARS)))
 define JAR_TEMPLATE
-NEEDED_DIRS += $5
+NEEDED_DIRS += $6
 $(call STD_TARGET_VARS,$1)
 $1: JSRC         := $2
 $1: SCALA        := $3
-$1: MANIFEST     := $4
-$1: OBJDIR       := $5
-$1: JARS         := $6
+$1: JSCALA       := $4
+$1: MANIFEST     := $5
+$1: OBJDIR       := $6
+$1: JARS         := $7
 $1: EXTJARS      := $(EXTJARS)
 $1: CLASSPATH    := $(CLASSPATH)
 $1: ALL_BUNDLES  := $(BUNDLES) $(BUNDLE_FILES)
@@ -78,14 +89,16 @@ $1: VPREFIX      := $(VPREFIX)
 $1: SCALAC       := $(SCALAC)
 $1: JAVAC_FLAGS  := $(JAVAC_FLAGS)
 $1: JRFLAGS      := $(JRFLAGS)
-$1: $(EXTJARS) $6 $2 $3 $4 $(call MAKE_BUNDLE_DEPS,$(BUNDLE_FILES)) | $(BIN_DIR) $5 $(ORDER_DEPS)
+$1: $(EXTJARS) $7 $2 $3 $4 $5 $(call MAKE_BUNDLE_DEPS,$(BUNDLE_FILES)) | $(BIN_DIR) $6 $(ORDER_DEPS)
 	$$(eval $1: COMMANDS := $(subst $$,$$$$,$(JARACTIONS)))$$(COMMANDS)$$(call JAR_LD,$$@)
 $(CURRENT_MAKEFILE_TM): $1
-CLEAN += $5 $1
+CLEAN += $6 $1
 endef
 
 # how to build .jar library template
-JAR_RULES = $(if $(JAR),$(call JAR_TEMPLATE,$(call FORM_JTRG,JAR),$(call FIXPATH,$(JSRC)),$(call FIXPATH,$(SCALA)),$(call \
+# NOTE: if JSCALA value is empty then it defaults to $(JSRC), to assign nothing to JSCALA use JSCALA = $(empty)
+JAR_RULES = $(if $(JAR),$(call JAR_TEMPLATE,$(call FORM_JTRG,JAR),$(call \
+  FIXPATH,$(JSRC)),$(call FIXPATH,$(SCALA)),$(call FIXPATH,$(if $(value JSCALA),$(JSCALA),$(JSRC))),$(call \
   FIXPATH,$(MANIFEST)),$(call FORM_OBJ_DIR,JAR),$(addprefix $(BIN_DIR)/,$(addsuffix .jar,$(JARS)))))
 
 # this file normally included at end of target Makefile
@@ -101,6 +114,7 @@ define PREPARE_JVARS
 JAR          :=
 JSRC         :=
 SCALA        :=
+JSCALA       :=
 JARS         :=
 EXTJARS      :=
 CLASSPATH    :=
