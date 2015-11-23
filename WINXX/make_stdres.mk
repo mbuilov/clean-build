@@ -1,4 +1,4 @@
-# this file included by $(MTOP)/WINXX/make_header.mk
+# this file included by $(MTOP)/WINXX/make_c.mk
 
 EXE_RC_OS := VOS_NT
 DLL_RC_OS := VOS_NT

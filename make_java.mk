@@ -11,13 +11,13 @@ else
 JLINT:=
 endif
 
-# what we may build by including make_jheader.mk (for ex. JAR := my_jar)
+# what we may build by including make_java.mk (for ex. JAR := my_jar)
 BLD_JTARGETS := JAR
 
 # avoid execution of $(DEF_HEAD_CODE) by make_defs.mk - $(DEF_HEAD_CODE) will be evaluated at end of this file
-MAKE_DEFS_INCLUDED_BY := make_jheader.mk
+MAKE_DEFS_INCLUDED_BY := make_java.mk
 include $(MTOP)/make_defs.mk
-include $(MTOP)/$(OS)/make_jheader.mk
+include $(MTOP)/$(OS)/make_java.mk
 
 # define code to print debug info about built targets
 DEBUG_JTARGETS := $(call GET_DEBUG_TARGETS,$(BLD_JTARGETS),FORM_JTRG)
@@ -129,7 +129,7 @@ JAREXT       := .jar
 endef
 
 # increment MAKE_CONT, eval tail code with $(DEFINE_JTARGETS)
-# and start next circle - simulate including of "make_jheader.mk"
+# and start next circle - simulate including of "make_java.mk"
 define MAKE_JCONTINUE_EVAL
 $(eval MAKE_CONT := $(MAKE_CONT) 2)
 $(DEFINE_JTARGETS_EVAL)

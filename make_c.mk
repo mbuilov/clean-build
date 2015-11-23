@@ -18,7 +18,7 @@ MAKE_HEADER_INCLUDED := 1
 # DLL  - dynamic library, variants:         R,S
 # if variant is not specified, default variant R will be built, else - only specified variants (add R to build also default variant)
 
-# what we may build by including make_header.mk (for ex. LIB := my_lib)
+# what we may build by including make_c.mk (for ex. LIB := my_lib)
 BLD_TARGETS := EXE LIB DLL KLIB DRV
 
 # NOTE: after target name may be specified one or more build target variants (for ex. EXE := my_exe R S):
@@ -51,11 +51,11 @@ VARIANT_IMP_PREFIX = $(if $(filter-out R,$1),$1_)
 # KRNDEFS =
 
 # avoid execution of $(DEF_HEAD_CODE) by make_defs.mk - $(DEF_HEAD_CODE) will be evaluated at end of this file
-MAKE_DEFS_INCLUDED_BY := make_header.mk
+MAKE_DEFS_INCLUDED_BY := make_c.mk
 include $(MTOP)/make_defs.mk
-include $(MTOP)/$(OS)/make_header.mk
+include $(MTOP)/$(OS)/make_c.mk
 
-# add defines from $(MTOP)/$(OS)/make_header.mk
+# add defines from $(MTOP)/$(OS)/make_c.mk
 PREDEFINES += $(OS_PREDEFINES)
 APPDEFS    += $(OS_APPDEFS)
 KRNDEFS    += $(OS_KRNDEFS)
@@ -356,7 +356,7 @@ KLIBS       :=
 endef
 
 # allow to join two or more makefiles in one makefile:
-# include $(MTOP)/make_header.mk
+# include $(MTOP)/make_c.mk
 # LIB = xxx1
 # SRC = xxx.c
 # $(MAKE_CONTINUE)
@@ -366,7 +366,7 @@ endef
 # $(DEFINE_TARGETS)
 
 # increment MAKE_CONT, eval tail code with $(DEFINE_TARGETS)
-# and start next circle - simulate including of "make_header.mk"
+# and start next circle - simulate including of $(MTOP)/make_c.mk
 define MAKE_CONTINUE_EVAL
 $(eval MAKE_CONT := $(MAKE_CONT) 2)
 $(DEFINE_TARGETS_EVAL)
