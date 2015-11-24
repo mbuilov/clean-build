@@ -1,6 +1,6 @@
 ifndef MAKE_DEFS_INCLUDED
 
-# this file included by main $(MTOP)/make_c.mk or $(MTOP)/make_java.mk
+# this file included by main make_header.mk
 # also this file may be included at beginning of target Makefile
 MAKE_DEFS_INCLUDED := 1
 
@@ -11,10 +11,7 @@ MAKE_DEFS_INCLUDED := 1
 # $? - prerequisites newer than the target
 
 # standard defines & checks
-# NOTE:
-#  $(OS) (may be $(BUILD_OS)), $(SUPPORTED_OSES),
-#  $(CPU) or $(UCPU),$(KCPU),$(TCPU), $(SUPPORTED_CPUS),
-#  $(TARGET) and $(SUPPORTED_TARGETS) are must be defined
+# NOTE: $(OS) (may be $(BUILD_OS)), $(SUPPORTED_OSES), $(CPU) or $(UCPU),$(KCPU),$(TCPU), $(SUPPORTED_CPUS), $(TARGET) and $(SUPPORTED_TARGETS) must be defined
 
 # disable builtin rules and variables
 MAKEFLAGS += --no-builtin-rules --no-builtin-variables
@@ -24,14 +21,13 @@ ifneq ($(filter clean,$(MAKECMDGOALS)),)
 NO_DEPS := 1
 endif
 
-# check values of TOP (and, if defined, XTOP) variables, include functions library
 include $(MTOP)/make_top.mk
 include $(MTOP)/make_functions.mk
 
 # $(DEBUG) is non-empty for DEBUG targets like PROJECTD
 DEBUG := $(filter %D,$(TARGET))
 
-# project's make_features.mk, if exists, must define something like:
+# project's make_features.mk must define something like:
 # SUPPORTED_OSES    := WINXX SOLARIS LINUX
 # SUPPORTED_CPUS    := x86 x86_64 sparc sparc64 armv5 mips24k ppc
 # SUPPORTED_TARGETS := PROJECT PROJECTD
@@ -39,13 +35,13 @@ PROJECT_FEATURES ?= $(TOP)/make/make_features.mk
 -include $(PROJECT_FEATURES)
 
 ifndef SUPPORTED_OSES
-$(error SUPPORTED_OSES not defined, it may be defined in $(subst $(TOP)/,$$(TOP)/,$(PROJECT_FEATURES)))
+$(error SUPPORTED_OSES not defined, it may be defined in $(subst $(TOP),$$(TOP),$(PROJECT_FEATURES)))
 endif
 ifndef SUPPORTED_CPUS
-$(error SUPPORTED_CPUS not defined, it may be defined in $(subst $(TOP)/,$$(TOP)/,$(PROJECT_FEATURES)))
+$(error SUPPORTED_CPUS not defined, it may be defined in $(subst $(TOP),$$(TOP),$(PROJECT_FEATURES)))
 endif
 ifndef SUPPORTED_TARGETS
-$(error SUPPORTED_TARGETS not defined, it may be defined in $(subst $(TOP)/,$$(TOP)/,$(PROJECT_FEATURES)))
+$(error SUPPORTED_TARGETS not defined, it may be defined in $(subst $(TOP),$$(TOP),$(PROJECT_FEATURES)))
 endif
 
 # OS - operating system we are building for
@@ -164,16 +160,15 @@ endif
 # standard target-specific variables
 # $1       - target file to build (absolute path)
 # $(MF)    - name of makefile which specifies how to build the target (path relative to $(TOP))
-# $(MCONT) - number of section in makefile after a call of $(MAKE_CONTINUE)
+# $(MCONT) - number of section in makefile which calls $(MAKE_CONTINUE)
 # $(TMD)   - T if target is built in TOOL_MODE
-# NOTE: $(MAKE_CONT) list is empty or 1 1 1 1...
 define STD_TARGET_VARS
 $1: MF    := $(CURRENT_MAKEFILE)
 $1: MCONT := $(if $(MAKE_CONT),@$(words $(subst 1x,1 x,$(MAKE_CONT)x)))
 $1: TMD   := $(if $(TOOL_MODE),T)
 endef
 
-# print in color name of called tool $1
+# print in color called tool
 TOOL_IN_COLOR = $(subst |,,$(subst \
   |CC|,[01;31mCC[0m,$(subst \
   |AR|,[01;32mAR[0m,$(subst \
@@ -193,13 +188,11 @@ TOOL_IN_COLOR = $(subst |,,$(subst \
   |MKDIR|,[00;36mMKDIR[0m,$(subst \
   |TOUCH|,[00;36mTOUCH[0m,|$1|))))))))))))))))))
 
-# print in color short name of called tool $1 with argument $2
 COLORIZE = $(TOOL_IN_COLOR)$(padto)$2
 
-# define utilities of the OS we are building on
 include $(MTOP)/$(BUILD_OS)/make_tools.mk
 
-# for UNIX: don't change paths when convertig from make internal file path to path accepted by $(BUILD_OS)
+# for UNIX: don't convert paths
 ospath ?= $1
 
 # for UNIX: absolute paths are started with /
@@ -207,17 +200,14 @@ isrelpath ?= $(filter-out /%,$1)
 
 # make current makefile path relative to $(TOP) directory
 CURRENT_MAKEFILE := $(subst \,/,$(firstword $(MAKEFILE_LIST)))
-ifeq ($(filter $(TOP)/%,$(CURRENT_MAKEFILE),)
-CURRENT_MAKEFILE := $(abspath $(CURDIR)/$(CURRENT_MAKEFILE))
-endif
-CURRENT_MAKEFILE := $(patsubst $(TOP)/%,%,$(CURRENT_MAKEFILE))
+CURRENT_MAKEFILE := $(patsubst $(TOP)/%,%,$(if $(filter $(TOP)/%,$(CURRENT_MAKEFILE)),$(CURRENT_MAKEFILE),$(abspath $(CURDIR)/$(CURRENT_MAKEFILE))))
 
 # check that we are building right sources
 ifeq ($(call isrelpath,$(CURRENT_MAKEFILE)),)
 $(error TOP=$(TOP) is not the root directory of current makefile $(CURRENT_MAKEFILE))
 endif
 
-# directory for built files - base for $(BIN_DIR), $(LIB_DIR), $(OBJ_DIR), etc...
+# directory for built files
 XTOP ?= $(TOP)
 
 # output directories:
@@ -234,6 +224,16 @@ DEF_BLD_DIR := $(XTOP)/bld/$(OS)-$(KCPU)-$(UCPU)-$(TARGET)
 DEF_BLDINC_DIR := $(DEF_BLD_DIR)/include
 DEF_BLDSRC_DIR := $(DEF_BLD_DIR)/src
 
+# directory for makefiles timestamps (to support dependencies between makefiles)
+BLD_MAKEFILES_TIMESTAMPS_DIR := $(DEF_BLD_DIR)/mk_stm
+
+# needed directories
+NEEDED_DIRS := $(BLD_MAKEFILES_TIMESTAMPS_DIR)
+
+# make makefile timestamp file name
+# $1 - $(CURRENT_MAKEFILE)
+MAKE_MAKEFILE_TIMESTAMP = $(BLD_MAKEFILES_TIMESTAMPS_DIR)/$(subst /,-,$1).m
+
 # restore default dirs after tool mode
 define SET_DEFAULT_DIRS1
 BIN_DIR := $(DEF_BIN_DIR)
@@ -249,12 +249,11 @@ SET_DEFAULT_DIRS := $(SET_DEFAULT_DIRS1)
 # ensure they are defined when we will use defs from $(PROJECT_FEATURES)
 $(eval $(SET_DEFAULT_DIRS))
 
-# needed default dirs
-# needed directories - we will create them in $(MTOP)/make_all.mk
-NEEDED_DIRS := $(DEF_BIN_DIR) $(DEF_LIB_DIR) $(DEF_BLD_DIR) $(DEF_BLDINC_DIR) $(DEF_BLDSRC_DIR)
-
 # function to add directories to list of needed dirs
 ADD_DIR_RULES = $(eval NEEDED_DIRS += $1)
+
+# needed default dirs
+NEEDED_DIRS += $(DEF_BIN_DIR) $(DEF_LIB_DIR) $(DEF_BLD_DIR) $(DEF_BLDINC_DIR) $(DEF_BLDSRC_DIR)
 
 # NOTE: to allow parallel builds for different combinations of
 #  $(OS)/$(KCPU)/$(UCPU)/$(TARGET) tool dir must be unique for each such combination
@@ -289,12 +288,12 @@ NEEDED_DIRS += $(addprefix $(TOOLS_DIR)/,bin obj lib bld bld/include bld/src)
 
 # compute values of next variables right after +=, not at call time:
 # CLEAN          - files/directories list to delete on $(MAKE) clean
-# CLEAN_COMMANDS - code to $(eval) to get clean commands to execute on $(MAKE) clean - see $(MTOP)/make_all.mk
+# CLEAN_COMMANDS - code to $(eval) to get clean commands to execute on $(MAKE) clean - see make_all.mk
 CLEAN:=
 CLEAN_COMMANDS:=
 
 # add $(VPREFIX) (path to directory of currently executing makefile relative to $(CURDIR)) value to non-absolute paths
-# then make absolute paths
+# make absolute paths
 FIXPATH = $(abspath $(foreach x,$1,$(if $(call isrelpath,$x),$(VPREFIX))$x))
 
 # $(ORDER_DEPS)          - order-only dependencies to add to all leaf prerequisites for the targets
@@ -303,9 +302,10 @@ FIXPATH = $(abspath $(foreach x,$1,$(if $(call isrelpath,$x),$(VPREFIX))$x))
 #                          timestamp is updated after all targets of current makefile are successfully built
 ORDER_DEPS:=
 VPREFIX := $(filter-out ./,$(dir $(patsubst $(CURDIR)/%,%,$(subst \,/,$(firstword $(MAKEFILE_LIST))))))
+CURRENT_MAKEFILE_TM := $(call MAKE_MAKEFILE_TIMESTAMP,$(CURRENT_MAKEFILE))
 
-# list of all processed makefiles names relative to $(TOP) - like $(CURRENT_MAKEFILE)
-TOP_MAKEFILES:=
+# list of all processed makefiles
+PROCESSED_MAKEFILES:=
 
 # convert list "make1 make2 make3" -> "..."
 ifdef MDEBUG
@@ -321,32 +321,32 @@ NORM_MAKEFILE = $(if $(filter-out $(TOP)/%,$1),$(VPREFIX))$1$(if $(filter-out %.
 GET_VPREFIX = $(if $(filter $(TOP)/%,$1),$(call reldir,$(CURDIR),$(dir $1)),$(filter-out ./,$(dir $(call normp,$1))))
 
 # make $(TOP)-relative path to included makefile $1, $2 - VPREFIX for included makefile
-MAKE_TOP_MAKEFILE1 = $(call normp,$(patsubst $(TOP)/%,%,$(CURDIR)/)$2$(notdir $1))
-MAKE_TOP_MAKEFILE2 = $(call MAKE_TOP_MAKEFILE1,$1,$(call GET_VPREFIX,$1))
-MAKE_TOP_MAKEFILE = $(call MAKE_TOP_MAKEFILE2,$(call NORM_MAKEFILE,$1))
+MAKE_CURRENT_MAKEFILE1 = $(call normp,$(patsubst $(TOP)/%,%,$(CURDIR)/)$2$(notdir $1))
+MAKE_CURRENT_MAKEFILE2 = $(call MAKE_CURRENT_MAKEFILE1,$1,$(call GET_VPREFIX,$1))
+MAKE_CURRENT_MAKEFILE = $(call MAKE_CURRENT_MAKEFILE2,$(call NORM_MAKEFILE,$1))
 
-# convert list of makefiles to list of $(TOP)-related makefile names
-GET_MAKEFILE_DEPS = $(foreach x,$1,$(call MAKE_TOP_MAKEFILE,$x))
+# convert list of makefiles to list of makefiles timestamps
+GET_MAKEFILE_DEPS = $(foreach x,$1,$(call MAKE_MAKEFILE_TIMESTAMP,$(call MAKE_CURRENT_MAKEFILE,$x)))
 
 # code to $(eval) at beginning of each makefile
-# 1) add $(CURRENT_MAKEFILE) to build
+# 1) add $(CURRENT_MAKEFILE_TM) to build
 # 2) change bin,lib/obj dirs in TOOL_MODE or restore them to default values in non-TOOL_MODE
 # NOTE:
 #  $(MAKE_CONTINUE) always adds 2 to $(MAKE_CONT) before expanding $(DEF_HEAD_CODE)
-#  - so we know if $(DEF_HEAD_CODE) was expanded from $(MAKE_CONTINUE) - remove 2 from $(MAKE_CONT) in this case
+#  - so we know if $(DEF_HEAD_CODE) expanded from $(MAKE_CONTINUE) - remove 2 from $(MAKE_CONT) in this case
 #  - if $(DEF_HEAD_CODE) was expanded not from $(MAKE_CONTINUE) - reset $(MAKE_CONT)
-# NOTE: $(MTOP)/make_defs.mk may be included before $(MTOP)/make_parallel.mk,
-#  to not execute $(DEF_HEAD_CODE) second time in $(MTOP)/make_parallel.mk, define DEF_HEAD_CODE_PROCESSED variable
+# NOTE: make_defs.mk may be included before make_parallel.mk,
+#  to not execute $(DEF_HEAD_CODE) in make_parallel.mk, define DEF_HEAD_CODE_PROCESSED variable
 define DEF_HEAD_CODE
 ifeq ($(filter 2,$(MAKE_CONT)),)
 MAKE_CONT:=
 ifdef MDEBUG
 $$(info $(call MAKEFILES_LEVEL,$(SUB_LEVEL)) $(CURRENT_MAKEFILE)$(if $(ORDER_DEPS), | $(patsubst $(TOP)/%,$$$$(TOP)/%,$(ORDER_DEPS))))
 endif
-ifneq ($(filter $(CURRENT_MAKEFILE),$(TOP_MAKEFILES)),)
+ifneq ($(filter $(CURRENT_MAKEFILE_TM),$(PROCESSED_MAKEFILES)),)
 $$(info Warning: makefile $(CURRENT_MAKEFILE) is already processed!)
 else
-TOP_MAKEFILES += $(CURRENT_MAKEFILE)
+PROCESSED_MAKEFILES += $(CURRENT_MAKEFILE_TM)
 endif
 else
 MAKE_CONT := $(filter-out 2,$(MAKE_CONT))
@@ -364,7 +364,7 @@ endif
 endef
 
 # code to $(eval) at end of each makefile
-# include $(MTOP)/make_all.mk only if SUB_LEVEL is empty and will not call $(MAKE_CONTINUE)
+# include $(MTOP)/make_all.mk only if SUB_LEVEL is empty and will not continue
 # if called from $(MAKE_CONTINUE), $1 - list of vars to save - check if needed to save TOOL_MODE
 DEF_TAIL_CODE = $(eval $(if $(SUB_LEVEL)$(filter 2,$(MAKE_CONT)),$(if \
   $(filter TOOL_MODE,$1),,TOOL_MODE:=$(newline))DEF_HEAD_CODE_PROCESSED:=,include $(MTOP)/make_all.mk))
@@ -399,10 +399,10 @@ endif
 # add target-specific prefix (EXE_,LIB_,DLL,...) to distinguish objects for the targets with equal names
 FORM_OBJ_DIR = $(OBJ_DIR)/$1_$(GET_TARGET_NAME)$(if $(filter-out R,$2),_$2)
 
-# add generated files $1 to build sequence, $2 - directories of generated files
+# add generated files $1 to build sequence
 define ADD_GENERATED1
 $(STD_TARGET_VARS)
-$(CURRENT_MAKEFILE): $1
+$(CURRENT_MAKEFILE_TM): $1
 CLEAN += $1
 $1: | $2 $(ORDER_DEPS)
 NEEDED_DIRS += $2
@@ -447,10 +447,8 @@ RESTORE_VARS = $(eval $(foreach v,$1,$(newline)$v:=$($v_)))
 endif # MAKE_DEFS_INCLUDED
 
 ifndef MAKE_DEFS_INCLUDED_BY
-# if $(MTOP)/make_defs.mk is the first included file in target Makefile,
 # define bin/lib/obj/etc... dirs
 $(eval $(DEF_HEAD_CODE))
 else
-# don't evaluate $(DEF_HEAD_CODE) only once, then reset MAKE_DEFS_INCLUDED_BY
 MAKE_DEFS_INCLUDED_BY:=
 endif

@@ -1,4 +1,4 @@
-# this file included by $(MTOP)/WINXX/make_c.mk
+# this file included by WINXX/make_header.mk
 
 # syncronize make output for parallel builds
 MAKEFLAGS += -O

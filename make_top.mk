@@ -1,6 +1,6 @@
 # check values of $(TOP) and $(XTOP) variables
 
-# TOP or XTOP must contain unix-style path to directory without spaces like C:/opt/project or /home/oper/project
+# must be unix-style path to directory without spaces like C:/opt/project or /home/oper/project
 define CHECK_TOP1
 ifneq ($(words x$($1)x),1)
 $$(error $1=$($1), path with spaces is not allowed)
@@ -9,7 +9,7 @@ ifneq ($(words $(subst \, ,x$($1)x)),1)
 $$(error $1=$($1), path must use unix-style slashes: /)
 endif
 ifneq ($(subst //,,$($1)/),$($1)/)
-$$(error $1=$($1), path must not end with slash: / or contain double-slash: //)
+$$(error $1=$($1), path must not end with slash: /)
 endif
 endef
 CHECK_TOP = $(eval $(CHECK_TOP1))

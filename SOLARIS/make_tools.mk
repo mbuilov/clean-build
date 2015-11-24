@@ -1,4 +1,4 @@
-# this file included by $(MTOP)/SOLARIS/make_c.mk
+# this file included by SOLARIS/make_header.mk
 
 DEL   = rm -f $1
 RM    = $(if $(VERBOSE:1=),@)rm -rf $1
