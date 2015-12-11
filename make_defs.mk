@@ -610,6 +610,9 @@ MAKE_CONTINUE = $(if $(if $1,$(SAVE_VARS))$(MAKE_CONTINUE_BODY_EVAL)$(if $1,$(RE
 # example: $(call FORM_DEPS,src1 src2,dep1 dep2 dep3) -> src1 dep1|dep2|dep3 src2 dep1|dep2|dep3
 FORM_DEPS = $(addsuffix $(space)$(call join_with,$2,|),$1)
 
+# trace function call if TRACE defined
+$(call trace_calls2,FORM_DEPS)
+
 # get dependencies for source files
 # $1 - source files, $2 - deps list of pairs: <source file> <dependency1>|<dependency2>|...
 EXTRACT_DEPS = $(subst |, ,$(if $2,$(if $(filter $1,$(firstword $2)),$(word 2,$2) )$(call EXTRACT_DEPS,$1,$(wordlist 3,999999,$2))))

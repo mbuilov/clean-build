@@ -11,8 +11,8 @@ ifndef NORM_MAKEFILES
 NORM_MAKEFILES = $(patsubst $(TOP)/%,%$2,$(abspath $(foreach \
   x,$1,$(if $(call isrelpath,$x),$(VPREFIX))$x$(if $(filter-out %.mk %/Makefile Makefile,$x),/Makefile))))
 
-# trace function if TRACE defined
-$(call will_trace2,NORM_MAKEFILES,VPREFIX)
+# trace function call if TRACE defined
+$(call trace_calls2,NORM_MAKEFILES,VPREFIX)
 
 # overwrite code for adding $(MDEPS) - list of makefiles that need to be maked before target makefile - to $(ORDER_DEPS)
 FIX_ORDER_DEPS := ORDER_DEPS := $$(strip $$(ORDER_DEPS) $$(call NORM_MAKEFILES,$$(MDEPS),-))$(newline)MDEPS:=
@@ -39,8 +39,8 @@ endef
 # note: $(TO_MAKE) - list of $(TOP)-related makefiles to include
 CB_INCLUDE_TEMPLATE = $(foreach m,$(TO_MAKE),$(CB_INCLUDE_TEMPLATE1))
 
-# trace function if TRACE defined
-$(call will_trace,CB_INCLUDE_TEMPLATE,TO_MAKE)
+# trace function call if TRACE defined
+$(call trace_calls,CB_INCLUDE_TEMPLATE,TO_MAKE)
 
 # protect variables from modifications in target makefiles
 $(call CLEAN_BUILD_APPEND_PROTECTED_VARS,NORM_MAKEFILES CB_INCLUDE_TEMPLATE1 CB_INCLUDE_TEMPLATE)

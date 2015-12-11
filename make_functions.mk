@@ -38,43 +38,35 @@ trace2 = $(info trace: $0($1,$2))
 trace3 = $(info trace: $0($1,$2,$3))
 trace4 = $(info trace: $0($1,$2,$3,$4))
 trace5 = $(info trace: $0($1,$2,$3,$4,$5))
+tracen = $(info trace: $0($1,$2,$3,$4,$5,$6,$7,$8,$9,$(10),$(11),$(12),$(13),$(14),$(15),$(16),$(17),$(18),$(19),$(20)))
 
-# helper template for will_trace...() functions
+# helper template for trace_calls...() functions
 # $1 - function name
 # $2 - number of args
-define will_trace_template
+# $3 - names of variables to dump before traced call
+define trace_calls_template
+$(empty)
 $1_traced_ = $(value $1)
-$1 = $$(call dump,$3)$$(trace$2)$$($1_traced_)
+$1 = $(if $3,$$(call dump,$3))$$(trace$2)$$($1_traced_)
+ifndef CLEAN_BUILD_APPEND_PROTECTED_VARS
 CLEAN_BUILD_PROTECTED += $1_traced_
+else
+$$(call CLEAN_BUILD_APPEND_PROTECTED_VARS,$1_traced_)
+endif
 endef
 
 # replace function with its trace equivalent
 # $1 - function name
 # $2 - optional list of variables to dump before function call
-will_trace = $(eval $(call will_trace_template,$1,$2))
-will_trace1 = $(eval $(call will_trace_template,$1,1,$2))
-will_trace2 = $(eval $(call will_trace_template,$1,2,$2))
-will_trace3 = $(eval $(call will_trace_template,$1,3,$2))
-will_trace4 = $(eval $(call will_trace_template,$1,4,$2))
-will_trace5 = $(eval $(call will_trace_template,$1,5,$2))
+trace_calls = $(eval $(foreach f,$1,$(call trace_calls_template,$f,$2)))
+trace_calls1 = $(eval $(foreach f,$1,$(call trace_calls_template,$f,1,$2)))
+trace_calls2 = $(eval $(foreach f,$1,$(call trace_calls_template,$f,2,$2)))
+trace_calls3 = $(eval $(foreach f,$1,$(call trace_calls_template,$f,3,$2)))
+trace_calls4 = $(eval $(foreach f,$1,$(call trace_calls_template,$f,4,$2)))
+trace_calls5 = $(eval $(foreach f,$1,$(call trace_calls_template,$f,5,$2)))
+trace_callsn = $(eval $(foreach f,$1,$(call trace_calls_template,$f,n,$2)))
 
-else # !TRACE
-
-dump:=
-trace:=
-trace1:=
-trace2:=
-trace3:=
-trace4:=
-trace5:=
-will_trace:=
-will_trace1:=
-will_trace2:=
-will_trace3:=
-will_trace4:=
-will_trace5:=
-
-endif # !TRACE
+endif # TRACE
 
 # replace spaces with ?
 unspaces = $(subst $(space),?,$1)
@@ -162,15 +154,15 @@ relpath = $(call relpath1,$(1:/=)/,$(2:/=)/)
 join_with = $(patsubst %$2,%,$(subst $(space),,$(foreach x,$1,$x$2)))
 
 # trace calls to next functions if TRACE defined
-$(call will_trace2,qpath)
-$(call will_trace4,xcmd)
-$(call will_trace1,normp)
-$(call will_trace2,relpath)
-$(call will_trace2,join_with)
+$(call trace_calls2,qpath)
+$(call trace_calls4,xcmd)
+$(call trace_calls1,normp)
+$(call trace_calls2,relpath)
+$(call trace_calls2,join_with)
 
 # protect variables from modification in target makefiles
 CLEAN_BUILD_PROTECTED += empty space tab comma newline \
-  TRACE dump trace trace1 trace2 trace3 trace4 trace5 \
-  will_trace_template will_trace will_trace1 will_trace2 will_trace3 will_trace4 will_trace5 \
+  TRACE dump trace trace1 trace2 trace3 trace4 trace5 tracen \
+  trace_calls_template trace_calls trace_calls1 trace_calls2 trace_calls3 trace_calls4 trace_calls5 trace_callsn \
   unspaces ifaddq qpath tolower toupper repl1 padto1 padto xargs xcmd trim normp2 normp1 normp \
   cmn_path1 cmn_path back_prefix relpath2 relpath1 relpath join_with
