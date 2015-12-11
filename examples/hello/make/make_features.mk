@@ -19,7 +19,7 @@ else ifeq ($(OS),WINXX)
 
 APPDEFS :=
 KRNDEFS :=
-SUPRESS_RC_LOGO := /nologo
+SUPPRESS_RC_LOGO := /nologo
 
 else ifeq ($(OS),SOLARIS)
 

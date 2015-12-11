@@ -1,4 +1,4 @@
-# this file included by WINXX/make_header.mk
+# this file included by $(MTOP)/WINXX/make_c.mk
 
 # syncronize make output for parallel builds
 MAKEFLAGS += -O
@@ -25,7 +25,7 @@ ospath = $(subst /,\,$1)
 isrelpath = $(if $(word 2,$(subst :, ,$1)),,1)
 
 DEL   = (if exist $(ospath) del /F /Q $(ospath))
-RM1   = $(if $(VERBOSE:1=),@)for %%f in ($(ospath)) do if exist %%f\NUL (rd /S /Q %%f) else if exist %%f (del /F /Q %%f)
+RM1   = $(if $(VERBOSE),,@)for %%f in ($(ospath)) do if exist %%f\NUL (rd /S /Q %%f) else if exist %%f (del /F /Q %%f)
 RM    = $(call xcmd,RM1,$1,$(DEL_ARGS_LIMIT))
 # NOTE! there are races in MKDIR - if make spawns two parallel jobs:
 # if not exist aaa
@@ -56,3 +56,7 @@ TOUCH = $(call TOUCH1,$(ospath))
 DEL_ON_FAIL = || ($(foreach x,$1,$(call DEL,$x) &) cmd /c exit 1)
 
 TOOL_SUFFIX := .exe
+
+# protect variables from modifications in target makefiles
+$(call CLEAN_BUILD_APPEND_PROTECTED_VARS,DEL_ARGS_LIMIT DEL RM1 RM MKDIR SED SED_EXPR \
+  CAT open_brace close_brace ECHO_LINE ECHO1 ECHO CD NUL SUPPRESS_CP_OUTPUT CP TOUCH1 TOUCH DEL_ON_FAIL TOOL_SUFFIX)
