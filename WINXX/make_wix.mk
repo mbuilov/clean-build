@@ -94,7 +94,7 @@ CLEAN += $6 $(basename $2).wixpdb
 endef
 
 # how to build installer msi or exe
-WIX_RULES1 = $(call WIX_TEMPLATE,$1,$2,$3,$4,$(addprefix $4/,$(call WIX_OBJS,$3)))
+WIX_RULES1 = $(call WIX_TEMPLATE,$1,$2,$3,$4,$5,$(addprefix $5/,$(call WIX_OBJS,$3)))
 WIX_RULES = $(call WIX_RULES1,$1,$(call FORM_WIX_TRG,$1),$(call FIXPATH,$(WXS)),$(TRG_WDEPS),$(call FORM_OBJ_DIR,$1))
 
 MSI_RULES = $(if $(MSI),$(call WIX_RULES,MSI))
@@ -120,12 +120,12 @@ endef
 
 # reset build targets, target-specific variables and variables modifiable in target makefiles
 # then define bin/lib/obj/... dirs
-MAKE_WIX_CONTINUE_EVAL = $(eval $(PREPARE_WIX_VARS)$(DEF_HEAD_CODE))
+MAKE_CONTINUE_WIX_EVAL = $(eval $(PREPARE_WIX_VARS)$(DEF_HEAD_CODE))
 
 # protect variables from modifications in target makefiles
 $(call CLEAN_BUILD_APPEND_PROTECTED_VARS,MAKE_WIX_INCLUDED WIX BLD_WIX_TARGETS WIX_CANDLE WIX_LIGHT WIX_EXTS_DIR \
   WIXOBJ_CL MSI_LD INSTALLER_LD DEBUG_WIX_TARGETS FORM_WIX_TRG WIX_OBJS TRG_WDEPS WIX_OBJ_RULE WIX_OBJ_RULES \
-  WIX_TEMPLATE WIX_RULES1 WIX_RULES MSI_RULES INSTALLER_RULES DEFINE_WIX_TARGETS_EVAL PREPARE_WIX_VARS MAKE_WIX_CONTINUE_EVAL)
+  WIX_TEMPLATE WIX_RULES1 WIX_RULES MSI_RULES INSTALLER_RULES DEFINE_WIX_TARGETS_EVAL PREPARE_WIX_VARS MAKE_CONTINUE_WIX_EVAL)
 
 endif # MAKE_WIX_INCLUDED
 
