@@ -1,8 +1,8 @@
-ifndef MAKE_JAVA_INCLUDED
+ifndef JAVA_MK_INCLUDED
 
 # this file normally included at beginning of target Makefile
 # used for building java sources
-MAKE_JAVA_INCLUDED := 1
+JAVA_MK_INCLUDED := 1
 
 # run via $(MAKE) L=1 to run java compiler with -Xlint
 ifeq ("$(origin L)","command line")
@@ -11,14 +11,14 @@ else
 JLINT:=
 endif
 
-# what we may build by including make_java.mk (for ex. JAR := my_jar)
+# what we may build by including $(MTOP)/java.mk (for ex. JAR := my_jar)
 BLD_JTARGETS := JAR
 
-# set MAKE_DEFS_INCLUDED_BY value - to avoid execution of $(DEF_HEAD_CODE) by included make_defs.mk,
+# set DEFS_MK_INCLUDED_BY value - to avoid execution of $(DEF_HEAD_CODE) by included $(MTOP)/defs.mk,
 # - $(DEF_HEAD_CODE) will be evaluated at end of this file
-MAKE_DEFS_INCLUDED_BY := make_java.mk
-include $(MTOP)/make_defs.mk
-include $(MTOP)/$(OS)/make_java.mk
+DEFS_MK_INCLUDED_BY := java.mk
+include $(MTOP)/defs.mk
+include $(MTOP)/$(OS)/java.mk
 
 # define code to print debug info about built targets
 DEBUG_JAVA_TARGETS := $(call GET_DEBUG_TARGETS,$(BLD_JTARGETS),FORM_JTRG)
@@ -144,12 +144,12 @@ endef
 MAKE_CONTINUE_JAVA_EVAL = $(eval $(PREPARE_JAVA_VARS)$(DEF_HEAD_CODE))
 
 # protect variables from modifications in target makefiles
-$(call CLEAN_BUILD_APPEND_PROTECTED_VARS,MAKE_JAVA_INCLUDED JLINT BLD_JTARGETS DEBUG_JAVA_TARGETS \
+$(call CLEAN_BUILD_APPEND_PROTECTED_VARS,JAVA_MK_INCLUDED JLINT BLD_JTARGETS DEBUG_JAVA_TARGETS \
   FORM_JTRG FORM_JAR_BUNDLES MAKE_BUNDLE_DEPS FORM_CLASS_PATH JAVAC_OPTIONS SCALAC_OPTIONS \
   JAVA_CC1 JAVA_CC SCALA_CC1 SCALA_CC JAR_LD1 JAR_LD JAR_TEMPLATE JAR_RULES \
   DEFINE_JAVA_TARGETS_EVAL PREPARE_JAVA_VARS MAKE_CONTINUE_JAVA_EVAL)
 
-endif # MAKE_JAVA_INCLUDED
+endif # JAVA_MK_INCLUDED
 
 # evaluate head code like in $(MAKE_CONTINUE)
 $(MAKE_CONTINUE_JAVA_EVAL)

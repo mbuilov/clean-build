@@ -59,7 +59,7 @@ ifndef BISONC
 BISONC := bison
 endif
 
-# prefixes/suffixes of build targets, may be already defined in $(TOP)/make/make_features.mk
+# prefixes/suffixes of build targets, may be already defined in $(TOP)/make/project.mk
 # note: if OBJ_SUFFIX is defined, then all prefixes/suffixes must be also defined
 ifndef OBJ_SUFFIX
 EXE_SUFFIX :=
@@ -105,7 +105,7 @@ endif
 # D - position-independent code in shared libraries (for LIB)
 VARIANTS_FILTER = $(if $(filter LIB,$1),D)
 
-# for $(DEP_LIB_SUFFIX) from $(MTOP)/make_c.mk:
+# for $(DEP_LIB_SUFFIX) from $(MTOP)/c.mk:
 # $1 - target EXE,DLL
 # $2 - variant of target EXE or DLL
 # $l - dependent static library name
@@ -113,7 +113,7 @@ VARIANTS_FILTER = $(if $(filter LIB,$1),D)
 # always use D-variant of static library for DLL
 VARIANT_LIB_MAP ?= $(if $(filter DLL,$1),D,$2)
 
-# for $(DEP_IMP_SUFFIX) from $(MTOP)/make_c.mk:
+# for $(DEP_IMP_SUFFIX) from $(MTOP)/c.mk:
 # $1 - target EXE,DLL
 # $2 - variant of target EXE or DLL
 # $d - dependent dynamic library name

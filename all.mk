@@ -8,6 +8,9 @@ GET_DIR = $(patsubst %/,%,$(patsubst ./%,%,$(filter %/,$(dir $1))))
 SPLIT_DIRS = $(if $1,$1 $(call SPLIT_DIRS,$(GET_DIR)))
 NEEDED_DIRS := $(sort $(call SPLIT_DIRS,$(NEEDED_DIRS:$(XTOP)/%=%)))
 
+# dump variables in TRACE mode
+$(call dump,NEEDED_DIRS PROCESSED_MAKEFILES CLEAN CLEAN_COMMANDS ORDER_DEPS)
+
 # define order-only dependencies for directories
 $(eval $(foreach x,$(NEEDED_DIRS),$(addprefix $(newline)$(XTOP)/$x:| $(XTOP)/,$(call GET_DIR,$x))))
 
@@ -29,7 +32,7 @@ clean:
 $(ORDER_DEPS):
 
 # note: don't try to update makefiles in $(MAKEFILE_LIST) - mark them as .PHONY targets
-# note: $(PROCESSED_MAKEFILES) - names of processed makefiles with suffix -
+# note: $(PROCESSED_MAKEFILES) - names of processed makefiles with '-' suffix
 .PHONY: all clean $(MAKEFILE_LIST) $(PROCESSED_MAKEFILES)
 
 # drop make's default legacy rules - we'll use custom ones

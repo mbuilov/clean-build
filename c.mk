@@ -1,8 +1,8 @@
-ifndef MAKE_C_INCLUDED
+ifndef C_MK_INCLUDED
 
 # this file normally included at beginning of target makefile
 # used for building C/C++ libs, dlls, executables
-MAKE_C_INCLUDED := 1
+C_MK_INCLUDED := 1
 
 # separate group of defines for each build target type (EXE,LIB,DLL,...)
 # - to allow to build many targets (for example LIB,EXE and DLL) specified in one makefile
@@ -18,7 +18,7 @@ MAKE_C_INCLUDED := 1
 # DLL  - dynamic library, variants: R,S
 # if variant is not specified, default variant R will be built, else - only specified variants (add R to build also default variant)
 
-# what we may build by including $(MTOP)/make_c.mk (for ex. LIB := my_lib)
+# what we may build by including $(MTOP)/c.mk (for ex. LIB := my_lib)
 BLD_TARGETS := EXE LIB DLL KLIB DRV
 
 # NOTE: after target name may be specified one or more build target variants (for ex. EXE := my_exe R S):
@@ -44,7 +44,7 @@ VARIANT_LIB_SUFFIX = $(if $(filter-out R,$1),_$1)
 # NOTE: for WINDOWS IMP-lib may have different name over than DLL, so it's allowed only one (non-)default variant of DLL
 VARIANT_IMP_SUFFIX = $(if $(filter-out R,$1),_$1)
 
-# $(TOP)/make/make_features.mk included by $(MTOP)/make_defs.mk, if exists, should define something like:
+# $(TOP)/make/project.mk included by $(MTOP)/defs.mk, if exists, should define something like:
 #
 # 1) common include path for all targets, added at end of compiler's include paths list, for example:
 #  DEFINCLUDE = $(TOP)/include
@@ -68,20 +68,20 @@ VARIANT_IMP_SUFFIX = $(if $(filter-out R,$1),_$1)
 #  note: it's not possible to reset value of $(KRNDEFS) in target makefile,
 #   but KRNDEFS may be recursive and so may produce dynamic results
 
-# set MAKE_DEFS_INCLUDED_BY value - to avoid execution of $(DEF_HEAD_CODE) by included make_defs.mk,
+# set DEFS_MK_INCLUDED_BY value - to avoid execution of $(DEF_HEAD_CODE) by included $(MTOP)/defs.mk,
 # - $(DEF_HEAD_CODE) will be evaluated at end of this file
-MAKE_DEFS_INCLUDED_BY := make_c.mk
-include $(MTOP)/make_defs.mk
-include $(MTOP)/$(OS)/make_c.mk
+DEFS_MK_INCLUDED_BY := c.mk
+include $(MTOP)/defs.mk
+include $(MTOP)/$(OS)/c.mk
 
-# add defines from $(MTOP)/$(OS)/make_c.mk
+# add defines from $(MTOP)/$(OS)/c.mk
 PREDEFINES += $(OS_PREDEFINES)
 APPDEFS    += $(OS_APPDEFS)
 KRNDEFS    += $(OS_KRNDEFS)
 
 # define code to print debug info about built targets
-# note: GET_DEBUG_TARGETS - defined in $(MTOP)/make_defs.mk
-# note: FORM_TRG will be defined below, VARIANTS_FILTER - was defined in $(MTOP)/$(OS)/make_c.mk
+# note: GET_DEBUG_TARGETS - defined in $(MTOP)/defs.mk
+# note: FORM_TRG will be defined below, VARIANTS_FILTER - was defined in $(MTOP)/$(OS)/c.mk
 DEBUG_C_TARGETS := $(call GET_DEBUG_TARGETS,$(BLD_TARGETS),FORM_TRG,VARIANTS_FILTER)
 
 # template to prepend value of $(OS)-dependent variables to variable $1, then clear $(OS)-dependent variables
@@ -153,7 +153,7 @@ FORM_TRG = $(if \
 SUBST_DEFINES = $(subst $$(space),$(space),$1)
 
 # helper macro for target makefiles to pass string define value to C-compiler
-# may be already defined by $(MTOP)/$(OS)/make_c.mk
+# may be already defined by $(MTOP)/$(OS)/c.mk
 STRING_DEFINE ?= "$(subst $(space),$$$$(space),$(subst ",\",$1))"
 
 # make absolute paths to include directories - we need absolute paths to headers in generated .d dependency file
@@ -405,7 +405,7 @@ endef
 MAKE_CONTINUE_C_EVAL = $(eval $(PREPARE_C_VARS)$(DEF_HEAD_CODE))
 
 # protect variables from modifications in target makefiles
-$(call CLEAN_BUILD_APPEND_PROTECTED_VARS,MAKE_C_INCLUDED BLD_TARGETS \
+$(call CLEAN_BUILD_APPEND_PROTECTED_VARS,C_MK_INCLUDED BLD_TARGETS \
   TRG_VARS BLD_VARS VARIANT_LIB_SUFFIX VARIANT_IMP_SUFFIX DEBUG_C_TARGETS \
   OSVARIANT OSTYPE OSVAR OSVARS OBJ_RULE OBJ_RULES1 OBJ_RULES \
   RESET_TRG_VARS FORM_TRG SUBST_DEFINES STRING_DEFINE \
@@ -416,7 +416,7 @@ $(call CLEAN_BUILD_APPEND_PROTECTED_VARS,MAKE_C_INCLUDED BLD_TARGETS \
   FORM_TRG_OBJS FORM_OBJS CHECK_C_RULES \
   OS_DEFINE_TARGETS DEFINE_C_TARGETS_EVAL PREPARE_C_VARS MAKE_CONTINUE_C_EVAL)
 
-endif # MAKE_C_INCLUDED
+endif # C_MK_INCLUDED
 
 # evaluate head code like in $(MAKE_CONTINUE)
 $(MAKE_CONTINUE_C_EVAL)

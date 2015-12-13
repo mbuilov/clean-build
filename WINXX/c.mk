@@ -1,6 +1,6 @@
 OSTYPE := WINDOWS
 
-include $(MTOP)/WINXX/make_cres.mk
+include $(MTOP)/WINXX/cres.mk
 
 # run via $(MAKE) S=1 to compile each source individually (without /MP CL compiler option)
 ifeq ("$(origin S)","command line")
@@ -44,7 +44,7 @@ SUPPRESS_RC_LOGO := $(SUPPRESS_RC_LOGO)
 RC ?= $(call SUP,$(TMD)RC,$1)$($(TMD)RC1)$(if $(VERBOSE), /v) $(SUPPRESS_RC_LOGO) $3 $(call \
   qpath,$(VS$(TMD)INC) $(UM$(TMD)INC),/I) /fo$(call ospath,$1 $2)
 
-# prefixes/suffixes of build targets, may be already defined in $(TOP)/make/make_features.mk
+# prefixes/suffixes of build targets, may be already defined in $(TOP)/make/project.mk
 # note: if OBJ_SUFFIX is defined, then all prefixes/suffixes must be also defined
 ifndef OBJ_SUFFIX
 EXE_SUFFIX := .exe
@@ -107,7 +107,7 @@ ifeq (undefined,$(origin VARIANTS_FILTER))
 VARIANTS_FILTER := S RU SU
 endif
 
-# for $(DEP_LIB_SUFFIX) from $(MTOP)/make_c.mk:
+# for $(DEP_LIB_SUFFIX) from $(MTOP)/c.mk:
 # $1 - target EXE,DLL
 # $2 - variant of target EXE or DLL
 # $l - dependent static library name
@@ -116,7 +116,7 @@ endif
 # (if required static library name do not starts with UNI_ - convert RU->R variant for required library)
 VARIANT_LIB_MAP ?= $(if $(l:UNI_%=),$(2:U=),$2)
 
-# for $(DEP_IMP_SUFFIX) from $(MTOP)/make_c.mk:
+# for $(DEP_IMP_SUFFIX) from $(MTOP)/c.mk:
 # $1 - target EXE,DLL
 # $2 - variant of target EXE or DLL
 # $d - dependent dynamic library name
@@ -144,7 +144,7 @@ endif
 # common parts of linker options for built EXE or DLL
 # $$1 - target exe or dll, $$2 - objects, $v - variant
 # note: because target variable (EXE or DLL) is not used in VARIANT_LIB_MAP and VARIANT_IMP_MAP,
-#  may pass any value as first parameter to MAKE_DEP_LIBS and MAKE_DEP_IMPS (macros from $(MTOP)/make_c.mk)
+#  may pass any value as first parameter to MAKE_DEP_LIBS and MAKE_DEP_IMPS (macros from $(MTOP)/c.mk)
 # target-specific: TMD, RES, LIBS, DLLS, LIB_DIR, SYSLIBPATH, SYSLIBS
 CMN_LIBS ?= /OUT:$$(ospath) $(CMN_LIBS_LDFLAGS) $$(call ospath,$$2 $$(RES)) $$(if $$(strip \
   $$(LIBS)$$(DLLS)),/LIBPATH:$$(call ospath,$$(LIB_DIR))) $$(call MAKE_DEP_LIBS,XXX,$v,$$(LIBS)) $$(call \

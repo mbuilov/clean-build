@@ -1,8 +1,8 @@
-# this file included by make_defs.mk
+# this file included by $(MTOP)/defs.mk after including $(MTOP)/protection.mk
 
-empty :=
-space := $(empty) $(empty)
-tab   := $(empty)	$(empty)
+empty:=
+space := $(empty) #
+tab   := $(empty)	#
 comma := ,
 define newline
 $(empty)
@@ -21,50 +21,41 @@ TRACE := $(TRACE:0=)
 ifdef TRACE
 
 # dump variables from list $1, prefixing output with optional prefix $2, example:
-#
-# $(call dump,VAR1 VAR2,pr) -> print 'pr:VAR1=xxx => yyy'
-#                           -> print 'pr:VAR2=nnn => mmm'
-#
-dump = $(foreach v,$1,$(info dump: $(addsuffix :,$2)$v=$(value $v)$(if $(filter-out simple,$(flavor $v)), => $($v))))
+# $(call dump,VAR1,pr) -> print 'dump: pr:VAR1=xxx => yyy'
+dump = $(foreach v,$1,$(info dump: $(addsuffix :,$2)$v=$(value $v)$(if $(filter recursive,$(flavor $v)), =>$(newline)$($v))))
 
-# trace function call - print function name and parameter values, example:
-# $(trace)$(fn)            -> print 'fn()'
-# $(trace1)$(call fn1,a)   -> print 'fn1(a)'
-# $(trace2)$(call fn2,a,b) -> print 'fn2(a,b)'
-# ...
-trace = $(info trace: $0())
-trace1 = $(info trace: $0($1))
-trace2 = $(info trace: $0($1,$2))
-trace3 = $(info trace: $0($1,$2,$3))
-trace4 = $(info trace: $0($1,$2,$3,$4))
-trace5 = $(info trace: $0($1,$2,$3,$4,$5))
-tracen = $(info trace: $0($1,$2,$3,$4,$5,$6,$7,$8,$9,$(10),$(11),$(12),$(13),$(14),$(15),$(16),$(17),$(18),$(19),$(20)))
+# trace function call - print function name and parameter values
+# $(trace) must be the first statement of traced function body, for example: fun = $(trace)fn_body
+trace = $(info trace: $$($0){)$(if $1,$(info $$1=$1))$(if $2,$(info $$2=$2))$(if $3,$(info $$3=$3))$(if \
+  $4,$(info $$4=$4))$(if $5,$(info $$5=$5))$(if $6,$(info $$6=$6))$(if $7,$(info $$7=$7))$(if \
+  $8,$(info $$8=$8))$(if $9,$(info $$9=$9))$(if $(10),$(info $$10=$(10)))$(if $(11),$(info $$11=$(11)))$(if 
+  $(12),$(info $$12=$(12)))$(if $(13),$(info $$13=$(13)))$(if $(14),$(info $$14=$(14)))$(if \
+  $(15),$(info $$15=$(15)))$(if $(16),$(info $$16=$(16)))$(if $(17),$(info $$17=$(17)))$(if \
+  $(18),$(info $$18=$(18)))$(if $(19),$(info $$19=$(19)))$(if $(20),$(info $$20=$(20)))$(info trace: }$$($0))
 
-# helper template for trace_calls...() functions
-# $1 - function name
-# $2 - number of args
-# $3 - names of variables to dump before traced call
+# helper template for $(trace_calls)
+# $1 - macro name
+# $2 - names of variables to dump before traced call
+# $3 - names of variables to dump after traced call
 define trace_calls_template
 $(empty)
-$1_traced_ = $(value $1)
-$1 = $(if $3,$$(call dump,$3))$$(trace$2)$$($1_traced_)
-ifndef CLEAN_BUILD_APPEND_PROTECTED_VARS
-CLEAN_BUILD_PROTECTED += $1_traced_
-else
-$$(call CLEAN_BUILD_APPEND_PROTECTED_VARS,$1_traced_)
-endif
+$1_traced_ := $(value $1)
+$1 = $$(info trace: $$$$($1){)$$(if $$1,$$(info $$$$1=$$1))$$(if $$2,$$(info $$$$2=$$2))$$(if $$3,$$(info $$$$3=$$3))$$(if \
+  $$4,$$(info $$$$4=$$4))$$(if $$5,$$(info $$$$5=$$5))$$(if $$6,$$(info $$$$6=$$6))$$(if $$7,$$(info $$$$7=$$7))$$(if \
+  $$8,$$(info $$$$8=$$8))$$(if $$9,$$(info $$$$9=$$9))$$(if $$(10),$$(info $$$$10=$$(10)))$$(if $$(11),$$(info $$$$11=$$(11)))$$(if 
+  $$(12),$$(info $$$$12=$$(12)))$$(if $$(13),$$(info $$$$13=$$(13)))$$(if $$(14),$$(info $$$$14=$$(14)))$$(if \
+  $$(15),$$(info $$$$15=$$(15)))$$(if $$(16),$$(info $$$$16=$$(16)))$$(if $$(17),$$(info $$$$17=$$(17)))$$(if \
+  $$(18),$$(info $$$$18=$$(18)))$$(if $$(19),$$(info $$$$19=$$(19)))$$(if $$(20),$$(info $$$$20=$$(20)))$$(info trace: }$$$$($1))$$(call \
+  dump,$2,pre $1)$$($1_traced_)$$(call dump,$3,post $1)
+$(call CLEAN_BUILD_REPLACE_PROTECTED_VARS1,$1)
+$(call CLEAN_BUILD_APPEND_PROTECTED_VARS1,$1_traced_)
 endef
 
-# replace function with its trace equivalent
-# $1 - function name
-# $2 - optional list of variables to dump before function call
+# replace macros with their trace equivalents
+# $1 - macro names
+# $2 - names of variables to dump before traced call
+# $3 - names of variables to dump after traced call
 trace_calls = $(eval $(foreach f,$1,$(call trace_calls_template,$f,$2)))
-trace_calls1 = $(eval $(foreach f,$1,$(call trace_calls_template,$f,1,$2)))
-trace_calls2 = $(eval $(foreach f,$1,$(call trace_calls_template,$f,2,$2)))
-trace_calls3 = $(eval $(foreach f,$1,$(call trace_calls_template,$f,3,$2)))
-trace_calls4 = $(eval $(foreach f,$1,$(call trace_calls_template,$f,4,$2)))
-trace_calls5 = $(eval $(foreach f,$1,$(call trace_calls_template,$f,5,$2)))
-trace_callsn = $(eval $(foreach f,$1,$(call trace_calls_template,$f,n,$2)))
 
 endif # TRACE
 
@@ -105,8 +96,8 @@ padto = $(call padto1,$(repl1))
 # call function $1 many times with arguments from list $2 groupped by $3 elements
 # and with auxiliary argument $4, separating function calls with $5
 xargs = $(call $1,$(wordlist 1,$3,$2),$4)$(if \
-         $(word $(words 1 $(wordlist 1,$3,$2)),$2),$5$(call \
-          xargs,$1,$(wordlist $(words 1 $(wordlist 1,$3,$2)),$(words $2),$2),$3,$4,$5))
+  $(word $(words 1 $(wordlist 1,$3,$2)),$2),$5$(call \
+  xargs,$1,$(wordlist $(words 1 $(wordlist 1,$3,$2)),$(words $2),$2),$3,$4,$5))
 
 # assuming that function $1($(sublist $2),$4) will return shell command
 # generate many shell commands separated by $(newline) - each command will be executed in new subshell
@@ -154,15 +145,10 @@ relpath = $(call relpath1,$(1:/=)/,$(2:/=)/)
 join_with = $(patsubst %$2,%,$(subst $(space),,$(foreach x,$1,$x$2)))
 
 # trace calls to next functions if TRACE defined
-$(call trace_calls2,qpath)
-$(call trace_calls4,xcmd)
-$(call trace_calls1,normp)
-$(call trace_calls2,relpath)
-$(call trace_calls2,join_with)
+$(call trace_calls,qpath xcmd normp relpath join_with)
 
 # protect variables from modification in target makefiles
 CLEAN_BUILD_PROTECTED += empty space tab comma newline \
-  TRACE dump trace trace1 trace2 trace3 trace4 trace5 tracen \
-  trace_calls_template trace_calls trace_calls1 trace_calls2 trace_calls3 trace_calls4 trace_calls5 trace_callsn \
+  TRACE dump trace trace_calls_template trace_calls \
   unspaces ifaddq qpath tolower toupper repl1 padto1 padto xargs xcmd trim normp2 normp1 normp \
   cmn_path1 cmn_path back_prefix relpath2 relpath1 relpath join_with

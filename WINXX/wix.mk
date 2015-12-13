@@ -1,19 +1,19 @@
-ifndef MAKE_WIX_INCLUDED
+ifndef WIX_MK_INCLUDED
 
 # this file normally included at beginning of target Makefile
 # used for building WIX (Windows Installer Xml) installer
-MAKE_WIX_INCLUDED := 1
+WIX_MK_INCLUDED := 1
 
 ifndef WIX
 $(error WIX is not defined, example: C:\Program Files (x86)\WiX Toolset v3.10\)
 endif
 
-# set MAKE_DEFS_INCLUDED_BY value - to avoid execution of $(DEF_HEAD_CODE) by included make_defs.mk,
+# set DEFS_MK_INCLUDED_BY value - to avoid execution of $(DEF_HEAD_CODE) by included $(MTOP)/defs.mk,
 # - $(DEF_HEAD_CODE) will be evaluated at end of this file
-MAKE_DEFS_INCLUDED_BY := make_wix.mk
-include $(MTOP)/make_defs.mk
+DEFS_MK_INCLUDED_BY := wix.mk
+include $(MTOP)/defs.mk
 
-# what we may build by including make_wix.mk (for ex. INSTALLER := my_installer)
+# what we may build by including $(MTOP)/wix.mk (for ex. INSTALLER := my_installer)
 BLD_WIX_TARGETS := MSI INSTALLER
 
 # remove unneeded quotes
@@ -48,7 +48,7 @@ MSI_LD = $(call SUP,LIGHT,$1)$(WIX_LIGHT) -nologo$(if $(VERBOSE), -v) $(call \
 INSTALLER_LD = $(MSI_LD)
 
 # define code to print debug info about built targets
-# note: GET_DEBUG_TARGETS - defined in $(MTOP)/make_defs.mk
+# note: GET_DEBUG_TARGETS - defined in $(MTOP)/defs.mk
 DEBUG_WIX_TARGETS := $(call GET_DEBUG_TARGETS,$(BLD_WIX_TARGETS),FORM_WIX_TRG)
 
 # make target filename, $1 - MSI,INSTALLER
@@ -123,11 +123,11 @@ endef
 MAKE_CONTINUE_WIX_EVAL = $(eval $(PREPARE_WIX_VARS)$(DEF_HEAD_CODE))
 
 # protect variables from modifications in target makefiles
-$(call CLEAN_BUILD_APPEND_PROTECTED_VARS,MAKE_WIX_INCLUDED WIX BLD_WIX_TARGETS WIX_CANDLE WIX_LIGHT WIX_EXTS_DIR \
+$(call CLEAN_BUILD_APPEND_PROTECTED_VARS,WIX_MK_INCLUDED WIX BLD_WIX_TARGETS WIX_CANDLE WIX_LIGHT WIX_EXTS_DIR \
   WIXOBJ_CL MSI_LD INSTALLER_LD DEBUG_WIX_TARGETS FORM_WIX_TRG WIX_OBJS TRG_WDEPS WIX_OBJ_RULE WIX_OBJ_RULES \
   WIX_TEMPLATE WIX_RULES1 WIX_RULES MSI_RULES INSTALLER_RULES DEFINE_WIX_TARGETS_EVAL PREPARE_WIX_VARS MAKE_CONTINUE_WIX_EVAL)
 
-endif # MAKE_WIX_INCLUDED
+endif # WIX_MK_INCLUDED
 
 # evaluate head code like in $(MAKE_CONTINUE)
 $(MAKE_CONTINUE_WIX_EVAL)

@@ -1,7 +1,19 @@
-ifndef MAKE_DEFS_INCLUDED
-# this file included by main $(MTOP)/make_c.mk or $(MTOP)/make_java.mk
+ifndef DEFS_MK_INCLUDED
+# this file included by main $(MTOP)/c.mk or $(MTOP)/java.mk
 # also this file may be included at beginning of target Makefile
-MAKE_DEFS_INCLUDED := 1
+DEFS_MK_INCLUDED := 1
+
+ifdef TRACE
+$(info $$(MTOP)/defs.mk: included by $(patsubst $(TOP)/%,$$(TOP)/%,$(patsubst \
+  $(MTOP)/%,$$(MTOP)/%,$(word $(words $(MAKEFILE_LIST)),unknown $(MAKEFILE_LIST)))))
+endif
+
+ifndef MTOP
+$(error MTOP is not defined, example: C:\clean-build,/usr/local/clean-build)
+endif
+
+# make MTOP nonrecursive (simple)
+MTOP := $(MTOP)
 
 # legend:
 # $< - name of the first prerequisite
@@ -24,27 +36,37 @@ NO_DEPS := 1
 endif
 
 # check values of TOP (and, if defined, XTOP) variables, include functions library
-include $(MTOP)/make_top.mk
-include $(MTOP)/make_functions.mk
+include $(MTOP)/top.mk
+include $(MTOP)/protection.mk
+include $(MTOP)/functions.mk
 
 # $(DEBUG) is non-empty for DEBUG targets like PROJECTD
 DEBUG := $(filter %D,$(TARGET))
 
-# project's $(TOP)/make/make_features.mk, if exists, should define something like:
+# $(TOP)/make/project.mk, if exists, should define something like:
 # SUPPORTED_OSES    := WINXX SOLARIS LINUX
 # SUPPORTED_CPUS    := x86 x86_64 sparc sparc64 armv5 mips24k ppc
 # SUPPORTED_TARGETS := PROJECT PROJECTD
-PROJECT_FEATURES ?= $(TOP)/make/make_features.mk
--include $(PROJECT_FEATURES)
+PROJECT ?= $(TOP)/make/project.mk
+
+# dump variables in TRACE mode
+$(call dump,MTOP TOP XTOP NO_DEPS DEBUG PROJECT)
+
+ifdef TRACE
+$(info $$(MTOP)/defs.mk: including if exists: $(PROJECT)
+endif
+
+# include project defs, if file exists
+-include $(PROJECT)
 
 ifndef SUPPORTED_OSES
-$(error SUPPORTED_OSES not defined, it may be defined in $(PROJECT_FEATURES:$(TOP)/%,$$(TOP)/%))
+$(error SUPPORTED_OSES not defined, it may be defined in $(PROJECT:$(TOP)/%,$$(TOP)/%))
 endif
 ifndef SUPPORTED_CPUS
-$(error SUPPORTED_CPUS not defined, it may be defined in $(PROJECT_FEATURES:$(TOP)/%,$$(TOP)/%))
+$(error SUPPORTED_CPUS not defined, it may be defined in $(PROJECT:$(TOP)/%,$$(TOP)/%))
 endif
 ifndef SUPPORTED_TARGETS
-$(error SUPPORTED_TARGETS not defined, it may be defined in $(PROJECT_FEATURES:$(TOP)/%,$$(TOP)/%))
+$(error SUPPORTED_TARGETS not defined, it may be defined in $(PROJECT:$(TOP)/%,$$(TOP)/%))
 endif
 
 # OS - operating system we are building for
@@ -117,6 +139,9 @@ ifeq ($(filter $(TARGET),$(SUPPORTED_TARGETS)),)
 $(error unknown TARGET=$(TARGET), please pick one of: $(SUPPORTED_TARGETS))
 endif
 
+# dump variables in TRACE mode
+$(call dump,SUPPORTED_OSES SUPPORTED_CPUS SUPPORTED_TARGETS OS BUILD_OS CPU UCPU KCPU TCPU TARGET)
+
 # run via $(MAKE) V=1 for verbose output
 ifeq ("$(origin V)","command line")
 VERBOSE := $V
@@ -132,92 +157,16 @@ ifeq ("$(origin D)","command line")
 MDEBUG := $D
 endif
 
-# run via $(MAKE) C=1 to check makefiles
-ifeq ("$(origin C)","command line")
-MCHECK := $C
-endif
-
 # 0 -> $(empty)
 VERBOSE := $(VERBOSE:0=)
 INFOMF := $(INFOMF:0=)
 MDEBUG := $(MDEBUG:0=)
-MCHECK := $(MCHECK:0=)
+
+# dump variables in TRACE mode
+$(call dump,VERBOSE INFOMF MDEBUG)
 
 # check that internal variables were not changed in target makefiles
 ifdef MCHECK
-
-# convert value of $1 to string
-CLEAN_BUILD_GET_PROTECTED_VALUE = $1@$(subst $$,$$$$,$(subst $(newline),$$(newline),$(subst \
-  $(tab),$$(tab),$(subst $(space),$$(space),$(value $1)))))
-
-# store values of clean-build protected variables which must not be changed in target makefiles
-# check and set CLEAN_BUILD_NEED_TAIL_CODE - $(DEF_TAIL_CODE) must be evaluated after $(DEF_HEAD_CODE)
-define CLEAN_BUILD_CHECK_AT_HEAD
-ifndef CLEAN_BUILD_SAVE_PROTECTED_VALUES
-CLEAN_BUILD_SAVE_PROTECTED_VALUES := $$(foreach x,$$(CLEAN_BUILD_PROTECTED_VARS),$$(call CLEAN_BUILD_GET_PROTECTED_VALUE,$$x))
-endif
-ifdef CLEAN_BUILD_NEED_TAIL_CODE
-$$(error $$$$(DEFINE_TARGETS) was not evaluated at end of $$(CLEAN_BUILD_NEED_TAIL_CODE)!)
-endif
-CLEAN_BUILD_NEED_TAIL_CODE := $(CURRENT_MAKEFILE)
-endef
-
-# replace $1 protected vars values
-# NOTE: if CLEAN_BUILD_SAVE_PROTECTED_VALUES is not defined yet - then $(DEF_HEAD_CODE) was never executed yet:
-# - when it will be executed, it will save initial values of protected vars, so nothing to do here
-# else - replace protected vars old values with current onces
-define CLEAN_BUILD_REPLACE_PROTECTED_VARS1
-ifdef CLEAN_BUILD_SAVE_PROTECTED_VALUES
-CLEAN_BUILD_SAVE_PROTECTED_VALUES := $$(filter-out $$(addsuffix @%,$1),$$(CLEAN_BUILD_SAVE_PROTECTED_VALUES)) $$(foreach \
-  x,$1,$$(call CLEAN_BUILD_GET_PROTECTED_VALUE,$$x))
-endif
-endef
-CLEAN_BUILD_REPLACE_PROTECTED_VARS = $(eval $(CLEAN_BUILD_REPLACE_PROTECTED_VARS1))
-
-# save $1 vars values - if not done this already
-# NOTE: if CLEAN_BUILD_SAVE_PROTECTED_VALUES is not defined yet - then $(DEF_HEAD_CODE) was never executed yet:
-# - when it will be executed, it will save values from given vars list $1, so it's not needed to do this here,
-# else - re-save value of $(CLEAN_BUILD_PROTECTED_VARS) after appending vars list $1 to it
-define CLEAN_BUILD_APPEND_PROTECTED_VARS1
-CLEAN_BUILD_PROTECTED_VARS += $1
-ifdef CLEAN_BUILD_SAVE_PROTECTED_VALUES
-CLEAN_BUILD_SAVE_PROTECTED_VALUES := $$(filter-out CLEAN_BUILD_PROTECTED_VARS@%,$$(CLEAN_BUILD_SAVE_PROTECTED_VALUES)) $$(foreach \
-  x,CLEAN_BUILD_PROTECTED_VARS $1,$$(call CLEAN_BUILD_GET_PROTECTED_VALUE,$$x))
-endif
-endef
-CLEAN_BUILD_APPEND_PROTECTED_VARS = $(eval $(CLEAN_BUILD_APPEND_PROTECTED_VARS1))
-
-# macro to check if clean-build protected $x variable value was changed in target makefile
-define CLEAN_BUILD_CHECK_PROTECTED_VAR
-ifneq ($$(filter $x@%,$$(CLEAN_BUILD_SAVE_PROTECTED_VALUES)),$$(call CLEAN_BUILD_GET_PROTECTED_VALUE,$x))
-ifeq ($(filter $x,$(CLEAN_BUILD_OVERRIDEN_VARS)),)
-$$(error $$$$($x) value was changed:$$(newline)old value:$$(newline)$$(filter \
-  $x@%,$$(CLEAN_BUILD_SAVE_PROTECTED_VALUES))$$(newline)new value:$$(newline)$$(call CLEAN_BUILD_GET_PROTECTED_VALUE,$x)$$(newline))
-endif
-endif
-$(empty)
-endef
-
-# check that values of protected vars were not changed
-# note: error suppressed if variable name is specified in $(CLEAN_BUILD_OVERRIDEN_VARS) list
-# note: $(CLEAN_BUILD_OVERRIDEN_VARS) list is cleared after checks
-# note: $(CLEAN_BUILD_NEED_TAIL_CODE) value is cleared after checks to mark that $(DEF_TAIL_CODE) was evaluated
-# note: normally, $(CLEAN_BUILD_NEED_TAIL_CODE) is checked at head of next included by $(MTOP)/make_parallel.mk target makefile,
-# but for the last included target makefile - need to check $(CLEAN_BUILD_NEED_TAIL_CODE) here
-# - $(MTOP)/make_parallel.mk call $(DEF_TAIL_CODE) with $1=@
-define CLEAN_BUILD_CHECK_AT_TAIL
-$(if $(filter @,$1),ifdef CLEAN_BUILD_NEED_TAIL_CODE$(newline)$$(error \
-  $$$$(DEFINE_TARGETS) was not evaluated at end of $$(CLEAN_BUILD_NEED_TAIL_CODE)!)$(newline)endif)
-ifneq (x$(space)x,x x)
-$$(error $$$$(space) value was changed)
-endif
-ifneq (x$(tab)x,x	x)
-$$(error $$$$(tab) value was changed)
-endif
-$(foreach x,$(CLEAN_BUILD_PROTECTED_VARS),$(CLEAN_BUILD_CHECK_PROTECTED_VAR))
-CLEAN_BUILD_OVERRIDEN_VARS:=
-CLEAN_BUILD_NEED_TAIL_CODE:=
-endef
 
 # check that $(CURRENT_MAKEFILE) is not already processed
 define CHECK_MAKEFILE_NOT_PROCESSED
@@ -232,14 +181,14 @@ endif # MCHECK
 # target-specific: MF, MCONT
 ifdef VERBOSE
 ifdef INFOMF
-SUP = $(info $(MF)$(MCONT):)
-else
+SUP ?= $(info $(MF)$(MCONT):)
+else ifndef SUP
 SUP:=
 endif
 else ifdef INFOMF
-SUP = @$(info $(MF)$(MCONT):$(COLORIZE))
+SUP ?= @$(info $(MF)$(MCONT):$(COLORIZE))
 else
-SUP = @$(info $(COLORIZE))
+SUP ?= @$(info $(COLORIZE))
 endif
 
 # print in color name of called tool $1
@@ -266,17 +215,24 @@ TOOL_IN_COLOR ?= $(subst |,,$(subst \
 # print in color short name of called tool $1 with argument $2
 COLORIZE = $(TOOL_IN_COLOR)$(padto)$2
 
+ifdef TRACE
+$(info $$(MTOP)/defs.mk: including: $$(MTOP)/$(BUILD_OS)/tools.mk)
+endif
+
 # define utilities of the OS we are building on
-include $(MTOP)/$(BUILD_OS)/make_tools.mk
+include $(MTOP)/$(BUILD_OS)/tools.mk
 
 # helper macro: convert multiline sed script $1 to multiple sed expressions - one expression for each script line
 SED_MULTI_EXPR = $(subst $$(space), ,$(foreach s,$(subst $(newline), ,$(subst $(space),$$(space),$1)),-e $(call SED_EXPR,$s)))
+$(call trace_calls,SED_MULTI_EXPR)
 
 # for UNIX: don't change paths when convertig from make internal file path to path accepted by $(BUILD_OS)
 ospath ?= $1
+$(call trace_calls,ospath)
 
 # for UNIX: absolute paths are started with /
 isrelpath ?= $(filter-out /%,$1)
+$(call trace_calls,isrelpath)
 
 # get absolute path to current makefile
 CURRENT_MAKEFILE := $(abspath $(subst \,/,$(firstword $(MAKEFILE_LIST))))
@@ -288,9 +244,7 @@ endif
 
 # make current makefile path relative to $(TOP)
 CURRENT_MAKEFILE := $(CURRENT_MAKEFILE:$(TOP)/%=%)
-
-# directory for built files - base for $(BIN_DIR), $(LIB_DIR), $(OBJ_DIR), etc...
-XTOP ?= $(TOP)
+$(call dump,CURRENT_MAKEFILE)
 
 # output directories:
 # bin - for executables, dlls, res
@@ -303,6 +257,7 @@ DEF_BIN_DIR := $(XTOP)/bin/$(OS)-$(KCPU)-$(UCPU)-$(TARGET)
 DEF_OBJ_DIR := $(XTOP)/obj/$(OS)-$(KCPU)-$(UCPU)-$(TARGET)
 DEF_LIB_DIR := $(XTOP)/lib/$(OS)-$(KCPU)-$(UCPU)-$(TARGET)
 DEF_GEN_DIR := $(XTOP)/gen/$(OS)-$(KCPU)-$(UCPU)-$(TARGET)
+$(call dump,DEF_BIN_DIR DEF_OBJ_DIR DEF_LIB_DIR DEF_GEN_DIR)
 
 # restore default dirs after tool mode
 define SET_DEFAULT_DIRS1
@@ -311,14 +266,15 @@ OBJ_DIR := $(DEF_OBJ_DIR)
 LIB_DIR := $(DEF_LIB_DIR)
 GEN_DIR := $(DEF_GEN_DIR)
 $(call CLEAN_BUILD_REPLACE_PROTECTED_VARS1,BIN_DIR OBJ_DIR LIB_DIR GEN_DIR)
+$(if $(TRACE),$$(call dump,BIN_DIR OBJ_DIR LIB_DIR GEN_DIR))
 endef
 SET_DEFAULT_DIRS := $(SET_DEFAULT_DIRS1)
 
-# $(PROJECT_FEATURES) makefile may forward-reference some of default dirs,
-# ensure they are defined when we will use defs from $(PROJECT_FEATURES)
+# $(PROJECT) makefile may forward-reference some of default dirs,
+# ensure they are defined when we will use defs from $(PROJECT)
 $(eval $(SET_DEFAULT_DIRS))
 
-# needed directories - we will create them in $(MTOP)/make_all.mk
+# needed directories - we will create them in $(MTOP)/all.mk
 # note: NEEDED_DIRS is never cleared, only appended
 NEEDED_DIRS:=
 
@@ -331,21 +287,27 @@ endif
 
 # where tools are built, $1 - TOOL_BASE, $2 - TCPU
 MK_TOOLS_DIR = $1/TOOL-$2-$(TARGET)/bin
+$(call trace_calls,MK_TOOLS_DIR,TARGET)
 
 # call with $1 - TOOL_BASE, $2 - TCPU, $3 - tool name(s) to get paths to the tools executables
 GET_TOOLS = $(addsuffix $(TOOL_SUFFIX),$(addprefix $(MK_TOOLS_DIR)/,$3))
+$(call trace_calls,GET_TOOLS,TOOL_SUFFIX)
 
 # get path to a tool $1 for current $(TOOL_BASE) and $(TCPU)
 GET_TOOL = $(call GET_TOOLS,$(TOOL_BASE),$(TCPU),$1)
+$(call trace_calls,GET_TOOL,TOOL_BASE TCPU)
 
 # override dirs in tool mode (when TOOL_MODE has non-empty value)
 TOOLS_DIR := $(TOOL_BASE)/TOOL-$(TCPU)-$(TARGET)
+$(call dump,TOOL_BASE TOOLS_DIR)
+
 define TOOL_OVERRIDE_DIRS1
 BIN_DIR := $(TOOLS_DIR)/bin
 OBJ_DIR := $(TOOLS_DIR)/obj
 LIB_DIR := $(TOOLS_DIR)/lib
 GEN_DIR := $(TOOLS_DIR)/gen
 $(call CLEAN_BUILD_REPLACE_PROTECTED_VARS1,BIN_DIR OBJ_DIR LIB_DIR GEN_DIR)
+$(if $(TRACE),$$(call dump,BIN_DIR OBJ_DIR LIB_DIR GEN_DIR))
 endef
 TOOL_OVERRIDE_DIRS := $(TOOL_OVERRIDE_DIRS1)
 
@@ -354,12 +316,12 @@ TOOL_OVERRIDE_DIRS := $(TOOL_OVERRIDE_DIRS1)
 ORDER_DEPS:=
 
 # code for adding $(MDEPS) - list of makefiles that need to be maked before target makefile to $(ORDER_DEPS),
-# overwritten in $(MTOP)/make_parallel.mk
+# overwritten in $(MTOP)/parallel.mk
 FIX_ORDER_DEPS:=
 
 # standard target-specific variables
 # $1       - target file(s) to build (absolute path)
-# $2       - directory of target file(s) (absolute path)
+# $2       - directories of target file(s) (absolute path)
 # $(MF)    - name of makefile which specifies how to build the target (path relative to $(TOP))
 # $(MCONT) - number of section in makefile after a call of $(MAKE_CONTINUE)
 # $(TMD)   - T if target is built in TOOL_MODE
@@ -375,32 +337,39 @@ $1: | $2 $$(ORDER_DEPS)
 $(CURRENT_MAKEFILE)-: $1
 NEEDED_DIRS += $2
 CLEAN += $1
+$$(call dump,ORDER_DEPS NEEDED_DIRS CLEAN)
 endef
+$(call trace_calls,STD_TARGET_VARS1,FIX_ORDER_DEPS CURRENT_MAKEFILE MAKE_CONT CB_TOOL_MODE)
 
 # standard target-specific variables
 # $1 - generated file(s) (absolute paths)
 STD_TARGET_VARS = $(call STD_TARGET_VARS1,$1,$(patsubst %/,%,$(sort $(dir $1))))
+$(call trace_calls,STD_TARGET_VARS)
 
 # compute values of next variables right after +=, not at call time:
 # CLEAN          - files/directories list to delete on $(MAKE) clean
-# CLEAN_COMMANDS - code to $(eval) to get clean commands to execute on $(MAKE) clean - see $(MTOP)/make_all.mk
+# CLEAN_COMMANDS - code to $(eval) to get clean commands to execute on $(MAKE) clean - see $(MTOP)/all.mk
 # note: CLEAN is never cleared, only appended
 CLEAN:=
 CLEAN_COMMANDS:=
 
 # get VPREFIX - relative path from $(CURDIR) to directory of makefile $1 (which is related to $(TOP))
 GET_VPREFIX = $(call relpath,$(CURDIR),$(dir $(TOP)/$1))
+$(call trace_calls,GET_VPREFIX,CURDIR TOP)
 
 # $(VPREFIX) - relative path from $(CURDIR) to directory of currently processing makefile, either empty or dir/
-# note: VPREFIX value is changed by $(MTOP)/make_parallel.mk
+# note: VPREFIX value is changed by $(MTOP)/parallel.mk
 VPREFIX := $(call GET_VPREFIX,$(CURRENT_MAKEFILE))
+$(call dump,VPREFIX)
 
 # add $(VPREFIX) (path to directory of currently executing makefile relative to $(CURDIR)) value to non-absolute paths
 ADDVPREFIX = $(foreach x,$1,$(if $(call isrelpath,$x),$(VPREFIX))$x)
+$(call trace_calls,ADDVPREFIX,VPREFIX)
 
 # add $(VPREFIX) (path to directory of currently executing makefile relative to $(CURDIR)) value to non-absolute paths
 # then make absolute paths - we need absolute paths to sources to apply generated dependencies in .d files
 FIXPATH = $(abspath $(ADDVPREFIX))
+$(call trace_calls,FIXPATH)
 
 # list of all processed makefiles names
 # note: PROCESSED_MAKEFILES is never cleared, only appended
@@ -408,16 +377,19 @@ FIXPATH = $(abspath $(ADDVPREFIX))
 PROCESSED_MAKEFILES:=
 
 ifdef MDEBUG
+
 # convert list "make1 make2 make3" -> "..."
 # $1 - $(CB_INCLUDE_LEVEL)
 MAKEFILES_LEVEL = $(subst . ,.,$(foreach x,$1,.))
+
 # show which makefile is expanded now
-# note: show debug info only if $1 does not contains @ (used by $(MTOP)/make_parallel.mk)
+# note: show debug info only if $1 does not contains @ (used by $(MTOP)/parallel.mk)
 define DEF_TAIL_CODE_DEBUG
 ifeq ($(filter @,$1),)
 $$(info $(call MAKEFILES_LEVEL,$(CB_INCLUDE_LEVEL))$(CURRENT_MAKEFILE)$(if $(ORDER_DEPS), | $(ORDER_DEPS:-=)))
 endif
 endef
+
 endif # MDEBUG
 
 # code to $(eval) at beginning of each makefile
@@ -428,8 +400,8 @@ endif # MDEBUG
 #  - so we know if $(DEF_HEAD_CODE) was expanded from $(MAKE_CONTINUE) - remove 2 from $(MAKE_CONT) in this case
 #  - if $(DEF_HEAD_CODE) was expanded not from $(MAKE_CONTINUE) - no 2 in $(MAKE_CONT) - reset $(MAKE_CONT)
 # NOTE: set CB_TOOL_MODE to remember that we are in TOOL_MODE - for $(MAKE_CONTINUE)
-# NOTE: $(MTOP)/make_defs.mk may be included before $(MTOP)/make_parallel.mk,
-#  to not execute $(DEF_HEAD_CODE) second time in $(MTOP)/make_parallel.mk, define DEF_HEAD_CODE_PROCESSED variable
+# NOTE: $(MTOP)/defs.mk may be included before $(MTOP)/parallel.mk,
+#  to not execute $(DEF_HEAD_CODE) second time in $(MTOP)/parallel.mk, define DEF_HEAD_CODE_PROCESSED variable
 # NOTE: add $(empty) as first line of $(DEF_HEAD_CODE) - to allow to join it and eval: $(eval $(MY_CODE)$(DEF_HEAD_CODE))
 define DEF_HEAD_CODE
 $(empty)
@@ -449,26 +421,33 @@ $(SET_DEFAULT_DIRS)
 endif
 DEF_HEAD_CODE_PROCESSED := 1
 endef
+$(call trace_calls,DEF_HEAD_CODE,MAKE_CONT PROCESSED_MAKEFILES CURRENT_MAKEFILE TOOL_MODE)
 
 # expand this macro to evaluate default head code
 # note: by default it expanded at start of next $(MAKE_CONTINUE) round
 DEF_HEAD_CODE_EVAL = $(eval $(DEF_HEAD_CODE))
+$(call trace_calls,DEF_HEAD_CODE_EVAL,,MAKE_CONT PROCESSED_MAKEFILES CB_TOOL_MODE DEF_HEAD_CODE_PROCESSED)
 
 # code to $(eval) at end of each makefile
-# include $(MTOP)/make_all.mk only if $(CB_INCLUDE_LEVEL) is empty and will not call $(MAKE_CONTINUE)
+# include $(MTOP)/all.mk only if $(CB_INCLUDE_LEVEL) is empty and will not call $(MAKE_CONTINUE)
 # if called from $(MAKE_CONTINUE), $1 - list of vars to save (may be empty)
 # note: $(MAKE_CONTINUE) before expanding $(DEF_TAIL_CODE) adds 2 to $(MAKE_CONT) list
-# note: $(MTOP)/make_parallel.mk executes $(eval $(call DEF_TAIL_CODE,@)) to not show debug info second time in $(DEF_TAIL_CODE_DEBUG)
+# note: $(MTOP)/parallel.mk executes $(eval $(call DEF_TAIL_CODE,@)) to not show debug info second time in $(DEF_TAIL_CODE_DEBUG)
 define DEF_TAIL_CODE
 $(CLEAN_BUILD_CHECK_AT_TAIL)
 $(DEF_TAIL_CODE_DEBUG)
 ifeq ($(CB_INCLUDE_LEVEL)$(filter 2,$(MAKE_CONT)),)
-include $(MTOP)/make_all.mk
+ifdef TRACE
+$(info $$(MTOP)/defs.mk: including: $$(MTOP)/all.mk)
+endif
+include $(MTOP)/all.mk
 endif
 endef
+$(call trace_calls,DEF_TAIL_CODE,CB_INCLUDE_LEVEL MAKE_CONT)
 
 # expand this macro to evaluate default tail code
 DEF_TAIL_CODE_EVAL = $(eval $(DEF_TAIL_CODE))
+$(call trace_calls,DEF_TAIL_CODE_EVAL)
 
 # get target variants list or default variant R
 # $1 - EXE,LIB,...
@@ -476,10 +455,12 @@ DEF_TAIL_CODE_EVAL = $(eval $(DEF_TAIL_CODE))
 # NOTE: add R to filter pattern to not filter-out default variant R
 # NOTE: if filter gives no variants, return default variant R (regular)
 GET_VARIANTS = $(patsubst ,R,$(filter R $(call $2,$1),$(wordlist 2,999999,$($1))))
+$(call trace_calls,GET_VARIANTS)
 
 # get target name - firstword, next words - variants
 # $1 - EXE,LIB,...
 GET_TARGET_NAME = $(firstword $($1))
+$(call trace_calls,GET_TARGET_NAME)
 
 # code to print targets which makefile is required to build
 # $1 - targets to build (EXE,LIB,DLL,...)
@@ -500,6 +481,7 @@ endif # MDEBUG
 # $2 - target variant (may be empty for default variant)
 # add target-specific suffix(_EXE,_LIB,_DLL,...) to distinguish objects for the targets with equal names
 FORM_OBJ_DIR = $(OBJ_DIR)/$(GET_TARGET_NAME)$(if $(filter-out R,$2),_$2)_$1
+$(call trace_calls,FORM_OBJ_DIR,OBJ_DIR)
 
 # check that files $1 are generated in $(GEN_DIR), $(BIN_DIR), $(OBJ_DIR) or $(LIB_DIR)
 ifdef MCHECK
@@ -515,6 +497,7 @@ endif # MCHECK
 # note: files must be generated in $(GEN_DIR)
 # note: directories for generated files will be auto-created
 ADD_GENERATED = $(eval $(CHECK_GENERATED)$(newline)$(STD_TARGET_VARS))
+$(call trace_calls,ADD_GENERATED)
 
 # processed multi-target rules
 # note: MULTI_TARGETS is never cleared, only appended
@@ -539,10 +522,13 @@ $1: $(call FIXPATH,$2)
   $$(newline),$$$$(newline),$3$(foreach x,$1,$$(newline)$$(call SUP,TOUCH,$x)$$(call TOUCH,$x)))))
 MULTI_TARGET_NUM += 1
 endef
+$(call trace_calls,MULTI_TARGET_RULE,MULTI_TARGET_NUM)
 
 # make chain of dependency of multi-targets on each other: 2:1, 3:2, 4:3, ...
 # $1 - list of generated files (absolute paths)
-MULTI_TARGET_SEQ = $(if $(word 2,$1),$(word 2,$1): $(firstword $1)$(newline)$(call MULTI_TARGET_SEQ,$(wordlist 2,999999,$1)))
+MULTI_TARGET_SEQ1 = $(if $(word 2,$1),$(word 2,$1): $(firstword $1)$(newline)$(call MULTI_TARGET_SEQ1,$(wordlist 2,999999,$1)))
+MULTI_TARGET_SEQ = $(MULTI_TARGET_SEQ1)
+$(call trace_calls,MULTI_TARGET_SEQ)
 
 # NOTE: must not use $@ in rule because it may have different values (any target from multi-targets list),
 #       must not use $(lastword $^) - tail of list of prerequisites may have different values (becase of different $@)
@@ -561,27 +547,32 @@ endif
 # $3 - rule
 # note: directories for generated files will be auto-created
 MULTI_TARGET = $(MULTI_TARGET_CHECK)$(eval $(MULTI_TARGET_SEQ)$(MULTI_TARGET_RULE))
+$(call trace_calls,MULTI_TARGET,,MULTI_TARGET_NUM)
 
 # $(DEFINE_TARGETS_EVAL_NAME) - contains name of macro that when expanded
 # evaluates code to define targes (at least, by evaluating $(DEF_TAIL_CODE))
 DEFINE_TARGETS_EVAL_NAME := DEF_TAIL_CODE_EVAL
+$(call dump,DEFINE_TARGETS_EVAL_NAME)
 
 # define targets at end of makefile
 # evaluate code in $($(DEFINE_TARGETS_EVAL_NAME)) only once, then reset DEFINE_TARGETS_EVAL to DEF_TAIL_CODE_EVAL
 # note: surround $($(DEFINE_TARGETS_EVAL_NAME)) with fake $(if ...) to suppress any text output
 # - $(DEFINE_TARGETS) must not expand to any text - to allow calling it via just $(DEFINE_TARGETS) in target makefile
 DEFINE_TARGETS = $(if $($(DEFINE_TARGETS_EVAL_NAME))$(eval DEFINE_TARGETS_EVAL_NAME:=DEF_TAIL_CODE_EVAL),)
+$(call trace_calls,DEFINE_TARGETS,DEFINE_TARGETS_EVAL_NAME,DEFINE_TARGETS_EVAL_NAME MAKE_CONTINUE_EVAL_NAME)
 
 # may be used to save vars before $(MAKE_CONTINUE) and restore after
 SAVE_VARS = $(eval $(foreach v,$1,$(newline)$v_:=$($v)))
 RESTORE_VARS = $(eval $(foreach v,$1,$(newline)$v:=$($v_)))
+$(call trace_calls,SAVE_VARS RESTORE_VARS)
 
 # $(MAKE_CONTINUE_EVAL_NAME) - contains name of macro that when expanded evaluates code to prepare (at least, by evaluating $(DEF_HEAD_CODE))
 MAKE_CONTINUE_EVAL_NAME := DEF_HEAD_CODE_EVAL
+$(call dump,MAKE_CONTINUE_EVAL_NAME)
 
 # increment MAKE_CONT, eval tail code with $(DEFINE_TARGETS)
-# and start next circle - simulate including of appropriate $(MTOP)/make_c.mk or $(MTOP)/make_java.mk
-# by evaluating head-code $($(MAKE_CONTINUE_EVAL_NAME)) - which must be initally set in $(MTOP)/make_c.mk or $(MTOP)/make_java.mk
+# and start next circle - simulate including of appropriate $(MTOP)/c.mk or $(MTOP)/java.mk
+# by evaluating head-code $($(MAKE_CONTINUE_EVAL_NAME)) - which must be initally set in $(MTOP)/c.mk or $(MTOP)/java.mk
 # NOTE: evaluated code in $($(MAKE_CONTINUE_EVAL_NAME)) must re-define MAKE_CONTINUE_EVAL_NAME,
 # because $(MAKE_CONTINUE) resets it to DEF_HEAD_CODE_EVAL
 # NOTE: TOOL_MODE value may be changed in target makefile before $(MAKE_CONTINUE)
@@ -591,9 +582,10 @@ $(DEFINE_TARGETS)
 $(eval MAKE_CONTINUE_EVAL:=$(MAKE_CONTINUE_EVAL_NAME)$(newline)MAKE_CONTINUE_EVAL_NAME:=DEF_HEAD_CODE_EVAL)
 $($(MAKE_CONTINUE_EVAL))
 endef
+$(call trace_calls,MAKE_CONTINUE_BODY_EVAL,MAKE_CONT,MAKE_CONT MAKE_CONTINUE_EVAL MAKE_CONTINUE_EVAL_NAME)
 
 # how to join two or more makefiles in one makefile:
-# include $(MTOP)/make_c.mk
+# include $(MTOP)/c.mk
 # LIB = xxx1
 # SRC = xxx.c
 # $(MAKE_CONTINUE)
@@ -605,42 +597,39 @@ endef
 # note: surround $(MAKE_CONTINUE) with fake $(if...) to suppress any text output
 # - to be able to call it with just $(MAKE_CONTINUE) in target makefile
 MAKE_CONTINUE = $(if $(if $1,$(SAVE_VARS))$(MAKE_CONTINUE_BODY_EVAL)$(if $1,$(RESTORE_VARS)),)
+$(call trace_calls,MAKE_CONTINUE)
 
 # helper macro: make DEPS list
 # example: $(call FORM_DEPS,src1 src2,dep1 dep2 dep3) -> src1 dep1|dep2|dep3 src2 dep1|dep2|dep3
 FORM_DEPS = $(addsuffix $(space)$(call join_with,$2,|),$1)
-
-# trace function call if TRACE defined
-$(call trace_calls2,FORM_DEPS)
+$(call trace_calls,FORM_DEPS)
 
 # get dependencies for source files
 # $1 - source files, $2 - deps list of pairs: <source file> <dependency1>|<dependency2>|...
-EXTRACT_DEPS = $(subst |, ,$(if $2,$(if $(filter $1,$(firstword $2)),$(word 2,$2) )$(call EXTRACT_DEPS,$1,$(wordlist 3,999999,$2))))
+EXTRACT_DEPS1 = $(subst |, ,$(if $2,$(if $(filter $1,$(firstword $2)),$(word 2,$2) )$(call EXTRACT_DEPS1,$1,$(wordlist 3,999999,$2))))
+EXTRACT_DEPS = $(EXTRACT_DEPS1)
+$(call trace_calls,EXTRACT_DEPS)
 
 # protect variables from modifications in target makefiles
-CLEAN_BUILD_PROTECTED_VARS += CLEAN_BUILD_PROTECTED_VARS MAKE_DEFS_INCLUDED MAKEFLAGS NO_DEPS DEBUG PROJECT_FEATURES \
+CLEAN_BUILD_PROTECTED_VARS += DEFS_MK_INCLUDED MTOP MAKEFLAGS NO_DEPS DEBUG PROJECT \
   SUPPORTED_OSES SUPPORTED_CPUS SUPPORTED_TARGETS OS BUILD_OS CPU UCPU KCPU TCPU TARGET \
-  VERBOSE INFOMF MDEBUG MCHECK CLEAN_BUILD_GET_PROTECTED_VALUE CLEAN_BUILD_CHECK_AT_HEAD \
-  CLEAN_BUILD_REPLACE_PROTECTED_VARS1 CLEAN_BUILD_REPLACE_PROTECTED_VARS \
-  CLEAN_BUILD_APPEND_PROTECTED_VARS1 CLEAN_BUILD_APPEND_PROTECTED_VARS \
-  CLEAN_BUILD_CHECK_PROTECTED_VAR CLEAN_BUILD_CHECK_AT_TAIL CHECK_MAKEFILE_NOT_PROCESSED \
+  VERBOSE INFOMF MDEBUG CHECK_MAKEFILE_NOT_PROCESSED \
   SUP TOOL_IN_COLOR COLORIZE SED_MULTI_EXPR ospath isrelpath \
-  DEF_BIN_DIR DEF_OBJ_DIR DEF_LIB_DIR DEF_GEN_DIR SET_DEFAULT_DIRS \
-  BIN_DIR OBJ_DIR LIB_DIR GEN_DIR \
+  DEF_BIN_DIR DEF_OBJ_DIR DEF_LIB_DIR DEF_GEN_DIR SET_DEFAULT_DIRS BIN_DIR OBJ_DIR LIB_DIR GEN_DIR \
   TOOL_BASE MK_TOOLS_DIR GET_TOOLS GET_TOOL TOOLS_DIR TOOL_OVERRIDE_DIRS \
   FIX_ORDER_DEPS STD_TARGET_VARS1 STD_TARGET_VARS GET_VPREFIX ADDVPREFIX FIXPATH MAKEFILES_LEVEL \
   DEF_TAIL_CODE_DEBUG DEF_HEAD_CODE DEF_HEAD_CODE_EVAL DEF_TAIL_CODE DEF_TAIL_CODE_EVAL \
-  GET_VARIANTS GET_TARGET_NAME DEBUG_TARGETS1 GET_DEBUG_TARGETS \
-  FORM_OBJ_DIR CHECK_GENERATED ADD_GENERATED MULTI_TARGET_RULE MULTI_TARGET_SEQ MULTI_TARGET_CHECK MULTI_TARGET \
-  DEFINE_TARGETS SAVE_VARS RESTORE_VARS MAKE_CONTINUE_BODY_EVAL MAKE_CONTINUE FORM_DEPS EXTRACT_DEPS
+  GET_VARIANTS GET_TARGET_NAME DEBUG_TARGETS1 GET_DEBUG_TARGETS FORM_OBJ_DIR \
+  CHECK_GENERATED ADD_GENERATED MULTI_TARGET_RULE MULTI_TARGET_SEQ1 MULTI_TARGET_SEQ MULTI_TARGET_CHECK MULTI_TARGET \
+  DEFINE_TARGETS SAVE_VARS RESTORE_VARS MAKE_CONTINUE_BODY_EVAL MAKE_CONTINUE FORM_DEPS EXTRACT_DEPS1 EXTRACT_DEPS
 
-endif # MAKE_DEFS_INCLUDED
+endif # DEFS_MK_INCLUDED
 
-ifndef MAKE_DEFS_INCLUDED_BY
-# if $(MTOP)/make_defs.mk is the first one included file in target Makefile,
+ifndef DEFS_MK_INCLUDED_BY
+# if $(MTOP)/defs.mk is the first one included file in target Makefile,
 # define bin/lib/obj/... dirs
 $(eval $(DEF_HEAD_CODE))
 else
-# apply protection from $(DEF_HEAD_CODE) evaluation only once - reset MAKE_DEFS_INCLUDED_BY
-MAKE_DEFS_INCLUDED_BY:=
+# apply protection from $(DEF_HEAD_CODE) evaluation only once - reset DEFS_MK_INCLUDED_BY
+DEFS_MK_INCLUDED_BY:=
 endif

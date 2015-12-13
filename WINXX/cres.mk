@@ -1,4 +1,4 @@
-# this file included by $(MTOP)/WINXX/make_c.mk
+# this file included by $(MTOP)/WINXX/c.mk
 
 # FILEOS in $(STD_VERSION_RC_TEMPLATE), $1 - EXE,DLL,DRV
 RC_OS ?= VOS_NT
@@ -18,7 +18,7 @@ RC_FST ?= $(if $(filter DRV,$1),VFT2_DRV_SYSTEM,0L)
 WIN_RC_PRODUCT_DEFS_HEADER ?= $(GEN_DIR)/$(PRODUCT_NAMES_H)
 
 # names of constants in $(WIN_RC_PRODUCT_DEFS_HEADER) used in standard resource template
-# may be already defined in $(TOP)/make/make_features.mk
+# may be already defined in $(TOP)/make/project.mk
 WIN_RC_PRODUCT_VERSION_MAJOR ?= PRODUCT_VERSION_MAJOR
 WIN_RC_PRODUCT_VERSION_MINOR ?= PRODUCT_VERSION_MINOR
 WIN_RC_PRODUCT_BUILD_NUM     ?= PRODUCT_BUILD_NUM
@@ -37,7 +37,7 @@ WIN_RC_PRODUCT_VERSION       ?= PRODUCT_VERSION
 # $8 - $(WIN_RC_VENDOR_COPYRIGHT)
 # $9 - $(WIN_RC_PRODUCT_NAME)
 # $(10) - $(WIN_RC_PRODUCT_VERSION)
-# note: STD_VERSION_RC_TEMPLATE may be already defined in $(TOP)/make/make_features.mk
+# note: STD_VERSION_RC_TEMPLATE may be already defined in $(TOP)/make/project.mk
 ifndef STD_VERSION_RC_TEMPLATE
 define STD_VERSION_RC_TEMPLATE
 #include <winver.h>
