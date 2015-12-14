@@ -8,9 +8,6 @@ GET_DIR = $(patsubst %/,%,$(patsubst ./%,%,$(filter %/,$(dir $1))))
 SPLIT_DIRS = $(if $1,$1 $(call SPLIT_DIRS,$(GET_DIR)))
 NEEDED_DIRS := $(sort $(call SPLIT_DIRS,$(NEEDED_DIRS:$(XTOP)/%=%)))
 
-# dump variables in TRACE mode
-$(call dump,NEEDED_DIRS PROCESSED_MAKEFILES CLEAN CLEAN_COMMANDS ORDER_DEPS)
-
 # define order-only dependencies for directories
 $(eval $(foreach x,$(NEEDED_DIRS),$(addprefix $(newline)$(XTOP)/$x:| $(XTOP)/,$(call GET_DIR,$x))))
 
