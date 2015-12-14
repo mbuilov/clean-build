@@ -11,14 +11,8 @@ ifndef NORM_MAKEFILES
 NORM_MAKEFILES = $(patsubst $(TOP)/%,%$2,$(abspath $(foreach \
   x,$1,$(if $(call isrelpath,$x),$(VPREFIX))$x$(if $(filter-out %.mk %/Makefile Makefile,$x),/Makefile))))
 
-# trace function call if TRACE defined
-$(call trace_calls2,NORM_MAKEFILES,VPREFIX)
-
 # overwrite code for adding $(MDEPS) - list of makefiles that need to be maked before target makefile - to $(ORDER_DEPS)
 FIX_ORDER_DEPS := ORDER_DEPS := $$(strip $$(ORDER_DEPS) $$(call NORM_MAKEFILES,$$(MDEPS),-))$(newline)MDEPS:=
-
-# dump in TRACE mode that FIX_ORDER_DEPS was changed
-$(call dump,FIX_ORDER_DEPS,$$(MTOP)/parallel.mk)
 
 # don't complain about changed FIX_ORDER_DEPS value
 $(call CLEAN_BUILD_REPLACE_PROTECTED_VARS,FIX_ORDER_DEPS)
@@ -32,13 +26,11 @@ VPREFIX := $(call GET_VPREFIX,$m)
 CURRENT_MAKEFILE := $m
 ORDER_DEPS := $(ORDER_DEPS)
 TOOL_MODE := $(TOOL_MODE)
-$$(call dump,VPREFIX CURRENT_MAKEFILE ORDER_DEPS TOOL_MODE,$$$$(MTOP)/parallel.mk)
 include $(TOP)/$m
 endef
 
 # note: $(TO_MAKE) - list of $(TOP)-related makefiles to include
 CB_INCLUDE_TEMPLATE = $(foreach m,$(TO_MAKE),$(CB_INCLUDE_TEMPLATE1))
-$(call trace_calls,CB_INCLUDE_TEMPLATE,TO_MAKE)
 
 # protect variables from modifications in target makefiles
 $(call CLEAN_BUILD_APPEND_PROTECTED_VARS,NORM_MAKEFILES CB_INCLUDE_TEMPLATE1 CB_INCLUDE_TEMPLATE)
@@ -57,7 +49,6 @@ DEF_HEAD_CODE_PROCESSED:=
 # add $(TOP)-related list of makefiles that need to be maked before current makefile - to $(ORDER_DEPS)
 # - list of order-only dependencies of targets of current makefile
 ORDER_DEPS := $(strip $(ORDER_DEPS) $(call NORM_MAKEFILES,$(MDEPS),-))
-$(call dump,ORDER_DEPS MDEPS,$$(MTOP)/parallel.mk)
 
 # reset $(MDEPS) - next included makefile may have it's own dependencies
 MDEPS:=
@@ -72,7 +63,6 @@ endif
 
 # make $(TOP)-related list of makefiles to include
 TO_MAKE := $(call NORM_MAKEFILES,$(TO_MAKE))
-$(call dump,TO_MAKE)
 
 # $(CURRENT_MAKEFILE) is built if all $(TO_MAKE) makefiles are built
 # note: $(CURRENT_MAKEFILE)- and other order-dependent makefile names - are .PHONY targets,
