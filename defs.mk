@@ -41,7 +41,9 @@ include $(MTOP)/protection.mk
 include $(MTOP)/functions.mk
 
 # $(DEBUG) is non-empty for DEBUG targets like PROJECTD
-DEBUG := $(filter %D,$(TARGET))
+# note: for now, DEBUG is recursive - TARGET may be defined in $(PROJECT)
+# note: later DEBUG will be defined as non-recursive
+DEBUG = $(filter %D,$(TARGET))
 
 # $(TOP)/make/project.mk, if exists, should define something like:
 # SUPPORTED_OSES    := WINXX SOLARIS LINUX
@@ -49,11 +51,14 @@ DEBUG := $(filter %D,$(TARGET))
 # SUPPORTED_TARGETS := PROJECT PROJECTD
 PROJECT ?= $(TOP)/make/project.mk
 
+# note: make PROJECT non-recursive (simple)
+PROJECT := $(PROJECT)
+
 # dump variables in TRACE mode
-$(call dump,MTOP TOP XTOP NO_DEPS DEBUG PROJECT)
+$(call dump,MTOP TOP XTOP NO_DEPS PROJECT)
 
 ifdef TRACE
-$(info $$(MTOP)/defs.mk: including if exists: $(PROJECT)
+$(info $$(MTOP)/defs.mk: including if exists: $(PROJECT))
 endif
 
 # include project defs, if file exists
@@ -139,8 +144,18 @@ ifeq ($(filter $(TARGET),$(SUPPORTED_TARGETS)),)
 $(error unknown TARGET=$(TARGET), please pick one of: $(SUPPORTED_TARGETS))
 endif
 
+# fix variables - make them nonrecursive
+TARGET   := $(TARGET)
+DEBUG    := $(DEBUG)
+OS       := $(OS)
+BUILD_OS := $(BUILD_OS)
+CPU      := $(CPU)
+UCPU     := $(UCPU)
+KCPU     := $(KCPU)
+TCPU     := $(TCPU)
+
 # dump variables in TRACE mode
-$(call dump,SUPPORTED_OSES SUPPORTED_CPUS SUPPORTED_TARGETS OS BUILD_OS CPU UCPU KCPU TCPU TARGET)
+$(call dump,SUPPORTED_OSES SUPPORTED_CPUS SUPPORTED_TARGETS OS BUILD_OS CPU UCPU KCPU TCPU TARGET DEBUG)
 
 # run via $(MAKE) V=1 for verbose output
 ifeq ("$(origin V)","command line")
@@ -438,7 +453,7 @@ $(CLEAN_BUILD_CHECK_AT_TAIL)
 $(DEF_TAIL_CODE_DEBUG)
 ifeq ($(CB_INCLUDE_LEVEL)$(filter 2,$(MAKE_CONT)),)
 ifdef TRACE
-$(info $$(MTOP)/defs.mk: including: $$(MTOP)/all.mk)
+$$(info $$$$(MTOP)/defs.mk: including: $$$$(MTOP)/all.mk)
 endif
 include $(MTOP)/all.mk
 endif
