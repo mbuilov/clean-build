@@ -170,7 +170,7 @@ SOURCES = $(SRC) $($1_SRC) $(WITH_PCH) $($1_WITH_PCH)
 TRG_SRC = $(call FIXPATH,$(SOURCES))
 
 # make absolute paths for $(TRG_DEPS) - add $(VPREFIX) to relative paths, then normalize paths
-TRG_DEPS = $(subst | ,|,$(call FIXPATH,$(subst |,| ,$(SDEPS) $($1_SDEPS))))
+TRG_DEPS = $(call FIX_DEPS,$(SDEPS) $($1_SDEPS))
 
 # make absolute path to map/def file - add $(VPREFIX) if path is relative, then normalize path
 # $1 - DLL
