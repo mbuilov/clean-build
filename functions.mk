@@ -15,7 +15,7 @@ infofn = $(info $1: result: =>$(newline)$2)$2
 
 # dump variables from list $1, prefixing output with optional prefix $2, $3 - optional pre-prefix, example:
 # $(call dump,VAR1,pr) -> print 'dump: pr:VAR1=xxx => yyy'
-dump = $(foreach v,$1,$(info $3dump: $(addsuffix : ,$2)$v=$(value $v)$(if $(filter recursive,$(flavor $v)), =>$(newline)$($v))))
+dump = $(foreach v,$1,$(info $3dump: $(addsuffix : ,$2)$v$(if $(filter recursive,$(flavor $v)),,:)=$(value $v)))
 
 # trace function call parameters - print function name and parameter values
 # add $(trace_params) as the first statement of traced function body, for example: fun = $(trace_params)fn_body
