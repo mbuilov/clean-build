@@ -385,19 +385,11 @@ endif # MDEBUG
 define DEF_HEAD_CODE
 $(empty)
 $(CLEAN_BUILD_CHECK_AT_HEAD)
-ifeq ($(filter 2,$(MAKE_CONT)),)
-MAKE_CONT:=
-$(CHECK_MAKEFILE_NOT_PROCESSED)
-PROCESSED_MAKEFILES += $(CURRENT_MAKEFILE)-
-else
-MAKE_CONT := $(subst 2,1,$(MAKE_CONT))
-endif
+$(if $(filter 2,$(MAKE_CONT)),MAKE_CONT := $(subst 2,1,$(MAKE_CONT)),MAKE_CONT:=\
+  $(newline)$(CHECK_MAKEFILE_NOT_PROCESSED)\
+  $(newline)PROCESSED_MAKEFILES += $(CURRENT_MAKEFILE)-)
 CB_TOOL_MODE := $(if $(TOOL_MODE),T)
-ifdef CB_TOOL_MODE
-$(TOOL_OVERRIDE_DIRS)
-else
-$(SET_DEFAULT_DIRS)
-endif
+$(if $(TOOL_MODE),$(TOOL_OVERRIDE_DIRS),$(SET_DEFAULT_DIRS))
 DEF_HEAD_CODE_PROCESSED := 1
 endef
 
@@ -413,9 +405,7 @@ DEF_HEAD_CODE_EVAL = $(eval $(DEF_HEAD_CODE))
 define DEF_TAIL_CODE
 $(CLEAN_BUILD_CHECK_AT_TAIL)
 $(DEF_TAIL_CODE_DEBUG)
-ifeq ($(CB_INCLUDE_LEVEL)$(filter 2,$(MAKE_CONT)),)
-include $(MTOP)/all.mk
-endif
+$(if $(CB_INCLUDE_LEVEL)$(filter 2,$(MAKE_CONT)),,include $(MTOP)/all.mk)
 endef
 
 # expand this macro to evaluate default tail code
