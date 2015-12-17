@@ -279,5 +279,5 @@ $(foreach x,$(AUTOCONF_VARS),$(info $x=$($x)))
 endif
 
 # protect variables from modifications in target makefiles
-$(call CLEAN_BUILD_APPEND_PROTECTED_VARS,VAUTO OSVARIANTS WINVER_DEFINES \
+$(call CLEAN_BUILD_PROTECT_VARS,VAUTO OSVARIANTS WINVER_DEFINES \
   SUBSYSTEM_VER AUTOCONF_VARS $(AUTOCONF_VARS) normpath VS SDK DDK WDK)

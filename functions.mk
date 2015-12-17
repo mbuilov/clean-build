@@ -48,8 +48,7 @@ $1 = $$(info begin: $$$$($1) {)$$(if $$1,$$(info $$$$1=$$1))$$(if $$2,$$(info $$
   $$(18),$$(info $$$$18=$$(18)))$$(if $$(19),$$(info $$$$19=$$(19)))$$(if $$(20),$$(info $$$$20=$$(20)))$$(call \
   dump,$2,,$1: )$$(info $1: value: =>$$(newline)$$(value $1_traced_))$$(call \
   infofn,$1,$$($1_traced_))$$(call dump,$3,,$1: )$$(info end: } $$$$($1))
-$(call CLEAN_BUILD_REPLACE_PROTECTED_VARS1,$1)
-$(call CLEAN_BUILD_APPEND_PROTECTED_VARS1,$1_traced_)
+$(call CLEAN_BUILD_PROTECT_VARS1,$1)
 endef
 
 # replace macros with their trace equivalents

@@ -15,7 +15,7 @@ NORM_MAKEFILES = $(patsubst $(TOP)/%,%$2,$(abspath $(foreach \
 FIX_ORDER_DEPS := ORDER_DEPS := $$(strip $$(ORDER_DEPS) $$(call NORM_MAKEFILES,$$(MDEPS),-))$(newline)MDEPS:=
 
 # don't complain about changed FIX_ORDER_DEPS value
-$(call CLEAN_BUILD_REPLACE_PROTECTED_VARS,FIX_ORDER_DEPS)
+$(call CLEAN_BUILD_PROTECT_VARS,FIX_ORDER_DEPS)
 
 # $m - next $(TOP)-related makefile to include
 # NOTE: $(ORDER_DEPS) value may be changed in included makefile, so restore ORDER_DEPS before including next makefile
@@ -33,7 +33,7 @@ endef
 CB_INCLUDE_TEMPLATE = $(foreach m,$(TO_MAKE),$(CB_INCLUDE_TEMPLATE1))
 
 # protect variables from modifications in target makefiles
-$(call CLEAN_BUILD_APPEND_PROTECTED_VARS,NORM_MAKEFILES CB_INCLUDE_TEMPLATE1 CB_INCLUDE_TEMPLATE)
+$(call CLEAN_BUILD_PROTECT_VARS,NORM_MAKEFILES CB_INCLUDE_TEMPLATE1 CB_INCLUDE_TEMPLATE)
 
 endif # NORM_MAKEFILES
 
