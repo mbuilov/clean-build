@@ -471,19 +471,13 @@ MULTI_TARGET_NUM:=
 # $1 - list of generated files (absolute paths)
 # $2 - prerequisites (either absolute or makefile-related)
 # $3 - rule
-# NOTE: touch targets in the order they depend on each other
+# $4 - $(words $(MULTI_TARGET_NUM))
 define MULTI_TARGET_RULE
 $(STD_TARGET_VARS)
 $1: $(call FIXPATH,$2)
-	$$(if $$(filter $(words $(MULTI_TARGET_NUM)),$$(MULTI_TARGETS)),,$$(eval MULTI_TARGETS += $(words \
-  $(MULTI_TARGET_NUM)))$$(call SUP,MGEN,$$@)$$(subst $$$$(newline),$$(newline),$(subst \
-  $$(newline),$$$$(newline),$3$(foreach x,$1,$$(newline)$$(call SUP,TOUCH,$x)$$(call TOUCH,$x)))))
+	$$(if $$(filter $4,$$(MULTI_TARGETS)),,$$(eval MULTI_TARGETS += $4)$$(call SUP,MGEN,$1)$3)
 MULTI_TARGET_NUM += 1
 endef
-
-# make chain of dependency of multi-targets on each other: 2:1, 3:2, 4:3, ...
-# $1 - list of generated files (absolute paths)
-MULTI_TARGET_SEQ = $(if $(word 2,$1),$(word 2,$1): $(firstword $1)$(newline)$(call MULTI_TARGET_SEQ,$(wordlist 2,999999,$1)))
 
 # NOTE: must not use $@ in rule because it may have different values (any target from multi-targets list),
 #       must not use $(lastword $^) - tail of list of prerequisites may have different values (becase of different $@)
@@ -501,7 +495,8 @@ endif
 # $2 - prerequisites
 # $3 - rule
 # note: directories for generated files will be auto-created
-MULTI_TARGET = $(MULTI_TARGET_CHECK)$(eval $(MULTI_TARGET_SEQ)$(MULTI_TARGET_RULE))
+# note: rule must update all targets
+MULTI_TARGET = $(MULTI_TARGET_CHECK)$(eval $(call MULTI_TARGET_RULE,$1,$2,$3,$(words $(MULTI_TARGET_NUM))))
 
 # $(DEFINE_TARGETS_EVAL_NAME) - contains name of macro that when expanded
 # evaluates code to define targes (at least, by evaluating $(DEF_TAIL_CODE))
@@ -569,7 +564,7 @@ CLEAN_BUILD_PROTECTED_VARS += DEFS_MK_INCLUDED MTOP MAKEFLAGS NO_DEPS DEBUG PROJ
   FIX_ORDER_DEPS STD_TARGET_VARS1 STD_TARGET_VARS GET_VPREFIX ADDVPREFIX FIXPATH MAKEFILES_LEVEL \
   DEF_TAIL_CODE_DEBUG DEF_HEAD_CODE DEF_HEAD_CODE_EVAL DEF_TAIL_CODE DEF_TAIL_CODE_EVAL \
   GET_VARIANTS GET_TARGET_NAME DEBUG_TARGETS1 GET_DEBUG_TARGETS FORM_OBJ_DIR \
-  CHECK_GENERATED ADD_GENERATED MULTI_TARGET_RULE MULTI_TARGET_SEQ MULTI_TARGET_CHECK MULTI_TARGET \
+  CHECK_GENERATED ADD_GENERATED MULTI_TARGET_RULE MULTI_TARGET_CHECK MULTI_TARGET \
   DEFINE_TARGETS SAVE_VARS RESTORE_VARS MAKE_CONTINUE_BODY_EVAL MAKE_CONTINUE FORM_DEPS EXTRACT_DEPS FIX_DEPS
 
 endif # DEFS_MK_INCLUDED
