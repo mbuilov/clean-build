@@ -31,26 +31,14 @@ endef
 # NOTE: if CLEAN_BUILD_SAVE_PROTECTED_VALUES is not defined yet - then $(DEF_HEAD_CODE) was never executed yet:
 # - when it will be executed, it will save initial values of protected vars, so nothing to do here,
 # else - replace protected vars old values with current onces
-define CLEAN_BUILD_REPLACE_PROTECTED_VARS1
+define CLEAN_BUILD_PROTECT_VARS1
+CLEAN_BUILD_PROTECTED_VARS := $$(sort $$(CLEAN_BUILD_PROTECTED_VARS) $1)
 ifdef CLEAN_BUILD_SAVE_PROTECTED_VALUES
-CLEAN_BUILD_SAVE_PROTECTED_VALUES := $$(filter-out $$(addsuffix @%,$1),$$(CLEAN_BUILD_SAVE_PROTECTED_VALUES)) $$(foreach \
-  x,$1,$$(call CLEAN_BUILD_GET_PROTECTED_VALUE,$$x))
-endif
-endef
-CLEAN_BUILD_REPLACE_PROTECTED_VARS = $(eval $(CLEAN_BUILD_REPLACE_PROTECTED_VARS1))
-
-# save values if clean-build protected vars in list $1 - if not done this already
-# NOTE: if CLEAN_BUILD_SAVE_PROTECTED_VALUES is not defined yet - then $(DEF_HEAD_CODE) was never executed yet:
-# - when it will be executed, it will save values from given vars list $1, so it's not needed to do this here,
-# else - re-save value of $(CLEAN_BUILD_PROTECTED_VARS) after appending vars list $1 to it
-define CLEAN_BUILD_APPEND_PROTECTED_VARS1
-CLEAN_BUILD_PROTECTED_VARS += $1
-ifdef CLEAN_BUILD_SAVE_PROTECTED_VALUES
-CLEAN_BUILD_SAVE_PROTECTED_VALUES := $$(filter-out CLEAN_BUILD_PROTECTED_VARS@%,$$(CLEAN_BUILD_SAVE_PROTECTED_VALUES)) $$(foreach \
+CLEAN_BUILD_SAVE_PROTECTED_VALUES := $$(filter-out $$(addsuffix @%,CLEAN_BUILD_PROTECTED_VARS $1),$$(CLEAN_BUILD_SAVE_PROTECTED_VALUES)) $$(foreach \
   x,CLEAN_BUILD_PROTECTED_VARS $1,$$(call CLEAN_BUILD_GET_PROTECTED_VALUE,$$x))
 endif
 endef
-CLEAN_BUILD_APPEND_PROTECTED_VARS = $(eval $(CLEAN_BUILD_APPEND_PROTECTED_VARS1))
+CLEAN_BUILD_PROTECT_VARS = $(eval $(CLEAN_BUILD_PROTECT_VARS1))
 
 # macro to check if clean-build protected $x variable value was changed in target makefile
 define CLEAN_BUILD_CHECK_PROTECTED_VAR
@@ -86,8 +74,6 @@ endef
 
 # protect variables from modifications in target makefiles
 CLEAN_BUILD_PROTECTED_VARS += MCHECK CLEAN_BUILD_GET_PROTECTED_VALUE CLEAN_BUILD_CHECK_AT_HEAD \
-  CLEAN_BUILD_REPLACE_PROTECTED_VARS1 CLEAN_BUILD_REPLACE_PROTECTED_VARS \
-  CLEAN_BUILD_APPEND_PROTECTED_VARS1 CLEAN_BUILD_APPEND_PROTECTED_VARS \
-  CLEAN_BUILD_CHECK_PROTECTED_VAR CLEAN_BUILD_CHECK_AT_TAIL
+  CLEAN_BUILD_PROTECT_VARS1 CLEAN_BUILD_PROTECT_VARS CLEAN_BUILD_CHECK_PROTECTED_VAR CLEAN_BUILD_CHECK_AT_TAIL
 
 endif # MCHECK
