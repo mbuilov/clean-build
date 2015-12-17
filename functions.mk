@@ -9,6 +9,10 @@ $(empty)
 $(empty)
 endef
 newline := $(newline)
+define comment
+#
+endef
+comment := $(comment)
 
 # print result $2 of the function $1
 infofn = $(info $1: result: =>$(newline)$2)$2
@@ -33,14 +37,17 @@ trace_params = $(info params: $$($0) {)$(if $1,$(info $$1=$1))$(if $2,$(info $$2
 # note: $1 may be defined as multi-line macro via 'define' directive - replace $(newline)'s with $$(newline)
 define trace_calls_template
 $(empty)
-$1_traced_ = $(subst $(newline),$$(newline),$(value $1))
+define $1_traced_
+$(value $1)
+endef
 $1 = $$(info begin: $$$$($1) {)$$(if $$1,$$(info $$$$1=$$1))$$(if $$2,$$(info $$$$2=$$2))$$(if $$3,$$(info $$$$3=$$3))$$(if \
   $$4,$$(info $$$$4=$$4))$$(if $$5,$$(info $$$$5=$$5))$$(if $$6,$$(info $$$$6=$$6))$$(if $$7,$$(info $$$$7=$$7))$$(if \
   $$8,$$(info $$$$8=$$8))$$(if $$9,$$(info $$$$9=$$9))$$(if $$(10),$$(info $$$$10=$$(10)))$$(if $$(11),$$(info $$$$11=$$(11)))$$(if \
   $$(12),$$(info $$$$12=$$(12)))$$(if $$(13),$$(info $$$$13=$$(13)))$$(if $$(14),$$(info $$$$14=$$(14)))$$(if \
   $$(15),$$(info $$$$15=$$(15)))$$(if $$(16),$$(info $$$$16=$$(16)))$$(if $$(17),$$(info $$$$17=$$(17)))$$(if \
   $$(18),$$(info $$$$18=$$(18)))$$(if $$(19),$$(info $$$$19=$$(19)))$$(if $$(20),$$(info $$$$20=$$(20)))$$(call \
-  dump,$2,,$1: )$$(call infofn,$1,$$($1_traced_))$$(call dump,$3,,$1: )$$(info end: } $$$$($1))
+  dump,$2,,$1: )$$(info $1: value: =>$$(newline)$$(value $1_traced_))$$(call \
+  infofn,$1,$$($1_traced_))$$(call dump,$3,,$1: )$$(info end: } $$$$($1))
 $(call CLEAN_BUILD_REPLACE_PROTECTED_VARS1,$1)
 $(call CLEAN_BUILD_APPEND_PROTECTED_VARS1,$1_traced_)
 endef
@@ -139,7 +146,7 @@ relpath = $(call relpath1,$(1:/=)/,$(2:/=)/)
 join_with = $(patsubst %$2,%,$(subst $(space),,$(foreach x,$1,$x$2)))
 
 # protect variables from modification in target makefiles
-CLEAN_BUILD_PROTECTED += empty space tab comma newline \
+CLEAN_BUILD_PROTECTED += empty space tab comma newline comment \
   TRACE infofn dump trace_params trace_calls_template trace_calls \
   unspaces ifaddq qpath tolower toupper repl1 padto1 padto xargs xcmd trim normp2 normp1 normp \
   cmn_path1 cmn_path back_prefix relpath2 relpath1 relpath join_with
