@@ -1,4 +1,4 @@
-ifndef CB_INCLUDE_EVAL
+ifndef CB_INCLUDE
 include $(MTOP)/_parallel.mk
 endif
 
@@ -37,7 +37,7 @@ $(CURRENT_MAKEFILE)-: $(addsuffix -,$(TO_MAKE))
 
 # increase makefile include level, include and process makefiles, decrease makefile include level
 CB_INCLUDE_LEVEL := $(CURRENT_MAKEFILE) $(CB_INCLUDE_LEVEL)
-$(CB_INCLUDE_EVAL)
+$(eval $(CB_INCLUDE))
 CB_INCLUDE_LEVEL := $(wordlist 2,999999,$(CB_INCLUDE_LEVEL))
 
 # check if need to include $(MTOP)/all.mk

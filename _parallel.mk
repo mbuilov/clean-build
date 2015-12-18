@@ -26,7 +26,7 @@ include $(TOP)/$m
 endef
 
 # note: $(TO_MAKE) - list of $(TOP)-related makefiles to include
-CB_INCLUDE_EVAL = $(eval $(foreach m,$(TO_MAKE),$(CB_INCLUDE_TEMPLATE)))
+CB_INCLUDE = $(foreach m,$(TO_MAKE),$(CB_INCLUDE_TEMPLATE))
 
 # protect variables from modifications in target makefiles
-$(call CLEAN_BUILD_PROTECT_VARS,NORM_MAKEFILES CB_INCLUDE_TEMPLATE CB_INCLUDE_EVAL)
+$(call CLEAN_BUILD_PROTECT_VARS,NORM_MAKEFILES CB_INCLUDE_TEMPLATE CB_INCLUDE)
