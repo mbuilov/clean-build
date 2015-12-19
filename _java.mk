@@ -1,5 +1,4 @@
-# this file normally included at beginning of target Makefile
-# used for building java sources
+# rules for building java sources
 
 # run via $(MAKE) L=1 to run java compiler with -Xlint
 ifeq ("$(origin L)","command line")
