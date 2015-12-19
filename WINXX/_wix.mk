@@ -1,5 +1,4 @@
-# this file normally included at beginning of target Makefile
-# used for building WIX (Windows Installer Xml) installer
+# rules for building WIX (Windows Installer Xml) installer
 
 ifndef WIX
 $(error WIX is not defined, example: C:\Program Files (x86)\WiX Toolset v3.10\)
