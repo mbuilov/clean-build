@@ -1,5 +1,4 @@
-# this file normally included at beginning of target makefile
-# used for building C/C++ libs, dlls, executables
+# rules for building C/C++ libs, dlls, executables
 
 # separate group of defines for each build target type (EXE,LIB,DLL,...)
 # - to allow to build many targets (for example LIB,EXE and DLL) specified in one makefile
