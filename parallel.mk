@@ -23,7 +23,7 @@ CLEAN_BUILD_NEED_TAIL_CODE:=
 
 # show debug info now, not later in $(DEF_TAIL_CODE)
 ifdef MDEBUG
-$(info $(call MAKEFILES_LEVEL,$(CB_INCLUDE_LEVEL))$(CURRENT_MAKEFILE)$(if $(ORDER_DEPS), | $(ORDER_DEPS:-=)))
+$(info $(MAKEFILE_DEBUG_INFO))
 endif
 
 # make $(TOP)-related list of makefiles to include

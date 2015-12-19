@@ -1,5 +1,4 @@
-# this file included by main $(MTOP)/c.mk or $(MTOP)/java.mk
-# also this file may be included at beginning of target Makefile
+# generic rules and definitions for building targets
 
 ifndef MTOP
 $(error MTOP is not defined, example: C:\clean-build,/usr/local/clean-build)
@@ -355,17 +354,11 @@ PROCESSED_MAKEFILES:=
 
 ifdef MDEBUG
 
-# convert list "make1 make2 make3" -> "..."
-# $1 - $(CB_INCLUDE_LEVEL)
-MAKEFILES_LEVEL = $(subst . ,.,$(foreach x,$1,.))
+# info about which makefile is expanded now and order dependencies for it
+MAKEFILE_DEBUG_INFO = $(subst $(space),,$(foreach x,$(CB_INCLUDE_LEVEL),.))$(CURRENT_MAKEFILE)$(if $(ORDER_DEPS), | $(ORDER_DEPS:-=))
 
-# show which makefile is expanded now
 # note: show debug info only if $1 does not contains @ (used by $(MTOP)/parallel.mk)
-define DEF_TAIL_CODE_DEBUG
-ifeq ($(filter @,$1),)
-$$(info $(call MAKEFILES_LEVEL,$(CB_INCLUDE_LEVEL))$(CURRENT_MAKEFILE)$(if $(ORDER_DEPS), | $(ORDER_DEPS:-=)))
-endif
-endef
+DEF_TAIL_CODE_DEBUG = $(if $(filter @,$1),,$$(info $(MAKEFILE_DEBUG_INFO)))
 
 endif # MDEBUG
 
@@ -563,7 +556,7 @@ CLEAN_BUILD_PROTECTED_VARS += MTOP MAKEFLAGS NO_DEPS DEBUG PROJECT \
   SUP TOOL_IN_COLOR COLORIZE SED_MULTI_EXPR ospath isrelpath \
   CLOBBER_DIRS DEF_BIN_DIR DEF_OBJ_DIR DEF_LIB_DIR DEF_GEN_DIR SET_DEFAULT_DIRS BIN_DIR OBJ_DIR LIB_DIR GEN_DIR \
   TOOL_BASE MK_TOOLS_DIR GET_TOOLS GET_TOOL TOOLS_DIR TOOL_OVERRIDE_DIRS \
-  FIX_ORDER_DEPS STD_TARGET_VARS1 STD_TARGET_VARS GET_VPREFIX ADDVPREFIX FIXPATH MAKEFILES_LEVEL \
+  FIX_ORDER_DEPS STD_TARGET_VARS1 STD_TARGET_VARS GET_VPREFIX ADDVPREFIX FIXPATH MAKEFILE_DEBUG_INFO \
   DEF_TAIL_CODE_DEBUG DEF_HEAD_CODE DEF_HEAD_CODE_EVAL DEF_TAIL_CODE DEF_TAIL_CODE_EVAL \
   GET_VARIANTS GET_TARGET_NAME DEBUG_TARGETS1 GET_DEBUG_TARGETS FORM_OBJ_DIR \
   CHECK_GENERATED ADD_GENERATED MULTI_TARGET_RULE MULTI_TARGET_CHECK MULTI_TARGET_SEQ MULTI_TARGET \
