@@ -142,7 +142,7 @@ relpath = $(call relpath1,$(1:/=)/,$(2:/=)/)
 
 # join elements of list $1 with $2
 # example: $(call join_with,a b c,|) -> a|b|c
-join_with = $(patsubst %$2,%,$(subst $(space),,$(foreach x,$1,$x$2)))
+join_with = $(subst $(space),$2,$(strip $1))
 
 # protect variables from modification in target makefiles
 CLEAN_BUILD_PROTECTED += empty space tab comma newline comment \
