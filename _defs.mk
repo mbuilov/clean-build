@@ -1,5 +1,13 @@
 # generic rules and definitions for building targets
 
+ifndef MAKE_VERSION
+$(error MAKE_VERSION not defined, ensure you are using GNU Make of version 3.81 or later)
+endif
+
+ifneq (3.80,$(word 1,$(sort $(MAKE_VERSION) 3.80)))
+$(error required GNU Make of version 3.81 or later)
+endif
+
 ifndef MTOP
 $(error MTOP is not defined, example: C:\clean-build,/usr/local/clean-build)
 endif
@@ -15,7 +23,7 @@ MTOP := $(MTOP)
 
 # standard defines & checks
 # NOTE:
-#  $(OS) (may be $(BUILD_OS)), $(SUPPORTED_OSES),
+#  $(OS), $(SUPPORTED_OSES),
 #  $(CPU) or $(UCPU),$(KCPU),$(TCPU), $(SUPPORTED_CPUS),
 #  $(TARGET) and $(SUPPORTED_TARGETS) are must be defined
 
@@ -56,18 +64,11 @@ ifndef SUPPORTED_TARGETS
 $(error SUPPORTED_TARGETS not defined, it may be defined in $(PROJECT:$(TOP)/%,$$(TOP)/%))
 endif
 
-# OS - operating system we are building for
+# OS - operating system we are building for (and we are building on)
 ifndef OS
 $(error OS undefined, example: $(SUPPORTED_OSES))
 else ifeq ($(filter $(OS),$(SUPPORTED_OSES)),)
 $(error unknown OS=$(OS), please pick one of: $(SUPPORTED_OSES))
-endif
-
-# BUILD_OS - operating system we are building on
-ifndef BUILD_OS
-BUILD_OS := $(OS)
-else ifeq ($(filter $(BUILD_OS),$(SUPPORTED_OSES)),)
-$(error unknown BUILD_OS=$(BUILD_OS), please pick one of: $(SUPPORTED_OSES))
 endif
 
 # NOTE: don't use CPU variable in target makefiles, use UCPU or KCPU instead
@@ -130,7 +131,6 @@ endif
 TARGET   := $(TARGET)
 DEBUG    := $(DEBUG)
 OS       := $(OS)
-BUILD_OS := $(BUILD_OS)
 CPU      := $(CPU)
 UCPU     := $(UCPU)
 KCPU     := $(KCPU)
@@ -157,7 +157,7 @@ INFOMF := $(INFOMF:0=)
 MDEBUG := $(MDEBUG:0=)
 
 ifdef MDEBUG
-$(call dump,MTOP TOP XTOP TARGET OS BUILD_OS CPU UCPU KCPU TCPU)
+$(call dump,MTOP TOP XTOP TARGET OS CPU UCPU KCPU TCPU)
 endif
 
 # check that internal variables were not changed in target makefiles
@@ -211,12 +211,12 @@ TOOL_IN_COLOR ?= $(subst |,,$(subst \
 COLORIZE = $(TOOL_IN_COLOR)$(padto)$2
 
 # define utilities of the OS we are building on
-include $(MTOP)/$(BUILD_OS)/tools.mk
+include $(MTOP)/$(OS)/tools.mk
 
 # helper macro: convert multiline sed script $1 to multiple sed expressions - one expression for each script line
 SED_MULTI_EXPR = $(subst $$(space), ,$(foreach s,$(subst $(newline), ,$(subst $(space),$$(space),$1)),-e $(call SED_EXPR,$s)))
 
-# for UNIX: don't change paths when convertig from make internal file path to path accepted by $(BUILD_OS)
+# for UNIX: don't change paths when convertig from make internal file path to path accepted by $(OS)
 ospath ?= $1
 
 # for UNIX: absolute paths are started with /
@@ -551,7 +551,7 @@ FIX_DEPS = $(subst | ,|,$(call FIXPATH,$(subst |,| ,$1)))
 
 # protect variables from modifications in target makefiles
 CLEAN_BUILD_PROTECTED_VARS += MTOP MAKEFLAGS NO_DEPS DEBUG PROJECT \
-  SUPPORTED_OSES SUPPORTED_CPUS SUPPORTED_TARGETS OS BUILD_OS CPU UCPU KCPU TCPU TARGET \
+  SUPPORTED_OSES SUPPORTED_CPUS SUPPORTED_TARGETS OS CPU UCPU KCPU TCPU TARGET \
   VERBOSE INFOMF MDEBUG CHECK_MAKEFILE_NOT_PROCESSED \
   SUP TOOL_IN_COLOR COLORIZE SED_MULTI_EXPR ospath isrelpath \
   CLOBBER_DIRS DEF_BIN_DIR DEF_OBJ_DIR DEF_LIB_DIR DEF_GEN_DIR SET_DEFAULT_DIRS BIN_DIR OBJ_DIR LIB_DIR GEN_DIR \
