@@ -1,5 +1,9 @@
 # rules for building java sources
 
+ifndef DEF_HEAD_CODE
+include $(MTOP)/_defs.mk
+endif
+
 # run via $(MAKE) L=1 to run java compiler with -Xlint
 ifeq ("$(origin L)","command line")
 JLINT := $L
@@ -10,9 +14,6 @@ endif
 # what we may build by including $(MTOP)/java.mk (for ex. JAR := my_jar)
 BLD_JTARGETS := JAR
 
-ifndef DEF_HEAD_CODE
-include $(MTOP)/_defs.mk
-endif
 include $(MTOP)/$(OS)/java.mk
 
 # define code to print debug info about built targets
