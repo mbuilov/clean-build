@@ -1,5 +1,17 @@
 OSTYPE := UNIX
 
+# additional variables that may have target-dependent variant (EXE_RPATH, DLL_RPATH and so on)
+TRG_VARS += RPATH
+
+# additional variables without target-dependent variants
+BLD_VARS += MAP
+
+# reset additional variables
+define RESET_OS_VARS
+RPATH := $(INST_RPATH)
+MAP   :=
+endef
+
 ifneq ($(filter default undefined,$(origin CC)),)
 # 64-bit arch: CC="cc -m64"
 # 32-bit arch: CC="cc -m32"
@@ -285,6 +297,23 @@ DRV_R_ASM  ?= $(KLIB_R_ASM)
 BISON = $(call SUP,BISON,$2)cd $1; $(BISONC) -d --fixed-output-files $(abspath $2)
 FLEX  = $(call SUP,FLEX,$2)$(FLEXC) -o$1 $2
 
+# auxiliary defines for EXE
+# $1 - $(call FORM_TRG,EXE,R)
+define EXE_AUX_TEMPLATE1
+$1: RPATH := $(RPATH) $(EXE_RPATH)
+endef
+EXE_AUX_TEMPLATE = $(call EXE_AUX_TEMPLATE1,$(call FORM_TRG,EXE,R))
+
+# auxiliary defines for DLL
+# $1 - $(call FORM_TRG,DLL,R)
+# $2 - $(call FIXPATH,$(firstword $(DLL_MAP) $(MAP)))
+define DLL_AUX_TEMPLATE1
+$1: RPATH := $(RPATH) $(DLL_RPATH)
+$1: MAP := $2
+$1: $2
+endef
+DLL_AUX_TEMPLATE = $(call DLL_AUX_TEMPLATE1,$(call FORM_TRG,DLL,R),$(call FIXPATH,$(firstword $(DLL_MAP) $(MAP))))
+
 # $1 - target file: $(call FORM_TRG,DRV)
 # $2 - sources:     $(call TRG_SRC,DRV)
 # $3 - deps:        $(call TRG_DEPS,DRV)
@@ -314,7 +343,8 @@ DRV_RULES = $(if $(DRV),$(call DRV_RULES1,$(call FORM_TRG,DRV),$(call TRG_SRC,DR
 
 # this code is evaluated from $(DEFINE_TARGETS)
 define OS_DEFINE_TARGETS
-$(if $(DLL),$(call FORM_TRG,DLL,R): $(call TRG_MAP,DLL))
+$(if $(EXE),$(EXE_AUX_TEMPLATE))
+$(if $(DLL),$(DLL_AUX_TEMPLATE))
 $(DRV_RULES)
 endef
 
@@ -327,4 +357,5 @@ $(call CLEAN_BUILD_PROTECT_VARS,CC CXX AR TCC TCXX TAR KCC KLD YASM FLEXC BISONC
   RPATH_OPTION DEF_C_LIBS DEF_CXX_LIBS CMN_LIBS VERSION_SCRIPT_OPTION EXE_R_LD DLL_R_LD LIB_R_LD LIB_D_LD KLIB_LD DRV_LD \
   UDEPS_INCLUDE_FILTER SED_DEPS_SCRIPT WRAP_COMPILER APP_FLAGS DEF_CXXFLAGS DEF_CFLAGS CC_PARAMS CMN_CXX CMN_CC \
   EXE_R_CXX EXE_R_CC LIB_R_CXX LIB_R_CC DLL_R_CXX DLL_R_CC LIB_D_CXX LIB_D_CC KDEPS_INCLUDE_FILTER KERN_FLAGS \
-  KCC_PARAMS KLIB_R_CC DRV_R_CC KLIB_R_ASM DRV_R_ASM BISON FLEX DRV_TEMPLATE DRV_RULES1 DRV_RULES)
+  KCC_PARAMS KLIB_R_CC DRV_R_CC KLIB_R_ASM DRV_R_ASM BISON FLEX \
+  EXE_AUX_TEMPLATE1 EXE_AUX_TEMPLATE DLL_AUX_TEMPLATE1 DLL_AUX_TEMPLATE DRV_TEMPLATE DRV_RULES1 DRV_RULES)

@@ -1,5 +1,20 @@
 OSTYPE := WINDOWS
 
+# additional variables that may have target-dependent variant (EXE_RES, DLL_RES and so on)
+TRG_VARS += RES
+
+# additional variables without target-dependent variants
+BLD_VARS += DEF
+
+# reset additional variables
+define RESET_OS_VARS
+RES :=
+DEF :=
+endef
+
+# make RESET_OS_VARS variable non-recursive (simple)
+RESET_OS_VARS := $(RESET_OS_VARS)
+
 include $(MTOP)/WINXX/cres.mk
 
 # run via $(MAKE) S=1 to compile each source individually (without /MP CL compiler option)
@@ -608,12 +623,13 @@ endef
 # $4 - $(call FORM_TRG,DLL,$v)
 # $5 - $(call FORM_OBJ_DIR,DLL,$v)
 # $6 - $(IMP_DIR)/$(IMP_PREFIX)$(call GET_TARGET_NAME,DLL)$(call VARIANT_IMP_SUFFIX,$v)
-# $7 - $(call TRG_DEF,DLL)
+# $7 - $(call FIXPATH,$(firstword $(DLL_DEF) $(DEF)))
 define DLL_AUX_TEMPLATE2
 $(empty)
 $4: SRC := $1
 $4: SDEPS := $2
 $4: IMP := $6$(IMP_SUFFIX)
+$4: DEF := $7
 $4: $1 $3 $7 | $(IMP_DIR)
 NEEDED_DIRS += $(IMP_DIR)
 $6$(IMP_SUFFIX): $4
@@ -626,7 +642,7 @@ endef
 # $2 - $(call TRG_DEPS,DLL)
 # $3 - $(call TRG_ALL_DEPS,DLL)
 # $4 - $(call GET_TARGET_NAME,DLL)
-# $5 - $(call TRG_DEF,DLL)
+# $5 - $(call FIXPATH,$(firstword $(DLL_DEF) $(DEF)))
 DLL_AUX_TEMPLATE1 = $(foreach v,$(call GET_VARIANTS,DLL,VARIANTS_FILTER),$(call \
   DLL_AUX_TEMPLATE2,$1,$2,$3,$(call FORM_TRG,DLL,$v),$(call \
   FORM_OBJ_DIR,DLL,$v),$(IMP_DIR)/$(IMP_PREFIX)$4$(call VARIANT_IMP_SUFFIX,$v),$5))
@@ -638,7 +654,8 @@ DLL_AUX_TEMPLATE1 = $(foreach v,$(call GET_VARIANTS,DLL,VARIANTS_FILTER),$(call 
 define DLL_AUX_TEMPLATE
 $(call STD_RES_TEMPLATE,DLL)
 $(call PCH_TEMPLATE,DLL)
-$(call DLL_AUX_TEMPLATE1,$(call TRG_SRC,DLL),$(call TRG_DEPS,DLL),$(call TRG_ALL_DEPS,DLL),$(call GET_TARGET_NAME,DLL),$(call TRG_DEF,DLL))
+$(call DLL_AUX_TEMPLATE1,$(call TRG_SRC,DLL),$(call TRG_DEPS,DLL),$(call TRG_ALL_DEPS,DLL),$(call \
+  GET_TARGET_NAME,DLL),$(call FIXPATH,$(firstword $(DLL_DEF) $(DEF))))
 endef
 
 # $1 - $(call FORM_TRG,KLIB)

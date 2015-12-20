@@ -1,5 +1,17 @@
 OSTYPE := UNIX
 
+# additional variables that may have target-dependent variant (EXE_RPATH, DLL_RPATH and so on)
+TRG_VARS += RPATH
+
+# additional variables without target-dependent variants
+BLD_VARS += MAP
+
+# reset additional variables
+define RESET_OS_VARS
+RPATH := $(INST_RPATH)
+MAP   :=
+endef
+
 ifneq ($(filter default undefined,$(origin CC)),)
 CC := gcc
 endif
@@ -355,6 +367,23 @@ ADD_WITH_PCH = $(eval $1_WITH_PCH += $2$(call \
 
 endif # NO_PCH
 
+# auxiliary defines for EXE
+# $1 - $(call FORM_TRG,EXE,R)
+define EXE_AUX_TEMPLATE1
+$1: RPATH := $(RPATH) $(EXE_RPATH)
+endef
+EXE_AUX_TEMPLATE = $(call EXE_AUX_TEMPLATE1,$(call FORM_TRG,EXE,R))
+
+# auxiliary defines for DLL
+# $1 - $(call FORM_TRG,DLL,R)
+# $2 - $(call FIXPATH,$(firstword $(DLL_MAP) $(MAP)))
+define DLL_AUX_TEMPLATE1
+$1: RPATH := $(RPATH) $(DLL_RPATH)
+$1: MAP := $2
+$1: $2
+endef
+DLL_AUX_TEMPLATE = $(call DLL_AUX_TEMPLATE1,$(call FORM_TRG,DLL,R),$(call FIXPATH,$(firstword $(DLL_MAP) $(MAP))))
+
 # $1 - dest dir, $2 - file, $3 - aux dep
 define COPY_FILE_RULE
 $(empty)
@@ -395,7 +424,8 @@ DRV_RULES = $(if $(DRV),$(call DRV_TEMPLATE,$(call FORM_TRG,DRV),$(call TRG_SRC,
 # this code is normally evaluated at end of target Makefile
 define OS_DEFINE_TARGETS
 $(PCH_TEMPLATES)
-$(if $(DLL),$(call FORM_TRG,DLL,R): $(call TRG_MAP,DLL))
+$(if $(EXE),$(EXE_AUX_TEMPLATE))
+$(if $(DLL),$(DLL_AUX_TEMPLATE))
 $(DRV_RULES)
 endef
 
@@ -407,5 +437,7 @@ $(call CLEAN_BUILD_PROTECT_VARS,CC CXX MODULES_PATH LD AR TCC TCXX TLD TAR KCC K
   EXE_R_LD EXE_P_LD DLL_R_LD LIB_R_LD LIB_P_LD LIB_D_LD KLIB_LD AUTO_DEPS_FLAGS APP_FLAGS DEF_CXXFLAGS DEF_CFLAGS CC_PARAMS \
   CMN_CXX CMN_CC PCH_CXX PCH_CC EXE_R_CXX EXE_R_CC EXE_P_CXX EXE_P_CC LIB_R_CXX LIB_R_CC LIB_P_CXX LIB_P_CC DLL_R_CXX DLL_R_CC \
   LIB_D_CXX LIB_D_CC PCH_EXE_R_CXX PCH_EXE_R_CC PCH_EXE_P_CXX PCH_EXE_P_CC PCH_LIB_R_CXX PCH_LIB_R_CC PCH_LIB_P_CXX PCH_LIB_P_CC \
-  PCH_DLL_R_CXX PCH_DLL_R_CC PCH_LIB_D_CXX PCH_LIB_D_CC KLIB_PARAMS KLIB_R_CC PCH_KLIB_R_CC KLIB_R_ASM BISON FLEX PCH_TEMPLATE1 \
-  PCH_TEMPLATE2 PCH_TEMPLATES ADD_WITH_PCH2 ADD_WITH_PCH1 ADD_WITH_PCH COPY_FILE_RULE DRV_TEMPLATE DRV_RULES)
+  PCH_DLL_R_CXX PCH_DLL_R_CC PCH_LIB_D_CXX PCH_LIB_D_CC KLIB_PARAMS KLIB_R_CC PCH_KLIB_R_CC KLIB_R_ASM BISON FLEX \
+  PCH_TEMPLATE1 PCH_TEMPLATE2 PCH_TEMPLATES ADD_WITH_PCH2 ADD_WITH_PCH1 ADD_WITH_PCH \
+  EXE_AUX_TEMPLATE1 EXE_AUX_TEMPLATE DLL_AUX_TEMPLATE1 DLL_AUX_TEMPLATE \
+  COPY_FILE_RULE DRV_TEMPLATE DRV_RULES)
