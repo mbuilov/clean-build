@@ -1,5 +1,9 @@
 # rules for building C/C++ libs, dlls, executables
 
+ifndef DEF_HEAD_CODE
+include $(MTOP)/_defs.mk
+endif
+
 # separate group of defines for each build target type (EXE,LIB,DLL,...)
 # - to allow to build many targets (for example LIB,EXE and DLL) specified in one makefile
 
@@ -14,10 +18,7 @@
 # DLL  - dynamic library, variants: R,S
 # if variant is not specified, default variant R will be built, else - only specified variants (add R to build also default variant)
 
-# what we may build by including $(MTOP)/c.mk (for ex. LIB := my_lib)
-BLD_TARGETS := EXE LIB DLL KLIB DRV
-
-# NOTE: after target name may be specified one or more build target variants (for ex. EXE := my_exe R S):
+# after target name may be specified one or more build target variants (for ex. EXE := my_exe R S):
 # R - default build variant:
 #  EXE  - position-dependent code   (UNIX), dynamicaly linked multi-threaded libc (WINDOWS)
 #  LIB  - position-dependent code   (UNIX), dynamicaly linked multi-threaded libc (WINDOWS)
@@ -26,12 +27,14 @@ BLD_TARGETS := EXE LIB DLL KLIB DRV
 # D - position-independent code in shared libraries (only for LIB)    (only UNIX)
 # S - statically linked multithreaded libc          (for all targets) (only WINDOWS)
 
-# list of variables that may be target-dependent - each target may have own value of next variables (EXE_PCH, LIB_SRC and so on)
-TRG_VARS := PCH WITH_PCH SRC SDEPS DEFINES INCLUDE CFLAGS CXXFLAGS \
-  ASMFLAGS LDFLAGS SYSLIBS SYSLIBPATH SYSINCLUDE DLLS LIBS RES RPATH MAP DEF
+# what we may build by including $(MTOP)/c.mk (for ex. LIB := my_lib)
+BLD_TARGETS := EXE LIB DLL KLIB DRV
 
-# list of all variables for the target, add variables that may not be target-dependent
-BLD_VARS := KLIBS CMNINCLUDE CLEAN $(TRG_VARS)
+# list of variables that may have target-dependent variant (EXE_PCH, LIB_SRC and so on)
+TRG_VARS := PCH WITH_PCH SRC SDEPS DEFINES INCLUDE CFLAGS CXXFLAGS ASMFLAGS LDFLAGS SYSLIBS SYSLIBPATH SYSINCLUDE DLLS LIBS
+
+# variables without target-dependent variants
+BLD_VARS := KLIBS CMNINCLUDE CLEAN
 
 # determine prefix for static LIB and for implementation-library of DLL
 # $1 - target variant R,P,D,S,<empty>
@@ -44,7 +47,7 @@ VARIANT_IMP_SUFFIX = $(if $(filter-out R,$1),_$1)
 #
 # 1) common include path for all targets, added at end of compiler's include paths list, for example:
 #  DEFINCLUDE = $(TOP)/include
-#  note: $(DEFINCLUDE) may be recursive, it's value may be calculated based on $(TOP)-related path to $(CURRENT_MAKEFILE)
+#  note: DEFINCLUDE may be recursive, it's value may be calculated based on $(TOP)-related path to $(CURRENT_MAKEFILE)
 #  note: target makefile may avoid using include paths from $(DEFINCLUDE) by resetting $(CMNINCLUDE) value
 #
 # 2) predefined macros for all targets, for example:
@@ -64,10 +67,10 @@ VARIANT_IMP_SUFFIX = $(if $(filter-out R,$1),_$1)
 #  note: it's not possible to reset value of $(KRNDEFS) in target makefile,
 #   but KRNDEFS may be recursive and so may produce dynamic results
 
-ifndef DEF_HEAD_CODE
-include $(MTOP)/_defs.mk
-endif
 include $(MTOP)/$(OS)/c.mk
+
+# list of all variables for the targets: SRC, DEFINES, CMNINCLUDE and so on
+BLD_VARS += $(TRG_VARS)
 
 # add defines from $(MTOP)/$(OS)/c.mk
 PREDEFINES += $(OS_PREDEFINES)
@@ -81,7 +84,7 @@ DEBUG_C_TARGETS := $(call GET_DEBUG_TARGETS,$(BLD_TARGETS),FORM_TRG,VARIANTS_FIL
 
 # template to prepend value of $(OS)-dependent variables to variable $1, then clear $(OS)-dependent variables
 # NOTE: preferred values must be first: $1_$(OSVARIANT) is preferred over $1_$(OS) and so on
-# - in some cases we get just the first value (for TRG_MAP or TRG_DEF for example)
+# - in some cases we want just the first value (for MAP or DEF value for example)
 ifdef OSVARIANT
 define OSVAR
 $1:=$$(strip $$($1_$(OSVARIANT)) $$($1_$(OS)) $$($1_$(OSTYPE)) $$($1))
@@ -167,12 +170,6 @@ TRG_SRC = $(call FIXPATH,$(SOURCES))
 # make absolute paths for $(TRG_DEPS) - add $(VPREFIX) to relative paths, then normalize paths
 TRG_DEPS = $(call FIX_DEPS,$(SDEPS) $($1_SDEPS))
 
-# make absolute path to map/def file - add $(VPREFIX) if path is relative, then normalize path
-# $1 - DLL
-# use $(firstword) - to prefer $v_$(OSVARIANT) over $v_$(OS), $v_$(OS) over $v_$(OSTYPE) and $v_$(OSTYPE) over $v
-TRG_MAP = $(call FIXPATH,$(firstword $($1_MAP) $(MAP)))
-TRG_DEF = $(call FIXPATH,$(firstword $($1_DEF) $(DEF)))
-
 # objects and auto-deps to build for the target
 # $1 - sources to compile
 # NOTE: not all $(OBJS) may be built from the $(SRC) - some objects may be built from generated sources
@@ -230,7 +227,6 @@ $1: CXXFLAGS   := $(CXXFLAGS) $(EXE_CXXFLAGS)
 $1: LDFLAGS    := $(LDFLAGS) $(EXE_LDFLAGS)
 $1: SYSLIBS    := $(SYSLIBS) $(EXE_SYSLIBS)
 $1: SYSLIBPATH := $(SYSLIBPATH) $(EXE_SYSLIBPATH)
-$1: RPATH      := $(RPATH) $(EXE_RPATH)
 $1: $(call DEP_LIBS,EXE,$v) $(call DEP_IMPS,EXE,$v) $5
 	$$(call EXE_$v_LD,$$@,$$(filter %$(OBJ_SUFFIX),$$^))
 CLEAN += $5
@@ -290,9 +286,6 @@ $1: CXXFLAGS   := $(CXXFLAGS) $(DLL_CXXFLAGS)
 $1: LDFLAGS    := $(LDFLAGS) $(DLL_LDFLAGS)
 $1: SYSLIBS    := $(SYSLIBS) $(DLL_SYSLIBS)
 $1: SYSLIBPATH := $(SYSLIBPATH) $(DLL_SYSLIBPATH)
-$1: RPATH      := $(RPATH) $(DLL_RPATH)
-$1: MAP        := $(call TRG_MAP,DLL)
-$1: DEF        := $(call TRG_DEF,DLL)
 $1: $(call DEP_LIBS,DLL,$v) $(call DEP_IMPS,DLL,$v) $5
 	$$(call DLL_$v_LD,$$@,$$(filter %$(OBJ_SUFFIX),$$^))
 CLEAN += $5
@@ -345,6 +338,11 @@ CHECK_C_RULES = $(if \
   $(if $(DRV),,$(KLIBS)),$(warning KLIBS = $(KLIBS) is used only when building DRV))
 endif
 
+# project's subsystems directory, contains subsystems definitions that are evaluated while processing $(USE) list
+ifndef PROJECT_USE_DIR
+PROJECT_USE_DIR := $(TOP)/make/$(OS)/use
+endif
+
 # this code is normally evaluated at end of target makefile
 # 1) print what we will build
 # 2) include USE-references
@@ -358,7 +356,7 @@ endif
 define DEFINE_C_TARGETS_EVAL
 $(if $(MDEBUG),$(eval $(DEBUG_C_TARGETS)))
 $(eval $(call OSVAR,USE)$(if $(MDEBUG),$$(if $$(USE),$$(info \
-  using: $$(USE))))$(newline)include $$(addsuffix .mk,$$(addprefix $(TOP)/make/$(OS)/use/,$$(USE))))
+  using: $$(USE))))$(newline)include $$(addsuffix .mk,$$(addprefix $(PROJECT_USE_DIR)/,$$(USE))))
 $(eval $(OSVARS))
 $(eval $(GENERATE_SRC_RULES))
 $(eval $(OS_DEFINE_TARGETS))
@@ -369,6 +367,7 @@ endef
 # code to be called at beginning of target makefile
 define PREPARE_C_VARS
 $(RESET_TRG_VARS)
+$(RESET_OS_VARS)
 PCH         :=
 WITH_PCH    :=
 USE         :=
@@ -386,10 +385,6 @@ SYSLIBPATH  :=
 SYSINCLUDE  :=
 DLLS        :=
 LIBS        :=
-RES         :=
-RPATH       := $(INST_RPATH)
-MAP         :=
-DEF         :=
 KLIBS       :=
 DEFINE_TARGETS_EVAL_NAME := DEFINE_C_TARGETS_EVAL
 MAKE_CONTINUE_EVAL_NAME  := MAKE_C_EVAL
@@ -404,9 +399,9 @@ $(call CLEAN_BUILD_PROTECT_VARS,BLD_TARGETS \
   TRG_VARS BLD_VARS VARIANT_LIB_SUFFIX VARIANT_IMP_SUFFIX DEBUG_C_TARGETS \
   OSVARIANT OSTYPE OSVAR OSVARS OBJ_RULE OBJ_RULES1 OBJ_RULES \
   RESET_TRG_VARS FORM_TRG SUBST_DEFINES STRING_DEFINE \
-  TRG_INCLUDE SOURCES TRG_SRC TRG_DEPS TRG_MAP TRG_DEF OBJS DEP_LIB_SUFFIX DEP_IMP_SUFFIX \
+  TRG_INCLUDE SOURCES TRG_SRC TRG_DEPS OBJS DEP_LIB_SUFFIX DEP_IMP_SUFFIX \
   MAKE_DEP_LIBS MAKE_DEP_IMPS TRG_LIBS DEP_LIBS TRG_DLLS DEP_IMPS \
   EXE_TEMPLATE EXE_RULES1 EXE_RULES LIB_TEMPLATE LIB_RULES1 LIB_RULES \
   DLL_TEMPLATE DLL_RULES1 DLL_RULES KLIB_TEMPLATE KLIB_RULES1 KLIB_RULES \
-  FORM_TRG_OBJS FORM_OBJS CHECK_C_RULES \
-  OS_DEFINE_TARGETS DEFINE_C_TARGETS_EVAL PREPARE_C_VARS MAKE_C_EVAL)
+  FORM_TRG_OBJS FORM_OBJS CHECK_C_RULES PROJECT_USE_DIR \
+  OS_DEFINE_TARGETS DEFINE_C_TARGETS_EVAL PREPARE_C_VARS RESET_OS_VARS MAKE_C_EVAL)
