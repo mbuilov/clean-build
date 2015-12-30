@@ -262,12 +262,21 @@ endif
 
 # $(SED) script to generate dependencies file from C compiler output
 # $2 - target object file, $3 - source, $4 - $(basename $2).d, $5 - prefixes of system includes to filter out
-# note: fix line endings - remove CR
-SED_DEPS_SCRIPT ?= s/\x0d//;1{x;s@.*@$2: $3 \\@;x;};/^$(notdir $3)$$/d;\
-/^COMPILATION_FAILED/{H;s@^COMPILATION_FAILED@$(INCLUDING_FILE_PATTERN) &@;};\
-/^$(INCLUDING_FILE_PATTERN) /!{p;s@.*@|@;};s@^$(INCLUDING_FILE_PATTERN) COMPILATION_FAILED@|@;\
-/^$(INCLUDING_FILE_PATTERN) /{s@^$(INCLUDING_FILE_PATTERN)  *@@;$(subst \
-?, ,$(foreach x,$5,s@^$x.*@|@I;))s@ @\\ @g;};/^|/!{H;s@.*@&:@;x;s@.*@& \\@;x;};$${x;H;s@.*@@;H;x;s@^|@@;};/^|/d;w $4
+
+# s/\x0d//;                                - fix line endings - remove CR
+# /^$(notdir $3)$$/d;                      - delete compiled file name printed by cl
+# /^COMPILATION_FAILED.*/w $4              - write COMPILATION_FAILED string to generated dep-file
+# /^COMPILATION_FAILED.*/d                 - don't print COMPILATION_FAILED, start new circle
+# /^$(INCLUDING_FILE_PATTERN) /!{p;d;}     - print all lines not started with $(INCLUDING_FILE_PATTERN) and space, start new circle
+# s/^$(INCLUDING_FILE_PATTERN)  *//;       - strip-off leading $(INCLUDING_FILE_PATTERN) with spaces
+# $(subst ?, ,$(foreach x,$5,\@^$x.*@Id;)) - delete lines started with system include paths, start new circle
+# s/ /\\ /g;                               - escape spaces
+# s@.*@&:\n$2: &@;w $4                     - make dependencies, then write to generated dep-file
+
+SED_DEPS_SCRIPT ?= \
+-e "s/\x0d//;/^$(notdir $3)$$/d;/^COMPILATION_FAILED.*/w $4" \
+-e "/^COMPILATION_FAILED.*/d;/^$(INCLUDING_FILE_PATTERN) /!{p;d;}" \
+-e "s/^$(INCLUDING_FILE_PATTERN)  *//;$(subst ?, ,$(foreach x,$5,\@^$x.*@Id;))s/ /\\ /g;s@.*@&:\n$2: &@;w $4"
 
 # WRAP_COMPILER - either just call compiler or call compiler and auto-generate dependencies
 # $1 - compiler with options, $2 - target object, $3 - source, $4 - $(basename $2).d, $5 - prefixes of system includes
@@ -276,7 +285,7 @@ WRAP_COMPILER = $1
 else
 # compiler will run in a sub-batch, where double-quotes are escaped by two double-quotes
 WRAP_COMPILER ?= ($(subst \","",$1) /showIncludes 2>&1 || echo COMPILATION_FAILED) | \
-  $(SED) -n "$(SED_DEPS_SCRIPT)" && findstr /b COMPILATION_FAILED $(call \
+  $(SED) -n $(SED_DEPS_SCRIPT) && findstr /b COMPILATION_FAILED $(call \
   ospath,$4) > NUL & if errorlevel 1 (cmd /c exit 0) else (del $(call ospath,$4) && cmd /c exit 1)
 endif
 
