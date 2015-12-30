@@ -270,7 +270,7 @@ endif
 # /^$(INCLUDING_FILE_PATTERN) /!{p;d;}     - print all lines not started with $(INCLUDING_FILE_PATTERN) and space, start new circle
 # s/^$(INCLUDING_FILE_PATTERN)  *//;       - strip-off leading $(INCLUDING_FILE_PATTERN) with spaces
 # $(subst ?, ,$(foreach x,$5,\@^$x.*@Id;)) - delete lines started with system include paths, start new circle
-# s/ /\\ /g;                               - escape spaces
+# s/ /\\ /g;                               - escape spaces in included file path
 # s@.*@&:\n$2: &@;w $4                     - make dependencies, then write to generated dep-file
 
 SED_DEPS_SCRIPT ?= \
