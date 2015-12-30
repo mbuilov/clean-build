@@ -203,10 +203,18 @@ endif
 
 # $(SED) script to generate dependencies file from C compiler output
 # $2 - target object file, $3 - source, $4 - $(basename $2).d, $5 - prefixes of system includes to filter out
-SED_DEPS_SCRIPT ?= 1x;1s@.*@$2: $3 \\@;1x;\
-/^COMPILATION_FAILED$$/H;s@^COMPILATION_FAILED$$@/&@;\
-/^$(tab)*\//!p;/^$(tab)*\//!s@.*@|@;s@^/COMPILATION_FAILED$$@|@;/^|/!s@^$(tab)*@@;\
-$(foreach x,$5,s@^$x.*@|@;)/^|/!H;/^|/!s@.*@&:@;/^|/!x;/^|/!s@.*@& \\@;/^|/!x;$$x;$$H;$$s@.*@@;$$H;$$x;$$s@^|@@;/^|/d;w $4
+
+# /^COMPILATION_FAILED$$/w $4   - write COMPILATION_FAILED string to generated dep-file
+# /^COMPILATION_FAILED$$/d      - don't print COMPILATION_FAILED, start new circle
+# /^$(tab)*\//!{p;d;}           - print all lines not started with optional tabs and /, start new circle
+# s/^\$(tab)*//;                - strip-off leading tabs
+# $(foreach x,$5,\@^$x.*@d;)    - delete lines started with system include paths, start new circle
+# s@.*@&:\$(newline)$2: &@;w $4 - make dependencies, then write to generated dep-file
+
+SED_DEPS_SCRIPT ?= \
+-e '/^COMPILATION_FAILED$$/w $4' \
+-e '/^COMPILATION_FAILED$$/d;/^$(tab)*\//!{p;d;}' \
+-e 's/^\$(tab)*//;$(foreach x,$5,\@^$x.*@d;)s@.*@&:\$(newline)$2: &@;w $4'
 
 # WRAP_COMPILER - either just call compiler or call compiler and auto-generate dependencies
 # $1 - compiler with options, $2 - target, $3 - source, $4 - $(basename $2).d, $5 - prefixes of system includes
@@ -214,7 +222,7 @@ ifdef NO_DEPS
 WRAP_COMPILER = $1
 else
 WRAP_COMPILER ?= ($1 -H 2>&1 || echo COMPILATION_FAILED) | \
-sed -n '$(SED_DEPS_SCRIPT)' && if grep COMPILATION_FAILED $4 > /dev/null; then rm $4 && false; fi
+sed -n $(SED_DEPS_SCRIPT) && if grep COMPILATION_FAILED $4 > /dev/null; then rm $4 && false; fi
 endif
 
 # flags for application level C-compiler
