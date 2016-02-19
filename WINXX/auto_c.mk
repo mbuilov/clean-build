@@ -122,55 +122,33 @@ TMC1 := $(call qpath,$(SDK)\bin$(if $(TCPU:%64=),,\x64)\MC.Exe)
 TRC1 := $(call qpath,$(SDK)\bin$(if $(TCPU:%64=),,\x64)\RC.Exe)
 TMT1 := $(call qpath,$(SDK)\bin$(if $(TCPU:%64=),,\x64)\MT.Exe)
 
-endif
+endif # WINXP, WIN7
 
-ifeq ($(OSVARIANT),WIN8)
-
-ifndef SDK
-$(error SDK undefined, example: "C:\Program Files (x86)\Windows Kits\8.0")
-endif
-
-UMLIB  := $(SDK)\Lib\Win8\um\$(if $(UCPU:%64=),x86,x64)
-UMINC  := $(SDK)\Include\um $(SDK)\Include\shared
-UMTLIB := $(SDK)\Lib\Win8\um\$(if $(TCPU:%64=),x86,x64)
-UMTINC := $(UMINC)
-
-MC1  := $(call qpath,$(SDK)\bin\$(if $(UCPU:%64=),x86,x64)\mc.exe)
-RC1  := $(call qpath,$(SDK)\bin\$(if $(UCPU:%64=),x86,x64)\rc.exe)
-MT1  := $(call qpath,$(SDK)\bin\$(if $(UCPU:%64=),x86,x64)\mt.exe)
-TMC1 := $(call qpath,$(SDK)\bin\$(if $(TCPU:%64=),x86,x64)\mc.exe)
-TRC1 := $(call qpath,$(SDK)\bin\$(if $(TCPU:%64=),x86,x64)\rc.exe)
-TMT1 := $(call qpath,$(SDK)\bin\$(if $(TCPU:%64=),x86,x64)\mt.exe)
-
-endif
-
-ifeq ($(OSVARIANT),WIN81)
+ifneq ($(filter WIN8 WIN81 WIN10,$(OSVARIANT)),)
 
 ifndef WDK
-$(error WDK undefined, example: "C:\Program Files (x86)\Windows Kits\8.1")
+$(error WDK undefined, example: "C:\Program Files (x86)\Windows Kits\8.0")
 endif
 
-UMLIB  := $(WDK)\Lib\winv6.3\um\$(if $(UCPU:%64=),x86,x64)
+ifndef WDK_VER
+$(error WDK_VER undefined, example: "Win8, winv6.3, 10.0.10240.0")
+endif
+
+ifneq ($(filter WIN8 WIN81,$(OSVARIANT)),)
+
+UMLIB  := $(WDK)\Lib\$(WDK_VER)\um\$(if $(UCPU:%64=),x86,x64)
 UMINC  := $(WDK)\Include\um $(WDK)\Include\shared
-UMTLIB := $(WDK)\Lib\winv6.3\um\$(if $(TCPU:%64=),x86,x64)
+UMTLIB := $(WDK)\Lib\$(WDK_VER)\um\$(if $(TCPU:%64=),x86,x64)
 UMTINC := $(UMINC)
 
-endif
+else # WIN10
 
-ifeq ($(OSVARIANT),WIN10)
-
-ifndef WDK
-$(error WDK undefined, example: "C:\Program Files (x86)\Windows Kits\10")
-endif
-
-UMLIB  := $(WDK)\Lib\10.0.10240.0\um\$(if $(UCPU:%64=),x86,x64) $(WDK)\Lib\10.0.10240.0\ucrt\$(if $(UCPU:%64=),x86,x64)
-UMINC  := $(WDK)\Include\10.0.10240.0\um $(WDK)\Include\10.0.10240.0\ucrt $(WDK)\Include\10.0.10240.0\shared
-UMTLIB := $(WDK)\Lib\10.0.10240.0\um\$(if $(TCPU:%64=),x86,x64) $(WDK)\Lib\10.0.10240.0\ucrt\$(if $(TCPU:%64=),x86,x64)
+UMLIB  := $(WDK)\Lib\$(WDK_VER)\um\$(if $(UCPU:%64=),x86,x64) $(WDK)\Lib\$(WDK_VER)\ucrt\$(if $(UCPU:%64=),x86,x64)
+UMINC  := $(WDK)\Include\$(WDK_VER)\um $(WDK)\Include\$(WDK_VER)\ucrt $(WDK)\Include\$(WDK_VER)\shared
+UMTLIB := $(WDK)\Lib\$(WDK_VER)\um\$(if $(TCPU:%64=),x86,x64) $(WDK)\Lib\$(WDK_VER)\ucrt\$(if $(TCPU:%64=),x86,x64)
 UMTINC := $(UMINC)
 
-endif
-
-ifneq ($(filter WIN81 WIN10,$(OSVARIANT)),)
+endif # WIN10
 
 MC1  := $(call qpath,$(WDK)\bin\$(if $(UCPU:%64=),x86,x64)\mc.exe)
 RC1  := $(call qpath,$(WDK)\bin\$(if $(UCPU:%64=),x86,x64)\rc.exe)
@@ -179,7 +157,7 @@ TMC1 := $(call qpath,$(WDK)\bin\$(if $(TCPU:%64=),x86,x64)\mc.exe)
 TRC1 := $(call qpath,$(WDK)\bin\$(if $(TCPU:%64=),x86,x64)\rc.exe)
 TMT1 := $(call qpath,$(WDK)\bin\$(if $(TCPU:%64=),x86,x64)\mt.exe)
 
-endif
+endif # WIN8, WIN81, WIN10
 
 # DDK
 
@@ -197,7 +175,7 @@ WKCL  := $(call qpath,$(DDK)\bin\x86\$(if $(KCPU:%64=),x86,amd64)\cl.exe)
 INF2CAT  := $(call qpath,$(DDK)\bin\selfsign\Inf2Cat.exe)
 SIGNTOOL := $(call qpath,$(DDK)\bin\$(if $(KCPU:%64=),x86,amd64)\SignTool.exe)
 
-endif
+endif # WINXP
 
 ifeq ($(OSVARIANT),WIN7)
 
@@ -219,7 +197,7 @@ WKCL  := $(call qpath,$(DDK)\bin\x86\$(if $(KCPU:%64=),x86,amd64)\cl.exe)
 INF2CAT  := $(call qpath,$(DDK)\bin\selfsign\Inf2Cat.exe)
 SIGNTOOL := $(call qpath,$(DDK)\bin\$(if $(KCPU:%64=),x86,amd64)\SignTool.exe)
 
-endif
+endif # DDK
 
 ifdef WDK
 
@@ -235,41 +213,39 @@ WKCL  := $(call qpath,$(VS)\VC\bin$(if $(KCPU:%64=),,\amd64)\cl.exe)
 INF2CAT  := $(call qpath,$(WDK)\bin\x86\Inf2Cat.exe)
 SIGNTOOL := $(call qpath,$(WDK)\bin\$(if $(KCPU:%64=),x86,x64)\SignTool.exe)
 
-endif
+endif # WDK
 
-endif
+endif # WIN7
 
-ifneq ($(filter WIN8 WIN81,$(OSVARIANT)),)
+ifneq ($(filter WIN8 WIN81 WIN10,$(OSVARIANT)),)
 
 ifndef WDK
 $(error WDK undefined, example: "C:\Program Files (x86)\Windows Kits\8.1")
 endif
 
-KMLIB := $(WDK)\Lib\$(if $(OSVARIANT:WIN81=),win8,winv6.3)\km\$(if $(KCPU:%64=),x86,x64)
+ifndef WDK_VER
+$(error WDK_VER undefined, example: "Win8, winv6.3, 10.0.10240.0")
+endif
+
+ifneq ($(filter WIN8 WIN81,$(OSVARIANT)),)
+
+KMLIB := $(WDK)\Lib\$(WDK_VER)\km\$(if $(KCPU:%64=),x86,x64)
 KMINC := $(WDK)\Include\km $(WDK)\Include\km\crt $(WDK)\Include\shared
+
+else # WIN10
+
+KMLIB := $(WDK)\Lib\$(WDK_VER)\km\$(if $(KCPU:%64=),x86,x64)
+KMINC := $(WDK)\Include\$(WDK_VER)\km $(WDK)\Include\$(WDK_VER)\km\crt $(WDK)\Include\$(WDK_VER)\shared
+
+endif # WIN10
+
 WKLD  := $(call qpath,$(VS)\VC\bin$(if $(KCPU:%64=),,\amd64)\link.exe)
 WKCL  := $(call qpath,$(VS)\VC\bin$(if $(KCPU:%64=),,\amd64)\cl.exe)
 
 INF2CAT  := $(call qpath,$(WDK)\bin\x86\Inf2Cat.exe)
 SIGNTOOL := $(call qpath,$(WDK)\bin\$(if $(KCPU:%64=),x86,x64)\SignTool.exe)
 
-endif
-
-ifneq ($(filter WIN10,$(OSVARIANT)),)
-
-ifndef WDK
-$(error WDK undefined, example: "C:\Program Files (x86)\Windows Kits\10")
-endif
-
-KMLIB := $(WDK)\Lib\10.0.10240.0\km\$(if $(KCPU:%64=),x86,x64)
-KMINC := $(WDK)\Include\10.0.10240.0\km $(WDK)\Include\10.0.10240.0\km\crt $(WDK)\Include\10.0.10240.0\shared
-WKLD  := $(call qpath,$(VS)\VC\bin$(if $(KCPU:%64=),,\amd64)\link.exe)
-WKCL  := $(call qpath,$(VS)\VC\bin$(if $(KCPU:%64=),,\amd64)\cl.exe)
-
-INF2CAT  := $(call qpath,$(WDK)\bin\x86\Inf2Cat.exe)
-SIGNTOOL := $(call qpath,$(WDK)\bin\$(if $(KCPU:%64=),x86,x64)\SignTool.exe)
-
-endif
+endif # WIN8, WIN81, WIN10
 
 endif # !NO_AUTOCONF
 
