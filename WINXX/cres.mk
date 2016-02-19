@@ -76,18 +76,18 @@ BEGIN
     BEGIN
         BLOCK "$(18)$(19)"
         BEGIN
-$(if $7,VALUE "Comments"$(comma) $7 "\0"$(newline))
+$(if $7,            VALUE "Comments"$(comma) $7 "\0"$(newline))
             VALUE "CompanyName",     $8 "\0"
             VALUE "FileDescription", $9 "\0"
             VALUE "FileVersion",     $(10) "\0"
             VALUE "InternalName",    $(11) "\0"
-$(if $(12),VALUE "LegalCopyright"$(comma) $(12) "\0"$(newline))
-$(if $(13),VALUE "LegalTrademarks"$(comma) $(13) "\0"$(newline))
+$(if $(12),            VALUE "LegalCopyright"$(comma) $(12) "\0"$(newline))
+$(if $(13),            VALUE "LegalTrademarks"$(comma) $(13) "\0"$(newline))
             VALUE "OriginalFilename","$2$($1_SUFFIX)\0"
-$(if $(14),VALUE "PrivateBuild"$(comma) $(14) "\0"$(newline))
+$(if $(14),            VALUE "PrivateBuild"$(comma) $(14) "\0"$(newline))
             VALUE "ProductName",     $(15) "\0"
             VALUE "ProductVersion",  $(16) "\0"
-$(if $(17),VALUE "SpecialBuild"$(comma) $(17) "\0"$(newline))
+$(if $(17),            VALUE "SpecialBuild"$(comma) $(17) "\0"$(newline))
         END
     END
     BLOCK "VarFileInfo"
