@@ -225,10 +225,11 @@ KLIB_LD1 = $(call SUP,KLIB,$1)$(WKLD) /lib /nologo /OUT:$(call ospath,$1 $2) $(D
 
 # flags for application level C-compiler
 ifeq (undefined,$(origin APP_FLAGS))
+APP_FLAGS := /X /GF /W3 /EHsc
 ifdef DEBUG
-APP_FLAGS := /X /GF /W3 /EHsc /Od /Zi /RTCc /RTCsu /GS
+APP_FLAGS += /Od /Zi /RTCc /RTCsu /GS
 else
-APP_FLAGS := /X /GF /W3 /EHsc /Ox /GL /Gy
+APP_FLAGS += /Ox /GL /Gy
 endif
 APP_FLAGS += /wd4251 # 'class' needs to have dll-interface to be used by clients of class...
 APP_FLAGS += /wd4275 # non dll-interface class 'class' used as base for dll-interface class 'class'
@@ -384,17 +385,18 @@ DRV_LD1 = $(call SUP,KLINK,$1)$(WKLD) /nologo $(DEF_DRV_LDFLAGS) /OUT:$(call osp
   $(KLIB_PREFIX),$(KLIBS))) $(call qpath,$(call ospath,$(SYSLIBPATH)),/LIBPATH:) $(SYSLIBS) $(LDFLAGS)
 
 # flags for kernel-level C-compiler
-ifeq (undefined,$(origin KERN_FLAGS))
+ifeq (undefined,$(origin KRN_FLAGS))
+KRN_FLAGS := /X /GF /W3 /GR- /Gz /Zl /GS- /Oi /Z7
 ifdef DEBUG
-KERN_FLAGS := /X /GF /W3 /GR- /Gz /Zl /GS- /Oi /Z7 /Od
+KRN_FLAGS := /Od
 else
-KERN_FLAGS := /X /GF /W3 /GR- /Gz /Zl /GS- /Ox /GL /Gy
+KRN_FLAGS := /Gy
 endif
 endif
 
 # $1 - outdir, $2 - sources, $3 - flags
 # target-specific: DEFINES, INCLUDE
-CMN_KCL = $(WKCL) /nologo /c $(KERN_FLAGS) $(call SUBST_DEFINES,$(addprefix /D,$(DEFINES))) $(call \
+CMN_KCL = $(WKCL) /nologo /c $(KRN_FLAGS) $(call SUBST_DEFINES,$(addprefix /D,$(DEFINES))) $(call \
   qpath,$(call ospath,$(INCLUDE)) $(KMINC),/I) /Fo$(ospath) /Fd$(ospath) $3 $(call ospath,$2)
 
 ifdef SEQ_BUILD
@@ -416,7 +418,7 @@ DRV_LD    = $(DRV_LD1)
 FORCE_SYNC_PDB_KERN ?= $(FORCE_SYNC_PDB)
 
 # option for parallel builds, starting from Visual Studio 2013
-KERN_FLAGS += $(FORCE_SYNC_PDB_KERN) #/FS
+KRN_FLAGS += $(FORCE_SYNC_PDB_KERN) #/FS
 
 else # !SEQ_BUILD
 
@@ -803,7 +805,7 @@ $(call CLEAN_BUILD_PROTECT_VARS,SEQ_BUILD YASMC FLEXC BISONC MC SUPPRESS_RC_LOGO
   $(foreach v,R $(VARIANTS_FILTER),LIB_$v_CC LIB_$v_CXX EXE_$v_CC EXE_$v_CXX DLL_$v_CC DLL_$v_CXX EXE_$v_LD DLL_$v_LD LIB_$v_LD) \
   CMN_MCL2 CMN_MCL1 CMN_RMCL CMN_SMCL CMN_RUMCL CMN_SUMCL FILTER_SDEPS CMN_MCL MULTI_COMPILERS_TEMPLATE \
   $(foreach v,R $(VARIANTS_FILTER),PCH_$v_CC PCH_$v_CXX) \
-  DEF_DRV_LDFLAGS DRV_LD1 KERN_FLAGS CMN_KCL KDEPS_INCLUDE_FILTER CMN_KCC KLIB_R_CC DRV_R_CC KLIB_LD DRV_LD FORCE_SYNC_PDB_KERN \
+  DEF_DRV_LDFLAGS DRV_LD1 KRN_FLAGS CMN_KCL KDEPS_INCLUDE_FILTER CMN_KCC KLIB_R_CC DRV_R_CC KLIB_LD DRV_LD FORCE_SYNC_PDB_KERN \
   CMN_MKCL1 CMN_MKCL PCH_KCC KLIB_R_ASM BISON FLEX \
   PCH_TEMPLATE1 PCH_TEMPLATE2 PCH_TEMPLATE3 PCH_TEMPLATE KPCH_TEMPLATE1 KPCH_TEMPLATE ADD_WITH_PCH \
   TRG_ALL_DEPS1 TRG_ALL_DEPS \
