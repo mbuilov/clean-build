@@ -160,7 +160,6 @@ ifdef MDEBUG
 $(call dump,MTOP TOP XTOP TARGET OS CPU UCPU KCPU TCPU)
 endif
 
-# check that internal variables were not changed in target makefiles
 ifdef MCHECK
 
 # check that $(CURRENT_MAKEFILE) is not already processed
@@ -413,11 +412,12 @@ GET_VARIANTS = $(patsubst ,R,$(filter R $(call $2,$1),$(wordlist 2,999999,$($1))
 # $1 - EXE,LIB,...
 GET_TARGET_NAME = $(firstword $($1))
 
+ifdef MDEBUG
+
 # code to print targets which makefile is required to build
 # $1 - targets to build (EXE,LIB,DLL,...)
 # $2 - function to form target file name (FORM_TRG), must be defined at time of $(eval)
 # $3 - variants filter function (VARIANTS_FILTER), must be defined at time of $(eval)
-ifdef MDEBUG
 define DEBUG_TARGETS1
 ifneq ($$($t),)
 $$(foreach v,$$(call GET_VARIANTS,$t,$3),$$(info $$(if $$(CB_TOOL_MODE),[TOOL]: )$t $$(subst \
@@ -425,6 +425,7 @@ $$(foreach v,$$(call GET_VARIANTS,$t,$3),$$(info $$(if $$(CB_TOOL_MODE),[TOOL]: 
 endif
 endef
 GET_DEBUG_TARGETS = $(foreach t,$1,$(newline)$(DEBUG_TARGETS1))
+
 endif # MDEBUG
 
 # form name of target objects directory
@@ -433,14 +434,16 @@ endif # MDEBUG
 # add target-specific suffix(_EXE,_LIB,_DLL,...) to distinguish objects for the targets with equal names
 FORM_OBJ_DIR = $(OBJ_DIR)/$(GET_TARGET_NAME)$(if $(filter-out R,$2),_$2)_$1
 
-# check that files $1 are generated in $(GEN_DIR), $(BIN_DIR), $(OBJ_DIR) or $(LIB_DIR)
 ifdef MCHECK
+
+# check that files $1 are generated in $(GEN_DIR), $(BIN_DIR), $(OBJ_DIR) or $(LIB_DIR)
 define CHECK_GENERATED
 ifneq ($(filter-out $(GEN_DIR)/% $(BIN_DIR)/% $(OBJ_DIR)/% $(LIB_DIR)/%,$1),)
 $$(error some files are generated not under $$(GEN_DIR), $$(BIN_DIR), $$(OBJ_DIR) or $$(LIB_DIR): $(filter-out \
   $(GEN_DIR)/% $(BIN_DIR)/% $(OBJ_DIR)/% $(LIB_DIR)/%,$1))
 endif
 endef
+
 endif # MCHECK
 
 # add generated files $1 to build sequence
@@ -470,16 +473,18 @@ $1: $(call FIXPATH,$2)
 MULTI_TARGET_NUM += 1
 endef
 
+ifdef MCHECK
+
 # NOTE: must not use $@ in rule because it may have different values (any target from multi-targets list),
 #       must not use $(lastword $^) - tail of list of prerequisites may have different values (becase of different $@)
 # $3 - rule
-ifdef MCHECK
 MULTI_TARGET_CHECK = $(if \
   $(filter-out $(words x$3x),$(words x$(subst $$@, ,$3)x)),$(warning \
    do not use $$@ in rule:$(newline)$3))$(if \
   $(filter-out $(words x$(strip $3)x),$(words x$(subst $$(lastword $$^), 1 ,$(strip $3))x)),$(warning \
    do not use $$(lastword $$^) in rule:$(newline)$3))
-endif
+
+endif # MCHECK
 
 # make chain of dependency of multi-targets on each other: 2: | 1, 3: | 2, 4: | 3, ...
 # $1 - list of generated files (absolute paths)
