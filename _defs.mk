@@ -40,10 +40,11 @@ include $(MTOP)/top.mk
 include $(MTOP)/protection.mk
 include $(MTOP)/functions.mk
 
+ifdef TARGET
+# defined $(DEBUG) to use it in $(PROJECT), if $(TARGET) is defined
 # $(DEBUG) is non-empty for DEBUG targets like PROJECTD
-# note: for now, DEBUG is recursive - TARGET may be later defined in $(PROJECT)
-# note: below DEBUG will be defined as non-recursive
-DEBUG = $(filter %D,$(TARGET))
+DEBUG := $(filter %D,$(TARGET))
+endif
 
 # $(TOP)/make/project.mk, if exists, should define something like:
 # SUPPORTED_OSES    := WINXX SOLARIS LINUX
@@ -129,12 +130,14 @@ endif
 
 # fix variables - make them nonrecursive
 TARGET   := $(TARGET)
-DEBUG    := $(DEBUG)
 OS       := $(OS)
 CPU      := $(CPU)
 UCPU     := $(UCPU)
 KCPU     := $(KCPU)
 TCPU     := $(TCPU)
+
+# $(DEBUG) is non-empty for DEBUG targets like PROJECTD
+DEBUG := $(filter %D,$(TARGET))
 
 # run via $(MAKE) V=1 for verbose output
 ifeq ("$(origin V)","command line")
