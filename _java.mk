@@ -45,27 +45,46 @@ ifeq (undefined,$(origin SCALAC_OPTIONS))
 SCALAC_OPTIONS := $(if $(DEBUG),-g:vars)
 endif
 
+ifndef ARGS_FILE_SOURCES_PER_LINE
+ARGS_FILE_SOURCES_PER_LINE := 40
+endif
+
+# create arguments file for java compiler
+# $1 - sources
+# $2 - args file name
+CREATE_JARGS_FILE1 = $(if $(VERBOSE),,@)$(call ECHO_LINE,$1) >> $2
+CREATE_JARGS_FILE = $(call DEL,$2)$(newline)$(call \
+  xcmd,CREATE_JARGS_FILE1,$1,$(ARGS_FILE_SOURCES_PER_LINE),$2)$(newline)$(if $(VERBOSE),,@)
+
 # compile $1 - .java sources
 # note: javac call is added just before creating jar - all .java sources are compiled at once
 # target-specific: JAVAC_FLAGS, OBJDIR, CLASSPATH, EXTJARS, JARS
-JAVA_CC1 = $(call SUP,JAVAC,$1)$(JAVAC) $(JAVAC_OPTIONS) $(JAVAC_FLAGS) -d $(call ospath,$(OBJDIR)) $(ospath) $(call \
+JAVA_CC2 = $(if $(word $(ARGS_FILE_SOURCES_PER_LINE),$1),$(call CREATE_JARGS_FILE,$1,$(OBJDIR)/java.txt)) \
+  $(JAVAC) $(JAVAC_OPTIONS) $(JAVAC_FLAGS) -d $(call ospath,$(OBJDIR)) $(if \
+  $(word $(ARGS_FILE_SOURCES_PER_LINE),$1),@$(OBJDIR)/java.txt,$1) $(call \
   FORM_CLASS_PATH,$(OBJDIR) $(CLASSPATH) $(EXTJARS) $(JARS))$(newline)
+JAVA_CC1 = $(call SUP,JAVAC,$1)$(call JAVA_CC2,$(ospath))
 JAVA_CC  = $(if $1,$(JAVA_CC1))
 
 # compile $1 - .scala, parse $2 - .java sources
 # note: $2 - .java sources only parsed by scala compiler - it does not compiles .java sources
 # target-specific: SCALAC_FLAGS, OBJDIR, CLASSPATH, EXTJARS, JARS
-SCALA_CC1 = $(call SUP,SCALAC,$1)$(SCALAC) $(SCALAC_OPTIONS) $(SCALAC_FLAGS) -d $(call ospath,$(OBJDIR)) $(call \
-  ospath,$1 $2) $(call FORM_CLASS_PATH,$(OBJDIR) $(CLASSPATH) $(EXTJARS) $(JARS))$(newline)
+SCALA_CC2 = $(if $(word $(ARGS_FILE_SOURCES_PER_LINE),$1),$(call CREATE_JARGS_FILE,$1,$(OBJDIR)/scala.txt)) \
+  $(SCALAC) $(SCALAC_OPTIONS) $(SCALAC_FLAGS) -d $(call ospath,$(OBJDIR)) $(if \
+  $(word $(ARGS_FILE_SOURCES_PER_LINE),$1),@$(OBJDIR)/scala.txt,$1) $(call \
+  FORM_CLASS_PATH,$(OBJDIR) $(CLASSPATH) $(EXTJARS) $(JARS))$(newline)
+SCALA_CC1 = $(call SUP,SCALAC,$1)$(call SCALA_CC2,$(call ospath,$1 $2))
 SCALA_CC  = $(if $1,$(if $(SCALAC),$(SCALA_CC1),$(error \
   SCALAC not defined, example: $$(JAVA) $$(call FORM_CLASS_PATH,scala-compiler-2.11.6.jar) scala.tools.nsc.Main)))
 
 # make jar, $1 - .jar target
 # target-specific: JRFLAGS, MANIFEST, OBJDIR, ALL_BUNDLES
-JAR_LD1 = $(call SUP,JAR,$1)$(JARC) $(JRFLAGS) -cf$(if $(MANIFEST),m) $(ospath) $(call ospath,$(MANIFEST)) -C $(call \
-  ospath,$(OBJDIR)) . $(ALL_BUNDLES)$(DEL_ON_FAIL)
+JAR_LD1 = $(call SUP,JAR,$1)$(if $(word $(ARGS_FILE_SOURCES_PER_LINE),$(ALL_BUNDLES)),$(call \
+  CREATE_JARGS_FILE,$(ALL_BUNDLES),$(OBJDIR)/jar.txt))$(JARC) $(JRFLAGS) -cf$(if $(MANIFEST),m) $(ospath) $(call \
+  ospath,$(MANIFEST)) -C $(call ospath,$(OBJDIR)) . $(if \
+  $(word $(ARGS_FILE_SOURCES_PER_LINE),$(ALL_BUNDLES)),@$(OBJDIR)/jar.txt,$(ALL_BUNDLES))$(DEL_ON_FAIL)
 
-# note: always rebuild all sources if any of $(JARS), $(EXTJARS), $(JSRC), $(SCALA) or $(JSCALA) is newer that the target jar
+# note: always rebuild all sources if any of $(JARS), $(EXTJARS), $(JSRC), $(SCALA) or $(JSCALA) is newer than the target jar
 # because $(JARC) do not checks cross-classes dependencies, it just creates .zip
 # target-specific: JARS, EXTJARS, JSRC, SCALA, JSCALA
 JAR_LD = $(if $(filter $(JARS) $(EXTJARS) $(JSRC) $(SCALA) $(JSCALA),$?),$(call \
@@ -142,5 +161,6 @@ MAKE_JAVA_EVAL = $(eval $(PREPARE_JAVA_VARS)$(DEF_HEAD_CODE))
 # protect variables from modifications in target makefiles
 $(call CLEAN_BUILD_PROTECT_VARS,JLINT BLD_JTARGETS DEBUG_JAVA_TARGETS \
   FORM_JTRG FORM_JAR_BUNDLES MAKE_BUNDLE_DEPS FORM_CLASS_PATH JAVAC_OPTIONS SCALAC_OPTIONS \
-  JAVA_CC1 JAVA_CC SCALA_CC1 SCALA_CC JAR_LD1 JAR_LD JAR_TEMPLATE JAR_RULES \
+  ARGS_FILE_SOURCES_PER_LINE CREATE_JARGS_FILE1 CREATE_JARGS_FILE \
+  JAVA_CC2 JAVA_CC1 JAVA_CC SCALA_CC2 SCALA_CC1 SCALA_CC JAR_LD1 JAR_LD JAR_TEMPLATE JAR_RULES \
   DEFINE_JAVA_TARGETS_EVAL PREPARE_JAVA_VARS MAKE_JAVA_EVAL)
