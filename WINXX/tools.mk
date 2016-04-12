@@ -24,7 +24,7 @@ ospath = $(subst /,\,$1)
 # NOTE: assume there are no spaces and ':' in the path to sources
 isrelpath = $(if $(word 2,$(subst :, ,$1)),,1)
 
-DEL   = (if exist $(ospath) del /F /Q $(ospath))
+DEL   = if exist $(ospath) (del /F /Q $(ospath))
 RM1   = $(if $(VERBOSE),,@)for %%f in ($(ospath)) do if exist %%f\NUL (rd /S /Q %%f) else if exist %%f (del /F /Q %%f)
 RM    = $(call xcmd,RM1,$1,$(DEL_ARGS_LIMIT))
 # NOTE! there are races in MKDIR - if make spawns two parallel jobs:
