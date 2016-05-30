@@ -1,4 +1,8 @@
-# try to auto-determine TOP
+#!/bin/sh
+
+# helper for auto-setting ${TOP} environment variable:
+# look for .top file in top-level directories
+
 for f in \
 . \
 .. \

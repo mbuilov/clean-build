@@ -1,6 +1,8 @@
+@rem helper for auto-setting %TOP% environment variable:
+@rem look for .top file in top-level directories
+
 @echo off
 
-rem find .top
 setlocal
 for %%x in (
 .
