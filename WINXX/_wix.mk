@@ -82,7 +82,7 @@ $2: WEXTS := $(WEXTS)
 $2: WINCLUDE := $(WINCLUDE)
 $2: $6
 	$$(call $1_LD,$$@,$$(filter %.wixobj,$$^))
-CLEAN += $6 $(basename $2).wixpdb
+$(call TOCLEAN,$6 $(basename $2).wixpdb)
 endef
 
 # how to build installer msi or exe

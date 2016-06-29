@@ -118,7 +118,7 @@ $5/$7$(OBJ_SUFFIX): $3 $(call EXTRACT_DEPS,$3,$4) | $5 $$(ORDER_DEPS)
 ifeq ($(NO_DEPS),)
 -include $5/$7.d
 endif
-CLEAN += $5/$7.d
+$(call TOCLEAN,$5/$7.d)
 endef
 
 # rule that defines how to build objects from sources
@@ -229,7 +229,7 @@ $1: SYSLIBS    := $(SYSLIBS) $(EXE_SYSLIBS)
 $1: SYSLIBPATH := $(SYSLIBPATH) $(EXE_SYSLIBPATH)
 $1: $(call DEP_LIBS,EXE,$v) $(call DEP_IMPS,EXE,$v) $5
 	$$(call EXE_$v_LD,$$@,$$(filter %$(OBJ_SUFFIX),$$^))
-CLEAN += $5
+$(call TOCLEAN,$5)
 endef
 
 # how to build executable
@@ -256,7 +256,7 @@ $1: CXXFLAGS   := $(CXXFLAGS) $(LIB_CXXFLAGS)
 $1: LDFLAGS    := $(LDFLAGS) $(LIB_LDFLAGS)
 $1: $5
 	$$(call LIB_$v_LD,$$@,$$(filter %$(OBJ_SUFFIX),$$^))
-CLEAN += $5
+$(call TOCLEAN,$5)
 endef
 
 # how to build static library for EXE/DLL or static library for DLL only
@@ -288,7 +288,7 @@ $1: SYSLIBS    := $(SYSLIBS) $(DLL_SYSLIBS)
 $1: SYSLIBPATH := $(SYSLIBPATH) $(DLL_SYSLIBPATH)
 $1: $(call DEP_LIBS,DLL,$v) $(call DEP_IMPS,DLL,$v) $5
 	$$(call DLL_$v_LD,$$@,$$(filter %$(OBJ_SUFFIX),$$^))
-CLEAN += $5
+$(call TOCLEAN,$5)
 endef
 
 # how to build dynamic (shared) library
@@ -313,7 +313,7 @@ $1: ASMFLAGS   := $(ASMFLAGS) $(KLIB_ASMFLAGS)
 $1: LDFLAGS    := $(LDFLAGS) $(KLIB_LDFLAGS)
 $1: $5
 	$$(call KLIB_LD,$$@,$$(filter %$(OBJ_SUFFIX),$$^))
-CLEAN += $5
+$(call TOCLEAN,$5)
 endef
 
 # how to build kernel-mode static library for driver

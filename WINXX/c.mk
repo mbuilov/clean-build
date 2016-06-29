@@ -476,7 +476,7 @@ PCH_CXX_SRC := $(GEN_DIR)/pch/$2_$1_$3_cpp.cpp
 NEEDED_DIRS += $(GEN_DIR)/pch
 $$(PCH_C_SRC) $$(PCH_CXX_SRC): | $(GEN_DIR)/pch
 	$(if $(VERBOSE),,@)echo #include "$$(PCH)" > $$@
-CLEAN += $$(if $$(filter %.c,$$(TRG_WITH_PCH)),$$(PCH_C_SRC)) $$(if $$(filter %.cpp,$$(TRG_WITH_PCH)),$$(PCH_CXX_SRC))
+$$(call TOCLEAN,$$(if $$(filter %.c,$$(TRG_WITH_PCH)),$$(PCH_C_SRC)) $$(if $$(filter %.cpp,$$(TRG_WITH_PCH)),$$(PCH_CXX_SRC)))
 endef
 
 # $1 - EXE,LIB,DLL
@@ -504,9 +504,9 @@ ifeq ($(NO_DEPS),)
   $$(filter %.c,$$(TRG_WITH_PCH)),$$(basename $$(notdir $$(PCH_C_SRC))).d) $$(if \
   $$(filter %.cpp,$$(TRG_WITH_PCH)),$$(basename $$(notdir $$(PCH_CXX_SRC))).d))
 endif
-CLEAN += $$(PCH_OBJS)
-CLEAN += $$(if $$(filter %.c,$$(TRG_WITH_PCH)),$4/$3_c.pch $4/$$(basename $$(notdir $$(PCH_C_SRC))).d)
-CLEAN += $$(if $$(filter %.cpp,$$(TRG_WITH_PCH)),$4/$3_cpp.pch $4/$$(basename $$(notdir $$(PCH_CXX_SRC))).d)
+$$(call TOCLEAN,$$(PCH_OBJS))
+$$(call TOCLEAN,$$(if $$(filter %.c,$$(TRG_WITH_PCH)),$4/$3_c.pch $4/$$(basename $$(notdir $$(PCH_C_SRC))).d))
+$$(call TOCLEAN,$$(if $$(filter %.cpp,$$(TRG_WITH_PCH)),$4/$3_cpp.pch $4/$$(basename $$(notdir $$(PCH_CXX_SRC))).d))
 endef
 
 # $1 - EXE,LIB,DLL
@@ -544,7 +544,7 @@ $5: $$(PCH_C_OBJ)
 ifeq ($(NO_DEPS),)
 -include $4/$$(basename $$(notdir $$(PCH_C_SRC))).d
 endif
-CLEAN += $$(PCH_C_OBJ) $$(PCH_C_SRC) $4/$3_c.pch $4/$$(basename $$(notdir $$(PCH_C_SRC))).d
+$$(call TOCLEAN,$$(PCH_C_OBJ) $$(PCH_C_SRC) $4/$3_c.pch $4/$$(basename $$(notdir $$(PCH_C_SRC))).d)
 endef
 
 # $1 - KLIB,DRV
@@ -576,7 +576,7 @@ $4: SRC := $1
 $4: SDEPS := $2
 $4: $1 $3
 ifdef DEBUG
-CLEAN += $5/vc*.pdb $(4:$(EXE_SUFFIX)=.pdb)
+$(call TOCLEAN,$5/vc*.pdb $(4:$(EXE_SUFFIX)=.pdb))
 endif
 endef
 
@@ -607,7 +607,7 @@ $4: SRC := $1
 $4: SDEPS := $2
 $4: $1 $3
 ifdef DEBUG
-CLEAN += $5/vc*.pdb
+$(call TOCLEAN,$5/vc*.pdb)
 endif
 endef
 
@@ -645,7 +645,7 @@ $4: $1 $3 $7 | $(IMP_DIR)
 NEEDED_DIRS += $(IMP_DIR)
 $6$(IMP_SUFFIX): $4
 ifdef DEBUG
-CLEAN += $5/vc*.pdb $(4:$(DLL_SUFFIX)=.pdb) $6$(IMP_SUFFIX) $6.exp
+$(call TOCLEAN,$5/vc*.pdb $(4:$(DLL_SUFFIX)=.pdb) $6$(IMP_SUFFIX) $6.exp)
 endif
 endef
 
@@ -676,7 +676,7 @@ $1: SRC := $2
 $1: SDEPS := $(call TRG_DEPS,KLIB)
 $1: $2 $(call TRG_ALL_DEPS,KLIB)
 ifdef DEBUG
-CLEAN += $(call FORM_OBJ_DIR,KLIB)/vc*.pdb
+$(call TOCLEAN,$(call FORM_OBJ_DIR,KLIB)/vc*.pdb)
 endif
 endef
 
@@ -700,7 +700,7 @@ define ADD_MC_RULE1
 MC_DIR := $(GEN_DIR)/$(call GET_TARGET_NAME,$1)_$1_MC
 MC_H   := $$(MC_DIR)/$(basename $(notdir $2)).h
 MC_RC  := $$(MC_DIR)/$(basename $(notdir $2)).rc
-CLEAN += $$(MC_DIR)
+$$(call TOCLEAN,$$(MC_DIR))
 $$(call MULTI_TARGET,$$(MC_H) $$(MC_RC),$2,$$$$(call MC,$$(MC_H) $$(MC_RC)) -h $$(call \
   ospath,$$(MC_DIR)) -r $$(call ospath,$$(MC_DIR)) $$$$(call ospath,$$$$<))
 endef
@@ -765,9 +765,9 @@ $1: SYSLIBS    := $(SYSLIBS) $(DRV_SYSLIBS)
 $1: SYSLIBPATH := $(SYSLIBPATH) $(DRV_SYSLIBPATH)
 $1: $(addsuffix $(KLIB_SUFFIX),$(addprefix $(LIB_DIR)/$(KLIB_PREFIX),$(KLIBS))) $5 $2 $(call TRG_ALL_DEPS,DRV)
 	$$(call DRV_LD,$$@,$$(filter %$(OBJ_SUFFIX),$$^))
-CLEAN += $5
+$(call TOCLEAN,$5)
 ifdef DEBUG
-CLEAN += $4/vc*.pdb $(1:$(DRV_SUFFIX)=.pdb)
+$(call TOCLEAN,$4/vc*.pdb $(1:$(DRV_SUFFIX)=.pdb))
 endif
 endef
 
@@ -785,7 +785,7 @@ $(if $(LIB),$(LIB_AUX_TEMPLATE))
 $(if $(DLL),$(DLL_AUX_TEMPLATE))
 $(if $(KLIB),$(KLIB_AUX_TEMPLATE))
 $(DRV_RULES)
-CLEAN += $(RES) $(foreach x,$(BLD_TARGETS),$$($x_RES))
+$$(call TOCLEAN,$(RES) $(foreach x,$(BLD_TARGETS),$$($x_RES)))
 CB_WINXX_RES_RULES=
 NO_STD_RES:=
 endef

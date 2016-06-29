@@ -115,7 +115,7 @@ $1: SCALAC_FLAGS := $(SCALAC_FLAGS)
 $1: JRFLAGS      := $(JRFLAGS)
 $1: $(EXTJARS) $7 $2 $3 $4 $5 $(call MAKE_BUNDLE_DEPS,$(BUNDLE_FILES)) | $6
 	$$(eval $1: COMMANDS := $(subst $$,$$$$,$(JARACTIONS)))$$(COMMANDS)$$(call JAR_LD,$$@)
-CLEAN += $6
+$(call TOCLEAN,$6)
 endef
 
 # how to build .jar library template

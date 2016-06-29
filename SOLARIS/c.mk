@@ -342,7 +342,7 @@ $1: ASMFLAGS   := $(ASMFLAGS) $(DRV_ASMFLAGS)
 $1: LDFLAGS    := $(LDFLAGS) $(DRV_LDFLAGS)
 $1: $(addsuffix $(KLIB_SUFFIX),$(addprefix $(LIB_DIR)/$(KLIB_PREFIX),$(KLIBS))) $5
 	$$(call DRV_LD,$$@,$$(filter %$(OBJ_SUFFIX),$$^))
-CLEAN += $5
+$(call TOCLEAN,$5)
 endef
 
 # how to build driver

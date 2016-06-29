@@ -128,7 +128,7 @@ TRG_RES := $3/$2_$1.res
 $$(TRG_RES): $$(TRG_RC) $(WIN_RC_PRODUCT_DEFS_HEADER) | $3
 	$$(call RC,$$@,$$<)
 NEEDED_DIRS += $(GEN_DIR)/stdres $3
-CLEAN += $$(TRG_RC)
+$$(call TOCLEAN,$$(TRG_RC))
 $1_RES += $$(TRG_RES)
 endef
 

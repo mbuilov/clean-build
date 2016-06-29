@@ -323,7 +323,7 @@ ifeq ($(NO_DEPS),)
 -include $$(C_GCH).d)
 endif
 $$(addprefix $2/,$$(addsuffix $(OBJ_SUFFIX),$$(basename $$(notdir $$(filter %.c,$$(TRG_WITH_PCH)))))): $$(C_GCH).gch
-CLEAN += $$(C_GCH).gch $$(C_GCH).d
+$$(call TOCLEAN,$$(C_GCH).gch $$(C_GCH).d)
 endif
 ifneq ($$(filter %.cpp,$$(TRG_WITH_PCH)),)
 CXX_GCH := $2/$$(basename $$(notdir $$(TRG_PCH)))_pch_cxx.h
@@ -333,7 +333,7 @@ ifeq ($(NO_DEPS),)
 -include $$(CXX_GCH).d
 endif
 $$(addprefix $2/,$$(addsuffix $(OBJ_SUFFIX),$$(basename $$(notdir $$(filter %.cpp,$$(TRG_WITH_PCH)))))): $$(CXX_GCH).gch
-CLEAN += $$(CXX_GCH).gch $$(CXX_GCH).d
+$$(call TOCLEAN,$$(CXX_GCH).gch $$(CXX_GCH).d)
 ndif
 endef # PCH_TEMPLATE1
 
@@ -414,7 +414,7 @@ $4/$(DRV_PREFIX)$(DRV)$(DRV_SUFFIX): $(addprefix $4/,$(notdir $2) $5) | $4/Makef
   KBUILD_EXTRA_SYMBOLS=,$(KBUILD_EXTRA_SYMBOLS)) -C $(MODULES_PATH) M=$$(patsubst %/,%,$$(dir $$@)) $(addprefix ARCH=,$(ARCH))
 $1: $4/$(DRV_PREFIX)$(DRV)$(DRV_SUFFIX) | $(BIN_DIR)
 	$$(call SUP,CP,$$@)cp -f$(if $(VERBOSE),v) $$< $$@
-CLEAN += $4
+$(call TOCLEAN,$4)
 endef
 
 # how to build kernel module
