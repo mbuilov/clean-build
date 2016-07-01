@@ -562,12 +562,12 @@ ADD_WITH_PCH = $(eval $1_WITH_PCH += $2)
 # auxiliary dependencies
 
 # $1 - EXE,LIB,DLL,...
-TRG_ALL_DEPS1 = $(if $1,$(word 2,$1) $(call TRG_ALL_DEPS1,$(wordlist 3,999999,$1)))
-TRG_ALL_DEPS = $(call FIXPATH,$(subst |, ,$(call TRG_ALL_DEPS1,$(SDEPS) $($1_SDEPS))))
+TRG_ALL_SDEPS1 = $(if $1,$(word 2,$1) $(call TRG_ALL_SDEPS1,$(wordlist 3,999999,$1)))
+TRG_ALL_SDEPS = $(call FIXPATH,$(subst |, ,$(call TRG_ALL_SDEPS1,$(SDEPS) $($1_SDEPS))))
 
 # $1 - $(call TRG_SRC,EXE)
-# $2 - $(call TRG_DEPS,EXE)
-# $3 - $(call TRG_ALL_DEPS,EXE)
+# $2 - $(call TRG_SDEPS,EXE)
+# $3 - $(call TRG_ALL_SDEPS,EXE)
 # $4 - $(call FORM_TRG,EXE,$v)
 # $5 - $(call FORM_OBJ_DIR,EXE,$v)
 define EXE_AUX_TEMPLATE2
@@ -581,8 +581,8 @@ endif
 endef
 
 # $1 - $(call TRG_SRC,EXE)
-# $2 - $(call TRG_DEPS,EXE)
-# $3 - $(call TRG_ALL_DEPS,EXE)
+# $2 - $(call TRG_SDEPS,EXE)
+# $3 - $(call TRG_ALL_SDEPS,EXE)
 EXE_AUX_TEMPLATE1 = $(foreach v,$(call GET_VARIANTS,EXE,VARIANTS_FILTER),$(call \
   EXE_AUX_TEMPLATE2,$1,$2,$3,$(call FORM_TRG,EXE,$v),$(call FORM_OBJ_DIR,EXE,$v)))
 
@@ -593,12 +593,12 @@ EXE_AUX_TEMPLATE1 = $(foreach v,$(call GET_VARIANTS,EXE,VARIANTS_FILTER),$(call 
 define EXE_AUX_TEMPLATE
 $(call STD_RES_TEMPLATE,EXE)
 $(call PCH_TEMPLATE,EXE)
-$(call EXE_AUX_TEMPLATE1,$(call TRG_SRC,EXE),$(call TRG_DEPS,EXE),$(call TRG_ALL_DEPS,EXE))
+$(call EXE_AUX_TEMPLATE1,$(call TRG_SRC,EXE),$(call TRG_SDEPS,EXE),$(call TRG_ALL_SDEPS,EXE))
 endef
 
 # $1 - $(call TRG_SRC,LIB)
-# $2 - $(call TRG_DEPS,LIB)
-# $3 - $(call TRG_ALL_DEPS,LIB)
+# $2 - $(call TRG_SDEPS,LIB)
+# $3 - $(call TRG_ALL_SDEPS,LIB)
 # $4 - $(call FORM_TRG,LIB,$v)
 # $5 - $(call FORM_OBJ_DIR,LIB,$v)
 define LIB_AUX_TEMPLATE2
@@ -612,8 +612,8 @@ endif
 endef
 
 # $1 - $(call TRG_SRC,LIB)
-# $2 - $(call TRG_DEPS,LIB)
-# $3 - $(call TRG_ALL_DEPS,LIB)
+# $2 - $(call TRG_SDEPS,LIB)
+# $3 - $(call TRG_ALL_SDEPS,LIB)
 LIB_AUX_TEMPLATE1 = $(foreach v,$(call GET_VARIANTS,LIB,VARIANTS_FILTER),$(call \
   LIB_AUX_TEMPLATE2,$1,$2,$3,$(call FORM_TRG,LIB,$v),$(call FORM_OBJ_DIR,LIB,$v)))
 
@@ -625,12 +625,12 @@ ifneq ($(RES)$(LIB_RES),)
 $$(error don't link resource(s) $(strip $(RES) $(LIB_RES)) into static library: linker will ignore resources in static library)
 endif
 $(call PCH_TEMPLATE,LIB)
-$(call LIB_AUX_TEMPLATE1,$(call TRG_SRC,LIB),$(call TRG_DEPS,LIB),$(call TRG_ALL_DEPS,LIB))
+$(call LIB_AUX_TEMPLATE1,$(call TRG_SRC,LIB),$(call TRG_SDEPS,LIB),$(call TRG_ALL_SDEPS,LIB))
 endef
 
 # $1 - $(call TRG_SRC,DLL)
-# $2 - $(call TRG_DEPS,DLL)
-# $3 - $(call TRG_ALL_DEPS,DLL)
+# $2 - $(call TRG_SDEPS,DLL)
+# $3 - $(call TRG_ALL_SDEPS,DLL)
 # $4 - $(call FORM_TRG,DLL,$v)
 # $5 - $(call FORM_OBJ_DIR,DLL,$v)
 # $6 - $(IMP_DIR)/$(IMP_PREFIX)$(call GET_TARGET_NAME,DLL)$(call VARIANT_IMP_SUFFIX,$v)
@@ -650,8 +650,8 @@ endif
 endef
 
 # $1 - $(call TRG_SRC,DLL)
-# $2 - $(call TRG_DEPS,DLL)
-# $3 - $(call TRG_ALL_DEPS,DLL)
+# $2 - $(call TRG_SDEPS,DLL)
+# $3 - $(call TRG_ALL_SDEPS,DLL)
 # $4 - $(call GET_TARGET_NAME,DLL)
 # $5 - $(call FIXPATH,$(firstword $(DLL_DEF) $(DEF)))
 DLL_AUX_TEMPLATE1 = $(foreach v,$(call GET_VARIANTS,DLL,VARIANTS_FILTER),$(call \
@@ -665,7 +665,7 @@ DLL_AUX_TEMPLATE1 = $(foreach v,$(call GET_VARIANTS,DLL,VARIANTS_FILTER),$(call 
 define DLL_AUX_TEMPLATE
 $(call STD_RES_TEMPLATE,DLL)
 $(call PCH_TEMPLATE,DLL)
-$(call DLL_AUX_TEMPLATE1,$(call TRG_SRC,DLL),$(call TRG_DEPS,DLL),$(call TRG_ALL_DEPS,DLL),$(call \
+$(call DLL_AUX_TEMPLATE1,$(call TRG_SRC,DLL),$(call TRG_SDEPS,DLL),$(call TRG_ALL_SDEPS,DLL),$(call \
   GET_TARGET_NAME,DLL),$(call FIXPATH,$(firstword $(DLL_DEF) $(DEF))))
 endef
 
@@ -673,8 +673,8 @@ endef
 # $2 - $(call TRG_SRC,KLIB)
 define KLIB_AUX_TEMPLATE1
 $1: SRC := $2
-$1: SDEPS := $(call TRG_DEPS,KLIB)
-$1: $2 $(call TRG_ALL_DEPS,KLIB)
+$1: SDEPS := $(call TRG_SDEPS,KLIB)
+$1: $2 $(call TRG_ALL_SDEPS,KLIB)
 ifdef DEBUG
 $(call TOCLEAN,$(call FORM_OBJ_DIR,KLIB)/vc*.pdb)
 endif
@@ -742,7 +742,7 @@ RC_DEFINE_PATH = "\"$(subst \,\\,$(ospath))\""
 
 # $1 - target file: $(call FORM_TRG,DRV)
 # $2 - sources:     $(call TRG_SRC,DRV)
-# $3 - deps:        $(call TRG_DEPS,DRV)
+# $3 - sdeps:       $(call TRG_SDEPS,DRV)
 # $4 - objdir:      $(call FORM_OBJ_DIR,DRV)
 # $5 - objects:     $(addprefix $4/,$(call OBJS,$2))
 define DRV_TEMPLATE
@@ -763,7 +763,7 @@ $1: ASMFLAGS   := $(ASMFLAGS) $(DRV_ASMFLAGS)
 $1: LDFLAGS    := $(LDFLAGS) $(DRV_LDFLAGS)
 $1: SYSLIBS    := $(SYSLIBS) $(DRV_SYSLIBS)
 $1: SYSLIBPATH := $(SYSLIBPATH) $(DRV_SYSLIBPATH)
-$1: $(addsuffix $(KLIB_SUFFIX),$(addprefix $(LIB_DIR)/$(KLIB_PREFIX),$(KLIBS))) $5 $2 $(call TRG_ALL_DEPS,DRV)
+$1: $(addsuffix $(KLIB_SUFFIX),$(addprefix $(LIB_DIR)/$(KLIB_PREFIX),$(KLIBS))) $5 $2 $(call TRG_ALL_SDEPS,DRV)
 	$$(call DRV_LD,$$@,$$(filter %$(OBJ_SUFFIX),$$^))
 $(call TOCLEAN,$5)
 ifdef DEBUG
@@ -773,7 +773,7 @@ endef
 
 # how to build driver
 DRV_RULES1 = $(call DRV_TEMPLATE,$1,$2,$3,$4,$(addprefix $4/,$(call OBJS,$2)))
-DRV_RULES = $(if $(DRV),$(call DRV_RULES1,$(call FORM_TRG,DRV),$(call TRG_SRC,DRV),$(call TRG_DEPS,DRV),$(call FORM_OBJ_DIR,DRV)))
+DRV_RULES = $(if $(DRV),$(call DRV_RULES1,$(call FORM_TRG,DRV),$(call TRG_SRC,DRV),$(call TRG_SDEPS,DRV),$(call FORM_OBJ_DIR,DRV)))
 
 # this code is evaluated from $(DEFINE_TARGETS)
 # NOTE: $(STD_RES_TEMPLATE) adds standard resource to $1_RES, so postpone evaluation of $($x_RES) when adding it to CLEAN
@@ -808,7 +808,7 @@ $(call CLEAN_BUILD_PROTECT_VARS,SEQ_BUILD YASMC FLEXC BISONC MC SUPPRESS_RC_LOGO
   DEF_DRV_LDFLAGS DRV_LD1 KRN_FLAGS CMN_KCL KDEPS_INCLUDE_FILTER CMN_KCC KLIB_R_CC DRV_R_CC KLIB_LD DRV_LD FORCE_SYNC_PDB_KERN \
   CMN_MKCL1 CMN_MKCL PCH_KCC KLIB_R_ASM BISON FLEX \
   PCH_TEMPLATE1 PCH_TEMPLATE2 PCH_TEMPLATE3 PCH_TEMPLATE KPCH_TEMPLATE1 KPCH_TEMPLATE ADD_WITH_PCH \
-  TRG_ALL_DEPS1 TRG_ALL_DEPS \
+  TRG_ALL_SDEPS1 TRG_ALL_SDEPS \
   EXE_AUX_TEMPLATE2 EXE_AUX_TEMPLATE1 EXE_AUX_TEMPLATE \
   LIB_AUX_TEMPLATE2 LIB_AUX_TEMPLATE1 LIB_AUX_TEMPLATE \
   DLL_AUX_TEMPLATE2 DLL_AUX_TEMPLATE1 DLL_AUX_TEMPLATE \

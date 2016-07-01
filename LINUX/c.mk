@@ -393,13 +393,13 @@ endef
 
 # $1 - target file: $(call FORM_TRG,DRV)
 # $2 - sources:     $(call TRG_SRC,DRV)
-# $3 - deps:        $(call TRG_DEPS,DRV)
+# $3 - sdeps:       $(call TRG_SDEPS,DRV)
 # $4 - gendir:      $(GEN_DIR)/$(DRV)_DRV
 # $5 - klibs:       $(addprefix $(KLIB_PREFIX),$(addsuffix $(KLIB_SUFFIX),$(KLIBS)))
 define DRV_TEMPLATE
 NEEDED_DIRS += $4
 # copy sources
-$(foreach x,$2,$(call COPY_FILE_RULE,$4,$x,$(call EXTRACT_SRC_DEPS,$x,$3)))
+$(foreach x,$2,$(call COPY_FILE_RULE,$4,$x,$(call EXTRACT_SDEPS,$x,$3)))
 # copy klibs
 $(foreach x,$5,$(call COPY_FILE_RULE,$4,$(LIB_DIR)/$x))
 $(STD_TARGET_VARS)
@@ -419,7 +419,7 @@ endef
 
 # how to build kernel module
 DRV_RULES = $(if $(DRV),$(call DRV_TEMPLATE,$(call FORM_TRG,DRV),$(call TRG_SRC,DRV),$(call \
-  TRG_DEPS,DRV),$(GEN_DIR)/$(DRV)_DRV,$(addprefix $(KLIB_PREFIX),$(addsuffix $(KLIB_SUFFIX),$(KLIBS)))))
+  TRG_SDEPS,DRV),$(GEN_DIR)/$(DRV)_DRV,$(addprefix $(KLIB_PREFIX),$(addsuffix $(KLIB_SUFFIX),$(KLIBS)))))
 
 # this code is normally evaluated at end of target Makefile
 define OS_DEFINE_TARGETS

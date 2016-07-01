@@ -553,17 +553,17 @@ endef
 # - to be able to call it with just $(MAKE_CONTINUE) in target makefile
 MAKE_CONTINUE = $(if $(if $1,$(SAVE_VARS))$(MAKE_CONTINUE_BODY_EVAL)$(if $1,$(RESTORE_VARS)),)
 
-# helper macro: make DEPS list
-# example: $(call FORM_DEPS,src1 src2,dep1 dep2 dep3) -> src1 dep1|dep2|dep3 src2 dep1|dep2|dep3
-FORM_DEPS = $(addsuffix $(space)$(call join_with,$2,|),$1)
+# helper macro: make SDEPS list
+# example: $(call FORM_SDEPS,src1 src2,dep1 dep2 dep3) -> src1 dep1|dep2|dep3 src2 dep1|dep2|dep3
+FORM_SDEPS = $(addsuffix $(space)$(call join_with,$2,|),$1)
 
 # get dependencies for source files
-# $1 - source files, $2 - deps list of pairs: <source file> <dependency1>|<dependency2>|...
-EXTRACT_DEPS = $(subst |, ,$(if $2,$(if $(filter $1,$(firstword $2)),$(word 2,$2) )$(call EXTRACT_DEPS,$1,$(wordlist 3,999999,$2))))
+# $1 - source files, $2 - sdeps list of pairs: <source file> <dependency1>|<dependency2>|...
+EXTRACT_SDEPS = $(subst |, ,$(if $2,$(if $(filter $1,$(firstword $2)),$(word 2,$2) )$(call EXTRACT_SDEPS,$1,$(wordlist 3,999999,$2))))
 
-# fix deps paths: add $(VPREFIX) value to non-absolute paths then make absolute paths
-# $1 - deps list of pairs: <source file> <dependency1>|<dependency2>|...
-FIX_DEPS = $(subst | ,|,$(call FIXPATH,$(subst |,| ,$1)))
+# fix sdeps paths: add $(VPREFIX) value to non-absolute paths then make absolute paths
+# $1 - sdeps list of pairs: <source file> <dependency1>|<dependency2>|...
+FIX_SDEPS = $(subst | ,|,$(call FIXPATH,$(subst |,| ,$1)))
 
 # protect variables from modifications in target makefiles
 CLEAN_BUILD_PROTECTED_VARS += MTOP MAKEFLAGS NO_DEPS DEBUG PROJECT \
@@ -576,4 +576,4 @@ CLEAN_BUILD_PROTECTED_VARS += MTOP MAKEFLAGS NO_DEPS DEBUG PROJECT \
   DEF_TAIL_CODE_DEBUG DEF_HEAD_CODE DEF_HEAD_CODE_EVAL DEF_TAIL_CODE DEF_TAIL_CODE_EVAL \
   GET_VARIANTS GET_TARGET_NAME DEBUG_TARGETS1 GET_DEBUG_TARGETS FORM_OBJ_DIR \
   CHECK_GENERATED ADD_GENERATED MULTI_TARGET_RULE MULTI_TARGET_CHECK MULTI_TARGET_SEQ MULTI_TARGET \
-  DEFINE_TARGETS SAVE_VARS RESTORE_VARS MAKE_CONTINUE_BODY_EVAL MAKE_CONTINUE FORM_DEPS EXTRACT_DEPS FIX_DEPS
+  DEFINE_TARGETS SAVE_VARS RESTORE_VARS MAKE_CONTINUE_BODY_EVAL MAKE_CONTINUE FORM_SDEPS EXTRACT_SDEPS FIX_SDEPS

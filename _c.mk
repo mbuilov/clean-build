@@ -108,12 +108,12 @@ endif
 OSVARS := $(foreach r,$(BLD_VARS) $(foreach t,$(BLD_TARGETS),$(addprefix $t_,$(TRG_VARS))),$(call OSVAR,$r))
 
 # rule that defines how to build object from source
-# $1 - EXE,LIB,... $2 - CXX,CC,ASM,... $3 - source, $4 - deps, $5 - objdir, $6 - variant (non-empty!), $7 - $(basename $(notdir $3))
+# $1 - EXE,LIB,... $2 - CXX,CC,ASM,... $3 - source, $4 - sdeps, $5 - objdir, $6 - variant (non-empty!), $7 - $(basename $(notdir $3))
 # if $(NO_DEPS) is empty, then try to include dependency file .d (ignore if file does not exist)
 # note: $(NO_DEPS) - may be recursive and so have different values, for example depending on value of $(CURRENT_MAKEFILE)
 define OBJ_RULE
 $(empty)
-$5/$7$(OBJ_SUFFIX): $3 $(call EXTRACT_DEPS,$3,$4) | $5 $$(ORDER_DEPS)
+$5/$7$(OBJ_SUFFIX): $3 $(call EXTRACT_SDEPS,$3,$4) | $5 $$(ORDER_DEPS)
 	$$(call $1_$6_$2,$$@,$$<)
 ifeq ($(NO_DEPS),)
 -include $5/$7.d
@@ -122,7 +122,7 @@ $(call TOCLEAN,$5/$7.d)
 endef
 
 # rule that defines how to build objects from sources
-# $1 - EXE,LIB,... $2 - CXX,CC,ASM,... $3 - sources to compile, $4 - deps, $5 - objdir, $6 - variant (if empty, then R)
+# $1 - EXE,LIB,... $2 - CXX,CC,ASM,... $3 - sources to compile, $4 - sdeps, $5 - objdir, $6 - variant (if empty, then R)
 OBJ_RULES1 = $(foreach x,$3,$(call OBJ_RULE,$1,$2,$x,$4,$5,$6,$(basename $(notdir $x))))
 OBJ_RULES = $(call OBJ_RULES1,$1,$2,$3,$4,$5,$(patsubst ,R,$6))
 
@@ -167,8 +167,8 @@ SOURCES = $(SRC) $($1_SRC) $(WITH_PCH) $($1_WITH_PCH)
 # $1 - EXE,DLL,LIB,...
 TRG_SRC = $(call FIXPATH,$(SOURCES))
 
-# make absolute paths for $(TRG_DEPS) - add $(VPREFIX) to relative paths, then normalize paths
-TRG_DEPS = $(call FIX_DEPS,$(SDEPS) $($1_SDEPS))
+# make absolute paths for $(TRG_SDEPS) - add $(VPREFIX) to relative paths, then normalize paths
+TRG_SDEPS = $(call FIX_SDEPS,$(SDEPS) $($1_SDEPS))
 
 # objects and auto-deps to build for the target
 # $1 - sources to compile
@@ -207,7 +207,7 @@ DEP_IMPS = $(addprefix $(IMP_DIR)/,$(call MAKE_DEP_IMPS,$1,$2,$(TRG_DLLS)))
 
 # $1 - target file: $(call FORM_TRG,EXE,$v)
 # $2 - sources:     $(call TRG_SRC,EXE)
-# $3 - deps:        $(call TRG_DEPS,EXE)
+# $3 - sdeps:       $(call TRG_SDEPS,EXE)
 # $4 - objdir:      $(call FORM_OBJ_DIR,EXE,$v)
 # $5 - objects:     $(addprefix $4/,$(call OBJS,$2))
 # $v - R,P,S,...
@@ -235,11 +235,11 @@ endef
 # how to build executable
 EXE_RULES1 = $(call EXE_TEMPLATE,$1,$2,$3,$4,$(addprefix $4/,$(call OBJS,$2)))
 EXE_RULES = $(if $(EXE),$(foreach v,$(call GET_VARIANTS,EXE,VARIANTS_FILTER),$(newline)$(call \
-  EXE_RULES1,$(call FORM_TRG,EXE,$v),$(call TRG_SRC,EXE),$(call TRG_DEPS,EXE),$(call FORM_OBJ_DIR,EXE,$v))))
+  EXE_RULES1,$(call FORM_TRG,EXE,$v),$(call TRG_SRC,EXE),$(call TRG_SDEPS,EXE),$(call FORM_OBJ_DIR,EXE,$v))))
 
 # $1 - target file: $(call FORM_TRG,LIB,$v)
 # $2 - sources:     $(call TRG_SRC,LIB)
-# $3 - deps:        $(call TRG_DEPS,LIB)
+# $3 - sdeps:       $(call TRG_SDEPS,LIB)
 # $4 - objdir:      $(call FORM_OBJ_DIR,LIB,$v)
 # $5 - objects:     $(addprefix $4/,$(call OBJS,$2))
 # $v - R,P,D,S,<empty>
@@ -262,11 +262,11 @@ endef
 # how to build static library for EXE/DLL or static library for DLL only
 LIB_RULES1 = $(call LIB_TEMPLATE,$1,$2,$3,$4,$(addprefix $4/,$(call OBJS,$2)))
 LIB_RULES = $(if $(LIB),$(foreach v,$(call GET_VARIANTS,LIB,VARIANTS_FILTER),$(newline)$(call \
-  LIB_RULES1,$(call FORM_TRG,LIB,$v),$(call TRG_SRC,LIB),$(call TRG_DEPS,LIB),$(call FORM_OBJ_DIR,LIB,$v))))
+  LIB_RULES1,$(call FORM_TRG,LIB,$v),$(call TRG_SRC,LIB),$(call TRG_SDEPS,LIB),$(call FORM_OBJ_DIR,LIB,$v))))
 
 # $1 - target file: $(call FORM_TRG,DLL,$v)
 # $2 - sources:     $(call TRG_SRC,DLL)
-# $3 - deps:        $(call TRG_DEPS,DLL)
+# $3 - sdeps:       $(call TRG_SDEPS,DLL)
 # $4 - objdir:      $(call FORM_OBJ_DIR,DLL,$v)
 # $5 - objects:     $(addprefix $4/,$(call OBJS,$2))
 # $v - R,S,<empty>
@@ -294,11 +294,11 @@ endef
 # how to build dynamic (shared) library
 DLL_RULES1 = $(call DLL_TEMPLATE,$1,$2,$3,$4,$(addprefix $4/,$(call OBJS,$2)))
 DLL_RULES = $(if $(DLL),$(foreach v,$(call GET_VARIANTS,DLL,VARIANTS_FILTER),$(newline)$(call \
-  DLL_RULES1,$(call FORM_TRG,DLL,$v),$(call TRG_SRC,DLL),$(call TRG_DEPS,DLL),$(call FORM_OBJ_DIR,DLL,$v))))
+  DLL_RULES1,$(call FORM_TRG,DLL,$v),$(call TRG_SRC,DLL),$(call TRG_SDEPS,DLL),$(call FORM_OBJ_DIR,DLL,$v))))
 
 # $1 - target file: $(call FORM_TRG,KLIB)
 # $2 - sources:     $(call TRG_SRC,KLIB)
-# $3 - deps:        $(call TRG_DEPS,KLIB)
+# $3 - sdeps:       $(call TRG_SDEPS,KLIB)
 # $4 - objdir:      $(call FORM_OBJ_DIR,KLIB)
 # $5 - objects:     $(addprefix $4/,$(call OBJS,$2))
 define KLIB_TEMPLATE
@@ -319,7 +319,7 @@ endef
 # how to build kernel-mode static library for driver
 KLIB_RULES1 = $(call KLIB_TEMPLATE,$1,$2,$3,$4,$(addprefix $4/,$(call OBJS,$2)))
 KLIB_RULES = $(if $(KLIB),$(call KLIB_RULES1,$(call FORM_TRG,KLIB),$(call \
-  TRG_SRC,KLIB),$(call TRG_DEPS,KLIB),$(call FORM_OBJ_DIR,KLIB)))
+  TRG_SRC,KLIB),$(call TRG_SDEPS,KLIB),$(call FORM_OBJ_DIR,KLIB)))
 
 # helper macro: convert list of sources $2 to list of objects for the target $1
 # $1 - EXE,LIB,DLL,...
@@ -399,7 +399,7 @@ $(call CLEAN_BUILD_PROTECT_VARS,BLD_TARGETS \
   TRG_VARS BLD_VARS VARIANT_LIB_SUFFIX VARIANT_IMP_SUFFIX DEBUG_C_TARGETS \
   OSVARIANT OSTYPE OSVAR OSVARS OBJ_RULE OBJ_RULES1 OBJ_RULES \
   RESET_TRG_VARS FORM_TRG SUBST_DEFINES STRING_DEFINE \
-  TRG_INCLUDE SOURCES TRG_SRC TRG_DEPS OBJS DEP_LIB_SUFFIX DEP_IMP_SUFFIX \
+  TRG_INCLUDE SOURCES TRG_SRC TRG_SDEPS OBJS DEP_LIB_SUFFIX DEP_IMP_SUFFIX \
   MAKE_DEP_LIBS MAKE_DEP_IMPS TRG_LIBS DEP_LIBS TRG_DLLS DEP_IMPS \
   EXE_TEMPLATE EXE_RULES1 EXE_RULES LIB_TEMPLATE LIB_RULES1 LIB_RULES \
   DLL_TEMPLATE DLL_RULES1 DLL_RULES KLIB_TEMPLATE KLIB_RULES1 KLIB_RULES \

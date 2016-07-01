@@ -56,21 +56,21 @@ FORM_WIX_TRG = $(if \
 WIX_OBJS = $(addsuffix .wixobj,$(basename $(notdir $1)))
 
 # rule that defines how to build wix object from .wxs source
-# $1 - source to compile, $2 - deps, $3 - objdir, $4 - $(basename $(notdir $1))
+# $1 - source to compile, $2 - sdeps, $3 - objdir, $4 - $(basename $(notdir $1))
 define WIX_OBJ_RULE
 $(empty)
-$3/$4.wixobj: $1 $(call EXTRACT_DEPS,$1,$2) | $3 $$(ORDER_DEPS)
+$3/$4.wixobj: $1 $(call EXTRACT_SDEPS,$1,$2) | $3 $$(ORDER_DEPS)
 	$$(call WIXOBJ_CL,$$@,$$<)
 endef
 
 # rule that defines how to build wix objects from sources
-# $1 - .wxs sources to compile, $2 - deps, $3 - $(call FORM_OBJ_DIR,INSTALLER)
+# $1 - .wxs sources to compile, $2 - sdeps, $3 - $(call FORM_OBJ_DIR,INSTALLER)
 WIX_OBJ_RULES = $(foreach x,$1,$(call WIX_OBJ_RULE,$x,$2,$3,$(basename $(notdir $x))))
 
 # $1 - what to build: MSI, INSTALLER
 # $2 - target file: $(call FORM_WIX_TRG,$1)
 # $3 - sources:     $(call FIXPATH,$(WXS))
-# $4 - deps:        $(call FIX_DEPS,$(WDEPS))
+# $4 - sdeps:       $(call FIX_SDEPS,$(WDEPS))
 # $5 - objdir:      $(call FORM_OBJ_DIR,$1)
 # $6 - objects:     $(addprefix $5/,$(call WIX_OBJS,$3))
 # note: calls either MSI_LD or INSTALLER_LD
@@ -87,7 +87,7 @@ endef
 
 # how to build installer msi or exe
 WIX_RULES1 = $(call WIX_TEMPLATE,$1,$2,$3,$4,$5,$(addprefix $5/,$(call WIX_OBJS,$3)))
-WIX_RULES = $(call WIX_RULES1,$1,$(call FORM_WIX_TRG,$1),$(call FIXPATH,$(WXS)),$(call FIX_DEPS,$(WDEPS)),$(call FORM_OBJ_DIR,$1))
+WIX_RULES = $(call WIX_RULES1,$1,$(call FORM_WIX_TRG,$1),$(call FIXPATH,$(WXS)),$(call FIX_SDEPS,$(WDEPS)),$(call FORM_OBJ_DIR,$1))
 
 MSI_RULES = $(if $(MSI),$(call WIX_RULES,MSI))
 INSTALLER_RULES = $(if $(INSTALLER),$(call WIX_RULES,INSTALLER))

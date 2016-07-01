@@ -324,7 +324,7 @@ DLL_AUX_TEMPLATE = $(call DLL_AUX_TEMPLATE1,$(call FORM_TRG,DLL,R),$(call FIXPAT
 
 # $1 - target file: $(call FORM_TRG,DRV)
 # $2 - sources:     $(call TRG_SRC,DRV)
-# $3 - deps:        $(call TRG_DEPS,DRV)
+# $3 - sdeps:       $(call TRG_SDEPS,DRV)
 # $4 - objdir:      $(call FORM_OBJ_DIR,DRV)
 # $5 - objects:     $(addprefix $4/,$(call OBJS,$2))
 # note: there are SYSLIBS and SYSLIBPATH for the driver
@@ -347,7 +347,7 @@ endef
 
 # how to build driver
 DRV_RULES1 = $(call DRV_TEMPLATE,$1,$2,$3,$4,$(addprefix $4/,$(call OBJS,$2)))
-DRV_RULES = $(if $(DRV),$(call DRV_RULES1,$(call FORM_TRG,DRV),$(call TRG_SRC,DRV),$(call TRG_DEPS,DRV),$(call FORM_OBJ_DIR,DRV)))
+DRV_RULES = $(if $(DRV),$(call DRV_RULES1,$(call FORM_TRG,DRV),$(call TRG_SRC,DRV),$(call TRG_SDEPS,DRV),$(call FORM_OBJ_DIR,DRV)))
 
 # this code is evaluated from $(DEFINE_TARGETS)
 define OS_DEFINE_TARGETS

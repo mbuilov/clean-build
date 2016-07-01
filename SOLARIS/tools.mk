@@ -1,4 +1,4 @@
-# this file included by $(MTOP)/deps.mk
+# this file included by $(MTOP)/defs.mk
 
 DEL   = rm -f $1
 RM    = $(if $(VERBOSE),,@)rm -rf $1
