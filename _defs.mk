@@ -312,11 +312,11 @@ FIX_ORDER_DEPS:=
 # $(TMD)   - T if target is built in TOOL_MODE
 # NOTE: $(MAKE_CONT) list is empty or 1 1 1 .. 1 2 (inside MAKE_CONTINUE) or 1 1 1 1... (before MAKE_CONTINUE)
 # NOTE: postpone expansion of ORDER_DEPS - $(FIX_ORDER_DEPS) changes $(ORDER_DEPS) value
-# NOTE: MCONT will be either empty or 2,3,4... - MCONT cannot be 1 some rules may be defined before $(MAKE_CONTINUE)
+# NOTE: MCONT will be either empty or 2,3,4... - MCONT cannot be 1 - some rules may be defined before calling $(MAKE_CONTINUE)
 define STD_TARGET_VARS1
 $(FIX_ORDER_DEPS)
 $1: MF    := $(CURRENT_MAKEFILE)
-$1: MCONT := $(if $(MAKE_CONT),@$(words 1 $(MAKE_CONT)x))
+$1: MCONT := $(filter-out @1,@$(words 1 $(subst 2,,$(MAKE_CONT))))
 $1: TMD   := $(CB_TOOL_MODE)
 $1: | $2 $$(ORDER_DEPS)
 $(CURRENT_MAKEFILE)-: $1
