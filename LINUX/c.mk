@@ -144,17 +144,22 @@ ifeq (undefined,$(origin VARIANT_IMP_MAP))
 VARIANT_IMP_MAP := R
 endif
 
-# default flags for shared objects
+# default flags for shared objects (executables and shared libraries)
 ifeq (undefined,$(origin DEF_SHARED_FLAGS))
 DEF_SHARED_FLAGS := -Wl,--warn-common -Wl,--no-demangle
 endif
 
-# default flags for EXE-linker
+# default shared libs for target executables and shared libraries
+ifeq (undefined,$(origin DEF_SHARED_LIBS))
+DEF_SHARED_LIBS :=
+endif
+
+# default flags for EXE-target linker
 ifeq (undefined,$(origin DEF_EXE_FLAGS))
 DEF_EXE_FLAGS :=
 endif
 
-# default flags for shared objects linker
+# default flags for SO-target linker
 ifeq (undefined,$(origin DEF_SO_FLAGS))
 DEF_SO_FLAGS := -shared -Xlinker --no-undefined
 endif
@@ -169,7 +174,7 @@ ifeq (undefined,$(origin DEF_KLD_FLAGS))
 DEF_KLD_FLAGS := -r --warn-common
 endif
 
-# default flags for static library archiver
+# default flags for objects archiver
 ifeq (undefined,$(origin DEF_AR_FLAGS))
 DEF_AR_FLAGS := -crs
 endif
@@ -187,7 +192,7 @@ RPATH_LINK_OPTION ?= $(addprefix $(WLPREFIX)-rpath-link=,$(RPATH_LINK))
 # target-specfic: LIBS, DLLS, LIB_DIR, SYSLIBPATH, SYSLIBS, LDFLAGS
 CMN_LIBS ?= -pipe -o $1 $2 $(DEF_SHARED_FLAGS) $(RPATH_OPTION) $(RPATH_LINK_OPTION) $(if \
   $(strip $(LIBS)$(DLLS)),-L$(LIB_DIR) $(addprefix -l,$(addsuffix $(call \
-  VARIANT_LIB_SUFFIX,$3),$(LIBS)) $(DLLS))) $(addprefix -L,$(SYSLIBPATH)) $(addprefix -l,$(SYSLIBS)) $(LDFLAGS)
+  VARIANT_LIB_SUFFIX,$3),$(LIBS)) $(DLLS))) $(addprefix -L,$(SYSLIBPATH)) $(addprefix -l,$(SYSLIBS)) $(DEF_SHARED_LIBS) $(LDFLAGS)
 
 # what to export from a dll
 # target-specfic: MAP
