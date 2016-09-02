@@ -83,7 +83,7 @@ LIB_SUFFIX := .a   # static library (archive)
 IMP_PREFIX := lib
 IMP_SUFFIX := .so  # implementaton library for dll, the same as dll itself
 DLL_PREFIX := lib
-DLL_SUFFIX := .so  # dynamic-loaded library
+DLL_SUFFIX := .so  # dynamically loaded library (shared object)
 KLIB_PREFIX :=
 KLIB_SUFFIX := .o  # kernel-mode static library
 DRV_PREFIX :=
@@ -191,8 +191,8 @@ RPATH_LINK_OPTION ?= $(addprefix $(WLPREFIX)-rpath-link=,$(RPATH_LINK))
 # $1 - target, $2 - objects, $3 - variant
 # target-specfic: LIBS, DLLS, LIB_DIR, SYSLIBPATH, SYSLIBS, LDFLAGS
 CMN_LIBS ?= -pipe -o $1 $2 $(DEF_SHARED_FLAGS) $(RPATH_OPTION) $(RPATH_LINK_OPTION) $(if \
-  $(strip $(LIBS)$(DLLS)),-L$(LIB_DIR) $(addprefix -l,$(addsuffix $(call \
-  VARIANT_LIB_SUFFIX,$3),$(LIBS)) $(DLLS))) $(addprefix -L,$(SYSLIBPATH)) $(addprefix -l,$(SYSLIBS)) $(DEF_SHARED_LIBS) $(LDFLAGS)
+  $(strip $(LIBS)$(DLLS)),-L$(LIB_DIR) $(addprefix -l,$(DLLS)) $(addprefix $(LIB_PREFIX),$(addsuffix $(call \
+  VARIANT_LIB_SUFFIX,$3)$(LIB_SUFFIX),$(LIBS))) $(addprefix -L,$(SYSLIBPATH)) $(addprefix -l,$(SYSLIBS)) $(DEF_SHARED_LIBS) $(LDFLAGS)
 
 # what to export from a dll
 # target-specfic: MAP
