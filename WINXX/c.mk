@@ -69,7 +69,7 @@ LIB_SUFFIX := .a    # static library (archive)
 IMP_PREFIX :=
 IMP_SUFFIX := .lib  # implementation library for dll
 DLL_PREFIX :=
-DLL_SUFFIX := .dll
+DLL_SUFFIX := .dll  # dynamically loaded library (shared object)
 KLIB_PREFIX :=
 KLIB_SUFFIX := .ka  # kernel-mode static library (archive)
 DRV_PREFIX := drv
@@ -149,6 +149,16 @@ CHECK_LIB_UNI_NAME1 = $(if $(filter-out UNI_%,$1),$(error library '$1' name must
 # note: $$1 - target library name
 CHECK_LIB_UNI_NAME ?= $(if $(filter %U,$v),$$(call CHECK_LIB_UNI_NAME1,$$(patsubst \
   %$(call VARIANT_$1_SUFFIX,$v)$($1_SUFFIX),%,$$(notdir $$1)),$v))
+
+# how to mark exported symbols from a DLL
+ifeq (undefined,$(origin DLL_EXPORTS_DEFINE))
+DLL_EXPORTS_DEFINE := "__declspec(dllexport)"
+endif
+
+# how to mark imported symbols from a DLL
+ifeq (undefined,$(origin DLL_IMPORTS_DEFINE))
+DLL_IMPORTS_DEFINE := "__declspec(dllimport)"
+endif
 
 # common linker flags for EXE or DLL
 # $$1 - target file, $$2 - objects, $v - variant
@@ -797,6 +807,7 @@ $(call CLEAN_BUILD_PROTECT_VARS,SEQ_BUILD YASMC FLEXC BISONC MC SUPPRESS_RC_LOGO
   EMBED_EXE_MANIFEST DLL_MANIFEST_OPTION EMBED_DLL_MANIFEST \
   OS_APPDEFS OS_KRNDEFS VARIANTS_FILTER VARIANT_LIB_MAP VARIANT_IMP_MAP \
   CHECK_LIB_UNI_NAME1 CHECK_LIB_UNI_NAME CMN_LIBS_LDFLAGS CMN_LIBS \
+  DLL_EXPORTS_DEFINE DLL_IMPORTS_DEFINE \
   DEF_EXE_SUBSYSTEM EXE_LD_TEMPLATE DEL_ON_DLL_FAIL DLL_LD_TEMPLATE DEF_LIB_LDFLAGS LIB_LD_TEMPLATE DEF_KLIB_LDFLAGS \
   $(foreach v,R $(VARIANTS_FILTER),EXE_$v_LD1 DLL_$v_LD1 LIB_$v_LD1) KLIB_LD1 \
   APP_FLAGS CMN_CL1 CMN_RCL CMN_SCL CMN_RUCL CMN_SUCL \
