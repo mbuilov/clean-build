@@ -191,10 +191,10 @@ endif
 # common linker options for EXE or DLL
 # $1 - target, $2 - objects, $3 - variant
 # target-specfic: LIBS, DLLS, LIB_DIR, SYSLIBPATH, SYSLIBS, COMPILER, LDFLAGS
-CMN_LIBS ?= -o $1 $2 $(DEF_SHARED_FLAGS) $(RPATH_OPTION) $(if \
-  $(strip $(LIBS)$(DLLS)),-L$(LIB_DIR) $(addprefix -l,$(DLLS)) $(addprefix $(LIB_PREFIX),$(addsuffix $(call \
-  VARIANT_LIB_SUFFIX,$3)$(LIB_SUFFIX),$(LIBS))) $(addprefix -L,$(SYSLIBPATH)) $(addprefix -l,$(SYSLIBS) $(if \
-  $(filter CXX,$(COMPILER)),$(DEF_CXX_LIBS)) $(DEF_C_LIBS)) $(DEF_SHARED_LIBS) $(LDFLAGS)
+CMN_LIBS ?= -o $1 $2 $(DEF_SHARED_FLAGS) $(RPATH_OPTION) $(if $(strip \
+  $(LIBS)$(DLLS)),-L$(LIB_DIR) $(addprefix -l,$(DLLS)) $(addprefix $(LIB_PREFIX),$(addsuffix $(call \
+  VARIANT_LIB_SUFFIX,$3)$(LIB_SUFFIX),$(LIBS)))) $(addprefix -L,$(SYSLIBPATH)) $(addprefix \
+  -l,$(SYSLIBS) $(if $(filter CXX,$(COMPILER)),$(DEF_CXX_LIBS)) $(DEF_C_LIBS)) $(DEF_SHARED_LIBS) $(LDFLAGS)
 
 # what to export from a dll
 # target-specfic: MAP
