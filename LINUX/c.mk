@@ -161,7 +161,7 @@ endif
 
 # default flags for SO-target linker
 ifeq (undefined,$(origin DEF_SO_FLAGS))
-DEF_SO_FLAGS := -shared -Xlinker --no-undefined
+DEF_SO_FLAGS := -shared -Wl,--no-undefined
 endif
 
 # default flags for static library (-fpie or -fpic) linker
