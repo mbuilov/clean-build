@@ -22,7 +22,7 @@ for %%x in (
 	set XX=%%x
 	goto :run
 )
-echo could not find .top
+echo could not find .top in current directory or in parent directories"
 exit /B 1
 
 :run
