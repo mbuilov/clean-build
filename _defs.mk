@@ -209,7 +209,7 @@ MKDIR_COLOR  := [00;36m
 TOUCH_COLOR  := [00;36m
 
 # print in color short name of called tool $1 with argument $2
-COLORIZE = $(if $($1_COLOR),$($1_COLOR)$1[0m,$1)$(padto)$(if $($1_COLOR),$(dir $2)$($1_COLOR)$(notdir $2)[0m,$2)
+COLORIZE ?= $(if $($1_COLOR),$($1_COLOR)$1[0m,$1)$(padto)$(if $($1_COLOR),$(dir $2)$($1_COLOR)$(notdir $2)[0m,$2)
 
 # define utilities of the OS we are building on
 include $(MTOP)/$(OS)/tools.mk
