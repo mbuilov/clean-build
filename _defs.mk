@@ -189,21 +189,22 @@ SUP ?= @$(info $(COLORIZE))
 endif
 
 CC_COLOR     := [01;31m
+CXX_COLOR    := [01;36m
 AR_COLOR     := [01;32m
 LD_COLOR     := [01;33m
-CP_COLOR     := [00;36m
-CXX_COLOR    := [01;36m
-JAR_COLOR    := [01;33m
+ASM_COLOR    := [00;37m
 KCC_COLOR    := [00;31m
 KLD_COLOR    := [00;33m
-ASM_COLOR    := [00;37m
 TCC_COLOR    := [00;32m
-TLD_COLOR    := [00;32m
-GEN_COLOR    := [01;32m
 TCXX_COLOR   := [00;32m
+TLD_COLOR    := [00;33m
+TAR_COLOR    := [01;32m
+GEN_COLOR    := [01;32m
 MGEN_COLOR   := [01;32m
+JAR_COLOR    := [01;33m
 JAVAC_COLOR  := [01;36m
 SCALAC_COLOR := [01;36m
+CP_COLOR     := [00;36m
 MKDIR_COLOR  := [00;36m
 TOUCH_COLOR  := [00;36m
 
