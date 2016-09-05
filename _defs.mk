@@ -188,29 +188,27 @@ else
 SUP ?= @$(info $(COLORIZE))
 endif
 
-# print in color name of called tool $1
-TOOL_IN_COLOR ?= $(subst |,,$(subst \
-  |CC|,[01;31mCC[0m,$(subst \
-  |AR|,[01;32mAR[0m,$(subst \
-  |LD|,[01;33mLD[0m,$(subst \
-  |CP|,[00;36mCP[0m,$(subst \
-  |CXX|,[01;36mCXX[0m,$(subst \
-  |JAR|,[01;33mJAR[0m,$(subst \
-  |KCC|,[00;31mKCC[0m,$(subst \
-  |KLD|,[00;33mKLD[0m,$(subst \
-  |ASM|,[00;37mASM[0m,$(subst \
-  |TCC|,[00;32mTCC[0m,$(subst \
-  |TLD|,[00;32mTLD[0m,$(subst \
-  |GEN|,[01;32mGEN[0m,$(subst \
-  |TCXX|,[00;32mTCXX[0m,$(subst \
-  |MGEN|,[01;32mMGEN[0m,$(subst \
-  |JAVAC|,[01;36mJAVAC[0m,$(subst \
-  |SCALAC|,[01;36mSCALAC[0m,$(subst \
-  |MKDIR|,[00;36mMKDIR[0m,$(subst \
-  |TOUCH|,[00;36mTOUCH[0m,|$1|)))))))))))))))))))
+CC_COLOR     := [01;31m
+AR_COLOR     := [01;32m
+LD_COLOR     := [01;33m
+CP_COLOR     := [00;36m
+CXX_COLOR    := [01;36m
+JAR_COLOR    := [01;33m
+KCC_COLOR    := [00;31m
+KLD_COLOR    := [00;33m
+ASM_COLOR    := [00;37m
+TCC_COLOR    := [00;32m
+TLD_COLOR    := [00;32m
+GEN_COLOR    := [01;32m
+TCXX_COLOR   := [00;32m
+MGEN_COLOR   := [01;32m
+JAVAC_COLOR  := [01;36m
+SCALAC_COLOR := [01;36m
+MKDIR_COLOR  := [00;36m
+TOUCH_COLOR  := [00;36m
 
 # print in color short name of called tool $1 with argument $2
-COLORIZE = $(TOOL_IN_COLOR)$(padto)$2
+COLORIZE = $(if $($1_COLOR),$($1_COLOR)$1[0m,$1)$(padto)$(if $($1_COLOR),$(dir $2)$($1_COLOR)$(notdir $2)[0m,$2)
 
 # define utilities of the OS we are building on
 include $(MTOP)/$(OS)/tools.mk
