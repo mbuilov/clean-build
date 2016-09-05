@@ -14,7 +14,7 @@ DEL_ARGS_LIMIT := 100
 endif
 
 # don't colorize output
-TOOL_IN_COLOR = $1
+COLORIZE = $1$(padto)$2
 
 # convert slashes
 # NOTE: no spaces allowed in paths the $(MAKE) works with
