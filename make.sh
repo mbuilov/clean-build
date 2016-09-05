@@ -24,4 +24,4 @@ do
 		exit $?
 	fi
 done
-echo "failed to find .top"
+echo "failed to find .top in current directory or in parent directories"
