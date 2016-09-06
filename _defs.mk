@@ -403,10 +403,12 @@ DEF_HEAD_CODE_EVAL = $(eval $(DEF_HEAD_CODE))
 # if called from $(MAKE_CONTINUE), $1 - list of vars to save (may be empty)
 # note: $(MAKE_CONTINUE) before expanding $(DEF_TAIL_CODE) adds 2 to $(MAKE_CONT) list
 # note: $(MTOP)/parallel.mk executes $(eval $(call DEF_TAIL_CODE,@)) to not show debug info second time in $(DEF_TAIL_CODE_DEBUG)
+# note: reset DEF_HEAD_CODE_PROCESSED value - to allow to evaluate $(DEF_HEAD_CODE_EVAL) in next included $(MTOP)/parallel.mk
 define DEF_TAIL_CODE
 $(CLEAN_BUILD_CHECK_AT_TAIL)
 $(DEF_TAIL_CODE_DEBUG)
 $(if $(CB_INCLUDE_LEVEL)$(filter 2,$(MAKE_CONT)),,include $(MTOP)/all.mk)
+DEF_HEAD_CODE_PROCESSED:=
 endef
 
 # expand this macro to evaluate default tail code
