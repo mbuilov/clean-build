@@ -146,6 +146,6 @@ join_with = $(subst $(space),$2,$(strip $1))
 
 # protect variables from modification in target makefiles
 CLEAN_BUILD_PROTECTED += empty space tab comma newline comment \
-  TRACE infofn dump trace_params trace_calls_template trace_calls \
+  infofn dump trace_params trace_calls_template trace_calls \
   unspaces ifaddq qpath tolower toupper repl1 padto1 padto xargs xcmd trim normp2 normp1 normp \
   cmn_path1 cmn_path back_prefix relpath2 relpath1 relpath join_with
