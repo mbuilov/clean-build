@@ -174,19 +174,46 @@ endef
 
 endif # MCHECK
 
-# supress output of executed build tool, print some pretty message instead, like "CC  source.c"
+# SUP: supress output of executed build tool, print some pretty message instead, like "CC  source.c"
 # target-specific: MF, MCONT
+ifneq ($(filter clean,$(MAKECMDGOALS)),)
+SUP:=
+else ifndef SUP
 ifdef VERBOSE
 ifdef INFOMF
-SUP ?= $(info $(MF)$(MCONT):)
-else ifndef SUP
+SUP = $(info $(MF)$(MCONT):)
+else
 SUP:=
 endif
-else ifdef INFOMF
-SUP ?= @$(info $(MF)$(MCONT):$(COLORIZE))
+else # !VERBOSE
+SHOWN_MAKEFILES:=
+SHOWN_PERCENTS:=
+SHOWN_REMAINDER:=
+ADD_SHOWN_PERCENTS = $(if $(word $(TARGET_MAKEFILES_COUNT),$1),+ $(call ADD_SHOWN_PERCENTS,$(wordlist \
+  $(TARGET_MAKEFILES_COUNT1),999999,$1)),$(eval SHOWN_REMAINDER := $1))
+define REM_SHOWN_MAKEFILE
+SHOWN_MAKEFILES += $(MF)
+SHOWN_PERCENTS += $(call ADD_SHOWN_PERCENTS,$(SHOWN_REMAINDER) \
+1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 \
+1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1)
+endef
+TRY_REM_MAKEFILE = $(if $(filter $(MF),$(SHOWN_MAKEFILES)),,$(eval $(REM_SHOWN_MAKEFILE)))$(subst |,,$(subst \
+  |1|,01,$(subst \
+  |2|,02,$(subst \
+  |3|,03,$(subst \
+  |4|,04,$(subst \
+  |5|,05,$(subst \
+  |6|,06,$(subst \
+  |7|,07,$(subst \
+  |8|,08,$(subst \
+  |9|,09,|$(words $(SHOWN_PERCENTS))|))))))))))
+ifdef INFOMF
+SUP = @$(info [$(TRY_REM_MAKEFILE)%]$(MF)$(MCONT):$(COLORIZE))
 else
-SUP ?= @$(info $(COLORIZE))
+SUP = @$(info [$(TRY_REM_MAKEFILE)%]$(COLORIZE))
 endif
+endif # !VERBOSE
+endif # !SUP
 
 CC_COLOR     := [01;31m
 CXX_COLOR    := [01;36m
@@ -571,7 +598,10 @@ FIX_SDEPS = $(subst | ,|,$(call FIXPATH,$(subst |,| ,$1)))
 CLEAN_BUILD_PROTECTED_VARS += MTOP MAKEFLAGS NO_DEPS DEBUG PROJECT \
   SUPPORTED_OSES SUPPORTED_CPUS SUPPORTED_TARGETS OS CPU UCPU KCPU TCPU TARGET \
   VERBOSE INFOMF MDEBUG CHECK_MAKEFILE_NOT_PROCESSED \
-  SUP TOOL_IN_COLOR COLORIZE SED_MULTI_EXPR ospath isrelpath \
+  SUP ADD_SHOWN_PERCENTS REM_SHOWN_MAKEFILE TRY_REM_MAKEFILE \
+  CC_COLOR CXX_COLOR AR_COLOR LD_COLOR ASM_COLOR KCC_COLOR KLD_COLOR TCC_COLOR TCXX_COLOR TLD_COLOR \
+  TAR_COLOR GEN_COLOR MGEN_COLOR JAR_COLOR JAVAC_COLOR SCALAC_COLOR CP_COLOR MKDIR_COLOR TOUCH_COLOR \
+  COLORIZE SED_MULTI_EXPR ospath isrelpath \
   CLOBBER_DIRS DEF_BIN_DIR DEF_OBJ_DIR DEF_LIB_DIR DEF_GEN_DIR SET_DEFAULT_DIRS BIN_DIR OBJ_DIR LIB_DIR GEN_DIR \
   TOOL_BASE MK_TOOLS_DIR GET_TOOLS GET_TOOL TOOLS_DIR TOOL_OVERRIDE_DIRS \
   FIX_ORDER_DEPS STD_TARGET_VARS1 STD_TARGET_VARS TOCLEAN GET_VPREFIX ADDVPREFIX FIXPATH MAKEFILE_DEBUG_INFO \

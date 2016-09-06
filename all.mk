@@ -16,8 +16,14 @@ $(addprefix $(XTOP)/,$(NEEDED_DIRS)):
 	$(call SUP,MKDIR,$@)$(call MKDIR,$@)
 
 # default target
-# note: $(PROCESSED_MAKEFILES) - $(TOP)-related names of all processed target makefiles with suffix -
+# note: $(PROCESSED_MAKEFILES) - $(TOP)-related names of all processed target makefiles with '-' suffix
 # (otherwise, if real makefile names are used - make always wants to recreate makefiles, even before clean target)
+ifdef REM_SHOWN_MAKEFILE
+# TARGET_MAKEFILES_COUNT - number of target makefiles - used to compute percents of executed makefiles
+TARGET_MAKEFILES_COUNT := $(wordlist $(words 1 $(INTERMEDIATE_MAKEFILES)),999999,$(PROCESSED_MAKEFILES))
+TARGET_MAKEFILES_COUNT1 := $(words 1 $(TARGET_MAKEFILES_COUNT))
+TARGET_MAKEFILES_COUNT := $(words $(TARGET_MAKEFILES_COUNT))
+endif
 all: $(PROCESSED_MAKEFILES)
 	@:
 
