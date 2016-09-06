@@ -174,11 +174,23 @@ endef
 
 endif # MCHECK
 
+# define utilities of the OS we are building on
+include $(MTOP)/$(OS)/tools.mk
+
+# colorize percents
+ifdef TERM_NO_COLOR
+PRINT_PERCENTS ?= [$1%]
+else
+PRINT_PERCENTS ?= [01;31m[[00;32m$1%[01;31m][0m
+endif
+
 # SUP: supress output of executed build tool, print some pretty message instead, like "CC  source.c"
 # target-specific: MF, MCONT
-ifneq ($(filter clean,$(MAKECMDGOALS)),)
-SUP:=
-else ifndef SUP
+# $1 - tool
+# $2 - tool arguments
+# $3 - if non-empty, don't update percents
+ifeq ($(filter clean,$(MAKECMDGOALS)),)
+ifndef SUP
 ifdef VERBOSE
 ifdef INFOMF
 SUP = $(info $(MF)$(MCONT):)
@@ -197,7 +209,8 @@ SHOWN_PERCENTS += $(call ADD_SHOWN_PERCENTS,$(SHOWN_REMAINDER) \
 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 \
 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1)
 endef
-TRY_REM_MAKEFILE = $(if $(filter $(MF),$(SHOWN_MAKEFILES)),,$(eval $(REM_SHOWN_MAKEFILE)))$(subst |,,$(subst \
+TRY_REM_MAKEFILE = $(if $3,,$(if $(filter $(MF),$(SHOWN_MAKEFILES)),,$(eval $(REM_SHOWN_MAKEFILE))))$(subst |,,$(subst \
+  |0|,00,$(subst \
   |1|,01,$(subst \
   |2|,02,$(subst \
   |3|,03,$(subst \
@@ -206,14 +219,15 @@ TRY_REM_MAKEFILE = $(if $(filter $(MF),$(SHOWN_MAKEFILES)),,$(eval $(REM_SHOWN_M
   |6|,06,$(subst \
   |7|,07,$(subst \
   |8|,08,$(subst \
-  |9|,09,|$(words $(SHOWN_PERCENTS))|))))))))))
+  |9|,09,|$(words $(SHOWN_PERCENTS))|)))))))))))
 ifdef INFOMF
-SUP = @$(info [$(TRY_REM_MAKEFILE)%]$(MF)$(MCONT):$(COLORIZE))
+SUP = $(info $(call PRINT_PERCENTS,$(TRY_REM_MAKEFILE))$(MF)$(MCONT):$(COLORIZE))@
 else
-SUP = @$(info [$(TRY_REM_MAKEFILE)%]$(COLORIZE))
+SUP = $(info $(call PRINT_PERCENTS,$(TRY_REM_MAKEFILE))$(COLORIZE))@
 endif
 endif # !VERBOSE
 endif # !SUP
+endif # !clean
 
 CC_COLOR     := [01;31m
 CXX_COLOR    := [01;36m
@@ -236,11 +250,12 @@ MKDIR_COLOR  := [00;36m
 TOUCH_COLOR  := [00;36m
 
 # print in color short name of called tool $1 with argument $2
+ifdef TERM_NO_COLOR
+COLORIZE ?= $1$(padto)$2
+else
 COLORIZE ?= $(if $($1_COLOR),$($1_COLOR)$1[0m,$1)$(padto)$(if \
   $($1_COLOR),$(join $(dir $2),$(addsuffix [0m,$(addprefix $($1_COLOR),$(notdir $2)))),$2)
-
-# define utilities of the OS we are building on
-include $(MTOP)/$(OS)/tools.mk
+endif
 
 # helper macro: convert multiline sed script $1 to multiple sed expressions - one expression for each script line
 SED_MULTI_EXPR = $(subst $$(space), ,$(foreach s,$(subst $(newline), ,$(subst $(space),$$(space),$1)),-e $(call SED_EXPR,$s)))
@@ -598,7 +613,7 @@ FIX_SDEPS = $(subst | ,|,$(call FIXPATH,$(subst |,| ,$1)))
 CLEAN_BUILD_PROTECTED_VARS += MTOP MAKEFLAGS NO_DEPS DEBUG PROJECT \
   SUPPORTED_OSES SUPPORTED_CPUS SUPPORTED_TARGETS OS CPU UCPU KCPU TCPU TARGET \
   VERBOSE INFOMF MDEBUG CHECK_MAKEFILE_NOT_PROCESSED \
-  SUP ADD_SHOWN_PERCENTS REM_SHOWN_MAKEFILE TRY_REM_MAKEFILE \
+  TERM_NO_COLOR PRINT_PERCENTS SUP ADD_SHOWN_PERCENTS REM_SHOWN_MAKEFILE TRY_REM_MAKEFILE \
   CC_COLOR CXX_COLOR AR_COLOR LD_COLOR ASM_COLOR KCC_COLOR KLD_COLOR TCC_COLOR TCXX_COLOR TLD_COLOR \
   TAR_COLOR GEN_COLOR MGEN_COLOR JAR_COLOR JAVAC_COLOR SCALAC_COLOR CP_COLOR MKDIR_COLOR TOUCH_COLOR \
   COLORIZE SED_MULTI_EXPR ospath isrelpath \

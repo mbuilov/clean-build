@@ -13,7 +13,7 @@ $(eval $(foreach x,$(NEEDED_DIRS),$(addprefix $(newline)$(XTOP)/$x:| $(XTOP)/,$(
 
 # define rules to create $(XTOP)-related needed directories
 $(addprefix $(XTOP)/,$(NEEDED_DIRS)):
-	$(call SUP,MKDIR,$@)$(call MKDIR,$@)
+	$(call SUP,MKDIR,$@,1)$(call MKDIR,$@)
 
 # default target
 # note: $(PROCESSED_MAKEFILES) - $(TOP)-related names of all processed target makefiles with '-' suffix
