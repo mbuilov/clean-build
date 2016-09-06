@@ -31,7 +31,7 @@ endif
 # $1 - .wixobj, $2 - .wxs
 # target-specific: WINCLUDE
 WIXOBJ_CL = $(call SUP,CANDLE,$2)$(WIX_CANDLE) -nologo$(if $(VERBOSE), -v) $(call \
-  ospath,$2) $(call qpath,$(call ospath,$(WINCLUDE)),-I) -out $(ospath)
+  qpath,$(WEXTS),-ext ) $(call ospath,$2) $(call qpath,$(call ospath,$(WINCLUDE)),-I) -out $(ospath)
 
 # build installer .msi file
 # $1 - target .msi, $2 - objects .wxsobj
