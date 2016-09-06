@@ -179,9 +179,9 @@ include $(MTOP)/$(OS)/tools.mk
 
 # colorize percents
 ifdef TERM_NO_COLOR
-PRINT_PERCENTS ?= [$1%]
+PRINT_PERCENTS ?= [$1]
 else
-PRINT_PERCENTS ?= [01;31m[[00;32m$1%[01;31m][0m
+PRINT_PERCENTS ?= [00;34m[[01;34m$1[00;34m][0m
 endif
 
 # SUP: supress output of executed build tool, print some pretty message instead, like "CC  source.c"
@@ -210,16 +210,17 @@ SHOWN_PERCENTS += $(call ADD_SHOWN_PERCENTS,$(SHOWN_REMAINDER) \
 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1)
 endef
 TRY_REM_MAKEFILE = $(if $3,,$(if $(filter $(MF),$(SHOWN_MAKEFILES)),,$(eval $(REM_SHOWN_MAKEFILE))))$(subst |,,$(subst \
-  |0|,00,$(subst \
-  |1|,01,$(subst \
-  |2|,02,$(subst \
-  |3|,03,$(subst \
-  |4|,04,$(subst \
-  |5|,05,$(subst \
-  |6|,06,$(subst \
-  |7|,07,$(subst \
-  |8|,08,$(subst \
-  |9|,09,|$(words $(SHOWN_PERCENTS))|)))))))))))
+  |0%,00%,$(subst \
+  |1%,01%,$(subst \
+  |2%,02%,$(subst \
+  |3%,03%,$(subst \
+  |4%,04%,$(subst \
+  |5%,05%,$(subst \
+  |6%,06%,$(subst \
+  |7%,07%,$(subst \
+  |8%,08%,$(subst \
+  |9%,09%,$(subst \
+  |100%,FIN,|$(words $(SHOWN_PERCENTS))%))))))))))))
 ifdef INFOMF
 SUP = $(info $(call PRINT_PERCENTS,$(TRY_REM_MAKEFILE))$(MF)$(MCONT):$(COLORIZE))@
 else
