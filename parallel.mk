@@ -32,11 +32,11 @@ TO_MAKE := $(call NORM_MAKEFILES,$(TO_MAKE))
 # $(CURRENT_MAKEFILE) is built if all $(TO_MAKE) makefiles are built
 # note: $(CURRENT_MAKEFILE)- and other order-dependent makefile names - are .PHONY targets,
 # and built target files may dependend on .PHONY targets only as order-only,
-# otherwise target files are will always be rebuilt because .PHONY targets are always updated
+# otherwise target files are will always be rebuilt - because .PHONY targets are always updated
 $(CURRENT_MAKEFILE)-: $(addsuffix -,$(TO_MAKE))
 
 # increase makefile include level, include and process makefiles, decrease makefile include level
-CB_INCLUDE_LEVEL := $(CURRENT_MAKEFILE) $(CB_INCLUDE_LEVEL)
+CB_INCLUDE_LEVEL += 1
 $(eval $(CB_INCLUDE))
 CB_INCLUDE_LEVEL := $(wordlist 2,999999,$(CB_INCLUDE_LEVEL))
 
