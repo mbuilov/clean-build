@@ -1,9 +1,8 @@
-@rem helper for auto-setting %TOP% environment variable:
-@rem look for .top file in top-level directories
-
 @echo off
 
-setlocal
+rem helper for auto-setting %TOP% environment variable:
+rem look for .top file in top-level directories
+
 for %%x in (
 .
 ..
@@ -34,4 +33,5 @@ popd
 rem replace \ with / in path to .top
 endlocal & set TOP=%XX:\=/%
 
-gnumake.exe %*
+rem if defined GMAKE variable - path to gnu make executable, use it
+if defined GMAKE ("%GMAKE%" %*) else (gnumake.exe %*)
