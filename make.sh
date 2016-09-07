@@ -20,7 +20,8 @@ for f in \
 do
 	if [ -f $f/.top ]
 	then
-		make TOP=`cd $f && pwd` "$@"
+		# if defined GMAKE variable - path to gnu make executable, use it
+		${GMAKE:-make} TOP=`cd $f && pwd` "$@"
 		exit $?
 	fi
 done
