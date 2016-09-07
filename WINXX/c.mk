@@ -285,20 +285,23 @@ endif
 # s@.*@&:\n$2: &@;w $4                     - make dependencies, then write to generated dep-file
 
 SED_DEPS_SCRIPT ?= \
--e "s/\x0d//;/^$(notdir $3)$$/d;/^COMPILATION_FAILED.*/w $4" \
--e "/^COMPILATION_FAILED.*/d;/^$(INCLUDING_FILE_PATTERN) /!{p;d;}" \
+-e "s/\x0d//;/^$(notdir $3)$$/d;/^$(INCLUDING_FILE_PATTERN) /!{p;d;}" \
 -e "s/^$(INCLUDING_FILE_PATTERN)  *//;$(subst ?, ,$(foreach x,$5,\@^$x.*@Id;))s/ /\\ /g;s@.*@&:\n$2: &@;w $4"
 
-# WRAP_COMPILER - either just call compiler or call compiler and auto-generate dependencies
+# WRAP_COMPILER - call compiler and auto-generate dependencies
 # $1 - compiler with options, $2 - target object, $3 - source, $4 - $(basename $2).d, $5 - prefixes of system includes
-ifdef NO_DEPS
-WRAP_COMPILER = $1
-else
-# compiler will run in a sub-batch, where double-quotes are escaped by two double-quotes
-WRAP_COMPILER ?= ($(subst \","",$1) /showIncludes 2>&1 || echo COMPILATION_FAILED) | \
-  $(SED) -n $(SED_DEPS_SCRIPT) && findstr /b COMPILATION_FAILED $(call \
-  ospath,$4) > NUL & if errorlevel 1 (cmd /c exit 0) else (del $(call ospath,$4) && cmd /c exit 1)
+# NOTE: compiler will run in a sub-batch, where double-quotes are escaped by two double-quotes
+ifeq ($(NO_DEPS),)
+ifneq ($(SEQ_BUILD),)
+WRAP_COMPILER ?= (($(subst \","",$1) /showIncludes 2>&1 && echo COMPILATION_OK 1>&2) | \
+  $(SED) -n $(SED_DEPS_SCRIPT)) 3>&2 2>&1 1>&3 | findstr /B /L COMPILATION_OK >NUL || (del $(call ospath,$4) && exit /b 1)
 endif
+endif
+
+# if not generating auto-dependencies, just stip-off names of compiled sources
+# $1 - compiler with options
+# NOTE: compiler will run in a sub-batch, where double-quotes are escaped by two double-quotes
+WRAP_COMPILER ?= (($(subst \","",$1) && echo COMPILATION_OK 1>&2) | findstr /L :) 3>&2 2>&1 1>&3 | findstr /B /L COMPILATION_OK >NUL
 
 ifdef SEQ_BUILD
 
@@ -342,10 +345,12 @@ else # !SEQ_BUILD
 # $1 - outdir, $2 - pch, $3 - non-pch C, $4 - non-pch CXX, $5 - pch C, $6 - pch CXX, $7 - compiler, $8 - aux compiler flags
 # target-specific: TMD, CFLAGS, CXXFLAGS
 CMN_MCL2 = $(if \
-  $3,$(call SUP,$(TMD)MCC,$3)$(call $7,$1,$3,$8/MP $(CFLAGS))$(newline))$(if \
-  $4,$(call SUP,$(TMD)MCXX,$4)$(call $7,$1,$4,$8/MP $(CXXFLAGS))$(newline))$(if \
-  $5,$(call SUP,$(TMD)MPCC,$5)$(call $7,$1,$5,$8/MP /Yu$2 /Fp$1$(basename $(notdir $2))_c.pch /FI$2 $(CFLAGS))$(newline))$(if \
-  $6,$(call SUP,$(TMD)MPCXX,$6)$(call $7,$1,$6,$8/MP /Yu$2 /Fp$1$(basename $(notdir $2))_cpp.pch /FI$2 $(CXXFLAGS))$(newline))
+  $3,$(call SUP,$(TMD)MCC,$3)$(call WRAP_COMPILER,$(call $7,$1,$3,$8/MP $(CFLAGS)))$(newline))$(if \
+  $4,$(call SUP,$(TMD)MCXX,$4)$(call WRAP_COMPILER,$(call $7,$1,$4,$8/MP $(CXXFLAGS)))$(newline))$(if \
+  $5,$(call SUP,$(TMD)MPCC,$5)$(call WRAP_COMPILER,$(call $7,$1,$5,$8/MP /Yu$2 /Fp$1$(basename \
+    $(notdir $2))_c.pch /FI$2 $(CFLAGS)))$(newline))$(if \
+  $6,$(call SUP,$(TMD)MPCXX,$6)$(call WRAP_COMPILER,$(call $7,$1,$6,$8/MP /Yu$2 /Fp$1$(basename \
+    $(notdir $2))_cpp.pch /FI$2 $(CXXFLAGS)))$(newline))
 
 # $1 - outdir, $2 - C-sources, $3 - CXX-sources, $4 - compiler, $5 - aux compiler flags (either empty or '/DUNICODE /D_UNICODE ')
 # target-specific: PCH, WITH_PCH
