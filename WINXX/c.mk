@@ -113,11 +113,12 @@ ifeq (undefined,$(origin OS_KRNDEFS))
 OS_KRNDEFS := $(if $(KCPU:%64=),ILP32 _WIN32 _X86_,LLP64 _WIN64 _AMD64_) _KERNEL WIN32_LEAN_AND_MEAN
 endif
 
-# supported target variants:
-# R  - dynamicaly linked multi-threaded libc (default)
-# S  - statically linked multithreaded libc
-# RU - same as R, but with unicode support (exe or dll may be linked with UNI_-prefixed library)
-# SU - same as S, but with unicode support (exe or dll may be linked with UNI_-prefixed library)
+# variants filter function - get possible variants for the target
+# $1 - LIB,EXE,DLL
+# R  - dynamicaly linked multi-threaded libc (regular, default variant)
+# S  - statically linked multi-threaded libc
+# RU - same as R, but with unicode support (exe or dll may be linked with UNI_-prefixed static/dynamic library)
+# SU - same as S, but with unicode support (exe or dll may be linked with UNI_-prefixed static/dynamic library)
 ifeq (undefined,$(origin VARIANTS_FILTER))
 VARIANTS_FILTER := S RU SU
 endif
@@ -127,8 +128,8 @@ endif
 # $2 - variant of target EXE or DLL
 # $l - dependent static library name
 # use the same variant of static library as target EXE or DLL (for example for S-EXE use S-LIB)
-# use appropriate R or S variant of required non-UNI_ static library for RU or SU variant of target EXE or DLL
-# (if required static library name do not starts with UNI_ - convert RU->R variant for required library)
+# NOTE: use appropriate R or S variant of required non-UNI_ static library for RU or SU variant of target EXE or DLL:
+#  if required static library name do not starts with UNI_ - convert RU->R variant for required library
 VARIANT_LIB_MAP ?= $(if $(l:UNI_%=),$(2:U=),$2)
 
 # for $(DEP_IMP_SUFFIX) from $(MTOP)/c.mk:
@@ -136,19 +137,19 @@ VARIANT_LIB_MAP ?= $(if $(l:UNI_%=),$(2:U=),$2)
 # $2 - variant of target EXE or DLL
 # $d - dependent dynamic library name
 # use the same variant of dynamic library as target EXE or DLL (for example for S-EXE use S-DLL)
-# use appropriate R or S variant of required non-UNI_ dynamic library for RU or SU variant of target EXE or DLL
-# (if required implementation library name do not starts with UNI_ - convert SU->S variant for required implementation library)
+# NOTE: use appropriate R or S variant of required non-UNI_ dynamic library for RU or SU variant of target EXE or DLL:
+#  if required implementation library name do not starts with UNI_ - convert RU->R variant for required implementation library
 VARIANT_IMP_MAP ?= $(if $(d:UNI_%=),$(2:U=),$2)
 
 # check that library name built as RU/SU variant is started with UNI_ prefix
-# $1 - library name, $2 - variant name: RU,SU
-CHECK_LIB_UNI_NAME1 = $(if $(filter-out UNI_%,$1),$(error library '$1' name must be started with UNI_ prefix to build it as $2 variant))
+# $1 - library name, $v - variant name: RU,S
+CHECK_LIB_UNI_NAME1 = $(if $(filter-out UNI_%,$1),$(error library '$1' name must be started with UNI_ prefix to build it as $v variant))
 
 # check that library name built as RU/SU variant is started with UNI_ prefix
 # $1 - IMP or LIB, $v - variant name: R,S,RU,SU
 # note: $$1 - target library name
 CHECK_LIB_UNI_NAME ?= $(if $(filter %U,$v),$$(call CHECK_LIB_UNI_NAME1,$$(patsubst \
-  %$(call VARIANT_$1_SUFFIX,$v)$($1_SUFFIX),%,$$(notdir $$1)),$v))
+  %$(call VARIANT_$1_SUFFIX,$v)$($1_SUFFIX),%,$$(notdir $$1))))
 
 # how to mark exported symbols from a DLL
 ifeq (undefined,$(origin DLL_EXPORTS_DEFINE))
@@ -195,14 +196,30 @@ $(eval $(foreach v,R $(VARIANTS_FILTER),$(EXE_LD_TEMPLATE)))
 # target-specific: DEF
 DEL_ON_DLL_FAIL ?= $(if $(DEF)$(EMBED_DLL_MANIFEST),$(call DEL_ON_FAIL,$(if $(DEF),$1) $(if $(EMBED_DLL_MANIFEST),$1.manifest)))
 
+# WRAP_DLL_EXPORTS_LINKER - call dll linker and check that dll exports symbols, then strip-off message about .exp-file
+# $1 - target dll
+# $2 - linker with options
+# $3 - $(basename $(notdir $1)).exp
+# target-specific: LIB_DIR
+# NOTE: linker will run in a sub-batch, where double-quotes are escaped by two double-quotes
+WRAP_DLL_EXPORTS_LINKER ?= (($(subst \","",$2) && (dir $(call ospath,$(LIB_DIR)/$3) >NUL 2>&1 || \
+  (echo $(notdir $1) does not exports any symbols! & del $(ospath) & exit /b 1)) && echo DLL_LINKED_OK 1>&2) | \
+  findstr /V /L $3) 3>&2 2>&1 1>&3 | findstr /B /L DLL_LINKED_OK >NUL
+
+# WRAP_DLL_LINKER - wrap dll linker call
+# $1 - target dll
+# $2 - linker with options
+# target-specific: NO_EXPORTS
+WRAP_DLL_LINKER ?= $(if $(NO_EXPORTS),$2,$(call WRAP_DLL_EXPORTS_LINKER,$1,$2,$(basename $(notdir $1)).exp))
+
 # define DLL linker for variant $v
 # $$1 - target dll, $$2 - objects, $v - variant
 # target-specific: TMD, DEF, LDFLAGS, IMP
 define DLL_LD_TEMPLATE
 $(empty)
-DLL_$v_LD1 = $$(call SUP,$(TMD)LINK,$$1)$$(VS$$(TMD)LD) /nologo /DLL $$(if $$(DEF),/DEF:$$(call \
+DLL_$v_LD1 = $$(call SUP,$(TMD)LINK,$$1)$$(call WRAP_DLL_LINKER,$$1,$$(VS$$(TMD)LD) /nologo /DLL $$(if $$(DEF),/DEF:$$(call \
   ospath,$$(DEF))) $(CMN_LIBS) $$(LDFLAGS) /IMPLIB:$$(call \
-  ospath,$$(IMP))$(DLL_MANIFEST_OPTION)$$(DEL_ON_DLL_FAIL)$$(EMBED_DLL_MANIFEST)
+  ospath,$$(IMP))$(DLL_MANIFEST_OPTION))$$(DEL_ON_DLL_FAIL)$$(EMBED_DLL_MANIFEST)
 endef
 $(eval $(foreach v,R $(VARIANTS_FILTER),$(DLL_LD_TEMPLATE)))
 
@@ -656,6 +673,7 @@ $4: SRC := $1
 $4: SDEPS := $2
 $4: IMP := $6$(IMP_SUFFIX)
 $4: DEF := $7
+$4: NO_EXPORTS := $(DLL_NO_EXPORTS)
 $4: $1 $3 $7 | $(IMP_DIR)
 NEEDED_DIRS += $(IMP_DIR)
 $6$(IMP_SUFFIX): $4
@@ -793,6 +811,7 @@ DRV_RULES = $(if $(DRV),$(call DRV_RULES1,$(call FORM_TRG,DRV),$(call TRG_SRC,DR
 # this code is evaluated from $(DEFINE_TARGETS)
 # NOTE: $(STD_RES_TEMPLATE) adds standard resource to $1_RES, so postpone evaluation of $($x_RES) when adding it to CLEAN
 # NOTE: reset NO_STD_RES variable - it may be temporary set to disable adding standard resource to the target
+# NOTE: reset DLL_NO_EXPORTS variable - it may be defined to pass check that DLL must export symbols
 define OS_DEFINE_TARGETS
 $(subst $$(newline),$(newline),$(value CB_WINXX_RES_RULES))
 $(if $(EXE),$(EXE_AUX_TEMPLATE))
@@ -803,6 +822,7 @@ $(DRV_RULES)
 $$(call TOCLEAN,$(RES) $(foreach x,$(BLD_TARGETS),$$($x_RES)))
 CB_WINXX_RES_RULES=
 NO_STD_RES:=
+DLL_NO_EXPORTS:=
 endef
 
 # protect variables from modifications in target makefiles
@@ -813,7 +833,8 @@ $(call CLEAN_BUILD_PROTECT_VARS,SEQ_BUILD YASMC FLEXC BISONC MC SUPPRESS_RC_LOGO
   OS_APPDEFS OS_KRNDEFS VARIANTS_FILTER VARIANT_LIB_MAP VARIANT_IMP_MAP \
   CHECK_LIB_UNI_NAME1 CHECK_LIB_UNI_NAME CMN_LIBS_LDFLAGS CMN_LIBS \
   DLL_EXPORTS_DEFINE DLL_IMPORTS_DEFINE \
-  DEF_EXE_SUBSYSTEM EXE_LD_TEMPLATE DEL_ON_DLL_FAIL DLL_LD_TEMPLATE DEF_LIB_LDFLAGS LIB_LD_TEMPLATE DEF_KLIB_LDFLAGS \
+  DEF_EXE_SUBSYSTEM EXE_LD_TEMPLATE DEL_ON_DLL_FAIL WRAP_DLL_EXPORTS_LINKER WRAP_DLL_LINKER \
+  DLL_LD_TEMPLATE DEF_LIB_LDFLAGS LIB_LD_TEMPLATE DEF_KLIB_LDFLAGS \
   $(foreach v,R $(VARIANTS_FILTER),EXE_$v_LD1 DLL_$v_LD1 LIB_$v_LD1) KLIB_LD1 \
   APP_FLAGS CMN_CL1 CMN_RCL CMN_SCL CMN_RUCL CMN_SUCL \
   INCLUDING_FILE_PATTERN UDEPS_INCLUDE_FILTER SED_DEPS_SCRIPT \
