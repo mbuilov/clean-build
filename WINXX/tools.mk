@@ -24,9 +24,13 @@ ospath = $(subst /,\,$1)
 # NOTE: assume there are no spaces and ':' in the path to sources
 isrelpath = $(if $(word 2,$(subst :, ,$1)),,1)
 
-DEL   = if exist $(ospath) (del /F /Q $(ospath))
+# delete one file
+DEL   = (if exist $(ospath) del /F /Q $(ospath))
+
+# delete files and directories
 RM1   = $(if $(VERBOSE),,@)for %%f in ($(ospath)) do if exist %%f\NUL (rd /S /Q %%f) else if exist %%f (del /F /Q %%f)
 RM    = $(call xcmd,RM1,$1,$(DEL_ARGS_LIMIT))
+
 # NOTE! there are races in MKDIR - if make spawns two parallel jobs:
 # if not exist aaa
 #                        if not exist aaa/bbb
@@ -35,6 +39,7 @@ RM    = $(call xcmd,RM1,$1,$(DEL_ARGS_LIMIT))
 #MKDIR1 = if not exist $1 mkdir $1
 # assume MKDIR is called only if directory does not exist
 MKDIR = mkdir $(ospath)
+
 SED  := sed.exe -b
 SED_EXPR = "$(subst %,%%,$1)"
 CAT   = type $(ospath)
