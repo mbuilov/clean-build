@@ -459,7 +459,7 @@ DEF_TAIL_CODE_EVAL = $(eval $(DEF_TAIL_CODE))
 
 # get target variants list or default variant R
 # $1 - EXE,LIB,...
-# $2 - variants filter function (VARIANTS_FILTER), must be defined at time of $(eval)
+# $2 - variants filter function (VARIANTS_FILTER if called from $(MTOP)/c.mk), must be defined at time of $(eval)
 # NOTE: add R to filter pattern to not filter-out default variant R
 # NOTE: if filter gives no variants, return default variant R (regular)
 GET_VARIANTS = $(patsubst ,R,$(filter R $(call $2,$1),$(wordlist 2,999999,$($1))))
@@ -470,10 +470,11 @@ GET_TARGET_NAME = $(firstword $($1))
 
 ifdef MDEBUG
 
-# code to print targets which makefile is required to build
+# code to print makefile targets, used by $(MTOP)/c.mk and may be in other places in the future
 # $1 - targets to build (EXE,LIB,DLL,...)
 # $2 - function to form target file name (FORM_TRG), must be defined at time of $(eval)
-# $3 - variants filter function (VARIANTS_FILTER), must be defined at time of $(eval)
+# $3 - variants filter function (VARIANTS_FILTER if called from $(MTOP)/c.mk), must be defined at time of $(eval)
+# $t - EXE or LIB or DLL, ...
 define DEBUG_TARGETS1
 ifneq ($$($t),)
 $$(foreach v,$$(call GET_VARIANTS,$t,$3),$$(info $$(if $$(CB_TOOL_MODE),[TOOL]: )$t $$(subst \
