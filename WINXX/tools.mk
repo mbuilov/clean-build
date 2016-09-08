@@ -47,13 +47,13 @@ ECHO1 = $(if $(word 2,$1),($(foreach x,$1,$(call ECHO_LINE,$(subst $$(newline),,
 ECHO  = $(call ECHO1,$(subst $(newline),$$(newline) ,$(subst $(space),$$(space),$(subst $(tab),$$(tab),$1))))
 CD    = cd /d $(ospath)
 NUL  := NUL
-SUPPRESS_CP_OUTPUT := | findstr /v /c:"        1" & if errorlevel 1 (exit /b 0) else (exit /b 1)
+SUPPRESS_CP_OUTPUT := | findstr /v /c:"        1" & if errorlevel 1 (cmd /c exit 0) else (cmd /c exit 1)
 CP    = copy /Y /B $(ospath) $(call ospath,$2)$(SUPPRESS_CP_OUTPUT)
 TOUCH1 = if not exist $1 (rem. > $1) else (copy /B $1+,, $1$(SUPPRESS_CP_OUTPUT))
 TOUCH = $(call TOUCH1,$(ospath))
 
 # delete target if failed to build it and exit shell with error code 1
-DEL_ON_FAIL = || ($(foreach x,$1,$(call DEL,$x) &) exit /b 1)
+DEL_ON_FAIL = || ($(foreach x,$1,$(call DEL,$x) &) cmd /c exit 1)
 
 # suffix of built tool executables
 TOOL_SUFFIX := .exe
