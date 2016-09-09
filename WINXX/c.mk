@@ -308,8 +308,8 @@ SED_DEPS_SCRIPT ?= \
 # NOTE: compiler will run in a sub-batch, where double-quotes are escaped by two double-quotes
 ifeq ($(NO_DEPS),)
 ifneq ($(SEQ_BUILD),)
-WRAP_COMPILER ?= (($(subst \","",$1) /showIncludes 2>&1 && echo COMPILATION_OK 1>&2) | \
-  $(SED) -n $(SED_DEPS_SCRIPT) 2>&1) 3>&2 2>&1 1>&3 | findstr /B /L COMPILATION_OK >NUL
+WRAP_COMPILER ?= (($(subst \","",$1) /showIncludes 2>&1 && set /p ="COMPILATION_OK" >&2 <NUL) | \
+  ($(SED) -n $(SED_DEPS_SCRIPT) 2>&1 && set /p ="_SED_OK" >&2 <NUL)) 3>&2 2>&1 1>&3 | findstr /B /L COMPILATION_OK_SED_OK >NUL
 endif
 endif
 
