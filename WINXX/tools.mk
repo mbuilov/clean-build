@@ -25,7 +25,7 @@ ospath = $(subst /,\,$1)
 isrelpath = $(if $(word 2,$(subst :, ,$1)),,1)
 
 # delete one file
-DEL   = (if exist $(ospath) del /F /Q $(ospath))
+DEL   = if exist $(ospath) del /F /Q $(ospath)
 
 # delete files and directories
 RM1   = $(if $(VERBOSE),,@)for %%f in ($(ospath)) do if exist %%f\NUL (rd /S /Q %%f) else if exist %%f (del /F /Q %%f)
@@ -58,7 +58,7 @@ TOUCH1 = if not exist $1 (rem. > $1) else (copy /B $1+,, $1$(SUPPRESS_CP_OUTPUT)
 TOUCH = $(call TOUCH1,$(ospath))
 
 # delete target if failed to build it and exit shell with error code 1
-DEL_ON_FAIL = || ($(foreach x,$1,$(call DEL,$x) &) cmd /c exit 1)
+DEL_ON_FAIL = || ($(foreach x,$1,($(call DEL,$x)) &) cmd /c exit 1)
 
 # suffix of built tool executables
 TOOL_SUFFIX := .exe
