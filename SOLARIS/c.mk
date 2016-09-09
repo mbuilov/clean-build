@@ -25,7 +25,8 @@ CXX := CC -m$(if $(UCPU:%64=),32,64)
 endif
 
 ifneq ($(filter default undefined,$(origin AR)),)
-AR := ar
+# target-specific: COMPILER
+AR := $(if $(filter CXX,$(COMPILER)),CC,ar)
 endif
 
 ifneq ($(filter default undefined,$(origin TCC)),)
@@ -41,7 +42,8 @@ TCXX := CC -m$(if $(TCPU:%64=),32,64)
 endif
 
 ifneq ($(filter default undefined,$(origin TAR)),)
-TAR := ar
+# target-specific: COMPILER
+TAR := $(if $(filter CXX,$(COMPILER)),CC,ar)
 endif
 
 ifneq ($(filter default undefined,$(origin KCC)),)
@@ -161,7 +163,8 @@ endif
 
 # default flags for static library archiver
 ifeq (undefined,$(origin DEF_AR_FLAGS))
-DEF_AR_FLAGS := -c -r
+# target-specific: COMPILER
+DEF_AR_FLAGS := $(if $(filter CXX,$(COMPILER)),-xar -o,-c -r)
 endif
 
 # how to mark exported symbols from a DLL
@@ -192,8 +195,8 @@ endif
 # $1 - target, $2 - objects, $3 - variant
 # target-specfic: LIBS, DLLS, LIB_DIR, SYSLIBPATH, SYSLIBS, COMPILER, LDFLAGS
 CMN_LIBS ?= -o $1 $2 $(DEF_SHARED_FLAGS) $(RPATH_OPTION) $(if $(strip \
-  $(LIBS)$(DLLS)),-L$(LIB_DIR) $(addprefix -l,$(DLLS)) $(addprefix $(LIB_PREFIX),$(addsuffix $(call \
-  VARIANT_LIB_SUFFIX,$3)$(LIB_SUFFIX),$(LIBS)))) $(addprefix -L,$(SYSLIBPATH)) $(addprefix \
+  $(LIBS)$(DLLS)),-L$(LIB_DIR) $(addprefix -l,$(DLLS)) $(if $(LIBS),-Bstatic $(addprefix -l,$(addsuffix \
+  $(call VARIANT_LIB_SUFFIX,$3),$(LIBS))) -Bdynamic)) $(addprefix -L,$(SYSLIBPATH)) $(addprefix \
   -l,$(SYSLIBS) $(if $(filter CXX,$(COMPILER)),$(DEF_CXX_LIBS)) $(DEF_C_LIBS)) $(DEF_SHARED_LIBS) $(LDFLAGS)
 
 # what to export from a dll
@@ -219,16 +222,13 @@ endif
 # $(SED) script to generate dependencies file from C compiler output
 # $2 - target object file, $3 - source, $4 - $(basename $2).d, $5 - prefixes of system includes to filter out
 
-# /^COMPILATION_FAILED$$/w $4   - write COMPILATION_FAILED string to generated dep-file
-# /^COMPILATION_FAILED$$/d      - don't print COMPILATION_FAILED, start new circle
 # /^$(tab)*\//!{p;d;}           - print all lines not started with optional tabs and /, start new circle
 # s/^\$(tab)*//;                - strip-off leading tabs
 # $(foreach x,$5,\@^$x.*@d;)    - delete lines started with system include paths, start new circle
 # s@.*@&:\$(newline)$2: &@;w $4 - make dependencies, then write to generated dep-file
 
 SED_DEPS_SCRIPT ?= \
--e '/^COMPILATION_FAILED$$/w $4' \
--e '/^COMPILATION_FAILED$$/d;/^$(tab)*\//!{p;d;}' \
+-e '/^$(tab)*\//!{p;d;}' \
 -e 's/^\$(tab)*//;$(foreach x,$5,\@^$x.*@d;)s@.*@&:\$(newline)$2: &@;w $4'
 
 # WRAP_COMPILER - either just call compiler or call compiler and auto-generate dependencies
@@ -236,8 +236,8 @@ SED_DEPS_SCRIPT ?= \
 ifdef NO_DEPS
 WRAP_COMPILER = $1
 else
-WRAP_COMPILER ?= ($1 -H 2>&1 || echo COMPILATION_FAILED) | \
-sed -n $(SED_DEPS_SCRIPT) && if grep COMPILATION_FAILED $4 > /dev/null; then rm $4 && false; fi
+WRAP_COMPILER ?= (($1 -H 2>&1 && echo COMPILATION_OK 1>&2) | \
+sed -n $(SED_DEPS_SCRIPT) 2>&1) 3>&2 2>&1 1>&3 3>&- | grep COMPILATION_OK > /dev/null
 endif
 
 # flags for application level C-compiler
