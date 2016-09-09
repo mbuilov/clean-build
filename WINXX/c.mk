@@ -292,9 +292,7 @@ endif
 # $2 - target object file, $3 - source, $4 - $(basename $2).d, $5 - prefixes of system includes to filter out
 
 # s/\x0d//;                                - fix line endings - remove CR
-# /^$(notdir $3)$$/d;                      - delete compiled file name printed by cl
-# /^COMPILATION_FAILED.*/w $4              - write COMPILATION_FAILED string to generated dep-file
-# /^COMPILATION_FAILED.*/d                 - don't print COMPILATION_FAILED, start new circle
+# /^$(notdir $3)$$/d;                      - delete compiled file name printed by cl, start new circle
 # /^$(INCLUDING_FILE_PATTERN) /!{p;d;}     - print all lines not started with $(INCLUDING_FILE_PATTERN) and space, start new circle
 # s/^$(INCLUDING_FILE_PATTERN)  *//;       - strip-off leading $(INCLUDING_FILE_PATTERN) with spaces
 # $(subst ?, ,$(foreach x,$5,\@^$x.*@Id;)) - delete lines started with system include paths, start new circle
@@ -311,7 +309,7 @@ SED_DEPS_SCRIPT ?= \
 ifeq ($(NO_DEPS),)
 ifneq ($(SEQ_BUILD),)
 WRAP_COMPILER ?= (($(subst \","",$1) /showIncludes 2>&1 && echo COMPILATION_OK 1>&2) | \
-  $(SED) -n $(SED_DEPS_SCRIPT)) 3>&2 2>&1 1>&3 | findstr /B /L COMPILATION_OK >NUL || (del $(call ospath,$4) && exit /b 1)
+  $(SED) -n $(SED_DEPS_SCRIPT) 2>&1) 3>&2 2>&1 1>&3 | findstr /B /L COMPILATION_OK >NUL
 endif
 endif
 
