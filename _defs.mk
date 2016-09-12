@@ -247,6 +247,7 @@ JAR_COLOR    := [01;33m
 JAVAC_COLOR  := [01;36m
 SCALAC_COLOR := [01;36m
 CP_COLOR     := [00;36m
+LN_COLOR     := [00;36m
 MKDIR_COLOR  := [00;36m
 TOUCH_COLOR  := [00;36m
 
