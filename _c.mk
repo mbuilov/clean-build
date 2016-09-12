@@ -30,10 +30,14 @@ endif
 # what we may build by including $(MTOP)/c.mk (for ex. LIB := my_lib)
 BLD_TARGETS := EXE LIB DLL KLIB DRV
 
-# list of variables that may have target-dependent variant (EXE_PCH, LIB_SRC and so on)
+# list of variables that may have target-dependent variants (EXE_PCH, LIB_SRC and so on)
+# NOTE: these variables may also have $OS-dependent variants: {,EXE_,LIB_,DLL_,KLIB_,DRV_}$v{,_$(OSVARIANT),_$(OS),_$(OSTYPE)}
+# for example: EXE_SRC_WINXP, CFLAGS_LINUX, LDFLAGS_WINXX and so on
 TRG_VARS := PCH WITH_PCH SRC SDEPS DEFINES INCLUDE CFLAGS CXXFLAGS ASMFLAGS LDFLAGS SYSLIBS SYSLIBPATH SYSINCLUDE DLLS LIBS
 
 # variables without target-dependent variants
+# NOTE: these variables may also have $OS-dependent variants: $v{,_$(OSVARIANT),_$(OS),_$(OSTYPE)}
+# for example: KLIBS_LINUX, CMNINCLUDE_WINXX, CLEAN_UNIX and so on
 BLD_VARS := KLIBS CMNINCLUDE CLEAN
 
 # determine prefix for static LIB and for implementation-library of DLL
@@ -70,6 +74,7 @@ VARIANT_IMP_SUFFIX = $(if $(filter-out R,$1),_$1)
 include $(MTOP)/$(OS)/c.mk
 
 # list of all variables for the targets: SRC, DEFINES, CMNINCLUDE and so on
+# NOTE: these variables may also have $OS-dependent variants
 BLD_VARS += $(TRG_VARS)
 
 # add defines from $(MTOP)/$(OS)/c.mk
