@@ -1,15 +1,20 @@
 OSTYPE := UNIX
 
-# additional variables that may have target-dependent variant (EXE_RPATH, DLL_RPATH and so on)
+# additional variables that may have target-dependent variants (EXE_RPATH, DLL_RPATH and so on)
+# NOTE: these variables may also have $OS-dependent variants (RPATH_SOLARIS, DLL_RPATH_UNIX ans ao on)
 TRG_VARS += RPATH
 
 # additional variables without target-dependent variants
+# NOTE: these variables may also have $OS-dependent variants (MAP_SOLARIS, MAP_UNIX and so on)
 BLD_VARS += MAP
 
 # reset additional variables
+# $(INST_RPATH) - application install location
+# $(SOVER) - shared object library version string in form major.minor.patch (for example 1.2.3)
 define RESET_OS_VARS
 RPATH := $(INST_RPATH)
 MAP   :=
+SOVER :=
 endef
 
 ifneq ($(filter default undefined,$(origin CC)),)
@@ -83,7 +88,7 @@ LIB_SUFFIX := .a    # static library (archive)
 IMP_PREFIX := lib
 IMP_SUFFIX := .so   # implementaton library for dll, the same as dll itself
 DLL_PREFIX := lib
-DLL_SUFFIX := .so   # dynamically loaded library (shared object)
+DLL_SUFFIX = .so$(addprefix .,$(SOVER)) # dynamically loaded library (shared object)
 KLIB_NAME_PREFIX := k_
 KLIB_PREFIX := lib$(KLIB_NAME_PREFIX)
 KLIB_SUFFIX := .a   # kernel-mode static library
@@ -203,11 +208,16 @@ CMN_LIBS ?= -o $1 $2 $(DEF_SHARED_FLAGS) $(RPATH_OPTION) $(if $(strip \
 # target-specfic: MAP
 VERSION_SCRIPT_OPTION ?= $(addprefix -M,$(MAP))
 
+# append soname option if target shared library have version info (some number after .so)
+# $1 - full path to target shared library, for ex. /aa/bb/cc/libmy_lib.so.1.2.3, soname will be libmy_lib.so.1
+SONAME_OPTION1 ?= $(addprefix -h $(word 1,$1).$(word 2,$1).,$(word 3,$1))
+SONAME_OPTION ?= $(call SONAME_OPTION1,$(subst ., ,$(notdir $1)))
+
 # different linkers
 # $1 - target, $2 - objects
 # target-specfic: TMD, COMPILER, MAP
 EXE_R_LD ?= $(call SUP,$(TMD)LD,$1)$($(TMD)$(COMPILER)) $(DEF_EXE_FLAGS) $(call CMN_LIBS,$1,$2,R)
-DLL_R_LD ?= $(call SUP,$(TMD)LD,$1)$($(TMD)$(COMPILER)) $(DEF_SO_FLAGS) $(VERSION_SCRIPT_OPTION) $(call CMN_LIBS,$1,$2,D)
+DLL_R_LD ?= $(call SUP,$(TMD)LD,$1)$($(TMD)$(COMPILER)) $(DEF_SO_FLAGS) $(VERSION_SCRIPT_OPTION) $(SONAME_OPTION) $(call CMN_LIBS,$1,$2,D)
 LIB_R_LD ?= $(call SUP,$(TMD)AR,$1)$($(TMD)AR) $(DEF_AR_FLAGS) $1 $2
 LIB_D_LD ?= $(LIB_R_LD)
 KLIB_LD  ?= $(call SUP,KLD,$1)$(KLD) $(DEF_KLD_FLAGS) -o $1 $2 $(LDFLAGS)
@@ -254,12 +264,12 @@ ifeq (undefined,$(origin DEF_CXXFLAGS))
 # disable some C++ warnings:
 # badargtype2w - (Anachronism) when passing pointers to functions
 # wbadasg      - (Anachronism) assigning extern "C" ...
-DEF_CXXFLAGS := -erroff=badargtype2w,wbadasg
+DEF_CXXFLAGS := -xstrconst -erroff=badargtype2w,wbadasg
 endif
 
 # default flags for C compiler
 ifeq (undefined,$(origin DEF_CFLAGS))
-DEF_CFLAGS:=
+DEF_CFLAGS := -xstrconst
 endif
 
 # common options for applicaton-level C++ and C compilers
@@ -327,6 +337,24 @@ $1: RPATH := $(RPATH) $(EXE_RPATH)
 endef
 EXE_AUX_TEMPLATE = $(call EXE_AUX_TEMPLATE1,$(call FORM_TRG,EXE,R))
 
+# create soft simlink $(LIB_DIR)/libmy_lib.so.1 -> libmy_lib.so.1.2.3
+# $1 - full path to soft link: $(LIB_DIR)/libmy_lib.so.1
+# $2 - simlinked target name:  libmy_lib.so.1.2.3
+define SOFTLINK_TEMPLATE
+$(STD_TARGET_VARS)
+$1: $(dir $1)$2
+	$$(call SUP,LN,$$@)ln -s $$(notdir $$<) $$@
+endef
+
+# create necessary simlinks:
+# $(LIB_DIR)/libmy_lib.so   -> libmy_lib.so.1
+# $(LIB_DIR)/libmy_lib.so.1 -> libmy_lib.so.1.2.3
+# $1 - target file: $(LIB_DIR)/libmy_lib.so.1.2.3
+SOLINK_TEMPLATE1 = $(if \
+  $(word 3,$1),$(newline)$(call SOFTLINK_TEMPLATE,$(dir $2)$(word 1,$1).$(word 2,$1),$(word 1,$1).$(word 2,$1).$(word 3,$1)))$(if \
+  $(word 4,$1),$(newline)$(call SOFTLINK_TEMPLATE,$(dir $2)$(word 1,$1).$(word 2,$1).$(word 3,$1),$(notdir $2)))
+SOLINK_TEMPLATE = $(call SOLINK_TEMPLATE1,$(subst ., ,$(notdir $1)),$1)
+
 # auxiliary defines for DLL
 # $1 - $(call FORM_TRG,DLL,R)
 # $2 - $(call FIXPATH,$(firstword $(DLL_MAP) $(MAP)))
@@ -334,6 +362,7 @@ define DLL_AUX_TEMPLATE1
 $1: RPATH := $(RPATH) $(DLL_RPATH)
 $1: MAP := $2
 $1: $2
+$(SOLINK_TEMPLATE)
 endef
 DLL_AUX_TEMPLATE = $(call DLL_AUX_TEMPLATE1,$(call FORM_TRG,DLL,R),$(call FIXPATH,$(firstword $(DLL_MAP) $(MAP))))
 
@@ -378,8 +407,10 @@ $(call CLEAN_BUILD_PROTECT_VARS,CC CXX AR TCC TCXX TAR KCC KLD YASM FLEXC BISONC
   DLL_DIR IMP_DIR OS_PREDEFINES OS_APPDEFS OS_KRNDEFS VARIANTS_FILTER \
   VARIANT_LIB_MAP VARIANT_IMP_MAP DEF_SHARED_FLAGS DEF_EXE_FLAGS DEF_SO_FLAGS DEF_KLD_FLAGS DEF_AR_FLAGS \
   DLL_EXPORTS_DEFINE DLL_IMPORTS_DEFINE \
-  RPATH_OPTION DEF_C_LIBS DEF_CXX_LIBS CMN_LIBS VERSION_SCRIPT_OPTION EXE_R_LD DLL_R_LD LIB_R_LD LIB_D_LD KLIB_LD DRV_LD \
+  RPATH_OPTION DEF_C_LIBS DEF_CXX_LIBS CMN_LIBS VERSION_SCRIPT_OPTION SONAME_OPTION1 SONAME_OPTION \
+  EXE_R_LD DLL_R_LD LIB_R_LD LIB_D_LD KLIB_LD DRV_LD \
   UDEPS_INCLUDE_FILTER SED_DEPS_SCRIPT WRAP_COMPILER APP_FLAGS DEF_CXXFLAGS DEF_CFLAGS CC_PARAMS CMN_CXX CMN_CC \
   EXE_R_CXX EXE_R_CC LIB_R_CXX LIB_R_CC DLL_R_CXX DLL_R_CC LIB_D_CXX LIB_D_CC KDEPS_INCLUDE_FILTER KRN_FLAGS \
   KCC_PARAMS KLIB_R_CC DRV_R_CC KLIB_R_ASM DRV_R_ASM BISON FLEX \
-  EXE_AUX_TEMPLATE1 EXE_AUX_TEMPLATE DLL_AUX_TEMPLATE1 DLL_AUX_TEMPLATE DRV_TEMPLATE DRV_RULES1 DRV_RULES)
+  EXE_AUX_TEMPLATE1 EXE_AUX_TEMPLATE SOFTLINK_TEMPLATE SOLINK_TEMPLATE1 SOLINK_TEMPLATE DLL_AUX_TEMPLATE1 DLL_AUX_TEMPLATE \
+  DRV_TEMPLATE DRV_RULES1 DRV_RULES)
