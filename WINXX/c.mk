@@ -1,9 +1,11 @@
 OSTYPE := WINDOWS
 
-# additional variables that may have target-dependent variant (EXE_RES, DLL_RES and so on)
+# additional variables that may have target-dependent variants (EXE_RES, DLL_RES and so on)
+# NOTE: these variables may also have $OS-dependent variants (RES_WINXP, DLL_RES_WINDOWS ans ao on)
 TRG_VARS += RES
 
 # additional variables without target-dependent variants
+# NOTE: these variables may also have $OS-dependent variants (DEF_WIN7, DEF_WINXX and so on)
 BLD_VARS += DEF
 
 # reset additional variables
