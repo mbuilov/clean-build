@@ -343,7 +343,7 @@ EXE_AUX_TEMPLATE = $(call EXE_AUX_TEMPLATE1,$(call FORM_TRG,EXE,R))
 define SOFTLINK_TEMPLATE
 $(STD_TARGET_VARS)
 $1: $(dir $1)$2
-	$$(call SUP,LN,$$@)ln -s $$(notdir $$<) $$@
+	$$(call SUP,LN,$$@)ln -sf $$(notdir $$<) $$@
 endef
 
 # create necessary simlinks:
