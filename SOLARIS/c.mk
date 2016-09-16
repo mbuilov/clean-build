@@ -1,7 +1,7 @@
 OSTYPE := UNIX
 
 # additional variables that may have target-dependent variants (EXE_RPATH, DLL_RPATH and so on)
-# NOTE: these variables may also have $OS-dependent variants (RPATH_SOLARIS, DLL_RPATH_UNIX ans ao on)
+# NOTE: these variables may also have $OS-dependent variants (RPATH_SOLARIS, DLL_RPATH_UNIX and so on)
 TRG_VARS += RPATH
 
 # additional variables without target-dependent variants
@@ -86,7 +86,7 @@ OBJ_SUFFIX := .o
 LIB_PREFIX := lib
 LIB_SUFFIX := .a    # static library (archive)
 IMP_PREFIX := lib
-IMP_SUFFIX := .so   # implementaton library for dll, the same as dll itself
+IMP_SUFFIX := .so   # implementation library for dll, the same as dll itself
 DLL_PREFIX := lib
 DLL_SUFFIX = .so$(addprefix .,$(SOVER)) # dynamically loaded library (shared object)
 KLIB_NAME_PREFIX := k_
@@ -101,7 +101,7 @@ endif
 DLL_DIR = $(LIB_DIR)
 IMP_DIR = $(LIB_DIR)
 
-# solaris variant, such as SOLARIS9,SOLARIS10,SOLARIS11 and so on
+# solaris OS variant, such as SOLARIS9,SOLARIS10,SOLARIS11 and so on
 # note: empty (generic variant) by default
 ifndef OSVARIANT
 OSVARIANT:=
@@ -183,7 +183,7 @@ DLL_IMPORTS_DEFINE :=
 endif
 
 # runtime-path option for EXE or DLL
-# target-specfic: RPATH
+# target-specific: RPATH
 RPATH_OPTION ?= $(addprefix -R,$(strip $(RPATH)))
 
 # standard C libraries
@@ -198,14 +198,14 @@ endif
 
 # common linker options for EXE or DLL
 # $1 - target, $2 - objects, $3 - variant
-# target-specfic: LIBS, DLLS, LIB_DIR, SYSLIBPATH, SYSLIBS, COMPILER, LDFLAGS
+# target-specific: LIBS, DLLS, LIB_DIR, SYSLIBPATH, SYSLIBS, COMPILER, LDFLAGS
 CMN_LIBS ?= -o $1 $2 $(DEF_SHARED_FLAGS) $(RPATH_OPTION) $(if $(strip \
   $(LIBS)$(DLLS)),-L$(LIB_DIR) $(addprefix -l,$(DLLS)) $(if $(LIBS),-Bstatic $(addprefix -l,$(addsuffix \
   $(call VARIANT_LIB_SUFFIX,$3),$(LIBS))) -Bdynamic)) $(addprefix -L,$(SYSLIBPATH)) $(addprefix \
   -l,$(SYSLIBS) $(if $(filter CXX,$(COMPILER)),$(DEF_CXX_LIBS)) $(DEF_C_LIBS)) $(DEF_SHARED_LIBS) $(LDFLAGS)
 
 # what to export from a dll
-# target-specfic: MAP
+# target-specific: MAP
 VERSION_SCRIPT_OPTION ?= $(addprefix -M,$(MAP))
 
 # append soname option if target shared library have version info (some number after .so)
@@ -215,7 +215,7 @@ SONAME_OPTION ?= $(call SONAME_OPTION1,$(subst ., ,$(notdir $1)))
 
 # different linkers
 # $1 - target, $2 - objects
-# target-specfic: TMD, COMPILER, MAP
+# target-specific: TMD, COMPILER, MAP
 EXE_R_LD ?= $(call SUP,$(TMD)LD,$1)$($(TMD)$(COMPILER)) $(DEF_EXE_FLAGS) $(call CMN_LIBS,$1,$2,R)
 DLL_R_LD ?= $(call SUP,$(TMD)LD,$1)$($(TMD)$(COMPILER)) $(DEF_SO_FLAGS) $(VERSION_SCRIPT_OPTION) $(SONAME_OPTION) $(call CMN_LIBS,$1,$2,D)
 LIB_R_LD ?= $(call SUP,$(TMD)AR,$1)$($(TMD)AR) $(DEF_AR_FLAGS) $1 $2
@@ -272,14 +272,14 @@ ifeq (undefined,$(origin DEF_CFLAGS))
 DEF_CFLAGS := -xstrconst
 endif
 
-# common options for applicaton-level C++ and C compilers
+# common options for application-level C++ and C compilers
 # $1 - target, $2 - source
-# target-specfic: DEFINES, INCLUDE
+# target-specific: DEFINES, INCLUDE
 CC_PARAMS ?= -c $(APP_FLAGS) $(call SUBST_DEFINES,$(addprefix -D,$(DEFINES))) $(addprefix -I,$(INCLUDE))
 
 # C++ and C compilers
 # $1 - target, $2 - source, $3 - aux flags
-# target-specfic: TMD, CXXFLAGS, CFLAGS
+# target-specific: TMD, CXXFLAGS, CFLAGS
 CMN_CXX ?= $(call SUP,$(TMD)CXX,$2)$(call \
   WRAP_COMPILER,$($(TMD)CXX) $(CC_PARAMS) $(DEF_CXXFLAGS) $(CXXFLAGS) -o $1 $2 $3,$1,$2,$(basename $1).d,$(UDEPS_INCLUDE_FILTER))
 CMN_CC  ?= $(call SUP,$(TMD)CC,$2)$(call \
@@ -312,7 +312,7 @@ endif
 
 # common options for kernel-level C compiler
 # $1 - target, $2 - source
-# target-specfic: DEFINES, INCLUDE, CFLAGS
+# target-specific: DEFINES, INCLUDE, CFLAGS
 KCC_PARAMS ?= -c $(KRN_FLAGS) $(call SUBST_DEFINES,$(addprefix -D,$(DEFINES))) $(addprefix -I,$(INCLUDE)) $(DEF_CFLAGS) $(CFLAGS)
 
 # kernel-level C compilers
@@ -322,7 +322,7 @@ DRV_R_CC  ?= $(KLIB_R_CC)
 
 # kernel-level assembler
 # $1 - target, $2 - source
-# target-specfic: ASMFLAGS
+# target-specific: ASMFLAGS
 KLIB_R_ASM ?= $(call SUP,ASM,$2)$(YASMC) -o $1 $2 $(ASMFLAGS)
 DRV_R_ASM  ?= $(KLIB_R_ASM)
 

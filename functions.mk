@@ -93,7 +93,7 @@ padto1 = $(subst .,       ,$(subst ..,      ,$(subst ...,     ,$(subst \
 # return string of spaces to add to given argument to align total argument length to fixed width (8 chars)
 padto = $(call padto1,$(repl1))
 
-# call function $1 many times with arguments from list $2 groupped by $3 elements
+# call function $1 many times with arguments from list $2 grouped by $3 elements
 # and with auxiliary argument $4, separating function calls with $5
 xargs = $(call $1,$(wordlist 1,$3,$2),$4)$(if \
   $(word $(words x $(wordlist 1,$3,$2)),$2),$5$(call \
@@ -125,7 +125,7 @@ cmn_path1 = $(if $(filter $(firstword $1),$(firstword $2)),/$(firstword $1)$(cal
 # $1:     aa/bb/cc/
 # $2:     aa/dd/qq/
 # result: aa/
-# note: add | before $1 and $2 paths - to not stip off leading /
+# note: add | before $1 and $2 paths - to not strip off leading /
 cmn_path = $(patsubst /|%,%/,$(call cmn_path1,$(subst /, ,|$1),$(subst /, ,|$2)))
 
 # convert "a/b/c/" -> "../../../"

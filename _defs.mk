@@ -12,7 +12,7 @@ ifndef MTOP
 $(error MTOP is not defined, example: C:\clean-build,/usr/local/clean-build)
 endif
 
-# make MTOP nonrecursive (simple)
+# make MTOP non-recursive (simple)
 MTOP := $(MTOP)
 
 # legend:
@@ -128,7 +128,7 @@ ifeq ($(filter $(TARGET),$(SUPPORTED_TARGETS)),)
 $(error unknown TARGET=$(TARGET), please pick one of: $(SUPPORTED_TARGETS))
 endif
 
-# fix variables - make them nonrecursive
+# fix variables - make them non-recursive
 TARGET   := $(TARGET)
 OS       := $(OS)
 CPU      := $(CPU)
@@ -259,10 +259,10 @@ COLORIZE ?= $(if $($1_COLOR),$($1_COLOR)$1[0m,$1)$(padto)$(if \
   $($1_COLOR),$(join $(dir $2),$(addsuffix [0m,$(addprefix $($1_COLOR),$(notdir $2)))),$2)
 endif
 
-# helper macro: convert multiline sed script $1 to multiple sed expressions - one expression for each script line
+# helper macro: convert multi-line sed script $1 to multiple sed expressions - one expression for each script line
 SED_MULTI_EXPR = $(subst $$(space), ,$(foreach s,$(subst $(newline), ,$(subst $(space),$$(space),$1)),-e $(call SED_EXPR,$s)))
 
-# for UNIX: don't change paths when convertig from make internal file path to path accepted by $(OS)
+# for UNIX: don't change paths when converting from make internal file path to path accepted by $(OS)
 ospath ?= $1
 
 # for UNIX: absolute paths are started with /
@@ -465,7 +465,7 @@ DEF_TAIL_CODE_EVAL = $(eval $(DEF_TAIL_CODE))
 # NOTE: if filter gives no variants, return default variant R (regular)
 GET_VARIANTS = $(patsubst ,R,$(filter R $(call $2,$1),$(wordlist 2,999999,$($1))))
 
-# get target name - firstword, next words - variants
+# get target name - first word, next words - variants
 # $1 - EXE,LIB,...
 GET_TARGET_NAME = $(firstword $($1))
 
@@ -534,7 +534,7 @@ endef
 ifdef MCHECK
 
 # NOTE: must not use $@ in rule because it may have different values (any target from multi-targets list),
-#       must not use $(lastword $^) - tail of list of prerequisites may have different values (becase of different $@)
+#       must not use $(lastword $^) - tail of list of prerequisites may have different values (because of different $@)
 # $3 - rule
 MULTI_TARGET_CHECK = $(if \
   $(filter-out $(words x$3x),$(words x$(subst $$@, ,$3)x)),$(warning \
@@ -557,7 +557,7 @@ MULTI_TARGET_SEQ = $(if $(word 2,$1),$(word 2,$1): | $(firstword $1)$(newline)$(
 MULTI_TARGET = $(MULTI_TARGET_CHECK)$(eval $(MULTI_TARGET_SEQ)$(call MULTI_TARGET_RULE,$1,$2,$3,$(words $(MULTI_TARGET_NUM))))
 
 # $(DEFINE_TARGETS_EVAL_NAME) - contains name of macro that when expanded
-# evaluates code to define targes (at least, by evaluating $(DEF_TAIL_CODE))
+# evaluates code to define targets (at least, by evaluating $(DEF_TAIL_CODE))
 DEFINE_TARGETS_EVAL_NAME := DEF_TAIL_CODE_EVAL
 
 # define targets at end of makefile
@@ -575,7 +575,7 @@ MAKE_CONTINUE_EVAL_NAME := DEF_HEAD_CODE_EVAL
 
 # increment MAKE_CONT, eval tail code with $(DEFINE_TARGETS)
 # and start next circle - simulate including of appropriate $(MTOP)/c.mk or $(MTOP)/java.mk
-# by evaluating head-code $($(MAKE_CONTINUE_EVAL_NAME)) - which must be initally set in $(MTOP)/c.mk or $(MTOP)/java.mk
+# by evaluating head-code $($(MAKE_CONTINUE_EVAL_NAME)) - which must be initially set in $(MTOP)/c.mk or $(MTOP)/java.mk
 # NOTE: evaluated code in $($(MAKE_CONTINUE_EVAL_NAME)) must re-define MAKE_CONTINUE_EVAL_NAME,
 # because $(MAKE_CONTINUE) resets it to DEF_HEAD_CODE_EVAL
 # NOTE: TOOL_MODE value may be changed in target makefile before $(MAKE_CONTINUE)

@@ -7,7 +7,7 @@ endif
 NORM_MAKEFILES = $(patsubst $(TOP)/%,%$2,$(abspath $(foreach \
   x,$1,$(if $(call isrelpath,$x),$(VPREFIX))$x$(if $(filter-out %.mk %/Makefile Makefile,$x),/Makefile))))
 
-# overwrite code for adding $(MDEPS) - list of makefiles that need to be maked before target makefile - to $(ORDER_DEPS)
+# overwrite code for adding $(MDEPS) - list of makefiles that need to be built before target makefile - to $(ORDER_DEPS)
 FIX_ORDER_DEPS := ORDER_DEPS := $$(strip $$(ORDER_DEPS) $$(call NORM_MAKEFILES,$$(MDEPS),-))$(newline)MDEPS:=
 
 # don't complain about changed FIX_ORDER_DEPS value - replace old FIX_ORDER_DEPS value with a new one

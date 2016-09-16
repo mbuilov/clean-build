@@ -1,6 +1,6 @@
 # this file included by $(MTOP)/defs.mk
 
-# syncronize make output for parallel builds
+# synchronize make output for parallel builds
 MAKEFLAGS += -O
 
 # max command line length

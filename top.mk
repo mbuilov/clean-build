@@ -19,12 +19,12 @@ ifndef TOP
 $(error TOP undefined, example: C:/opt/project,/home/oper/project)
 endif
 
-# make TOP nonrecursive (simple)
+# make TOP non-recursive (simple)
 TOP := $(TOP)
 $(call CHECK_TOP,TOP)
 
 # directory for built files - base for $(BIN_DIR), $(LIB_DIR), $(OBJ_DIR), $(GEN_DIR)
-# note: make XTOP nonrecursive (simple)
+# note: make XTOP non-recursive (simple)
 ifndef XTOP
 XTOP := $(TOP)
 else

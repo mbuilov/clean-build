@@ -1,7 +1,7 @@
 OSTYPE := WINDOWS
 
 # additional variables that may have target-dependent variants (EXE_RES, DLL_RES and so on)
-# NOTE: these variables may also have $OS-dependent variants (RES_WINXP, DLL_RES_WINDOWS ans ao on)
+# NOTE: these variables may also have $OS-dependent variants (RES_WINXP, DLL_RES_WINDOWS and so on)
 TRG_VARS += RES
 
 # additional variables without target-dependent variants
@@ -117,7 +117,7 @@ endif
 
 # variants filter function - get possible variants for the target
 # $1 - LIB,EXE,DLL
-# R  - dynamicaly linked multi-threaded libc (regular, default variant)
+# R  - dynamically linked multi-threaded libc (regular, default variant)
 # S  - statically linked multi-threaded libc
 # RU - same as R, but with unicode support (exe or dll may be linked with UNI_-prefixed static/dynamic library)
 # SU - same as S, but with unicode support (exe or dll may be linked with UNI_-prefixed static/dynamic library)

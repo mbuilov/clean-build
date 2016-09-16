@@ -5,7 +5,7 @@ include $(MTOP)/_defs.mk
 endif
 
 # separate group of defines for each build target type (EXE,LIB,DLL,...)
-# - to allow to build many targets (for example LIB,EXE and DLL) specified in one makefile
+# - to allow to build many targets (for example LIB, EXE and DLL) specified in one makefile
 
 # use target-specific variables
 # NOTE: all targets defined at the same time share the same values of common vars LIBS,DLLS,CFLAGS,...
@@ -20,9 +20,9 @@ endif
 
 # after target name may be specified one or more build target variants (for ex. EXE := my_exe R S):
 # R - default build variant:
-#  EXE  - position-dependent code   (UNIX), dynamicaly linked multi-threaded libc (WINDOWS)
-#  LIB  - position-dependent code   (UNIX), dynamicaly linked multi-threaded libc (WINDOWS)
-#  DLL  - position-independent code (UNIX), dynamicaly linked multi-threaded libc (WINDOWS)
+#  EXE  - position-dependent code   (UNIX), dynamically linked multi-threaded libc (WINDOWS)
+#  LIB  - position-dependent code   (UNIX), dynamically linked multi-threaded libc (WINDOWS)
+#  DLL  - position-independent code (UNIX), dynamically linked multi-threaded libc (WINDOWS)
 # P - position-independent code in executables      (for EXE and LIB) (only UNIX)
 # D - position-independent code in shared libraries (only for LIB)    (only UNIX)
 # S - statically linked multithreaded libc          (for all targets) (only WINDOWS)
@@ -397,6 +397,7 @@ endef
 
 # reset build targets, target-specific variables and variables modifiable in target makefiles
 # then define bin/lib/obj/... dirs
+# NOTE: expanded by $(MTOP)/c.mk
 MAKE_C_EVAL = $(eval $(PREPARE_C_VARS)$(DEF_HEAD_CODE))
 
 # protect variables from modifications in target makefiles

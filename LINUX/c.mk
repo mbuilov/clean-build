@@ -1,7 +1,7 @@
 OSTYPE := UNIX
 
 # additional variables that may have target-dependent variants (EXE_RPATH, DLL_RPATH and so on)
-# NOTE: these variables may also have $OS-dependent variants (RPATH_LINUX, DLL_RPATH_UNIX ans ao on)
+# NOTE: these variables may also have $OS-dependent variants (RPATH_LINUX, DLL_RPATH_UNIX and so on)
 TRG_VARS += RPATH
 
 # additional variables without target-dependent variants
@@ -86,7 +86,7 @@ OBJ_SUFFIX := .o
 LIB_PREFIX := lib
 LIB_SUFFIX := .a   # static library (archive)
 IMP_PREFIX := lib
-IMP_SUFFIX := .so  # implementaton library for dll, the same as dll itself
+IMP_SUFFIX := .so  # implementation library for dll, the same as dll itself
 DLL_PREFIX := lib
 DLL_SUFFIX = .so$(addprefix .,$(SOVER)) # dynamically loaded library (shared object)
 KLIB_PREFIX :=
@@ -195,23 +195,23 @@ DLL_IMPORTS_DEFINE :=
 endif
 
 # runtime-path option for EXE or DLL
-# target-specfic: RPATH
+# target-specific: RPATH
 RPATH_OPTION ?= $(addprefix $(WLPREFIX)-rpath=,$(strip $(RPATH)))
 
 # linktime-path option for EXE or DLL
-# target-specfic: RPATH_LINK
+# target-specific: RPATH_LINK
 RPATH_LINK_OPTION ?= $(addprefix $(WLPREFIX)-rpath-link=,$(RPATH_LINK))
 
 # common linker options for EXE or DLL
 # $1 - target, $2 - objects, $3 - variant
-# target-specfic: LIBS, DLLS, LIB_DIR, SYSLIBPATH, SYSLIBS, LDFLAGS
+# target-specific: LIBS, DLLS, LIB_DIR, SYSLIBPATH, SYSLIBS, LDFLAGS
 CMN_LIBS ?= -pipe -o $1 $2 $(DEF_SHARED_FLAGS) $(RPATH_OPTION) $(RPATH_LINK_OPTION) $(if $(strip \
   $(LIBS)$(DLLS)),-L$(LIB_DIR) $(addprefix -l,$(DLLS)) $(if $(LIBS),$(WLPREFIX)-Bstatic $(addprefix -l,$(addsuffix \
   $(call VARIANT_LIB_SUFFIX,$3),$(LIBS))) $(WLPREFIX)-Bdynamic)) $(addprefix -L,$(SYSLIBPATH)) $(addprefix \
   -l,$(SYSLIBS)) $(DEF_SHARED_LIBS) $(LDFLAGS)
 
 # what to export from a dll
-# target-specfic: MAP
+# target-specific: MAP
 VERSION_SCRIPT_OPTION ?= $(addprefix $(WLPREFIX)--version-script=,$(MAP))
 
 # append soname option if target shared library have version info (some number after .so)
@@ -221,7 +221,7 @@ SONAME_OPTION ?= $(call SONAME_OPTION1,$(subst ., ,$(notdir $1)))
 
 # different linkers
 # $1 - target, $2 - objects
-# target-specfic: TMD, COMPILER
+# target-specific: TMD, COMPILER
 EXE_R_LD ?= $(call SUP,$(TMD)LD,$1)$($(TMD)$(COMPILER)) $(DEF_EXE_FLAGS) $(call CMN_LIBS,$1,$2,R)
 EXE_P_LD ?= $(call SUP,$(TMD)LD,$1)$($(TMD)$(COMPILER)) $(DEF_EXE_FLAGS) $(call CMN_LIBS,$1,$2,P) -pie
 DLL_R_LD ?= $(call SUP,$(TMD)LD,$1)$($(TMD)$(COMPILER)) $(DEF_SO_FLAGS) $(VERSION_SCRIPT_OPTION) $(SONAME_OPTION) $(call CMN_LIBS,$1,$2,D)
@@ -256,12 +256,12 @@ endif
 
 # common options for application-level C++ and C compilers
 # $1 - target, $2 - source
-# target-specfic: DEFINES, INCLUDE
+# target-specific: DEFINES, INCLUDE
 CC_PARAMS ?= -pipe -c $(APP_FLAGS) $(AUTO_DEPS_FLAGS) $(call SUBST_DEFINES,$(addprefix -D,$(DEFINES))) $(addprefix -I,$(INCLUDE))
 
 # C++ and C compilers
 # $1 - target, $2 - source
-# target-specfic: WITH_PCH, TMD, PCHS, CXXFLAGS, CFLAG
+# target-specific: WITH_PCH, TMD, PCHS, CXXFLAGS, CFLAG
 CMN_CXX ?= $(if $(filter $2,$(WITH_PCH)),$(call SUP,P$(TMD)CXX,$2)$($(TMD)CXX) -I$(dir $1) -include $(basename \
   $(notdir $(PCH)))_pch_cxx.h,$(call SUP,$(TMD)CXX,$2)$($(TMD)CXX)) $(CC_PARAMS) $(DEF_CXXFLAGS) $(CXXFLAGS)
 CMN_CC  ?= $(if $(filter $2,$(WITH_PCH)),$(call SUP,P$(TMD)CC,$2)$($(TMD)CC) -I$(dir $1) -include $(basename \
@@ -269,7 +269,7 @@ CMN_CC  ?= $(if $(filter $2,$(WITH_PCH)),$(call SUP,P$(TMD)CC,$2)$($(TMD)CC) -I$
 
 # C++ and C precompiled header compilers
 # $1 - target, $2 - source
-# target-specfic: CXXFLAGS, CFLAGS
+# target-specific: CXXFLAGS, CFLAGS
 PCH_CXX ?= $(call SUP,$(TMD)PCHCXX,$2)$($(TMD)CXX) $(CC_PARAMS) $(DEF_CXXFLAGS) $(CXXFLAGS)
 PCH_CC  ?= $(call SUP,$(TMD)PCHCC,$2)$($(TMD)CC) $(CC_PARAMS) $(DEF_CFLAGS) $(CFLAGS)
 
@@ -304,13 +304,13 @@ PCH_LIB_D_CXX ?= $(PCH_DLL_R_CXX)
 PCH_LIB_D_CC  ?= $(PCH_DLL_R_CC)
 
 # parameters for kernel-level static library
-# target-specfic: DEFINES, INCLUDE, CFLAGS
+# target-specific: DEFINES, INCLUDE, CFLAGS
 KLIB_PARAMS ?= -pipe -c $(KRN_FLAGS) $(AUTO_DEPS_FLAGS) $(call \
   SUBST_DEFINES,$(addprefix -D,$(DEFINES))) $(addprefix -I,$(INCLUDE)) $(CFLAGS)
 
 # kernel-level C compiler
 # $1 - target, $2 - source
-# target-specfic: WITH_PCH, PCH
+# target-specific: WITH_PCH, PCH
 KLIB_R_CC ?= $(if $(filter $2,$(WITH_PCH)),$(call SUP,PKCC,$2)$(KCC) -I$(dir $1) -include $(basename \
   $(notdir $(PCH)))_pch_c.h,$(call SUP,KCC,$2)$(KCC)) $(KLIB_PARAMS) -o $1 $2
 
@@ -320,7 +320,7 @@ PCH_KLIB_R_CC ?= $(call SUP,PCHKLIB,$2)$(KCC) $(KLIB_PARAMS) -o $1 $2
 
 # kernel-level assembler
 # $1 - target, $2 - source
-# target-specfic: ASMFLAGS
+# target-specific: ASMFLAGS
 KLIB_R_ASM ?= $(call SUP,ASM,$2)$(YASMC) -o $1 $2 $(ASMFLAGS)
 
 # $1 - target, $2 - source

@@ -156,6 +156,7 @@ endef
 
 # reset build targets, target-specific variables and variables modifiable in target makefiles
 # then define bin/lib/obj/... dirs
+# NOTE: expanded by $(MTOP)/java.mk
 MAKE_JAVA_EVAL = $(eval $(PREPARE_JAVA_VARS)$(DEF_HEAD_CODE))
 
 # protect variables from modifications in target makefiles

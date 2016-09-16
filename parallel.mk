@@ -11,7 +11,7 @@ endif
 # allow to evaluate $(DEF_HEAD_CODE_EVAL) in next included $(MTOP)/parallel.mk
 DEF_HEAD_CODE_PROCESSED:=
 
-# add $(TOP)-related list of makefiles that need to be maked before current makefile to $(ORDER_DEPS)
+# add $(TOP)-related list of makefiles that need to be built before current makefile to $(ORDER_DEPS)
 # - list of order-only dependencies of targets of current makefile
 ORDER_DEPS := $(strip $(ORDER_DEPS) $(call NORM_MAKEFILES,$(MDEPS),-))
 
@@ -31,7 +31,7 @@ TO_MAKE := $(call NORM_MAKEFILES,$(TO_MAKE))
 
 # $(CURRENT_MAKEFILE) is built if all $(TO_MAKE) makefiles are built
 # note: $(CURRENT_MAKEFILE)- and other order-dependent makefile names - are .PHONY targets,
-# and built target files may dependend on .PHONY targets only as order-only,
+# and built target files may depend on .PHONY targets only as order-only,
 # otherwise target files are will always be rebuilt - because .PHONY targets are always updated
 $(CURRENT_MAKEFILE)-: $(addsuffix -,$(TO_MAKE))
 

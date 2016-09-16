@@ -1,5 +1,5 @@
 # this file included by $(MTOP)/defs.mk before including $(MTOP)/functions.mk
-# variables protection from accidential changes in target makefiles
+# variables protection from accidental changes in target makefiles
 
 # run via $(MAKE) C=1 to check makefiles
 ifeq ("$(origin C)","command line")
@@ -30,7 +30,7 @@ endef
 # replace values of clean-build protected vars in list $1 
 # NOTE: if CLEAN_BUILD_SAVE_PROTECTED_VALUES is not defined yet - then $(DEF_HEAD_CODE) was never executed yet:
 # - when it will be executed, it will save initial values of protected vars, so nothing to do here,
-# else - replace protected vars old values with current onces
+# else - replace old values of protected vars with current ones
 define CLEAN_BUILD_PROTECT_VARS1
 CLEAN_BUILD_PROTECTED_VARS := $$(sort $$(CLEAN_BUILD_PROTECTED_VARS) $1)
 ifdef CLEAN_BUILD_SAVE_PROTECTED_VALUES
