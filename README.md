@@ -1,9 +1,13 @@
 # clean-build
-non-recursive crossplatform build system based on GNU make version 3.81
+non-recursive unharmful crossplatform build system based on GNU make
 
 current version: 0.1
 
 license: GPLv2
+
+minimum supported GNU make version: 3.81
+
+out-of-the-box supported oprating systems: WINDOWS, LINUX, SOLARIS
 
 main features:
 
@@ -18,5 +22,5 @@ main features:
 - support for auto dependencies generation (for C/C++)
 - support for compiling many-sources-at-once on windows
 - support for debuging, checking and tracing of target makefiles
-- predefined patterns for building shared and static libs, executables, kernel modules and jars
-- support for rules generating multiple targets at one call
+- predefined patterns for building shared and static libraries, executables, kernel modules and java archives
+- support for custom rules generating multiple targets at one call
