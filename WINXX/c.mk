@@ -190,7 +190,7 @@ DEF_EXE_SUBSYSTEM ?= $$(if $$(filter /SUBSYSTEM:%,$$(LDFLAGS)),,/SUBSYSTEM:CONSO
 # target-specific: TMD, LDFLAGS
 define EXE_LD_TEMPLATE
 $(empty)
-EXE_$v_LD1 = $$(call SUP,$(TMD)LINK,$$1)$$(VS$$(TMD)LD) /nologo $(CMN_LIBS) $(DEF_EXE_SUBSYSTEM) $$(LDFLAGS)$$(EMBED_EXE_MANIFEST)
+EXE_$v_LD1 = $$(call SUP,$(TMD)XLINK,$$1)$$(VS$$(TMD)LD) /nologo $(CMN_LIBS) $(DEF_EXE_SUBSYSTEM) $$(LDFLAGS)$$(EMBED_EXE_MANIFEST)
 endef
 $(eval $(foreach v,R $(VARIANTS_FILTER),$(EXE_LD_TEMPLATE)))
 

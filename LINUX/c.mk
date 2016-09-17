@@ -222,8 +222,8 @@ SONAME_OPTION ?= $(call SONAME_OPTION1,$(subst ., ,$(notdir $1)))
 # different linkers
 # $1 - target, $2 - objects
 # target-specific: TMD, COMPILER
-EXE_R_LD ?= $(call SUP,$(TMD)LD,$1)$($(TMD)$(COMPILER)) $(DEF_EXE_FLAGS) $(call CMN_LIBS,$1,$2,R)
-EXE_P_LD ?= $(call SUP,$(TMD)LD,$1)$($(TMD)$(COMPILER)) $(DEF_EXE_FLAGS) $(call CMN_LIBS,$1,$2,P) -pie
+EXE_R_LD ?= $(call SUP,$(TMD)XLD,$1)$($(TMD)$(COMPILER)) $(DEF_EXE_FLAGS) $(call CMN_LIBS,$1,$2,R)
+EXE_P_LD ?= $(call SUP,$(TMD)XLD,$1)$($(TMD)$(COMPILER)) $(DEF_EXE_FLAGS) $(call CMN_LIBS,$1,$2,P) -pie
 DLL_R_LD ?= $(call SUP,$(TMD)LD,$1)$($(TMD)$(COMPILER)) $(DEF_SO_FLAGS) $(VERSION_SCRIPT_OPTION) $(SONAME_OPTION) $(call CMN_LIBS,$1,$2,D)
 LIB_R_LD ?= $(call SUP,$(TMD)AR,$1)$($(TMD)AR) $(DEF_AR_FLAGS) $1 $2
 LIB_P_LD ?= $(call SUP,$(TMD)LD,$1)$($(TMD)LD) $(DEF_LD_FLAGS) -o $1 $2 $(LDFLAGS)
