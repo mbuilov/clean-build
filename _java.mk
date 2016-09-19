@@ -60,9 +60,9 @@ CREATE_JARGS_FILE = $(call DEL,$2)$(newline)$(call \
 # note: javac call is added just before creating jar - all .java sources are compiled at once
 # target-specific: JAVAC_FLAGS, OBJDIR, CLASSPATH, EXTJARS, JARS
 JAVA_CC2 = $(if $(word $(ARGS_FILE_SOURCES_PER_LINE),$1),$(call CREATE_JARGS_FILE,$1,$(OBJDIR)/java.txt)) \
-  $(JAVAC) $(JAVAC_OPTIONS) $(JAVAC_FLAGS) -d $(call ospath,$(OBJDIR)) $(if \
+  $(JAVAC) $(JAVAC_OPTIONS) $(JAVAC_FLAGS) -d $(call ospath,$(OBJDIR)/cls) $(if \
   $(word $(ARGS_FILE_SOURCES_PER_LINE),$1),@$(OBJDIR)/java.txt,$1) $(call \
-  FORM_CLASS_PATH,$(OBJDIR) $(CLASSPATH) $(EXTJARS) $(JARS))$(newline)
+  FORM_CLASS_PATH,$(OBJDIR)/cls $(CLASSPATH) $(EXTJARS) $(JARS))$(newline)
 JAVA_CC1 = $(call SUP,JAVAC,$1)$(call JAVA_CC2,$(ospath))
 JAVA_CC  = $(if $1,$(JAVA_CC1))
 
@@ -70,9 +70,9 @@ JAVA_CC  = $(if $1,$(JAVA_CC1))
 # note: $2 - .java sources only parsed by scala compiler - it does not compiles .java sources
 # target-specific: SCALAC_FLAGS, OBJDIR, CLASSPATH, EXTJARS, JARS
 SCALA_CC2 = $(if $(word $(ARGS_FILE_SOURCES_PER_LINE),$1),$(call CREATE_JARGS_FILE,$1,$(OBJDIR)/scala.txt)) \
-  $(SCALAC) $(SCALAC_OPTIONS) $(SCALAC_FLAGS) -d $(call ospath,$(OBJDIR)) $(if \
+  $(SCALAC) $(SCALAC_OPTIONS) $(SCALAC_FLAGS) -d $(call ospath,$(OBJDIR)/cls) $(if \
   $(word $(ARGS_FILE_SOURCES_PER_LINE),$1),@$(OBJDIR)/scala.txt,$1) $(call \
-  FORM_CLASS_PATH,$(OBJDIR) $(CLASSPATH) $(EXTJARS) $(JARS))$(newline)
+  FORM_CLASS_PATH,$(OBJDIR)/cls $(CLASSPATH) $(EXTJARS) $(JARS))$(newline)
 SCALA_CC1 = $(call SUP,SCALAC,$1)$(call SCALA_CC2,$(call ospath,$1 $2))
 SCALA_CC  = $(if $1,$(if $(SCALAC),$(SCALA_CC1),$(error \
   SCALAC not defined, example: $$(JAVA) $$(call FORM_CLASS_PATH,scala-compiler-2.11.6.jar) scala.tools.nsc.Main)))
@@ -81,7 +81,7 @@ SCALA_CC  = $(if $1,$(if $(SCALAC),$(SCALA_CC1),$(error \
 # target-specific: JRFLAGS, MANIFEST, OBJDIR, ALL_BUNDLES
 JAR_LD1 = $(call SUP,JAR,$1)$(if $(word $(ARGS_FILE_SOURCES_PER_LINE),$(ALL_BUNDLES)),$(call \
   CREATE_JARGS_FILE,$(ALL_BUNDLES),$(OBJDIR)/jar.txt))$(JARC) $(JRFLAGS) -cf$(if $(MANIFEST),m) $(ospath) $(call \
-  ospath,$(MANIFEST)) -C $(call ospath,$(OBJDIR)) . $(if \
+  ospath,$(MANIFEST)) -C $(call ospath,$(OBJDIR)/cls) . $(if \
   $(word $(ARGS_FILE_SOURCES_PER_LINE),$(ALL_BUNDLES)),@$(OBJDIR)/jar.txt,$(ALL_BUNDLES))$(DEL_ON_FAIL)
 
 # note: always rebuild all sources if any of $(JARS), $(EXTJARS), $(JSRC), $(SCALA) or $(JSCALA) is newer than the target jar
@@ -99,7 +99,7 @@ JAR_LD = $(if $(filter $(JARS) $(EXTJARS) $(JSRC) $(SCALA) $(JSCALA),$?),$(call 
 # $7 - jars:        $(addprefix $(BIN_DIR)/,$(addsuffix .jar,$(JARS)))
 define JAR_TEMPLATE
 $(STD_TARGET_VARS)
-NEEDED_DIRS += $6
+NEEDED_DIRS += $6/cls
 $1: JSRC         := $2
 $1: SCALA        := $3
 $1: JSCALA       := $4
@@ -113,7 +113,7 @@ $1: SCALAC       := $(SCALAC)
 $1: JAVAC_FLAGS  := $(JAVAC_FLAGS)
 $1: SCALAC_FLAGS := $(SCALAC_FLAGS)
 $1: JRFLAGS      := $(JRFLAGS)
-$1: $(EXTJARS) $7 $2 $3 $4 $5 $(call MAKE_BUNDLE_DEPS,$(BUNDLE_FILES)) | $6
+$1: $(EXTJARS) $7 $2 $3 $4 $5 $(call MAKE_BUNDLE_DEPS,$(BUNDLE_FILES)) | $6/cls
 	$$(eval $1: COMMANDS := $(subst $$,$$$$,$(JARACTIONS)))$$(COMMANDS)$$(call JAR_LD,$$@)
 $(call TOCLEAN,$6)
 endef
