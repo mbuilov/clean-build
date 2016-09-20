@@ -11,8 +11,8 @@ endif
 # what we may build by including $(MTOP)/wix.mk (for ex. INSTALLER := my_installer)
 BLD_WIX_TARGETS := MSI INSTALLER
 
-# remove unneeded quotes
-WIX := $(call unspaces,$(subst ",,$(WIX)))
+# remove unneeded quotes, add trailing slash
+WIX := $(call unspaces,$(subst \\,\,$(subst ",,$(WIX))\))
 
 # add quotes, if needed
 ifndef WIX_CANDLE
