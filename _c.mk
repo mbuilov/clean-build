@@ -59,7 +59,7 @@ VARIANT_IMP_SUFFIX = $(if $(filter-out R,$1),_$1)
 #               $(if $(filter sparc% mips% ppc%,$(CPU)),B_ENDIAN,L_ENDIAN) \
 #               $(if $(filter arm% sparc% mips% ppc%,$(CPU)),ADDRESS_NEEDALIGN)
 #  note: $(PREDEFINES) may be recursive, it's value may be calculated based on $(TOP)-related path to $(CURRENT_MAKEFILE)
-#  note: target makefile may avoid using macros from $(PREDEFINES) by resetting $(DEFINES) value
+#  note: target makefile may avoid using macros from $(PREDEFINES) by resetting $(CMNDEFINES) value
 #
 # 3) common defines for all application-level targets, for example:
 #  APPDEFS =
@@ -226,7 +226,7 @@ $1: LIB_DIR    := $(LIB_DIR)
 $1: LIBS       := $(call TRG_LIBS,EXE)
 $1: DLLS       := $(call TRG_DLLS,EXE)
 $1: INCLUDE    := $(call TRG_INCLUDE,EXE)
-$1: DEFINES    := $(APPDEFS) $(DEFINES) $(EXE_DEFINES)
+$1: DEFINES    := $(CMNDEFINES) $(APPDEFS) $(DEFINES) $(EXE_DEFINES)
 $1: CFLAGS     := $(CFLAGS) $(EXE_CFLAGS)
 $1: CXXFLAGS   := $(CXXFLAGS) $(EXE_CXXFLAGS)
 $1: LDFLAGS    := $(LDFLAGS) $(EXE_LDFLAGS)
@@ -255,7 +255,7 @@ $(call OBJ_RULES,LIB,CC,$(filter %.c,$2),$3,$4,$v)
 $(call OBJ_RULES,LIB,CXX,$(filter %.cpp,$2),$3,$4,$v)
 $1: COMPILER   := $(if $(filter %.cpp,$2),CXX,CC)
 $1: INCLUDE    := $(call TRG_INCLUDE,LIB)
-$1: DEFINES    := $(APPDEFS) $(DEFINES) $(LIB_DEFINES)
+$1: DEFINES    := $(CMNDEFINES) $(APPDEFS) $(DEFINES) $(LIB_DEFINES)
 $1: CFLAGS     := $(CFLAGS) $(LIB_CFLAGS)
 $1: CXXFLAGS   := $(CXXFLAGS) $(LIB_CXXFLAGS)
 $1: LDFLAGS    := $(LDFLAGS) $(LIB_LDFLAGS)
@@ -285,7 +285,7 @@ $1: LIB_DIR    := $(LIB_DIR)
 $1: LIBS       := $(call TRG_LIBS,DLL)
 $1: DLLS       := $(call TRG_DLLS,DLL)
 $1: INCLUDE    := $(call TRG_INCLUDE,DLL)
-$1: DEFINES    := $(APPDEFS) $(DEFINES) $(DLL_DEFINES)
+$1: DEFINES    := $(CMNDEFINES) $(APPDEFS) $(DEFINES) $(DLL_DEFINES)
 $1: CFLAGS     := $(CFLAGS) $(DLL_CFLAGS)
 $1: CXXFLAGS   := $(CXXFLAGS) $(DLL_CXXFLAGS)
 $1: LDFLAGS    := $(LDFLAGS) $(DLL_LDFLAGS)
@@ -312,7 +312,7 @@ NEEDED_DIRS += $4
 $(call OBJ_RULES,KLIB,CC,$(filter %.c,$2),$3,$4)
 $(call OBJ_RULES,KLIB,ASM,$(filter %.asm,$2),$3,$4)
 $1: INCLUDE    := $(call TRG_INCLUDE,KLIB)
-$1: DEFINES    := $(KRNDEFS) $(DEFINES) $(KLIB_DEFINES)
+$1: DEFINES    := $(CMNDEFINES) $(KRNDEFS) $(DEFINES) $(KLIB_DEFINES)
 $1: CFLAGS     := $(CFLAGS) $(KLIB_CFLAGS)
 $1: ASMFLAGS   := $(ASMFLAGS) $(KLIB_ASMFLAGS)
 $1: LDFLAGS    := $(LDFLAGS) $(KLIB_LDFLAGS)
@@ -346,6 +346,7 @@ KLD_COLOR  := [00;33m
 TCC_COLOR  := [00;32m
 TCXX_COLOR := [00;32m
 TLD_COLOR  := [00;33m
+TXLD_COLOR := [01;37m
 TAR_COLOR  := [01;32m
 
 # check that LIBS specified only when building EXE or DLL,
@@ -392,7 +393,8 @@ WITH_PCH    :=
 USE         :=
 SRC         :=
 SDEPS       :=
-DEFINES     := $(PREDEFINES)
+CMNDEFINES  := $(PREDEFINES)
+DEFINES     :=
 CMNINCLUDE  := $(DEFINCLUDE)
 INCLUDE     :=
 CFLAGS      :=
