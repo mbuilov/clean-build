@@ -38,7 +38,7 @@ MAKE_BUNDLE_DEPS = $(if $1,$(call FIXPATH,$(firstword $1)/$(word 2,$1)) $(call M
 FORM_CLASS_PATH = -classpath $(call qpath,$(subst $(space),$(PATHSEP),$(strip $(ospath))))
 
 ifeq (undefined,$(origin JAVAC_OPTIONS))
-JAVAC_OPTIONS := $(if $(JLINT),-Xlint)$(if $(DEBUG), -g)
+JAVAC_OPTIONS := $(if $(JLINT),-Xlint)$(if $(DEBUG), -g) -encoding utf8
 endif
 
 ifeq (undefined,$(origin SCALAC_OPTIONS))
