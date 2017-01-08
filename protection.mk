@@ -1,3 +1,22 @@
+#---------------------------------------------------------------------------
+# clean-build - non-recursive build system based on GNU Make
+# Copyright (C) 2015-2017 Michael M. Builov (mbuilov@gmail.com)
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+#---------------------------------------------------------------------------
+
 # this file included by $(MTOP)/defs.mk before including $(MTOP)/functions.mk
 # variables protection from accidental changes in target makefiles
 
@@ -27,7 +46,7 @@ endif
 CLEAN_BUILD_NEED_TAIL_CODE := $(CURRENT_MAKEFILE)
 endef
 
-# replace values of clean-build protected vars in list $1 
+# replace values of clean-build protected vars in list $1
 # NOTE: if CLEAN_BUILD_SAVE_PROTECTED_VALUES is not defined yet - then $(DEF_HEAD_CODE) was never executed yet:
 # - when it will be executed, it will save initial values of protected vars, so nothing to do here,
 # else - replace old values of protected vars with current ones
