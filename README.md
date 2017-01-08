@@ -1,26 +1,28 @@
 # clean-build
-non-recursive unharmful crossplatform build system based on GNU make
+non-recursive unharmful cross-platform build system based on GNU Make
+
+Copyright (C) 2015-2017 Michael M. Builov (mbuilov@gmail.com)
 
 current version: 0.1
 
-license: GPLv2
+license: GPLv2 or later
 
 minimum supported GNU make version: 3.81
 
-out-of-the-box supported oprating systems: WINDOWS, LINUX, SOLARIS
+out-of-the-box supported operating systems: WINDOWS, LINUX, SOLARIS
 
 main features:
 
 - non-recursive build
 - massive parallelism, almost unlimited scaling by CPU number
 - modular, extensible design
-- multi-platform, using native platform tools (no cygwin or other unix emulation required to build on windows)
-- cross-makefiles dependencies
+- multi-platform, using native tools only (no CYGWIN or other UNIX emulation layer is required to build targets on WINDOWS)
+- support for cross-makefiles dependencies
 - support for cross-compilation
-- builtin support for languages: C, C++, Java, Scala, Wix
-- support for C/C++ precompiled headers on linux and windows
-- support for auto dependencies generation (for C/C++)
-- support for compiling many-sources-at-once on windows
-- support for debuging, checking and tracing of target makefiles
+- builtin support for building targets written on languages: C, C++, Java, Scala, Wix
+- support for C/C++ precompiled headers on LINUX and WINDOWS
+- support for auto generation of source-header dependencies (for C/C++)
+- support for compiling many-sources-at-once on WINDOWS
+- support for debugging, checking and tracing of target makefiles
 - predefined patterns for building shared and static libraries, executables, kernel modules and java archives
-- support for custom rules generating multiple targets at one call
+- support for custom rules generating multiple target files at one call
