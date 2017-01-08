@@ -1,17 +1,17 @@
 # clean-build
-non-recursive unharmful cross-platform build system based on GNU Make
+Non-recursive unharmful cross-platform build system based on GNU Make
 
 Copyright (C) 2015-2017 Michael M. Builov (mbuilov@gmail.com)
 
-current version: 0.1
+Current version: 0.1
 
-license: GPLv2 or later
+License: GPLv2 or later
 
-minimum supported GNU make version: 3.81
+Minimum supported GNU Make version: 3.81
 
-out-of-the-box supported operating systems: WINDOWS, LINUX, SOLARIS
+Out-of-the-box supported operating systems: WINDOWS, LINUX, SOLARIS
 
-main features:
+Main features:
 
 - non-recursive build
 - massive parallelism, almost unlimited scaling by CPU number
