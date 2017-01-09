@@ -120,7 +120,7 @@ VSTCL  := $(call qpath,$(VSN)\VC\bin$(if $(TCPU:%64=),,\amd64)\cl.exe)
 ifneq ($(filter WINXP WIN7,$(OSVARIANT)),)
 
 ifneq ($(lastword $(sort 12.0 $(lastword $(VS)))),12.0)
-$(error cannot build for WIN7 with Visual Studio 14.0 and later)
+$(error cannot build for WINXP or WIN7 with Visual Studio 14.0 and later)
 endif
 
 ifndef SDK
