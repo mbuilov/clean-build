@@ -9,6 +9,16 @@
 # synchronize make output for parallel builds
 MAKEFLAGS += -O
 
+ifneq ($(filter /cygdrive/%,$(TOP)),)
+$(error building from cygwin shell is not supported, please use native tools - run build from cmd window or specify shell, \
+ for example: /cygdrive/c/GnuWin32/bin/gnumake-4.2.exe SHELL=$${COMSPEC} SED=C:/GnuWin32/bin/sed.exe <args>)
+endif
+
+# stip off cygwin paths - to use only native windows tools
+# for example, sed.exe from cygwin handles format string differently than C:/GnuWin32/bin/sed.exe
+PATH := $(subst ?, ,$(subst $(space),;,$(strip $(foreach p,$(subst \
+  ;, ,$(subst $(space),?,$(PATH))),$(if $(word 2,$(subst cygwin, ,$p)),,$p)))))
+
 # max command line length
 # for Windows 95 and later    - 127 chars;
 # for Windows 2000 and later  - 2047 chars;
@@ -46,7 +56,8 @@ RM    = $(call xcmd,RM1,$1,$(DEL_ARGS_LIMIT))
 # assume MKDIR is called only if directory does not exist
 MKDIR = mkdir $(ospath)
 
-SED  := sed.exe -b
+SED  ?= sed.exe
+SED  := $(SED) -b
 SED_EXPR = "$(subst %,%%,$1)"
 CAT   = type $(ospath)
 open_brace:=(
