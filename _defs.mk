@@ -82,9 +82,9 @@ endif
 
 # OS - operating system we are building for (and we are building on)
 ifndef OS
-$(error OS undefined, example: $(SUPPORTED_OSES))
+$(error OS undefined, please pick one of matching your build OS type: $(SUPPORTED_OSES))
 else ifeq ($(filter $(OS),$(SUPPORTED_OSES)),)
-$(error unknown OS=$(OS), please pick one of values matching your OS type: $(SUPPORTED_OSES))
+$(error unknown OS=$(OS), please pick one of matching your build OS type: $(SUPPORTED_OSES))
 endif
 
 # don't need $(CPU) and $(TARGET) vars values for distclean
@@ -95,18 +95,18 @@ ifeq ($(filter distclean,$(MAKECMDGOALS)),)
 # CPU variable contains default value for UCPU, KCPU, TCPU
 ifdef CPU
 ifeq ($(filter $(CPU),$(SUPPORTED_CPUS)),)
-$(error unknown CPU=$(CPU), please pick one of: $(SUPPORTED_CPUS))
+$(error unknown CPU=$(CPU), please pick one of target CPU types: $(SUPPORTED_CPUS))
 endif
 endif
 
 # CPU for user-level
 ifdef UCPU
 ifeq ($(filter $(UCPU),$(SUPPORTED_CPUS)),)
-$(error unknown UCPU=$(UCPU), please pick one of: $(SUPPORTED_CPUS))
+$(error unknown UCPU=$(UCPU), please pick one of target CPU types: $(SUPPORTED_CPUS))
 endif
 else
 ifndef CPU
-$(error UCPU or CPU undefined, example: $(SUPPORTED_CPUS))
+$(error UCPU or CPU undefined, please pick one of target CPU types: $(SUPPORTED_CPUS))
 else
 UCPU := $(CPU)
 endif
@@ -115,11 +115,11 @@ endif
 # CPU for kernel-level
 ifdef KCPU
 ifeq ($(filter $(KCPU),$(SUPPORTED_CPUS)),)
-$(error unknown KCPU=$(KCPU), please pick one of: $(SUPPORTED_CPUS))
+$(error unknown KCPU=$(KCPU), please pick one of target CPU types: $(SUPPORTED_CPUS))
 endif
 else
 ifndef CPU
-$(error KCPU or CPU undefined, example: $(SUPPORTED_CPUS))
+$(error KCPU or CPU undefined, please pick one of target CPU types: $(SUPPORTED_CPUS))
 else
 KCPU := $(CPU)
 endif
@@ -128,11 +128,11 @@ endif
 # CPU for build-tools
 ifdef TCPU
 ifeq ($(filter $(TCPU),$(SUPPORTED_CPUS)),)
-$(error unknown TCPU=$(TCPU), please pick one of: $(SUPPORTED_CPUS))
+$(error unknown TCPU=$(TCPU), please pick one of build CPU types: $(SUPPORTED_CPUS))
 endif
 else
 ifndef CPU
-$(error TCPU or CPU undefined, example: $(SUPPORTED_CPUS))
+$(error TCPU or CPU undefined, please pick one of build CPU types: $(SUPPORTED_CPUS))
 else
 TCPU := $(CPU)
 endif
@@ -140,7 +140,7 @@ endif
 
 # what to build
 ifndef TARGET
-$(error TARGET undefined, example: $(SUPPORTED_TARGETS))
+$(error TARGET undefined, please pick one of: $(SUPPORTED_TARGETS))
 endif
 ifeq ($(filter $(TARGET),$(SUPPORTED_TARGETS)),)
 $(error unknown TARGET=$(TARGET), please pick one of: $(SUPPORTED_TARGETS))
