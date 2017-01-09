@@ -75,13 +75,13 @@ PROJECT ?= $(TOP)/make/project.mk
 -include $(PROJECT)
 
 ifndef SUPPORTED_OSES
-$(error SUPPORTED_OSES not defined, it may be defined in $(PROJECT:$(TOP)/%,$$(TOP)/%))
+$(error SUPPORTED_OSES not defined, it may be defined in $(PROJECT:$(TOP)/%=$$(TOP)/%))
 endif
 ifndef SUPPORTED_CPUS
-$(error SUPPORTED_CPUS not defined, it may be defined in $(PROJECT:$(TOP)/%,$$(TOP)/%))
+$(error SUPPORTED_CPUS not defined, it may be defined in $(PROJECT:$(TOP)/%=$$(TOP)/%))
 endif
 ifndef SUPPORTED_TARGETS
-$(error SUPPORTED_TARGETS not defined, it may be defined in $(PROJECT:$(TOP)/%,$$(TOP)/%))
+$(error SUPPORTED_TARGETS not defined, it may be defined in $(PROJECT:$(TOP)/%=$$(TOP)/%))
 endif
 
 # OS - operating system we are building for (and we are building on)
