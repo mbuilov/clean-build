@@ -36,6 +36,12 @@ MTOP := $(MTOP)
 # disable builtin rules and variables
 MAKEFLAGS += --no-builtin-rules --no-builtin-variables
 
+# drop make's default legacy rules - we'll use custom ones
+.SUFFIXES:
+
+# delete target file if failed to execute any of rules to make it
+.DELETE_ON_ERROR:
+
 # don't generate dependencies when cleaning up
 ifneq ($(filter clean,$(MAKECMDGOALS)),)
 NO_DEPS := 1
@@ -75,8 +81,11 @@ endif
 ifndef OS
 $(error OS undefined, example: $(SUPPORTED_OSES))
 else ifeq ($(filter $(OS),$(SUPPORTED_OSES)),)
-$(error unknown OS=$(OS), please pick one of: $(SUPPORTED_OSES))
+$(error unknown OS=$(OS), please pick one of values matching your OS type: $(SUPPORTED_OSES))
 endif
+
+# don't need $(CPU) and $(TARGET) vars values for distclean
+ifeq ($(filter distclean,$(MAKECMDGOALS)),)
 
 # NOTE: don't use CPU variable in target makefiles, use UCPU or KCPU instead
 
@@ -133,6 +142,8 @@ endif
 ifeq ($(filter $(TARGET),$(SUPPORTED_TARGETS)),)
 $(error unknown TARGET=$(TARGET), please pick one of: $(SUPPORTED_TARGETS))
 endif
+
+endif # ifeq ($(filter distclean,$(MAKECMDGOALS)),)
 
 # fix variables - make them non-recursive
 TARGET   := $(TARGET)
@@ -195,7 +206,7 @@ endif
 # $1 - tool
 # $2 - tool arguments
 # $3 - if non-empty, don't update percents
-ifeq ($(filter clean,$(MAKECMDGOALS)),)
+ifeq ($(filter distclean clean,$(MAKECMDGOALS)),)
 ifndef SUP
 ifdef VERBOSE
 ifdef INFOMF
@@ -234,7 +245,7 @@ SUP = $(info $(call PRINT_PERCENTS,$(TRY_REM_MAKEFILE))$(COLORIZE))@
 endif
 endif # !VERBOSE
 endif # !SUP
-endif # !clean
+endif # !distclean && !clean
 
 # tools colors
 GEN_COLOR   := [01;32m
@@ -256,9 +267,11 @@ endif
 SED_MULTI_EXPR = $(subst $$(space), ,$(foreach s,$(subst $(newline), ,$(subst $(space),$$(space),$1)),-e $(call SED_EXPR,$s)))
 
 # for UNIX: don't change paths when converting from make internal file path to path accepted by $(OS)
+# NOTE: WINXX/tools.mk defines $(ospath)
 ospath ?= $1
 
 # for UNIX: absolute paths are started with /
+# NOTE: WINXX/tools.mk defines $(isrelpath)
 isrelpath ?= $(filter-out /%,$1)
 
 # get absolute path to current makefile
