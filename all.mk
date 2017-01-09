@@ -44,11 +44,5 @@ $(ORDER_DEPS):
 # note: $(PROCESSED_MAKEFILES) - names of processed makefiles with '-' suffix
 .PHONY: all clean $(MAKEFILE_LIST) $(PROCESSED_MAKEFILES)
 
-# drop make's default legacy rules - we'll use custom ones
-.SUFFIXES:
-
-# delete target file if failed to execute any of rules to make it
-.DELETE_ON_ERROR:
-
 # specify default target
 .DEFAULT_GOAL := all
