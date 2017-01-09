@@ -93,7 +93,7 @@ $(info try to autoconfigure...)
 endif
 
 ifndef VS
-$(error VS undefined, example: "C:\Program Files (x86)\Microsoft Visual Studio 10.0")
+$(error VS undefined, example: VS="C:\Program Files (x86)\Microsoft Visual Studio 10.0")
 endif
 
 # normalize: "x x" -> x?x
@@ -120,11 +120,11 @@ VSTCL  := $(call qpath,$(VSN)\VC\bin$(if $(TCPU:%64=),,\amd64)\cl.exe)
 ifneq ($(filter WINXP WIN7,$(OSVARIANT)),)
 
 ifneq ($(lastword $(sort 12.0 $(lastword $(VS)))),12.0)
-$(error cannot build for WINXP or WIN7 with Visual Studio 14.0 and later)
+$(error VS version: $(lastword $(VS)) - cannot build targets for WINXP or WIN7 with Visual Studio 14.0 or later)
 endif
 
 ifndef SDK
-$(error SDK undefined, example: "C:\Program Files (x86)\Microsoft SDKs\Windows\v7.0A")
+$(error SDK undefined, example: SDK="C:\Program Files (x86)\Microsoft SDKs\Windows\v7.1A")
 endif
 
 UMLIB  := $(SDKN)\Lib$(if $(UCPU:%64=),,\x64)
@@ -144,7 +144,7 @@ endif # WINXP, WIN7
 ifneq ($(filter WIN8 WIN81 WIN10,$(OSVARIANT)),)
 
 ifndef WDK
-$(error WDK undefined, example: "C:\Program Files (x86)\Windows Kits\8.0")
+$(error WDK undefined, example: WDK="C:\Program Files (x86)\Windows Kits\8.0")
 endif
 
 ifndef WDK_VER
@@ -181,7 +181,7 @@ endif # WIN8, WIN81, WIN10
 ifeq ($(OSVARIANT),WINXP)
 
 ifndef DDK
-$(error DDK undefined, example: C:\WinDDK\7600.16385.1)
+$(error DDK undefined, example: DDK=C:\WinDDK\7600.16385.1)
 endif
 
 KMLIB := $(DDKN)\Lib\wxp\$(if $(KCPU:%64=),i386,amd64)
@@ -237,7 +237,7 @@ endif # WIN7
 ifneq ($(filter WIN8 WIN81 WIN10,$(OSVARIANT)),)
 
 ifndef WDK
-$(error WDK undefined, example: "C:\Program Files (x86)\Windows Kits\8.1")
+$(error WDK undefined, example: WDK="C:\Program Files (x86)\Windows Kits\8.1")
 endif
 
 ifndef WDK_VER
