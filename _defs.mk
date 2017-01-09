@@ -42,6 +42,9 @@ MAKEFLAGS += --no-builtin-rules --no-builtin-variables
 # delete target file if failed to execute any of rules to make it
 .DELETE_ON_ERROR:
 
+# fake target
+.PHONY: distclean
+
 # don't generate dependencies when cleaning up
 ifneq ($(filter clean,$(MAKECMDGOALS)),)
 NO_DEPS := 1
