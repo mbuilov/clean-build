@@ -293,7 +293,8 @@ endif
 
 # $(SED) expression to filter-out system files while dependencies generation
 ifeq (undefined,$(origin UDEPS_INCLUDE_FILTER))
-UDEPS_INCLUDE_FILTER := c:\\program?files?(x86)\\microsoft?visual?studio?10.0\\vc\\include\\
+# c:\\program?files?(x86)\\microsoft?visual?studio?10.0\\vc\\include\\
+UDEPS_INCLUDE_FILTER := $(subst \,\\,$(VSN))\\VC\\include\\
 endif
 
 # $(SED) script to generate dependencies file from C compiler output
