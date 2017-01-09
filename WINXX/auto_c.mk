@@ -72,61 +72,72 @@ AUTOCONF_VARS += INF2CAT  # full path in quotes
 AUTOCONF_VARS += SIGNTOOL # full path in quotes
 AUTOCONF_VARS += MC1      # full path in quotes
 AUTOCONF_VARS += RC1      # full path in quotes
+AUTOCONF_VARS += MT1      # full path in quotes
 AUTOCONF_VARS += TMC1     # full path in quotes
 AUTOCONF_VARS += TRC1     # full path in quotes
-AUTOCONF_VARS += MT       # full path in quotes
+AUTOCONF_VARS += TMT1     # full path in quotes
 
 # check that all needed vars are defined, if not - autoconfigure
-ifneq ($(words $(foreach x,$(AUTOCONF_VARS),$($x))),$(words $(AUTOCONF_VARS)))
+AVALUES := $(words $(foreach x,$(AUTOCONF_VARS),$(if $($x),1)))
+ifneq ($(AVALUES),$(words $(AUTOCONF_VARS)))
+
+ifneq ($(AVALUES),0)
+$(foreach x,$(AUTOCONF_VARS),$(if $($x),,$(error \
+  $x is undefined, either define it or undefine $(strip $(foreach x,$(AUTOCONF_VARS),$(if $($x),$x))) variable(s) to autoconfigure)))
+endif
+
+# autoconf
 
 ifdef VAUTO
-$(info some of $(AUTOCONF_VARS) are undefined, try to autoconf:)
+$(info try to autoconfigure...)
+endif
+
+ifndef VS
+$(error VS undefined, example: "C:\Program Files (x86)\Microsoft Visual Studio 10.0")
 endif
 
 # normalize: "x x" -> x?x
 # used for paths passed to compilers and tools, but not searched by $(MAKE)
 normpath = $(call unspaces,$(subst ",,$1))
 
-VS  := $(call normpath,$(VS))
-SDK := $(call normpath,$(SDK))
-DDK := $(call normpath,$(DDK))
-WDK := $(call normpath,$(WDK))
+VSN  := $(call normpath,$(VS))
+SDKN := $(call normpath,$(SDK))
+DDKN := $(call normpath,$(DDK))
+WDKN := $(call normpath,$(WDK))
 
-# autoconf
+VSLIB  := $(VSN)\VC\lib$(if $(UCPU:%64=),,\amd64)
+VSINC  := $(VSN)\VC\include
+VSLD   := $(call qpath,$(VSN)\VC\bin$(if $(UCPU:%64=),,\amd64)\link.exe)
+VSCL   := $(call qpath,$(VSN)\VC\bin$(if $(UCPU:%64=),,\amd64)\cl.exe)
 
-ifndef VS
-$(error VS undefined, example: "C:\Program Files (x86)\Microsoft Visual Studio 10.0")
-endif
-
-VSLIB  := $(VS)\VC\lib$(if $(UCPU:%64=),,\amd64)
-VSINC  := $(VS)\VC\include
-VSLD   := $(call qpath,$(VS)\VC\bin$(if $(UCPU:%64=),,\amd64)\link.exe)
-VSCL   := $(call qpath,$(VS)\VC\bin$(if $(UCPU:%64=),,\amd64)\cl.exe)
-
-VSTLIB := $(VS)\VC\lib$(if $(TCPU:%64=),,\amd64)
+VSTLIB := $(VSN)\VC\lib$(if $(TCPU:%64=),,\amd64)
 VSTINC := $(VSINC)
-VSTLD  := $(call qpath,$(VS)\VC\bin$(if $(TCPU:%64=),,\amd64)\link.exe)
-VSTCL  := $(call qpath,$(VS)\VC\bin$(if $(TCPU:%64=),,\amd64)\cl.exe)
+VSTLD  := $(call qpath,$(VSN)\VC\bin$(if $(TCPU:%64=),,\amd64)\link.exe)
+VSTCL  := $(call qpath,$(VSN)\VC\bin$(if $(TCPU:%64=),,\amd64)\cl.exe)
 
 # SDK
 
 ifneq ($(filter WINXP WIN7,$(OSVARIANT)),)
 
+ifneq ($(lastword $(sort 12.0 $(lastword $(VS)))),12.0)
+$(error cannot build for WIN7 with Visual Studio 14.0 and later)
+endif
+
 ifndef SDK
 $(error SDK undefined, example: "C:\Program Files (x86)\Microsoft SDKs\Windows\v7.0A")
 endif
 
-UMLIB  := $(SDK)\Lib$(if $(UCPU:%64=),,\x64)
-UMINC  := $(SDK)\Include
-UMTLIB := $(SDK)\Lib$(if $(TCPU:%64=),,\x64)
+UMLIB  := $(SDKN)\Lib$(if $(UCPU:%64=),,\x64)
+UMINC  := $(SDKN)\Include
+UMTLIB := $(SDKN)\Lib$(if $(TCPU:%64=),,\x64)
 UMTINC := $(UMINC)
 
-MC1  := $(call qpath,$(SDK)\bin$(if $(UCPU:%64=),,\x64)\MC.Exe)
-RC1  := $(call qpath,$(SDK)\bin$(if $(UCPU:%64=),,\x64)\RC.Exe)
-MT1  := $(call qpath,$(SDK)\bin$(if $(UCPU:%64=),,\x64)\MT.Exe)
-TMC1 := $(call qpath,$(SDK)\bin$(if $(TCPU:%64=),,\x64)\MC.Exe)
-TRC1 := $(call qpath,$(SDK)\bin$(if $(TCPU:%64=),,\x64)\RC.Exe)
-TMT1 := $(call qpath,$(SDK)\bin$(if $(TCPU:%64=),,\x64)\MT.Exe)
+MC1  := $(call qpath,$(SDKN)\bin$(if $(UCPU:%64=),,\x64)\MC.Exe)
+RC1  := $(call qpath,$(SDKN)\bin$(if $(UCPU:%64=),,\x64)\RC.Exe)
+MT1  := $(call qpath,$(SDKN)\bin$(if $(UCPU:%64=),,\x64)\MT.Exe)
+TMC1 := $(call qpath,$(SDKN)\bin$(if $(TCPU:%64=),,\x64)\MC.Exe)
+TRC1 := $(call qpath,$(SDKN)\bin$(if $(TCPU:%64=),,\x64)\RC.Exe)
+TMT1 := $(call qpath,$(SDKN)\bin$(if $(TCPU:%64=),,\x64)\MT.Exe)
 
 endif # WINXP, WIN7
 
@@ -142,26 +153,26 @@ endif
 
 ifneq ($(filter WIN8 WIN81,$(OSVARIANT)),)
 
-UMLIB  := $(WDK)\Lib\$(WDK_VER)\um\$(if $(UCPU:%64=),x86,x64)
-UMINC  := $(WDK)\Include\um $(WDK)\Include\shared
-UMTLIB := $(WDK)\Lib\$(WDK_VER)\um\$(if $(TCPU:%64=),x86,x64)
+UMLIB  := $(WDKN)\Lib\$(WDK_VER)\um\$(if $(UCPU:%64=),x86,x64)
+UMINC  := $(WDKN)\Include\um $(WDKN)\Include\shared
+UMTLIB := $(WDKN)\Lib\$(WDK_VER)\um\$(if $(TCPU:%64=),x86,x64)
 UMTINC := $(UMINC)
 
 else # WIN10
 
-UMLIB  := $(WDK)\Lib\$(WDK_VER)\um\$(if $(UCPU:%64=),x86,x64) $(WDK)\Lib\$(WDK_VER)\ucrt\$(if $(UCPU:%64=),x86,x64)
-UMINC  := $(WDK)\Include\$(WDK_VER)\um $(WDK)\Include\$(WDK_VER)\ucrt $(WDK)\Include\$(WDK_VER)\shared
-UMTLIB := $(WDK)\Lib\$(WDK_VER)\um\$(if $(TCPU:%64=),x86,x64) $(WDK)\Lib\$(WDK_VER)\ucrt\$(if $(TCPU:%64=),x86,x64)
+UMLIB  := $(WDKN)\Lib\$(WDK_VER)\um\$(if $(UCPU:%64=),x86,x64) $(WDKN)\Lib\$(WDK_VER)\ucrt\$(if $(UCPU:%64=),x86,x64)
+UMINC  := $(WDKN)\Include\$(WDK_VER)\um $(WDKN)\Include\$(WDK_VER)\ucrt $(WDKN)\Include\$(WDK_VER)\shared
+UMTLIB := $(WDKN)\Lib\$(WDK_VER)\um\$(if $(TCPU:%64=),x86,x64) $(WDKN)\Lib\$(WDK_VER)\ucrt\$(if $(TCPU:%64=),x86,x64)
 UMTINC := $(UMINC)
 
 endif # WIN10
 
-MC1  := $(call qpath,$(WDK)\bin\$(if $(UCPU:%64=),x86,x64)\mc.exe)
-RC1  := $(call qpath,$(WDK)\bin\$(if $(UCPU:%64=),x86,x64)\rc.exe)
-MT1  := $(call qpath,$(WDK)\bin\$(if $(UCPU:%64=),x86,x64)\mt.exe)
-TMC1 := $(call qpath,$(WDK)\bin\$(if $(TCPU:%64=),x86,x64)\mc.exe)
-TRC1 := $(call qpath,$(WDK)\bin\$(if $(TCPU:%64=),x86,x64)\rc.exe)
-TMT1 := $(call qpath,$(WDK)\bin\$(if $(TCPU:%64=),x86,x64)\mt.exe)
+MC1  := $(call qpath,$(WDKN)\bin\$(if $(UCPU:%64=),x86,x64)\mc.exe)
+RC1  := $(call qpath,$(WDKN)\bin\$(if $(UCPU:%64=),x86,x64)\rc.exe)
+MT1  := $(call qpath,$(WDKN)\bin\$(if $(UCPU:%64=),x86,x64)\mt.exe)
+TMC1 := $(call qpath,$(WDKN)\bin\$(if $(TCPU:%64=),x86,x64)\mc.exe)
+TRC1 := $(call qpath,$(WDKN)\bin\$(if $(TCPU:%64=),x86,x64)\rc.exe)
+TMT1 := $(call qpath,$(WDKN)\bin\$(if $(TCPU:%64=),x86,x64)\mt.exe)
 
 endif # WIN8, WIN81, WIN10
 
@@ -173,13 +184,13 @@ ifndef DDK
 $(error DDK undefined, example: C:\WinDDK\7600.16385.1)
 endif
 
-KMLIB := $(DDK)\Lib\wxp\$(if $(KCPU:%64=),i386,amd64)
-KMINC := $(DDK)\inc\api $(DDK)\inc\crt $(DDK)\inc\ddk
-WKLD  := $(call qpath,$(DDK)\bin\x86\$(if $(KCPU:%64=),x86,amd64)\link.exe)
-WKCL  := $(call qpath,$(DDK)\bin\x86\$(if $(KCPU:%64=),x86,amd64)\cl.exe)
+KMLIB := $(DDKN)\Lib\wxp\$(if $(KCPU:%64=),i386,amd64)
+KMINC := $(DDKN)\inc\api $(DDKN)\inc\crt $(DDKN)\inc\ddk
+WKLD  := $(call qpath,$(DDKN)\bin\x86\$(if $(KCPU:%64=),x86,amd64)\link.exe)
+WKCL  := $(call qpath,$(DDKN)\bin\x86\$(if $(KCPU:%64=),x86,amd64)\cl.exe)
 
-INF2CAT  := $(call qpath,$(DDK)\bin\selfsign\Inf2Cat.exe)
-SIGNTOOL := $(call qpath,$(DDK)\bin\$(if $(KCPU:%64=),x86,amd64)\SignTool.exe)
+INF2CAT  := $(call qpath,$(DDKN)\bin\selfsign\Inf2Cat.exe)
+SIGNTOOL := $(call qpath,$(DDKN)\bin\$(if $(KCPU:%64=),x86,amd64)\SignTool.exe)
 
 endif # WINXP
 
@@ -195,13 +206,13 @@ ifdef WDK
 $(error either DDK or WDK must be defined, but not both)
 endif
 
-KMLIB := $(DDK)\Lib\win7\$(if $(KCPU:%64=),i386,amd64)
-KMINC := $(DDK)\inc\api $(DDK)\inc\crt $(DDK)\inc\ddk
-WKLD  := $(call qpath,$(DDK)\bin\x86\$(if $(KCPU:%64=),x86,amd64)\link.exe)
-WKCL  := $(call qpath,$(DDK)\bin\x86\$(if $(KCPU:%64=),x86,amd64)\cl.exe)
+KMLIB := $(DDKN)\Lib\win7\$(if $(KCPU:%64=),i386,amd64)
+KMINC := $(DDKN)\inc\api $(DDKN)\inc\crt $(DDKN)\inc\ddk
+WKLD  := $(call qpath,$(DDKN)\bin\x86\$(if $(KCPU:%64=),x86,amd64)\link.exe)
+WKCL  := $(call qpath,$(DDKN)\bin\x86\$(if $(KCPU:%64=),x86,amd64)\cl.exe)
 
-INF2CAT  := $(call qpath,$(DDK)\bin\selfsign\Inf2Cat.exe)
-SIGNTOOL := $(call qpath,$(DDK)\bin\$(if $(KCPU:%64=),x86,amd64)\SignTool.exe)
+INF2CAT  := $(call qpath,$(DDKN)\bin\selfsign\Inf2Cat.exe)
+SIGNTOOL := $(call qpath,$(DDKN)\bin\$(if $(KCPU:%64=),x86,amd64)\SignTool.exe)
 
 endif # DDK
 
@@ -211,13 +222,13 @@ ifdef DDK
 $(error either DDK or WDK must be defined, but not both)
 endif
 
-KMLIB := $(WDK)\Lib\win7\km\$(if $(KCPU:%64=),x86,x64)
-KMINC := $(WDK)\Include\km $(WDK)\Include\km\crt $(WDK)\Include\shared
-WKLD  := $(call qpath,$(VS)\VC\bin$(if $(KCPU:%64=),,\amd64)\link.exe)
-WKCL  := $(call qpath,$(VS)\VC\bin$(if $(KCPU:%64=),,\amd64)\cl.exe)
+KMLIB := $(WDKN)\Lib\win7\km\$(if $(KCPU:%64=),x86,x64)
+KMINC := $(WDKN)\Include\km $(WDKN)\Include\km\crt $(WDKN)\Include\shared
+WKLD  := $(call qpath,$(VSN)\VC\bin$(if $(KCPU:%64=),,\amd64)\link.exe)
+WKCL  := $(call qpath,$(VSN)\VC\bin$(if $(KCPU:%64=),,\amd64)\cl.exe)
 
-INF2CAT  := $(call qpath,$(WDK)\bin\x86\Inf2Cat.exe)
-SIGNTOOL := $(call qpath,$(WDK)\bin\$(if $(KCPU:%64=),x86,x64)\SignTool.exe)
+INF2CAT  := $(call qpath,$(WDKN)\bin\x86\Inf2Cat.exe)
+SIGNTOOL := $(call qpath,$(WDKN)\bin\$(if $(KCPU:%64=),x86,x64)\SignTool.exe)
 
 endif # WDK
 
@@ -235,25 +246,25 @@ endif
 
 ifneq ($(filter WIN8 WIN81,$(OSVARIANT)),)
 
-KMLIB := $(WDK)\Lib\$(WDK_VER)\km\$(if $(KCPU:%64=),x86,x64)
-KMINC := $(WDK)\Include\km $(WDK)\Include\km\crt $(WDK)\Include\shared
+KMLIB := $(WDKN)\Lib\$(WDK_VER)\km\$(if $(KCPU:%64=),x86,x64)
+KMINC := $(WDKN)\Include\km $(WDKN)\Include\km\crt $(WDKN)\Include\shared
 
 else # WIN10
 
-KMLIB := $(WDK)\Lib\$(WDK_VER)\km\$(if $(KCPU:%64=),x86,x64)
-KMINC := $(WDK)\Include\$(WDK_VER)\km $(WDK)\Include\$(WDK_VER)\km\crt $(WDK)\Include\$(WDK_VER)\shared
+KMLIB := $(WDKN)\Lib\$(WDK_VER)\km\$(if $(KCPU:%64=),x86,x64)
+KMINC := $(WDKN)\Include\$(WDK_VER)\km $(WDKN)\Include\$(WDK_VER)\km\crt $(WDKN)\Include\$(WDK_VER)\shared
 
 endif # WIN10
 
-WKLD  := $(call qpath,$(VS)\VC\bin$(if $(KCPU:%64=),,\amd64)\link.exe)
-WKCL  := $(call qpath,$(VS)\VC\bin$(if $(KCPU:%64=),,\amd64)\cl.exe)
+WKLD  := $(call qpath,$(VSN)\VC\bin$(if $(KCPU:%64=),,\amd64)\link.exe)
+WKCL  := $(call qpath,$(VSN)\VC\bin$(if $(KCPU:%64=),,\amd64)\cl.exe)
 
-INF2CAT  := $(call qpath,$(WDK)\bin\x86\Inf2Cat.exe)
-SIGNTOOL := $(call qpath,$(WDK)\bin\$(if $(KCPU:%64=),x86,x64)\SignTool.exe)
+INF2CAT  := $(call qpath,$(WDKN)\bin\x86\Inf2Cat.exe)
+SIGNTOOL := $(call qpath,$(WDKN)\bin\$(if $(KCPU:%64=),x86,x64)\SignTool.exe)
 
 endif # WIN8, WIN81, WIN10
 
-endif # !NO_AUTOCONF
+endif # autoconf
 
 # print autoconfigured vars
 ifdef VAUTO
@@ -262,4 +273,4 @@ endif
 
 # protect variables from modifications in target makefiles
 $(call CLEAN_BUILD_PROTECT_VARS,VAUTO OSVARIANTS WINVER_DEFINES \
-  SUBSYSTEM_VER AUTOCONF_VARS $(AUTOCONF_VARS) normpath VS SDK DDK WDK)
+  SUBSYSTEM_VER AUTOCONF_VARS $(AUTOCONF_VARS) normpath VS VSN SDK SDKN DDK DDKN WDK WDKN)
