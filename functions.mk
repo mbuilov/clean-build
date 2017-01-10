@@ -86,18 +86,30 @@ toupper = $(subst a,A,$(subst b,B,$(subst c,C,$(subst d,D,$(subst e,E,$(subst f,
   i,I,$(subst i,J,$(subst k,K,$(subst l,L,$(subst m,M,$(subst n,N,$(subst o,O,$(subst p,P,$(subst q,Q,$(subst r,R,$(subst \
   s,S,$(subst t,T,$(subst u,U,$(subst v,V,$(subst w,W,$(subst x,X,$(subst y,Y,$(subst z,Z,$1))))))))))))))))))))))))))
 
-# replace [A-Z] characters with .
-repl1 = $(subst 0,.,$(subst 1,.,$(subst 2,.,$(subst 3,.,$(subst 4,.,$(subst 5,.,$(subst 6,.,$(subst 7,.,$(subst 8,.,$(subst 9,.,$(subst \
+# replace [0-9] characters with .
+repl09 = $(subst 0,.,$(subst 1,.,$(subst 2,.,$(subst 3,.,$(subst 4,.,$(subst \
+  5,.,$(subst 6,.,$(subst 7,.,$(subst 8,.,$(subst 9,.,$1))))))))))
+
+# replace [0-9A-Z] characters with .
+repl09AZ = $(call repl09,$(subst \
   A,.,$(subst B,.,$(subst C,.,$(subst D,.,$(subst E,.,$(subst F,.,$(subst G,.,$(subst H,.,$(subst \
   I,.,$(subst J,.,$(subst K,.,$(subst L,.,$(subst M,.,$(subst N,.,$(subst O,.,$(subst P,.,$(subst Q,.,$(subst R,.,$(subst \
-  S,.,$(subst T,.,$(subst U,.,$(subst V,.,$(subst W,.,$(subst X,.,$(subst Y,.,$(subst Z,.,$1))))))))))))))))))))))))))))))))))))
+  S,.,$(subst T,.,$(subst U,.,$(subst V,.,$(subst W,.,$(subst X,.,$(subst Y,.,$(subst Z,.,$1)))))))))))))))))))))))))))
 
 # to align to 8 chars
 padto1 = $(subst .,       ,$(subst ..,      ,$(subst ...,     ,$(subst \
   ....,    ,$(subst .....,   ,$(subst ......,  ,$(subst ......., ,$1)))))))
 
 # return string of spaces to add to given argument to align total argument length to fixed width (8 chars)
-padto = $(call padto1,$(repl1))
+padto = $(call padto1,$(repl09AZ))
+
+# 1) check number of digits: if $4 > $3 -> $2 > $1
+# 2) else if number of digits are equal, check number values
+is_less1 = $(if $(filter-out $3,$(lastword $(sort $3 $4))),1,$(if $(filter $3,$4),$(filter-out $1,$(lastword $(sort $1 $2)))))
+
+# compare numbers: check if $1 < $2
+# NOTE: assume there are no leading zeros in $1 or $2
+is_less = $(call is_less1,$1,$2,$(repl09),$(call repl09,$2))
 
 # call function $1 many times with arguments from list $2 grouped by $3 elements
 # and with auxiliary argument $4, separating function calls with $5
@@ -153,5 +165,6 @@ join_with = $(subst $(space),$2,$(strip $1))
 # protect variables from modification in target makefiles
 CLEAN_BUILD_PROTECTED += empty space tab comma newline comment \
   infofn dump trace_params trace_calls_template trace_calls \
-  unspaces ifaddq qpath tolower toupper repl1 padto1 padto xargs xcmd trim normp2 normp1 normp \
+  unspaces ifaddq qpath tolower toupper repl09 repl09AZ padto1 padto \
+  is_less1 is_less xargs xcmd trim normp2 normp1 normp \
   cmn_path1 cmn_path back_prefix relpath2 relpath1 relpath join_with
