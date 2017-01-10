@@ -115,9 +115,16 @@ VSTINC := $(VSINC)
 VSTLD  := $(call qpath,$(VSN)\VC\bin$(if $(TCPU:%64=),,\amd64)\link.exe)
 VSTCL  := $(call qpath,$(VSN)\VC\bin$(if $(TCPU:%64=),,\amd64)\cl.exe)
 
+VS_VER  := $(firstword $(subst ., ,$(lastword $(VS))))
+WDK_VER := $(firstword $(subst ., ,$(lastword $(subst \, ,$(WDK)))))
+
 # SDK
 
 ifneq ($(filter WINXP WIN7,$(OSVARIANT)),)
+
+ifneq ($(call is_less,12,$(VS_VER)),)
+$(error too new Visual Studio version $(lastword $(VS)) - may build targets for WINXP or WIN7 only with Visual Studio 12.0 or older)
+endif
 
 ifndef SDK
 $(error SDK undefined, example: SDK="C:\Program Files (x86)\Microsoft SDKs\Windows\v7.1A")
