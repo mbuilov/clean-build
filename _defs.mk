@@ -82,9 +82,9 @@ endif
 
 # OS - operating system we are building for (and we are building on)
 ifndef OS
-$(error OS undefined, please pick one of matching your build OS type: $(SUPPORTED_OSES))
+$(error OS undefined, please pick one of build OS types: $(SUPPORTED_OSES))
 else ifeq ($(filter $(OS),$(SUPPORTED_OSES)),)
-$(error unknown OS=$(OS), please pick one of matching your build OS type: $(SUPPORTED_OSES))
+$(error unknown OS=$(OS), please pick one of build OS types: $(SUPPORTED_OSES))
 endif
 
 # don't need $(CPU) and $(TARGET) vars values for distclean
