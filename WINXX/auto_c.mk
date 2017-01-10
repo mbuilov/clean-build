@@ -119,15 +119,6 @@ VSTCL  := $(call qpath,$(VSN)\VC\bin$(if $(TCPU:%64=),,\amd64)\cl.exe)
 
 ifneq ($(filter WINXP WIN7,$(OSVARIANT)),)
 
-VS_VER  := $(firstword $(subst ., ,$(lastword $(VS))))
-VS_VERx := $(subst 0,x,$(subst 1,x,$(subst 2,x,$(subst 3,x,$(subst 4,x,$(subst \
-  5,x,$(subst 6,x,$(subst 7,x,$(subst 8,x,$(subst 9,x,$(VS_VER)))))))))))
-
-ifneq ($(if $(filter-out x,$(lastword $(sort x $(VS_VERx)))),$(filter-out \
-  xx,$(lastword $(sort xx $(VS_VERx))))$(filter-out 12,$(lastword $(sort 12 $(VS_VER))))),)
-$(error too new Visual Studio version $(lastword $(VS)) - may build targets for WINXP or WIN7 only with Visual Studio 12.0 or older)
-endif
-
 ifndef SDK
 $(error SDK undefined, example: SDK="C:\Program Files (x86)\Microsoft SDKs\Windows\v7.1A")
 endif
@@ -152,22 +143,22 @@ ifndef WDK
 $(error WDK undefined, example: WDK="C:\Program Files (x86)\Windows Kits\8.0")
 endif
 
-ifndef WDK_VER
-$(error WDK_VER undefined, example: "Win8, winv6.3, 10.0.10240.0")
+ifndef WDK_TARGET
+$(error WDK_TARGET undefined, check contents of "$(WDK)\Lib", example: "Win8, winv6.3, 10.0.10240.0")
 endif
 
 ifneq ($(filter WIN8 WIN81,$(OSVARIANT)),)
 
-UMLIB  := $(WDKN)\Lib\$(WDK_VER)\um\$(if $(UCPU:%64=),x86,x64)
+UMLIB  := $(WDKN)\Lib\$(WDK_TARGET)\um\$(if $(UCPU:%64=),x86,x64)
 UMINC  := $(WDKN)\Include\um $(WDKN)\Include\shared
-UMTLIB := $(WDKN)\Lib\$(WDK_VER)\um\$(if $(TCPU:%64=),x86,x64)
+UMTLIB := $(WDKN)\Lib\$(WDK_TARGET)\um\$(if $(TCPU:%64=),x86,x64)
 UMTINC := $(UMINC)
 
 else # WIN10
 
-UMLIB  := $(WDKN)\Lib\$(WDK_VER)\um\$(if $(UCPU:%64=),x86,x64) $(WDKN)\Lib\$(WDK_VER)\ucrt\$(if $(UCPU:%64=),x86,x64)
-UMINC  := $(WDKN)\Include\$(WDK_VER)\um $(WDKN)\Include\$(WDK_VER)\ucrt $(WDKN)\Include\$(WDK_VER)\shared
-UMTLIB := $(WDKN)\Lib\$(WDK_VER)\um\$(if $(TCPU:%64=),x86,x64) $(WDKN)\Lib\$(WDK_VER)\ucrt\$(if $(TCPU:%64=),x86,x64)
+UMLIB  := $(WDKN)\Lib\$(WDK_TARGET)\um\$(if $(UCPU:%64=),x86,x64) $(WDKN)\Lib\$(WDK_TARGET)\ucrt\$(if $(UCPU:%64=),x86,x64)
+UMINC  := $(WDKN)\Include\$(WDK_TARGET)\um $(WDKN)\Include\$(WDK_TARGET)\ucrt $(WDKN)\Include\$(WDK_TARGET)\shared
+UMTLIB := $(WDKN)\Lib\$(WDK_TARGET)\um\$(if $(TCPU:%64=),x86,x64) $(WDKN)\Lib\$(WDK_TARGET)\ucrt\$(if $(TCPU:%64=),x86,x64)
 UMTINC := $(UMINC)
 
 endif # WIN10
@@ -245,19 +236,19 @@ ifndef WDK
 $(error WDK undefined, example: WDK="C:\Program Files (x86)\Windows Kits\8.1")
 endif
 
-ifndef WDK_VER
-$(error WDK_VER undefined, example: "Win8, winv6.3, 10.0.10240.0")
+ifndef WDK_TARGET
+$(error WDK_TARGET undefined, check contents of "$(WDK)\Lib", example: "Win8, winv6.3, 10.0.10240.0")
 endif
 
 ifneq ($(filter WIN8 WIN81,$(OSVARIANT)),)
 
-KMLIB := $(WDKN)\Lib\$(WDK_VER)\km\$(if $(KCPU:%64=),x86,x64)
+KMLIB := $(WDKN)\Lib\$(WDK_TARGET)\km\$(if $(KCPU:%64=),x86,x64)
 KMINC := $(WDKN)\Include\km $(WDKN)\Include\km\crt $(WDKN)\Include\shared
 
 else # WIN10
 
-KMLIB := $(WDKN)\Lib\$(WDK_VER)\km\$(if $(KCPU:%64=),x86,x64)
-KMINC := $(WDKN)\Include\$(WDK_VER)\km $(WDKN)\Include\$(WDK_VER)\km\crt $(WDKN)\Include\$(WDK_VER)\shared
+KMLIB := $(WDKN)\Lib\$(WDK_TARGET)\km\$(if $(KCPU:%64=),x86,x64)
+KMINC := $(WDKN)\Include\$(WDK_TARGET)\km $(WDKN)\Include\$(WDK_TARGET)\km\crt $(WDKN)\Include\$(WDK_TARGET)\shared
 
 endif # WIN10
 
