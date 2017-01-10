@@ -119,8 +119,13 @@ VSTCL  := $(call qpath,$(VSN)\VC\bin$(if $(TCPU:%64=),,\amd64)\cl.exe)
 
 ifneq ($(filter WINXP WIN7,$(OSVARIANT)),)
 
-ifneq ($(lastword $(sort 12.0 $(lastword $(VS)))),12.0)
-$(error VS version: $(lastword $(VS)) - cannot build targets for WINXP or WIN7 with Visual Studio 14.0 or later, please use older version)
+VS_VER  := $(firstword $(subst ., ,$(lastword $(VS))))
+VS_VERx := $(subst 0,x,$(subst 1,x,$(subst 2,x,$(subst 3,x,$(subst 4,x,$(subst \
+  5,x,$(subst 6,x,$(subst 7,x,$(subst 8,x,$(subst 9,x,$(VS_VER)))))))))))
+
+ifneq ($(if $(filter-out x,$(lastword $(sort x $(VS_VERx)))),$(filter-out \
+  xx,$(lastword $(sort xx $(VS_VERx))))$(filter-out 12,$(lastword $(sort 12 $(VS_VER))))),)
+$(error too new Visual Studio version $(lastword $(VS)) - may build targets for WINXP or WIN7 only with Visual Studio 12.0 or older)
 endif
 
 ifndef SDK
