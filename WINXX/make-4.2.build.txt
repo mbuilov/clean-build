@@ -1,8 +1,0 @@
-How to build gnumake.exe for Windows
-
-1) unpack archive:   tar -xf make-4.2w.tar.xz
-2) run dos prompt:   cmd.exe
-3) setup compiler:   "c:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat" x86_amd64
-4) go to sources:    cd make-4.2w
-5) do compile:       build_w32.bat --without-guile
-6) build result:     make-4.2w/WinRel/gnumake.exe
