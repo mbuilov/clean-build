@@ -92,7 +92,7 @@ endif
 
 # normalize: "x x" -> x?x
 # used for paths passed to compilers and tools, but not searched by $(MAKE)
-normpath = $(call unspaces,$(subst ",,$1))#"
+normpath = $(call unspaces,$(subst "",,$1))
 
 VSN  := $(call normpath,$(VS))
 SDKN := $(call normpath,$(SDK))
@@ -109,8 +109,13 @@ VSTINC := $(VSINC)
 VSTLD  := $(call qpath,$(VSN)\VC\bin$(if $(TCPU:%64=),,\amd64)\link.exe)
 VSTCL  := $(call qpath,$(VSN)\VC\bin$(if $(TCPU:%64=),,\amd64)\cl.exe)
 
+ifneq ($(subst \Microsoft Visual Studio ,,$(VS)),$(VS))
 VS_VER  := $(firstword $(subst ., ,$(lastword $(VS))))
+endif
+
+ifneq ($(subst \Windows Kits\,,$(WDK)),$(WDK))
 WDK_VER := $(firstword $(subst ., ,$(lastword $(subst \, ,$(WDK)))))
+endif
 
 # APP LEVEL
 
