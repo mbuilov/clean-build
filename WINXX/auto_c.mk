@@ -78,15 +78,9 @@ AUTOCONF_VARS += TRC1     # full path in quotes
 AUTOCONF_VARS += TMT1     # full path in quotes
 
 # check that all needed vars are defined, if not - autoconfigure
-AVALUES := $(words $(foreach x,$(AUTOCONF_VARS),$(if $($x),1)))
-ifneq ($(AVALUES),$(words $(AUTOCONF_VARS)))
+ifneq ($(words $(foreach x,$(AUTOCONF_VARS),$(if $($x),1))),$(words $(AUTOCONF_VARS)))
 
-ifneq ($(AVALUES),0)
-$(foreach x,$(AUTOCONF_VARS),$(if $($x),,$(error \
-  $x is undefined, either define it or undefine $(strip $(foreach x,$(AUTOCONF_VARS),$(if $($x),$x))) variable(s) to autoconfigure)))
-endif
-
-# autoconf
+# autoconfigure
 
 ifdef VAUTO
 $(info try to autoconfigure...)
@@ -98,7 +92,7 @@ endif
 
 # normalize: "x x" -> x?x
 # used for paths passed to compilers and tools, but not searched by $(MAKE)
-normpath = $(call unspaces,$(subst ",,$1))
+normpath = $(call unspaces,$(subst ",,$1))#"
 
 VSN  := $(call normpath,$(VS))
 SDKN := $(call normpath,$(SDK))
@@ -118,16 +112,21 @@ VSTCL  := $(call qpath,$(VSN)\VC\bin$(if $(TCPU:%64=),,\amd64)\cl.exe)
 VS_VER  := $(firstword $(subst ., ,$(lastword $(VS))))
 WDK_VER := $(firstword $(subst ., ,$(lastword $(subst \, ,$(WDK)))))
 
-# SDK
+# APP LEVEL
 
-ifneq ($(filter WINXP WIN7,$(OSVARIANT)),)
-
-ifneq ($(call is_less,12,$(VS_VER)),)
-$(error too new Visual Studio version $(lastword $(VS)) - may build targets for WINXP or WIN7 only with Visual Studio 12.0 or older)
+ifeq ($(strip $(SDK)$(WDK)),)
+$(error no SDK nor WDK defined, example:\
+ SDK="C:\Program Files (x86)\Microsoft SDKs\Windows\v7.1A" or WDK="C:\Program Files (x86)\Windows Kits\8.1")
 endif
 
-ifndef SDK
-$(error SDK undefined, example: SDK="C:\Program Files (x86)\Microsoft SDKs\Windows\v7.1A")
+ifdef SDK
+
+ifdef WDK
+$(error either SDK or WDK must be defined, but not both)
+endif
+
+ifneq ($(call is_less,12,$(VS_VER)),)
+$(error too new Visual Studio version $(lastword $(VS)) to build with SDK, please use WDK)
 endif
 
 UMLIB  := $(SDKN)\Lib$(if $(UCPU:%64=),,\x64)
@@ -142,33 +141,35 @@ TMC1 := $(call qpath,$(SDKN)\bin$(if $(TCPU:%64=),,\x64)\MC.Exe)
 TRC1 := $(call qpath,$(SDKN)\bin$(if $(TCPU:%64=),,\x64)\RC.Exe)
 TMT1 := $(call qpath,$(SDKN)\bin$(if $(TCPU:%64=),,\x64)\MT.Exe)
 
-endif # WINXP, WIN7
+endif # SDK
 
-ifneq ($(filter WIN8 WIN81 WIN10,$(OSVARIANT)),)
+ifdef WDK
 
-ifndef WDK
-$(error WDK undefined, example: WDK="C:\Program Files (x86)\Windows Kits\8.0")
+ifdef SDK
+$(error either SDK or WDK must be defined, but not both)
 endif
 
 ifndef WDK_TARGET
-$(error WDK_TARGET undefined, check contents of "$(WDK)\Lib", example: "Win8, winv6.3, 10.0.10240.0")
+$(error WDK_TARGET undefined, check contents of "$(WDK)\Lib", example: "win7, win8, winv6.3, 10.0.10240.0")
 endif
 
-ifneq ($(filter WIN8 WIN81,$(OSVARIANT)),)
+ifneq ($(call is_less,$(WDK_VER),10),)
 
 UMLIB  := $(WDKN)\Lib\$(WDK_TARGET)\um\$(if $(UCPU:%64=),x86,x64)
-UMINC  := $(WDKN)\Include\um $(WDKN)\Include\shared
+UMINC  := $(WDKN)\Include
+UMINC  := $(UMINC)\um $(UMINC)\shared
 UMTLIB := $(WDKN)\Lib\$(WDK_TARGET)\um\$(if $(TCPU:%64=),x86,x64)
 UMTINC := $(UMINC)
 
-else # WIN10
+else # WDK10
 
 UMLIB  := $(WDKN)\Lib\$(WDK_TARGET)\um\$(if $(UCPU:%64=),x86,x64) $(WDKN)\Lib\$(WDK_TARGET)\ucrt\$(if $(UCPU:%64=),x86,x64)
-UMINC  := $(WDKN)\Include\$(WDK_TARGET)\um $(WDKN)\Include\$(WDK_TARGET)\ucrt $(WDKN)\Include\$(WDK_TARGET)\shared
+UMINC  := $(WDKN)\Include\$(WDK_TARGET)
+UMINC  := $(UMINC)\um $(UMINC)\ucrt $(UMINC)\shared
 UMTLIB := $(WDKN)\Lib\$(WDK_TARGET)\um\$(if $(TCPU:%64=),x86,x64) $(WDKN)\Lib\$(WDK_TARGET)\ucrt\$(if $(TCPU:%64=),x86,x64)
 UMTINC := $(UMINC)
 
-endif # WIN10
+endif # WDK10
 
 MC1  := $(call qpath,$(WDKN)\bin\$(if $(UCPU:%64=),x86,x64)\mc.exe)
 RC1  := $(call qpath,$(WDKN)\bin\$(if $(UCPU:%64=),x86,x64)\rc.exe)
@@ -177,27 +178,9 @@ TMC1 := $(call qpath,$(WDKN)\bin\$(if $(TCPU:%64=),x86,x64)\mc.exe)
 TRC1 := $(call qpath,$(WDKN)\bin\$(if $(TCPU:%64=),x86,x64)\rc.exe)
 TMT1 := $(call qpath,$(WDKN)\bin\$(if $(TCPU:%64=),x86,x64)\mt.exe)
 
-endif # WIN8, WIN81, WIN10
+endif # WDK
 
-# DDK
-
-ifeq ($(OSVARIANT),WINXP)
-
-ifndef DDK
-$(error DDK undefined, example: DDK=C:\WinDDK\7600.16385.1)
-endif
-
-KMLIB := $(DDKN)\Lib\wxp\$(if $(KCPU:%64=),i386,amd64)
-KMINC := $(DDKN)\inc\api $(DDKN)\inc\crt $(DDKN)\inc\ddk
-WKLD  := $(call qpath,$(DDKN)\bin\x86\$(if $(KCPU:%64=),x86,amd64)\link.exe)
-WKCL  := $(call qpath,$(DDKN)\bin\x86\$(if $(KCPU:%64=),x86,amd64)\cl.exe)
-
-INF2CAT  := $(call qpath,$(DDKN)\bin\selfsign\Inf2Cat.exe)
-SIGNTOOL := $(call qpath,$(DDKN)\bin\$(if $(KCPU:%64=),x86,amd64)\SignTool.exe)
-
-endif # WINXP
-
-ifeq ($(OSVARIANT),WIN7)
+# KERNEL LEVEL
 
 ifeq ($(strip $(DDK)$(WDK)),)
 $(error no DDK nor WDK defined, example: DDK=C:\WinDDK\7600.16385.1 or WDK="C:\Program Files (x86)\Windows Kits\8.1")
@@ -209,8 +192,15 @@ ifdef WDK
 $(error either DDK or WDK must be defined, but not both)
 endif
 
-KMLIB := $(DDKN)\Lib\win7\$(if $(KCPU:%64=),i386,amd64)
+ifneq ($(call is_less,12,$(VS_VER)),)
+$(error too new Visual Studio version $(lastword $(VS)) to build with DDK, please use WDK)
+endif
+
+DDK_TARGET := $(if $(filter WINXP,$(OSVARIANT)),wxp,win7)
+
+KMLIB := $(DDKN)\Lib\$(DDK_TARGET)\$(if $(KCPU:%64=),i386,amd64)
 KMINC := $(DDKN)\inc\api $(DDKN)\inc\crt $(DDKN)\inc\ddk
+
 WKLD  := $(call qpath,$(DDKN)\bin\x86\$(if $(KCPU:%64=),x86,amd64)\link.exe)
 WKCL  := $(call qpath,$(DDKN)\bin\x86\$(if $(KCPU:%64=),x86,amd64)\cl.exe)
 
@@ -225,8 +215,20 @@ ifdef DDK
 $(error either DDK or WDK must be defined, but not both)
 endif
 
-KMLIB := $(WDKN)\Lib\win7\km\$(if $(KCPU:%64=),x86,x64)
-KMINC := $(WDKN)\Include\km $(WDKN)\Include\km\crt $(WDKN)\Include\shared
+ifndef WDK_TARGET
+$(error WDK_TARGET undefined, check contents of "$(WDK)\Lib", example: "win7, win8, winv6.3, 10.0.10240.0")
+endif
+
+ifneq ($(filter win%,$(WDK_TARGET)),)
+ifneq ($(call is_less,12,$(VS_VER)),)
+$(error too new Visual Studio version $(lastword $(VS)) to build with WDK_TARGET=$(WDK_TARGET), please select different WDK_TARGET)
+endif
+endif
+
+KMLIB := $(WDKN)\Lib\$(WDK_TARGET)\km\$(if $(KCPU:%64=),x86,x64)
+KMINC := $(WDKN)\Include$(if $(call is_less,$(WDK_VER),10),,\$(WDK_TARGET))
+KMINC := $(KMINC)\km $(KMINC)\km\crt $(KMINC)\shared
+
 WKLD  := $(call qpath,$(VSN)\VC\bin$(if $(KCPU:%64=),,\amd64)\link.exe)
 WKCL  := $(call qpath,$(VSN)\VC\bin$(if $(KCPU:%64=),,\amd64)\cl.exe)
 
@@ -234,38 +236,6 @@ INF2CAT  := $(call qpath,$(WDKN)\bin\x86\Inf2Cat.exe)
 SIGNTOOL := $(call qpath,$(WDKN)\bin\$(if $(KCPU:%64=),x86,x64)\SignTool.exe)
 
 endif # WDK
-
-endif # WIN7
-
-ifneq ($(filter WIN8 WIN81 WIN10,$(OSVARIANT)),)
-
-ifndef WDK
-$(error WDK undefined, example: WDK="C:\Program Files (x86)\Windows Kits\8.1")
-endif
-
-ifndef WDK_TARGET
-$(error WDK_TARGET undefined, check contents of "$(WDK)\Lib", example: "Win8, winv6.3, 10.0.10240.0")
-endif
-
-ifneq ($(filter WIN8 WIN81,$(OSVARIANT)),)
-
-KMLIB := $(WDKN)\Lib\$(WDK_TARGET)\km\$(if $(KCPU:%64=),x86,x64)
-KMINC := $(WDKN)\Include\km $(WDKN)\Include\km\crt $(WDKN)\Include\shared
-
-else # WIN10
-
-KMLIB := $(WDKN)\Lib\$(WDK_TARGET)\km\$(if $(KCPU:%64=),x86,x64)
-KMINC := $(WDKN)\Include\$(WDK_TARGET)\km $(WDKN)\Include\$(WDK_TARGET)\km\crt $(WDKN)\Include\$(WDK_TARGET)\shared
-
-endif # WIN10
-
-WKLD  := $(call qpath,$(VSN)\VC\bin$(if $(KCPU:%64=),,\amd64)\link.exe)
-WKCL  := $(call qpath,$(VSN)\VC\bin$(if $(KCPU:%64=),,\amd64)\cl.exe)
-
-INF2CAT  := $(call qpath,$(WDKN)\bin\x86\Inf2Cat.exe)
-SIGNTOOL := $(call qpath,$(WDKN)\bin\$(if $(KCPU:%64=),x86,x64)\SignTool.exe)
-
-endif # WIN8, WIN81, WIN10
 
 endif # autoconf
 
