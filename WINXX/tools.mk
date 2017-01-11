@@ -9,9 +9,12 @@
 # synchronize make output for parallel builds
 MAKEFLAGS += -O
 
+# shell must be cmd.exe, not /bin/sh if building under cygwin
+SHELL := $(COMSPEC)
+
 ifneq ($(filter /cygdrive/%,$(TOP)),)
-$(error building from cygwin shell is not supported, please use native tools - run build from cmd window or specify shell, \
- for example: /cygdrive/c/GnuWin32/bin/gnumake-4.2.exe SHELL=$${COMSPEC} SED=C:/GnuWin32/bin/sed.exe <args>)
+$(error building with cygwin tools is not supported, please use native tools,\
+ for example: /cygdrive/c/GnuWin32/bin/gnumake-4.2.exe SED=C:/GnuWin32/bin/sed.exe <args>)
 endif
 
 # stip off cygwin paths - to use only native windows tools
