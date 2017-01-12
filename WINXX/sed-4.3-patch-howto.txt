@@ -6,7 +6,7 @@ How to create sed-4.3-windows.patch
 4) run dos prompt:    cmd.exe /c "start cmd.exe"
 5) setup compiler:    "c:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat" x86_amd64
 6) run bash:          bash
-7) configure sed:     CPP="cl -E" LD=cl CC=cl ./configure --enable-threads=windows --disable-dependency-tracking
+7) configure sed:     CPP="cl -E" LD=cl CC=cl ./configure --enable-threads=windows --disable-dependency-tracking --disable-silent-rules
 8) fix Makefile:      sed -i '/^NEXT/s/=.*/=""/' Makefile
 9) add gen target:    echo 'gen: $(BUILT_SOURCES)' >> Makefile
 10) generate sources: make gen
@@ -23,7 +23,7 @@ sed -i '/Windows Kits/s@C:.*ucrt@C:\\opt\\Studio 2008\\VC\\include@' sed-4.3-win
 sed -i '/Visual Studio/s@C:.*include@C:\\opt\\Studio 2008\\VC\\include@' sed-4.3-win-headers.patch
 
 11) patch sources:   patch -Np1 -i sed-4.3-win-headers.patch
-12) do compile:      make V=1 > make.bat
+12) do compile:      make > make.bat
 
 
 Then do hand work:
