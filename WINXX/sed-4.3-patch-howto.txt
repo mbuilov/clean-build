@@ -1,0 +1,19 @@
+How to create sed-4.3-windows.patch
+
+1) get archive:      wget http://ftp.gnu.org/gnu/sed/sed-4.3.tar.xz
+2) unpack archive:   tar xf sed-4.3.tar.xz
+3) go to sources:    cd sed-4.3
+4) run dos prompt:   cmd.exe /c start cmd.exe
+5) setup compiler:   "c:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat" x86_amd64
+6) run bash:         bash
+7) configure sed:    CC=cl ./configure --enable-threads=windows
+8) fix Makefile:     echo 'gen: $(BUILT_SOURCES)' >> Makefile
+9) generate sources: make gen
+10) patch sources:   patch -Np1 -i sed-4.3-win-headers.patch
+11) do compile:      make V=1 > make.bat
+
+Then do hand work:
+12) diff current directory with original just unpacked sed-4.3.tar.xz orig-dir
+13) remove unneeded built files in current directory (object files, libs, etc...)
+14) edit make.bat
+15) create a patch: diff -Naur {orig-dir} {curr-dir} > sed-4.3-windows.patch
