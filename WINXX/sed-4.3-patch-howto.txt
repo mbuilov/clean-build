@@ -6,7 +6,7 @@ How to create sed-4.3-windows.patch
 4) run dos prompt:    cmd.exe /c "start cmd.exe"
 5) setup compiler:    "c:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat" x86_amd64
 6) run bash:          bash
-7) configure sed:     LD=cl CC=cl ./configure --enable-threads=windows --disable-dependency-tracking
+7) configure sed:     CPP="cl -E" LD=cl CC=cl ./configure --enable-threads=windows --disable-dependency-tracking
 8) fix Makefile:      sed -i '/^NEXT/s/=.*/=""/' Makefile
 9) add gen target:    echo 'gen: $(BUILT_SOURCES)' >> Makefile
 10) generate sources: make gen
