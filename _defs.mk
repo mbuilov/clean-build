@@ -242,9 +242,9 @@ TRY_REM_MAKEFILE = $(if $3,,$(if $(filter $(MF),$(SHOWN_MAKEFILES)),,$(eval $(RE
   |9%,09%,$(subst \
   |100%,FIN,|$(words $(SHOWN_PERCENTS))%))))))))))))
 ifdef INFOMF
-SUP = $(info $(if $(TARGET_MAKEFILES_COUNT),$(call PRINT_PERCENTS,$(TRY_REM_MAKEFILE)))$(MF)$(MCONT):$(COLORIZE))@
+SUP = $(info $(call PRINT_PERCENTS,$(TRY_REM_MAKEFILE))$(MF)$(MCONT):$(COLORIZE))@
 else
-SUP = $(info $(if $(TARGET_MAKEFILES_COUNT),$(call PRINT_PERCENTS,$(TRY_REM_MAKEFILE)))$(COLORIZE))@
+SUP = $(info $(call PRINT_PERCENTS,$(TRY_REM_MAKEFILE))$(COLORIZE))@
 endif
 endif # !VERBOSE
 endif # !SUP
