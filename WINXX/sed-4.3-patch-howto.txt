@@ -3,7 +3,7 @@ How to create sed-4.3-windows.patch
 1) get archive:      wget http://ftp.gnu.org/gnu/sed/sed-4.3.tar.xz
 2) unpack archive:   tar xf sed-4.3.tar.xz
 3) go to sources:    cd sed-4.3
-4) run dos prompt:   cmd.exe /c start cmd.exe
+4) run dos prompt:   cmd.exe /c "start cmd.exe"
 5) setup compiler:   "c:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat" x86_amd64
 6) run bash:         bash
 7) configure sed:    CC=cl ./configure --enable-threads=windows
