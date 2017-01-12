@@ -14,7 +14,7 @@ SHELL := $(COMSPEC)
 
 ifneq ($(filter /cygdrive/%,$(TOP)),)
 $(error building with cygwin tools is not supported, please use native tools,\
- for example: /cygdrive/c/GnuWin32/bin/gnumake-4.2.exe SED=C:/GnuWin32/bin/sed.exe <args>)
+ for example: /cygdrive/c/tools/gnumake-4.2.1.exe SED=C:/tools/sed.exe <args>)
 endif
 
 # stip off cygwin paths - to use only native windows tools
