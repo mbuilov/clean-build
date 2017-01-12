@@ -1,16 +1,30 @@
 How to create sed-4.3-windows.patch
 
-1) get archive:      wget http://ftp.gnu.org/gnu/sed/sed-4.3.tar.xz
-2) unpack archive:   tar xf sed-4.3.tar.xz
-3) go to sources:    cd sed-4.3
-4) run dos prompt:   cmd.exe /c "start cmd.exe"
-5) setup compiler:   "c:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat" x86_amd64
-6) run bash:         bash
-7) configure sed:    CC=cl ./configure --enable-threads=windows
-8) fix Makefile:     echo 'gen: $(BUILT_SOURCES)' >> Makefile
-9) generate sources: make gen
-10) patch sources:   patch -Np1 -i sed-4.3-win-headers.patch
-11) do compile:      make V=1 > make.bat
+1) get archive:       wget http://ftp.gnu.org/gnu/sed/sed-4.3.tar.xz
+2) unpack archive:    tar xf sed-4.3.tar.xz
+3) go to sources:     cd sed-4.3
+4) run dos prompt:    cmd.exe /c "start cmd.exe"
+5) setup compiler:    "c:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat" x86_amd64
+6) run bash:          bash
+7) configure sed:     LD=cl CC=cl ./configure --enable-threads=windows --disable-dependency-tracking
+8) fix Makefile:      sed -i '/^NEXT/s/=.*/=""/' Makefile
+9) add gen target:    echo 'gen: $(BUILT_SOURCES)' >> Makefile
+10) generate sources: make gen
+11) fix sed-4.3-win-headers.patch, if needed:
+
+to build with Visual Studio/WDK version other than
+"C:\Program Files (x86)\Microsoft Visual Studio 14.0"
+"C:\Program Files (x86)\Windows Kits\10\Include\10.0.14393.0"
+
+it is needed to fix sed-4.3-win-headers.patch - to change paths to Visual Studio/WDK,
+for example, if Visual Studio is installed in "C:\opt\Studio 2008", use the following commands:
+
+sed -i '/Windows Kits/s@C:.*ucrt@C:\\opt\\Studio 2008\\VC\\include@' sed-4.3-win-headers.patch
+sed -i '/Visual Studio/s@C:.*include@C:\\opt\\Studio 2008\\VC\\include@' sed-4.3-win-headers.patch
+
+11) patch sources:   patch -Np1 -i sed-4.3-win-headers.patch
+12) do compile:      make V=1 > make.bat
+
 
 Then do hand work:
 12) diff current directory with original just unpacked sed-4.3.tar.xz orig-dir

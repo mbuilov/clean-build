@@ -1,6 +1,6 @@
-diff -Napur sed-4.3/config.h sed-4.3-patched/config.h
---- sed-4.3/config.h	1970-01-01 03:00:00.000000000 +0300
-+++ sed-4.3-patched/config.h	2017-01-12 12:26:23.724734700 +0300
+diff -Naur sed-4.3-orig/config.h sed-4.3/config.h
+--- sed-4.3-orig/config.h	1970-01-01 03:00:00.000000000 +0300
++++ sed-4.3/config.h	2017-01-12 14:29:46.961104200 +0300
 @@ -0,0 +1,2085 @@
 +/* config.h.  Generated from config_h.in by configure.  */
 +/* config_h.in.  Generated from configure.ac by autoheader.  */
@@ -2087,9 +2087,9 @@ diff -Napur sed-4.3/config.h sed-4.3-patched/config.h
 +
 +/* Define as a macro for copying va_list variables. */
 +/* #undef va_copy */
-diff -Napur sed-4.3/lib/alloca.h sed-4.3-patched/lib/alloca.h
---- sed-4.3/lib/alloca.h	1970-01-01 03:00:00.000000000 +0300
-+++ sed-4.3-patched/lib/alloca.h	2017-01-12 12:26:23.724734700 +0300
+diff -Naur sed-4.3-orig/lib/alloca.h sed-4.3/lib/alloca.h
+--- sed-4.3-orig/lib/alloca.h	1970-01-01 03:00:00.000000000 +0300
++++ sed-4.3/lib/alloca.h	2017-01-12 14:34:49.404052800 +0300
 @@ -0,0 +1,66 @@
 +/* DO NOT EDIT! GENERATED AUTOMATICALLY! */
 +/* Memory allocation on the stack.
@@ -2157,9 +2157,9 @@ diff -Napur sed-4.3/lib/alloca.h sed-4.3-patched/lib/alloca.h
 +#endif
 +
 +#endif /* _GL_ALLOCA_H */
-diff -Napur sed-4.3/lib/arg-nonnull.h sed-4.3-patched/lib/arg-nonnull.h
---- sed-4.3/lib/arg-nonnull.h	1970-01-01 03:00:00.000000000 +0300
-+++ sed-4.3-patched/lib/arg-nonnull.h	2017-01-12 12:26:23.734734700 +0300
+diff -Naur sed-4.3-orig/lib/arg-nonnull.h sed-4.3/lib/arg-nonnull.h
+--- sed-4.3-orig/lib/arg-nonnull.h	1970-01-01 03:00:00.000000000 +0300
++++ sed-4.3/lib/arg-nonnull.h	2017-01-12 14:34:49.674053200 +0300
 @@ -0,0 +1,10 @@
 +/* _GL_ARG_NONNULL((n,...,m)) tells the compiler and static analyzer tools
 +   that the values passed as arguments n, ..., m must be non-NULL pointers.
@@ -2171,9 +2171,9 @@ diff -Napur sed-4.3/lib/arg-nonnull.h sed-4.3-patched/lib/arg-nonnull.h
 +#  define _GL_ARG_NONNULL(params)
 +# endif
 +#endif
-diff -Napur sed-4.3/lib/c++defs.h sed-4.3-patched/lib/c++defs.h
---- sed-4.3/lib/c++defs.h	1970-01-01 03:00:00.000000000 +0300
-+++ sed-4.3-patched/lib/c++defs.h	2017-01-12 12:26:23.744734800 +0300
+diff -Naur sed-4.3-orig/lib/c++defs.h sed-4.3/lib/c++defs.h
+--- sed-4.3-orig/lib/c++defs.h	1970-01-01 03:00:00.000000000 +0300
++++ sed-4.3/lib/c++defs.h	2017-01-12 14:34:49.494052900 +0300
 @@ -0,0 +1,300 @@
 +#ifndef _GL_CXXDEFS_H
 +#define _GL_CXXDEFS_H
@@ -2475,17 +2475,9 @@ diff -Napur sed-4.3/lib/c++defs.h sed-4.3-patched/lib/c++defs.h
 +#endif
 +
 +#endif /* _GL_CXXDEFS_H */
-diff -Napur sed-4.3/lib/charset.alias sed-4.3-patched/lib/charset.alias
---- sed-4.3/lib/charset.alias	1970-01-01 03:00:00.000000000 +0300
-+++ sed-4.3-patched/lib/charset.alias	2017-01-12 12:26:23.744734800 +0300
-@@ -0,0 +1,4 @@
-+# This file contains a table of character encoding aliases,
-+# suitable for operating system 'cygwin'.
-+# It was automatically generated from config.charset.
-+# Packages using this file: 
-diff -Napur sed-4.3/lib/configmake.h sed-4.3-patched/lib/configmake.h
---- sed-4.3/lib/configmake.h	1970-01-01 03:00:00.000000000 +0300
-+++ sed-4.3-patched/lib/configmake.h	2017-01-12 12:26:23.754734800 +0300
+diff -Naur sed-4.3-orig/lib/configmake.h sed-4.3/lib/configmake.h
+--- sed-4.3-orig/lib/configmake.h	1970-01-01 03:00:00.000000000 +0300
++++ sed-4.3/lib/configmake.h	2017-01-12 14:34:49.454052900 +0300
 @@ -0,0 +1,28 @@
 +/* DO NOT EDIT! GENERATED AUTOMATICALLY! */
 +#define PREFIX "/usr/local"
@@ -2515,9 +2507,9 @@ diff -Napur sed-4.3/lib/configmake.h sed-4.3-patched/lib/configmake.h
 +#define PKGINCLUDEDIR "/usr/local/include/sed"
 +#define PKGLIBDIR "/usr/local/lib/sed"
 +#define PKGLIBEXECDIR "/usr/local/libexec/sed"
-diff -Napur sed-4.3/lib/ctype.h sed-4.3-patched/lib/ctype.h
---- sed-4.3/lib/ctype.h	1970-01-01 03:00:00.000000000 +0300
-+++ sed-4.3-patched/lib/ctype.h	2017-01-12 12:26:23.764734800 +0300
+diff -Naur sed-4.3-orig/lib/ctype.h sed-4.3/lib/ctype.h
+--- sed-4.3-orig/lib/ctype.h	1970-01-01 03:00:00.000000000 +0300
++++ sed-4.3/lib/ctype.h	2017-01-12 14:37:13.764254900 +0300
 @@ -0,0 +1,404 @@
 +/* DO NOT EDIT! GENERATED AUTOMATICALLY! */
 +/* A substitute for ISO C99 <ctype.h>, for platforms on which it is incomplete.
@@ -2923,9 +2915,9 @@ diff -Napur sed-4.3/lib/ctype.h sed-4.3-patched/lib/ctype.h
 +
 +#endif /* _GL_CTYPE_H */
 +#endif /* _GL_CTYPE_H */
-diff -Napur sed-4.3/lib/errno.h sed-4.3-patched/lib/errno.h
---- sed-4.3/lib/errno.h	1970-01-01 03:00:00.000000000 +0300
-+++ sed-4.3-patched/lib/errno.h	2017-01-12 12:26:23.764734800 +0300
+diff -Naur sed-4.3-orig/lib/errno.h sed-4.3/lib/errno.h
+--- sed-4.3-orig/lib/errno.h	1970-01-01 03:00:00.000000000 +0300
++++ sed-4.3/lib/errno.h	2017-01-12 14:37:13.764254900 +0300
 @@ -0,0 +1,280 @@
 +/* DO NOT EDIT! GENERATED AUTOMATICALLY! */
 +/* A POSIX-like <errno.h>.
@@ -3207,9 +3199,9 @@ diff -Napur sed-4.3/lib/errno.h sed-4.3-patched/lib/errno.h
 +
 +#endif /* _GL_ERRNO_H */
 +#endif /* _GL_ERRNO_H */
-diff -Napur sed-4.3/lib/fcntl.h sed-4.3-patched/lib/fcntl.h
---- sed-4.3/lib/fcntl.h	1970-01-01 03:00:00.000000000 +0300
-+++ sed-4.3-patched/lib/fcntl.h	2017-01-12 12:26:23.774734800 +0300
+diff -Naur sed-4.3-orig/lib/fcntl.h sed-4.3/lib/fcntl.h
+--- sed-4.3-orig/lib/fcntl.h	1970-01-01 03:00:00.000000000 +0300
++++ sed-4.3/lib/fcntl.h	2017-01-12 14:37:13.764254900 +0300
 @@ -0,0 +1,720 @@
 +/* DO NOT EDIT! GENERATED AUTOMATICALLY! */
 +/* Like <fcntl.h>, but with non-working flags defined to 0.
@@ -3931,9 +3923,9 @@ diff -Napur sed-4.3/lib/fcntl.h sed-4.3-patched/lib/fcntl.h
 +#endif /* _GL_FCNTL_H */
 +#endif /* _GL_FCNTL_H */
 +#endif
-diff -Napur sed-4.3/lib/getopt.h sed-4.3-patched/lib/getopt.h
---- sed-4.3/lib/getopt.h	1970-01-01 03:00:00.000000000 +0300
-+++ sed-4.3-patched/lib/getopt.h	2017-01-12 12:26:23.774734800 +0300
+diff -Naur sed-4.3-orig/lib/getopt.h sed-4.3/lib/getopt.h
+--- sed-4.3-orig/lib/getopt.h	1970-01-01 03:00:00.000000000 +0300
++++ sed-4.3/lib/getopt.h	2017-01-12 14:34:49.764053300 +0300
 @@ -0,0 +1,272 @@
 +/* DO NOT EDIT! GENERATED AUTOMATICALLY! */
 +/* Declarations for getopt.
@@ -3966,7 +3958,7 @@ diff -Napur sed-4.3/lib/getopt.h sed-4.3-patched/lib/getopt.h
 +   <getopt.h>; our definitions will be present soon enough.  */
 +#if 0
 +# define _GL_SYSTEM_GETOPT
-+# include <getopt.h>
++# include ""
 +# undef _GL_SYSTEM_GETOPT
 +#endif
 +
@@ -4207,9 +4199,9 @@ diff -Napur sed-4.3/lib/getopt.h sed-4.3-patched/lib/getopt.h
 +
 +#endif /* _GL_GETOPT_H */
 +#endif /* _GL_GETOPT_H */
-diff -Napur sed-4.3/lib/langinfo.h sed-4.3-patched/lib/langinfo.h
---- sed-4.3/lib/langinfo.h	1970-01-01 03:00:00.000000000 +0300
-+++ sed-4.3-patched/lib/langinfo.h	2017-01-12 12:26:23.784734800 +0300
+diff -Naur sed-4.3-orig/lib/langinfo.h sed-4.3/lib/langinfo.h
+--- sed-4.3-orig/lib/langinfo.h	1970-01-01 03:00:00.000000000 +0300
++++ sed-4.3/lib/langinfo.h	2017-01-12 14:34:49.804053400 +0300
 @@ -0,0 +1,541 @@
 +/* DO NOT EDIT! GENERATED AUTOMATICALLY! */
 +/* Substitute for and wrapper around <langinfo.h>.
@@ -4242,7 +4234,7 @@ diff -Napur sed-4.3/lib/langinfo.h sed-4.3-patched/lib/langinfo.h
 +
 +/* The include_next requires a split double-inclusion guard.  */
 +#if 0
-+# include <langinfo.h>
++# include ""
 +#endif
 +
 +#ifndef _GL_LANGINFO_H
@@ -4752,9 +4744,9 @@ diff -Napur sed-4.3/lib/langinfo.h sed-4.3-patched/lib/langinfo.h
 +
 +#endif /* _GL_LANGINFO_H */
 +#endif /* _GL_LANGINFO_H */
-diff -Napur sed-4.3/lib/limits.h sed-4.3-patched/lib/limits.h
---- sed-4.3/lib/limits.h	1970-01-01 03:00:00.000000000 +0300
-+++ sed-4.3-patched/lib/limits.h	2017-01-12 12:26:23.814734800 +0300
+diff -Naur sed-4.3-orig/lib/limits.h sed-4.3/lib/limits.h
+--- sed-4.3-orig/lib/limits.h	1970-01-01 03:00:00.000000000 +0300
++++ sed-4.3/lib/limits.h	2017-01-12 14:37:13.774254900 +0300
 @@ -0,0 +1,64 @@
 +/* DO NOT EDIT! GENERATED AUTOMATICALLY! */
 +/* A GNU-like <limits.h>.
@@ -4820,9 +4812,9 @@ diff -Napur sed-4.3/lib/limits.h sed-4.3-patched/lib/limits.h
 +
 +#endif /* _GL_LIMITS_H */
 +#endif /* _GL_LIMITS_H */
-diff -Napur sed-4.3/lib/locale.h sed-4.3-patched/lib/locale.h
---- sed-4.3/lib/locale.h	1970-01-01 03:00:00.000000000 +0300
-+++ sed-4.3-patched/lib/locale.h	2017-01-12 12:26:23.824734900 +0300
+diff -Naur sed-4.3-orig/lib/locale.h sed-4.3/lib/locale.h
+--- sed-4.3-orig/lib/locale.h	1970-01-01 03:00:00.000000000 +0300
++++ sed-4.3/lib/locale.h	2017-01-12 14:37:13.774254900 +0300
 @@ -0,0 +1,573 @@
 +/* DO NOT EDIT! GENERATED AUTOMATICALLY! */
 +/* A POSIX <locale.h>.
@@ -5397,9 +5389,9 @@ diff -Napur sed-4.3/lib/locale.h sed-4.3-patched/lib/locale.h
 +#endif /* _GL_LOCALE_H */
 +#endif /* ! _GL_ALREADY_INCLUDING_LOCALE_H */
 +#endif /* _GL_LOCALE_H */
-diff -Napur sed-4.3/lib/selinux/context.h sed-4.3-patched/lib/selinux/context.h
---- sed-4.3/lib/selinux/context.h	1970-01-01 03:00:00.000000000 +0300
-+++ sed-4.3-patched/lib/selinux/context.h	2017-01-12 12:26:23.824734900 +0300
+diff -Naur sed-4.3-orig/lib/selinux/context.h sed-4.3/lib/selinux/context.h
+--- sed-4.3-orig/lib/selinux/context.h	1970-01-01 03:00:00.000000000 +0300
++++ sed-4.3/lib/selinux/context.h	2017-01-12 14:34:50.044053700 +0300
 @@ -0,0 +1,67 @@
 +/* DO NOT EDIT! GENERATED AUTOMATICALLY! */
 +#ifndef SELINUX_CONTEXT_H
@@ -5468,9 +5460,9 @@ diff -Napur sed-4.3/lib/selinux/context.h sed-4.3-patched/lib/selinux/context.h
 +_GL_INLINE_HEADER_END
 +
 +#endif
-diff -Napur sed-4.3/lib/selinux/selinux.h sed-4.3-patched/lib/selinux/selinux.h
---- sed-4.3/lib/selinux/selinux.h	1970-01-01 03:00:00.000000000 +0300
-+++ sed-4.3-patched/lib/selinux/selinux.h	2017-01-12 12:26:23.834734900 +0300
+diff -Naur sed-4.3-orig/lib/selinux/selinux.h sed-4.3/lib/selinux/selinux.h
+--- sed-4.3-orig/lib/selinux/selinux.h	1970-01-01 03:00:00.000000000 +0300
++++ sed-4.3/lib/selinux/selinux.h	2017-01-12 14:34:49.984053600 +0300
 @@ -0,0 +1,144 @@
 +/* DO NOT EDIT! GENERATED AUTOMATICALLY! */
 +/* Replacement <selinux/selinux.h> for platforms that lack it.
@@ -5499,7 +5491,7 @@ diff -Napur sed-4.3/lib/selinux/selinux.h sed-4.3-patched/lib/selinux/selinux.h
 +
 +# if HAVE_SELINUX_SELINUX_H
 +
-+#include 
++#include ""
 +
 +# else
 +
@@ -5616,9 +5608,9 @@ diff -Napur sed-4.3/lib/selinux/selinux.h sed-4.3-patched/lib/selinux/selinux.h
 +
 +# endif
 +#endif /* _GL_SELINUX_SELINUX_H */
-diff -Napur sed-4.3/lib/stdalign.h sed-4.3-patched/lib/stdalign.h
---- sed-4.3/lib/stdalign.h	1970-01-01 03:00:00.000000000 +0300
-+++ sed-4.3-patched/lib/stdalign.h	2017-01-12 12:26:23.834734900 +0300
+diff -Naur sed-4.3-orig/lib/stdalign.h sed-4.3/lib/stdalign.h
+--- sed-4.3-orig/lib/stdalign.h	1970-01-01 03:00:00.000000000 +0300
++++ sed-4.3/lib/stdalign.h	2017-01-12 14:34:50.094053800 +0300
 @@ -0,0 +1,122 @@
 +/* DO NOT EDIT! GENERATED AUTOMATICALLY! */
 +/* A substitute for ISO C11 <stdalign.h>.
@@ -5742,9 +5734,9 @@ diff -Napur sed-4.3/lib/stdalign.h sed-4.3-patched/lib/stdalign.h
 +#endif
 +
 +#endif /* _GL_STDALIGN_H */
-diff -Napur sed-4.3/lib/stddef.h sed-4.3-patched/lib/stddef.h
---- sed-4.3/lib/stddef.h	1970-01-01 03:00:00.000000000 +0300
-+++ sed-4.3-patched/lib/stddef.h	2017-01-12 12:26:23.844734900 +0300
+diff -Naur sed-4.3-orig/lib/stddef.h sed-4.3/lib/stddef.h
+--- sed-4.3-orig/lib/stddef.h	1970-01-01 03:00:00.000000000 +0300
++++ sed-4.3/lib/stddef.h	2017-01-12 14:37:13.774254900 +0300
 @@ -0,0 +1,111 @@
 +/* DO NOT EDIT! GENERATED AUTOMATICALLY! */
 +/* A substitute for POSIX 2008 <stddef.h>, for platforms that have issues.
@@ -5857,9 +5849,9 @@ diff -Napur sed-4.3/lib/stddef.h sed-4.3-patched/lib/stddef.h
 +#  endif /* _GL_STDDEF_H */
 +# endif /* _GL_STDDEF_H */
 +#endif /* __need_XXX */
-diff -Napur sed-4.3/lib/stdint.h sed-4.3-patched/lib/stdint.h
---- sed-4.3/lib/stdint.h	1970-01-01 03:00:00.000000000 +0300
-+++ sed-4.3-patched/lib/stdint.h	2017-01-12 12:26:23.854734900 +0300
+diff -Naur sed-4.3-orig/lib/stdint.h sed-4.3/lib/stdint.h
+--- sed-4.3-orig/lib/stdint.h	1970-01-01 03:00:00.000000000 +0300
++++ sed-4.3/lib/stdint.h	2017-01-12 14:37:13.774254900 +0300
 @@ -0,0 +1,708 @@
 +/* DO NOT EDIT! GENERATED AUTOMATICALLY! */
 +/* Copyright (C) 2001-2002, 2004-2016 Free Software Foundation, Inc.
@@ -6569,9 +6561,9 @@ diff -Napur sed-4.3/lib/stdint.h sed-4.3-patched/lib/stdint.h
 +#endif /* _GL_STDINT_H */
 +#endif /* !(defined __ANDROID__ && ...) */
 +#endif /* !defined _GL_STDINT_H && !defined _GL_JUST_INCLUDE_SYSTEM_STDINT_H */
-diff -Napur sed-4.3/lib/stdio.h sed-4.3-patched/lib/stdio.h
---- sed-4.3/lib/stdio.h	1970-01-01 03:00:00.000000000 +0300
-+++ sed-4.3-patched/lib/stdio.h	2017-01-12 12:26:23.864734900 +0300
+diff -Naur sed-4.3-orig/lib/stdio.h sed-4.3/lib/stdio.h
+--- sed-4.3-orig/lib/stdio.h	1970-01-01 03:00:00.000000000 +0300
++++ sed-4.3/lib/stdio.h	2017-01-12 14:37:13.784255000 +0300
 @@ -0,0 +1,1734 @@
 +/* DO NOT EDIT! GENERATED AUTOMATICALLY! */
 +/* A GNU-like <stdio.h>.
@@ -8307,9 +8299,9 @@ diff -Napur sed-4.3/lib/stdio.h sed-4.3-patched/lib/stdio.h
 +#endif /* _GL_STDIO_H */
 +#endif /* _GL_STDIO_H */
 +#endif
-diff -Napur sed-4.3/lib/stdlib.h sed-4.3-patched/lib/stdlib.h
---- sed-4.3/lib/stdlib.h	1970-01-01 03:00:00.000000000 +0300
-+++ sed-4.3-patched/lib/stdlib.h	2017-01-12 12:26:23.864734900 +0300
+diff -Naur sed-4.3-orig/lib/stdlib.h sed-4.3/lib/stdlib.h
+--- sed-4.3-orig/lib/stdlib.h	1970-01-01 03:00:00.000000000 +0300
++++ sed-4.3/lib/stdlib.h	2017-01-12 14:37:13.784255000 +0300
 @@ -0,0 +1,1359 @@
 +/* DO NOT EDIT! GENERATED AUTOMATICALLY! */
 +/* A GNU-like <stdlib.h>.
@@ -9670,9 +9662,9 @@ diff -Napur sed-4.3/lib/stdlib.h sed-4.3-patched/lib/stdlib.h
 +#endif /* _GL_STDLIB_H */
 +#endif /* _GL_STDLIB_H */
 +#endif
-diff -Napur sed-4.3/lib/string.h sed-4.3-patched/lib/string.h
---- sed-4.3/lib/string.h	1970-01-01 03:00:00.000000000 +0300
-+++ sed-4.3-patched/lib/string.h	2017-01-12 12:26:23.874734900 +0300
+diff -Naur sed-4.3-orig/lib/string.h sed-4.3/lib/string.h
+--- sed-4.3-orig/lib/string.h	1970-01-01 03:00:00.000000000 +0300
++++ sed-4.3/lib/string.h	2017-01-12 14:37:13.784255000 +0300
 @@ -0,0 +1,1403 @@
 +/* DO NOT EDIT! GENERATED AUTOMATICALLY! */
 +/* A GNU-like <string.h>.
@@ -11077,9 +11069,9 @@ diff -Napur sed-4.3/lib/string.h sed-4.3-patched/lib/string.h
 +#endif /* _GL_STRING_H */
 +#endif /* _GL_STRING_H */
 +#endif
-diff -Napur sed-4.3/lib/sys/stat.h sed-4.3-patched/lib/sys/stat.h
---- sed-4.3/lib/sys/stat.h	1970-01-01 03:00:00.000000000 +0300
-+++ sed-4.3-patched/lib/sys/stat.h	2017-01-12 12:26:23.884734900 +0300
+diff -Naur sed-4.3-orig/lib/sys/stat.h sed-4.3/lib/sys/stat.h
+--- sed-4.3-orig/lib/sys/stat.h	1970-01-01 03:00:00.000000000 +0300
++++ sed-4.3/lib/sys/stat.h	2017-01-12 14:37:13.784255000 +0300
 @@ -0,0 +1,1089 @@
 +/* DO NOT EDIT! GENERATED AUTOMATICALLY! */
 +/* Provide a more complete sys/stat header file.
@@ -12170,9 +12162,9 @@ diff -Napur sed-4.3/lib/sys/stat.h sed-4.3-patched/lib/sys/stat.h
 +#endif /* _GL_SYS_STAT_H */
 +#endif /* _GL_SYS_STAT_H */
 +#endif
-diff -Napur sed-4.3/lib/sys/time.h sed-4.3-patched/lib/sys/time.h
---- sed-4.3/lib/sys/time.h	1970-01-01 03:00:00.000000000 +0300
-+++ sed-4.3-patched/lib/sys/time.h	2017-01-12 12:26:23.884734900 +0300
+diff -Naur sed-4.3-orig/lib/sys/time.h sed-4.3/lib/sys/time.h
+--- sed-4.3-orig/lib/sys/time.h	1970-01-01 03:00:00.000000000 +0300
++++ sed-4.3/lib/sys/time.h	2017-01-12 14:34:50.604054500 +0300
 @@ -0,0 +1,577 @@
 +/* DO NOT EDIT! GENERATED AUTOMATICALLY! */
 +/* Provide a more complete sys/time.h.
@@ -12207,12 +12199,12 @@ diff -Napur sed-4.3/lib/sys/time.h sed-4.3-patched/lib/sys/time.h
 +   Without this extra ifdef, the C++ gettimeofday declaration below
 +   would be a forward declaration in gnulib's nested <sys/time.h>.  */
 +#if defined _CYGWIN_SYS_TIME_H || defined _SYS_TIME_H || defined _SYS_TIME_H_
-+# include <sys/time.h>
++# include ""
 +#else
 +
 +/* The include_next requires a split double-inclusion guard.  */
 +#if 0
-+# include <sys/time.h>
++# include ""
 +#endif
 +
 +#ifndef _GL_SYS_TIME_H
@@ -12751,9 +12743,9 @@ diff -Napur sed-4.3/lib/sys/time.h sed-4.3-patched/lib/sys/time.h
 +#endif /* _GL_SYS_TIME_H */
 +#endif /* _CYGWIN_SYS_TIME_H */
 +#endif /* _GL_SYS_TIME_H */
-diff -Napur sed-4.3/lib/sys/types.h sed-4.3-patched/lib/sys/types.h
---- sed-4.3/lib/sys/types.h	1970-01-01 03:00:00.000000000 +0300
-+++ sed-4.3-patched/lib/sys/types.h	2017-01-12 12:26:23.884734900 +0300
+diff -Naur sed-4.3-orig/lib/sys/types.h sed-4.3/lib/sys/types.h
+--- sed-4.3-orig/lib/sys/types.h	1970-01-01 03:00:00.000000000 +0300
++++ sed-4.3/lib/sys/types.h	2017-01-12 14:37:13.784255000 +0300
 @@ -0,0 +1,54 @@
 +/* DO NOT EDIT! GENERATED AUTOMATICALLY! */
 +/* Provide a more complete sys/types.h.
@@ -12809,9 +12801,9 @@ diff -Napur sed-4.3/lib/sys/types.h sed-4.3-patched/lib/sys/types.h
 +
 +#endif /* _GL_SYS_TYPES_H */
 +#endif /* _GL_SYS_TYPES_H */
-diff -Napur sed-4.3/lib/time.h sed-4.3-patched/lib/time.h
---- sed-4.3/lib/time.h	1970-01-01 03:00:00.000000000 +0300
-+++ sed-4.3-patched/lib/time.h	2017-01-12 12:26:23.894735000 +0300
+diff -Naur sed-4.3-orig/lib/time.h sed-4.3/lib/time.h
+--- sed-4.3-orig/lib/time.h	1970-01-01 03:00:00.000000000 +0300
++++ sed-4.3/lib/time.h	2017-01-12 14:37:13.784255000 +0300
 @@ -0,0 +1,654 @@
 +/* DO NOT EDIT! GENERATED AUTOMATICALLY! */
 +/* A more-standard <time.h>.
@@ -13467,9 +13459,9 @@ diff -Napur sed-4.3/lib/time.h sed-4.3-patched/lib/time.h
 +# endif
 +
 +#endif
-diff -Napur sed-4.3/lib/unistd.h sed-4.3-patched/lib/unistd.h
---- sed-4.3/lib/unistd.h	1970-01-01 03:00:00.000000000 +0300
-+++ sed-4.3-patched/lib/unistd.h	2017-01-12 12:26:23.904735000 +0300
+diff -Naur sed-4.3-orig/lib/unistd.h sed-4.3/lib/unistd.h
+--- sed-4.3-orig/lib/unistd.h	1970-01-01 03:00:00.000000000 +0300
++++ sed-4.3/lib/unistd.h	2017-01-12 14:34:50.844054800 +0300
 @@ -0,0 +1,1947 @@
 +/* DO NOT EDIT! GENERATED AUTOMATICALLY! */
 +/* Substitute for and wrapper around <unistd.h>.
@@ -13502,7 +13494,7 @@ diff -Napur sed-4.3/lib/unistd.h sed-4.3-patched/lib/unistd.h
 +     In this situation, the functions are not yet declared, therefore we cannot
 +     provide the C++ aliases.  */
 +
-+#include <unistd.h>
++#include ""
 +
 +#else
 +/* Normal invocation convention.  */
@@ -13510,7 +13502,7 @@ diff -Napur sed-4.3/lib/unistd.h sed-4.3-patched/lib/unistd.h
 +/* The include_next requires a split double-inclusion guard.  */
 +#if 0
 +# define _GL_INCLUDING_UNISTD_H
-+# include <unistd.h>
++# include ""
 +# undef _GL_INCLUDING_UNISTD_H
 +#endif
 +
@@ -15418,9 +15410,9 @@ diff -Napur sed-4.3/lib/unistd.h sed-4.3-patched/lib/unistd.h
 +#endif /* _GL_UNISTD_H */
 +#endif /* _GL_INCLUDING_UNISTD_H */
 +#endif /* _GL_UNISTD_H */
-diff -Napur sed-4.3/lib/unused-parameter.h sed-4.3-patched/lib/unused-parameter.h
---- sed-4.3/lib/unused-parameter.h	1970-01-01 03:00:00.000000000 +0300
-+++ sed-4.3-patched/lib/unused-parameter.h	2017-01-12 12:26:23.904735000 +0300
+diff -Naur sed-4.3-orig/lib/unused-parameter.h sed-4.3/lib/unused-parameter.h
+--- sed-4.3-orig/lib/unused-parameter.h	1970-01-01 03:00:00.000000000 +0300
++++ sed-4.3/lib/unused-parameter.h	2017-01-12 14:34:49.924053500 +0300
 @@ -0,0 +1,20 @@
 +/* _GL_UNUSED_PARAMETER is a marker that can be appended to function parameter
 +   declarations for parameters that are not used.  This helps to reduce
@@ -15442,9 +15434,9 @@ diff -Napur sed-4.3/lib/unused-parameter.h sed-4.3-patched/lib/unused-parameter.
 +#  define _GL_UNUSED_PARAMETER
 +# endif
 +#endif
-diff -Napur sed-4.3/lib/warn-on-use.h sed-4.3-patched/lib/warn-on-use.h
---- sed-4.3/lib/warn-on-use.h	1970-01-01 03:00:00.000000000 +0300
-+++ sed-4.3-patched/lib/warn-on-use.h	2017-01-12 12:26:23.914735000 +0300
+diff -Naur sed-4.3-orig/lib/warn-on-use.h sed-4.3/lib/warn-on-use.h
+--- sed-4.3-orig/lib/warn-on-use.h	1970-01-01 03:00:00.000000000 +0300
++++ sed-4.3/lib/warn-on-use.h	2017-01-12 14:34:49.544053000 +0300
 @@ -0,0 +1,46 @@
 +#ifndef _GL_WARN_ON_USE
 +
@@ -15492,9 +15484,9 @@ diff -Napur sed-4.3/lib/warn-on-use.h sed-4.3-patched/lib/warn-on-use.h
 +#  define _GL_WARN_EXTERN_C extern
 +# endif
 +#endif
-diff -Napur sed-4.3/lib/wchar.h sed-4.3-patched/lib/wchar.h
---- sed-4.3/lib/wchar.h	1970-01-01 03:00:00.000000000 +0300
-+++ sed-4.3-patched/lib/wchar.h	2017-01-12 12:26:23.924735000 +0300
+diff -Naur sed-4.3-orig/lib/wchar.h sed-4.3/lib/wchar.h
+--- sed-4.3-orig/lib/wchar.h	1970-01-01 03:00:00.000000000 +0300
++++ sed-4.3/lib/wchar.h	2017-01-12 14:37:13.794255000 +0300
 @@ -0,0 +1,1398 @@
 +/* DO NOT EDIT! GENERATED AUTOMATICALLY! */
 +/* A substitute for ISO C99 <wchar.h>, for platforms that have issues.
@@ -16894,9 +16886,9 @@ diff -Napur sed-4.3/lib/wchar.h sed-4.3-patched/lib/wchar.h
 +#endif /* _GL_WCHAR_H */
 +#endif /* _GL_WCHAR_H */
 +#endif
-diff -Napur sed-4.3/lib/wctype.h sed-4.3-patched/lib/wctype.h
---- sed-4.3/lib/wctype.h	1970-01-01 03:00:00.000000000 +0300
-+++ sed-4.3-patched/lib/wctype.h	2017-01-12 12:26:23.934735000 +0300
+diff -Naur sed-4.3-orig/lib/wctype.h sed-4.3/lib/wctype.h
+--- sed-4.3-orig/lib/wctype.h	1970-01-01 03:00:00.000000000 +0300
++++ sed-4.3/lib/wctype.h	2017-01-12 14:37:13.794255000 +0300
 @@ -0,0 +1,874 @@
 +/* DO NOT EDIT! GENERATED AUTOMATICALLY! */
 +/* A substitute for ISO C99 <wctype.h>, for platforms that lack it.
@@ -17772,9 +17764,9 @@ diff -Napur sed-4.3/lib/wctype.h sed-4.3-patched/lib/wctype.h
 +#endif /* _GL_WCTYPE_H */
 +#endif /* _GL_WCTYPE_H */
 +#endif
-diff -Napur sed-4.3/make.bat sed-4.3-patched/make.bat
---- sed-4.3/make.bat	1970-01-01 03:00:00.000000000 +0300
-+++ sed-4.3-patched/make.bat	2017-01-12 12:26:41.754760000 +0300
+diff -Naur sed-4.3-orig/make.bat sed-4.3/make.bat
+--- sed-4.3-orig/make.bat	1970-01-01 03:00:00.000000000 +0300
++++ sed-4.3/make.bat	2017-01-12 16:01:20.509153900 +0300
 @@ -0,0 +1,74 @@
 +cl /nologo /DHAVE_CONFIG_H /I. /Ilib /Ised                      /c /Folib\copy-acl.obj           lib\copy-acl.c
 +cl /nologo /DHAVE_CONFIG_H /I. /Ilib /Ised                      /c /Folib\set-acl.obj            lib\set-acl.c
@@ -17850,10 +17842,10 @@ diff -Napur sed-4.3/make.bat sed-4.3-patched/make.bat
 +cl /nologo /DHAVE_CONFIG_H /I. /Ilib /Ised /DLOCALEDIR="locale" /c /Fosed\sed_sed-sed.obj        sed\sed.c
 +cl /nologo /DHAVE_CONFIG_H /I. /Ilib /Ised /DLOCALEDIR="locale" /c /Fosed\sed_sed-utils.obj      sed\utils.c
 +cl /nologo /Fesed\sed.exe sed\sed_sed-compile.obj sed\sed_sed-execute.obj sed\sed_sed-mbcs.obj sed\sed_sed-regexp.obj sed\sed_sed-sed.obj sed\sed_sed-utils.obj sed\version.obj lib\copy-acl.obj lib\set-acl.obj lib\acl-errno-valid.obj lib\acl-internal.obj lib\get-permissions.obj lib\set-permissions.obj lib\c-ctype.obj lib\c-strcasecmp.obj lib\c-strncasecmp.obj lib\close-stream.obj lib\closeout.obj lib\dfa.obj lib\localeinfo.obj lib\dirname-lgpl.obj lib\basename-lgpl.obj lib\stripslash.obj lib\exitfail.obj lib\getprogname.obj lib\hard-locale.obj lib\localcharset.obj lib\glthread\lock.obj lib\malloca.obj lib\progname.obj lib\qcopy-acl.obj lib\qset-acl.obj lib\quotearg.obj lib\se-context.obj lib\se-selinux.obj lib\tempname.obj lib\glthread\threadlib.obj lib\unistd.obj lib\version-etc.obj lib\version-etc-fsf.obj lib\wctype-h.obj lib\xmalloc.obj lib\xalloc-die.obj lib\canonicalize-lgpl.obj lib\error.obj lib\fpending.obj lib\fstat.obj lib\fwriting.obj lib\getdelim.obj lib\getopt.obj lib\getopt1.obj lib\gettimeofday.obj lib\localeconv.obj lib\malloc.obj lib\mbrlen.obj lib\mbrtowc.obj lib\mbsinit.obj lib\memrchr.obj lib\mkostemp.obj lib\msvc-inval.obj lib\msvc-nothrow.obj lib\nl_langinfo.obj lib\obstack.obj lib\readlink.obj lib\regex.obj lib\rename.obj lib\rmdir.obj lib\secure_getenv.obj lib\strerror.obj lib\strerror-override.obj lib\strverscmp.obj lib\wcrtomb.obj lib\wctob.obj
-diff -Napur sed-4.3/sed/sed.c sed-4.3-patched/sed/sed.c
---- sed-4.3/sed/sed.c	2016-11-27 20:15:52.000000000 +0300
-+++ sed-4.3-patched/sed/sed.c	2017-01-12 12:26:23.934735000 +0300
-@@ -104,7 +104,6 @@ cancel_cleanup (void)
+diff -Naur sed-4.3-orig/sed/sed.c sed-4.3/sed/sed.c
+--- sed-4.3-orig/sed/sed.c	2016-11-27 20:15:52.000000000 +0300
++++ sed-4.3/sed/sed.c	2017-01-12 14:37:13.794255000 +0300
+@@ -104,7 +104,6 @@
    G_file_to_unlink = NULL;
  }
  
@@ -17861,14 +17853,14 @@ diff -Napur sed-4.3/sed/sed.c sed-4.3-patched/sed/sed.c
  static void
  contact(int errmsg)
  {
-diff -Napur sed-4.3/sed/version.c sed-4.3-patched/sed/version.c
---- sed-4.3/sed/version.c	1970-01-01 03:00:00.000000000 +0300
-+++ sed-4.3-patched/sed/version.c	2017-01-12 12:26:23.934735000 +0300
+diff -Naur sed-4.3-orig/sed/version.c sed-4.3/sed/version.c
+--- sed-4.3-orig/sed/version.c	1970-01-01 03:00:00.000000000 +0300
++++ sed-4.3/sed/version.c	2017-01-12 14:34:51.054055100 +0300
 @@ -0,0 +1,2 @@
 +#include <config.h>
 +char const *Version = "4.3";
-diff -Napur sed-4.3/sed/version.h sed-4.3-patched/sed/version.h
---- sed-4.3/sed/version.h	1970-01-01 03:00:00.000000000 +0300
-+++ sed-4.3-patched/sed/version.h	2017-01-12 12:26:23.934735000 +0300
+diff -Naur sed-4.3-orig/sed/version.h sed-4.3/sed/version.h
+--- sed-4.3-orig/sed/version.h	1970-01-01 03:00:00.000000000 +0300
++++ sed-4.3/sed/version.h	2017-01-12 14:34:51.114055200 +0300
 @@ -0,0 +1 @@
 +extern char const *Version;

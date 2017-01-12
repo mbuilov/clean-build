@@ -203,18 +203,6 @@ diff -Naur sed-4.3/lib/wctype.h sed-4.3-good/lib/wctype.h
  #endif
  
  #ifndef _GL_WCTYPE_H
-diff -Naur sed-4.3/Makefile sed-4.3-good/Makefile
---- sed-4.3/Makefile	2017-01-11 18:00:24.582150600 +0300
-+++ sed-4.3-good/Makefile	2017-01-11 18:10:42.331019200 +0300
-@@ -925,7 +925,7 @@
- BITSIZEOF_WINT_T = 
- CC = /cygdrive/c/User/sed-4.3/build-aux/compile cl
- CCDEPMODE = depmode=msvc7
--CFLAGS = -g
-+CFLAGS = /nologo
- CONFIG_INCLUDE = config.h
- CPP = /cygdrive/c/User/sed-4.3/build-aux/compile cl -E
- CPPFLAGS = 
 diff -Naur sed-4.3/sed/sed.c sed-4.3-good/sed/sed.c
 --- sed-4.3/sed/sed.c	2016-11-27 20:15:52.000000000 +0300
 +++ sed-4.3-good/sed/sed.c	2017-01-11 17:47:46.584681200 +0300
