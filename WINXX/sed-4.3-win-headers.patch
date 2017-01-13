@@ -203,14 +203,3 @@ diff -Naur sed-4.3/lib/wctype.h sed-4.3-good/lib/wctype.h
  #endif
  
  #ifndef _GL_WCTYPE_H
-diff -Naur sed-4.3/sed/sed.c sed-4.3-good/sed/sed.c
---- sed-4.3/sed/sed.c	2016-11-27 20:15:52.000000000 +0300
-+++ sed-4.3-good/sed/sed.c	2017-01-11 17:47:46.584681200 +0300
-@@ -104,7 +104,6 @@
-   G_file_to_unlink = NULL;
- }
- 
--static void usage (int);
- static void
- contact(int errmsg)
- {
