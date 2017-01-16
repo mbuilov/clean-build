@@ -56,7 +56,7 @@ include $(MTOP)/protection.mk
 include $(MTOP)/functions.mk
 
 ifdef TARGET
-# defined $(DEBUG) to use it in $(PROJECT), if $(TARGET) is defined
+# define $(DEBUG) to use it in $(PROJECT), if $(TARGET) is defined
 # $(DEBUG) is non-empty for DEBUG targets like PROJECTD
 DEBUG := $(filter %D,$(TARGET))
 endif
