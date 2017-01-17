@@ -41,15 +41,15 @@ WIN_RC_PRODUCT_VERSION       ?= PRODUCT_VERSION
 WIN_RC_LANG                  ?= 0409
 WIN_RC_CHARSET               ?= 04b0
 
-# $1 - EXE,DLL,DRV
-# $2 - $(GET_TARGET_NAME)
-# $3 - $(WIN_RC_PRODUCT_DEFS_HEADER)
-# $4 - $(WIN_RC_PRODUCT_VERSION_MAJOR)
-# $5 - $(WIN_RC_PRODUCT_VERSION_MINOR)
-# $6 - $(WIN_RC_PRODUCT_BUILD_NUM)
-# $7 - $(WIN_RC_COMMENTS)
-# $8 - $(WIN_RC_COMPANY_NAME)
-# $9 - $(WIN_RC_FILE_DESCRIPTION)
+# $1    - EXE,DLL,DRV
+# $2    - $(GET_TARGET_NAME)
+# $3    - $(WIN_RC_PRODUCT_DEFS_HEADER)
+# $4    - $(WIN_RC_PRODUCT_VERSION_MAJOR)
+# $5    - $(WIN_RC_PRODUCT_VERSION_MINOR)
+# $6    - $(WIN_RC_PRODUCT_BUILD_NUM)
+# $7    - $(WIN_RC_COMMENTS)
+# $8    - $(WIN_RC_COMPANY_NAME)
+# $9    - $(WIN_RC_FILE_DESCRIPTION)
 # $(10) - $(WIN_RC_FILE_VERSION)
 # $(11) - $(WIN_RC_INTERNAL_NAME)
 # $(12) - $(WIN_RC_LEGAL_COPYRIGHT)
@@ -81,19 +81,19 @@ BEGIN
     BLOCK "StringFileInfo"
     BEGIN
         BLOCK "$(18)$(19)"
-        BEGIN
-$(if $7,            VALUE "Comments"$(comma) $7 "\0"$(newline))
+        BEGIN$(if \
+$7,$(newline)            VALUE "Comments"$(comma)        $7 "\0")
             VALUE "CompanyName",     $8 "\0"
             VALUE "FileDescription", $9 "\0"
             VALUE "FileVersion",     $(10) "\0"
-            VALUE "InternalName",    $(11) "\0"
-$(if $(12),            VALUE "LegalCopyright"$(comma) $(12) "\0"$(newline))
-$(if $(13),            VALUE "LegalTrademarks"$(comma) $(13) "\0"$(newline))
-            VALUE "OriginalFilename","$2$($1_SUFFIX)\0"
-$(if $(14),            VALUE "PrivateBuild"$(comma) $(14) "\0"$(newline))
+            VALUE "InternalName",    $(11) "\0"$(if \
+$(12),$(newline)            VALUE "LegalCopyright"$(comma)  $(12) "\0")$(if \
+$(13),$(newline)            VALUE "LegalTrademarks"$(comma) $(13) "\0")
+            VALUE "OriginalFilename","$2$($1_SUFFIX)\0"$(if \
+$(14),$(newline)            VALUE "PrivateBuild"$(comma) $(14) "\0")
             VALUE "ProductName",     $(15) "\0"
-            VALUE "ProductVersion",  $(16) "\0"
-$(if $(17),            VALUE "SpecialBuild"$(comma) $(17) "\0"$(newline))
+            VALUE "ProductVersion",  $(16) "\0"$(if \
+$(17),$(newline)            VALUE "SpecialBuild"$(comma) $(17) "\0")
         END
     END
     BLOCK "VarFileInfo"
