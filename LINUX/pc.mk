@@ -7,24 +7,13 @@
 # this file included by $(MTOP)/LINUX/c.mk
 
 # define standard pkg-config values
-PC_PREFIX      ?= $(firstword $(INST_PATH) $(patsubst %/,%,$(dir $(INST_RPATH))) /usr/local)
-PC_EXEC_PREFIX ?= $${prefix}
-PC_LIBDIR      ?= $(if $(INST_RPATH),$(if $(filter $${prefix} $(PC_PREFIX),$(PC_EXEC_PREFIX)),$(patsubst $(PC_PREFIX)/%,$${exec_prefix}/%,$(INST_RPATH)),$(patsubst $(PC_EXEC_PREFIX)/%,$${exec_prefix}/%,$(INST_RPATH))),$${exec_prefix}/lib)
-
-
 INST_RPATH_DIR := $(patsubst %/,%,$(dir $(INST_RPATH)))
 PC_PREFIX      ?= $(firstword $(INST_PATH) $(INST_RPATH_DIR) /usr/local)
-PC_EXEC_PREFIX ?= $(firstword $(INST_RPATH_DIR) $${prefix})
-PC_LIBDIR      ?= $(if $(INST_RPATH_DIR),$(if $(filter $${prefix} $(PC_PREFIX),$(PC_EXEC_PREFIX)),$(patsubst $(PC_PREFIX)/%,$${exec_prefix}/%,$(INST_RPATH)),$(patsubst $(PC_EXEC_PREFIX)/%,$${exec_prefix}/%,$(INST_RPATH))),$${exec_prefix}/lib)
+PC_EXEC_PREFIX ?= $(if $(filter $(INST_RPATH_DIR),$(PC_PREFIX)),$${prefix},$(firstword $(INST_RPATH_DIR) $${prefix}))
+PC_LIBDIR      ?= $(if $(filter $(INST_RPATH_DIR),$(PC_EXEC_PREFIX)$(if \
+  $(filter $${prefix},$(PC_EXEC_PREFIX)), $(PC_PREFIX))),$${exec_prefix}/$(notdir \
+  $(INST_RPATH)),$(firstword $(INST_RPATH) $${exec_prefix}/lib))
 
-
-$(info PC_PREFIX=$(PC_PREFIX))
-$(info PC_EXEC_PREFIX=$(PC_EXEC_PREFIX))
-$(info PC_LIBDIR=$(PC_LIBDIR))
-
-
-
-$(firstword $(INST_RPATH) $${exec_prefix}/lib)
 
 
 
