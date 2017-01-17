@@ -8,10 +8,12 @@ OSTYPE := WINDOWS
 
 # additional variables that may have target-dependent variants (EXE_RES, DLL_RES and so on)
 # NOTE: these variables may also have $OS-dependent variants (RES_WINXP, DLL_RES_WINDOWS and so on)
+# RES - resources to link to dll or exe
 TRG_VARS += RES
 
 # additional variables without target-dependent variants
 # NOTE: these variables may also have $OS-dependent variants (DEF_WIN7, DEF_WINXX and so on)
+# DEF - linker definitions file (used mostly to list exported symbols)
 BLD_VARS += DEF
 
 # reset additional variables
