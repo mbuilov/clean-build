@@ -4,18 +4,22 @@
 # Licensed under GPLv2+, see COPYING
 #----------------------------------------------------------------------------------
 
+#include $(MTOP)/LINUX/pc.mk
+
 OSTYPE := UNIX
 
 # additional variables that may have target-dependent variants (EXE_RPATH, DLL_RPATH and so on)
 # NOTE: these variables may also have $OS-dependent variants (RPATH_LINUX, DLL_RPATH_UNIX and so on)
+# RPATH - runtime path of external dependencies
 TRG_VARS += RPATH
 
 # additional variables without target-dependent variants
 # NOTE: these variables may also have $OS-dependent variants (MAP_LINUX, MAP_UNIX and so on)
+# MAP - linker map file (used mostly to list exported symbols)
 BLD_VARS += MAP
 
 # reset additional variables
-# $(INST_RPATH) - application install location
+# $(INST_RPATH) - location where built libraries are installed
 # $(SOVER) - shared object library version string in form major.minor.patch (for example 1.2.3)
 define RESET_OS_VARS
 RPATH := $(INST_RPATH)
@@ -476,7 +480,7 @@ DRV_RULES = $(if $(DRV),$(call DRV_TEMPLATE,$(call FORM_TRG,DRV),$(call TRG_SRC,
 define OS_DEFINE_TARGETS
 $(PCH_TEMPLATES)
 $(if $(EXE),$(EXE_AUX_TEMPLATE))
-$(if $(DLL),$(DLL_AUX_TEMPLATE))
+$(if $(DLL),$(DLL_AUX_TEMPLATE)$(PKGCONFIG_TEMPLATE))
 $(DRV_RULES)
 endef
 
