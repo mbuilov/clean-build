@@ -294,7 +294,7 @@ endif
 # $(SED) expression to filter-out system files while dependencies generation
 ifeq (undefined,$(origin UDEPS_INCLUDE_FILTER))
 # c:\\program?files?(x86)\\microsoft?visual?studio?10.0\\vc\\include\\
-UDEPS_INCLUDE_FILTER := $(subst \,\\,$(VSN))\\VC\\include\\
+UDEPS_INCLUDE_FILTER := $(subst \,\\,$(VSINC) $(UMINC))
 endif
 
 # $(SED) script to generate dependencies file from C compiler output
@@ -444,7 +444,11 @@ ifdef SEQ_BUILD
 # note: auto-dependencies generation available only in sequential mode - /MP conflicts with /showIncludes
 # note: precompiled headers are not supported in this mode
 
-KDEPS_INCLUDE_FILTER ?= c:\\winddk\\
+# $(SED) expression to filter-out system files while dependencies generation
+ifeq (undefined,$(origin KDEPS_INCLUDE_FILTER))
+# c:\\winddk\\
+KDEPS_INCLUDE_FILTER := $(subst \,\\,$(KMINC))
+endif
 
 # $1 - target, $2 - source
 # target-specific: CFLAGS
