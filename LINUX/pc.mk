@@ -6,76 +6,55 @@
 
 # pkg-config file generation
 
-# example:
-
-define PC_EXAMPLE
-#
-# Author: John Smith
-#
-# This file has been put into the public domain.
-# You can do whatever you want with this file.
-#
-
-prefix=/usr/local
-exec_prefix=/usr/local
-libdir=/usr/local/lib
-includedir=/usr/local/include
-
-Name: libmylib
-Description: General purpose library
-URL: http://aa.bb.cc.dd.ee.com
-Version: 1.2.3
-Cflags: -I${includedir}
-Libs: -L${libdir} -lmylib
-Libs.private: -pthread
-endef
-
-# $1    - library comment (author, description, etc.)
-# $2    - ${prefix}
-# $3    - ${exec_prefix}
-# $4    - ${libdir}
-# $5    - ${includedir}
-# $6    - Name
-# $7    - Description
-# $8    - URL
-# $9    - Version
-# $(10) - Requires
-# $(11) - Requires.private
-# $(12) - Conflicts
-# $(13) - CFLAGS
-# $(14) - dependent libraries
-# $(15) - private libs
+# $1   - Name
+# $2   - Version
+# $3   - Description
+# $4   - library comment (author, description, etc.)
+# $5   - URL
+# $6   - Requires
+# $7   - Requires.private
+# $8   - Conflicts
+# $9   - Cflags
+# $10  - dependency libraries
+# $11  - private dependency libs
+# $12  - ${includedir}
+# $13  - ${libdir}
+# $14  - ${exec_prefix}
+# $15  - ${prefix}
 # note: PKGCONFIG_TEMPLATE may be already defined in $(TOP)/make/project.mk
 ifndef PKGCONFIG_TEMPLATE
 define PKGCONFIG_TEMPLATE
-$(if $1,# $(subst $(newline),$(newline)# ,$1)$(newline))
-prefix=$2
-exec_prefix=$3
-libdir=$4
-includedir=$5
+$(if $4,# $(subst $(newline),$(newline)# ,$4)$(newline))
+prefix=$(15)
+exec_prefix=$(14)
+libdir=$(13)
+includedir=$(12)
 
-Name: $6$(if \
-$7,$(newline)Description: $7)$(if \
-$8,$(newline)URL: $8)$(if \
-$9,$(newline)Version: $9)$(if \
-$(10),$(newline)Requires: $(10))$(if \
-$(11),$(newline)Requires.private: $(11))$(if \
-$(12),$(newline)Conflicts: $(12))$(if \
-$(13),$(newline)Cflags: $(13))$(if \
-$(14),$(newline)Libs: $(14),$(14))$(if \
-$(15),$(newline)Libs.private: $(15))
+Name: $1$(if \
+$3,$(newline)Description: $3)$(if \
+$5,$(newline)URL: $5)$(if \
+$2,$(newline)Version: $2)$(if \
+$6,$(newline)Requires: $6)$(if \
+$7,$(newline)Requires.private: $7)$(if \
+$8,$(newline)Conflicts: $8)$(if \
+$9,$(newline)Cflags: $9)$(if \
+$(10),$(newline)Libs: $(10))$(if \
+$(11),$(newline)Libs.private: $(11))
 endef # PKGCONFIG_TEMPLATE
 endif
 
-# generate pkg-config file for dynamic or static library
-# arguments - the same as for $(PKGCONFIG_TEMPLATE)
+# $1 - $(LIB_DIR)/lib$1.pc
+# $2 - $(PKGCONFIG_TEMPLATE)
 define PKGCONFIG_GEN_RULE1
 $1: TEMPLATE := $(subst $(comment),$$$$(comment),$(subst $(newline),$$$$(newline),$(subst $$,$$$$,$2)))
 $1: | $(LIB_DIR)
 	$$(call SUP,GEN,$$@)$$(call ECHO,$$(subst $$$$(comment),$$(comment),$$(subst $$$$(newline),$$(newline),$$(TEMPLATE)))) > $$@
 $(call STD_TARGET_VARS,$1)
 endef
-PKGCONFIG_GEN_RULE = $(eval $(call PKGCONFIG_GEN_RULE1,$(LIB_DIR)/lib$6.pc,$(PKGCONFIG_TEMPLATE)))
+
+# generate pkg-config file for dynamic or static library
+# arguments - the same as for $(PKGCONFIG_TEMPLATE)
+PKGCONFIG_GEN_RULE = $(eval $(call PKGCONFIG_GEN_RULE1,$(LIB_DIR)/lib$1.pc,$(PKGCONFIG_TEMPLATE)))
 
 # define standard pkg-config values
 # note: some of PC_... variables may be already defined in $(TOP)/make/project.mk
@@ -91,18 +70,23 @@ PC_LIBS        ?= -L$${libdir}
 
 # rule for generation of .pc-file using $(PC_...) predefined values
 # $1    - library name
-# $2    - library description
-# $3    - library version (for a DLL: $(SOVER))
+# $2    - library version (for a DLL: $(SOVER))
+# $3    - library description
 # $4    - library comment (author, description, etc.)
 # $5    - project url     (likely $(VENDOR_URL))
 # $6    - Requires section
 # $7    - Requires.private section
 # $8    - Conflicts section
-# $9    - additional CFLAGS
-# $(10) - Libs section
+# $9    - additional Cflags
+# $(10) - additional dependency Libs
 # $(11) - Libs.private section
-PKGCONFIG_RULE = $(call PKGCONFIG_GEN_RULE,$4,$(PC_PREFIX),$(PC_EXEC_PREFIX),$(strip \
-$(PC_LIBDIR)),$(PC_INCLUDEDIR),$1,$2,$5,$3,$6,$7,$8,$(PC_CFLAGS) -l$1$(if $9, $9),$(10),$(11))
+# $(12) - ${includedir},  if not specified, then $(PC_INCLUDEDIR)
+# $(13) - ${libdir},      if not specified, then $(PC_LIBDIR)
+# $(14) - ${exec_prefix}, if not specified, then $(PC_EXEC_PREFIX)
+# $(14) - ${prefix},      if not specified, then $(PC_PREFIX)
+PKGCONFIG_RULE = $(call PKGCONFIG_GEN_RULE,$1,$2,$3,$4,$5,$6,$7,$8,$(PC_CFLAGS)$(if \
+  $9, $9),$(PC_LIBS) -l$1$(if $(10), $(10)),$(11),$(if $(12),$(12),$(PC_INCLUDEDIR)),$(if \
+  $(13),$(13),$(PC_LIBDIR)),$(if $(14),$(14),$(PC_EXEC_PREFIX)),$(if $(15),$(15),$(PC_PREFIX)))
 
 # protect variables from modifications in target makefiles
 $(call CLEAN_BUILD_PROTECT_VARS, \
