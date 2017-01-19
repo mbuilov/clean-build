@@ -402,11 +402,11 @@ ADD_WITH_PCH = $(eval $1_WITH_PCH += $2$(call \
 endif # NO_PCH
 
 # auxiliary defines for EXE
-# $1 - $(call FORM_TRG,EXE,R)
+# $1 - $(call FORM_TRG,EXE)
 define EXE_AUX_TEMPLATE1
 $1: RPATH := $(RPATH) $(EXE_RPATH)
 endef
-EXE_AUX_TEMPLATE = $(call EXE_AUX_TEMPLATE1,$(call FORM_TRG,EXE,R))
+EXE_AUX_TEMPLATE = $(call EXE_AUX_TEMPLATE1,$(call FORM_TRG,EXE))
 
 # create soft simlink $(LIB_DIR)/libmy_lib.so.1 -> libmy_lib.so.1.2.3
 # $1 - full path to soft link: $(LIB_DIR)/libmy_lib.so.1
@@ -427,7 +427,7 @@ SOLINK_TEMPLATE1 = $(if \
 SOLINK_TEMPLATE = $(call SOLINK_TEMPLATE1,$(subst ., ,$(notdir $1)),$1)
 
 # auxiliary defines for DLL
-# $1 - $(call FORM_TRG,DLL,R)
+# $1 - $(call FORM_TRG,DLL)
 # $2 - $(call FIXPATH,$(firstword $(DLL_MAP) $(MAP)))
 define DLL_AUX_TEMPLATE1
 $1: RPATH := $(RPATH) $(DLL_RPATH)
@@ -435,7 +435,7 @@ $1: MAP := $2
 $1: $2
 $(SOLINK_TEMPLATE)
 endef
-DLL_AUX_TEMPLATE = $(call DLL_AUX_TEMPLATE1,$(call FORM_TRG,DLL,R),$(call FIXPATH,$(firstword $(DLL_MAP) $(MAP))))
+DLL_AUX_TEMPLATE = $(call DLL_AUX_TEMPLATE1,$(call FORM_TRG,DLL),$(call FIXPATH,$(firstword $(DLL_MAP) $(MAP))))
 
 # $1 - dest dir, $2 - file, $3 - aux dep
 define COPY_FILE_RULE
