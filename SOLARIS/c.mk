@@ -339,11 +339,11 @@ BISON = $(call SUP,BISON,$2)cd $1; $(BISONC) -d --fixed-output-files $(abspath $
 FLEX  = $(call SUP,FLEX,$2)$(FLEXC) -o$1 $2
 
 # auxiliary defines for EXE
-# $1 - $(call FORM_TRG,EXE,R)
+# $1 - $(call FORM_TRG,EXE)
 define EXE_AUX_TEMPLATE1
 $1: RPATH := $(RPATH) $(EXE_RPATH)
 endef
-EXE_AUX_TEMPLATE = $(call EXE_AUX_TEMPLATE1,$(call FORM_TRG,EXE,R))
+EXE_AUX_TEMPLATE = $(call EXE_AUX_TEMPLATE1,$(call FORM_TRG,EXE))
 
 # create soft simlink $(LIB_DIR)/libmy_lib.so.1 -> libmy_lib.so.1.2.3
 # $1 - full path to soft link: $(LIB_DIR)/libmy_lib.so.1
@@ -364,7 +364,7 @@ SOLINK_TEMPLATE1 = $(if \
 SOLINK_TEMPLATE = $(call SOLINK_TEMPLATE1,$(subst ., ,$(notdir $1)),$1)
 
 # auxiliary defines for DLL
-# $1 - $(call FORM_TRG,DLL,R)
+# $1 - $(call FORM_TRG,DLL)
 # $2 - $(call FIXPATH,$(firstword $(DLL_MAP) $(MAP)))
 define DLL_AUX_TEMPLATE1
 $1: RPATH := $(RPATH) $(DLL_RPATH)
@@ -372,7 +372,7 @@ $1: MAP := $2
 $1: $2
 $(SOLINK_TEMPLATE)
 endef
-DLL_AUX_TEMPLATE = $(call DLL_AUX_TEMPLATE1,$(call FORM_TRG,DLL,R),$(call FIXPATH,$(firstword $(DLL_MAP) $(MAP))))
+DLL_AUX_TEMPLATE = $(call DLL_AUX_TEMPLATE1,$(call FORM_TRG,DLL),$(call FIXPATH,$(firstword $(DLL_MAP) $(MAP))))
 
 # $1 - target file: $(call FORM_TRG,DRV)
 # $2 - sources:     $(call TRG_SRC,DRV)
