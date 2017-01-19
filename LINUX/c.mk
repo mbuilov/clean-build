@@ -4,8 +4,6 @@
 # Licensed under GPLv2+, see COPYING
 #----------------------------------------------------------------------------------
 
-#include $(MTOP)/LINUX/pc.mk
-
 OSTYPE := UNIX
 
 # additional variables that may have target-dependent variants (EXE_RPATH, DLL_RPATH and so on)
