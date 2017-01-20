@@ -11,7 +11,7 @@
 # $3 - static library name
 # $4 - private dependency libs
 # $5 - dependency libraries
-# $6 - installation directory (if not specified, then $(INST_RPATH))
+# $6 - library installation directory (if not specified, then $(LIBDIR))
 # note: LIBTOOL_LA_TEMPLATE may be already defined in $(TOP)/make/project.mk
 ifndef LIBTOOL_LA_TEMPLATE
 define LIBTOOL_LA_TEMPLATE
@@ -55,7 +55,7 @@ dlopen=''
 dlpreopen=''
 
 # Directory that this library needs to be installed in:
-libdir='$(firstword $6 $(INST_RPATH) /usr/local/lib)'
+libdir='$(firstword $6 $(LIBDIR) /usr/local/lib)'
 endef
 endif
 

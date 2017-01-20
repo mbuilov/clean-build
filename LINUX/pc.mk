@@ -58,12 +58,11 @@ PKGCONFIG_GEN_RULE = $(eval $(call PKGCONFIG_GEN_RULE1,$(LIB_DIR)/lib$1.pc,$(PKG
 
 # define standard pkg-config values
 # note: some of PC_... variables may be already defined in $(TOP)/make/project.mk
-INST_RPATH_DIR := $(patsubst %/,%,$(dir $(INST_RPATH)))
-PC_PREFIX      ?= $(firstword $(INST_PATH) $(INST_RPATH_DIR) /usr/local)
-PC_EXEC_PREFIX ?= $(if $(filter $(INST_RPATH_DIR),$(PC_PREFIX)),$${prefix},$(firstword $(INST_RPATH_DIR) $${prefix}))
-PC_LIBDIR      ?= $(if $(filter $(INST_RPATH_DIR),$(PC_EXEC_PREFIX)$(if \
-  $(filter $${prefix},$(PC_EXEC_PREFIX)), $(PC_PREFIX))),$${exec_prefix}/$(notdir \
-  $(INST_RPATH)),$(firstword $(INST_RPATH) $${exec_prefix}/lib))
+LIBDIR_LIB     := $(firstword $(notdir $(LIBDIR)) lib)
+PC_PREFIX      ?= $(firstword $(PREFIX) /usr/local)
+PC_EXEC_PREFIX ?= $(firstword $(filter-out $(PC_PREFIX),$(EXEC_PREFIX) $${prefix}))
+PC_LIBDIR      ?= $(firstword $(filter-out $(PC_PREFIX)/$(LIBDIR_LIB),$(firstword \
+  $(filter-out $(EXEC_PREFIX)/$(LIBDIR_LIB),$(LIBDIR) $${exec_prefix}/$(LIBDIR_LIB))) $${prefix}/$(LIBDIR_LIB)))
 PC_INCLUDEDIR  ?= $${prefix}/include
 PC_CFLAGS      ?= -I$${includedir}
 PC_LIBS        ?= -L$${libdir}
@@ -90,5 +89,5 @@ PKGCONFIG_RULE = $(call PKGCONFIG_GEN_RULE,$1,$2,$3,$4,$5,$6,$7,$8,$(PC_CFLAGS)$
 
 # protect variables from modifications in target makefiles
 $(call CLEAN_BUILD_PROTECT_VARS, \
-  PKGCONFIG_TEMPLATE PKGCONFIG_GEN_RULE1 PKGCONFIG_GEN_RULE INST_RPATH_DIR \
+  PKGCONFIG_TEMPLATE PKGCONFIG_GEN_RULE1 PKGCONFIG_GEN_RULE LIBDIR_LIB \
   PC_PREFIX PC_EXEC_PREFIX PC_LIBDIR PC_INCLUDEDIR PC_CFLAGS PC_LIBS PKGCONFIG_RULE)
