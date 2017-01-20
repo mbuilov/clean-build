@@ -17,7 +17,7 @@ TRG_VARS += RPATH
 BLD_VARS += MAP
 
 # reset additional variables
-# $(INST_RPATH) - location where built libraries are installed
+# $(INST_RPATH) - location where external dependency libraries are installed
 # $(SOVER) - shared object library version string in form major.minor.patch (for example 1.2.3)
 define RESET_OS_VARS
 RPATH := $(INST_RPATH)
