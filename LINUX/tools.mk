@@ -17,6 +17,7 @@ CD    = cd $1
 NUL  := /dev/null
 CP    = cp$(if $(VERBOSE), -v) $1 $2
 TOUCH = touch $1
+INSTALL := install$(if $(VERBOSE), -v)
 
 # delete target if failed to build it and exit shell with some error code
 DEL_ON_FAIL = || ($(DEL); false)
