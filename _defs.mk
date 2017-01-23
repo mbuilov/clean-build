@@ -514,7 +514,7 @@ endef
 endif # MCHECK
 
 # add generated files $1 to build sequence
-# note: files must be generated in $(GEN_DIR)
+# note: files must be generated in $(GEN_DIR),$(BIN_DIR),$(OBJ_DIR) or $(LIB_DIR)
 # note: directories for generated files will be auto-created
 ADD_GENERATED = $(eval $(CHECK_GENERATED)$(newline)$(STD_TARGET_VARS))
 
