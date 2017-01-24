@@ -105,13 +105,13 @@ WDKN := $(call normpath,$(WDK))
 
 VSLIB  := $(VSN)\VC\lib$(if $(UCPU:%64=),,\amd64)
 VSINC  := $(VSN)\VC\include
-VSLD   := $(call qpath,$(VSN)\VC\bin$(if $(UCPU:%64=),,\amd64)\link.exe)
-VSCL   := $(call qpath,$(VSN)\VC\bin$(if $(UCPU:%64=),,\amd64)\cl.exe)
+VSLD   := cd $(call qpath,$(VSN)\Common7\IDE) && $(call qpath,$(VSN)\VC\bin$(if $(UCPU:%64=),,\amd64)\link.exe)
+VSCL   := cd $(call qpath,$(VSN)\Common7\IDE) && $(call qpath,$(VSN)\VC\bin$(if $(UCPU:%64=),,\amd64)\cl.exe)
 
 VSTLIB := $(VSN)\VC\lib$(if $(TCPU:%64=),,\amd64)
 VSTINC := $(VSINC)
-VSTLD  := $(call qpath,$(VSN)\VC\bin$(if $(TCPU:%64=),,\amd64)\link.exe)
-VSTCL  := $(call qpath,$(VSN)\VC\bin$(if $(TCPU:%64=),,\amd64)\cl.exe)
+VSTLD  := cd $(call qpath,$(VSN)\Common7\IDE) && $(call qpath,$(VSN)\VC\bin$(if $(TCPU:%64=),,\amd64)\link.exe)
+VSTCL  := cd $(call qpath,$(VSN)\Common7\IDE) && $(call qpath,$(VSN)\VC\bin$(if $(TCPU:%64=),,\amd64)\cl.exe)
 
 ifneq ($(subst \Microsoft Visual Studio ,,$(VS)),$(VS))
 VS_VER  := $(firstword $(subst ., ,$(lastword $(VS))))
@@ -120,6 +120,9 @@ endif
 ifneq ($(subst \Windows Kits\,,$(WDK)),$(WDK))
 WDK_VER := $(firstword $(subst ., ,$(lastword $(subst \, ,$(WDK)))))
 endif
+
+GET_VS_VER  = $(if $(VS_VER),$(VS_VER),$(error VS_VER undefined (expecting 8,9,11,12,14), likely Visual Studio was installed to non-default location))
+GET_WDK_VER = $(if $(WDK_VER),$(WDK_VER),$(error WDK_VER undefined (expecting 7,8,9,10), likely WDK was installed to non-default location))
 
 # APP LEVEL
 
@@ -134,7 +137,7 @@ ifdef WDK
 $(error either SDK or WDK must be defined, but not both)
 endif
 
-ifneq ($(call is_less,12,$(VS_VER)),)
+ifneq ($(call is_less,12,$(GET_VS_VER)),)
 $(error too new Visual Studio version $(lastword $(VS)) to build with SDK, please use WDK)
 endif
 
@@ -162,7 +165,11 @@ ifndef WDK_TARGET
 $(error WDK_TARGET undefined, check contents of "$(WDK)\Lib", example: "win7, win8, winv6.3, 10.0.10240.0")
 endif
 
-ifneq ($(call is_less,$(WDK_VER),10),)
+ifneq ($(call is_less,$(GET_WDK_VER),8),)
+
+$(error too new WDK for building APP-level, use SDK instead)
+
+else ifneq ($(call is_less,$(WDK_VER),10),)
 
 UMLIB  := $(WDKN)\Lib\$(WDK_TARGET)\um\$(if $(UCPU:%64=),x86,x64)
 UMINC  := $(WDKN)\Include
@@ -201,7 +208,7 @@ ifdef WDK
 $(error either DDK or WDK must be defined, but not both)
 endif
 
-ifneq ($(call is_less,12,$(VS_VER)),)
+ifneq ($(call is_less,12,$(GET_VS_VER)),)
 $(error too new Visual Studio version $(lastword $(VS)) to build with DDK, please use WDK)
 endif
 
@@ -229,13 +236,13 @@ $(error WDK_TARGET undefined, check contents of "$(WDK)\Lib", example: "win7, wi
 endif
 
 ifneq ($(filter win%,$(WDK_TARGET)),)
-ifneq ($(call is_less,12,$(VS_VER)),)
+ifneq ($(call is_less,12,$(GET_VS_VER)),)
 $(error too new Visual Studio version $(lastword $(VS)) to build with WDK_TARGET=$(WDK_TARGET), please select different WDK_TARGET)
 endif
 endif
 
 KMLIB := $(WDKN)\Lib\$(WDK_TARGET)\km\$(if $(KCPU:%64=),x86,x64)
-KMINC := $(WDKN)\Include$(if $(call is_less,$(WDK_VER),10),,\$(WDK_TARGET))
+KMINC := $(WDKN)\Include$(if $(call is_less,$(GET_WDK_VER),10),,\$(WDK_TARGET))
 KMINC := $(KMINC)\km $(KMINC)\km\crt $(KMINC)\shared
 
 WKLD  := $(call qpath,$(VSN)\VC\bin$(if $(KCPU:%64=),,\amd64)\link.exe)
