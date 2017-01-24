@@ -26,11 +26,11 @@ SOVER :=
 endef
 
 ifneq ($(filter default undefined,$(origin CC)),)
-CC := gcc
+CC := gcc -m$(if $(UCPU:%64=),32,64)
 endif
 
 ifneq ($(filter default undefined,$(origin CXX)),)
-CXX := g++
+CXX := g++ -m$(if $(UCPU:%64=),32,64)
 endif
 
 # to build kernel modules
