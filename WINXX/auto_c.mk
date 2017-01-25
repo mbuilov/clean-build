@@ -193,6 +193,7 @@ MT1  := $(call qpath,$(WDKN)\bin\$(if $(UCPU:%64=),x86,x64)\mt.exe)
 TMC1 := $(call qpath,$(WDKN)\bin\$(if $(TCPU:%64=),x86,x64)\mc.exe)
 TRC1 := $(call qpath,$(WDKN)\bin\$(if $(TCPU:%64=),x86,x64)\rc.exe)
 TMT1 := $(call qpath,$(WDKN)\bin\$(if $(TCPU:%64=),x86,x64)\mt.exe)
+SUPPRESS_RC_LOGO := /nologo
 
 endif # WDK
 
