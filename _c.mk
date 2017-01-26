@@ -216,7 +216,7 @@ DEP_LIBS = $(addprefix $(LIB_DIR)/,$(call MAKE_DEP_LIBS,$1,$2,$(TRG_LIBS)))
 TRG_DLLS = $(DLLS) $($1_DLLS)
 DEP_IMPS = $(addprefix $(IMP_DIR)/,$(call MAKE_DEP_IMPS,$1,$2,$(TRG_DLLS)))
 
-# $1 - target file: $(call FORM_TRG,EXE,$v)
+# $1 - target file: $(call FORM_TRG,EXE)
 # $2 - sources:     $(call TRG_SRC,EXE)
 # $3 - sdeps:       $(call TRG_SDEPS,EXE)
 # $4 - objdir:      $(call FORM_OBJ_DIR,EXE,$v)
@@ -246,7 +246,7 @@ endef
 # how to build executable
 EXE_RULES1 = $(call EXE_TEMPLATE,$1,$2,$3,$4,$(addprefix $4/,$(call OBJS,$2)))
 EXE_RULES = $(if $(EXE),$(foreach v,$(call GET_VARIANTS,EXE,VARIANTS_FILTER),$(newline)$(call \
-  EXE_RULES1,$(call FORM_TRG,EXE,$v),$(call TRG_SRC,EXE),$(call TRG_SDEPS,EXE),$(call FORM_OBJ_DIR,EXE,$v))))
+  EXE_RULES1,$(call FORM_TRG,EXE),$(call TRG_SRC,EXE),$(call TRG_SDEPS,EXE),$(call FORM_OBJ_DIR,EXE,$v))))
 
 # $1 - target file: $(call FORM_TRG,LIB,$v)
 # $2 - sources:     $(call TRG_SRC,LIB)
@@ -275,7 +275,7 @@ LIB_RULES1 = $(call LIB_TEMPLATE,$1,$2,$3,$4,$(addprefix $4/,$(call OBJS,$2)))
 LIB_RULES = $(if $(LIB),$(foreach v,$(call GET_VARIANTS,LIB,VARIANTS_FILTER),$(newline)$(call \
   LIB_RULES1,$(call FORM_TRG,LIB,$v),$(call TRG_SRC,LIB),$(call TRG_SDEPS,LIB),$(call FORM_OBJ_DIR,LIB,$v))))
 
-# $1 - target file: $(call FORM_TRG,DLL,$v)
+# $1 - target file: $(call FORM_TRG,DLL)
 # $2 - sources:     $(call TRG_SRC,DLL)
 # $3 - sdeps:       $(call TRG_SDEPS,DLL)
 # $4 - objdir:      $(call FORM_OBJ_DIR,DLL,$v)
@@ -305,7 +305,7 @@ endef
 # how to build dynamic (shared) library
 DLL_RULES1 = $(call DLL_TEMPLATE,$1,$2,$3,$4,$(addprefix $4/,$(call OBJS,$2)))
 DLL_RULES = $(if $(DLL),$(foreach v,$(call GET_VARIANTS,DLL,VARIANTS_FILTER),$(newline)$(call \
-  DLL_RULES1,$(call FORM_TRG,DLL,$v),$(call TRG_SRC,DLL),$(call TRG_SDEPS,DLL),$(call FORM_OBJ_DIR,DLL,$v))))
+  DLL_RULES1,$(call FORM_TRG,DLL),$(call TRG_SRC,DLL),$(call TRG_SDEPS,DLL),$(call FORM_OBJ_DIR,DLL,$v))))
 
 # $1 - target file: $(call FORM_TRG,KLIB)
 # $2 - sources:     $(call TRG_SRC,KLIB)
