@@ -44,11 +44,16 @@ ospath = $(subst /,\,$1)
 isrelpath = $(if $(word 2,$(subst :, ,$1)),,1)
 
 # delete one file
-DEL   = if exist $(ospath) del /F /Q $(ospath)
+DEL1 = if exist $1 del /F /Q $1
+DEL  = $(call DEL1,$(ospath))
+
+# delete directory
+DEL_DIR1 = if exist $1\NUL rd /S /Q $1
+DEL_DIR  = $(call DEL_DIR1,$(ospath))
 
 # delete files and directories
-RM1   = $(if $(VERBOSE),,@)for %%f in ($(ospath)) do if exist %%f\NUL (rd /S /Q %%f) else if exist %%f (del /F /Q %%f)
-RM    = $(call xcmd,RM1,$1,$(DEL_ARGS_LIMIT))
+RM1 = $(if $(VERBOSE),,@)for %%f in ($(ospath)) do if exist %%f\NUL (rd /S /Q %%f) else if exist %%f (del /F /Q %%f)
+RM  = $(call xcmd,RM1,$1,$(DEL_ARGS_LIMIT))
 
 # NOTE! there are races in MKDIR - if make spawns two parallel jobs:
 # if not exist aaa
@@ -84,5 +89,5 @@ DEL_ON_FAIL = || ($(foreach x,$1,($(call DEL,$x)) &) cmd /c exit 1)
 TOOL_SUFFIX := .exe
 
 # protect variables from modifications in target makefiles
-$(call CLEAN_BUILD_PROTECT_VARS,DEL_ARGS_LIMIT DEL RM1 RM MKDIR SED SED_EXPR \
+$(call CLEAN_BUILD_PROTECT_VARS,DEL_ARGS_LIMIT DEL1 DEL DEL_DIR1 DEL_DIR RM1 RM MKDIR SED SED_EXPR \
   CAT open_brace close_brace ECHO_LINE ECHO1 ECHO CD NUL SUPPRESS_CP_OUTPUT CP TOUCH1 TOUCH DEL_ON_FAIL TOOL_SUFFIX)
