@@ -4,6 +4,8 @@
 # Licensed under GPL version 2 or any later version, see COPYING
 #----------------------------------------------------------------------------------
 
+ifdef LIBTOOL_LA_RULE
+
 # libtool-archive description file generation
 
 # $1 - dynamic library name
@@ -55,7 +57,7 @@ dlopen=''
 dlpreopen=''
 
 # Directory that this library needs to be installed in:
-libdir='$(firstword $6 $(LIBDIR) /usr/local/lib)'
+libdir='$(if $6,$6,$(if $(LIBDIR),$(LIBDIR),/usr/local/lib))'
 endef
 endif
 
@@ -72,3 +74,5 @@ LIBTOOL_LA_RULE = $(eval $(call LIBTOOL_LA_RULE1,$(LIB_DIR)/lib$(firstword $1 $3
 
 # protect variables from modifications in target makefiles
 $(call CLEAN_BUILD_PROTECT_VARS,LIBTOOL_LA_TEMPLATE LIBTOOL_LA_RULE1 LIBTOOL_LA_RULE)
+
+endif
