@@ -56,7 +56,7 @@ endef
 
 # generate pkg-config file for dynamic or static library
 # arguments - the same as for $(PKGCONFIG_TEMPLATE)
-PKGCONFIG_GEN_RULE = $(info -1)$(eval $(call PKGCONFIG_GEN_RULE1,$(LIB_DIR)/lib$1.pc,$(PKGCONFIG_TEMPLATE)))$(info -3)
+PKGCONFIG_GEN_RULE = $(eval $(call PKGCONFIG_GEN_RULE1,$(LIB_DIR)/lib$1.pc,$(PKGCONFIG_TEMPLATE)))
 
 # define standard pkg-config values
 # note: some of PC_... variables may be already defined in $(TOP)/make/project.mk
