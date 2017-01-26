@@ -4,6 +4,8 @@
 # Licensed under GPL version 2 or any later version, see COPYING
 #----------------------------------------------------------------------------------
 
+ifndef PKGCONFIG_RULE
+
 # pkg-config file generation
 
 # $1   - Name
@@ -54,15 +56,19 @@ endef
 
 # generate pkg-config file for dynamic or static library
 # arguments - the same as for $(PKGCONFIG_TEMPLATE)
-PKGCONFIG_GEN_RULE = $(eval $(call PKGCONFIG_GEN_RULE1,$(LIB_DIR)/lib$1.pc,$(PKGCONFIG_TEMPLATE)))
+PKGCONFIG_GEN_RULE = $(info -1)$(eval $(call PKGCONFIG_GEN_RULE1,$(LIB_DIR)/lib$1.pc,$(PKGCONFIG_TEMPLATE)))$(info -3)
 
 # define standard pkg-config values
 # note: some of PC_... variables may be already defined in $(TOP)/make/project.mk
-LIBDIR_LIB     := $(firstword $(notdir $(LIBDIR)) lib)
-PC_PREFIX      ?= $(firstword $(PREFIX) /usr/local)
-PC_EXEC_PREFIX ?= $(firstword $(filter-out $(PC_PREFIX),$(EXEC_PREFIX) $${prefix}))
-PC_LIBDIR      ?= $(firstword $(filter-out $(PC_PREFIX)/$(LIBDIR_LIB),$(firstword \
-  $(filter-out $(EXEC_PREFIX)/$(LIBDIR_LIB),$(LIBDIR) $${exec_prefix}/$(LIBDIR_LIB))) $${prefix}/$(LIBDIR_LIB)))
+pc_escape   = $(subst %,%%,$(subst $(space),$$(space),$1))
+pc_unescape = $(subst $$(space), ,$(subst %%,%,$1))
+pc_nchoose  = $(firstword $(filter-out $(pc_escape),$(call pc_escape,$2) $3))
+
+PC_PREFIX      ?= $(if $(PREFIX),$(PREFIX),/usr/local)
+PC_EXEC_PREFIX ?= $(call pc_unescape,$(call pc_nchoose,$(PC_PREFIX),$(EXEC_PREFIX),$${prefix}))
+PC_LIBDIR1      = $(call pc_unescape,$(call pc_nchoose,$(PC_PREFIX)/$1,$(call \
+  pc_nchoose,$(EXEC_PREFIX)/$1,$(LIBDIR),$${exec_prefix}/$1),$${prefix}/$1))
+PC_LIBDIR      ?= $(call PC_LIBDIR1,$(firstword $(call pc_escape,$(notdir $(LIBDIR))) lib))
 PC_INCLUDEDIR  ?= $${prefix}/include
 PC_CFLAGS      ?= -I$${includedir}
 PC_LIBS        ?= -L$${libdir}
@@ -89,5 +95,7 @@ PKGCONFIG_RULE = $(call PKGCONFIG_GEN_RULE,$1,$2,$3,$4,$5,$6,$7,$8,$(PC_CFLAGS)$
 
 # protect variables from modifications in target makefiles
 $(call CLEAN_BUILD_PROTECT_VARS, \
-  PKGCONFIG_TEMPLATE PKGCONFIG_GEN_RULE1 PKGCONFIG_GEN_RULE LIBDIR_LIB \
-  PC_PREFIX PC_EXEC_PREFIX PC_LIBDIR PC_INCLUDEDIR PC_CFLAGS PC_LIBS PKGCONFIG_RULE)
+  PKGCONFIG_TEMPLATE PKGCONFIG_GEN_RULE1 PKGCONFIG_GEN_RULE pc_escape pc_unescape pc_nchoose \
+  PC_PREFIX PC_EXEC_PREFIX PC_LIBDIR1 PC_LIBDIR PC_INCLUDEDIR PC_CFLAGS PC_LIBS PKGCONFIG_RULE)
+
+endif
