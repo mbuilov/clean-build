@@ -4,7 +4,7 @@
 # Licensed under GPL version 2 or any later version, see COPYING
 #----------------------------------------------------------------------------------
 
-ifdef LIBTOOL_LA_RULE
+ifndef LIBTOOL_LA_RULE
 
 # libtool-archive description file generation
 
