@@ -4,7 +4,7 @@
 # Licensed under GPL version 2 or any later version, see COPYING
 #----------------------------------------------------------------------------------
 
-ifndef PKGCONFIG_RULE
+ifndef PKGCONFIG_DEF_TEMPLATE
 
 # pkg-config file generation
 
@@ -45,19 +45,6 @@ $(11),$(newline)Libs.private: $(11))
 endef # PKGCONFIG_TEMPLATE
 endif
 
-# $1 - $(LIB_DIR)/lib$1.pc
-# $2 - $(PKGCONFIG_TEMPLATE)
-define PKGCONFIG_GEN_RULE1
-$1: TEMPLATE := $(subst $(comment),$$$$(comment),$(subst $(newline),$$$$(newline),$(subst $$,$$$$,$2)))
-$1: | $(LIB_DIR)
-	$$(call SUP,GEN,$$@)$$(call ECHO,$$(subst $$$$(comment),$$(comment),$$(subst $$$$(newline),$$(newline),$$(TEMPLATE)))) > $$@
-$(call STD_TARGET_VARS,$1)
-endef
-
-# generate pkg-config file for dynamic or static library
-# arguments - the same as for $(PKGCONFIG_TEMPLATE)
-PKGCONFIG_GEN_RULE = $(eval $(call PKGCONFIG_GEN_RULE1,$(LIB_DIR)/lib$1.pc,$(PKGCONFIG_TEMPLATE)))
-
 # define standard pkg-config values
 # note: some of PC_... variables may be already defined in $(TOP)/make/project.mk
 pc_escape   = $(subst %,%%,$(subst $(space),$$(space),$1))
@@ -73,7 +60,7 @@ PC_INCLUDEDIR  ?= $${prefix}/include
 PC_CFLAGS      ?= -I$${includedir}
 PC_LIBS        ?= -L$${libdir}
 
-# rule for generation of .pc-file using $(PC_...) predefined values
+# generate pkg-config file contents for dynamic or static library using $(PC_...) predefined values
 # $1    - library name
 # $2    - library version (for a DLL: $(SOVER))
 # $3    - library description
@@ -89,13 +76,12 @@ PC_LIBS        ?= -L$${libdir}
 # $(13) - ${libdir},      if not specified, then $(PC_LIBDIR)
 # $(14) - ${exec_prefix}, if not specified, then $(PC_EXEC_PREFIX)
 # $(14) - ${prefix},      if not specified, then $(PC_PREFIX)
-PKGCONFIG_RULE = $(call PKGCONFIG_GEN_RULE,$1,$2,$3,$4,$5,$6,$7,$8,$(PC_CFLAGS)$(if \
+PKGCONFIG_DEF_TEMPLATE = $(call PKGCONFIG_TEMPLATE,$1,$2,$3,$4,$5,$6,$7,$8,$(PC_CFLAGS)$(if \
   $9, $9),$(PC_LIBS) -l$1$(if $(10), $(10)),$(11),$(if $(12),$(12),$(PC_INCLUDEDIR)),$(if \
   $(13),$(13),$(PC_LIBDIR)),$(if $(14),$(14),$(PC_EXEC_PREFIX)),$(if $(15),$(15),$(PC_PREFIX)))
 
 # protect variables from modifications in target makefiles
-$(call CLEAN_BUILD_PROTECT_VARS, \
-  PKGCONFIG_TEMPLATE PKGCONFIG_GEN_RULE1 PKGCONFIG_GEN_RULE pc_escape pc_unescape pc_nchoose \
-  PC_PREFIX PC_EXEC_PREFIX PC_LIBDIR1 PC_LIBDIR PC_INCLUDEDIR PC_CFLAGS PC_LIBS PKGCONFIG_RULE)
+$(call CLEAN_BUILD_PROTECT_VARS, PKGCONFIG_TEMPLATE pc_escape pc_unescape pc_nchoose \
+  PC_PREFIX PC_EXEC_PREFIX PC_LIBDIR1 PC_LIBDIR PC_INCLUDEDIR PC_CFLAGS PC_LIBS PKGCONFIG_DEF_TEMPLATE)
 
 endif
