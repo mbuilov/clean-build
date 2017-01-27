@@ -72,16 +72,23 @@ RC ?= $(call SUP,$(TMD)RC,$1)$($(TMD)RC1)$(if $(VERBOSE), /v) $(SUPPRESS_RC_LOGO
 # prefixes/suffixes of build targets, may be already defined in $(TOP)/make/project.mk
 # note: if OBJ_SUFFIX is defined, then all prefixes/suffixes must be also defined
 ifndef OBJ_SUFFIX
+# exe file suffix
 EXE_SUFFIX := .exe
+# object file suffix
 OBJ_SUFFIX := .obj
+# static library (archive) prefix/suffix
 LIB_PREFIX :=
-LIB_SUFFIX := .a    # static library (archive)
+LIB_SUFFIX := .a
+# implementation library for dll prefix/suffix
 IMP_PREFIX :=
-IMP_SUFFIX := .lib  # implementation library for dll
+IMP_SUFFIX := .lib
+# dynamically loaded library (shared object) prefix/suffix
 DLL_PREFIX :=
-DLL_SUFFIX := .dll  # dynamically loaded library (shared object)
+DLL_SUFFIX := .dll
+# kernel-mode static library prefix/suffix
 KLIB_PREFIX :=
-KLIB_SUFFIX := .ka  # kernel-mode static library (archive)
+KLIB_SUFFIX := .ka
+# kernel module (driver) prefix/suffix
 DRV_PREFIX := drv
 DRV_SUFFIX := .sys
 endif
