@@ -553,9 +553,10 @@ MULTI_TARGET_CHECK = $(if \
 
 endif # MCHECK
 
-# make chain of dependency of multi-targets on each other: 2: | 1, 3: | 2, 4: | 3, ...
-# $1 - list of generated files (absolute paths)
-MULTI_TARGET_SEQ = $(if $(word 2,$1),$(word 2,$1): | $(firstword $1)$(newline)$(call MULTI_TARGET_SEQ,$(wordlist 2,999999,$1)))
+# make chain of dependency of multi-targets on each other: 1 2 3 4 -> 2:|1 3:|2 4:|3
+# $1 - list of generated files (absolute paths without spaces)
+MULTI_TARGET_SEQ = $(subst ||,| ,$(subst $(space),$(newline),$(filter-out \
+  --%,$(join $(addsuffix :||,$(wordlist 2,999999,$1) --),$1))))$(newline)
 
 # when some tool generates many files, call the tool only once
 # $1 - list of generated files
