@@ -89,19 +89,26 @@ endif
 # prefixes/suffixes of build targets, may be already defined in $(TOP)/make/project.mk
 # note: if OBJ_SUFFIX is defined, then all prefixes/suffixes must be also defined
 ifndef OBJ_SUFFIX
+# exe file suffix
 EXE_SUFFIX :=
+# object file suffix
 OBJ_SUFFIX := .o
+# static library (archive) prefix/suffix
 LIB_PREFIX := lib
-LIB_SUFFIX := .a    # static library (archive)
+LIB_SUFFIX := .a
+# implementation library for dll prefix/suffix
 IMP_PREFIX := lib
-IMP_SUFFIX := .so   # implementation library for dll, the same as dll itself
+IMP_SUFFIX := .so
+# dynamically loaded library (shared object) prefix/suffix
 DLL_PREFIX := lib
-DLL_SUFFIX = .so$(addprefix .,$(SOVER)) # dynamically loaded library (shared object)
+DLL_SUFFIX := .so
+# kernel-mode static library prefix/suffix
 KLIB_NAME_PREFIX := k_
 KLIB_PREFIX := lib$(KLIB_NAME_PREFIX)
-KLIB_SUFFIX := .a   # kernel-mode static library
+KLIB_SUFFIX := .a
+# kernel module (driver) prefix/suffix
 DRV_PREFIX :=
-DRV_SUFFIX :=       # kernel module
+DRV_SUFFIX :=
 endif
 
 # import library and dll - the same file
@@ -218,8 +225,7 @@ VERSION_SCRIPT_OPTION ?= $(addprefix -M,$(MAP))
 
 # append soname option if target shared library have version info (some number after .so)
 # $1 - full path to target shared library, for ex. /aa/bb/cc/libmy_lib.so.1.2.3, soname will be libmy_lib.so.1
-SONAME_OPTION1 ?= $(addprefix -h $(word 1,$1).$(word 2,$1).,$(word 3,$1))
-SONAME_OPTION ?= $(call SONAME_OPTION1,$(subst ., ,$(notdir $1)))
+SONAME_OPTION ?= $(addprefix -h $(notdir $1).,$(firstword $(subst ., ,$(SOVER))))
 
 # different linkers
 # $1 - target, $2 - objects
@@ -367,6 +373,7 @@ SOLINK_TEMPLATE = $(call SOLINK_TEMPLATE1,$(subst ., ,$(notdir $1)),$1)
 # $1 - $(call FORM_TRG,DLL)
 # $2 - $(call FIXPATH,$(firstword $(DLL_MAP) $(MAP)))
 define DLL_AUX_TEMPLATE1
+$1: SOVER := $(SOVER)
 $1: RPATH := $(RPATH) $(DLL_RPATH)
 $1: MAP := $2
 $1: $2
