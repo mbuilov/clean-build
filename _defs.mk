@@ -221,14 +221,25 @@ else # !VERBOSE
 SHOWN_MAKEFILES:=
 SHOWN_PERCENTS:=
 SHOWN_REMAINDER:=
+# general formula: percents = current*100/total
+# but we need percents value incrementally: 0*100/total, 1*100/total, 2*100/total, ...
+# so just remember previous percent value and remainder of prev*100/total:
+# 1) current = 0, percents0 = 0, remainder0 = 0
+# 2) current = 1, percents1 = int(100/total), remainder1 = rem(100/total)
+# 3) current = 2, percents2 = percents1 + int((remainder1 + 100)/total), remainder2 = rem((remainder1 + 100)/total)
+# 4) current = 3, percents3 = percents2 + int((remainder2 + 100)/total), remainder3 = rem((remainder2 + 100)/total)
+# ...
 ADD_SHOWN_PERCENTS = $(if $(word $(TARGET_MAKEFILES_COUNT),$1),+ $(call ADD_SHOWN_PERCENTS,$(wordlist \
   $(TARGET_MAKEFILES_COUNT1),999999,$1)),$(eval SHOWN_REMAINDER := $1))
+# remember shown makefile $(MF), try to increment total percents count
 define REM_SHOWN_MAKEFILE
 SHOWN_MAKEFILES += $(MF)
 SHOWN_PERCENTS += $(call ADD_SHOWN_PERCENTS,$(SHOWN_REMAINDER) \
 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 \
 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1)
 endef
+# $3 - if non-empty, don't update percents
+# also don't update percents if $(MF) was already shown
 TRY_REM_MAKEFILE = $(if $3,,$(if $(filter $(MF),$(SHOWN_MAKEFILES)),,$(eval $(REM_SHOWN_MAKEFILE))))$(subst |,,$(subst \
   |0%,00%,$(subst \
   |1%,01%,$(subst \
