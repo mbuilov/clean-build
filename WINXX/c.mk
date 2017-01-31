@@ -222,8 +222,7 @@ DEL_ON_DLL_FAIL ?= $(if $(DEF)$(EMBED_DLL_MANIFEST),$(call DEL_ON_FAIL,$(if $(DE
 # $2 - linker with options
 # $3 - $(basename $(notdir $1)).exp
 # target-specific: LIB_DIR
-# NOTE: linker will run in a sub-batch, where double-quotes are escaped by two double-quotes
-WRAP_DLL_EXPORTS_LINKER ?= (($(subst \","",$2) && (dir $(call ospath,$(LIB_DIR)/$3) >NUL 2>&1 || \
+WRAP_DLL_EXPORTS_LINKER ?= (($2 && (dir $(call ospath,$(LIB_DIR)/$3) >NUL 2>&1 || \
   (echo $(notdir $1) does not exports any symbols! & del $(ospath) & exit /b 1)) && echo DLL_LINKED_OK 1>&2) | \
   findstr /V /L $3) 3>&2 2>&1 1>&3 | findstr /B /L DLL_LINKED_OK >NUL
 
@@ -232,6 +231,7 @@ WRAP_DLL_EXPORTS_LINKER ?= (($(subst \","",$2) && (dir $(call ospath,$(LIB_DIR)/
 # $2 - linker with options
 # target-specific: NO_EXPORTS
 WRAP_DLL_LINKER ?= $(if $(NO_EXPORTS),$2,$(call WRAP_DLL_EXPORTS_LINKER,$1,$2,$(basename $(notdir $1)).exp))
+#(($2 && echo TRG_LINKED_OK>&2) | findstr /V /B /L /C:"Generating code" /C:"Finished generating code") 3>&2 2>&1 1>&3 | findstr /B /L TRG_LINKED_OK>NUL
 
 # define DLL linker for variant $v
 # $$1 - target dll, $$2 - objects, $v - variant
@@ -327,18 +327,16 @@ SED_DEPS_SCRIPT ?= \
 
 # WRAP_COMPILER - call compiler and auto-generate dependencies
 # $1 - compiler with options, $2 - target object, $3 - source, $4 - $(basename $2).d, $5 - prefixes of system includes
-# NOTE: compiler will run in a sub-batch, where double-quotes are escaped by two double-quotes
 ifeq ($(NO_DEPS),)
 ifneq ($(SEQ_BUILD),)
-WRAP_COMPILER ?= (($(subst \","",$1) /showIncludes 2>&1 && set /p ="COMPILATION_OK" >&2 <NUL) | \
+WRAP_COMPILER ?= (($1 /showIncludes 2>&1 && set /p ="COMPILATION_OK" >&2 <NUL) | \
   ($(SED) -n $(SED_DEPS_SCRIPT) 2>&1 && set /p ="_SED_OK" >&2 <NUL)) 3>&2 2>&1 1>&3 | findstr /B /L COMPILATION_OK_SED_OK >NUL
 endif
 endif
 
 # if not generating auto-dependencies, just stip-off names of compiled sources
 # $1 - compiler with options
-# NOTE: compiler will run in a sub-batch, where double-quotes are escaped by two double-quotes
-WRAP_COMPILER ?= (($(subst \","",$1) && echo COMPILATION_OK 1>&2) | findstr /L :) 3>&2 2>&1 1>&3 | findstr /B /L COMPILATION_OK >NUL
+WRAP_COMPILER ?= (($1 && echo COMPILATION_OK 1>&2) | findstr /L :) 3>&2 2>&1 1>&3 | findstr /B /L COMPILATION_OK >NUL
 
 ifdef SEQ_BUILD
 
