@@ -95,7 +95,7 @@ $(error VS undefined, example: VS="C:\Program Files (x86)\Microsoft Visual Studi
 endif
 
 ifneq ($(subst \Microsoft Visual Studio ,,$(VS)),$(VS))
-VS_VER  := $(firstword $(subst ., ,$(lastword $(VS))))
+VS_VER := $(firstword $(subst ., ,$(lastword $(VS))))
 endif
 
 ifndef VS_VER
@@ -118,6 +118,13 @@ VSN  := $(call normpath,$(VS))
 SDKN := $(call normpath,$(SDK))
 DDKN := $(call normpath,$(DDK))
 WDKN := $(call normpath,$(WDK))
+
+# APP LEVEL
+
+# starting from Visual Studio 2012, linker supports /MANIFEST:EMBED option
+ifeq (undefined,$(origin EMBED_MANIFEST_OPTION))
+EMBED_MANIFEST_OPTION := $(if $(call is_less,10,$(VS_VER)),/MANIFEST:EMBED)
+endif
 
 VSLIB  := $(VSN)\VC\lib$(if $(UCPU:%64=),,\amd64)
 VSINC  := $(VSN)\VC\include
@@ -142,8 +149,6 @@ VSTLD  := $(call qpath,$(VSN)\VC\bin$(if $(TCPU:%64=),,\amd64)\link.exe)
 VSTCL  := $(call qpath,$(VSN)\VC\bin$(if $(TCPU:%64=),,\amd64)\cl.exe)
 
 endif # $(VS_VER) >= 10
-
-# APP LEVEL
 
 ifeq ($(strip $(SDK)$(WDK)),)
 $(error no SDK nor WDK defined, example:\
@@ -281,5 +286,5 @@ $(foreach x,$(AUTOCONF_VARS),$(info $x=$($x)))
 endif
 
 # protect variables from modifications in target makefiles
-$(call CLEAN_BUILD_PROTECT_VARS,VAUTO OSVARIANTS WINVER_DEFINES \
-  SUBSYSTEM_VER AUTOCONF_VARS $(AUTOCONF_VARS) normpath VS VSN SDK SDKN DDK DDKN WDK WDKN)
+$(call CLEAN_BUILD_PROTECT_VARS,VAUTO OSVARIANTS WINVER_DEFINES SUBSYSTEM_VER AUTOCONF_VARS $(AUTOCONF_VARS) \
+  VS_VER WDK_VER GET_WDK_VER normpath VS VSN SDK SDKN DDK DDKN WDK WDKN EMBED_MANIFEST_OPTION)
