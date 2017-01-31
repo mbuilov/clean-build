@@ -147,11 +147,11 @@ RESET_TRG_VARS := $(subst $(space),,$(foreach x,$(BLD_TARGETS) $(foreach t,$(BLD
 # NOTE: only one variant of DLL may be built (DLL-name is invariant)
 # NOTE: there is no variants supported for KLIB and DRV, so don't call $(GET_TARGET_NAME)
 FORM_TRG = $(if \
-           $(filter EXE,$1),$(BIN_DIR)/$(GET_TARGET_NAME)$(EXE_SUFFIX),$(if \
-           $(filter LIB,$1),$(LIB_DIR)/$(LIB_PREFIX)$(GET_TARGET_NAME)$(call VARIANT_LIB_SUFFIX,$2)$(LIB_SUFFIX),$(if \
-           $(filter DLL,$1),$(DLL_DIR)/$(DLL_PREFIX)$(GET_TARGET_NAME)$(DLL_SUFFIX),$(if \
-           $(filter KLIB,$1),$(LIB_DIR)/$(KLIB_PREFIX)$($1)$(KLIB_SUFFIX),$(if \
-           $(filter DRV,$1),$(BIN_DIR)/$(DRV_PREFIX)$($1)$(DRV_SUFFIX))))))
+  $(filter EXE,$1),$(addprefix $(BIN_DIR)/,$(addsuffix $(EXE_SUFFIX),$(GET_TARGET_NAME))),$(if \
+  $(filter LIB,$1),$(addprefix $(LIB_DIR)/$(LIB_PREFIX),$(addsuffix $(call VARIANT_LIB_SUFFIX,$2)$(LIB_SUFFIX),$(GET_TARGET_NAME))),$(if \
+  $(filter DLL,$1),$(addprefix $(DLL_DIR)/$(DLL_PREFIX),$(addsuffix $(DLL_SUFFIX),$(GET_TARGET_NAME))),$(if \
+  $(filter KLIB,$1),$(addprefix $(LIB_DIR)/$(KLIB_PREFIX),$(addsuffix $(KLIB_SUFFIX),$($1))),$(if \
+  $(filter DRV,$1),$(addprefix $(BIN_DIR)/$(DRV_PREFIX),$(addsuffix $(DRV_SUFFIX),$($1))))))))
 
 # example how to make target filenames for all variants specified for the target
 # $1 - EXE,LIB,DLL,...
