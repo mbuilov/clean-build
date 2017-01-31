@@ -68,7 +68,7 @@ SUPPRESS_RC_LOGO := $(SUPPRESS_RC_LOGO)
 # target-specific: TMD
 RC ?= $(call SUP,$(TMD)RC,$1)$(if $(SUPPRESS_RC_LOGO),,$(open_brace)$(open_brace))$($(TMD)RC1) $(SUPPRESS_RC_LOGO)$(if \
   $(VERBOSE), /v) $3 $(call qpath,$(VS$(TMD)INC) $(UM$(TMD)INC),/I) /fo$(call ospath,$1 $2)$(if \
-  $(SUPPRESS_RC_LOGO),,&& echo RC_COMPILED_OK>&2$(close_brace) | \
+  $(SUPPRESS_RC_LOGO),>&2,&& echo RC_COMPILED_OK>&2$(close_brace) | \
   findstr /B /V /R /C:"Microsoft (R) Windows (R) Resource Compiler Version" \
   /C:"Copyright (C) Microsoft Corporation.  All rights reserved." /C:"^$$"$(close_brace) 3>&2 2>&1 1>&3 | findstr /B /L RC_COMPILED_OK>NUL)
 
