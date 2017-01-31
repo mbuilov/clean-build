@@ -100,7 +100,7 @@ endif
 
 ifndef VS_VER
 $(error VS_VER undefined (expecting 8,9,11,12,14), \
-  failed to auto-determine it, likely Visual Studio was installed to non-default location)
+  failed to auto-determine it, likely Visual Studio is installed to non-default location)
 endif
 
 ifneq ($(subst \Windows Kits\,,$(WDK)),$(WDK))
@@ -108,7 +108,7 @@ WDK_VER := $(firstword $(subst ., ,$(lastword $(subst \, ,$(WDK)))))
 endif
 
 GET_WDK_VER = $(if $(WDK_VER),$(WDK_VER),$(error WDK_VER undefined (expecting 7,8,9,10), \
-  failed to auto-determine it, likely WDK was installed to non-default location))
+  failed to auto-determine it, likely WDK is installed to non-default location))
 
 # normalize: "x x" -> x?x
 # used for paths passed to compilers and tools, but not searched by $(MAKE)
@@ -128,22 +128,14 @@ VSTLIB := $(VSN)\VC\lib$(if $(TCPU:%64=),,\amd64)
 VSTINC := $(VSINC)
 
 ifneq ($(call is_less,$(VS_VER),10),)
-
-VSLD   := cd /d $(call qpath,$(VSN)\Common7\IDE) && $(call qpath,$(VSN)\VC\bin$(if $(UCPU:%64=),,\amd64)\link.exe)
-VSCL   := cd /d $(call qpath,$(VSN)\Common7\IDE) && $(call qpath,$(VSN)\VC\bin$(if $(UCPU:%64=),,\amd64)\cl.exe)
-
-VSTLD  := cd /d $(call qpath,$(VSN)\Common7\IDE) && $(call qpath,$(VSN)\VC\bin$(if $(TCPU:%64=),,\amd64)\link.exe)
-VSTCL  := cd /d $(call qpath,$(VSN)\Common7\IDE) && $(call qpath,$(VSN)\VC\bin$(if $(TCPU:%64=),,\amd64)\cl.exe)
-
-else # $(VS_VER) >= 10
+PATH := $(PATH);$(call qpath,$(VSN)\Common7\IDE)
+endif
 
 VSLD   := $(call qpath,$(VSN)\VC\bin$(if $(UCPU:%64=),,\amd64)\link.exe)
 VSCL   := $(call qpath,$(VSN)\VC\bin$(if $(UCPU:%64=),,\amd64)\cl.exe)
 
 VSTLD  := $(call qpath,$(VSN)\VC\bin$(if $(TCPU:%64=),,\amd64)\link.exe)
 VSTCL  := $(call qpath,$(VSN)\VC\bin$(if $(TCPU:%64=),,\amd64)\cl.exe)
-
-endif # $(VS_VER) >= 10
 
 ifeq ($(strip $(SDK)$(WDK)),)
 $(error no SDK nor WDK defined, example:\
