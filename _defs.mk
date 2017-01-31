@@ -564,7 +564,7 @@ MULTI_TARGET_CHECK = $(if \
 
 endif # MCHECK
 
-# make chain of dependency of multi-targets on each other: 1 2 3 4 -> 2:|1 3:|2 4:|3
+# make chain of dependencies of multi-targets on each other: 1 2 3 4 -> 2:| 1; 3:| 2; 4:| 3;
 # $1 - list of generated files (absolute paths without spaces)
 MULTI_TARGET_SEQ = $(subst ||,| ,$(subst $(space),$(newline),$(filter-out \
   --%,$(join $(addsuffix :||,$(wordlist 2,999999,$1) --),$1))))$(newline)
@@ -622,16 +622,16 @@ endef
 MAKE_CONTINUE = $(if $(if $1,$(SAVE_VARS))$(MAKE_CONTINUE_BODY_EVAL)$(if $1,$(RESTORE_VARS)),)
 
 # helper macro: make SDEPS list
-# example: $(call FORM_SDEPS,src1 src2,dep1 dep2 dep3) -> src1 dep1|dep2|dep3 src2 dep1|dep2|dep3
-FORM_SDEPS = $(addsuffix $(space)$(call join_with,$2,|),$1)
+# example: $(call FORM_SDEPS,src1 src2,dep1 dep2 dep3) -> src1|dep1|dep2|dep3 src2|dep1|dep2|dep3
+FORM_SDEPS = $(addsuffix |$(call join_with,$2,|),$1)
 
 # get dependencies for source files
-# $1 - source files, $2 - sdeps list of pairs: <source file> <dependency1>|<dependency2>|...
-EXTRACT_SDEPS = $(subst |, ,$(if $2,$(if $(filter $1,$(firstword $2)),$(word 2,$2) )$(call EXTRACT_SDEPS,$1,$(wordlist 3,999999,$2))))
+# $1 - source files, $2 - sdeps list: <source file>|<dependency1>|<dependency2>|...
+EXTRACT_SDEPS = $(foreach d,$(filter $(addsuffix |%,$1),$2),$(wordlist 2,999999,$(subst |, ,$d)))
 
 # fix sdeps paths: add $(VPREFIX) value to non-absolute paths then make absolute paths
-# $1 - sdeps list of pairs: <source file> <dependency1>|<dependency2>|...
-FIX_SDEPS = $(subst | ,|,$(call FIXPATH,$(subst |,| ,$1)))
+# $1 - sdeps list: <source file>|<dependency1>|<dependency2>|...
+FIX_SDEPS = $(subst $(space),|,$(call FIXPATH,$(subst |, ,$1)))
 
 # protect variables from modifications in target makefiles
 CLEAN_BUILD_PROTECTED_VARS += MTOP MAKEFLAGS NO_DEPS DEBUG PROJECT \
