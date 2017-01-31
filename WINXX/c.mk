@@ -181,7 +181,7 @@ endif
 # common linker flags for EXE or DLL
 # $$1 - target file, $$2 - objects, $v - variant
 ifeq (undefined,$(origin CMN_LIBS_LDFLAGS))
-CMN_LIBS_LDFLAGS := /INCREMENTAL:NO $(if $(DEBUG),/DEBUG,/LTCG /OPT:REF)
+CMN_LIBS_LDFLAGS := /INCREMENTAL:NO $(if $(DEBUG),/DEBUG,/RELEASE /LTCG /OPT:REF)
 endif
 
 # common parts of linker options for built EXE or DLL
@@ -422,7 +422,7 @@ $(eval $(foreach v,R $(VARIANTS_FILTER),$(MULTI_COMPILERS_TEMPLATE)))
 
 endif # !SEQ_BUILD
 
-DEF_DRV_LDFLAGS ?= /INCREMENTAL:NO $(if $(DEBUG),/DEBUG,/LTCG /OPT:REF) /DRIVER /FULLBUILD \
+DEF_DRV_LDFLAGS ?= /INCREMENTAL:NO $(if $(DEBUG),/DEBUG,/RELEASE /LTCG /OPT:REF) /DRIVER /FULLBUILD \
   /NODEFAULTLIB /SAFESEH:NO /MANIFEST:NO /MERGE:_PAGE=PAGE /MERGE:_TEXT=.text /MERGE:.rdata=.text \
   /SECTION:INIT,d /ENTRY:DriverEntry /ALIGN:0x40 /BASE:0x10000 /STACK:0x40000,0x1000 \
   /MACHINE:$(if $(KCPU:%64=),x86,x64) /SUBSYSTEM:NATIVE,$(SUBSYSTEM_KVER)
