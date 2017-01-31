@@ -396,9 +396,10 @@ CMN_SMCL  = $(call CMN_MCL1,$1,$(filter %.c,$2),$(filter %.cpp,$2),CMN_SCL,$3)
 CMN_RUMCL = $(call CMN_RMCL,$1,$2,/DUNICODE /D_UNICODE )
 CMN_SUMCL = $(call CMN_SMCL,$1,$2,/DUNICODE /D_UNICODE )
 
-# also recompile sources that are depend on changed sources
-# $1 - $(SDEPS) - list of pairs: <source file> <dependency1>|<dependency2>|...
-FILTER_SDEPS = $(if $1,$(if $(filter $(subst |, ,$(word 2,$1)),$?),$(firstword $1) )$(call FILTER_SDEPS,$(wordlist 3,999999,$1)))
+# also recompile sources that are dependent on changed sources
+# $1 - $(SDEPS) - list of sdeps: <source file>|<dependency1>|<dependency2>|...
+FILTER_SDEPS1 = $(if $(filter $(wordlist 2,999999,$1),$?),$(firstword $1))
+FILTER_SDEPS = $(foreach d,$1,$(call FILTER_SDEPS1,$(subst |, ,$d)))
 
 # $1 - target, $2 - objects, $3 - CMN_RMCL, CMN_SMCL, CMN_RUMCL, CMN_SUMCL
 # target-specific: SRC, SDEPS
@@ -614,8 +615,7 @@ ADD_WITH_PCH = $(eval $1_WITH_PCH += $2)
 # auxiliary dependencies
 
 # $1 - EXE,LIB,DLL,...
-TRG_ALL_SDEPS1 = $(if $1,$(word 2,$1) $(call TRG_ALL_SDEPS1,$(wordlist 3,999999,$1)))
-TRG_ALL_SDEPS = $(call FIXPATH,$(subst |, ,$(call TRG_ALL_SDEPS1,$(SDEPS) $($1_SDEPS))))
+TRG_ALL_SDEPS = $(call FIXPATH,$(sort $(foreach d,$(SDEPS) $($1_SDEPS),$(wordlist 2,999999,$(subst |, ,$d)))))
 
 # $1 - $(call TRG_SRC,EXE)
 # $2 - $(call TRG_SDEPS,EXE)
@@ -860,12 +860,12 @@ $(call CLEAN_BUILD_PROTECT_VARS,SEQ_BUILD YASMC FLEXC BISONC MC SUPPRESS_RC_LOGO
   INCLUDING_FILE_PATTERN UDEPS_INCLUDE_FILTER SED_DEPS_SCRIPT \
   WRAP_COMPILER CMN_CC CMN_CXX SEQ_COMPILERS_TEMPLATE \
   $(foreach v,R $(VARIANTS_FILTER),LIB_$v_CC LIB_$v_CXX EXE_$v_CC EXE_$v_CXX DLL_$v_CC DLL_$v_CXX EXE_$v_LD DLL_$v_LD LIB_$v_LD) \
-  CMN_MCL2 CMN_MCL1 CMN_RMCL CMN_SMCL CMN_RUMCL CMN_SUMCL FILTER_SDEPS CMN_MCL MULTI_COMPILERS_TEMPLATE \
+  CMN_MCL2 CMN_MCL1 CMN_RMCL CMN_SMCL CMN_RUMCL CMN_SUMCL FILTER_SDEPS1 FILTER_SDEPS CMN_MCL MULTI_COMPILERS_TEMPLATE \
   $(foreach v,R $(VARIANTS_FILTER),PCH_$v_CC PCH_$v_CXX) \
   DEF_DRV_LDFLAGS DRV_LD1 KRN_FLAGS CMN_KCL KDEPS_INCLUDE_FILTER CMN_KCC KLIB_R_CC DRV_R_CC KLIB_LD DRV_LD FORCE_SYNC_PDB_KERN \
   CMN_MKCL1 CMN_MKCL PCH_KCC KLIB_R_ASM BISON FLEX \
   PCH_TEMPLATE1 PCH_TEMPLATE2 PCH_TEMPLATE3 PCH_TEMPLATE KPCH_TEMPLATE1 KPCH_TEMPLATE ADD_WITH_PCH \
-  TRG_ALL_SDEPS1 TRG_ALL_SDEPS \
+  TRG_ALL_SDEPS \
   EXE_AUX_TEMPLATE2 EXE_AUX_TEMPLATE1 EXE_AUX_TEMPLATE \
   LIB_AUX_TEMPLATE2 LIB_AUX_TEMPLATE1 LIB_AUX_TEMPLATE \
   DLL_AUX_TEMPLATE2 DLL_AUX_TEMPLATE1 DLL_AUX_TEMPLATE \
