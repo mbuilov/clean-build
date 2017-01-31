@@ -121,11 +121,6 @@ WDKN := $(call normpath,$(WDK))
 
 # APP LEVEL
 
-# starting from Visual Studio 2012, linker supports /MANIFEST:EMBED option
-ifeq (undefined,$(origin EMBED_MANIFEST_OPTION))
-EMBED_MANIFEST_OPTION := $(if $(call is_less,10,$(VS_VER)),/MANIFEST:EMBED)
-endif
-
 VSLIB  := $(VSN)\VC\lib$(if $(UCPU:%64=),,\amd64)
 VSINC  := $(VSN)\VC\include
 
@@ -287,4 +282,4 @@ endif
 
 # protect variables from modifications in target makefiles
 $(call CLEAN_BUILD_PROTECT_VARS,VAUTO OSVARIANTS WINVER_DEFINES SUBSYSTEM_VER AUTOCONF_VARS $(AUTOCONF_VARS) \
-  VS_VER WDK_VER GET_WDK_VER normpath VS VSN SDK SDKN DDK DDKN WDK WDKN EMBED_MANIFEST_OPTION)
+  VS_VER WDK_VER GET_WDK_VER normpath VS VSN SDK SDKN DDK DDKN WDK WDKN)
