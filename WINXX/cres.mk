@@ -27,6 +27,7 @@ WIN_RC_PRODUCT_DEFS_HEADER ?= $(GEN_DIR)/$(PRODUCT_NAMES_H)
 # note: some of WIN_RC_... variables may be already defined in $(TOP)/make/project.mk
 WIN_RC_PRODUCT_VERSION_MAJOR ?= PRODUCT_VERSION_MAJOR
 WIN_RC_PRODUCT_VERSION_MINOR ?= PRODUCT_VERSION_MINOR
+WIN_RC_PRODUCT_PATCH_NUM     ?= PRODUCT_PATCH_NUM
 WIN_RC_PRODUCT_BUILD_NUM     ?= PRODUCT_BUILD_NUM
 WIN_RC_COMMENTS              ?= PRODUCT_TARGET "/" PRODUCT_OS "/" $(if $(filter DRV,$1),PRODUCT_KCPU,PRODUCT_UCPU) "/" PRODUCT_BUILD_DATE
 WIN_RC_COMPANY_NAME          ?= VENDOR_NAME
@@ -46,59 +47,65 @@ WIN_RC_CHARSET               ?= 04b0
 # $3    - $(WIN_RC_PRODUCT_DEFS_HEADER)
 # $4    - $(WIN_RC_PRODUCT_VERSION_MAJOR)
 # $5    - $(WIN_RC_PRODUCT_VERSION_MINOR)
-# $6    - $(WIN_RC_PRODUCT_BUILD_NUM)
-# $7    - $(WIN_RC_COMMENTS)
-# $8    - $(WIN_RC_COMPANY_NAME)
-# $9    - $(WIN_RC_FILE_DESCRIPTION)
-# $(10) - $(WIN_RC_FILE_VERSION)
-# $(11) - $(WIN_RC_INTERNAL_NAME)
-# $(12) - $(WIN_RC_LEGAL_COPYRIGHT)
-# $(13) - $(WIN_RC_LEGAL_TRADEMARKS)
-# $(14) - $(WIN_RC_PRIVATE_BUILD)
-# $(15) - $(WIN_RC_PRODUCT_NAME)
-# $(16) - $(WIN_RC_PRODUCT_VERSION)
-# $(17) - $(WIN_RC_SPECIAL_BUILD)
-# $(18) - $(WIN_RC_LANG)
-# $(19) - $(WIN_RC_CHARSET)
+# $6    - $(WIN_RC_PRODUCT_PATCH_NUM)
+# $7    - $(WIN_RC_PRODUCT_BUILD_NUM)
+# $8    - $(WIN_RC_COMMENTS)
+# $9    - $(WIN_RC_COMPANY_NAME)
+# $(10) - $(WIN_RC_FILE_DESCRIPTION)
+# $(11) - $(WIN_RC_FILE_VERSION)
+# $(12) - $(WIN_RC_INTERNAL_NAME)
+# $(13) - $(WIN_RC_LEGAL_COPYRIGHT)
+# $(14) - $(WIN_RC_LEGAL_TRADEMARKS)
+# $(15) - $(WIN_RC_PRIVATE_BUILD)
+# $(16) - $(WIN_RC_PRODUCT_NAME)
+# $(17) - $(WIN_RC_PRODUCT_VERSION)
+# $(18) - $(WIN_RC_SPECIAL_BUILD)
+# $(19) - $(WIN_RC_LANG)
+# $(20) - $(WIN_RC_CHARSET)
 # note: STD_VERSION_RC_TEMPLATE may be already defined in $(TOP)/make/project.mk
 ifndef STD_VERSION_RC_TEMPLATE
 define STD_VERSION_RC_TEMPLATE
 #include <winver.h>
 #include "$3"
 VS_VERSION_INFO VERSIONINFO
-FILEVERSION $4,$5,$6,0
-PRODUCTVERSION $4,$5,$6,0
+#ifdef $6
+    FILEVERSION    $4,$5,$6,$7
+    PRODUCTVERSION $4,$5,$6,$7
+#else
+    FILEVERSION    $4,$5,0,$7
+    PRODUCTVERSION $4,$5,0,$7
+#endif
 FILEFLAGSMASK VS_FF_DEBUG | VS_FF_PRERELEASE | VS_FF_PATCHED | VS_FF_PRIVATEBUILD | VS_FF_INFOINFERRED | VS_FF_SPECIALBUILD
 #ifdef DEBUG
-    FILEFLAGS VS_FF_DEBUG$(if $(14), | VS_FF_PRIVATEBUILD)$(if $(17), | VS_FF_SPECIALBUILD)
+    FILEFLAGS VS_FF_DEBUG | VS_FF_PRERELEASE$(if $(15), | VS_FF_PRIVATEBUILD)$(if $(18), | VS_FF_SPECIALBUILD)
 #else
-    FILEFLAGS 0x0L$(if $(14), | VS_FF_PRIVATEBUILD)$(if $(17), | VS_FF_SPECIALBUILD)
+    FILEFLAGS 0x0L$(if $(15), | VS_FF_PRIVATEBUILD)$(if $(18), | VS_FF_SPECIALBUILD)
 #endif
-FILEOS $(RC_OS)
-FILETYPE $(RC_FT)
+FILEOS      $(RC_OS)
+FILETYPE    $(RC_FT)
 FILESUBTYPE $(RC_FST)
 BEGIN
     BLOCK "StringFileInfo"
     BEGIN
-        BLOCK "$(18)$(19)"
+        BLOCK "$(19)$(20)"
         BEGIN$(if \
-$7,$(newline)            VALUE "Comments"$(comma)        $7 "\0")
-            VALUE "CompanyName",     $8 "\0"
-            VALUE "FileDescription", $9 "\0"
-            VALUE "FileVersion",     $(10) "\0"
-            VALUE "InternalName",    $(11) "\0"$(if \
-$(12),$(newline)            VALUE "LegalCopyright"$(comma)  $(12) "\0")$(if \
-$(13),$(newline)            VALUE "LegalTrademarks"$(comma) $(13) "\0")
+$8,$(newline)            VALUE "Comments"$(comma)        $8 "\0")
+            VALUE "CompanyName",     $9 "\0"
+            VALUE "FileDescription", $(10) "\0"
+            VALUE "FileVersion",     $(11) "\0"
+            VALUE "InternalName",    $(12) "\0"$(if \
+$(13),$(newline)            VALUE "LegalCopyright"$(comma)  $(13) "\0")$(if \
+$(14),$(newline)            VALUE "LegalTrademarks"$(comma) $(14) "\0")
             VALUE "OriginalFilename","$2$($1_SUFFIX)\0"$(if \
-$(14),$(newline)            VALUE "PrivateBuild"$(comma) $(14) "\0")
-            VALUE "ProductName",     $(15) "\0"
-            VALUE "ProductVersion",  $(16) "\0"$(if \
-$(17),$(newline)            VALUE "SpecialBuild"$(comma) $(17) "\0")
+$(15),$(newline)            VALUE "PrivateBuild"$(comma) $(15) "\0")
+            VALUE "ProductName",     $(16) "\0"
+            VALUE "ProductVersion",  $(17) "\0"$(if \
+$(18),$(newline)            VALUE "SpecialBuild"$(comma) $(18) "\0")
         END
     END
     BLOCK "VarFileInfo"
     BEGIN
-        VALUE "Translation", 0x$(18), 0x$(19)
+        VALUE "Translation", 0x$(19), 0x$(20)
     END
 END
 endef
@@ -116,6 +123,7 @@ $$(TRG_RC): | $(GEN_DIR)/stdres
 $(WIN_RC_PRODUCT_DEFS_HEADER)),$(strip \
 $(WIN_RC_PRODUCT_VERSION_MAJOR)),$(strip \
 $(WIN_RC_PRODUCT_VERSION_MINOR)),$(strip \
+$(WIN_RC_PRODUCT_PATCH_NUM)),$(strip \
 $(WIN_RC_PRODUCT_BUILD_NUM)),$(strip \
 $(WIN_RC_COMMENTS)),$(strip \
 $(WIN_RC_COMPANY_NAME)),$(strip \
@@ -160,7 +168,7 @@ endef
 $(call CLEAN_BUILD_PROTECT_VARS, \
   RC_OS RC_FT RC_FST \
   WIN_RC_PRODUCT_DEFS_HEADER \
-  WIN_RC_PRODUCT_VERSION_MAJOR WIN_RC_PRODUCT_VERSION_MINOR WIN_RC_PRODUCT_BUILD_NUM \
+  WIN_RC_PRODUCT_VERSION_MAJOR WIN_RC_PRODUCT_VERSION_MINOR WIN_RC_PRODUCT_PATCH_NUM WIN_RC_PRODUCT_BUILD_NUM \
   WIN_RC_COMMENTS WIN_RC_COMPANY_NAME WIN_RC_FILE_DESCRIPTION WIN_RC_FILE_VERSION WIN_RC_INTERNAL_NAME \
   WIN_RC_LEGAL_COPYRIGHT WIN_RC_LEGAL_TRADEMARKS WIN_RC_PRIVATE_BUILD \
   WIN_RC_PRODUCT_NAME WIN_RC_PRODUCT_VERSION WIN_RC_SPECIAL_BUILD WIN_RC_LANG WIN_RC_CHARSET \
