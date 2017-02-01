@@ -214,9 +214,10 @@ LINKER_STRIP_STRINGS ?= Generating?code Finished?generating?code
 # target-specific: TMD, LDFLAGS
 define EXE_LD_TEMPLATE
 $(empty)
-EXE_$v_LD1 = $$(call SUP,$(TMD)XLINK,$$1)(($$(VS$$(TMD)LD) /nologo $(CMN_LIBS) $(DEF_EXE_SUBSYSTEM) \
-  $(EMBED_MANIFEST_OPTION) $$(LDFLAGS) && echo EXE_LINKED_OK>&2) | findstr /V /B /L $(call \
-  qpath,$(LINKER_STRIP_STRINGS),/C:)) 3>&2 2>&1 1>&3 | findstr /B /L EXE_LINKED_OK>NUL$$(DEL_MANIFEST_ON_FAIL)$$(EMBED_EXE_MANIFEST)
+EXE_$v_LD1 = $$(call SUP,$(TMD)XLINK,$$1)$(if $(DEBUG),,$(open_brace)$(open_brace))$$(VS$$(TMD)LD) /nologo $(CMN_LIBS) \
+  $(DEF_EXE_SUBSYSTEM) $(EMBED_MANIFEST_OPTION) $$(LDFLAGS)$(if $(DEBUG),, && echo EXE_LINKED_OK>&2$(close_brace) | \
+  findstr /V /B /L $(call qpath,$(LINKER_STRIP_STRINGS),/C:)$(close_brace) 3>&2 2>&1 1>&3 | \
+  findstr /B /L EXE_LINKED_OK>NUL)$$(DEL_MANIFEST_ON_FAIL)$$(EMBED_EXE_MANIFEST)
 endef
 $(eval $(foreach v,R $(VARIANTS_FILTER),$(EXE_LD_TEMPLATE)))
 
@@ -244,10 +245,11 @@ WRAP_DLL_LINKER ?= $(if $(NO_EXPORTS),$2,$(call WRAP_DLL_EXPORTS_LINKER,$1,$2,$(
 # target-specific: TMD, DEF, LDFLAGS, IMP
 define DLL_LD_TEMPLATE
 $(empty)
-DLL_$v_LD1 = $$(call SUP,$(TMD)LINK,$$1)$$(call WRAP_DLL_LINKER,$$1,(($$(VS$$(TMD)LD) /nologo /DLL $$(if $$(DEF),/DEF:$$(call \
-  ospath,$$(DEF))) $(CMN_LIBS) $(EMBED_MANIFEST_OPTION) $$(LDFLAGS) /IMPLIB:$$(call \
-  ospath,$$(IMP)) && echo DLL_LINKED_OK>&2) | findstr /V /B /L $(call \
-  qpath,$(LINKER_STRIP_STRINGS),/C:)) 3>&2 2>&1 1>&3 | findstr /B /L DLL_LINKED_OK>NUL)$$(DEL_ON_DLL_FAIL)$$(EMBED_DLL_MANIFEST)
+DLL_$v_LD1 = $$(call SUP,$(TMD)LINK,$$1)$$(call WRAP_DLL_LINKER,$$1,$(if $(DEBUG),,$(open_brace)$(open_brace))$$(VS$$(TMD)LD) \
+  /nologo /DLL $$(if $$(DEF),/DEF:$$(call ospath,$$(DEF))) $(CMN_LIBS) $(EMBED_MANIFEST_OPTION) $$(LDFLAGS) /IMPLIB:$$(call \
+  ospath,$$(IMP))$(if $(DEBUG),, && echo DLL_LINKED_OK>&2$(close_brace) | findstr /V /B /L $(call \
+  qpath,$(LINKER_STRIP_STRINGS),/C:)$(close_brace) 3>&2 2>&1 1>&3 | \
+  findstr /B /L DLL_LINKED_OK>NUL))$$(DEL_ON_DLL_FAIL)$$(EMBED_DLL_MANIFEST)
 endef
 $(eval $(foreach v,R $(VARIANTS_FILTER),$(DLL_LD_TEMPLATE)))
 
@@ -440,10 +442,11 @@ DEF_DRV_LDFLAGS ?= \
 
 # $1 - target, $2 - objects
 # target-specific: RES, KLIBS, SYSLIBPATH, SYSLIBS, LDFLAGS
-DRV_LD1 = $(call SUP,KLINK,$1)(($(WKLD) /nologo $(DEF_DRV_LDFLAGS) /OUT:$(call ospath,$1 $2 $(RES)) $(if \
-  $(KLIBS),/LIBPATH:$(call ospath,$(LIB_DIR))) $(addprefix $(KLIB_PREFIX),$(KLIBS:=$(KLIB_SUFFIX))) $(call \
-  qpath,$(call ospath,$(SYSLIBPATH)),/LIBPATH:) $(SYSLIBS) $(LDFLAGS) && echo DRV_LINKED_OK>&2) | findstr /V /B /L $(call \
-  qpath,$(LINKER_STRIP_STRINGS),/C:)) 3>&2 2>&1 1>&3 | findstr /B /L DRV_LINKED_OK>NUL
+DRV_LD1 = $(call SUP,KLINK,$1)$(if $(DEBUG),,$(open_brace)$(open_brace))$(WKLD) /nologo $(DEF_DRV_LDFLAGS) /OUT:$(call \
+  ospath,$1 $2 $(RES)) $(if $(KLIBS),/LIBPATH:$(call ospath,$(LIB_DIR))) $(addprefix $(KLIB_PREFIX),$(KLIBS:=$(KLIB_SUFFIX))) $(call \
+  qpath,$(call ospath,$(SYSLIBPATH)),/LIBPATH:) $(SYSLIBS) $(LDFLAGS)$(if \
+  $(DEBUG),, && echo DRV_LINKED_OK>&2$(close_brace) | findstr /V /B /L $(call \
+  qpath,$(LINKER_STRIP_STRINGS),/C:)$(close_brace) 3>&2 2>&1 1>&3 | findstr /B /L DRV_LINKED_OK>NUL)
 
 # flags for kernel-level C-compiler
 ifeq (undefined,$(origin KRN_FLAGS))
