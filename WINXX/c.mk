@@ -207,7 +207,9 @@ CMN_LIBS ?= /OUT:$$(ospath) $(CMN_LIBS_LDFLAGS) $$(call ospath,$$2 $$(RES)) $$(i
 DEF_EXE_SUBSYSTEM ?= $$(if $$(filter /SUBSYSTEM:%,$$(LDFLAGS)),,/SUBSYSTEM:CONSOLE,$(SUBSYSTEM_VER))
 
 # strings to strip off from link.exe output
-LINKER_STRIP_STRINGS ?= Generating?code Finished?generating?code
+# cp1251 "" converted to cp866
+LINKER_STRIP_STRINGS  ?= .þ÷ôðýøõ úþôð .þ÷ôðýøõ úþôð ÷ðòõ¨°õýþ
+#LINKER_STRIP_STRINGS ?= Generating?code Finished?generating?code
 
 # define EXE linker for variant $v
 # $$1 - target exe, $$2 - objects, $v - variant
@@ -216,7 +218,7 @@ define EXE_LD_TEMPLATE
 $(empty)
 EXE_$v_LD1 = $$(call SUP,$(TMD)XLINK,$$1)$(if $(DEBUG),,$(open_brace)$(open_brace))$$(VS$$(TMD)LD) /nologo $(CMN_LIBS) \
   $(DEF_EXE_SUBSYSTEM) $(EMBED_MANIFEST_OPTION) $$(LDFLAGS)$(if $(DEBUG),, && echo EXE_LINKED_OK>&2$(close_brace) | \
-  findstr /V /B /L $(call qpath,$(LINKER_STRIP_STRINGS),/C:)$(close_brace) 3>&2 2>&1 1>&3 | \
+  findstr /V /B /R $(call qpath,$(LINKER_STRIP_STRINGS),/C:)$(close_brace) 3>&2 2>&1 1>&3 | \
   findstr /B /L EXE_LINKED_OK>NUL)$$(DEL_MANIFEST_ON_FAIL)$$(EMBED_EXE_MANIFEST)
 endef
 $(eval $(foreach v,R $(VARIANTS_FILTER),$(EXE_LD_TEMPLATE)))
@@ -247,7 +249,7 @@ define DLL_LD_TEMPLATE
 $(empty)
 DLL_$v_LD1 = $$(call SUP,$(TMD)LINK,$$1)$$(call WRAP_DLL_LINKER,$$1,$(if $(DEBUG),,$(open_brace)$(open_brace))$$(VS$$(TMD)LD) \
   /nologo /DLL $$(if $$(DEF),/DEF:$$(call ospath,$$(DEF))) $(CMN_LIBS) $(EMBED_MANIFEST_OPTION) $$(LDFLAGS) /IMPLIB:$$(call \
-  ospath,$$(IMP))$(if $(DEBUG),, && echo DLL_LINKED_OK>&2$(close_brace) | findstr /V /B /L $(call \
+  ospath,$$(IMP))$(if $(DEBUG),, && echo DLL_LINKED_OK>&2$(close_brace) | findstr /V /B /R $(call \
   qpath,$(LINKER_STRIP_STRINGS),/C:)$(close_brace) 3>&2 2>&1 1>&3 | \
   findstr /B /L DLL_LINKED_OK>NUL))$$(DEL_ON_DLL_FAIL)$$(EMBED_DLL_MANIFEST)
 endef
@@ -308,9 +310,14 @@ CMN_RUCL ?= $(CMN_RCL) /DUNICODE /D_UNICODE
 CMN_SUCL ?= $(CMN_SCL) /DUNICODE /D_UNICODE
 
 # $(SED) expression to match C compiler messages about included files
-#INCLUDING_FILE_PATTERN ?= \xd0\x9f\xd1\x80\xd0\xb8\xd0\xbc\xd0\xb5\xd1\x87\xd0\xb0\xd0\xbd\xd0\xb8\xd0\xb5\x3a\x20\xd0\xb2\xd0\xba\xd0\xbb\xd1\x8e\xd1\x87\xd0\xb5\xd0\xbd\xd0\xb8\xd0\xb5\x20\xd1\x84\xd0\xb0\xd0\xb9\xd0\xbb\xd0\xb0:
+# utf8 "¿¿¿¿¿¿¿¿¿¿: ¿¿¿¿¿¿¿¿¿ ¿¿¿¿¿:"
+#INCLUDING_FILE_PATTERN ?= \xd0\x9f\xd1\x80\xd0\xb8\xd0\xbc\xd0\xb5\xd1\x87\xd0\xb0\xd0\xbd\xd0\xb8\xd0\xb5: \xd0\xb2\xd0\xba\xd0\xbb\xd1\x8e\xd1\x87\xd0\xb5\xd0\xbd\xd0\xb8\xd0\xb5 \xd1\x84\xd0\xb0\xd0\xb9\xd0\xbb\xd0\xb0:
+# cp1251 "¿¿¿¿¿¿¿¿¿¿: ¿¿¿¿¿¿¿¿¿ ¿¿¿¿¿:"
+#INCLUDING_FILE_PATTERN ?= \xcf\xf0\xe8\xec\xe5\xf7\xe0\xed\xe8\xe5: \xe2\xea\xeb\xfe\xf7\xe5\xed\xe8\xe5 \xf4\xe0\xe9\xeb\xe0:
+# cp1251 "¿¿¿¿¿¿¿¿¿¿: ¿¿¿¿¿¿¿¿¿ ¿¿¿¿¿:"
+INCLUDING_FILE_PATTERN ?= Ïðèìå÷àíèå: âêëþ÷åíèå ôàéëà:
 ifeq (undefined,$(origin INCLUDING_FILE_PATTERN))
-INCLUDING_FILE_PATTERN := Note: including file:
+#INCLUDING_FILE_PATTERN := Note: including file:
 endif
 
 # $(SED) expression to filter-out system files while dependencies generation
@@ -445,7 +452,7 @@ DEF_DRV_LDFLAGS ?= \
 DRV_LD1 = $(call SUP,KLINK,$1)$(if $(DEBUG),,$(open_brace)$(open_brace))$(WKLD) /nologo $(DEF_DRV_LDFLAGS) /OUT:$(call \
   ospath,$1 $2 $(RES)) $(if $(KLIBS),/LIBPATH:$(call ospath,$(LIB_DIR))) $(addprefix $(KLIB_PREFIX),$(KLIBS:=$(KLIB_SUFFIX))) $(call \
   qpath,$(call ospath,$(SYSLIBPATH)),/LIBPATH:) $(SYSLIBS) $(LDFLAGS)$(if \
-  $(DEBUG),, && echo DRV_LINKED_OK>&2$(close_brace) | findstr /V /B /L $(call \
+  $(DEBUG),, && echo DRV_LINKED_OK>&2$(close_brace) | findstr /V /B /R $(call \
   qpath,$(LINKER_STRIP_STRINGS),/C:)$(close_brace) 3>&2 2>&1 1>&3 | findstr /B /L DRV_LINKED_OK>NUL)
 
 # flags for kernel-level C-compiler
