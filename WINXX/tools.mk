@@ -48,11 +48,11 @@ DEL1 = if exist $1 del /F /Q $1
 DEL  = $(call DEL1,$(ospath))
 
 # delete directory
-DEL_DIR1 = if exist $1\NUL rd /S /Q $1
+DEL_DIR1 = if exist $1\* rd /S /Q $1
 DEL_DIR  = $(call DEL_DIR1,$(ospath))
 
 # delete files and directories
-RM1 = $(if $(VERBOSE),,@)for %%f in ($(ospath)) do if exist %%f\NUL (rd /S /Q %%f) else if exist %%f (del /F /Q %%f)
+RM1 = $(if $(VERBOSE),,@)for %%f in ($(ospath)) do if exist %%f\* (rd /S /Q %%f) else if exist %%f (del /F /Q %%f)
 RM  = $(call xcmd,RM1,$1,$(DEL_ARGS_LIMIT))
 
 # NOTE! there are races in MKDIR - if make spawns two parallel jobs:
