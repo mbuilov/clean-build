@@ -207,9 +207,9 @@ CMN_LIBS ?= /OUT:$$(ospath) $(CMN_LIBS_LDFLAGS) $$(call ospath,$$2 $$(RES)) $$(i
 DEF_EXE_SUBSYSTEM ?= $$(if $$(filter /SUBSYSTEM:%,$$(LDFLAGS)),,/SUBSYSTEM:CONSOLE,$(SUBSYSTEM_VER))
 
 # strings to strip off from link.exe output
-# cp1251 "" converted to cp866
-LINKER_STRIP_STRINGS  ?= .þ÷ôðýøõ úþôð .þ÷ôðýøõ úþôð ÷ðòõ¨°õýþ
-#LINKER_STRIP_STRINGS ?= Generating?code Finished?generating?code
+# cp1251 ".Ð¾Ð·Ð´Ð°Ð½Ð¸Ðµ?ÐºÐ¾Ð´Ð° .Ð¾Ð·Ð´Ð°Ð½Ð¸Ðµ?ÐºÐ¾Ð´Ð°?Ð·Ð°Ð²ÐµÑ€ÑˆÐµÐ½Ð¾" as cp866 converted to cp1251
+#LINKER_STRIP_STRINGS ?= .þ÷ôðýøõ úþôð .þ÷ôðýøõ úþôð ÷ðòõ¨°õýþ
+LINKER_STRIP_STRINGS ?= Generating?code Finished?generating?code
 
 # define EXE linker for variant $v
 # $$1 - target exe, $$2 - objects, $v - variant
@@ -310,14 +310,14 @@ CMN_RUCL ?= $(CMN_RCL) /DUNICODE /D_UNICODE
 CMN_SUCL ?= $(CMN_SCL) /DUNICODE /D_UNICODE
 
 # $(SED) expression to match C compiler messages about included files
-# utf8 "¿¿¿¿¿¿¿¿¿¿: ¿¿¿¿¿¿¿¿¿ ¿¿¿¿¿:"
-#INCLUDING_FILE_PATTERN ?= \xd0\x9f\xd1\x80\xd0\xb8\xd0\xbc\xd0\xb5\xd1\x87\xd0\xb0\xd0\xbd\xd0\xb8\xd0\xb5: \xd0\xb2\xd0\xba\xd0\xbb\xd1\x8e\xd1\x87\xd0\xb5\xd0\xbd\xd0\xb8\xd0\xb5 \xd1\x84\xd0\xb0\xd0\xb9\xd0\xbb\xd0\xb0:
-# cp1251 "¿¿¿¿¿¿¿¿¿¿: ¿¿¿¿¿¿¿¿¿ ¿¿¿¿¿:"
-#INCLUDING_FILE_PATTERN ?= \xcf\xf0\xe8\xec\xe5\xf7\xe0\xed\xe8\xe5: \xe2\xea\xeb\xfe\xf7\xe5\xed\xe8\xe5 \xf4\xe0\xe9\xeb\xe0:
-# cp1251 "¿¿¿¿¿¿¿¿¿¿: ¿¿¿¿¿¿¿¿¿ ¿¿¿¿¿:"
-INCLUDING_FILE_PATTERN ?= Ïðèìå÷àíèå: âêëþ÷åíèå ôàéëà:
 ifeq (undefined,$(origin INCLUDING_FILE_PATTERN))
-#INCLUDING_FILE_PATTERN := Note: including file:
+# utf8 "ÐŸÑ€Ð¸Ð¼ÐµÑ‡Ð°Ð½Ð¸Ðµ: Ð²ÐºÐ»ÑŽÑ‡ÐµÐ½Ð¸Ðµ Ñ„Ð°Ð¹Ð»Ð°:"
+#INCLUDING_FILE_PATTERN ?= \xd0\x9f\xd1\x80\xd0\xb8\xd0\xbc\xd0\xb5\xd1\x87\xd0\xb0\xd0\xbd\xd0\xb8\xd0\xb5: \xd0\xb2\xd0\xba\xd0\xbb\xd1\x8e\xd1\x87\xd0\xb5\xd0\xbd\xd0\xb8\xd0\xb5 \xd1\x84\xd0\xb0\xd0\xb9\xd0\xbb\xd0\xb0:
+# cp1251 "ÐŸÑ€Ð¸Ð¼ÐµÑ‡Ð°Ð½Ð¸Ðµ: Ð²ÐºÐ»ÑŽÑ‡ÐµÐ½Ð¸Ðµ Ñ„Ð°Ð¹Ð»Ð°:"
+#INCLUDING_FILE_PATTERN ?= \xcf\xf0\xe8\xec\xe5\xf7\xe0\xed\xe8\xe5: \xe2\xea\xeb\xfe\xf7\xe5\xed\xe8\xe5 \xf4\xe0\xe9\xeb\xe0:
+# cp1251 "ÐŸÑ€Ð¸Ð¼ÐµÑ‡Ð°Ð½Ð¸Ðµ: Ð²ÐºÐ»ÑŽÑ‡ÐµÐ½Ð¸Ðµ Ñ„Ð°Ð¹Ð»Ð°:"
+#INCLUDING_FILE_PATTERN ?= Ïðèìå÷àíèå: âêëþ÷åíèå ôàéëà:
+INCLUDING_FILE_PATTERN := Note: including file:
 endif
 
 # $(SED) expression to filter-out system files while dependencies generation
