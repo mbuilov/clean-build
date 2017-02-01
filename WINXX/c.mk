@@ -63,14 +63,16 @@ MC ?= $(call SUP,$(TMD)MC,$1)$($(TMD)MC1)$(if $(VERBOSE), -v)
 # SUPPRESS_RC_LOGO may be defined as /nologo -  not all versions of rc.exe support this switch
 SUPPRESS_RC_LOGO := $(SUPPRESS_RC_LOGO)
 
+# strings to strip off from rc.exe output if rc.exe does not support /nologo option
+RC_LOGO_STRINGS ?= Microsoft?(R)?Windows?(R)?Resource?Compiler?Version Copyright?(C)?Microsoft?Corporation.??All?rights?reserved. ^$$
+
 # resource compiler
 # $1 - target .res, $2 - source .rc, $3 - rc compiler options
 # target-specific: TMD
 RC ?= $(call SUP,$(TMD)RC,$1)$(if $(SUPPRESS_RC_LOGO),,$(open_brace)$(open_brace))$($(TMD)RC1) $(SUPPRESS_RC_LOGO)$(if \
   $(VERBOSE), /v) $3 $(call qpath,$(VS$(TMD)INC) $(UM$(TMD)INC),/I) /fo$(call ospath,$1 $2)$(if \
-  $(SUPPRESS_RC_LOGO),>&2,&& echo RC_COMPILED_OK>&2$(close_brace) | \
-  findstr /B /V /R /C:"Microsoft (R) Windows (R) Resource Compiler Version" \
-  /C:"Copyright (C) Microsoft Corporation.  All rights reserved." /C:"^$$"$(close_brace) 3>&2 2>&1 1>&3 | findstr /B /L RC_COMPILED_OK>NUL)
+  $(SUPPRESS_RC_LOGO),>&2,&& echo RC_COMPILED_OK>&2$(close_brace) | findstr /B /V /R $(call \
+  qpath,$(RC_LOGO_STRINGS),/C:)$(close_brace) 3>&2 2>&1 1>&3 | findstr /B /L RC_COMPILED_OK>NUL)
 
 # prefixes/suffixes of build targets, may be already defined in $(TOP)/make/project.mk
 # note: if OBJ_SUFFIX is defined, then all prefixes/suffixes must be also defined
@@ -113,7 +115,8 @@ OS_PREDEFINES ?= WINXX $(OSVARIANT) $(WINVER_DEFINES)
 # Note: starting from Visual Studio 2012, linker supports /MANIFEST:EMBED option - linker will call mt.exe internally
 ifndef EMBED_MANIFEST_OPTION
 # target-specific: TMD
-EMBED_EXE_MANIFEST ?= $(call DEL_ON_FAIL,$1.manifest)$(newline)$(if \
+DEL_MANIFEST_ON_FAIL ?= $(call DEL_ON_FAIL,$1.manifest)
+EMBED_EXE_MANIFEST ?= $(newline)$(if \
   $(VERBOSE),,@)if exist $(ospath).manifest ($($(TMD)MT1) -nologo -manifest \
   $(ospath).manifest -outputresource:$(ospath);1 && del $(ospath).manifest)$(DEL_ON_FAIL)
 EMBED_DLL_MANIFEST ?= $(newline)$(if \
@@ -203,13 +206,17 @@ CMN_LIBS ?= /OUT:$$(ospath) $(CMN_LIBS_LDFLAGS) $$(call ospath,$$2 $$(RES)) $$(i
 # target-specific: LDFLAGS
 DEF_EXE_SUBSYSTEM ?= $$(if $$(filter /SUBSYSTEM:%,$$(LDFLAGS)),,/SUBSYSTEM:CONSOLE,$(SUBSYSTEM_VER))
 
+# strings to strip off from link.exe output
+LINKER_STRIP_STRINGS ?= Generating?code Finished?generating?code
+
 # define EXE linker for variant $v
 # $$1 - target exe, $$2 - objects, $v - variant
 # target-specific: TMD, LDFLAGS
 define EXE_LD_TEMPLATE
 $(empty)
-EXE_$v_LD1 = $$(call SUP,$(TMD)XLINK,$$1)$$(VS$$(TMD)LD) \
-  /nologo $(CMN_LIBS) $(DEF_EXE_SUBSYSTEM) $(EMBED_MANIFEST_OPTION) $$(LDFLAGS)$$(EMBED_EXE_MANIFEST)
+EXE_$v_LD1 = $$(call SUP,$(TMD)XLINK,$$1)(($$(VS$$(TMD)LD) /nologo $(CMN_LIBS) $(DEF_EXE_SUBSYSTEM) \
+  $(EMBED_MANIFEST_OPTION) $$(LDFLAGS) && echo EXE_LINKED_OK>&2) | findstr /V /B /L $(call \
+  qpath,$(LINKER_STRIP_STRINGS),/C:)) 3>&2 2>&1 1>&3 | findstr /B /L EXE_LINKED_OK>NUL$$(DEL_MANIFEST_ON_FAIL)$$(EMBED_EXE_MANIFEST)
 endef
 $(eval $(foreach v,R $(VARIANTS_FILTER),$(EXE_LD_TEMPLATE)))
 
@@ -223,24 +230,24 @@ DEL_ON_DLL_FAIL ?= $(if $(DEF)$(EMBED_DLL_MANIFEST),$(call DEL_ON_FAIL,$(if $(DE
 # $3 - $(basename $(notdir $1)).exp
 # target-specific: LIB_DIR
 WRAP_DLL_EXPORTS_LINKER ?= (($2 && (dir $(call ospath,$(LIB_DIR)/$3) >NUL 2>&1 || \
-  (echo $(notdir $1) does not exports any symbols! & del $(ospath) & exit /b 1)) && echo DLL_LINKED_OK 1>&2) | \
-  findstr /V /L $3) 3>&2 2>&1 1>&3 | findstr /B /L DLL_LINKED_OK >NUL
+  (echo $(notdir $1) does not exports any symbols! & del $(ospath) & exit /b 1)) && echo EXP_LINKED_OK>&2) | \
+  findstr /V /L $3) 3>&2 2>&1 1>&3 | findstr /B /L EXP_LINKED_OK >NUL
 
 # WRAP_DLL_LINKER - wrap dll linker call
 # $1 - target dll
 # $2 - linker with options
 # target-specific: NO_EXPORTS
 WRAP_DLL_LINKER ?= $(if $(NO_EXPORTS),$2,$(call WRAP_DLL_EXPORTS_LINKER,$1,$2,$(basename $(notdir $1)).exp))
-#(($2 && echo TRG_LINKED_OK>&2) | findstr /V /B /L /C:"Generating code" /C:"Finished generating code") 3>&2 2>&1 1>&3 | findstr /B /L TRG_LINKED_OK>NUL
 
 # define DLL linker for variant $v
 # $$1 - target dll, $$2 - objects, $v - variant
 # target-specific: TMD, DEF, LDFLAGS, IMP
 define DLL_LD_TEMPLATE
 $(empty)
-DLL_$v_LD1 = $$(call SUP,$(TMD)LINK,$$1)$$(call WRAP_DLL_LINKER,$$1,$$(VS$$(TMD)LD) /nologo /DLL $$(if $$(DEF),/DEF:$$(call \
-  ospath,$$(DEF))) $(CMN_LIBS) $$(LDFLAGS) /IMPLIB:$$(call \
-  ospath,$$(IMP)) $(EMBED_MANIFEST_OPTION))$$(DEL_ON_DLL_FAIL)$$(EMBED_DLL_MANIFEST)
+DLL_$v_LD1 = $$(call SUP,$(TMD)LINK,$$1)$$(call WRAP_DLL_LINKER,$$1,(($$(VS$$(TMD)LD) /nologo /DLL $$(if $$(DEF),/DEF:$$(call \
+  ospath,$$(DEF))) $(CMN_LIBS) $(EMBED_MANIFEST_OPTION) $$(LDFLAGS) /IMPLIB:$$(call \
+  ospath,$$(IMP)) && echo DLL_LINKED_OK>&2) | findstr /V /B /L $(call \
+  qpath,$(LINKER_STRIP_STRINGS),/C:)) 3>&2 2>&1 1>&3 | findstr /B /L DLL_LINKED_OK>NUL)$$(DEL_ON_DLL_FAIL)$$(EMBED_DLL_MANIFEST)
 endef
 $(eval $(foreach v,R $(VARIANTS_FILTER),$(DLL_LD_TEMPLATE)))
 
@@ -433,9 +440,10 @@ DEF_DRV_LDFLAGS ?= \
 
 # $1 - target, $2 - objects
 # target-specific: RES, KLIBS, SYSLIBPATH, SYSLIBS, LDFLAGS
-DRV_LD1 = $(call SUP,KLINK,$1)$(WKLD) /nologo $(DEF_DRV_LDFLAGS) /OUT:$(call ospath,$1 $2 $(RES)) $(if \
-  $(KLIBS),/LIBPATH:$(call ospath,$(LIB_DIR))) $(addsuffix $(KLIB_SUFFIX),$(addprefix \
-  $(KLIB_PREFIX),$(KLIBS))) $(call qpath,$(call ospath,$(SYSLIBPATH)),/LIBPATH:) $(SYSLIBS) $(LDFLAGS)
+DRV_LD1 = $(call SUP,KLINK,$1)(($(WKLD) /nologo $(DEF_DRV_LDFLAGS) /OUT:$(call ospath,$1 $2 $(RES)) $(if \
+  $(KLIBS),/LIBPATH:$(call ospath,$(LIB_DIR))) $(addprefix $(KLIB_PREFIX),$(KLIBS:=$(KLIB_SUFFIX))) $(call \
+  qpath,$(call ospath,$(SYSLIBPATH)),/LIBPATH:) $(SYSLIBS) $(LDFLAGS) && echo DRV_LINKED_OK>&2) | findstr /V /B /L $(call \
+  qpath,$(LINKER_STRIP_STRINGS),/C:)) 3>&2 2>&1 1>&3 | findstr /B /L DRV_LINKED_OK>NUL
 
 # flags for kernel-level C-compiler
 ifeq (undefined,$(origin KRN_FLAGS))
@@ -820,7 +828,7 @@ $1: ASMFLAGS   := $(ASMFLAGS) $(DRV_ASMFLAGS)
 $1: LDFLAGS    := $(LDFLAGS) $(DRV_LDFLAGS)
 $1: SYSLIBS    := $(SYSLIBS) $(DRV_SYSLIBS)
 $1: SYSLIBPATH := $(SYSLIBPATH) $(DRV_SYSLIBPATH)
-$1: $(addsuffix $(KLIB_SUFFIX),$(addprefix $(LIB_DIR)/$(KLIB_PREFIX),$(KLIBS))) $5 $2 $(call TRG_ALL_SDEPS,DRV)
+$1: $(addprefix $(LIB_DIR)/$(KLIB_PREFIX),$(KLIBS:=$(KLIB_SUFFIX))) $5 $2 $(call TRG_ALL_SDEPS,DRV)
 	$$(call DRV_LD,$$@,$$(filter %$(OBJ_SUFFIX),$$^))
 $(call TOCLEAN,$5)
 ifdef DEBUG
@@ -850,14 +858,14 @@ DLL_NO_EXPORTS:=
 endef
 
 # protect variables from modifications in target makefiles
-$(call CLEAN_BUILD_PROTECT_VARS,SEQ_BUILD YASMC FLEXC BISONC MC SUPPRESS_RC_LOGO RC \
+$(call CLEAN_BUILD_PROTECT_VARS,SEQ_BUILD YASMC FLEXC BISONC MC SUPPRESS_RC_LOGO RC_LOGO_STRINGS RC \
   EXE_SUFFIX OBJ_SUFFIX LIB_PREFIX LIB_SUFFIX IMP_PREFIX IMP_SUFFIX DLL_PREFIX DLL_SUFFIX KLIB_PREFIX KLIB_SUFFIX DRV_PREFIX DRV_SUFFIX \
   DLL_DIR IMP_DIR SUBSYSTEM_KVER OS_PREDEFINES \
-  EMBED_MANIFEST_OPTION EMBED_EXE_MANIFEST EMBED_DLL_MANIFEST \
+  EMBED_MANIFEST_OPTION DEL_MANIFEST_ON_FAIL EMBED_EXE_MANIFEST EMBED_DLL_MANIFEST \
   OS_APPDEFS OS_KRNDEFS VARIANTS_FILTER VARIANT_LIB_MAP VARIANT_IMP_MAP \
   CHECK_LIB_UNI_NAME1 CHECK_LIB_UNI_NAME CMN_LIBS_LDFLAGS CMN_LIBS \
   DLL_EXPORTS_DEFINE DLL_IMPORTS_DEFINE \
-  DEF_EXE_SUBSYSTEM EXE_LD_TEMPLATE DEL_ON_DLL_FAIL WRAP_DLL_EXPORTS_LINKER WRAP_DLL_LINKER \
+  DEF_EXE_SUBSYSTEM LINKER_STRIP_STRINGS EXE_LD_TEMPLATE DEL_ON_DLL_FAIL WRAP_DLL_EXPORTS_LINKER WRAP_DLL_LINKER \
   DLL_LD_TEMPLATE DEF_LIB_LDFLAGS LIB_LD_TEMPLATE DEF_KLIB_LDFLAGS \
   $(foreach v,R $(VARIANTS_FILTER),EXE_$v_LD1 DLL_$v_LD1 LIB_$v_LD1) KLIB_LD1 \
   APP_FLAGS CMN_CL1 CMN_RCL CMN_SCL CMN_RUCL CMN_SUCL \
