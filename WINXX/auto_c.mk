@@ -128,6 +128,7 @@ VSTLIB := $(VSN)\VC\lib$(if $(TCPU:%64=),,\amd64)
 VSTINC := $(VSINC)
 
 ifneq ($(call is_less,$(VS_VER),10),)
+# cl.exe or link.exe from Visual Studio 2008 or earlier need to find dlls in Common7\IDE to work
 PATH := $(PATH);$(call qpath,$(VSN)\Common7\IDE)
 endif
 
