@@ -211,15 +211,19 @@ DEF_EXE_SUBSYSTEM ?= $$(if $$(filter /SUBSYSTEM:%,$$(LDFLAGS)),,/SUBSYSTEM:CONSO
 #LINKER_STRIP_STRINGS ?= .þ÷ôðýøõ úþôð .þ÷ôðýøõ úþôð ÷ðòõ¨°õýþ
 LINKER_STRIP_STRINGS ?= Generating?code Finished?generating?code
 
+# wrap linker call to strip-off diagnostic linker messages
+# $1 - linker command with arguments
+# NOTE: linker may run in a sub-batch, where double-quotes are escaped by two double-quotes, not by backslash
+WRAP_LINKER ?= $(if $(DEBUG),$1,(($(subst \","",$1) && echo TRG_LINKED_OK>&2) | findstr /V /B /R $(call \
+  qpath,$(LINKER_STRIP_STRINGS),/C:)) 3>&2 2>&1 1>&3 | findstr /B /L TRG_LINKED_OK>NUL)
+
 # define EXE linker for variant $v
 # $$1 - target exe, $$2 - objects, $v - variant
 # target-specific: TMD, LDFLAGS
 define EXE_LD_TEMPLATE
 $(empty)
-EXE_$v_LD1 = $$(call SUP,$(TMD)XLINK,$$1)$(if $(DEBUG),,$(open_brace)$(open_brace))$$(VS$$(TMD)LD) /nologo $(CMN_LIBS) \
-  $(DEF_EXE_SUBSYSTEM) $(EMBED_MANIFEST_OPTION) $$(LDFLAGS)$(if $(DEBUG),, && echo EXE_LINKED_OK>&2$(close_brace) | \
-  findstr /V /B /R $(call qpath,$(LINKER_STRIP_STRINGS),/C:)$(close_brace) 3>&2 2>&1 1>&3 | \
-  findstr /B /L EXE_LINKED_OK>NUL)$$(DEL_MANIFEST_ON_FAIL)$$(EMBED_EXE_MANIFEST)
+EXE_$v_LD1 = $$(call SUP,$(TMD)XLINK,$$1)$$(call WRAP_LINKER,$$(VS$$(TMD)LD) /nologo $(CMN_LIBS) \
+  $(DEF_EXE_SUBSYSTEM) $(EMBED_MANIFEST_OPTION) $$(LDFLAGS))$$(DEL_MANIFEST_ON_FAIL)$$(EMBED_EXE_MANIFEST)
 endef
 $(eval $(foreach v,R $(VARIANTS_FILTER),$(EXE_LD_TEMPLATE)))
 
@@ -227,18 +231,19 @@ $(eval $(foreach v,R $(VARIANTS_FILTER),$(EXE_LD_TEMPLATE)))
 # target-specific: DEF
 DEL_ON_DLL_FAIL ?= $(if $(DEF)$(EMBED_DLL_MANIFEST),$(call DEL_ON_FAIL,$(if $(DEF),$1) $(if $(EMBED_DLL_MANIFEST),$1.manifest)))
 
-# WRAP_DLL_EXPORTS_LINKER - call dll linker and check that dll exports symbols, then strip-off message about .exp-file
+# call dll linker and check that dll exports symbols, then strip-off message about .exp-file
 # $1 - target dll
-# $2 - linker with options
+# $2 - (wrapped) linker with options
 # $3 - $(basename $(notdir $1)).exp
 # target-specific: LIB_DIR
-WRAP_DLL_EXPORTS_LINKER ?= (($2 && (dir $(call ospath,$(LIB_DIR)/$3) >NUL 2>&1 || \
+# NOTE: linker will run in a sub-batch, where double-quotes are escaped by two double-quotes, not by backslash
+WRAP_DLL_EXPORTS_LINKER ?= (($(if $(DEBUG),$(subst \","",$2),$2) && (dir $(call ospath,$(LIB_DIR)/$3) >NUL 2>&1 || \
   (echo $(notdir $1) does not exports any symbols! & del $(ospath) & exit /b 1)) && echo EXP_LINKED_OK>&2) | \
   findstr /V /L $3) 3>&2 2>&1 1>&3 | findstr /B /L EXP_LINKED_OK >NUL
 
-# WRAP_DLL_LINKER - wrap dll linker call
+# wrap dll linker call to check that dll exports symbols, then strip-off message about .exp-file
 # $1 - target dll
-# $2 - linker with options
+# $2 - (wrapped) linker with options
 # target-specific: NO_EXPORTS
 WRAP_DLL_LINKER ?= $(if $(NO_EXPORTS),$2,$(call WRAP_DLL_EXPORTS_LINKER,$1,$2,$(basename $(notdir $1)).exp))
 
@@ -247,11 +252,9 @@ WRAP_DLL_LINKER ?= $(if $(NO_EXPORTS),$2,$(call WRAP_DLL_EXPORTS_LINKER,$1,$2,$(
 # target-specific: TMD, DEF, LDFLAGS, IMP
 define DLL_LD_TEMPLATE
 $(empty)
-DLL_$v_LD1 = $$(call SUP,$(TMD)LINK,$$1)$$(call WRAP_DLL_LINKER,$$1,$(if $(DEBUG),,$(open_brace)$(open_brace))$$(VS$$(TMD)LD) \
-  /nologo /DLL $$(if $$(DEF),/DEF:$$(call ospath,$$(DEF))) $(CMN_LIBS) $(EMBED_MANIFEST_OPTION) $$(LDFLAGS) /IMPLIB:$$(call \
-  ospath,$$(IMP))$(if $(DEBUG),, && echo DLL_LINKED_OK>&2$(close_brace) | findstr /V /B /R $(call \
-  qpath,$(LINKER_STRIP_STRINGS),/C:)$(close_brace) 3>&2 2>&1 1>&3 | \
-  findstr /B /L DLL_LINKED_OK>NUL))$$(DEL_ON_DLL_FAIL)$$(EMBED_DLL_MANIFEST)
+DLL_$v_LD1 = $$(call SUP,$(TMD)LINK,$$1)$$(call WRAP_DLL_LINKER,$$1,$$(call WRAP_LINKER,$$(VS$$(TMD)LD) \
+  /nologo /DLL $$(if $$(DEF),/DEF:$$(call ospath,$$(DEF))) $(CMN_LIBS) /IMPLIB:$$(call \
+  ospath,$$(IMP)) $(EMBED_MANIFEST_OPTION) $$(LDFLAGS)))$$(DEL_ON_DLL_FAIL)$$(EMBED_DLL_MANIFEST)
 endef
 $(eval $(foreach v,R $(VARIANTS_FILTER),$(DLL_LD_TEMPLATE)))
 
@@ -343,16 +346,18 @@ SED_DEPS_SCRIPT ?= \
 
 # WRAP_COMPILER - call compiler and auto-generate dependencies
 # $1 - compiler with options, $2 - target object, $3 - source, $4 - $(basename $2).d, $5 - prefixes of system includes
+# NOTE: compiler will run in a sub-batch, where double-quotes are escaped by two double-quotes, not by backslash
 ifeq ($(NO_DEPS),)
 ifneq ($(SEQ_BUILD),)
-WRAP_COMPILER ?= (($1 /showIncludes 2>&1 && set /p ="COMPILATION_OK" >&2 <NUL) | \
+WRAP_COMPILER ?= (($(subst \","",$1) /showIncludes 2>&1 && set /p ="COMPILATION_OK" >&2 <NUL) | \
   ($(SED) -n $(SED_DEPS_SCRIPT) 2>&1 && set /p ="_SED_OK" >&2 <NUL)) 3>&2 2>&1 1>&3 | findstr /B /L COMPILATION_OK_SED_OK >NUL
 endif
 endif
 
 # if not generating auto-dependencies, just stip-off names of compiled sources
 # $1 - compiler with options
-WRAP_COMPILER ?= (($1 && echo COMPILATION_OK 1>&2) | findstr /L :) 3>&2 2>&1 1>&3 | findstr /B /L COMPILATION_OK >NUL
+# NOTE: compiler will run in a sub-batch, where double-quotes are escaped by two double-quotes, not by backslash
+WRAP_COMPILER ?= (($(subst \","",$1) && echo COMPILATION_OK 1>&2) | findstr /L :) 3>&2 2>&1 1>&3 | findstr /B /L COMPILATION_OK >NUL
 
 ifdef SEQ_BUILD
 
@@ -449,11 +454,9 @@ DEF_DRV_LDFLAGS ?= \
 
 # $1 - target, $2 - objects
 # target-specific: RES, KLIBS, SYSLIBPATH, SYSLIBS, LDFLAGS
-DRV_LD1 = $(call SUP,KLINK,$1)$(if $(DEBUG),,$(open_brace)$(open_brace))$(WKLD) /nologo $(DEF_DRV_LDFLAGS) /OUT:$(call \
+DRV_LD1 = $(call SUP,KLINK,$1)$(call WRAP_LINKER,$(WKLD) /nologo $(DEF_DRV_LDFLAGS) /OUT:$(call \
   ospath,$1 $2 $(RES)) $(if $(KLIBS),/LIBPATH:$(call ospath,$(LIB_DIR))) $(addprefix $(KLIB_PREFIX),$(KLIBS:=$(KLIB_SUFFIX))) $(call \
-  qpath,$(call ospath,$(SYSLIBPATH)),/LIBPATH:) $(SYSLIBS) $(LDFLAGS)$(if \
-  $(DEBUG),, && echo DRV_LINKED_OK>&2$(close_brace) | findstr /V /B /R $(call \
-  qpath,$(LINKER_STRIP_STRINGS),/C:)$(close_brace) 3>&2 2>&1 1>&3 | findstr /B /L DRV_LINKED_OK>NUL)
+  qpath,$(call ospath,$(SYSLIBPATH)),/LIBPATH:) $(SYSLIBS) $(LDFLAGS))
 
 # flags for kernel-level C-compiler
 ifeq (undefined,$(origin KRN_FLAGS))
@@ -875,7 +878,7 @@ $(call CLEAN_BUILD_PROTECT_VARS,SEQ_BUILD YASMC FLEXC BISONC MC SUPPRESS_RC_LOGO
   OS_APPDEFS OS_KRNDEFS VARIANTS_FILTER VARIANT_LIB_MAP VARIANT_IMP_MAP \
   CHECK_LIB_UNI_NAME1 CHECK_LIB_UNI_NAME CMN_LIBS_LDFLAGS CMN_LIBS \
   DLL_EXPORTS_DEFINE DLL_IMPORTS_DEFINE \
-  DEF_EXE_SUBSYSTEM LINKER_STRIP_STRINGS EXE_LD_TEMPLATE DEL_ON_DLL_FAIL WRAP_DLL_EXPORTS_LINKER WRAP_DLL_LINKER \
+  DEF_EXE_SUBSYSTEM LINKER_STRIP_STRINGS WRAP_LINKER EXE_LD_TEMPLATE DEL_ON_DLL_FAIL WRAP_DLL_EXPORTS_LINKER WRAP_DLL_LINKER \
   DLL_LD_TEMPLATE DEF_LIB_LDFLAGS LIB_LD_TEMPLATE DEF_KLIB_LDFLAGS \
   $(foreach v,R $(VARIANTS_FILTER),EXE_$v_LD1 DLL_$v_LD1 LIB_$v_LD1) KLIB_LD1 \
   APP_FLAGS CMN_CL1 CMN_RCL CMN_SCL CMN_RUCL CMN_SUCL \
