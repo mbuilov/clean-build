@@ -132,6 +132,11 @@ ifneq ($(call is_less,$(VS_VER),10),)
 PATH := $(PATH);$(call qpath,$(VSN)\Common7\IDE)
 endif
 
+# option for parallel builds, starting from Visual Studio 2013
+ifneq ($(call is_less,11,$(VS_VER)),)
+FORCE_SYNC_PDB ?= /FS
+endif
+
 VSLD   := $(call qpath,$(VSN)\VC\bin$(if $(UCPU:%64=),,\amd64)\link.exe)
 VSCL   := $(call qpath,$(VSN)\VC\bin$(if $(UCPU:%64=),,\amd64)\cl.exe)
 
@@ -275,4 +280,4 @@ endif
 
 # protect variables from modifications in target makefiles
 $(call CLEAN_BUILD_PROTECT_VARS,VAUTO OSVARIANTS WINVER_DEFINES SUBSYSTEM_VER AUTOCONF_VARS $(AUTOCONF_VARS) \
-  VS_VER WDK_VER GET_WDK_VER normpath VS VSN SDK SDKN DDK DDKN WDK WDKN)
+  VS_VER WDK_VER GET_WDK_VER normpath FORCE_SYNC_PDB VS VSN SDK SDKN DDK DDKN WDK WDKN)
