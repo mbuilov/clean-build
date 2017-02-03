@@ -16,13 +16,20 @@ Main features:
 - non-recursive build
 - massive parallelism, almost unlimited scaling by CPU number
 - modular, extensible design
-- multi-platform, using native tools only (no CYGWIN or other UNIX emulation layer is required to build targets on WINDOWS)
+- platform-independent target makefiles
+- multi-platform, using native tools only (no UNIX emulation layer is needed to build on WINDOWS)
 - support for cross-makefiles dependencies
 - support for cross-compilation
 - builtin support for building targets written on languages: C, C++, Java, Scala, Wix
 - support for C/C++ precompiled headers on LINUX and WINDOWS
-- support for auto generation of source-header dependencies (for C/C++)
+- support for build-time generation of source-header dependencies (for C/C++)
 - support for compiling many-sources-at-once on WINDOWS
 - support for debugging, checking and tracing of target makefiles
 - predefined patterns for building shared and static libraries, executables, kernel modules and java archives
 - support for custom rules generating multiple target files at one call
+- simple batch-file generation for building from scratch without gnu make: make V=1 > build.bat
+- pretty-printed build log
+
+An example build log on Windows:
+
+![memstack build log](memstack.png)
