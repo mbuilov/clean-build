@@ -7,8 +7,10 @@
 # this file included by $(MTOP)/defs.mk
 # check values of $(TOP) and $(XTOP) variables
 
+# make TOP or XTOP non-recursive (simple), then check its value
 # $1 (TOP or XTOP) must contain unix-style path to directory without spaces like C:/opt/project or /home/oper/project
 define CHECK_TOP1
+$1 := $($1)
 ifneq ($(words x$($1)x),1)
 $$(error $1=$($1), path with spaces is not allowed)
 endif
@@ -26,7 +28,6 @@ $(error TOP undefined, example: C:/opt/project,/home/oper/project)
 endif
 
 # make TOP non-recursive (simple)
-TOP := $(TOP)
 $(call CHECK_TOP,TOP)
 
 # directory for built files - base for $(BIN_DIR), $(LIB_DIR), $(OBJ_DIR), $(GEN_DIR)
@@ -34,9 +35,8 @@ $(call CHECK_TOP,TOP)
 ifndef XTOP
 XTOP := $(TOP)
 else
-XTOP := $(XTOP)
 $(call CHECK_TOP,XTOP)
 endif
 
 # protect variables from modification in target makefiles
-CLEAN_BUILD_PROTECTED_VARS := CLEAN_BUILD_PROTECTED_VARS CHECK_TOP1 CHECK_TOP TOP XTOP
+CLEAN_BUILD_PROTECTED_VARS += CHECK_TOP1 CHECK_TOP TOP XTOP
