@@ -51,9 +51,9 @@ NO_DEPS := 1
 endif
 
 # check values of TOP (and, if defined, XTOP) variables, include functions library
-include $(MTOP)/top.mk
 include $(MTOP)/protection.mk
 include $(MTOP)/functions.mk
+include $(MTOP)/top.mk
 
 ifdef TARGET
 # define $(DEBUG) to use it in $(PROJECT), if $(TARGET) is defined
