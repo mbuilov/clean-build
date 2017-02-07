@@ -341,8 +341,8 @@ KLIB_R_ASM ?= $(call SUP,ASM,$2)$(YASMC) -o $1 $2 $(ASMFLAGS)
 DRV_R_ASM  ?= $(KLIB_R_ASM)
 
 # $1 - target, $2 - source
-BISON = $(call SUP,BISON,$2)cd $1; $(BISONC) -d --fixed-output-files $(abspath $2)
-FLEX  = $(call SUP,FLEX,$2)$(FLEXC) -o$1 $2
+BISON ?= $(call SUP,BISON,$2)$(BISONC) -o $1 -d --fixed-output-files $(abspath $2)
+FLEX  ?= $(call SUP,FLEX,$2)$(FLEXC) -o$1 $2
 
 # auxiliary defines for EXE
 # $1 - $(call FORM_TRG,EXE)

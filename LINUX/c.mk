@@ -338,7 +338,7 @@ PCH_KLIB_R_CC ?= $(call SUP,PCHKLIB,$2)$(KCC) $(KLIB_PARAMS) -o $1 $2
 KLIB_R_ASM ?= $(call SUP,ASM,$2)$(YASMC) -o $1 $2 $(ASMFLAGS)
 
 # $1 - target, $2 - source
-BISON ?= $(call SUP,BISON,$2)cd $1; $(BISONC) -d --fixed-output-files $(abspath $2)
+BISON ?= $(call SUP,BISON,$2)$(BISONC) -o $1 -d --fixed-output-files $(abspath $2)
 FLEX  ?= $(call SUP,FLEX,$2)$(FLEXC) -o$1 $2
 
 ifndef NO_PCH

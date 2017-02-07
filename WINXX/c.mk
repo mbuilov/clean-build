@@ -563,7 +563,7 @@ KLIB_R_ASM ?= $(call SUP,ASM,$2)$(YASMC) -o $(call ospath,$1 $2) $(ASMFLAGS)
 DRV_R_ASM  ?= $(KLIB_R_ASM)
 
 # $1 - target, $2 - source
-BISON ?= $(call SUP,BISON,$2)$(CD) && $(BISONC) -d --fixed-output-files $(call ospath,$(call abspath,$2))
+BISON ?= $(call SUP,BISON,$2)$(BISONC) -o $(ospath) -d --fixed-output-files $(call ospath,$(call abspath,$2))
 FLEX  ?= $(call SUP,FLEX,$2)$(FLEXC) -o$(call ospath,$1 $2)
 
 ifndef SEQ_BUILD
