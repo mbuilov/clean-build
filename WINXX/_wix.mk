@@ -17,33 +17,33 @@ endif
 # what we may build by including $(MTOP)/wix.mk (for ex. INSTALLER := my_installer)
 BLD_WIX_TARGETS := MSI INSTALLER
 
-# remove unneeded quotes, add trailing slash
-WIX := $(call unspaces,$(subst \\,\,$(subst ",,$(WIX))\))
+# remove unneeded quotes, replace spaces with ?, add trailing slash
+WIXN := $(call unspaces,$(subst \\,\,$(subst /,\,$(patsubst "%,%,$(WIX:"=))\)))
 
 # add quotes, if needed
 ifndef WIX_CANDLE
-WIX_CANDLE := $(call qpath,$(WIX)bin\candle.exe)
+WIX_CANDLE := $(call qpath,$(WIXN)bin\candle.exe)
 endif
 ifndef WIX_LIGHT
-WIX_LIGHT := $(call qpath,$(WIX)bin\light.exe)
+WIX_LIGHT := $(call qpath,$(WIXN)bin\light.exe)
 endif
 
-# replace spaces with ?
+# path to Wix extensions directroy
 ifeq (undefined,$(origin WIX_EXTS_DIR))
-WIX_EXTS_DIR := $(call unspaces,$(WIX)bin)
+WIX_EXTS_DIR := $(WIXN)bin
 endif
 
 # compile .wxs file
 # $1 - .wixobj, $2 - .wxs
 # target-specific: WINCLUDE
 WIXOBJ_CL = $(call SUP,CANDLE,$2)$(WIX_CANDLE) -nologo$(if $(VERBOSE), -v) $(call \
-  qpath,$(WEXTS),-ext ) $(call ospath,$2) $(call qpath,$(call ospath,$(WINCLUDE)),-I) -out $(ospath)
+  qpath,$(WEXTS),-ext ) $(call ospath,$2) $(call qpath,$(call ospath,$(WINCLUDE)),-I) -out $(ospath) >&2
 
 # build installer .msi file
 # $1 - target .msi, $2 - objects .wxsobj
 # target-specific: WEXTS
 MSI_LD = $(call SUP,LIGHT,$1)$(WIX_LIGHT) -nologo$(if $(VERBOSE), -v) $(call \
-  qpath,$(WEXTS),-ext ) $(call ospath,$2) -out $(ospath)
+  qpath,$(WEXTS),-ext ) $(call ospath,$2) -out $(ospath) >&2
 
 # build installer .exe file
 INSTALLER_LD = $(MSI_LD)
@@ -122,6 +122,6 @@ PREPARE_WIX_VARS := $(PREPARE_WIX_VARS)
 MAKE_WIX_EVAL = $(eval $(PREPARE_WIX_VARS)$(DEF_HEAD_CODE))
 
 # protect variables from modifications in target makefiles
-$(call CLEAN_BUILD_PROTECT_VARS,WIX_MK_INCLUDED WIX BLD_WIX_TARGETS WIX_CANDLE WIX_LIGHT WIX_EXTS_DIR \
+$(call CLEAN_BUILD_PROTECT_VARS,WIX_MK_INCLUDED WIX WIXN BLD_WIX_TARGETS WIX_CANDLE WIX_LIGHT WIX_EXTS_DIR \
   WIXOBJ_CL MSI_LD INSTALLER_LD DEBUG_WIX_TARGETS FORM_WIX_TRG WIX_OBJS WIX_OBJ_RULE WIX_OBJ_RULES WIX_TEMPLATE \
   WIX_RULES1 WIX_RULES MSI_RULES INSTALLER_RULES DEFINE_WIX_TARGETS_EVAL PREPARE_WIX_VARS MAKE_WIX_EVAL)
