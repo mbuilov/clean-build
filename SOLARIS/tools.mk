@@ -13,13 +13,16 @@ SED  := sed
 SED_EXPR = '$(subst \n,\$(newline),$(subst \t,\$(tab),$1))'
 CAT   = cat $1
 ECHO  = printf '$(subst ','"'"',$(subst $(newline),\n,$(subst \,\\,$(subst %,%%,$1))))\n'
-CD    = cd $1
+CD    = $(error deprecated, use EXECIN)
 NUL  := /dev/null
 CP    = cp $1 $2
 TOUCH = touch $1
+
+# execute command $2 in directory $1
+EXECIN = pushd $1 >/dev/null && { $2 && popd >/dev/null || { popd >/dev/null; false; } }
 
 # delete target if failed to build it and exit shell with some error code
 DEL_ON_FAIL = || ($(DEL); false)
 
 # protect variables from modifications in target makefiles
-$(call CLEAN_BUILD_PROTECT_VARS,DEL RM MKDIR SED SED_EXPR CAT ECHO CD NUL CP TOUCH DEL_ON_FAIL)
+$(call CLEAN_BUILD_PROTECT_VARS,DEL RM MKDIR SED SED_EXPR CAT ECHO EXECIN NUL CP TOUCH DEL_ON_FAIL)

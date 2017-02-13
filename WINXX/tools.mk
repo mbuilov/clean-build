@@ -75,12 +75,15 @@ ECHO_LINE = (echo$(if $1, $(subst $(open_brace),^$(open_brace),$(subst $(close_b
 ECHO1 = $(if $(word 2,$1),($(foreach x,$1,$(call ECHO_LINE,$(subst $$(newline),,$(subst $$(space), ,$(subst \
          $$(tab),$(tab),$x)))) &&) rem.),$(call ECHO_LINE,$(subst $$(space), ,$(subst $$(tab),$(tab),$1))))
 ECHO  = $(call ECHO1,$(subst $(newline),$$(newline) ,$(subst $(space),$$(space),$(subst $(tab),$$(tab),$1))))
-CD    = cd /d $(ospath)
+CD    = $(error deprecated, use EXECIN)
 NUL  := NUL
 SUPPRESS_CP_OUTPUT := | findstr /v /c:"        1" & if errorlevel 1 (cmd /c exit 0) else (cmd /c exit 1)
 CP    = copy /Y /B $(ospath) $(call ospath,$2)$(SUPPRESS_CP_OUTPUT)
 TOUCH1 = if not exist $1 (rem. > $1) else (copy /B $1+,, $1$(SUPPRESS_CP_OUTPUT))
 TOUCH = $(call TOUCH1,$(ospath))
+
+# execute command $2 in directory $1
+EXECIN = pushd $(ospath) && ($2 && popd || (popd & cmd /c exit 1))
 
 # delete target if failed to build it and exit shell with error code 1
 DEL_ON_FAIL = || ($(foreach x,$1,($(call DEL,$x)) &) cmd /c exit 1)
@@ -90,4 +93,4 @@ TOOL_SUFFIX := .exe
 
 # protect variables from modifications in target makefiles
 $(call CLEAN_BUILD_PROTECT_VARS,DEL_ARGS_LIMIT DEL1 DEL DEL_DIR1 DEL_DIR RM1 RM MKDIR SED SED_EXPR \
-  CAT open_brace close_brace ECHO_LINE ECHO1 ECHO CD NUL SUPPRESS_CP_OUTPUT CP TOUCH1 TOUCH DEL_ON_FAIL TOOL_SUFFIX)
+  CAT open_brace close_brace ECHO_LINE ECHO1 ECHO EXECIN NUL SUPPRESS_CP_OUTPUT CP TOUCH1 TOUCH DEL_ON_FAIL TOOL_SUFFIX)
