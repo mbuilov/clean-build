@@ -98,7 +98,7 @@ define STD_VERSION_RC_TEMPLATE
 #include "$3"
 #define _TO_STR(s) #s
 #define TO_STR(s) _TO_STR(s)
-#ifdef $6
+#ifndef $6
 #define $6 0
 #endif
 VS_VERSION_INFO VERSIONINFO
