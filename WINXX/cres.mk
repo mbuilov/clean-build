@@ -23,7 +23,21 @@ RC_FST ?= $(if $(filter DRV,$1),VFT2_DRV_SYSTEM,0L)
 # so may produce dynamic results, for example based on value of $(CURRENT_MAKEFILE)
 WIN_RC_PRODUCT_DEFS_HEADER ?= $(GEN_DIR)/$(PRODUCT_NAMES_H)
 
-# define standard resource values - use constants from $(WIN_RC_PRODUCT_DEFS_HEADER)
+# define standard resource values - use definitions from $(WIN_RC_PRODUCT_DEFS_HEADER), which should contain (example):
+
+#define VENDOR_NAME           "Acme corp"
+#define PRODUCT_NAME          "Super app"
+#define VENDOR_COPYRIGHT      "(c) Acme corp. All rights reserved"
+#define PRODUCT_VERSION_MAJOR 4
+#define PRODUCT_VERSION_MINOR 12
+#define PRODUCT_VERSION_PATCH 0 /* optional */
+#define PRODUCT_OS            "WINDOWS"
+#define PRODUCT_KCPU          "x64"
+#define PRODUCT_UCPU          "x86"
+#define PRODUCT_TARGET        "RELEASE"
+#define PRODUCT_BUILD_NUM     12345
+#define PRODUCT_BUILD_DATE    "01/01/2017:09.30"
+
 # note: some of WIN_RC_... variables may be already defined in $(TOP)/make/project.mk
 WIN_RC_PRODUCT_VERSION_MAJOR ?= PRODUCT_VERSION_MAJOR
 WIN_RC_PRODUCT_VERSION_MINOR ?= PRODUCT_VERSION_MINOR
@@ -35,13 +49,21 @@ WIN_RC_PRODUCT_BUILD_NUM     ?= PRODUCT_BUILD_NUM
 WIN_RC_COMMENTS              ?= PRODUCT_TARGET "/" PRODUCT_OS "/" $(if $(filter DRV,$1),PRODUCT_KCPU,PRODUCT_UCPU) "/" PRODUCT_BUILD_DATE
 WIN_RC_COMPANY_NAME          ?= VENDOR_NAME
 WIN_RC_FILE_DESCRIPTION      ?= "$(GET_TARGET_NAME)"
-WIN_RC_FILE_VERSION          ?= PRODUCT_BUILD_VERSION
+WIN_RC_FILE_VERSION          ?= TO_STR($(\
+                                )$(WIN_RC_MODULE_VERSION_MAJOR).$(\
+                                )$(WIN_RC_PRODUCT_VERSION_MINOR).$(\
+                                )$(WIN_RC_MODULE_VERSION_PATCH).$(\
+                                )$(WIN_RC_PRODUCT_BUILD_NUM))
 WIN_RC_INTERNAL_NAME         ?= "$(GET_TARGET_NAME)"
 WIN_RC_LEGAL_COPYRIGHT       ?= VENDOR_COPYRIGHT
 WIN_RC_LEGAL_TRADEMARKS      ?=
 WIN_RC_PRIVATE_BUILD         ?=
 WIN_RC_PRODUCT_NAME          ?= PRODUCT_NAME
-WIN_RC_PRODUCT_VERSION       ?= PRODUCT_VERSION
+WIN_RC_PRODUCT_VERSION       ?= TO_STR($(\
+                                )$(WIN_RC_PRODUCT_VERSION_MAJOR)$(\
+                                )$(WIN_RC_PRODUCT_VERSION_MINOR)$(\
+                                )$(WIN_RC_PRODUCT_VERSION_PATCH)$(\
+                                )$(WIN_RC_PRODUCT_BUILD_NUM))
 WIN_RC_SPECIAL_BUILD         ?=
 WIN_RC_LANG                  ?= 0409
 WIN_RC_CHARSET               ?= 04b0
@@ -74,13 +96,14 @@ ifndef STD_VERSION_RC_TEMPLATE
 define STD_VERSION_RC_TEMPLATE
 #include <winver.h>
 #include "$3"
-VS_VERSION_INFO VERSIONINFO
-FILEVERSION    $7,$8,$9,$(10)
+#define _TO_STR(s) #s
+#define TO_STR(s) _TO_STR(s)
 #ifdef $6
-    PRODUCTVERSION $4,$5,$6,$(10)
-#else
-    PRODUCTVERSION $4,$5,0,$(10)
+#define $6 0
 #endif
+VS_VERSION_INFO VERSIONINFO
+FILEVERSION     $7,$8,$9,$(10)
+PRODUCTVERSION  $4,$5,$6,$(10)
 FILEFLAGSMASK VS_FF_DEBUG | VS_FF_PRERELEASE | VS_FF_PATCHED | VS_FF_PRIVATEBUILD | VS_FF_INFOINFERRED | VS_FF_SPECIALBUILD
 #ifdef DEBUG
     FILEFLAGS VS_FF_DEBUG | VS_FF_PRERELEASE$(if $(18), | VS_FF_PRIVATEBUILD)$(if $(21), | VS_FF_SPECIALBUILD)
