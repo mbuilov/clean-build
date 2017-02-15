@@ -184,23 +184,23 @@ DLL_IMPORTS_DEFINE := "__declspec(dllimport)"
 endif
 
 # helper macro for target makefiles to pass string define value to C-compiler
-# may be already defined by $(MTOP)/$(OS)/c.mk
 STRING_DEFINE ?= "$(subst $(space),$$$$(space),$(subst ","",$1))"
+
+# make version string: maj.min.patch -> maj.min
+MK_MAJ_MIN_VER ?= $(subst $(space),.,$(wordlist 1,2,$(subst ., ,$1) 0 0))
 
 # common linker flags for EXE or DLL
 # $$1 - target file, $$2 - objects, $v - variant
 ifeq (undefined,$(origin CMN_LIBS_LDFLAGS))
-CMN_LIBS_LDFLAGS := \
-  /VERSION:$(firstword $(PRODUCT_VERSION_MAJOR) 0).$(firstword $(PRODUCT_VERSION_MINOR) 0) \
-  /INCREMENTAL:NO $(if $(DEBUG),/DEBUG,/RELEASE /LTCG /OPT:REF)
+CMN_LIBS_LDFLAGS := /INCREMENTAL:NO $(if $(DEBUG),/DEBUG,/RELEASE /LTCG /OPT:REF)
 endif
 
 # common parts of linker options for built EXE or DLL
 # $$1 - target exe or dll, $$2 - objects, $v - variant
 # note: because target variable (EXE or DLL) is not used in VARIANT_LIB_MAP and VARIANT_IMP_MAP,
 #  may pass any value as first parameter to MAKE_DEP_LIBS and MAKE_DEP_IMPS (macros from $(MTOP)/c.mk)
-# target-specific: TMD, RES, LIBS, DLLS, LIB_DIR, SYSLIBPATH, SYSLIBS
-CMN_LIBS ?= /OUT:$$(ospath) $(CMN_LIBS_LDFLAGS) $$(call ospath,$$2 $$(RES)) $$(if $$(strip \
+# target-specific: TMD, MODVER, RES, LIBS, DLLS, LIB_DIR, SYSLIBPATH, SYSLIBS
+CMN_LIBS ?= /OUT:$$(ospath) /VERSION:$$(call MK_MAJ_MIN_VER,$$(MODVER)) $(CMN_LIBS_LDFLAGS) $$(call ospath,$$2 $$(RES)) $$(if $$(strip \
   $$(LIBS)$$(DLLS)),/LIBPATH:$$(call ospath,$$(LIB_DIR))) $$(call MAKE_DEP_LIBS,XXX,$v,$$(LIBS)) $$(call \
   MAKE_DEP_IMPS,XXX,$v,$$(DLLS)) $$(call qpath,$$(VS$$(TMD)LIB) $$(UM$$(TMD)LIB) $$(call \
   ospath,$$(SYSLIBPATH)),/LIBPATH:) $$(SYSLIBS)
@@ -475,7 +475,6 @@ $(eval $(foreach v,R $(VARIANTS_FILTER),$(MULTI_COMPILERS_TEMPLATE)))
 endif # !SEQ_BUILD
 
 DEF_DRV_LDFLAGS ?= \
-  /VERSION:$(firstword $(PRODUCT_VERSION_MAJOR) 0).$(firstword $(PRODUCT_VERSION_MINOR) 0) \
   /INCREMENTAL:NO $(if $(DEBUG),/DEBUG,/RELEASE /LTCG /OPT:REF) /DRIVER /FULLBUILD \
   /NODEFAULTLIB /SAFESEH:NO /MANIFEST:NO /MERGE:_PAGE=PAGE /MERGE:_TEXT=.text /MERGE:.rdata=.text \
   /SECTION:INIT,d /ENTRY:DriverEntry /ALIGN:0x40 /BASE:0x10000 /STACK:0x40000,0x1000 \
@@ -483,8 +482,8 @@ DEF_DRV_LDFLAGS ?= \
 
 # send linker output to stderr
 # $1 - target, $2 - objects
-# target-specific: RES, KLIBS, SYSLIBPATH, SYSLIBS, LDFLAGS
-DRV_LD1 = $(call SUP,KLINK,$1)$(call WRAP_LINKER,$(WKLD) /nologo $(DEF_DRV_LDFLAGS) /OUT:$(call \
+# target-specific: MODVER, RES, KLIBS, SYSLIBPATH, SYSLIBS, LDFLAGS
+DRV_LD1 = $(call SUP,KLINK,$1)$(call WRAP_LINKER,$(WKLD) /nologo /VERSION:$(call MK_MAJ_MIN_VER,$(MODVER)) $(DEF_DRV_LDFLAGS) /OUT:$(call \
   ospath,$1 $2 $(RES)) $(if $(KLIBS),/LIBPATH:$(call ospath,$(LIB_DIR))) $(addprefix $(KLIB_PREFIX),$(KLIBS:=$(KLIB_SUFFIX))) $(call \
   qpath,$(call ospath,$(SYSLIBPATH)),/LIBPATH:) $(SYSLIBS) $(LDFLAGS))$(if $(DEBUG), >&2)
 
@@ -698,6 +697,7 @@ define EXE_AUX_TEMPLATE2
 $(empty)
 $4: SRC := $1
 $4: SDEPS := $2
+$4: MODVER := $(MODVER)
 $4: EXE_EXPORTS := $(EXE_EXPORTS)
 $4: $1 $3
 ifdef DEBUG
@@ -771,6 +771,7 @@ define DLL_AUX_TEMPLATE2
 $(empty)
 $4: SRC := $1
 $4: SDEPS := $2
+$4: MODVER := $(MODVER)
 $4: DLL_NO_EXPORTS := $(DLL_NO_EXPORTS)
 $4: $1 $3
 ifdef DEBUG
@@ -886,6 +887,7 @@ $(call OBJ_RULES,DRV,ASM,$(filter %.asm,$2),$3,$4)
 $(STD_TARGET_VARS)
 $1: SRC        := $2
 $1: SDEPS      := $3
+$1: MODVER     := $(MODVER)
 $1: LIB_DIR    := $(LIB_DIR)
 $1: KLIBS      := $(KLIBS)
 $1: INCLUDE    := $(call TRG_INCLUDE,DRV)
@@ -932,7 +934,7 @@ $(call CLEAN_BUILD_PROTECT_VARS,SEQ_BUILD YASMC FLEXC BISONC MC SUPPRESS_RC_LOGO
   DLL_DIR IMP_DIR SUBSYSTEM_KVER OS_PREDEFINES \
   EMBED_MANIFEST_OPTION EMBED_EXE_MANIFEST EMBED_DLL_MANIFEST \
   OS_APPDEFS OS_KRNDEFS VARIANTS_FILTER VARIANT_LIB_MAP VARIANT_IMP_MAP \
-  CHECK_LIB_UNI_NAME1 CHECK_LIB_UNI_NAME CMN_LIBS_LDFLAGS CMN_LIBS \
+  CHECK_LIB_UNI_NAME1 CHECK_LIB_UNI_NAME MK_MAJ_MIN_VER CMN_LIBS_LDFLAGS CMN_LIBS \
   DLL_EXPORTS_DEFINE DLL_IMPORTS_DEFINE \
   DEF_SUBSYSTEM LINKER_STRIP_STRINGS WRAP_LINKER DEL_DEF_MANIFEST_ON_FAIL \
   WRAP_EXE_EXPORTS_LINKER WRAP_EXE_LINKER EXE_LD_TEMPLATE WRAP_DLL_EXPORTS_LINKER WRAP_DLL_LINKER \
