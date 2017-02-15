@@ -18,11 +18,9 @@ BLD_VARS += MAP
 
 # reset additional variables
 # $(INST_RPATH) - location where external dependency libraries are installed
-# $(SOVER) - shared object library version string in form major.minor.patch (for example 1.2.3)
 define RESET_OS_VARS
 RPATH := $(INST_RPATH)
 MAP   :=
-SOVER :=
 endef
 
 ifneq ($(filter default undefined,$(origin CC)),)
@@ -225,7 +223,8 @@ VERSION_SCRIPT_OPTION ?= $(addprefix -M,$(MAP))
 
 # append soname option if target shared library have version info (some number after .so)
 # $1 - full path to target shared library, for ex. /aa/bb/cc/libmy_lib.so.1.2.3, soname will be libmy_lib.so.1
-SONAME_OPTION ?= $(addprefix -h $(notdir $1).,$(firstword $(subst ., ,$(SOVER))))
+# target-specific: MODVER
+SONAME_OPTION ?= $(addprefix -h $(notdir $1).,$(firstword $(subst ., ,$(MODVER))))
 
 # different linkers
 # $1 - target, $2 - objects
@@ -373,7 +372,7 @@ SOLINK_TEMPLATE = $(call SOLINK_TEMPLATE1,$(subst ., ,$(notdir $1)),$1)
 # $1 - $(call FORM_TRG,DLL)
 # $2 - $(call FIXPATH,$(firstword $(DLL_MAP) $(MAP)))
 define DLL_AUX_TEMPLATE1
-$1: SOVER := $(SOVER)
+$1: MODVER := $(MODVER)
 $1: RPATH := $(RPATH) $(DLL_RPATH)
 $1: MAP := $2
 $1: $2

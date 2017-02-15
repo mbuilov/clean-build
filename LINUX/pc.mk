@@ -62,7 +62,7 @@ PC_LIBS        ?= -L$${libdir}
 
 # generate pkg-config file contents for dynamic or static library using $(PC_...) predefined values
 # $1    - library name
-# $2    - library version (for a DLL: $(SOVER))
+# $2    - library version (for a DLL: $(MODVER))
 # $3    - library description
 # $4    - library comment (author, description, etc.)
 # $5    - project url     (likely $(VENDOR_URL))
