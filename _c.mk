@@ -76,6 +76,10 @@ VARIANT_IMP_SUFFIX = $(if $(filter-out R,$1),_$1)
 #  KRNDEFS = _KERNEL
 #  note: it's not possible to reset value of $(KRNDEFS) in target makefile,
 #   but KRNDEFS may be recursive and so may produce dynamic results
+#
+# 5) product version in form major.minor or major.minor.patch
+#  this is also default version for any built module (exe, dll or driver)
+#  PRODUCT_VER := 1.0.0
 
 include $(MTOP)/$(OS)/c.mk
 
@@ -391,9 +395,11 @@ $(DEF_TAIL_CODE_EVAL)
 endef
 
 # code to be called at beginning of target makefile
+# $(MODVER) - module version (for dll, exe or driver) in form major.minor.patch (for example 1.2.3)
 define PREPARE_C_VARS
 $(RESET_TRG_VARS)
 $(RESET_OS_VARS)
+MODVER      := $(PRODUCT_VER)
 PCH         :=
 WITH_PCH    :=
 USE         :=
@@ -423,8 +429,8 @@ endef
 MAKE_C_EVAL = $(eval $(PREPARE_C_VARS)$(DEF_HEAD_CODE))
 
 # protect variables from modifications in target makefiles
-$(call CLEAN_BUILD_PROTECT_VARS,BLD_TARGETS \
-  TRG_VARS BLD_VARS VARIANT_LIB_SUFFIX VARIANT_IMP_SUFFIX DEBUG_C_TARGETS \
+$(call CLEAN_BUILD_PROTECT_VARS,BLD_TARGETS TRG_VARS BLD_VARS VARIANT_LIB_SUFFIX VARIANT_IMP_SUFFIX \
+  DEFINCLUDE PREDEFINES APPDEFS KRNDEFS PRODUCT_VER DEBUG_C_TARGETS \
   OSVARIANT OSTYPE OSVAR OSVARS OBJ_RULE OBJ_RULES1 OBJ_RULES \
   RESET_TRG_VARS FORM_TRG SUBST_DEFINES STRING_DEFINE \
   TRG_INCLUDE SOURCES TRG_SRC TRG_SDEPS OBJS DEP_LIB_SUFFIX DEP_IMP_SUFFIX \
