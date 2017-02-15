@@ -12,6 +12,10 @@ PREDEFINES = $(if $(DEBUG),_DEBUG) TARGET_$(TARGET:D=) \
 
 APPDEFS :=
 
-ifeq ($(OS),WINXX)
-SUPPRESS_RC_LOGO := /nologo
-endif
+PRODUCT_VER := 1.0.0
+
+# next variables are needed for generating resurce file under Windows
+PRODUCT_NAMES_H  := product_names.h
+VENDOR_NAME      := Michael M. Builov
+PRODUCT_NAME     := Sample app
+VENDOR_COPYRIGHT := Copyright (C) 2015-2017 Michael M. Builov, https://github.com/mbuilov/clean-build
