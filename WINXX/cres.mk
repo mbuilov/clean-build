@@ -7,7 +7,7 @@
 # this file included by $(MTOP)/WINXX/c.mk
 
 # FILEOS in $(STD_VERSION_RC_TEMPLATE), $1 - EXE,DLL,DRV
-RC_OS ?= VOS_NT
+RC_OS ?= VOS_NT_WINDOWS32
 
 # FILETYPE in $(STD_VERSION_RC_TEMPLATE), $1 - EXE,DLL,DRV
 RC_FT ?= $(if \
@@ -49,20 +49,20 @@ WIN_RC_PRODUCT_BUILD_NUM     ?= PRODUCT_BUILD_NUM
 WIN_RC_COMMENTS              ?= PRODUCT_TARGET "/" PRODUCT_OS "/" $(if $(filter DRV,$1),PRODUCT_KCPU,PRODUCT_UCPU) "/" PRODUCT_BUILD_DATE
 WIN_RC_COMPANY_NAME          ?= VENDOR_NAME
 WIN_RC_FILE_DESCRIPTION      ?= "$(GET_TARGET_NAME)"
-WIN_RC_FILE_VERSION          ?= TO_STR($(\
-                                )$(WIN_RC_MODULE_VERSION_MAJOR).$(\
-                                )$(WIN_RC_PRODUCT_VERSION_MINOR).$(\
-                                )$(WIN_RC_MODULE_VERSION_PATCH).$(\
+WIN_RC_FILE_VERSION          ?= VERSION_TO_STR($(\
+                                )$(WIN_RC_MODULE_VERSION_MAJOR),$(\
+                                )$(WIN_RC_MODULE_VERSION_MINOR),$(\
+                                )$(WIN_RC_MODULE_VERSION_PATCH),$(\
                                 )$(WIN_RC_PRODUCT_BUILD_NUM))
 WIN_RC_INTERNAL_NAME         ?= "$(GET_TARGET_NAME)"
 WIN_RC_LEGAL_COPYRIGHT       ?= VENDOR_COPYRIGHT
 WIN_RC_LEGAL_TRADEMARKS      ?=
 WIN_RC_PRIVATE_BUILD         ?=
 WIN_RC_PRODUCT_NAME          ?= PRODUCT_NAME
-WIN_RC_PRODUCT_VERSION       ?= TO_STR($(\
-                                )$(WIN_RC_PRODUCT_VERSION_MAJOR)$(\
-                                )$(WIN_RC_PRODUCT_VERSION_MINOR)$(\
-                                )$(WIN_RC_PRODUCT_VERSION_PATCH)$(\
+WIN_RC_PRODUCT_VERSION       ?= VERSION_TO_STR($(\
+                                )$(WIN_RC_PRODUCT_VERSION_MAJOR),$(\
+                                )$(WIN_RC_PRODUCT_VERSION_MINOR),$(\
+                                )$(WIN_RC_PRODUCT_VERSION_PATCH),$(\
                                 )$(WIN_RC_PRODUCT_BUILD_NUM))
 WIN_RC_SPECIAL_BUILD         ?=
 WIN_RC_LANG                  ?= 0409
@@ -96,8 +96,8 @@ ifndef STD_VERSION_RC_TEMPLATE
 define STD_VERSION_RC_TEMPLATE
 #include <winver.h>
 #include "$3"
-#define _TO_STR(s) #s
-#define TO_STR(s) _TO_STR(s)
+#define _VERSION_TO_STR(s) #s
+#define VERSION_TO_STR(a,b,c,d) _VERSION_TO_STR(a.b.c.d)
 #ifndef $6
 #define $6 0
 #endif
@@ -168,8 +168,8 @@ $$(TRG_RC): | $(GEN_DIR)/stdres
 )$(WIN_RC_PRODUCT_NAME),$(\
 )$(WIN_RC_PRODUCT_VERSION),$(\
 )$(WIN_RC_SPECIAL_BUILD),$(\
-)$(WIN_RC_LANG)),$(\
-)$(WIN_RC_CHARSET)) > $$@
+)$(WIN_RC_LANG),$(\
+)$(WIN_RC_CHARSET))) > $$@
 TRG_RES := $3/$2_$1.res
 $$(TRG_RES): $$(TRG_RC) $(WIN_RC_PRODUCT_DEFS_HEADER) | $3
 	$$(call RC,$$@,$$<)
