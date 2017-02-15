@@ -162,9 +162,15 @@ relpath = $(call relpath1,$(1:/=)/,$(2:/=)/)
 # example: $(call join_with,a b c,|) -> a|b|c
 join_with = $(subst $(space),$2,$(strip $1))
 
+# get major, minor or patch number from version string like 1.2.3
+# if cannot get needed value, return 0
+ver_major = $(firstword $(subst ., ,$1) 0)
+ver_minor = $(firstword $(word 2,$(subst ., ,$1)) 0)
+ver_patch = $(firstword $(word 3,$(subst ., ,$1)) 0)
+
 # protect variables from modification in target makefiles
 CLEAN_BUILD_PROTECTED += empty space tab comma newline comment \
   infofn dump trace_params trace_calls_template trace_calls \
   unspaces ifaddq qpath tolower toupper repl09 repl09AZ padto1 padto \
   is_less1 is_less xargs xcmd trim normp2 normp1 normp \
-  cmn_path1 cmn_path back_prefix relpath2 relpath1 relpath join_with
+  cmn_path1 cmn_path back_prefix relpath2 relpath1 relpath join_with ver_major ver_minor ver_patch
