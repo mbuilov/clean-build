@@ -1,5 +1,7 @@
 include $(MTOP)/defs.mk
 
+# generate product definitions header
+# (this header may be used for $(MTOP)/WINXX/cres.mk)
 GENERATED := $(GEN_DIR)/$(PRODUCT_NAMES_H)
 $(call ADD_GENERATED,$(GENERATED))
 
@@ -13,8 +15,10 @@ define PRODUCT_NAMES_TEMPLATE
 #define VENDOR_COPYRIGHT      "$(VENDOR_COPYRIGHT)"
 #define PRODUCT_VERSION_MAJOR $(call ver_major,$(PRODUCT_VER))
 #define PRODUCT_VERSION_MINOR $(call ver_minor,$(PRODUCT_VER))
+#define PRODUCT_VERSION_PATCH $(call ver_patch,$(PRODUCT_VER))
 #define PRODUCT_OS            "$(OS)"
-#define PRODUCT_UCPU          "$(CPU)"
+#define PRODUCT_UCPU          "$(UCPU)"
+#define PRODUCT_KCPU          "$(KCPU)"
 #define PRODUCT_TARGET        "$(TARGET)"
 #define PRODUCT_BUILD_NUM     <build_num>
 #define PRODUCT_BUILD_DATE    "<build_date>"
