@@ -12,7 +12,7 @@ PREDEFINES = $(if $(DEBUG),_DEBUG) TARGET_$(TARGET:D=) \
 
 APPDEFS :=
 
-PRODUCT_VER := 1.0.0
+PRODUCT_VER := 1.0.0 # major.minor.patch
 
 # next variables are needed for generating resurce file under Windows
 PRODUCT_NAMES_H  := product_names.h
