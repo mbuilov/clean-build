@@ -75,7 +75,6 @@ ECHO_LINE = (echo$(if $1, $(subst $(open_brace),^$(open_brace),$(subst $(close_b
 ECHO1 = $(if $(word 2,$1),($(foreach x,$1,$(call ECHO_LINE,$(subst $$(newline),,$(subst $$(space), ,$(subst \
          $$(tab),$(tab),$x)))) &&) rem.),$(call ECHO_LINE,$(subst $$(space), ,$(subst $$(tab),$(tab),$1))))
 ECHO  = $(call ECHO1,$(subst $(newline),$$(newline) ,$(subst $(space),$$(space),$(subst $(tab),$$(tab),$1))))
-CD    = $(error deprecated, use EXECIN)
 NUL  := NUL
 SUPPRESS_CP_OUTPUT := | findstr /v /c:"        1" & if errorlevel 1 (cmd /c exit 0) else (cmd /c exit 1)
 CP    = copy /Y /B $(ospath) $(call ospath,$2)$(SUPPRESS_CP_OUTPUT)
