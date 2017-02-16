@@ -413,24 +413,6 @@ $1: RPATH := $(RPATH) $(EXE_RPATH)
 endef
 EXE_AUX_TEMPLATE = $(call EXE_AUX_TEMPLATE1,$(call FORM_TRG,EXE))
 
-# create soft simlink $(LIB_DIR)/libmy_lib.so.1 -> libmy_lib.so.1.2.3
-# $1 - full path to soft link: $(LIB_DIR)/libmy_lib.so.1
-# $2 - simlinked target name:  libmy_lib.so.1.2.3
-define SOFTLINK_TEMPLATE
-$(STD_TARGET_VARS)
-$1: $(dir $1)$2
-	$$(call SUP,LN,$$@)ln -sf$(if $(VERBOSE),v) $$(notdir $$<) $$@
-endef
-
-# create necessary simlinks:
-# $(LIB_DIR)/libmy_lib.so   -> libmy_lib.so.1
-# $(LIB_DIR)/libmy_lib.so.1 -> libmy_lib.so.1.2.3
-# $1 - target file: $(LIB_DIR)/libmy_lib.so.1.2.3
-SOLINK_TEMPLATE1 = $(if \
-  $(word 3,$1),$(newline)$(call SOFTLINK_TEMPLATE,$(dir $2)$(word 1,$1).$(word 2,$1),$(word 1,$1).$(word 2,$1).$(word 3,$1)))$(if \
-  $(word 4,$1),$(newline)$(call SOFTLINK_TEMPLATE,$(dir $2)$(word 1,$1).$(word 2,$1).$(word 3,$1),$(notdir $2)))
-SOLINK_TEMPLATE = $(call SOLINK_TEMPLATE1,$(subst ., ,$(notdir $1)),$1)
-
 # auxiliary defines for DLL
 # $1 - $(call FORM_TRG,DLL)
 # $2 - $(call FIXPATH,$(firstword $(DLL_MAP) $(MAP)))
@@ -439,7 +421,6 @@ $1: MODVER := $(MODVER)
 $1: RPATH := $(RPATH) $(DLL_RPATH)
 $1: MAP := $2
 $1: $2
-$(SOLINK_TEMPLATE)
 endef
 DLL_AUX_TEMPLATE = $(call DLL_AUX_TEMPLATE1,$(call FORM_TRG,DLL),$(call FIXPATH,$(firstword $(DLL_MAP) $(MAP))))
 
@@ -499,5 +480,5 @@ $(call CLEAN_BUILD_PROTECT_VARS,CC CXX MODULES_PATH LD AR TCC TCXX TLD TAR KCC K
   LIB_D_CXX LIB_D_CC PCH_EXE_R_CXX PCH_EXE_R_CC PCH_EXE_P_CXX PCH_EXE_P_CC PCH_LIB_R_CXX PCH_LIB_R_CC PCH_LIB_P_CXX PCH_LIB_P_CC \
   PCH_DLL_R_CXX PCH_DLL_R_CC PCH_LIB_D_CXX PCH_LIB_D_CC KLIB_PARAMS KLIB_R_CC PCH_KLIB_R_CC KLIB_R_ASM BISON FLEX \
   PCH_TEMPLATE1 PCH_TEMPLATE2 PCH_TEMPLATES ADD_WITH_PCH2 ADD_WITH_PCH1 ADD_WITH_PCH \
-  EXE_AUX_TEMPLATE1 EXE_AUX_TEMPLATE SOFTLINK_TEMPLATE SOLINK_TEMPLATE1 SOLINK_TEMPLATE DLL_AUX_TEMPLATE1 DLL_AUX_TEMPLATE \
+  EXE_AUX_TEMPLATE1 EXE_AUX_TEMPLATE DLL_AUX_TEMPLATE1 DLL_AUX_TEMPLATE \
   COPY_FILE_RULE DRV_TEMPLATE DRV_RULES)
