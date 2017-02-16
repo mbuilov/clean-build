@@ -23,13 +23,14 @@ define LIBTOOL_LA_TEMPLATE
 # It is needed by libtool for linking the library.
 
 # The name that we can dlopen(3).
-dlname='$(if $1,lib$1.so$(addprefix .,$(firstword $(subst ., ,$2))))'
+dlname='$(if $1,$(DLL_PREFIX)$1$(DLL_SUFFIX)$(addprefix .,$(firstword $(subst ., ,$2))))'
 
 # Names of this library.
-library_names='$(if $1,$(addprefix lib$1,$(addprefix .so.,$2 $(filter-out $2,$(firstword $(subst ., ,$2)))) .so))'
+library_names='$(if $1,$(addprefix $(DLL_PREFIX)$1,$(addprefix \
+  $(DLL_SUFFIX).,$2 $(filter-out $2,$(firstword $(subst ., ,$2)))) $(DLL_SUFFIX)))'
 
 # The name of the static archive.
-old_library='$(if $3,lib$3.a)'
+old_library='$(if $3,$(LIB_PREFIX)$3$(LIB_SUFFIX))'
 
 # Linker flags that cannot go in dependency_libs.
 inherited_linker_flags='$4'
