@@ -17,7 +17,7 @@ TRG_VARS += RPATH
 BLD_VARS += MAP
 
 # reset additional variables
-# $(INST_RPATH) - location where external dependency libraries are installed
+# $(INST_RPATH) - location where external dependency libraries are installed: /opt/lib or $ORIGIN/../lib
 define RESET_OS_VARS
 RPATH := $(INST_RPATH)
 MAP   :=
@@ -346,7 +346,7 @@ FLEX  ?= $(call SUP,FLEX,$2)$(FLEXC) -o$1 $2
 # auxiliary defines for EXE
 # $1 - $(call FORM_TRG,EXE)
 define EXE_AUX_TEMPLATE1
-$1: RPATH := $(RPATH) $(EXE_RPATH)
+$1: RPATH := $(subst $$,$$$$,$(RPATH) $(EXE_RPATH))
 endef
 EXE_AUX_TEMPLATE = $(call EXE_AUX_TEMPLATE1,$(call FORM_TRG,EXE))
 
@@ -355,7 +355,7 @@ EXE_AUX_TEMPLATE = $(call EXE_AUX_TEMPLATE1,$(call FORM_TRG,EXE))
 # $2 - $(call FIXPATH,$(firstword $(DLL_MAP) $(MAP)))
 define DLL_AUX_TEMPLATE1
 $1: MODVER := $(MODVER)
-$1: RPATH := $(RPATH) $(DLL_RPATH)
+$1: RPATH := $(subst $$,$$$$,$(RPATH) $(DLL_RPATH))
 $1: MAP := $2
 $1: $2
 endef
