@@ -46,12 +46,12 @@ DO_TEST_EXE ?= $(eval $(call DO_TEST_EXE_TEMPLATE,$(BIN_DIR)/$(call GET_TARGET_N
 # for 'check' target, create runtime simlinks to shared libraries so dynamic linker will find them
 # $1 - list of built shared libraries in form: <library_name>.<major_number>
 ifeq (UNIX,$(OSTYPE))
-NEED_SIMLINKS ?= $(eval $(foreach d,$1,$(call SO_SOFTLINK_TEMPLATE,$d,$(DLL_PREFIX)$(firstword $(subst ., ,$d))$(DLL_SUFFIX))))
+TEST_NEED_SIMLINKS ?= $(eval $(foreach d,$1,$(call SO_SOFTLINK_TEMPLATE,$d,$(DLL_PREFIX)$(firstword $(subst ., ,$d))$(DLL_SUFFIX))))
 endif
 
 endif # check
 
 # protect variables from modifications in target makefiles
-$(call CLEAN_BUILD_PROTECT_VARS,DO_TEST_EXE_TEMPLATE TEST_EXE_SOFTLINKS SO_SOFTLINK_TEMPLATE DO_TEST_EXE NEED_SIMLINKS)
+$(call CLEAN_BUILD_PROTECT_VARS,DO_TEST_EXE_TEMPLATE TEST_EXE_SOFTLINKS SO_SOFTLINK_TEMPLATE DO_TEST_EXE TEST_NEED_SIMLINKS)
 
 endif # DO_TEST_EXE_TEMPLATE
