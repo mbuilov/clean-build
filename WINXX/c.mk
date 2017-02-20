@@ -234,7 +234,7 @@ DEL_DEF_MANIFEST_ON_FAIL ?= $(if $(DEF)$2,$(call DEL_ON_FAIL,$(if $(DEF),$1) $(i
 # send linker output to stderr
 # $1 - target exe
 # $2 - (wrapped) linker with options
-# $3 - $(basename $(notdir $1)).exp
+# $3 - $(basename $(notdir $(IMP))).exp
 WRAP_EXE_EXPORTS_LINKER ?= (($(if $(DEBUG),$2 2>&1,($2) 3>&2 2>&1 1>&3) && echo EXE_EXP_LINKED_OK >&2) | \
   findstr /V /L $3) 3>&2 2>&1 1>&3 | findstr /B /L EXE_EXP_LINKED_OK >NUL
 
@@ -242,8 +242,9 @@ WRAP_EXE_EXPORTS_LINKER ?= (($(if $(DEBUG),$2 2>&1,($2) 3>&2 2>&1 1>&3) && echo 
 # send linker output to stderr
 # $1 - target exe
 # $2 - (wrapped) linker with options
+# $3 - implementation library $(IMP)
 # target-specific: EXE_EXPORTS
-WRAP_EXE_LINKER ?= $(if $(EXE_EXPORTS),$(call WRAP_EXE_EXPORTS_LINKER,$1,$2,$(basename $(notdir $1)).exp),$2$(if $(DEBUG), >&2))
+WRAP_EXE_LINKER ?= $(if $(EXE_EXPORTS),$(call WRAP_EXE_EXPORTS_LINKER,$1,$2,$(basename $(notdir $3)).exp),$2$(if $(DEBUG), >&2))
 
 # define EXE linker for variant $v
 # $$1 - target exe, $$2 - objects, $v - variant
@@ -252,7 +253,8 @@ define EXE_LD_TEMPLATE
 $(empty)
 EXE_$v_LD1 = $$(call SUP,$(TMD)XLINK,$$1)$$(call WRAP_EXE_LINKER,$$1,$$(call WRAP_LINKER,$$(VS$$(TMD)LD) \
   /nologo $$(if $$(DEF),/DEF:$$(call ospath,$$(DEF))) $(CMN_LIBS) $(if $(EXE_EXPORTS),/IMPLIB:$$(call \
-  ospath,$$(IMP))) $(DEF_SUBSYSTEM) $(EMBED_MANIFEST_OPTION) $$(LDFLAGS)))$$(call DEL_DEF_MANIFEST_ON_FAIL,$$1,$$(EMBED_EXE_MANIFEST))
+  ospath,$$(IMP))) $(DEF_SUBSYSTEM) $(EMBED_MANIFEST_OPTION) $$(LDFLAGS)),$$(IMP))$$(call \
+  DEL_DEF_MANIFEST_ON_FAIL,$$1,$$(EMBED_EXE_MANIFEST))
 endef
 $(eval $(foreach v,R $(VARIANTS_FILTER),$(EXE_LD_TEMPLATE)))
 
@@ -260,7 +262,7 @@ $(eval $(foreach v,R $(VARIANTS_FILTER),$(EXE_LD_TEMPLATE)))
 # send linker output to stderr
 # $1 - target dll
 # $2 - (wrapped) linker with options
-# $3 - $(basename $(notdir $1)).exp
+# $3 - $(basename $(notdir $(IMP))).exp
 # target-specific: LIB_DIR
 WRAP_DLL_EXPORTS_LINKER ?= (($(if $(DEBUG),$2 2>&1,($2) 3>&2 2>&1 1>&3) && (dir $(call ospath,$(LIB_DIR)/$3) >NUL 2>&1 || \
   ((echo $(notdir $1) does not exports any symbols!) & del $(ospath) & exit /b 1)) && echo DLL_EXP_LINKED_OK >&2) | \
@@ -270,8 +272,9 @@ WRAP_DLL_EXPORTS_LINKER ?= (($(if $(DEBUG),$2 2>&1,($2) 3>&2 2>&1 1>&3) && (dir 
 # send linker output to stderr
 # $1 - target dll
 # $2 - (wrapped) linker with options
+# $3 - implementation library $(IMP)
 # target-specific: DLL_NO_EXPORTS
-WRAP_DLL_LINKER ?= $(if $(DLL_NO_EXPORTS),$2$(if $(DEBUG), >&2),$(call WRAP_DLL_EXPORTS_LINKER,$1,$2,$(basename $(notdir $1)).exp))
+WRAP_DLL_LINKER ?= $(if $(DLL_NO_EXPORTS),$2$(if $(DEBUG), >&2),$(call WRAP_DLL_EXPORTS_LINKER,$1,$2,$(basename $(notdir $3)).exp))
 
 # send linker output to stderr
 # define DLL linker for variant $v
@@ -281,7 +284,8 @@ define DLL_LD_TEMPLATE
 $(empty)
 DLL_$v_LD1 = $$(call SUP,$(TMD)LINK,$$1)$$(call WRAP_DLL_LINKER,$$1,$$(call WRAP_LINKER,$$(VS$$(TMD)LD) \
   /nologo /DLL $$(if $$(DEF),/DEF:$$(call ospath,$$(DEF))) $(CMN_LIBS) $(if $(DLL_NO_EXPORTS),,/IMPLIB:$$(call \
-  ospath,$$(IMP))) $(DEF_SUBSYSTEM) $(EMBED_MANIFEST_OPTION) $$(LDFLAGS)))$$(call DEL_DEF_MANIFEST_ON_FAIL,$$1,$$(EMBED_DLL_MANIFEST))
+  ospath,$$(IMP))) $(DEF_SUBSYSTEM) $(EMBED_MANIFEST_OPTION) $$(LDFLAGS)),$$(IMP))$$(call \
+  DEL_DEF_MANIFEST_ON_FAIL,$$1,$$(EMBED_DLL_MANIFEST))
 endef
 $(eval $(foreach v,R $(VARIANTS_FILTER),$(DLL_LD_TEMPLATE)))
 
@@ -713,9 +717,8 @@ endef
 # $3 - $(call TRG_ALL_SDEPS,EXE)
 # $4 - $(call GET_TARGET_NAME,EXE)
 # $5 - $(call FIXPATH,$(firstword $(EXE_DEF) $(DEF)))
-EXE_AUX_TEMPLATE1 = $(foreach v,$(call GET_VARIANTS,EXE,VARIANTS_FILTER),$(call \
-  EXE_AUX_TEMPLATE2,$1,$2,$3,$(call FORM_TRG,EXE),$(call \
-  FORM_OBJ_DIR,EXE,$v),$(IMP_DIR)/$(IMP_PREFIX)$4$(call VARIANT_IMP_SUFFIX,$v),$5))
+EXE_AUX_TEMPLATE1 = $(call EXE_AUX_TEMPLATE2,$1,$2,$3,$(call FORM_TRG,EXE),$(call \
+  FORM_OBJ_DIR,EXE,$v),$(IMP_DIR)/$(IMP_PREFIX)$4$(call VARIANT_IMP_SUFFIX,$(call GET_VARIANTS,EXE,VARIANTS_FILTER)),$5)
 
 # auxiliary defines for EXE:
 # - standard resource
@@ -787,9 +790,8 @@ endef
 # $3 - $(call TRG_ALL_SDEPS,DLL)
 # $4 - $(call GET_TARGET_NAME,DLL)
 # $5 - $(call FIXPATH,$(firstword $(DLL_DEF) $(DEF)))
-DLL_AUX_TEMPLATE1 = $(foreach v,$(call GET_VARIANTS,DLL,VARIANTS_FILTER),$(call \
-  DLL_AUX_TEMPLATE2,$1,$2,$3,$(call FORM_TRG,DLL),$(call \
-  FORM_OBJ_DIR,DLL,$v),$(IMP_DIR)/$(IMP_PREFIX)$4$(call VARIANT_IMP_SUFFIX,$v),$5))
+DLL_AUX_TEMPLATE1 = $(call DLL_AUX_TEMPLATE2,$1,$2,$3,$(call FORM_TRG,DLL),$(call \
+  FORM_OBJ_DIR,DLL,$v),$(IMP_DIR)/$(IMP_PREFIX)$4$(call VARIANT_IMP_SUFFIX,$(call GET_VARIANTS,DLL,VARIANTS_FILTER)),$5)
 
 # auxiliary defines for DLL:
 # - standard resource
