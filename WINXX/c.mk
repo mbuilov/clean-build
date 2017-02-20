@@ -713,8 +713,9 @@ endef
 # $3 - $(call TRG_ALL_SDEPS,EXE)
 # $4 - $(call GET_TARGET_NAME,EXE)
 # $5 - $(call FIXPATH,$(firstword $(EXE_DEF) $(DEF)))
-EXE_AUX_TEMPLATE1 = $(call EXE_AUX_TEMPLATE2,$1,$2,$3,$(call FORM_TRG,EXE),$(call \
-  FORM_OBJ_DIR,EXE,$v),$(IMP_DIR)/$(IMP_PREFIX)$4$(call VARIANT_IMP_SUFFIX,$(call GET_VARIANTS,EXE,VARIANTS_FILTER)),$5)
+EXE_AUX_TEMPLATE1 = $(foreach v,$(call GET_VARIANTS,EXE,VARIANTS_FILTER),$(call \
+  EXE_AUX_TEMPLATE2,$1,$2,$3,$(call FORM_TRG,EXE),$(call \
+  FORM_OBJ_DIR,EXE,$v),$(IMP_DIR)/$(IMP_PREFIX)$4$(call VARIANT_IMP_SUFFIX,$v),$5))
 
 # auxiliary defines for EXE:
 # - standard resource
@@ -786,8 +787,9 @@ endef
 # $3 - $(call TRG_ALL_SDEPS,DLL)
 # $4 - $(call GET_TARGET_NAME,DLL)
 # $5 - $(call FIXPATH,$(firstword $(DLL_DEF) $(DEF)))
-DLL_AUX_TEMPLATE1 = $(call DLL_AUX_TEMPLATE2,$1,$2,$3,$(call FORM_TRG,DLL),$(call \
-  FORM_OBJ_DIR,DLL,$v),$(IMP_DIR)/$(IMP_PREFIX)$4$(call VARIANT_IMP_SUFFIX,$(call GET_VARIANTS,DLL,VARIANTS_FILTER)),$5)
+DLL_AUX_TEMPLATE1 = $(foreach v,$(call GET_VARIANTS,DLL,VARIANTS_FILTER),$(call \
+  DLL_AUX_TEMPLATE2,$1,$2,$3,$(call FORM_TRG,DLL),$(call \
+  FORM_OBJ_DIR,DLL,$v),$(IMP_DIR)/$(IMP_PREFIX)$4$(call VARIANT_IMP_SUFFIX,$v),$5))
 
 # auxiliary defines for DLL:
 # - standard resource
