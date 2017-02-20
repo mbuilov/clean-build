@@ -255,9 +255,8 @@ endef
 
 # how to build executable
 EXE_RULES1 = $(call EXE_TEMPLATE,$1,$2,$3,$4,$(addprefix $4/,$(call OBJS,$2)))
-EXE_RULES = $(if $(EXE),$(newline)$(call \
-  EXE_RULES1,$(call FORM_TRG,EXE),$(call TRG_SRC,EXE),$(call TRG_SDEPS,EXE),$(call \
-  FORM_OBJ_DIR,EXE,$(call CHECK_ONE_VARIANT,EXE,$(call GET_VARIANTS,EXE,VARIANTS_FILTER)))))
+EXE_RULES = $(if $(EXE),$(foreach v,$(call CHECK_ONE_VARIANT,EXE,$(call GET_VARIANTS,EXE,VARIANTS_FILTER)),$(newline)$(call \
+  EXE_RULES1,$(call FORM_TRG,EXE),$(call TRG_SRC,EXE),$(call TRG_SDEPS,EXE),$(call FORM_OBJ_DIR,EXE,$v))))
 
 # $1 - target file: $(call FORM_TRG,LIB,$v)
 # $2 - sources:     $(call TRG_SRC,LIB)
@@ -315,9 +314,8 @@ endef
 
 # how to build dynamic (shared) library
 DLL_RULES1 = $(call DLL_TEMPLATE,$1,$2,$3,$4,$(addprefix $4/,$(call OBJS,$2)))
-DLL_RULES = $(if $(DLL),$(newline)$(call \
-  DLL_RULES1,$(call FORM_TRG,DLL),$(call TRG_SRC,DLL),$(call TRG_SDEPS,DLL),$(call \
-  FORM_OBJ_DIR,DLL,$(call CHECK_ONE_VARIANT,DLL,$(call GET_VARIANTS,DLL,VARIANTS_FILTER)))))
+DLL_RULES = $(if $(DLL),$(foreach v,$(call CHECK_ONE_VARIANT,DLL,$(call GET_VARIANTS,DLL,VARIANTS_FILTER)),$(newline)$(call \
+  DLL_RULES1,$(call FORM_TRG,DLL),$(call TRG_SRC,DLL),$(call TRG_SDEPS,DLL),$(call FORM_OBJ_DIR,DLL,$v))))
 
 # $1 - target file: $(call FORM_TRG,KLIB)
 # $2 - sources:     $(call TRG_SRC,KLIB)
