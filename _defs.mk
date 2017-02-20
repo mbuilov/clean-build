@@ -588,8 +588,8 @@ DEFINE_TARGETS_EVAL_NAME := DEF_TAIL_CODE_EVAL
 DEFINE_TARGETS = $(if $($(DEFINE_TARGETS_EVAL_NAME))$(eval DEFINE_TARGETS_EVAL_NAME:=DEF_TAIL_CODE_EVAL),)
 
 # may be used to save vars before $(MAKE_CONTINUE) and restore after
-SAVE_VARS = $(eval $(foreach v,$1,$(newline)$v_:=$(subst $$,$$$$,$($v))))
-RESTORE_VARS = $(eval $(foreach v,$1,$(newline)$v:=$(subst $$,$$$$,$($v_))))
+SAVE_VARS = $(eval $(foreach v,$1,$v_:=$(subst $$,$$$$,$($v))$(newline)))
+RESTORE_VARS = $(eval $(foreach v,$1,$v:=$(subst $$,$$$$,$($v_))$(newline)))
 
 # $(MAKE_CONTINUE_EVAL_NAME) - contains name of macro that when expanded evaluates code to prepare (at least, by evaluating $(DEF_HEAD_CODE))
 MAKE_CONTINUE_EVAL_NAME := DEF_HEAD_CODE_EVAL
