@@ -161,6 +161,12 @@ FORM_TRG = $(if \
 # $1 - EXE,LIB,DLL,...
 # $(foreach v,$(call GET_VARIANTS,$1,VARIANTS_FILTER),$(call FORM_TRG,$1,$v))
 
+# check that we will build only one variant of EXE,DLL or DRV
+# $1 - EXE,DLL,DRV
+# $2 - $(call GET_VARIANTS,$1,VARIANTS_FILTER)
+CHECK_ONE_VARIANT = $(if $(word 2,$2),$(error \
+  only one variant of $(GET_TARGET_NAME) $1 may be built, but many variants are specified: $2),$2)
+
 # subst $(space) with space character in defines passed to C-compiler
 # called by macro that expands to C-complier call
 SUBST_DEFINES = $(subst $$(space),$(space),$1)
@@ -249,8 +255,9 @@ endef
 
 # how to build executable
 EXE_RULES1 = $(call EXE_TEMPLATE,$1,$2,$3,$4,$(addprefix $4/,$(call OBJS,$2)))
-EXE_RULES = $(if $(EXE),$(foreach v,$(call GET_VARIANTS,EXE,VARIANTS_FILTER),$(newline)$(call \
-  EXE_RULES1,$(call FORM_TRG,EXE),$(call TRG_SRC,EXE),$(call TRG_SDEPS,EXE),$(call FORM_OBJ_DIR,EXE,$v))))
+EXE_RULES = $(if $(EXE),$(newline)$(call \
+  EXE_RULES1,$(call FORM_TRG,EXE),$(call TRG_SRC,EXE),$(call TRG_SDEPS,EXE),$(call \
+  FORM_OBJ_DIR,EXE,$(call CHECK_ONE_VARIANT,EXE,$(call GET_VARIANTS,EXE,VARIANTS_FILTER)))))
 
 # $1 - target file: $(call FORM_TRG,LIB,$v)
 # $2 - sources:     $(call TRG_SRC,LIB)
@@ -308,8 +315,9 @@ endef
 
 # how to build dynamic (shared) library
 DLL_RULES1 = $(call DLL_TEMPLATE,$1,$2,$3,$4,$(addprefix $4/,$(call OBJS,$2)))
-DLL_RULES = $(if $(DLL),$(foreach v,$(call GET_VARIANTS,DLL,VARIANTS_FILTER),$(newline)$(call \
-  DLL_RULES1,$(call FORM_TRG,DLL),$(call TRG_SRC,DLL),$(call TRG_SDEPS,DLL),$(call FORM_OBJ_DIR,DLL,$v))))
+DLL_RULES = $(if $(DLL),$(newline)$(call \
+  DLL_RULES1,$(call FORM_TRG,DLL),$(call TRG_SRC,DLL),$(call TRG_SDEPS,DLL),$(call \
+  FORM_OBJ_DIR,DLL,$(call CHECK_ONE_VARIANT,DLL,$(call GET_VARIANTS,DLL,VARIANTS_FILTER)))))
 
 # $1 - target file: $(call FORM_TRG,KLIB)
 # $2 - sources:     $(call TRG_SRC,KLIB)
@@ -432,7 +440,7 @@ MAKE_C_EVAL = $(eval $(PREPARE_C_VARS)$(DEF_HEAD_CODE))
 $(call CLEAN_BUILD_PROTECT_VARS,BLD_TARGETS TRG_VARS BLD_VARS VARIANT_LIB_SUFFIX VARIANT_IMP_SUFFIX \
   DEFINCLUDE PREDEFINES APPDEFS KRNDEFS PRODUCT_VER DEBUG_C_TARGETS \
   OSVARIANT OSTYPE OSVAR OSVARS OBJ_RULE OBJ_RULES1 OBJ_RULES \
-  RESET_TRG_VARS FORM_TRG SUBST_DEFINES STRING_DEFINE \
+  RESET_TRG_VARS FORM_TRG CHECK_ONE_VARIANT SUBST_DEFINES STRING_DEFINE \
   TRG_INCLUDE SOURCES TRG_SRC TRG_SDEPS OBJS DEP_LIB_SUFFIX DEP_IMP_SUFFIX \
   MAKE_DEP_LIBS MAKE_DEP_IMPS TRG_LIBS DEP_LIBS TRG_DLLS DEP_IMPS \
   EXE_TEMPLATE EXE_RULES1 EXE_RULES LIB_TEMPLATE LIB_RULES1 LIB_RULES \
