@@ -154,7 +154,7 @@ ifeq (undefined,$(origin VARIANT_IMP_MAP))
 VARIANT_IMP_MAP := R
 endif
 
-# default flags for shared objects
+# default flags for shared objects (executables and shared libraries)
 ifeq (undefined,$(origin DEF_SHARED_FLAGS))
 DEF_SHARED_FLAGS := -ztext -xnolib
 endif
@@ -164,12 +164,12 @@ ifeq (undefined,$(origin DEF_SHARED_LIBS))
 DEF_SHARED_LIBS :=
 endif
 
-# default flags for EXE-linker
+# default flags for EXE-target linker
 ifeq (undefined,$(origin DEF_EXE_FLAGS))
 DEF_EXE_FLAGS:=
 endif
 
-# default flags for shared objects linker
+# default flags for SO-target linker
 ifeq (undefined,$(origin DEF_SO_FLAGS))
 DEF_SO_FLAGS := -zdefs -G
 endif
@@ -179,7 +179,7 @@ ifeq (undefined,$(origin DEF_KLD_FLAGS))
 DEF_KLD_FLAGS := -r
 endif
 
-# default flags for static library archiver
+# default flags for objects archiver
 ifeq (undefined,$(origin DEF_AR_FLAGS))
 # target-specific: COMPILER
 DEF_AR_FLAGS := $(if $(filter CXX,$(COMPILER)),-xar -o,-c -r)
@@ -214,7 +214,7 @@ endif
 # target-specific: LIBS, DLLS, LIB_DIR, SYSLIBPATH, SYSLIBS, COMPILER, LDFLAGS
 CMN_LIBS ?= -o $1 $2 $(DEF_SHARED_FLAGS) $(RPATH_OPTION) $(if $(strip \
   $(LIBS)$(DLLS)),-L$(LIB_DIR) $(addprefix -l,$(DLLS)) $(if $(LIBS),-Bstatic $(addprefix -l,$(addsuffix \
-  $(call VARIANT_LIB_SUFFIX,$3),$(LIBS))) -Bdynamic)) $(addprefix -L,$(SYSLIBPATH)) $(addprefix \
+  $(call LIB_VAR_SUFFIX,$3),$(LIBS))) -Bdynamic)) $(addprefix -L,$(SYSLIBPATH)) $(addprefix \
   -l,$(SYSLIBS) $(if $(filter CXX,$(COMPILER)),$(DEF_CXX_LIBS)) $(DEF_C_LIBS)) $(DEF_SHARED_LIBS) $(LDFLAGS)
 
 # what to export from a dll
@@ -222,19 +222,19 @@ CMN_LIBS ?= -o $1 $2 $(DEF_SHARED_FLAGS) $(RPATH_OPTION) $(if $(strip \
 VERSION_SCRIPT_OPTION ?= $(addprefix -M,$(MAP))
 
 # append soname option if target shared library have version info (some number after .so)
-# $1 - full path to target shared library, for ex. /aa/bb/cc/libmy_lib.so.1.2.3, soname will be libmy_lib.so.1
+# $1 - full path to target shared library, for ex. /aa/bb/cc/libmy_lib.so, if MODVER=1.2.3 then soname will be libmy_lib.so.1
 # target-specific: MODVER
 SONAME_OPTION ?= $(addprefix -h $(notdir $1).,$(firstword $(subst ., ,$(MODVER))))
 
 # different linkers
 # $1 - target, $2 - objects
-# target-specific: TMD, COMPILER, MAP
+# target-specific: TMD, COMPILER
 EXE_R_LD ?= $(call SUP,$(TMD)XLD,$1)$($(TMD)$(COMPILER)) $(DEF_EXE_FLAGS) $(call CMN_LIBS,$1,$2,R)
 DLL_R_LD ?= $(call SUP,$(TMD)LD,$1)$($(TMD)$(COMPILER)) $(DEF_SO_FLAGS) $(VERSION_SCRIPT_OPTION) $(SONAME_OPTION) $(call CMN_LIBS,$1,$2,D)
 LIB_R_LD ?= $(call SUP,$(TMD)AR,$1)$($(TMD)AR) $(DEF_AR_FLAGS) $1 $2
 LIB_D_LD ?= $(LIB_R_LD)
-KLIB_LD  ?= $(call SUP,KLD,$1)$(KLD) $(DEF_KLD_FLAGS) -o $1 $2 $(LDFLAGS)
-DRV_LD   ?= $(call SUP,KLD,$1)$(KLD) $(DEF_KLD_FLAGS) -o $1 $2 $(if \
+KLIB_R_LD ?= $(call SUP,KLD,$1)$(KLD) $(DEF_KLD_FLAGS) -o $1 $2 $(LDFLAGS)
+DRV_R_LD ?= $(call SUP,KLD,$1)$(KLD) $(DEF_KLD_FLAGS) -o $1 $2 $(if \
   $(KLIBS),-L$(LIB_DIR) $(addprefix -l$(KLIB_NAME_PREFIX),$(KLIBS))) $(LDFLAGS)
 
 # $(SED) expression to filter-out system files while dependencies generation
@@ -263,7 +263,7 @@ WRAP_COMPILER ?= (($1 -H 2>&1 && echo COMPILATION_OK 1>&2) | \
 sed -n $(SED_DEPS_SCRIPT) 2>&1) 3>&2 2>&1 1>&3 3>&- | grep COMPILATION_OK > /dev/null
 endif
 
-# flags for application level C-compiler
+# flags for application level C/C++-compiler
 ifeq (undefined,$(origin APP_FLAGS))
 ifdef DEBUG
 APP_FLAGS := -g -DDEBUG
@@ -344,14 +344,18 @@ BISON ?= $(call SUP,BISON,$2)$(BISONC) -o $1 -d --fixed-output-files $(abspath $
 FLEX  ?= $(call SUP,FLEX,$2)$(FLEXC) -o$1 $2
 
 # auxiliary defines for EXE
-# $1 - $(call FORM_TRG,EXE)
+# $1 - $(call FORM_TRG,EXE,$v)
+# $2 - $(call FIXPATH,$(firstword $(EXE_MAP) $(MAP)))
 define EXE_AUX_TEMPLATE1
 $1: RPATH := $(subst $$,$$$$,$(RPATH) $(EXE_RPATH))
+$1: MAP := $2
+$1: $2
 endef
-EXE_AUX_TEMPLATE = $(call EXE_AUX_TEMPLATE1,$(call FORM_TRG,EXE))
+EXE_AUX_TEMPLATE2 = $(foreach v,$(call GET_VARIANTS,EXE,VARIANTS_FILTER),$(call EXE_AUX_TEMPLATE1,$(call FORM_TRG,EXE,$v),$2))
+EXE_AUX_TEMPLATE = $(call EXE_AUX_TEMPLATE2,$(call FIXPATH,$(firstword $(EXE_MAP) $(MAP))))
 
 # auxiliary defines for DLL
-# $1 - $(call FORM_TRG,DLL)
+# $1 - $(call FORM_TRG,DLL,$v)
 # $2 - $(call FIXPATH,$(firstword $(DLL_MAP) $(MAP)))
 define DLL_AUX_TEMPLATE1
 $1: MODVER := $(MODVER)
@@ -359,40 +363,43 @@ $1: RPATH := $(subst $$,$$$$,$(RPATH) $(DLL_RPATH))
 $1: MAP := $2
 $1: $2
 endef
-DLL_AUX_TEMPLATE = $(call DLL_AUX_TEMPLATE1,$(call FORM_TRG,DLL),$(call FIXPATH,$(firstword $(DLL_MAP) $(MAP))))
+DLL_AUX_TEMPLATE2 = $(foreach v,$(call GET_VARIANTS,DLL,VARIANTS_FILTER),$(call DLL_AUX_TEMPLATE1,$(call FORM_TRG,DLL,$v),$2))
+DLL_AUX_TEMPLATE = $(call DLL_AUX_TEMPLATE2,$(call FIXPATH,$(firstword $(DLL_MAP) $(MAP))))
 
-# $1 - target file: $(call FORM_TRG,DRV)
+# how to build driver, used by $(TRG_RULES)
+# $1 - target file: $(call FORM_TRG,DRV,$v)
 # $2 - sources:     $(call TRG_SRC,DRV)
 # $3 - sdeps:       $(call TRG_SDEPS,DRV)
-# $4 - objdir:      $(call FORM_OBJ_DIR,DRV)
+# $4 - objdir:      $(call FORM_OBJ_DIR,DRV,$v)
 # $5 - objects:     $(addprefix $4/,$(call OBJS,$2))
-# note: there are SYSLIBS and SYSLIBPATH for the driver
+# $v - R,S
 define DRV_TEMPLATE
-NEEDED_DIRS += $4
-$(call OBJ_RULES,DRV,CC,$(filter %.c,$2),$3,$4)
-$(call OBJ_RULES,DRV,ASM,$(filter %.asm,$2),$3,$4)
 $(STD_TARGET_VARS)
+NEEDED_DIRS += $4
+$(call OBJ_RULES,DRV,CC,$(filter %.c,$2),$3,$4,$v)
+$(call OBJ_RULES,DRV,CXX,$(filter %.cpp,$2),$3,$4,$v)
+$(call OBJ_RULES,DRV,ASM,$(filter %.asm,$2),$3,$4,$v)
+$1: COMPILER   := $(if $(filter %.cpp,$2),CXX,CC)
 $1: LIB_DIR    := $(LIB_DIR)
 $1: KLIBS      := $(KLIBS)
 $1: INCLUDE    := $(call TRG_INCLUDE,DRV)
 $1: DEFINES    := $(CMNDEFINES) $(KRNDEFS) $(DEFINES) $(DRV_DEFINES)
 $1: CFLAGS     := $(CFLAGS) $(DRV_CFLAGS)
+$1: CXXFLAGS   := $(CXXFLAGS) $(DRV_CXXFLAGS)
 $1: ASMFLAGS   := $(ASMFLAGS) $(DRV_ASMFLAGS)
 $1: LDFLAGS    := $(LDFLAGS) $(DRV_LDFLAGS)
-$1: $(addsuffix $(KLIB_SUFFIX),$(addprefix $(LIB_DIR)/$(KLIB_PREFIX),$(KLIBS))) $5
-	$$(call DRV_LD,$$@,$$(filter %$(OBJ_SUFFIX),$$^))
+$1: SYSLIBS    := $(SYSLIBS) $(DRV_SYSLIBS)
+$1: SYSLIBPATH := $(SYSLIBPATH) $(DRV_SYSLIBPATH)
+$1: $(addprefix $(LIB_DIR)/$(KLIB_PREFIX),$(KLIBS:=$(KLIB_SUFFIX))) $5
+	$$(call DRV_R_LD,$$@,$$(filter %$(OBJ_SUFFIX),$$^))
 $(call TOCLEAN,$5)
 endef
-
-# how to build driver
-DRV_RULES1 = $(call DRV_TEMPLATE,$1,$2,$3,$4,$(addprefix $4/,$(call OBJS,$2)))
-DRV_RULES = $(if $(DRV),$(call DRV_RULES1,$(call FORM_TRG,DRV),$(call TRG_SRC,DRV),$(call TRG_SDEPS,DRV),$(call FORM_OBJ_DIR,DRV)))
 
 # this code is evaluated from $(DEFINE_TARGETS)
 define OS_DEFINE_TARGETS
 $(if $(EXE),$(EXE_AUX_TEMPLATE))
 $(if $(DLL),$(DLL_AUX_TEMPLATE))
-$(DRV_RULES)
+$(call TRG_RULES,DRV)
 endef
 
 # protect variables from modifications in target makefiles
@@ -403,9 +410,9 @@ $(call CLEAN_BUILD_PROTECT_VARS,CC CXX AR TCC TCXX TAR KCC KLD YASM FLEXC BISONC
   VARIANT_LIB_MAP VARIANT_IMP_MAP DEF_SHARED_FLAGS DEF_EXE_FLAGS DEF_SO_FLAGS DEF_KLD_FLAGS DEF_AR_FLAGS \
   DLL_EXPORTS_DEFINE DLL_IMPORTS_DEFINE \
   RPATH_OPTION DEF_C_LIBS DEF_CXX_LIBS CMN_LIBS VERSION_SCRIPT_OPTION SONAME_OPTION1 SONAME_OPTION \
-  EXE_R_LD DLL_R_LD LIB_R_LD LIB_D_LD KLIB_LD DRV_LD \
+  EXE_R_LD DLL_R_LD LIB_R_LD LIB_D_LD KLIB_R_LD DRV_R_LD \
   UDEPS_INCLUDE_FILTER SED_DEPS_SCRIPT WRAP_COMPILER APP_FLAGS DEF_CXXFLAGS DEF_CFLAGS CC_PARAMS CMN_CXX CMN_CC \
   EXE_R_CXX EXE_R_CC LIB_R_CXX LIB_R_CC DLL_R_CXX DLL_R_CC LIB_D_CXX LIB_D_CC KDEPS_INCLUDE_FILTER KRN_FLAGS \
   KCC_PARAMS KLIB_R_CC DRV_R_CC KLIB_R_ASM DRV_R_ASM BISON FLEX \
-  EXE_AUX_TEMPLATE1 EXE_AUX_TEMPLATE DLL_AUX_TEMPLATE1 DLL_AUX_TEMPLATE \
-  DRV_TEMPLATE DRV_RULES1 DRV_RULES)
+  EXE_AUX_TEMPLATE1 EXE_AUX_TEMPLATE2 EXE_AUX_TEMPLATE DLL_AUX_TEMPLATE1 DLL_AUX_TEMPLATE2 DLL_AUX_TEMPLATE \
+  DRV_TEMPLATE)
