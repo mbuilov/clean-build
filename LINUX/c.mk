@@ -220,7 +220,7 @@ RPATH_LINK_OPTION ?= $(addprefix $(WLPREFIX)-rpath-link=,$(RPATH_LINK))
 # target-specific: LIBS, DLLS, LIB_DIR, SYSLIBPATH, SYSLIBS, LDFLAGS
 CMN_LIBS ?= -pipe -o $1 $2 $(DEF_SHARED_FLAGS) $(RPATH_OPTION) $(RPATH_LINK_OPTION) $(if $(strip \
   $(LIBS)$(DLLS)),-L$(LIB_DIR) $(addprefix -l,$(DLLS)) $(if $(LIBS),$(WLPREFIX)-Bstatic $(addprefix -l,$(addsuffix \
-  $(call VARIANT_LIB_SUFFIX,$3),$(LIBS))) $(WLPREFIX)-Bdynamic)) $(addprefix -L,$(SYSLIBPATH)) $(addprefix \
+  $(call LIB_VAR_SUFFIX,$3),$(LIBS))) $(WLPREFIX)-Bdynamic)) $(addprefix -L,$(SYSLIBPATH)) $(addprefix \
   -l,$(SYSLIBS)) $(DEF_SHARED_LIBS) $(LDFLAGS)
 
 # what to export from a dll
@@ -241,7 +241,7 @@ DLL_R_LD ?= $(call SUP,$(TMD)LD,$1)$($(TMD)$(COMPILER)) $(DEF_SO_FLAGS) $(VERSIO
 LIB_R_LD ?= $(call SUP,$(TMD)AR,$1)$($(TMD)AR) $(DEF_AR_FLAGS) $1 $2
 LIB_P_LD ?= $(call SUP,$(TMD)LD,$1)$($(TMD)LD) $(DEF_LD_FLAGS) -o $1 $2 $(LDFLAGS)
 LIB_D_LD ?= $(LIB_P_LD)
-KLIB_LD  ?= $(call SUP,KLD,$1)$(KLD) $(DEF_KLD_FLAGS) -o $1 $2 $(LDFLAGS)
+KLIB_R_LD ?= $(call SUP,KLD,$1)$(KLD) $(DEF_KLD_FLAGS) -o $1 $2 $(LDFLAGS)
 
 # flags for auto-dependencies generation
 ifeq (undefined,$(origin AUTO_DEPS_FLAGS))
@@ -379,19 +379,19 @@ endef # PCH_TEMPLATE1
 # $t - EXE,LIB,DLL,KLIB
 # note: must reset target-specific WITH_PCH if not using precompiled header,
 # otherwise DLL or LIB target may inherit WITH_PCH value from EXE, LIB target may inherit WITH_PCH value from DLL
-PCH_TEMPLATE2 = $(if $($t),$(if $(word 2,$(firstword $($t_PCH)$(PCH)) $(firstword $($t_WITH_PCH)$(WITH_PCH))),$(foreach \
-  v,$(call GET_VARIANTS,$t,VARIANTS_FILTER),$(newline)$(call PCH_TEMPLATE1,$t,$(call FORM_OBJ_DIR,$t,$v),$(call FORM_TRG,$t,$v))),$(foreach \
-  v,$(call GET_VARIANTS,$t,VARIANTS_FILTER),$(call FORM_TRG,$t,$v): WITH_PCH:=$(newline))))
+PCH_TEMPLATE2 = $(if $(word 2,$(firstword $($t_PCH)$(PCH)) $(firstword $($t_WITH_PCH)$(WITH_PCH))),$(foreach \
+  v,$(call GET_VARIANTS,$t,VARIANTS_FILTER),$(newline)$(call PCH_TEMPLATE1,$t,$(call FORM_OBJ_DIR,$t,$v),$(call \
+  FORM_TRG,$t,$v))),$(foreach v,$(call GET_VARIANTS,$t,VARIANTS_FILTER),$(call FORM_TRG,$t,$v): WITH_PCH:=$(newline)))
 
 # code to eval to build with precompiled headers
-PCH_TEMPLATES = $(foreach t,EXE LIB DLL KLIB,$(PCH_TEMPLATE2))
+PCH_TEMPLATES = $(foreach t,EXE LIB DLL KLIB,$(if $($t),$(PCH_TEMPLATE2)))
 
 # set dependencies of objects compiled with pch header on .gch
 # $1 - EXE,LIB,DLL,...
 # $2 - $(filter %.c,$src)
 # $3 - $(filter %.cpp,$src)
 # $4 - pch header name
-# $5 - objdir
+# $5 - objdir: $(call FORM_OBJ_DIR,$1,$v)
 define ADD_WITH_PCH2
 $(empty)
 $(if $2,$(addprefix $5/,$(addsuffix $(OBJ_SUFFIX),$(basename $(notdir $2)))): $5/$4_pch_c.h.gch)
@@ -407,14 +407,18 @@ ADD_WITH_PCH = $(eval $1_WITH_PCH += $2$(call \
 endif # NO_PCH
 
 # auxiliary defines for EXE
-# $1 - $(call FORM_TRG,EXE)
+# $1 - $(call FORM_TRG,EXE,$v)
+# $2 - $(call FIXPATH,$(firstword $(EXE_MAP) $(MAP)))
 define EXE_AUX_TEMPLATE1
 $1: RPATH := $(subst $$,$$$$,$(RPATH) $(EXE_RPATH))
+$1: MAP := $2
+$1: $2
 endef
-EXE_AUX_TEMPLATE = $(call EXE_AUX_TEMPLATE1,$(call FORM_TRG,EXE))
+EXE_AUX_TEMPLATE2 = $(foreach v,$(call GET_VARIANTS,EXE,VARIANTS_FILTER),$(call EXE_AUX_TEMPLATE1,$(call FORM_TRG,EXE,$v),$2))
+EXE_AUX_TEMPLATE = $(call EXE_AUX_TEMPLATE2,$(call FIXPATH,$(firstword $(EXE_MAP) $(MAP))))
 
 # auxiliary defines for DLL
-# $1 - $(call FORM_TRG,DLL)
+# $1 - $(call FORM_TRG,DLL,$v)
 # $2 - $(call FIXPATH,$(firstword $(DLL_MAP) $(MAP)))
 define DLL_AUX_TEMPLATE1
 $1: MODVER := $(MODVER)
@@ -422,7 +426,8 @@ $1: RPATH := $(subst $$,$$$$,$(RPATH) $(DLL_RPATH))
 $1: MAP := $2
 $1: $2
 endef
-DLL_AUX_TEMPLATE = $(call DLL_AUX_TEMPLATE1,$(call FORM_TRG,DLL),$(call FIXPATH,$(firstword $(DLL_MAP) $(MAP))))
+DLL_AUX_TEMPLATE2 = $(foreach v,$(call GET_VARIANTS,DLL,VARIANTS_FILTER),$(call DLL_AUX_TEMPLATE1,$(call FORM_TRG,DLL,$v),$2))
+DLL_AUX_TEMPLATE = $(call DLL_AUX_TEMPLATE2,$(call FIXPATH,$(firstword $(DLL_MAP) $(MAP))))
 
 # $1 - dest dir, $2 - file, $3 - aux dep
 define COPY_FILE_RULE
@@ -437,12 +442,12 @@ endef
 # $4 - gendir:      $(GEN_DIR)/$(DRV)_DRV
 # $5 - klibs:       $(addprefix $(KLIB_PREFIX),$(addsuffix $(KLIB_SUFFIX),$(KLIBS)))
 define DRV_TEMPLATE
+$(STD_TARGET_VARS)
 NEEDED_DIRS += $4
 # copy sources
 $(foreach x,$2,$(call COPY_FILE_RULE,$4,$x,$(call EXTRACT_SDEPS,$x,$3)))
 # copy klibs
 $(foreach x,$5,$(call COPY_FILE_RULE,$4,$(LIB_DIR)/$x))
-$(STD_TARGET_VARS)
 # generate Makefile for kbuild
 $4/Makefile: | $4
 	$$(call SUP,GEN,$$@)echo "obj-m += $(DRV_PREFIX)$(DRV).o" > $$@ && \
@@ -480,5 +485,5 @@ $(call CLEAN_BUILD_PROTECT_VARS,CC CXX MODULES_PATH LD AR TCC TCXX TLD TAR KCC K
   LIB_D_CXX LIB_D_CC PCH_EXE_R_CXX PCH_EXE_R_CC PCH_EXE_P_CXX PCH_EXE_P_CC PCH_LIB_R_CXX PCH_LIB_R_CC PCH_LIB_P_CXX PCH_LIB_P_CC \
   PCH_DLL_R_CXX PCH_DLL_R_CC PCH_LIB_D_CXX PCH_LIB_D_CC KLIB_PARAMS KLIB_R_CC PCH_KLIB_R_CC KLIB_R_ASM BISON FLEX \
   PCH_TEMPLATE1 PCH_TEMPLATE2 PCH_TEMPLATES ADD_WITH_PCH2 ADD_WITH_PCH1 ADD_WITH_PCH \
-  EXE_AUX_TEMPLATE1 EXE_AUX_TEMPLATE DLL_AUX_TEMPLATE1 DLL_AUX_TEMPLATE \
+  EXE_AUX_TEMPLATE1 EXE_AUX_TEMPLATE2 EXE_AUX_TEMPLATE DLL_AUX_TEMPLATE1 DLL_AUX_TEMPLATE2 DLL_AUX_TEMPLATE \
   COPY_FILE_RULE DRV_TEMPLATE DRV_RULES)
