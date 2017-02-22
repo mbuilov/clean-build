@@ -174,7 +174,7 @@ endif
 
 # default flags for EXE-target linker
 ifeq (undefined,$(origin DEF_EXE_FLAGS))
-DEF_EXE_FLAGS :=
+DEF_EXE_FLAGS:=
 endif
 
 # default flags for SO-target linker
@@ -228,7 +228,7 @@ CMN_LIBS ?= -pipe -o $1 $2 $(DEF_SHARED_FLAGS) $(RPATH_OPTION) $(RPATH_LINK_OPTI
 VERSION_SCRIPT_OPTION ?= $(addprefix $(WLPREFIX)--version-script=,$(MAP))
 
 # append soname option if target shared library have version info (some number after .so)
-# $1 - full path to target shared library, for ex. /aa/bb/cc/libmy_lib.so, is MODVER=1.2.3 then soname will be libmy_lib.so.1
+# $1 - full path to target shared library, for ex. /aa/bb/cc/libmy_lib.so, if MODVER=1.2.3 then soname will be libmy_lib.so.1
 # target-specific: MODVER
 SONAME_OPTION ?= $(addprefix $(WLPREFIX)-soname=$(notdir $1).,$(firstword $(subst ., ,$(MODVER))))
 
@@ -466,7 +466,7 @@ endef
 DRV_RULES = $(if $(DRV),$(call DRV_TEMPLATE,$(call FORM_TRG,DRV),$(call TRG_SRC,DRV),$(call \
   TRG_SDEPS,DRV),$(GEN_DIR)/$(DRV)_DRV,$(addprefix $(KLIB_PREFIX),$(addsuffix $(KLIB_SUFFIX),$(KLIBS)))))
 
-# this code is normally evaluated at end of target Makefile
+# this code is evaluated from $(DEFINE_TARGETS)
 define OS_DEFINE_TARGETS
 $(PCH_TEMPLATES)
 $(if $(EXE),$(EXE_AUX_TEMPLATE))
