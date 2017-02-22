@@ -47,9 +47,8 @@ TRG_VARS := PCH WITH_PCH SRC SDEPS DEFINES INCLUDE CFLAGS CXXFLAGS ASMFLAGS LDFL
 BLD_VARS := KLIBS CMNINCLUDE CLEAN
 
 # determine suffix for static LIB or for implementation-library of DLL
-# $1 - LIB,KLIB
-# $2 - target variant R,P,D,S,<empty>
-LIB_VAR_SUFFIX = $(if $(filter-out R,$2),_$2)
+# $1 - target variant R,P,D,S,<empty>
+LIB_VAR_SUFFIX = $(if $(filter-out R,$1),_$1)
 
 # $(TOP)/make/project.mk included by $(MTOP)/defs.mk, if exists, should define something like:
 #
@@ -155,9 +154,9 @@ DLL_VAR_SUFFIX = $(if $(filter-out R,$2),$(if $(word 2,$(filter R $(VARIANTS_FIL
 # $2 - target variant R,P,D,S,<empty>
 FORM_TRG = $(if \
   $(filter EXE,$1),$(addprefix $(BIN_DIR)/,$(addsuffix $(DLL_VAR_SUFFIX)$(EXE_SUFFIX),$(GET_TARGET_NAME))),$(if \
-  $(filter LIB,$1),$(addprefix $(LIB_DIR)/$(LIB_PREFIX),$(addsuffix $(LIB_VAR_SUFFIX)$(LIB_SUFFIX),$(GET_TARGET_NAME))),$(if \
+  $(filter LIB,$1),$(addprefix $(LIB_DIR)/$(LIB_PREFIX),$(addsuffix $(call LIB_VAR_SUFFIX,$2)$(LIB_SUFFIX),$(GET_TARGET_NAME))),$(if \
   $(filter DLL,$1),$(addprefix $(DLL_DIR)/$(DLL_PREFIX),$(addsuffix $(DLL_VAR_SUFFIX)$(DLL_SUFFIX),$(GET_TARGET_NAME))),$(if \
-  $(filter KLIB,$1),$(addprefix $(LIB_DIR)/$(KLIB_PREFIX),$(addsuffix $(LIB_VAR_SUFFIX)$(KLIB_SUFFIX),$(GET_TARGET_NAME))),$(if \
+  $(filter KLIB,$1),$(addprefix $(LIB_DIR)/$(KLIB_PREFIX),$(addsuffix $(call LIB_VAR_SUFFIX,$2)$(KLIB_SUFFIX),$(GET_TARGET_NAME))),$(if \
   $(filter DRV,$1),$(addprefix $(BIN_DIR)/$(DRV_PREFIX),$(addsuffix $(DLL_VAR_SUFFIX)$(DRV_SUFFIX),$(GET_TARGET_NAME))))))))
 
 # example how to make target filenames for all variants specified for the target
@@ -204,13 +203,13 @@ OBJS = $(addsuffix $(OBJ_SUFFIX),$(basename $(notdir $1)))
 # $1 - target EXE,DLL
 # $2 - variant of target EXE or DLL
 # $l - dependent static library name
-DEP_LIB_SUFFIX = $(call LIB_VAR_SUFFIX,$1,$(VARIANT_LIB_MAP))
+DEP_LIB_SUFFIX = $(call LIB_VAR_SUFFIX,$(VARIANT_LIB_MAP))
 
 # get suffix of dependent DLL
 # $1 - target EXE,DLL
 # $2 - variant of target EXE or DLL
 # $d - dependent dynamic library name
-DEP_IMP_SUFFIX = $(call LIB_VAR_SUFFIX,$1,$(VARIANT_IMP_MAP))
+DEP_IMP_SUFFIX = $(call LIB_VAR_SUFFIX,$(VARIANT_IMP_MAP))
 
 # make file names of dependent libs
 # $1 - EXE,DLL
