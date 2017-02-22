@@ -238,7 +238,7 @@ DEP_IMPS = $(addprefix $(IMP_DIR)/,$(call MAKE_DEP_IMPS,$1,$2,$(TRG_DLLS)))
 # $4 - $(call TRG_SDEPS,$1)
 # $5 - $(call FORM_OBJ_DIR,$1,$v)
 # $v - R,P,S,...
-TRG_RULES2 = $(call $1_TEMPLATE,$2,$3,$4,$(addprefix $5/,$(call OBJS,$3)))
+TRG_RULES2 = $(call $1_TEMPLATE,$2,$3,$4,$5,$(addprefix $5/,$(call OBJS,$3)))
 
 # $1 - EXE,DLL,...
 # $2 - $(call GET_VARIANTS,$1,VARIANTS_FILTER)
