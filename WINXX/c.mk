@@ -643,27 +643,34 @@ ADD_WITH_PCH = $(eval $1_WITH_PCH += $2)
 TRG_ALL_SDEPS = $(call FIXPATH,$(sort $(foreach d,$(SDEPS) $($1_SDEPS),$(wordlist 2,999999,$(subst |, ,$d)))))
 
 # for DLL or EXE that exports symbols
-# $4 - $(call FORM_TRG,DLL,$v) or $(call FORM_TRG,EXE,$v)
-# $6 - $(IMP_DIR)/$(IMP_PREFIX)$(call GET_TARGET_NAME,DLL)$(call VARIANT_IMP_SUFFIX,$v)
-# $7 - $(call FIXPATH,$(firstword $(DLL_DEF) $(DEF)))
-define EXPORTS_TEMPLATE
-$4: IMP := $6$(IMP_SUFFIX)
-$4: DEF := $7
-$4: $7 | $(IMP_DIR)
+# $1 - $(call FORM_TRG,DLL,$v) or $(call FORM_TRG,EXE,$v)
+# $2 - $(call FIXPATH,$(firstword $(DLL_DEF) $(DEF)))
+# $3 - $(IMP_DIR)/$(IMP_PREFIX))$(basename $(notdir $1))$(call LIB_VAR_SUFFIX,???,$v)$(IMP_SUFFIX)
+define EXPORTS_TEMPLATE1
+$1: IMP := $3
+$1: DEF := $2
+$1: $2 | $(IMP_DIR)
 NEEDED_DIRS += $(IMP_DIR)
-$6$(IMP_SUFFIX): $4
+$3: $1
 ifdef DEBUG
-$(call TOCLEAN,$6$(IMP_SUFFIX) $6.exp)
+$(call TOCLEAN,$3 $(3:$(IMP_SUFFIX)=.exp))
 endif
 endef
+
+# $1 - EXE,DLL
+# $2 - $(call FORM_TRG,$1,$v)
+# $3 - $(call FIXPATH,$(firstword $($1_DEF) $(DEF)))
+# $v - R,S
+EXPORTS_TEMPLATE = $(call EXPORTS_TEMPLATE1,$2,$3,$(IMP_DIR)/$(IMP_PREFIX)$(basename \
+  $(notdir $2))$(call LIB_VAR_SUFFIX,$1,$v)$(IMP_SUFFIX))
 
 # $1 - $(call TRG_SRC,EXE)
 # $2 - $(call TRG_SDEPS,EXE)
 # $3 - $(call TRG_ALL_SDEPS,EXE)
 # $4 - $(call FORM_TRG,EXE,$v)
 # $5 - $(call FORM_OBJ_DIR,EXE,$v)
-# $6 - $(IMP_DIR)/$(IMP_PREFIX)$(call GET_TARGET_NAME,EXE)$(call VARIANT_IMP_SUFFIX,$v)
-# $7 - $(call FIXPATH,$(firstword $(EXE_DEF) $(DEF)))
+# $6 - $(call FIXPATH,$(firstword $(EXE_DEF) $(DEF)))
+# $v - R,S
 define EXE_AUX_TEMPLATE2
 $(empty)
 $4: SRC := $1
@@ -675,18 +682,16 @@ ifdef DEBUG
 $(call TOCLEAN,$5/vc*.pdb $(4:$(EXE_SUFFIX)=.pdb))
 endif
 ifdef EXE_EXPORTS
-$(EXPORTS_TEMPLATE)
+$(call EXPORTS_TEMPLATE,EXE,$4,$6)
 endif
 endef
 
 # $1 - $(call TRG_SRC,EXE)
 # $2 - $(call TRG_SDEPS,EXE)
 # $3 - $(call TRG_ALL_SDEPS,EXE)
-# $4 - $(call GET_TARGET_NAME,EXE)
-# $5 - $(call FIXPATH,$(firstword $(EXE_DEF) $(DEF)))
+# $4 - $(call FIXPATH,$(firstword $(EXE_DEF) $(DEF)))
 EXE_AUX_TEMPLATE1 = $(foreach v,$(call GET_VARIANTS,EXE,VARIANTS_FILTER),$(call \
-  EXE_AUX_TEMPLATE2,$1,$2,$3,$(call FORM_TRG,EXE,$v),$(call \
-  FORM_OBJ_DIR,EXE,$v),$(IMP_DIR)/$(IMP_PREFIX)$4$(call VARIANT_IMP_SUFFIX,$v),$5))
+  EXE_AUX_TEMPLATE2,$1,$2,$3,$(call FORM_TRG,EXE,$v),$(call FORM_OBJ_DIR,EXE,$v),$4))
 
 # auxiliary defines for EXE:
 # - standard resource
@@ -695,8 +700,8 @@ EXE_AUX_TEMPLATE1 = $(foreach v,$(call GET_VARIANTS,EXE,VARIANTS_FILTER),$(call 
 define EXE_AUX_TEMPLATE
 $(call STD_RES_TEMPLATE,EXE)
 $(call PCH_TEMPLATE,EXE)
-$(call EXE_AUX_TEMPLATE1,$(call TRG_SRC,EXE),$(call TRG_SDEPS,EXE),$(call TRG_ALL_SDEPS,EXE),$(call \
-  GET_TARGET_NAME,EXE),$(call FIXPATH,$(firstword $(EXE_DEF) $(DEF))))
+$(call EXE_AUX_TEMPLATE1,$(call TRG_SRC,EXE),$(call TRG_SDEPS,EXE),$(call \
+  TRG_ALL_SDEPS,EXE),$(call FIXPATH,$(firstword $(EXE_DEF) $(DEF))))
 endef
 
 # $1 - $(call TRG_SRC,DLL)
@@ -704,8 +709,8 @@ endef
 # $3 - $(call TRG_ALL_SDEPS,DLL)
 # $4 - $(call FORM_TRG,DLL,$v)
 # $5 - $(call FORM_OBJ_DIR,DLL,$v)
-# $6 - $(IMP_DIR)/$(IMP_PREFIX)$(call GET_TARGET_NAME,DLL)$(call VARIANT_IMP_SUFFIX,$v)
-# $7 - $(call FIXPATH,$(firstword $(DLL_DEF) $(DEF)))
+# $6 - $(call FIXPATH,$(firstword $(DLL_DEF) $(DEF)))
+# $v - R,S
 define DLL_AUX_TEMPLATE2
 $(empty)
 $4: SRC := $1
@@ -717,18 +722,16 @@ ifdef DEBUG
 $(call TOCLEAN,$5/vc*.pdb $(4:$(DLL_SUFFIX)=.pdb))
 endif
 ifndef DLL_NO_EXPORTS
-$(EXPORTS_TEMPLATE)
+$(call EXPORTS_TEMPLATE,DLL,$4,$6)
 endif
 endef
 
 # $1 - $(call TRG_SRC,DLL)
 # $2 - $(call TRG_SDEPS,DLL)
 # $3 - $(call TRG_ALL_SDEPS,DLL)
-# $4 - $(call GET_TARGET_NAME,DLL)
-# $5 - $(call FIXPATH,$(firstword $(DLL_DEF) $(DEF)))
+# $4 - $(call FIXPATH,$(firstword $(DLL_DEF) $(DEF)))
 DLL_AUX_TEMPLATE1 = $(foreach v,$(call GET_VARIANTS,DLL,VARIANTS_FILTER),$(call \
-  DLL_AUX_TEMPLATE2,$1,$2,$3,$(call FORM_TRG,DLL,$v),$(call \
-  FORM_OBJ_DIR,DLL,$v),$(IMP_DIR)/$(IMP_PREFIX)$4$(call VARIANT_IMP_SUFFIX,$v),$5))
+  DLL_AUX_TEMPLATE2,$1,$2,$3,$(call FORM_TRG,DLL,$v),$(call FORM_OBJ_DIR,DLL,$v),$4))
 
 # auxiliary defines for DLL:
 # - standard resource
@@ -737,8 +740,8 @@ DLL_AUX_TEMPLATE1 = $(foreach v,$(call GET_VARIANTS,DLL,VARIANTS_FILTER),$(call 
 define DLL_AUX_TEMPLATE
 $(call STD_RES_TEMPLATE,DLL)
 $(call PCH_TEMPLATE,DLL)
-$(call DLL_AUX_TEMPLATE1,$(call TRG_SRC,DLL),$(call TRG_SDEPS,DLL),$(call TRG_ALL_SDEPS,DLL),$(call \
-  GET_TARGET_NAME,DLL),$(call FIXPATH,$(firstword $(DLL_DEF) $(DEF))))
+$(call DLL_AUX_TEMPLATE1,$(call TRG_SRC,DLL),$(call TRG_SDEPS,DLL),$(call \
+  TRG_ALL_SDEPS,DLL),$(call FIXPATH,$(firstword $(DLL_DEF) $(DEF))))
 endef
 
 # $1 - LIB,KLIB
@@ -902,7 +905,7 @@ $(call CLEAN_BUILD_PROTECT_VARS,SEQ_BUILD YASMC FLEXC BISONC MC SUPPRESS_RC_LOGO
   DEF_DRV_LDFLAGS DRV_R_LD1 KRN_FLAGS CMN_KCL KDEPS_INCLUDE_FILTER CMN_KCC KLIB_R_CC DRV_R_CC KLIB_R_LD DRV_R_LD FORCE_SYNC_PDB_KERN \
   CMN_MKCL1 CMN_MKCL PCH_KCC KLIB_R_ASM BISON FLEX \
   PCH_TEMPLATE1 PCH_TEMPLATE2 PCH_TEMPLATE3 PCH_TEMPLATE ADD_WITH_PCH \
-  TRG_ALL_SDEPS EXPORTS_TEMPLATE \
+  TRG_ALL_SDEPS EXPORTS_TEMPLATE1 EXPORTS_TEMPLATE \
   EXE_AUX_TEMPLATE2 EXE_AUX_TEMPLATE1 EXE_AUX_TEMPLATE \
   LIB_AUX_TEMPLATE2 LIB_AUX_TEMPLATE1 LIB_AUX_TEMPLATE \
   DLL_AUX_TEMPLATE2 DLL_AUX_TEMPLATE1 DLL_AUX_TEMPLATE \
