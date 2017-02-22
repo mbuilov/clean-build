@@ -645,7 +645,7 @@ TRG_ALL_SDEPS = $(call FIXPATH,$(sort $(foreach d,$(SDEPS) $($1_SDEPS),$(wordlis
 # for DLL or EXE that exports symbols
 # $1 - $(call FORM_TRG,DLL,$v) or $(call FORM_TRG,EXE,$v)
 # $2 - $(call FIXPATH,$(firstword $(DLL_DEF) $(DEF)))
-# $3 - $(IMP_DIR)/$(IMP_PREFIX))$(basename $(notdir $1))$(call LIB_VAR_SUFFIX,???,$v)$(IMP_SUFFIX)
+# $3 - $(IMP_DIR)/$(IMP_PREFIX))$(basename $(notdir $1))$(call LIB_VAR_SUFFIX,$v)$(IMP_SUFFIX)
 define EXPORTS_TEMPLATE1
 $1: IMP := $3
 $1: DEF := $2
@@ -657,12 +657,11 @@ $(call TOCLEAN,$3 $(3:$(IMP_SUFFIX)=.exp))
 endif
 endef
 
-# $1 - EXE,DLL
-# $2 - $(call FORM_TRG,$1,$v)
-# $3 - $(call FIXPATH,$(firstword $($1_DEF) $(DEF)))
+# $1 - $(call FORM_TRG,DLL,$v)
+# $2 - $(call FIXPATH,$(firstword $(DLL_DEF) $(DEF)))
 # $v - R,S
-EXPORTS_TEMPLATE = $(call EXPORTS_TEMPLATE1,$2,$3,$(IMP_DIR)/$(IMP_PREFIX)$(basename \
-  $(notdir $2))$(call LIB_VAR_SUFFIX,$1,$v)$(IMP_SUFFIX))
+EXPORTS_TEMPLATE = $(call EXPORTS_TEMPLATE1,$1,$2,$(IMP_DIR)/$(IMP_PREFIX)$(basename \
+  $(notdir $1))$(call LIB_VAR_SUFFIX,$v)$(IMP_SUFFIX))
 
 # $1 - $(call TRG_SRC,EXE)
 # $2 - $(call TRG_SDEPS,EXE)
@@ -682,7 +681,7 @@ ifdef DEBUG
 $(call TOCLEAN,$5/vc*.pdb $(4:$(EXE_SUFFIX)=.pdb))
 endif
 ifdef EXE_EXPORTS
-$(call EXPORTS_TEMPLATE,EXE,$4,$6)
+$(call EXPORTS_TEMPLATE,$4,$6)
 endif
 endef
 
@@ -722,7 +721,7 @@ ifdef DEBUG
 $(call TOCLEAN,$5/vc*.pdb $(4:$(DLL_SUFFIX)=.pdb))
 endif
 ifndef DLL_NO_EXPORTS
-$(call EXPORTS_TEMPLATE,DLL,$4,$6)
+$(call EXPORTS_TEMPLATE,$4,$6)
 endif
 endef
 
