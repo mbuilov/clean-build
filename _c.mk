@@ -409,7 +409,7 @@ endif
 define DEFINE_C_TARGETS_EVAL
 $(if $(MDEBUG),$(eval $(DEBUG_C_TARGETS)))
 $(eval $(call OSVAR,USE)$(if $(MDEBUG),$$(if $$(USE),$$(info \
-  using: $$(USE))))$(newline)include $$(addsuffix .mk,$$(addprefix $(PROJECT_USE_DIR)/,$$(USE))))
+  using: $$(USE))))$(newline)include $$(addprefix $(PROJECT_USE_DIR)/,$$(USE:=.mk)))
 $(eval $(OSVARS))
 $(eval $(GENERATE_SRC_RULES))
 $(eval $(OS_DEFINE_TARGETS))
