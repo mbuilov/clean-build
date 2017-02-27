@@ -137,7 +137,8 @@ ifeq (undefined,$(origin WLPREFIX))
 WLPREFIX := -Wl,
 endif
 
-# supported target variants:
+# variants filter function - get possible variants for the target
+# $1 - LIB,EXE,DLL
 # R - default variant (position-dependent code for EXE, position-independent code for DLL)
 # P - position-independent code in executables (for EXE and LIB)
 # D - position-independent code in shared libraries (for LIB)

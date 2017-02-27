@@ -132,7 +132,8 @@ ifeq (undefined,$(origin OS_KRNDEFS))
 OS_KRNDEFS := $(if $(KCPU:%64=),ILP32,LP64) _KERNEL
 endif
 
-# supported target variants:
+# variants filter function - get possible variants for the target
+# $1 - LIB,EXE,DLL
 # R - default variant (position-dependent code for EXE, position-independent code for DLL)
 # D - position-independent code in shared libraries (for LIB)
 VARIANTS_FILTER ?= $(if $(filter LIB,$1),D)
