@@ -138,9 +138,7 @@ endif
 # S  - statically linked multi-threaded libc
 # RU - same as R, but with unicode support (exe or dll may be linked with UNI_-prefixed static/dynamic library)
 # SU - same as S, but with unicode support (exe or dll may be linked with UNI_-prefixed static/dynamic library)
-ifeq (undefined,$(origin VARIANTS_FILTER))
-VARIANTS_FILTER := S RU SU
-endif
+VARIANTS_FILTER ?= S RU SU
 
 # for $(DEP_LIB_SUFFIX) from $(MTOP)/c.mk:
 # $1 - target EXE,DLL
