@@ -143,11 +143,16 @@ OBJ_RULES = $(call OBJ_RULES1,$1,$2,$3,$4,$5,$(patsubst ,R,$6))
 # EXE_DEFINES:=
 RESET_TRG_VARS := $(subst $(space),,$(foreach x,$(BLD_TARGETS) $(foreach t,$(BLD_TARGETS),$(addprefix $t_,$(TRG_VARS))),$(newline)$x:=))
 
+# generate target name suffix for DLL,EXE,DRV
+# $1 - DLL,EXE,DRV...
+# $2 - target variant S,P,D,... but not R or <empty>
+DLL_SUFFIX_GEN ?= $(call tolower,$2)
+
 # determine target name suffix for DLL,EXE,DRV
 # no suffix if only one variant is built or building R-variant
 # $1 - DLL,EXE,DRV...
 # $2 - target variant R,S,<empty>
-DLL_VAR_SUFFIX = $(if $(filter-out R,$2),$(if $(word 2,$(filter R $(VARIANTS_FILTER),$(wordlist 2,999999,$($1)))),$(call tolower,$2)))
+DLL_VAR_SUFFIX = $(if $(filter-out R,$2),$(if $(word 2,$(filter R $(VARIANTS_FILTER),$(wordlist 2,999999,$($1)))),$(DLL_SUFFIX_GEN)))
 
 # make target filename
 # $1 - EXE,LIB,...
@@ -455,7 +460,7 @@ MAKE_C_EVAL = $(eval $(PREPARE_C_VARS)$(DEF_HEAD_CODE))
 $(call CLEAN_BUILD_PROTECT_VARS,BLD_TARGETS TRG_VARS BLD_VARS LIB_VAR_SUFFIX \
   DEFINCLUDE PREDEFINES APPDEFS KRNDEFS PRODUCT_VER DEBUG_C_TARGETS \
   OSVARIANT OSTYPE OSVAR OSVARS OBJ_RULE OBJ_RULES1 OBJ_RULES \
-  RESET_TRG_VARS DLL_VAR_SUFFIX FORM_TRG SUBST_DEFINES STRING_DEFINE \
+  RESET_TRG_VARS DLL_SUFFIX_GEN DLL_VAR_SUFFIX FORM_TRG SUBST_DEFINES STRING_DEFINE \
   TRG_INCLUDE SOURCES TRG_SRC TRG_SDEPS OBJS DEP_LIB_SUFFIX DEP_IMP_SUFFIX \
   MAKE_DEP_LIBS MAKE_DEP_IMPS TRG_LIBS DEP_LIBS TRG_DLLS DEP_IMPS \
   TRG_RULES2 TRG_RULES1 TRG_RULES EXE_TEMPLATE LIB_TEMPLATE DLL_TEMPLATE KLIB_TEMPLATE \
