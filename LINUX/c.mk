@@ -380,8 +380,8 @@ endef # PCH_TEMPLATE1
 # note: must reset target-specific WITH_PCH if not using precompiled header,
 # otherwise DLL or LIB target may inherit WITH_PCH value from EXE, LIB target may inherit WITH_PCH value from DLL
 PCH_TEMPLATE2 = $(if $(word 2,$(firstword $($t_PCH)$(PCH)) $(firstword $($t_WITH_PCH)$(WITH_PCH))),$(foreach \
-  v,$(call GET_VARIANTS,$t,VARIANTS_FILTER),$(newline)$(call PCH_TEMPLATE1,$t,$(call FORM_OBJ_DIR,$t,$v),$(call \
-  FORM_TRG,$t,$v))),$(foreach v,$(call GET_VARIANTS,$t,VARIANTS_FILTER),$(call FORM_TRG,$t,$v): WITH_PCH:=$(newline)))
+  v,$(call GET_VARIANTS,$t),$(newline)$(call PCH_TEMPLATE1,$t,$(call FORM_OBJ_DIR,$t,$v),$(call \
+  FORM_TRG,$t,$v))),$(foreach v,$(call GET_VARIANTS,$t),$(call FORM_TRG,$t,$v): WITH_PCH:=$(newline)))
 
 # code to eval to build with precompiled headers
 PCH_TEMPLATES = $(foreach t,EXE LIB DLL KLIB,$(if $($t),$(PCH_TEMPLATE2)))
@@ -400,7 +400,7 @@ endef
 
 # function to add (generated?) sources to $({EXE,LIB,DLL,...}_WITH_PCH) list - to compile sources with pch header
 # $1 - EXE,LIB,DLL,... $2 - sources
-ADD_WITH_PCH1 = $(foreach v,$(call GET_VARIANTS,$1,VARIANTS_FILTER),$(call ADD_WITH_PCH2,$1,$2,$3,$4,$(call FORM_OBJ_DIR,$1,$v)))
+ADD_WITH_PCH1 = $(foreach v,$(call GET_VARIANTS,$1),$(call ADD_WITH_PCH2,$1,$2,$3,$4,$(call FORM_OBJ_DIR,$1,$v)))
 ADD_WITH_PCH = $(eval $1_WITH_PCH += $2$(call \
   ADD_WITH_PCH1,$1,$(filter %.c,$2),$(filter %.cpp,$2),$(basename $(notdir $(firstword $($1_PCH) $(PCH))))))
 
@@ -414,7 +414,7 @@ $1: RPATH := $(subst $$,$$$$,$(RPATH) $(EXE_RPATH))
 $1: MAP := $2
 $1: $2
 endef
-EXE_AUX_TEMPLATE2 = $(foreach v,$(call GET_VARIANTS,EXE,VARIANTS_FILTER),$(call EXE_AUX_TEMPLATE1,$(call FORM_TRG,EXE,$v),$2))
+EXE_AUX_TEMPLATE2 = $(foreach v,$(call GET_VARIANTS,EXE),$(call EXE_AUX_TEMPLATE1,$(call FORM_TRG,EXE,$v),$2))
 EXE_AUX_TEMPLATE = $(call EXE_AUX_TEMPLATE2,$(call FIXPATH,$(firstword $(EXE_MAP) $(MAP))))
 
 # auxiliary defines for DLL
@@ -426,7 +426,7 @@ $1: RPATH := $(subst $$,$$$$,$(RPATH) $(DLL_RPATH))
 $1: MAP := $2
 $1: $2
 endef
-DLL_AUX_TEMPLATE2 = $(foreach v,$(call GET_VARIANTS,DLL,VARIANTS_FILTER),$(call DLL_AUX_TEMPLATE1,$(call FORM_TRG,DLL,$v),$2))
+DLL_AUX_TEMPLATE2 = $(foreach v,$(call GET_VARIANTS,DLL),$(call DLL_AUX_TEMPLATE1,$(call FORM_TRG,DLL,$v),$2))
 DLL_AUX_TEMPLATE = $(call DLL_AUX_TEMPLATE2,$(call FIXPATH,$(firstword $(DLL_MAP) $(MAP))))
 
 # $1 - dest dir, $2 - file, $3 - aux dep

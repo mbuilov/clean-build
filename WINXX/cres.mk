@@ -193,7 +193,7 @@ endef
 # note: don't add standard resource to the tool or if adding such resource is explicitly disabled in makefile via NO_STD_RES variable
 define STD_RES_TEMPLATE
 $(if $(CB_TOOL_MODE),,$(if $(NO_STD_RES),,$(call STD_RES_TEMPLATE1,$1,$(GET_TARGET_NAME),$(FORM_OBJ_DIR))))
-$(foreach v,$(call GET_VARIANTS,$1,VARIANTS_FILTER),$(call ADD_RES_TEMPLATE,$1,$(call FORM_TRG,$1,$v)))
+$(foreach v,$(call GET_VARIANTS,$1),$(call ADD_RES_TEMPLATE,$1,$(call FORM_TRG,$1,$v)))
 endef
 
 # protect variables from modifications in target makefiles

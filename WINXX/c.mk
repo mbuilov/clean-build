@@ -620,7 +620,7 @@ endef
 # $1 - EXE,LIB,DLL,KLIB,DRV
 # $2 - $(call GET_TARGET_NAME,$1)
 # $3 - $$(basename $$(notdir $$(TRG_PCH)))
-PCH_TEMPLATE3 = $(PCH_TEMPLATE1)$(foreach v,$(call GET_VARIANTS,$1,VARIANTS_FILTER),$(call \
+PCH_TEMPLATE3 = $(PCH_TEMPLATE1)$(foreach v,$(call GET_VARIANTS,$1),$(call \
   PCH_TEMPLATE2,$1,$2,$3,$(call FORM_OBJ_DIR,$1,$v),$(call FORM_TRG,$1,$v)))
 
 # $1 - EXE,LIB,DLL,KLIB,DRV
@@ -629,7 +629,7 @@ PCH_TEMPLATE3 = $(PCH_TEMPLATE1)$(foreach v,$(call GET_VARIANTS,$1,VARIANTS_FILT
 # - LIB target may inherit WITH_PCH value from DLL
 PCH_TEMPLATE = $(if $(word 2,$(firstword $($1_PCH)$(PCH)) $(firstword $(WITH_PCH)$($1_WITH_PCH))),$(call \
   PCH_TEMPLATE3,$1,$(GET_TARGET_NAME),$$(basename $$(notdir $$(TRG_PCH)))),$(foreach \
-  v,$(call GET_VARIANTS,$1,VARIANTS_FILTER),$(call FORM_TRG,$1,$v): WITH_PCH:=$(newline)))
+  v,$(call GET_VARIANTS,$1),$(call FORM_TRG,$1,$v): WITH_PCH:=$(newline)))
 
 endif # !SEQ_BUILD
 
@@ -689,7 +689,7 @@ endef
 # $2 - $(call TRG_SDEPS,EXE)
 # $3 - $(call TRG_ALL_SDEPS,EXE)
 # $4 - $(call FIXPATH,$(firstword $(EXE_DEF) $(DEF)))
-EXE_AUX_TEMPLATE1 = $(foreach v,$(call GET_VARIANTS,EXE,VARIANTS_FILTER),$(call \
+EXE_AUX_TEMPLATE1 = $(foreach v,$(call GET_VARIANTS,EXE),$(call \
   EXE_AUX_TEMPLATE2,$1,$2,$3,$(call FORM_TRG,EXE,$v),$(call FORM_OBJ_DIR,EXE,$v),$4))
 
 # auxiliary defines for EXE:
@@ -729,7 +729,7 @@ endef
 # $2 - $(call TRG_SDEPS,DLL)
 # $3 - $(call TRG_ALL_SDEPS,DLL)
 # $4 - $(call FIXPATH,$(firstword $(DLL_DEF) $(DEF)))
-DLL_AUX_TEMPLATE1 = $(foreach v,$(call GET_VARIANTS,DLL,VARIANTS_FILTER),$(call \
+DLL_AUX_TEMPLATE1 = $(foreach v,$(call GET_VARIANTS,DLL),$(call \
   DLL_AUX_TEMPLATE2,$1,$2,$3,$(call FORM_TRG,DLL,$v),$(call FORM_OBJ_DIR,DLL,$v),$4))
 
 # auxiliary defines for DLL:
@@ -763,7 +763,7 @@ endef
 # $2 - $(call TRG_SRC,$1)
 # $3 - $(call TRG_SDEPS,$1)
 # $4 - $(call TRG_ALL_SDEPS,$1)
-LIB_AUX_TEMPLATE1 = $(foreach v,$(call GET_VARIANTS,$1,VARIANTS_FILTER),$(call \
+LIB_AUX_TEMPLATE1 = $(foreach v,$(call GET_VARIANTS,$1),$(call \
   LIB_AUX_TEMPLATE2,$1,$2,$3,$4,$(call FORM_TRG,$1,$v),$(call FORM_OBJ_DIR,$1,$v)))
 
 # auxiliary defines for LIB,KLIB:

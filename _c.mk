@@ -161,7 +161,7 @@ FORM_TRG = $(if \
 
 # example how to make target filenames for all variants specified for the target
 # $1 - EXE,LIB,DLL,...
-# $(foreach v,$(call GET_VARIANTS,$1,VARIANTS_FILTER),$(call FORM_TRG,$1,$v))
+# $(foreach v,$(call GET_VARIANTS,$1),$(call FORM_TRG,$1,$v))
 
 # subst $(space) with space character in defines passed to C-compiler
 # called by macro that expands to C-complier call
@@ -240,14 +240,14 @@ DEP_IMPS = $(addprefix $(IMP_DIR)/,$(call MAKE_DEP_IMPS,$1,$2,$(TRG_DLLS)))
 TRG_RULES2 = $(call $1_TEMPLATE,$2,$3,$4,$5,$(addprefix $5/,$(call OBJS,$3)))
 
 # $1 - EXE,DLL,...
-# $2 - $(call GET_VARIANTS,$1,VARIANTS_FILTER)
+# $2 - $(call GET_VARIANTS,$1)
 # $3 - $(call TRG_SRC,$1)
 # $4 - $(call TRG_SDEPS,$1)
 TRG_RULES1 = $(foreach v,$2,$(newline)$(call TRG_RULES2,$1,$(call FORM_TRG,$1,$v),$3,$4,$(call FORM_OBJ_DIR,$1,$v)))
 
 # expand target rules template $1_TEMPLATE, for example - see EXE_TEMPLATE
 # $1 - EXE,DLL,...
-TRG_RULES = $(if $($1),$(call TRG_RULES1,$1,$(call GET_VARIANTS,$1,VARIANTS_FILTER),$(TRG_SRC),$(TRG_SDEPS)))
+TRG_RULES = $(if $($1),$(call TRG_RULES1,$1,$(call GET_VARIANTS,$1),$(TRG_SRC),$(TRG_SDEPS)))
 
 # how to build executable, used by $(TRG_RULES)
 # $1 - target file: $(call FORM_TRG,EXE,$v)
@@ -362,7 +362,7 @@ endef
 # form objects of all variants of the target
 # $1 - EXE,LIB,DLL,...
 # $2 - objects names
-FORM_TRG_OBJS = $(foreach v,$(call GET_VARIANTS,$1,VARIANTS_FILTER),$(addprefix $(call FORM_OBJ_DIR,$1,$v)/,$2))
+FORM_TRG_OBJS = $(foreach v,$(call GET_VARIANTS,$1),$(addprefix $(call FORM_OBJ_DIR,$1,$v)/,$2))
 
 # helper macro: convert list of sources $1 to list of objects for all variants of defined targets (EXE,LIB,DLL,...)
 FORM_OBJS = $(foreach t,$(BLD_TARGETS),$(if $($t),$(call FORM_TRG_OBJS,$t,$(OBJS))))

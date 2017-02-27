@@ -29,7 +29,7 @@ $t_MOC_SRC:=$(MOC_SRC)
 endif
 ifneq ($$($t_MOC_SRC),)
 $t_SRC += $$($t_MOC_SRC)
-$(foreach v,$(call GET_VARIANTS,$t,VARIANTS_FILTER),$(newline)$(call FORM_TRG,$t,$v): $$($t_MOC_SRC))
+$(foreach v,$(call GET_VARIANTS,$t),$(newline)$(call FORM_TRG,$t,$v): $$($t_MOC_SRC))
 endif
 endef
 BLD_MOC_FILES_PATTERN = $(if $($t),$(newline)$(BLD_MOC_FILES_PATTERN1))

@@ -135,7 +135,7 @@ endif
 # supported target variants:
 # R - default variant (position-dependent code for EXE, position-independent code for DLL)
 # D - position-independent code in shared libraries (for LIB)
-VARIANTS_FILTER = $(if $(filter LIB,$1),D)
+VARIANTS_FILTER ?= $(if $(filter LIB,$1),D)
 
 # for $(DEP_LIB_SUFFIX) from $(MTOP)/c.mk:
 # $1 - target EXE,DLL
@@ -351,7 +351,7 @@ $1: RPATH := $(subst $$,$$$$,$(RPATH) $(EXE_RPATH))
 $1: MAP := $2
 $1: $2
 endef
-EXE_AUX_TEMPLATE2 = $(foreach v,$(call GET_VARIANTS,EXE,VARIANTS_FILTER),$(call EXE_AUX_TEMPLATE1,$(call FORM_TRG,EXE,$v),$2))
+EXE_AUX_TEMPLATE2 = $(foreach v,$(call GET_VARIANTS,EXE),$(call EXE_AUX_TEMPLATE1,$(call FORM_TRG,EXE,$v),$2))
 EXE_AUX_TEMPLATE = $(call EXE_AUX_TEMPLATE2,$(call FIXPATH,$(firstword $(EXE_MAP) $(MAP))))
 
 # auxiliary defines for DLL
@@ -363,7 +363,7 @@ $1: RPATH := $(subst $$,$$$$,$(RPATH) $(DLL_RPATH))
 $1: MAP := $2
 $1: $2
 endef
-DLL_AUX_TEMPLATE2 = $(foreach v,$(call GET_VARIANTS,DLL,VARIANTS_FILTER),$(call DLL_AUX_TEMPLATE1,$(call FORM_TRG,DLL,$v),$2))
+DLL_AUX_TEMPLATE2 = $(foreach v,$(call GET_VARIANTS,DLL),$(call DLL_AUX_TEMPLATE1,$(call FORM_TRG,DLL,$v),$2))
 DLL_AUX_TEMPLATE = $(call DLL_AUX_TEMPLATE2,$(call FIXPATH,$(firstword $(DLL_MAP) $(MAP))))
 
 # how to build driver, used by $(TRG_RULES)
