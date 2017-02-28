@@ -8,11 +8,11 @@ ifndef PKGCONFIG_DEF_TEMPLATE
 
 # pkg-config file generation
 
-# $1   - Name
+# $1   - Library name (human-readable)
 # $2   - Version
 # $3   - Description
-# $4   - library comment (author, description, etc.)
-# $5   - URL
+# $4   - Comment (author, description, etc.)
+# $5   - Project URL
 # $6   - Requires
 # $7   - Requires.private
 # $8   - Conflicts
@@ -42,27 +42,27 @@ $8,$(newline)Conflicts: $8)$(if \
 $9,$(newline)Cflags: $9)$(if \
 $(10),$(newline)Libs: $(10))$(if \
 $(11),$(newline)Libs.private: $(11))
-endef # PKGCONFIG_TEMPLATE
+endef
 endif
 
 # define standard pkg-config values
 # note: some of PC_... variables may be already defined in $(TOP)/make/project.mk
 pc_escape   = $(subst %,%%,$(subst $(space),$$(space),$1))
 pc_unescape = $(subst $$(space), ,$(subst %%,%,$1))
+# $2 == $1 ? $3 : $2
 pc_nchoose  = $(firstword $(filter-out $(pc_escape),$(call pc_escape,$2) $3))
 
 PC_PREFIX      ?= $(if $(PREFIX),$(PREFIX),/usr/local)
 PC_EXEC_PREFIX ?= $(call pc_unescape,$(call pc_nchoose,$(PC_PREFIX),$(EXEC_PREFIX),$${prefix}))
-PC_LIBDIR1      = $(call pc_unescape,$(call pc_nchoose,$(PC_PREFIX)/$1,$(call \
-  pc_nchoose,$(EXEC_PREFIX)/$1,$(LIBDIR),$${exec_prefix}/$1),$${prefix}/$1))
-PC_LIBDIR      ?= $(call PC_LIBDIR1,$(firstword $(call pc_escape,$(notdir $(LIBDIR))) lib))
+PC_LIBDIR      ?= $(foreach d,$(firstword $(call pc_escape,$(notdir $(LIBDIR))) lib),$(call pc_unescape,$(call \
+  pc_nchoose,$(PC_PREFIX)/$d,$(call pc_nchoose,$(EXEC_PREFIX)/$d,$(LIBDIR),$${exec_prefix}/$d),$${prefix}/$d)))
 PC_INCLUDEDIR  ?= $${prefix}/include
 PC_CFLAGS      ?= -I$${includedir}
 PC_LIBS        ?= -L$${libdir}
 
 # generate pkg-config file contents for dynamic or static library using $(PC_...) predefined values
 # $1    - library name
-# $2    - library version (for a DLL: $(MODVER))
+# $2    - library version ($(MODVER))
 # $3    - library description
 # $4    - library comment (author, description, etc.)
 # $5    - project url     (likely $(VENDOR_URL))
@@ -82,6 +82,6 @@ PKGCONFIG_DEF_TEMPLATE = $(call PKGCONFIG_TEMPLATE,$1,$2,$3,$4,$5,$6,$7,$8,$(PC_
 
 # protect variables from modifications in target makefiles
 $(call CLEAN_BUILD_PROTECT_VARS, PKGCONFIG_TEMPLATE pc_escape pc_unescape pc_nchoose \
-  PC_PREFIX PC_EXEC_PREFIX PC_LIBDIR1 PC_LIBDIR PC_INCLUDEDIR PC_CFLAGS PC_LIBS PKGCONFIG_DEF_TEMPLATE)
+  PC_PREFIX PC_EXEC_PREFIX PC_LIBDIR PC_INCLUDEDIR PC_CFLAGS PC_LIBS PKGCONFIG_DEF_TEMPLATE)
 
 endif
