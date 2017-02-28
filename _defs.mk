@@ -369,7 +369,7 @@ $1: TMD   := $(CB_TOOL_MODE)
 $1: | $2 $$(ORDER_DEPS)
 $(CURRENT_MAKEFILE)-: $1
 NEEDED_DIRS += $2
-$(call TOCLEAN,$1)
+$(TOCLEAN)
 endef
 
 # standard target-specific variables
