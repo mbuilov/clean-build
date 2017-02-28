@@ -146,6 +146,17 @@ VARIANTS_FILTER ?= $(if \
                    $(filter EXE,$1),P,$(if \
                    $(filter LIB,$1),P D))
 
+# determine suffix for static LIB or for implementation-library of DLL
+# $1 - target variant R,P,D,<empty>
+LIB_VAR_SUFFIX ?= $(if \
+                  $(filter P,$1),_pie,$(if \
+                  $(filter D,$1),_pic))
+
+# generate target name suffix for DLL,EXE,DRV
+# $1 - DLL,EXE,DRV...
+# $2 - target variant P (not R or <empty>)
+DLL_SUFFIX_GEN ?= _pie
+
 # for $(DEP_LIB_SUFFIX) from $(MTOP)/c.mk:
 # $1 - target EXE,DLL
 # $2 - variant of target EXE or DLL
@@ -287,18 +298,22 @@ CMN_CC  ?= $(if $(filter $2,$(WITH_PCH)),$(call SUP,P$(TMD)CC,$2)$($(TMD)CC) -I$
 PCH_CXX ?= $(call SUP,$(TMD)PCHCXX,$2)$($(TMD)CXX) $(CC_PARAMS) $(DEF_CXXFLAGS) $(CXXFLAGS)
 PCH_CC  ?= $(call SUP,$(TMD)PCHCC,$2)$($(TMD)CC) $(CC_PARAMS) $(DEF_CFLAGS) $(CFLAGS)
 
+# position-independent code for executables/shared objects (synamic libraries)
+PIE_OPTION ?= -fpie
+PIC_OPTION ?= -fpic
+
 # different compilers
 # $1 - target, $2 - source
 EXE_R_CXX ?= $(CMN_CXX) -o $1 $2
 EXE_R_CC  ?= $(CMN_CC) -o $1 $2
-EXE_P_CXX ?= $(EXE_R_CXX) -fpie
-EXE_P_CC  ?= $(EXE_R_CC) -fpie
+EXE_P_CXX ?= $(EXE_R_CXX) $(PIE_OPTION)
+EXE_P_CC  ?= $(EXE_R_CC) $(PIE_OPTION)
 LIB_R_CXX ?= $(EXE_R_CXX)
 LIB_R_CC  ?= $(EXE_R_CC)
 LIB_P_CXX ?= $(EXE_P_CXX)
 LIB_P_CC  ?= $(EXE_P_CC)
-DLL_R_CXX ?= $(CMN_CXX) -fpic -o $1 $2
-DLL_R_CC  ?= $(CMN_CC) -fpic -o $1 $2
+DLL_R_CXX ?= $(CMN_CXX) $(PIC_OPTION) -o $1 $2
+DLL_R_CC  ?= $(CMN_CC) $(PIC_OPTION) -o $1 $2
 LIB_D_CXX ?= $(DLL_R_CXX)
 LIB_D_CC  ?= $(DLL_R_CC)
 
@@ -306,14 +321,14 @@ LIB_D_CC  ?= $(DLL_R_CC)
 # $1 - target, $2 - source
 PCH_EXE_R_CXX ?= $(PCH_CXX) -o $1 $2
 PCH_EXE_R_CC  ?= $(PCH_CC) -o $1 $2
-PCH_EXE_P_CXX ?= $(PCH_EXE_R_CXX) -fpie
-PCH_EXE_P_CC  ?= $(PCH_EXE_R_CC) -fpie
+PCH_EXE_P_CXX ?= $(PCH_EXE_R_CXX) $(PIE_OPTION)
+PCH_EXE_P_CC  ?= $(PCH_EXE_R_CC) $(PIE_OPTION)
 PCH_LIB_R_CXX ?= $(PCH_EXE_R_CXX)
 PCH_LIB_R_CC  ?= $(PCH_EXE_R_CC)
 PCH_LIB_P_CXX ?= $(PCH_EXE_P_CXX)
 PCH_LIB_P_CC  ?= $(PCH_EXE_P_CC)
-PCH_DLL_R_CXX ?= $(PCH_CXX) -fpic -o $1 $2
-PCH_DLL_R_CC  ?= $(PCH_CC) -fpic -o $1 $2
+PCH_DLL_R_CXX ?= $(PCH_CXX) $(PIC_OPTION) -o $1 $2
+PCH_DLL_R_CC  ?= $(PCH_CC) $(PIC_OPTION) -o $1 $2
 PCH_LIB_D_CXX ?= $(PCH_DLL_R_CXX)
 PCH_LIB_D_CC  ?= $(PCH_DLL_R_CC)
 
