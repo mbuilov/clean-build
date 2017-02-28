@@ -28,15 +28,17 @@ ifeq (UNIX,$(OSTYPE))
 TEST_EXE_SOFTLINKS ?= $(if $3,$2: | $(addprefix $(LIB_DIR)/$(DLL_PREFIX),$(subst .,$(DLL_SUFFIX).,$3)))
 endif
 
-# $1 - built shared library in form <library_name>.<major_number>
+# $1 - $(LIB_DIR)/$(DLL_PREFIX)$(subst .,$(DLL_SUFFIX).,$d)
 # $2 - $(DLL_PREFIX)<library_name>$(DLL_SUFFIX)
+# $d - built shared library in form <library_name>.<major_number>
 define SO_SOFTLINK_TEMPLATE
 $(empty)
-$(LIB_DIR)/$(DLL_PREFIX)$(subst .,$(DLL_SUFFIX).,$1): | $(LIB_DIR)/$2
+$1: | $(LIB_DIR)/$2
 	$$(call SUP,LN,$$@)$$(call LN,$2,$$@)
+$(TOCLEAN)
 endef
 
-ifneq ($(filter check,$(MAKECMDGOALS)),)
+ifneq ($(filter check clean,$(MAKECMDGOALS)),)
 
 # for 'check' target, run executable
 # $1 - built shared libraries needed by executable, in form <library_name>.<major_number>
@@ -46,7 +48,8 @@ DO_TEST_EXE ?= $(eval $(call DO_TEST_EXE_TEMPLATE,$(BIN_DIR)/$(call GET_TARGET_N
 # for 'check' target, create runtime simlinks to shared libraries so dynamic linker will find them
 # $1 - list of built shared libraries in form: <library_name>.<major_number>
 ifeq (UNIX,$(OSTYPE))
-TEST_NEED_SIMLINKS ?= $(eval $(foreach d,$1,$(call SO_SOFTLINK_TEMPLATE,$d,$(DLL_PREFIX)$(firstword $(subst ., ,$d))$(DLL_SUFFIX))))
+TEST_NEED_SIMLINKS ?= $(eval $(foreach d,$1,$(call SO_SOFTLINK_TEMPLATE,$(LIB_DIR)/$(DLL_PREFIX)$(subst \
+  .,$(DLL_SUFFIX).,$d),$(DLL_PREFIX)$(firstword $(subst ., ,$d))$(DLL_SUFFIX))))
 endif
 
 endif # check
