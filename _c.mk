@@ -46,10 +46,6 @@ TRG_VARS := PCH WITH_PCH SRC SDEPS DEFINES INCLUDE CFLAGS CXXFLAGS ASMFLAGS LDFL
 # for example: KLIBS_LINUX, CMNINCLUDE_WINXX, CLEAN_UNIX and so on
 BLD_VARS := KLIBS CMNINCLUDE CLEAN
 
-# determine suffix for static LIB or for implementation-library of DLL
-# $1 - target variant R,P,D,S,<empty>
-LIB_VAR_SUFFIX = $(if $(filter-out R,$1),_$1)
-
 # $(TOP)/make/project.mk included by $(MTOP)/defs.mk, if exists, should define something like:
 #
 # 1) common include path for all targets, added at end of compiler's include paths list, for example:
@@ -79,6 +75,10 @@ LIB_VAR_SUFFIX = $(if $(filter-out R,$1),_$1)
 #  PRODUCT_VER := 1.0.0
 
 include $(MTOP)/$(OS)/c.mk
+
+# determine suffix for static LIB or for implementation-library of DLL
+# $1 - target variant R,P,D,S,<empty>
+LIB_VAR_SUFFIX ?= $(if $(filter-out R,$1),_$1)
 
 # list of all variables for the targets: SRC, DEFINES, CMNINCLUDE and so on
 # NOTE: these variables may also have $OS-dependent variants
@@ -152,11 +152,14 @@ DLL_SUFFIX_GEN ?= $(call tolower,$2)
 # no suffix if only one variant is built or building R-variant
 # $1 - DLL,EXE,DRV...
 # $2 - target variant R,S,<empty>
-DLL_VAR_SUFFIX = $(if $(filter-out R,$2),$(if $(word 2,$(filter R $(VARIANTS_FILTER),$(wordlist 2,999999,$($1)))),$(DLL_SUFFIX_GEN)))
+# $3 - variants list, by default $(wordlist 2,999999,$($1))
+DLL_VAR_SUFFIX ?= $(if $(filter-out R,$2),$(if $(word \
+  2,$(filter R $(VARIANTS_FILTER),$(if $3,$3,$(wordlist 2,999999,$($1))))),$(DLL_SUFFIX_GEN)))
 
 # make target filename
 # $1 - EXE,LIB,...
 # $2 - target variant R,P,D,S,<empty>
+# $3 - variants list, by default $(wordlist 2,999999,$($1))
 FORM_TRG = $(if \
   $(filter EXE,$1),$(addprefix $(BIN_DIR)/,$(addsuffix $(DLL_VAR_SUFFIX)$(EXE_SUFFIX),$(GET_TARGET_NAME))),$(if \
   $(filter LIB,$1),$(addprefix $(LIB_DIR)/$(LIB_PREFIX),$(addsuffix $(call LIB_VAR_SUFFIX,$2)$(LIB_SUFFIX),$(GET_TARGET_NAME))),$(if \
@@ -364,14 +367,6 @@ $1: $5
 $(call TOCLEAN,$5)
 endef
 
-# form objects of all variants of the target
-# $1 - EXE,LIB,DLL,...
-# $2 - objects names
-FORM_TRG_OBJS = $(foreach v,$(call GET_VARIANTS,$1),$(addprefix $(call FORM_OBJ_DIR,$1,$v)/,$2))
-
-# helper macro: convert list of sources $1 to list of objects for all variants of defined targets (EXE,LIB,DLL,...)
-FORM_OBJS = $(foreach t,$(BLD_TARGETS),$(if $($t),$(call FORM_TRG_OBJS,$t,$(OBJS))))
-
 # tools colors
 CC_COLOR   := [01;31m
 CXX_COLOR  := [01;36m
@@ -464,6 +459,6 @@ $(call CLEAN_BUILD_PROTECT_VARS,BLD_TARGETS TRG_VARS BLD_VARS LIB_VAR_SUFFIX \
   TRG_INCLUDE SOURCES TRG_SRC TRG_SDEPS OBJS DEP_LIB_SUFFIX DEP_IMP_SUFFIX \
   MAKE_DEP_LIBS MAKE_DEP_IMPS TRG_LIBS DEP_LIBS TRG_DLLS DEP_IMPS \
   TRG_RULES2 TRG_RULES1 TRG_RULES EXE_TEMPLATE LIB_TEMPLATE DLL_TEMPLATE KLIB_TEMPLATE \
-  FORM_TRG_OBJS FORM_OBJS CC_COLOR CXX_COLOR AR_COLOR LD_COLOR XLD_COLOR ASM_COLOR \
+  CC_COLOR CXX_COLOR AR_COLOR LD_COLOR XLD_COLOR ASM_COLOR \
   KCC_COLOR KLD_COLOR TCC_COLOR TCXX_COLOR TLD_COLOR TAR_COLOR CHECK_C_RULES PROJECT_USE_DIR \
   OS_DEFINE_TARGETS DEFINE_C_TARGETS_EVAL PREPARE_C_VARS RESET_OS_VARS MAKE_C_EVAL)
