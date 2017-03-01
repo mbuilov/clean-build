@@ -70,10 +70,10 @@ SED_EXPR = "$(subst %,%%,$1)"
 CAT   = type $(ospath)
 open_brace:=(
 close_brace:=)
-ECHO_LINE = (echo$(if $1, $(subst $(open_brace),^$(open_brace),$(subst $(close_brace),^$(close_brace),$(subst \
-             %,%%,$(subst <,^<,$(subst >,^>,$(subst |,^|,$(subst &,^&,$(subst ",^",$(subst ^,^^,$1))))))))),.))
-ECHO1 = $(if $(word 2,$1),($(foreach x,$1,$(call ECHO_LINE,$(subst $$(newline),,$(subst $$(space), ,$(subst \
-         $$(tab),$(tab),$x)))) &&) rem.),$(call ECHO_LINE,$(subst $$(space), ,$(subst $$(tab),$(tab),$1))))
+ECHO_LINE = echo$(if $1, $(subst $(open_brace),^$(open_brace),$(subst $(close_brace),^$(close_brace),$(subst \
+             %,%%,$(subst <,^<,$(subst >,^>,$(subst |,^|,$(subst &,^&,$(subst ",^",$(subst ^,^^,$1))))))))),.)
+ECHO1 = $(if $(word 2,$1),($(foreach x,$1,($(call ECHO_LINE,$(subst $$(newline),,$(subst $$(space), ,$(subst \
+         $$(tab),$(tab),$x))))) &&) rem.),$(call ECHO_LINE,$(subst $$(space), ,$(subst $$(tab),$(tab),$1))))
 ECHO  = $(call ECHO1,$(subst $(newline),$$(newline) ,$(subst $(space),$$(space),$(subst $(tab),$$(tab),$1))))
 NUL  := NUL
 SUPPRESS_CP_OUTPUT := | findstr /v /c:"        1" & if errorlevel 1 (cmd /c exit 0) else (cmd /c exit 1)
