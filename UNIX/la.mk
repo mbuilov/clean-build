@@ -48,7 +48,7 @@ dependency_libs='$5'
 # Names of additional weak libraries provided by this library
 weak_library_names=''
 
-# Version information for libmylib.
+# Version information for $(basename $(LIBTOOL_LA_NAME)).
 current=$(firstword $(subst ., ,$3) 0)
 age=$(firstword $(word 2,$(subst ., ,$3)) 0)
 revision=$(firstword $(word 3,$(subst ., ,$3)) 0)
