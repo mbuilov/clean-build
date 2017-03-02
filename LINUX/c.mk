@@ -94,12 +94,12 @@ OBJ_SUFFIX := .o
 # static library (archive) prefix/suffix
 LIB_PREFIX := lib
 LIB_SUFFIX := .a
-# implementation library for dll prefix/suffix
-IMP_PREFIX := lib
-IMP_SUFFIX := .so
 # dynamically loaded library (shared object) prefix/suffix
 DLL_PREFIX := lib
 DLL_SUFFIX := .so
+# import library for dll prefix/suffix
+IMP_PREFIX := $(DLL_PREFIX)
+IMP_SUFFIX := $(DLL_SUFFIX)
 # kernel-mode static library prefix/suffix
 KLIB_PREFIX :=
 KLIB_SUFFIX := .o
@@ -146,7 +146,7 @@ VARIANTS_FILTER ?= $(if \
                    $(filter EXE,$1),P,$(if \
                    $(filter LIB,$1),P D))
 
-# determine suffix for static LIB or for implementation-library of DLL
+# determine suffix for static LIB or for import library of DLL
 # $1 - target variant R,P,D,<empty>
 LIB_VAR_SUFFIX ?= $(if \
                   $(filter P,$1),_pie,$(if \
