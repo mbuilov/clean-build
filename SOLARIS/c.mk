@@ -94,12 +94,12 @@ OBJ_SUFFIX := .o
 # static library (archive) prefix/suffix
 LIB_PREFIX := lib
 LIB_SUFFIX := .a
-# implementation library for dll prefix/suffix
-IMP_PREFIX := lib
-IMP_SUFFIX := .so
 # dynamically loaded library (shared object) prefix/suffix
 DLL_PREFIX := lib
 DLL_SUFFIX := .so
+# import library for dll prefix/suffix
+IMP_PREFIX := $(DLL_PREFIX)
+IMP_SUFFIX := $(DLL_SUFFIX)
 # kernel-mode static library prefix/suffix
 KLIB_NAME_PREFIX := k_
 KLIB_PREFIX := lib$(KLIB_NAME_PREFIX)
