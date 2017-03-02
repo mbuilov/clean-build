@@ -144,18 +144,18 @@ VARIANTS_FILTER ?= S RU SU
 # $1 - target EXE,DLL
 # $2 - variant of target EXE or DLL
 # $l - dependent static library name
-# use the same variant of static library as target EXE or DLL (for example for S-EXE use S-LIB)
-# NOTE: use appropriate R or S variant of required non-UNI_ static library for RU or SU variant of target EXE or DLL:
-#  if required static library name do not starts with UNI_ - convert RU->R variant for required library
+# use the same variant of dependent static library as target EXE or DLL (for example for S-EXE use S-LIB)
+# NOTE: for RU or SU variant of target EXE or DLL, if dependent library name do not starts with UNI_
+#  - dependent library do not have unicode variant, so convert needed variant to non-unicode one: RU->R or SU->S
 VARIANT_LIB_MAP ?= $(if $(l:UNI_%=),$(2:U=),$2)
 
 # for $(DEP_IMP_SUFFIX) from $(MTOP)/c.mk:
 # $1 - target EXE,DLL
 # $2 - variant of target EXE or DLL
 # $d - dependent dynamic library name
-# use the same variant of dynamic library as target EXE or DLL (for example for S-EXE use S-DLL)
-# NOTE: use appropriate R or S variant of required non-UNI_ dynamic library for RU or SU variant of target EXE or DLL:
-#  if required import library name do not starts with UNI_ - convert RU->R variant for required import library
+# use the same variant of dependent dynamic library as target EXE or DLL (for example for S-EXE use S-DLL)
+# NOTE: for RU or SU variant of target EXE or DLL, if dependent library name do not starts with UNI_
+#  - dependent library do not have unicode variant, so convert needed variant to non-unicode one: RU->R or SU->S
 VARIANT_IMP_MAP ?= $(if $(d:UNI_%=),$(2:U=),$2)
 
 # check that library name built as RU/SU variant is started with UNI_ prefix
