@@ -145,16 +145,18 @@ RESET_TRG_VARS := $(subst $(space),,$(foreach x,$(BLD_TARGETS) $(foreach t,$(BLD
 
 # generate target name suffix for DLL,EXE,DRV
 # $1 - DLL,EXE,DRV...
-# $2 - target variant S,P,D,... but not R or <empty>
-DLL_SUFFIX_GEN ?= $(call tolower,$2)
+# $2 - target variant S,P,... but not R or <empty>
+# $3 - list of variants of target $1 to build (filtered by target platform specific $(VARIANTS_FILTER))
+DLL_SUFFIX_GEN ?= $(if $(word 2,$3),$(call tolower,$2))
 
 # determine target name suffix for DLL,EXE,DRV
-# no suffix if only one variant is built or building R-variant
 # $1 - DLL,EXE,DRV...
-# $2 - target variant R,S,<empty>
-# $3 - variants list, by default $(wordlist 2,999999,$($1))
-DLL_VAR_SUFFIX ?= $(if $(filter-out R,$2),$(if $(word \
-  2,$(filter R $(VARIANTS_FILTER),$(if $3,$3,$(wordlist 2,999999,$($1))))),$(DLL_SUFFIX_GEN)))
+# $2 - target variant R,S,P,<empty>
+# $3 - list of variants of target $1 to build, by default $(wordlist 2,999999,$($1))
+# Note: no suffix if building R-variant
+# Note: variants list $3 may be not filtered by target platform specific $(VARIANTS_FILTER)
+DLL_VAR_SUFFIX ?= $(if $(filter-out R,$2),$(call \
+  DLL_SUFFIX_GEN,$1,$2,$(filter R $(VARIANTS_FILTER),$(if $3,$3,$(wordlist 2,999999,$($1))))))
 
 # make target filename
 # $1 - EXE,LIB,...
