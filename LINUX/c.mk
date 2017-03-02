@@ -155,7 +155,8 @@ LIB_VAR_SUFFIX ?= $(if \
 # generate target name suffix for DLL,EXE,DRV
 # $1 - DLL,EXE,DRV...
 # $2 - target variant P (not R or <empty>)
-DLL_SUFFIX_GEN ?= _pie
+# $3 - list of variants of target $1 to build (filtered by target platform specific $(VARIANTS_FILTER))
+DLL_SUFFIX_GEN ?= $(if $(word 2,$3),_pie)
 
 # for $(DEP_LIB_SUFFIX) from $(MTOP)/c.mk:
 # $1 - target EXE,DLL
