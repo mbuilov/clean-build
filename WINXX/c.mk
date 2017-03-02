@@ -83,12 +83,12 @@ OBJ_SUFFIX := .obj
 # static library (archive) prefix/suffix
 LIB_PREFIX :=
 LIB_SUFFIX := .a
-# implementation library for dll prefix/suffix
-IMP_PREFIX :=
-IMP_SUFFIX := .lib
 # dynamically loaded library (shared object) prefix/suffix
 DLL_PREFIX :=
 DLL_SUFFIX := .dll
+# import library for dll prefix/suffix
+IMP_PREFIX :=
+IMP_SUFFIX := .lib
 # kernel-mode static library prefix/suffix
 KLIB_PREFIX :=
 KLIB_SUFFIX := .ka
@@ -98,7 +98,7 @@ DRV_SUFFIX := .sys
 endif
 
 # dll and import file for dll - different files
-# place dll to $(BIN_DIR), implementation lib for dll - to $(LIB_DIR)
+# place dll to $(BIN_DIR), import lib for dll - to $(LIB_DIR)
 # NOTE: DLL_DIR and IMP_DIR must be recursive because $(BIN_DIR) and $(LIB_DIR) have different values in TOOL-mode and non-TOOL mode
 DLL_DIR = $(BIN_DIR)
 IMP_DIR = $(LIB_DIR)
@@ -155,7 +155,7 @@ VARIANT_LIB_MAP ?= $(if $(l:UNI_%=),$(2:U=),$2)
 # $d - dependent dynamic library name
 # use the same variant of dynamic library as target EXE or DLL (for example for S-EXE use S-DLL)
 # NOTE: use appropriate R or S variant of required non-UNI_ dynamic library for RU or SU variant of target EXE or DLL:
-#  if required implementation library name do not starts with UNI_ - convert RU->R variant for required implementation library
+#  if required import library name do not starts with UNI_ - convert RU->R variant for required import library
 VARIANT_IMP_MAP ?= $(if $(d:UNI_%=),$(2:U=),$2)
 
 # check that library name built as RU/SU variant is started with UNI_ prefix
@@ -237,7 +237,7 @@ WRAP_EXE_EXPORTS_LINKER ?= (($(if $(DEBUG),$2 2>&1,($2) 3>&2 2>&1 1>&3) && echo 
 # send linker output to stderr
 # $1 - target exe
 # $2 - (wrapped) linker with options
-# $3 - implementation library $(IMP)
+# $3 - import library $(IMP)
 # target-specific: EXE_EXPORTS
 WRAP_EXE_LINKER ?= $(if $(EXE_EXPORTS),$(call WRAP_EXE_EXPORTS_LINKER,$1,$2,$(basename $(notdir $3)).exp),$2$(if $(DEBUG), >&2))
 
@@ -267,7 +267,7 @@ WRAP_DLL_EXPORTS_LINKER ?= (($(if $(DEBUG),$2 2>&1,($2) 3>&2 2>&1 1>&3) && (dir 
 # send linker output to stderr
 # $1 - target dll
 # $2 - (wrapped) linker with options
-# $3 - implementation library $(IMP)
+# $3 - import library $(IMP)
 # target-specific: DLL_NO_EXPORTS
 WRAP_DLL_LINKER ?= $(if $(DLL_NO_EXPORTS),$2$(if $(DEBUG), >&2),$(call WRAP_DLL_EXPORTS_LINKER,$1,$2,$(basename $(notdir $3)).exp))
 
@@ -640,7 +640,7 @@ ADD_WITH_PCH = $(eval $1_WITH_PCH += $2)
 # $1 - EXE,LIB,DLL,...
 TRG_ALL_SDEPS = $(call FIXPATH,$(sort $(foreach d,$(SDEPS) $($1_SDEPS),$(wordlist 2,999999,$(subst |, ,$d)))))
 
-# generate implementation library path
+# generate import library path
 # $1 - built dll path
 # $2 - built dll variant
 MAKE_IMP_PATH = $(IMP_DIR)/$(IMP_PREFIX)$(basename $(notdir $1))$(call LIB_VAR_SUFFIX,$2)$(IMP_SUFFIX)
