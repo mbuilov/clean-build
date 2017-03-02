@@ -11,21 +11,20 @@ ifndef DO_TEST_EXE_TEMPLATE
 # rule for running test executable for 'check' target
 
 # run $(EXE) and dump its stderr to $(EXE).out
-# $1 - $(BIN_DIR)/$(call GET_TARGET_NAME,EXE).out
-# $2 - $(call FORM_TRG,EXE)
-# $3 - built shared libraries needed by executable, in form <library_name>.<major_number>
-# $4 - auxiliary parameters to pass to executable
+# $1 - $(call FORM_TRG,EXE,$v)
+# $2 - built shared libraries needed by executable, in form <library_name>.<major_number>
+# $3 - auxiliary parameters to pass to executable
 define DO_TEST_EXE_TEMPLATE
-$(call ADD_GENERATED,$1)
-$1: $2
-	$$(call SUP,TEST,$$@)$$< $4 2> $$@
+$(call ADD_GENERATED,$1.out)
+$1.out: $1
+	$$(call SUP,TEST,$$@)$$< $3 2> $$@
 $(TEST_EXE_SOFTLINKS)
 endef
 
-# $2 - $(call FORM_TRG,EXE)
-# $3 - built shared libraries needed by executable, in form <library_name>.<major_number>
+# $1 - $(call FORM_TRG,EXE,$v)
+# $2 - built shared libraries needed by executable, in form <library_name>.<major_number>
 ifeq (UNIX,$(OSTYPE))
-TEST_EXE_SOFTLINKS ?= $(if $3,$2: | $(addprefix $(LIB_DIR)/$(DLL_PREFIX),$(subst .,$(DLL_SUFFIX).,$3)))
+TEST_EXE_SOFTLINKS ?= $(if $2,$1: | $(addprefix $(LIB_DIR)/$(DLL_PREFIX),$(subst .,$(DLL_SUFFIX).,$2)))
 endif
 
 # $1 - $(LIB_DIR)/$(DLL_PREFIX)$(subst .,$(DLL_SUFFIX).,$d)
@@ -40,10 +39,10 @@ endef
 
 ifneq ($(filter check clean,$(MAKECMDGOALS)),)
 
-# for 'check' target, run executable
+# for 'check' target, run built executable(s)
 # $1 - built shared libraries needed by executable, in form <library_name>.<major_number>
 # $2 - auxiliary parameters to pass to executable
-DO_TEST_EXE ?= $(eval $(call DO_TEST_EXE_TEMPLATE,$(BIN_DIR)/$(call GET_TARGET_NAME,EXE).out,$(call FORM_TRG,EXE),$1,$2))
+DO_TEST_EXE ?= $(eval $(foreach v,$(call GET_VARIANTS,EXE),$(newline)$(call DO_TEST_EXE_TEMPLATE,$(call FORM_TRG,EXE,$v),$1,$2)))
 
 # for 'check' target, create runtime simlinks to shared libraries so dynamic linker will find them
 # $1 - list of built shared libraries in form: <library_name>.<major_number>
