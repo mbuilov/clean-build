@@ -116,7 +116,7 @@ install_$(LIBRARY_NAME) uninstall_$(LIBRARY_NAME): BUILT_IMPS := $1
 install_$(LIBRARY_NAME): HEADERS := $(LIBRARY_HEADERS)
 
 install_$(LIBRARY_NAME)_headers: | $(DST_INC_DIR)
-	$$(foreach f,$$(HEADERS),$$(newline))$$(call CP,$(TOP)/$(LIBRARY_NAME)/$$f,"$$(DESTDIR)$$(PREFIX)/$(LIBRARY_NAME)"))
+	$$(foreach f,$$(HEADERS),$$(newline)$$(call CP,$(TOP)/$(LIBRARY_NAME)/$$f,"$$(DESTDIR)$$(PREFIX)/$(LIBRARY_NAME)"))
 
 install_$(LIBRARY_NAME): $(if $(NO_INSTALL_HEADERS1),,install_$(LIBRARY_NAME)_headers) | $(DST_LIB_DIR)
 	$$(foreach l,$$(BUILT_LIBS),$$(newline)$$(call CP,$$l,"$$(DESTDIR)$$(LIBDIR)"))
