@@ -79,7 +79,7 @@ install_$(LIBRARY_NAME): $(if $(NO_INSTALL_HEADERS1),,install_$(LIBRARY_NAME)_he
 	$$(foreach d,$$(BUILT_DLLS),$$(newline)ln -sf$(if $(VERBOSE),v) $$(notdir $$d).$(MODVER) '$$(DESTDIR)$$(LIBDIR)/$$(notdir $$d)') $(if \
   $(NO_INSTALL_LA1),,$(newline)$(tab)$$(call INSTALL_LIBTOOL_ARCHIVES,$$(ALL_BUILT_LIBS),$$(BUILT_LIBS),$$(BUILT_DLLS)))$(if \
   $(NO_INSTALL_PC1),,$(if $(BUILT_LIBS)$(BUILT_DLLS),$(newline)$(tab)$$(INSTALL) -d '$$(DESTDIR)$$(PKG_CONFIG_DIR)'))$(if \
-  $(NO_INSTALL_PC1),,$(newline)$(tab)$$(call INSTALL_PKGCONFS,$$(ALL_BUILT_LIBS),$$($(LIBRARY_PC_GEN))))$(if \
+  $(NO_INSTALL_PC1),,$(newline)$(tab)$$(call INSTALL_PKGCONFS,$$(ALL_BUILT_LIBS),$(LIBRARY_PC_GEN)))$(if \
   $(BUILT_DLLS),$(newline)$(tab)$$(LDCONFIG) -n$(if $(VERBOSE),v) '$$(DESTDIR)$$(LIBDIR)')
 
 uninstall_$(LIBRARY_NAME):
