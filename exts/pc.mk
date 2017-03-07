@@ -56,9 +56,10 @@ pc_nchoose  = $(firstword $(filter-out $(pc_escape),$(call pc_escape,$2) $3))
 
 PKGCONF_PREFIX      ?= $(if $(PREFIX),$(PREFIX),/usr/local)
 PKGCONF_EXEC_PREFIX ?= $(call pc_unescape,$(call pc_nchoose,$(PKGCONF_PREFIX),$(EXEC_PREFIX),$${prefix}))
+PKGCONF_INCLUDEDIR  ?= $(call pc_unescape,$(foreach d,$(firstword $(call pc_escape,$(notdir $(INCLUDEDIR))) include),$(call \
+  pc_nchoose,$(PKGCONF_PREFIX)/$d,$(INCLUDEDIR),$${prefix}/$d)))
 PKGCONF_LIBDIR      ?= $(foreach d,$(firstword $(call pc_escape,$(notdir $(LIBDIR))) lib),$(call pc_unescape,$(call \
   pc_nchoose,$(PKGCONF_PREFIX)/$d,$(call pc_nchoose,$(EXEC_PREFIX)/$d,$(LIBDIR),$${exec_prefix}/$d),$${prefix}/$d)))
-PKGCONF_INCLUDEDIR  ?= $${prefix}/include
 PKGCONF_CFLAGS      ?= -I$${includedir}
 PKGCONF_LIBS        ?= -L$${libdir}
 
