@@ -69,8 +69,8 @@ install_$(LIBRARY_NAME) uninstall_$(LIBRARY_NAME): ALL_BUILT_LIBS := $1
 install_$(LIBRARY_NAME): HEADERS := $(LIBRARY_HEADERS)
 
 install_$(LIBRARY_NAME)_headers:
-	$$(INSTALL) -d '$$(DESTDIR)$$(PREFIX)/include/$(LIBRARY_NAME)'
-	$$(INSTALL) -m 644 $$(addprefix $(TOP)/$(LIBRARY_NAME)/,$$(HEADERS)) '$$(DESTDIR)$$(PREFIX)/include/$(LIBRARY_NAME)'
+	$$(INSTALL) -d '$$(DESTDIR)$$(INCLUDEDIR)/$(LIBRARY_NAME)'
+	$$(INSTALL) -m 644 $$(addprefix $(TOP)/$(LIBRARY_NAME)/,$$(HEADERS)) '$$(DESTDIR)$$(INCLUDEDIR)/$(LIBRARY_NAME)'
 
 install_$(LIBRARY_NAME): $(if $(NO_INSTALL_HEADERS1),,install_$(LIBRARY_NAME)_headers)$(if \
   $(BUILT_LIBS)$(BUILT_DLLS),$(newline)$(tab)$$(INSTALL) -d '$$(DESTDIR)$$(LIBDIR)')
@@ -84,7 +84,7 @@ install_$(LIBRARY_NAME): $(if $(NO_INSTALL_HEADERS1),,install_$(LIBRARY_NAME)_he
 
 uninstall_$(LIBRARY_NAME):
 	rm -rf$(if $(VERBOSE),v) $(if \
-  $(NO_INSTALL_HEADERS1),,'$$(DESTDIR)$$(PREFIX)/include/$(LIBRARY_NAME)') $$(foreach \
+  $(NO_INSTALL_HEADERS1),,'$$(DESTDIR)$$(INCLUDEDIR)/$(LIBRARY_NAME)') $$(foreach \
   l,$$(BUILT_LIBS),'$$(DESTDIR)$$(LIBDIR)/$$(notdir $$l)') $$(foreach \
   d,$$(BUILT_DLLS),'$$(DESTDIR)$$(LIBDIR)/$$(notdir $$d)' '$$(DESTDIR)$$(LIBDIR)/$$(notdir $$d).$(MODVER)') $(if \
   $(NO_INSTALL_LA1),,$$(call INSTALLED_LIBTOOL_ARCHIVES,$$(ALL_BUILT_LIBS),$$(BUILT_LIBS),$$(BUILT_DLLS))) $(if \
@@ -99,7 +99,7 @@ $(eval $(call INSTALL_LIB_TEMPLATE_LINUX,$(call GET_ALL_LIBS,$(BUILT_LIBS),$(BUI
 
 else ifeq (WINXX,$(OS))
 
-DST_INC_DIR := $(subst $(space),\$(space),$(DESTDIR)$(PREFIX)/$(LIBRARY_NAME))
+DST_INC_DIR := $(subst $(space),\$(space),$(DESTDIR)$(INCLUDEDIR)/$(LIBRARY_NAME))
 DST_LIB_DIR := $(subst $(space),\$(space),$(DESTDIR)$(LIBDIR))
 
 $(DST_LIB_DIR): | $(if $(NO_INSTALL_HEADERS1),,$(DST_INC_DIR))
@@ -116,7 +116,7 @@ install_$(LIBRARY_NAME) uninstall_$(LIBRARY_NAME): BUILT_IMPS := $1
 install_$(LIBRARY_NAME): HEADERS := $(LIBRARY_HEADERS)
 
 install_$(LIBRARY_NAME)_headers: | $(DST_INC_DIR)
-	$$(foreach f,$$(HEADERS),$$(newline)$$(call CP,$(TOP)/$(LIBRARY_NAME)/$$f,"$$(DESTDIR)$$(PREFIX)/$(LIBRARY_NAME)"))
+	$$(foreach f,$$(HEADERS),$$(newline)$$(call CP,$(TOP)/$(LIBRARY_NAME)/$$f,"$$(DESTDIR)$$(INCLUDEDIR)/$(LIBRARY_NAME)"))
 
 install_$(LIBRARY_NAME): $(if $(NO_INSTALL_HEADERS1),,install_$(LIBRARY_NAME)_headers) | $(DST_LIB_DIR)
 	$$(foreach l,$$(BUILT_LIBS),$$(newline)$$(call CP,$$l,"$$(DESTDIR)$$(LIBDIR)"))
@@ -124,7 +124,7 @@ install_$(LIBRARY_NAME): $(if $(NO_INSTALL_HEADERS1),,install_$(LIBRARY_NAME)_he
   $(NO_INSTALL_IMPS1),,$(newline)$(tab)$$(foreach i,$$(BUILT_IMPS),$$(newline)$$(call CP,$$i,"$$(DESTDIR)$$(LIBDIR)")))
 
 uninstall_$(LIBRARY_NAME):$(if \
-  $(NO_INSTALL_HEADERS1),,$(newline)$(tab)$$(call DEL_DIR,"$$(DESTDIR)$$(PREFIX)/$(LIBRARY_NAME)"))
+  $(NO_INSTALL_HEADERS1),,$(newline)$(tab)$$(call DEL_DIR,"$$(DESTDIR)$$(INCLUDEDIR)/$(LIBRARY_NAME)"))
 	$$(foreach l,$$(notdir $$(BUILT_LIBS)),$$(newline)$$(call DEL,"$$(DESTDIR)$$(LIBDIR)/$$l"))
 	$$(foreach d,$$(notdir $$(BUILT_DLLS)),$$(newline)$$(call DEL,"$$(DESTDIR)$$(LIBDIR)/$$d"))$(if \
   $(NO_INSTALL_IMPS1),,$(newline)$(tab)$$(foreach i,$$(notdir $$(BUILT_IMPS)),$$(newline)$$(call DEL,"$$(DESTDIR)$$(LIBDIR)/$$i")))
