@@ -18,17 +18,16 @@ ifndef MTOP
 $(error MTOP is not defined, example: C:\clean-build,/usr/local/clean-build)
 endif
 
-# legend:
+# legend for Makefile rules:
 # $< - name of the first prerequisite
 # $^ - names of all prerequisites
 # $@ - file name of the target
 # $? - prerequisites newer than the target
 
-# standard defines & checks
-# NOTE:
-#  $(OS), $(SUPPORTED_OSES),
-#  $(CPU) or $(UCPU),$(KCPU),$(TCPU), $(SUPPORTED_CPUS),
-#  $(TARGET) and $(SUPPORTED_TARGETS) are must be defined
+# standard defines that must be defined:
+# $(OS), $(SUPPORTED_OSES),
+# $(CPU) or $(UCPU),$(KCPU),$(TCPU), $(SUPPORTED_CPUS),
+# $(TARGET) (RELEASE by default) and $(SUPPORTED_TARGETS) (DEBUG,RELEASE by default)
 
 # disable builtin rules and variables
 MAKEFLAGS += --no-builtin-rules --no-builtin-variables
@@ -52,11 +51,12 @@ include $(MTOP)/protection.mk
 include $(MTOP)/functions.mk
 include $(MTOP)/top.mk
 
-ifdef TARGET
-# define $(DEBUG) to use it in $(PROJECT), if $(TARGET) is defined
-# $(DEBUG) is non-empty for DEBUG targets like PROJECTD
-DEBUG := $(filter %D,$(TARGET))
-endif
+# what target type to build
+TARGET ?= RELEASE
+
+# define $(DEBUG) to use it in $(PROJECT) configuration file
+# $(DEBUG) is non-empty for DEBUG targets like "PROJECTD" or "DEBUG"
+DEBUG := $(filter DEBUG %D,$(TARGET))
 
 # $(TOP)/make/project.mk, if exists, should define something like:
 # SUPPORTED_OSES    := WINXX SOLARIS LINUX
@@ -73,9 +73,9 @@ endif
 ifndef SUPPORTED_CPUS
 $(error SUPPORTED_CPUS not defined, it may be defined in $(PROJECT:$(TOP)/%=$$(TOP)/%))
 endif
-ifndef SUPPORTED_TARGETS
-$(error SUPPORTED_TARGETS not defined, it may be defined in $(PROJECT:$(TOP)/%=$$(TOP)/%))
-endif
+
+# set standard targets, if $(PROJECT) do not defines some
+SUPPORTED_TARGETS ?= DEBUG RELEASE
 
 # OS - operating system we are building for (and we are building on)
 ifndef OS
@@ -136,17 +136,15 @@ endif
 endif
 
 # what to build
-ifndef TARGET
-$(error TARGET undefined, please pick one of: $(SUPPORTED_TARGETS))
-endif
 ifeq ($(filter $(TARGET),$(SUPPORTED_TARGETS)),)
 $(error unknown TARGET=$(TARGET), please pick one of: $(SUPPORTED_TARGETS))
 endif
 
 endif # ifeq ($(filter distclean,$(MAKECMDGOALS)),)
 
-# $(DEBUG) is non-empty for DEBUG targets like PROJECTD
-DEBUG := $(filter %D,$(TARGET))
+# $(PROJECT) configuration file may redefine TARGET value, re-set DEBUG value
+# $(DEBUG) is non-empty for DEBUG targets like "PROJECTD" or "DEBUG"
+DEBUG := $(filter DEBUG %D,$(TARGET))
 
 # run via $(MAKE) V=1 for verbose output
 ifeq ("$(origin V)","command line")
