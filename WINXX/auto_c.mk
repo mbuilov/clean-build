@@ -140,7 +140,7 @@ VSTINC := $(VSINC)
 # Note: some prefixes reduced:
 #  amd64_amd64 -> amd64
 #  x86_x86     -> <none>
-VS_TOOL_PREFIX = $(addprefix \,$(filter-out x86_x86,$(subst amd64_amd64,amd64,$(TCPU:x86_64=amd64)_$(UCPU:x86_64=amd64))))
+VS_TOOL_PREFIX = $(addprefix \,$(filter-out x86_x86,$(subst amd64_amd64,amd64,$(TCPU:x86_64=amd64)_$(1:x86_64=amd64))))
 
 VSLD   := $(call qpath,$(VSN)\VC\bin$(call VS_TOOL_PREFIX,$(UCPU))\link.exe)
 VSCL   := $(call qpath,$(VSN)\VC\bin$(call VS_TOOL_PREFIX,$(UCPU))\cl.exe)
