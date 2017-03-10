@@ -91,57 +91,117 @@ $(info try to autoconfigure...)
 endif
 
 ifndef VS
-$(error VS undefined, example: VS="C:\Program Files (x86)\Microsoft Visual Studio 10.0")
-endif
-
-ifneq ($(subst \Microsoft Visual Studio ,,$(VS)),$(VS))
-VS_VER := $(firstword $(subst ., ,$(lastword $(VS))))
+$(error VS undefined, example: VS="C:\Program Files (x86)\Microsoft Visual Studio 10.0" or\
+ VS="C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Tools\MSVC\14.10.25017")
 endif
 
 ifndef VS_VER
-$(error VS_VER undefined (expecting 8,9,11,12,14), \
+ifneq ($(subst \Microsoft Visual Studio ,,$(VS)),$(VS))
+# 10.0 -> 10
+VS_VER := $(firstword $(subst ., ,$(lastword $(VS))))
+else ifneq ($(subst \VC\Tools\MSVC\,,$(VS)),$(VS))
+# 14.10.25017 -> 1410
+VS_VER := $(subst $(space),,$(wordlist 1,2,$(subst ., ,$(word 2,$(subst \VC\Tools\MSVC\, ,$(subst $(space),?,$(VS)))))))
+endif
+endif
+
+ifndef VS_VER
+$(error VS_VER undefined (expecting 8,9,11,12,14,1410), \
   failed to auto-determine it, likely Visual Studio is installed to non-default location)
 endif
 
+ifndef WDK_VER
 ifneq ($(subst \Windows Kits\,,$(WDK)),$(WDK))
 WDK_VER := $(firstword $(subst ., ,$(lastword $(subst \, ,$(WDK)))))
+endif
 endif
 
 GET_WDK_VER = $(if $(WDK_VER),$(WDK_VER),$(error WDK_VER undefined (expecting 7,8,9,10), \
   failed to auto-determine it, likely WDK is installed to non-default location))
 
-# normalize: "x x" -> x?x
-# used for paths passed to compilers and tools, but not searched by $(MAKE)
-normpath = $(call unspaces,$(subst "",,$1))
-
-VSN  := $(call normpath,$(VS))
-SDKN := $(call normpath,$(SDK))
-DDKN := $(call normpath,$(DDK))
-WDKN := $(call normpath,$(WDK))
+# normalize: x x -> x?x
+VSN  := $(call unspaces,$(VS))
+SDKN := $(call unspaces,$(SDK))
+DDKN := $(call unspaces,$(DDK))
+WDKN := $(call unspaces,$(WDK))
 
 # APP LEVEL
 
-VSLIB  := $(VSN)\VC\lib$(if $(UCPU:%64=),,\amd64)
+ifeq ($(call is_less,1000,$(VS_VER)),)
+
+VSLIB  := $(VSN)\VC\lib$(ONECORE)$(addprefix \,$(filter-out x86,$(UCPU:x86_64=amd64)))
 VSINC  := $(VSN)\VC\include
 
-VSTLIB := $(VSN)\VC\lib$(if $(TCPU:%64=),,\amd64)
+VSTLIB := $(VSN)\VC\lib$(addprefix \,$(filter-out x86,$(TCPU:x86_64=amd64)))
 VSTINC := $(VSINC)
 
+# determine tool prefix $(TCPU)_$1 where
+# $1 - target cpu (either $(UCPU) or $(KCPU))
+# Note: some prefixes reduced:
+#  amd64_amd64 -> amd64
+#  x86_x86     -> <none>
+VS_TOOL_PREFIX = $(addprefix \,$(filter-out x86_x86,$(subst amd64_amd64,amd64,$(TCPU:x86_64=amd64)_$(UCPU:x86_64=amd64))))
+
+VSLD   := $(call qpath,$(VSN)\VC\bin$(call VS_TOOL_PREFIX,$(UCPU))\link.exe)
+VSCL   := $(call qpath,$(VSN)\VC\bin$(call VS_TOOL_PREFIX,$(UCPU))\cl.exe)
+
+VSTLD  := $(call qpath,$(VSN)\VC\bin$(call VS_TOOL_PREFIX,$(TCPU))\link.exe)
+VSTCL  := $(call qpath,$(VSN)\VC\bin$(call VS_TOOL_PREFIX,$(TCPU))\cl.exe)
+
+# set path to dlls needed by cl.exe and link.exe to work
 ifneq ($(call is_less,$(VS_VER),10),)
-# cl.exe or link.exe from Visual Studio 2008 or earlier need to find dlls in Common7\IDE to work
-PATH := $(PATH);$(call qpath,$(VSN)\Common7\IDE)
+
+ifneq ($(call VS_TOOL_PREFIX,$(UCPU)),\amd64)
+# not for \amd64
+PATH := $(PATH);$(VS)\Common7\IDE
+endif
+
+else ifneq ($(call is_less,$(VS_VER),13),)
+
+ifneq ($(UCPU),$(TCPU))
+# for \x86_amd64
+PATH := $(PATH);$(VS)\VC\bin
+endif
+
+else # Visual Studio 2015
+
+ifneq ($(UCPU),$(TCPU))
+# for \amd64_arm
+# for \amd64_x86
+# for \x86_amd64
+# for \x86_arm
+PATH := $(PATH);$(VS)\VC\bin$(addprefix \,$(filter-out x86,$(TCPU:x86_64=amd64)))
+endif
+
+endif
+
+else # Visual Studio 2017
+
+VSLIB  := $(VSN)\lib$(ONECORE)\$(UCPU:x86_64=x64)
+VSINC  := $(VSN)\include
+
+VSTLIB := $(VSN)\lib\$(TCPU:x86_64=x64)
+VSTINC := $(VSINC)
+
+VSLD   := $(call qpath,$(VSN)\bin\Host$(patsubst x%,X%,$(TCPU:x86_64=x64))\$(UCPU:x86_64=x64)\link.exe)
+VSCL   := $(call qpath,$(VSN)\bin\Host$(patsubst x%,X%,$(TCPU:x86_64=x64))\$(UCPU:x86_64=x64)\cl.exe)
+
+VSTLD  := $(call qpath,$(VSN)\bin\Host$(patsubst x%,X%,$(TCPU:x86_64=x64))\$(TCPU:x86_64=x64)\link.exe)
+VSTCL  := $(call qpath,$(VSN)\bin\Host$(patsubst x%,X%,$(TCPU:x86_64=x64))\$(TCPU:x86_64=x64)\cl.exe)
+
+# set path to dlls needed by cl.exe and link.exe to work
+ifneq ($(UCPU),$(TCPU))
+# for HostX64/x86
+# for HostX86/x64
+PATH := $(PATH);$(VS)\bin\Host$(patsubst x%,X%,$(TCPU:x86_64=x64))\$(TCPU:x86_64=x64)
+endif
+
 endif
 
 # option for parallel builds, starting from Visual Studio 2013
 ifneq ($(call is_less,11,$(VS_VER)),)
 FORCE_SYNC_PDB ?= /FS
 endif
-
-VSLD   := $(call qpath,$(VSN)\VC\bin$(if $(UCPU:%64=),,\amd64)\link.exe)
-VSCL   := $(call qpath,$(VSN)\VC\bin$(if $(UCPU:%64=),,\amd64)\cl.exe)
-
-VSTLD  := $(call qpath,$(VSN)\VC\bin$(if $(TCPU:%64=),,\amd64)\link.exe)
-VSTCL  := $(call qpath,$(VSN)\VC\bin$(if $(TCPU:%64=),,\amd64)\cl.exe)
 
 ifeq ($(strip $(SDK)$(WDK)),)
 $(error no SDK nor WDK defined, example:\
@@ -154,21 +214,21 @@ ifdef WDK
 $(error either SDK or WDK must be defined, but not both)
 endif
 
-ifneq ($(call is_less,12,$(GET_VS_VER)),)
-$(error too new Visual Studio version $(lastword $(VS)) to build with SDK, please use WDK)
+ifneq ($(call is_less,12,$(VS_VER)),)
+$(error too new Visual Studio version $(lastword $(subst \, ,$(VS))) to build with SDK, please use WDK)
 endif
 
-UMLIB  := $(SDKN)\Lib$(if $(UCPU:%64=),,\x64)
+UMLIB  := $(SDKN)\Lib$(addprefix \,$(filter-out x86,$(UCPU:x86_64=x64)))
 UMINC  := $(SDKN)\Include
-UMTLIB := $(SDKN)\Lib$(if $(TCPU:%64=),,\x64)
+UMTLIB := $(SDKN)\Lib$(addprefix \,$(filter-out x86,$(TCPU:x86_64=x64)))
 UMTINC := $(UMINC)
 
-MC1  := $(call qpath,$(SDKN)\bin$(if $(UCPU:%64=),,\x64)\MC.Exe)
-RC1  := $(call qpath,$(SDKN)\bin$(if $(UCPU:%64=),,\x64)\RC.Exe)
-MT1  := $(call qpath,$(SDKN)\bin$(if $(UCPU:%64=),,\x64)\MT.Exe)
-TMC1 := $(call qpath,$(SDKN)\bin$(if $(TCPU:%64=),,\x64)\MC.Exe)
-TRC1 := $(call qpath,$(SDKN)\bin$(if $(TCPU:%64=),,\x64)\RC.Exe)
-TMT1 := $(call qpath,$(SDKN)\bin$(if $(TCPU:%64=),,\x64)\MT.Exe)
+TMC1 := $(call qpath,$(SDKN)\bin$(addprefix \,$(filter-out x86,$(TCPU:x86_64=x64)))\MC.Exe)
+TRC1 := $(call qpath,$(SDKN)\bin$(addprefix \,$(filter-out x86,$(TCPU:x86_64=x64)))\RC.Exe)
+TMT1 := $(call qpath,$(SDKN)\bin$(addprefix \,$(filter-out x86,$(TCPU:x86_64=x64)))\MT.Exe)
+MC1  := $(TMC1)
+RC1  := $(TRC1)
+MT1  := $(TMT1)
 
 endif # SDK
 
@@ -184,32 +244,32 @@ endif
 
 ifneq ($(call is_less,$(GET_WDK_VER),8),)
 
-$(error too new WDK for building APP-level, use SDK instead)
+$(error unsuitable WDK version $(GET_WDK_VER) for building APP-level, use SDK instead)
 
 else ifneq ($(call is_less,$(WDK_VER),10),)
 
-UMLIB  := $(WDKN)\Lib\$(WDK_TARGET)\um\$(if $(UCPU:%64=),x86,x64)
+UMLIB  := $(WDKN)\Lib\$(WDK_TARGET)\um\$(UCPU:x86_64=x64)
 UMINC  := $(WDKN)\Include
 UMINC  := $(UMINC)\um $(UMINC)\shared
-UMTLIB := $(WDKN)\Lib\$(WDK_TARGET)\um\$(if $(TCPU:%64=),x86,x64)
+UMTLIB := $(WDKN)\Lib\$(WDK_TARGET)\um\$(TCPU:x86_64=x64)
 UMTINC := $(UMINC)
 
 else # WDK10
 
-UMLIB  := $(WDKN)\Lib\$(WDK_TARGET)\um\$(if $(UCPU:%64=),x86,x64) $(WDKN)\Lib\$(WDK_TARGET)\ucrt\$(if $(UCPU:%64=),x86,x64)
+UMLIB  := $(WDKN)\Lib\$(WDK_TARGET)\um\$(UCPU:x86_64=x64) $(WDKN)\Lib\$(WDK_TARGET)\ucrt\$(UCPU:x86_64=x64)
 UMINC  := $(WDKN)\Include\$(WDK_TARGET)
 UMINC  := $(UMINC)\um $(UMINC)\ucrt $(UMINC)\shared
-UMTLIB := $(WDKN)\Lib\$(WDK_TARGET)\um\$(if $(TCPU:%64=),x86,x64) $(WDKN)\Lib\$(WDK_TARGET)\ucrt\$(if $(TCPU:%64=),x86,x64)
+UMTLIB := $(WDKN)\Lib\$(WDK_TARGET)\um\$(TCPU:x86_64=x64) $(WDKN)\Lib\$(WDK_TARGET)\ucrt\$(TCPU:x86_64=x64)
 UMTINC := $(UMINC)
 
 endif # WDK10
 
-MC1  := $(call qpath,$(WDKN)\bin\$(if $(UCPU:%64=),x86,x64)\mc.exe)
-RC1  := $(call qpath,$(WDKN)\bin\$(if $(UCPU:%64=),x86,x64)\rc.exe)
-MT1  := $(call qpath,$(WDKN)\bin\$(if $(UCPU:%64=),x86,x64)\mt.exe)
-TMC1 := $(call qpath,$(WDKN)\bin\$(if $(TCPU:%64=),x86,x64)\mc.exe)
-TRC1 := $(call qpath,$(WDKN)\bin\$(if $(TCPU:%64=),x86,x64)\rc.exe)
-TMT1 := $(call qpath,$(WDKN)\bin\$(if $(TCPU:%64=),x86,x64)\mt.exe)
+TMC1 := $(call qpath,$(WDKN)\bin\$(TCPU:x86_64=x64)\mc.exe)
+TRC1 := $(call qpath,$(WDKN)\bin\$(TCPU:x86_64=x64)\rc.exe)
+TMT1 := $(call qpath,$(WDKN)\bin\$(TCPU:x86_64=x64)\mt.exe)
+MC1  := $(TMC1)
+RC1  := $(TRC1)
+MT1  := $(TMT1)
 SUPPRESS_RC_LOGO := /nologo
 
 endif # WDK
@@ -226,20 +286,20 @@ ifdef WDK
 $(error either DDK or WDK must be defined, but not both)
 endif
 
-ifneq ($(call is_less,12,$(GET_VS_VER)),)
-$(error too new Visual Studio version $(lastword $(VS)) to build with DDK, please use WDK)
+ifneq ($(call is_less,12,$(VS_VER)),)
+$(error too new Visual Studio version $(lastword $(subst \, ,$(VS))) to build with DDK, please use WDK)
 endif
 
 DDK_TARGET := $(if $(filter WINXP,$(OSVARIANT)),wxp,win7)
 
-KMLIB := $(DDKN)\Lib\$(DDK_TARGET)\$(if $(KCPU:%64=),i386,amd64)
+KMLIB := $(DDKN)\Lib\$(DDK_TARGET)\$(if $(KCPU:x86_64=),$(KCPU:x86=i386),amd64)
 KMINC := $(DDKN)\inc\api $(DDKN)\inc\crt $(DDKN)\inc\ddk
 
-WKLD  := $(call qpath,$(DDKN)\bin\x86\$(if $(KCPU:%64=),x86,amd64)\link.exe)
-WKCL  := $(call qpath,$(DDKN)\bin\x86\$(if $(KCPU:%64=),x86,amd64)\cl.exe)
+WKLD  := $(call qpath,$(DDKN)\bin\x86\$(KCPU:x86_64=amd64)\link.exe)
+WKCL  := $(call qpath,$(DDKN)\bin\x86\$(KCPU:x86_64=amd64)\cl.exe)
 
 INF2CAT  := $(call qpath,$(DDKN)\bin\selfsign\Inf2Cat.exe)
-SIGNTOOL := $(call qpath,$(DDKN)\bin\$(if $(KCPU:%64=),x86,amd64)\SignTool.exe)
+SIGNTOOL := $(call qpath,$(DDKN)\bin\$(KCPU:x86_64=amd64)\SignTool.exe)
 
 endif # DDK
 
@@ -254,20 +314,30 @@ $(error WDK_TARGET undefined, check contents of "$(WDK)\Lib", example: "win7, wi
 endif
 
 ifneq ($(filter win%,$(WDK_TARGET)),)
-ifneq ($(call is_less,12,$(GET_VS_VER)),)
-$(error too new Visual Studio version $(lastword $(VS)) to build with WDK_TARGET=$(WDK_TARGET), please select different WDK_TARGET)
+ifneq ($(call is_less,12,$(VS_VER)),)
+$(error too new Visual Studio version $(lastword \
+  $(subst \, ,$(VS))) to build with WDK_TARGET=$(WDK_TARGET), please select different WDK_TARGET)
 endif
 endif
 
-KMLIB := $(WDKN)\Lib\$(WDK_TARGET)\km\$(if $(KCPU:%64=),x86,x64)
+KMLIB := $(WDKN)\Lib\$(WDK_TARGET)\km\$(KCPU:x86_64=x64)
 KMINC := $(WDKN)\Include$(if $(call is_less,$(GET_WDK_VER),10),,\$(WDK_TARGET))
 KMINC := $(KMINC)\km $(KMINC)\km\crt $(KMINC)\shared
 
-WKLD  := $(call qpath,$(VSN)\VC\bin$(if $(KCPU:%64=),,\amd64)\link.exe)
-WKCL  := $(call qpath,$(VSN)\VC\bin$(if $(KCPU:%64=),,\amd64)\cl.exe)
+ifeq ($(call is_less,1000,$(VS_VER)),)
+
+WKLD  := $(call qpath,$(VSN)\VC\bin$(call VS_TOOL_PREFIX,$(KCPU))\link.exe)
+WKCL  := $(call qpath,$(VSN)\VC\bin$(call VS_TOOL_PREFIX,$(KCPU))\cl.exe)
+
+else # Visual Studio 2017
+
+WKLD  := $(call qpath,$(VSN)\bin\Host$(patsubst x%,X%,$(TCPU:x86_64=x64))\$(KCPU:x86_64=x64)\link.exe)
+WKCL  := $(call qpath,$(VSN)\bin\Host$(patsubst x%,X%,$(TCPU:x86_64=x64))\$(KCPU:x86_64=x64)\cl.exe)
+
+endif
 
 INF2CAT  := $(call qpath,$(WDKN)\bin\x86\Inf2Cat.exe)
-SIGNTOOL := $(call qpath,$(WDKN)\bin\$(if $(KCPU:%64=),x86,x64)\SignTool.exe)
+SIGNTOOL := $(call qpath,$(WDKN)\bin\$(TCPU:x86_64=x64)\SignTool.exe)
 
 endif # WDK
 
@@ -280,4 +350,4 @@ endif
 
 # protect variables from modifications in target makefiles
 $(call CLEAN_BUILD_PROTECT_VARS,VAUTO OSVARIANTS WINVER_DEFINES SUBSYSTEM_VER AUTOCONF_VARS $(AUTOCONF_VARS) \
-  VS_VER WDK_VER GET_WDK_VER normpath FORCE_SYNC_PDB VS VSN SDK SDKN DDK DDKN WDK WDKN)
+  VS_VER WDK_VER GET_WDK_VER ONECORE FORCE_SYNC_PDB VS_TOOL_PREFIX VS VSN SDK SDKN DDK DDKN WDK WDKN)
