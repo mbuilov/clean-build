@@ -384,8 +384,8 @@ endif
 
 # send compiler output to stderr
 # if not generating auto-dependencies, just stip-off names of compiled sources
-# $1 - compiler with options
-WRAP_COMPILER ?= (($1 2>&1 && echo COMPILATION_OK >&2) | findstr /L :) 3>&2 2>&1 1>&3 | findstr /B /L COMPILATION_OK >NUL
+# $1 - compiler with options, $3 - sources
+WRAP_COMPILER ?= (($1 2>&1 && echo COMPILATION_OK >&2) | findstr /V /L "$(notdir $3)") 3>&2 2>&1 1>&3 | findstr /B /L COMPILATION_OK >NUL
 
 ifdef SEQ_BUILD
 
@@ -429,12 +429,12 @@ else # !SEQ_BUILD
 # $1 - outdir, $2 - pch, $3 - non-pch C, $4 - non-pch CXX, $5 - pch C, $6 - pch CXX, $7 - compiler, $8 - aux compiler flags
 # target-specific: TMD, CFLAGS, CXXFLAGS
 CMN_MCL2 = $(if \
-  $3,$(call SUP,$(TMD)MCC,$3)$(call WRAP_COMPILER,$(call $7,$1,$3,$8/MP $(CFLAGS)))$(newline))$(if \
-  $4,$(call SUP,$(TMD)MCXX,$4)$(call WRAP_COMPILER,$(call $7,$1,$4,$8/MP $(CXXFLAGS)))$(newline))$(if \
+  $3,$(call SUP,$(TMD)MCC,$3)$(call WRAP_COMPILER,$(call $7,$1,$3,$8/MP $(CFLAGS)),,$3)$(newline))$(if \
+  $4,$(call SUP,$(TMD)MCXX,$4)$(call WRAP_COMPILER,$(call $7,$1,$4,$8/MP $(CXXFLAGS)),,$4)$(newline))$(if \
   $5,$(call SUP,$(TMD)MPCC,$5)$(call WRAP_COMPILER,$(call $7,$1,$5,$8/MP /Yu$2 /Fp$1$(basename \
-    $(notdir $2))_c.pch /FI$2 $(CFLAGS)))$(newline))$(if \
+    $(notdir $2))_c.pch /FI$2 $(CFLAGS)),,$5)$(newline))$(if \
   $6,$(call SUP,$(TMD)MPCXX,$6)$(call WRAP_COMPILER,$(call $7,$1,$6,$8/MP /Yu$2 /Fp$1$(basename \
-    $(notdir $2))_cpp.pch /FI$2 $(CXXFLAGS)))$(newline))
+    $(notdir $2))_cpp.pch /FI$2 $(CXXFLAGS)),,$6)$(newline))
 
 # $1 - outdir, $2 - C-sources, $3 - CXX-sources, $4 - compiler, $5 - aux compiler flags (either empty or '/DUNICODE /D_UNICODE ')
 # target-specific: PCH, WITH_PCH
@@ -535,8 +535,9 @@ else # !SEQ_BUILD
 # $1 - outdir, $2 - pch, $3 - non-pch sources, $4 - pch sources
 # target-specific: CFLAGS
 CMN_MKCL1 = $(if \
-  $3,$(call SUP,MKCC,$3)$(call CMN_KCL,$1,$3,/MP $(CFLAGS))$(newline))$(if \
-  $4,$(call SUP,MPKCC,$4)$(call CMN_KCL,$1,$4,/MP /Yu$2 /Fp$1$(basename $(notdir $2))_c.pch /FI$2 $(CFLAGS))$(newline))
+  $3,$(call SUP,MKCC,$3)$(call WRAP_COMPILER,$(call CMN_KCL,$1,$3,/MP $(CFLAGS)),,$3)$(newline))$(if \
+  $4,$(call SUP,MPKCC,$4)$(call WRAP_COMPILER,$(call CMN_KCL,$1,$4,/MP /Yu$2 /Fp$1$(basename \
+    $(notdir $2))_c.pch /FI$2 $(CFLAGS)),,$4)$(newline))
 
 # $1 - outdir, $2 - C-sources
 # target-specific: PCH, WITH_PCH
