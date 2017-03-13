@@ -25,6 +25,10 @@ endef
 # make RESET_OS_VARS variable non-recursive (simple)
 RESET_OS_VARS := $(RESET_OS_VARS)
 
+# max number of sources to compile with /MP compiler option
+# - with too many sources it's possible to exceed max command string length
+MCL_MAX_COUNT := 50
+
 include $(MTOP)/WINXX/cres.mk
 
 # run via $(MAKE) S=1 to compile each source individually (without /MP CL compiler option)
@@ -385,7 +389,8 @@ endif
 # send compiler output to stderr
 # if not generating auto-dependencies, just stip-off names of compiled sources
 # $1 - compiler with options, $3 - sources
-WRAP_COMPILER ?= (($1 2>&1 && echo COMPILATION_OK >&2) | findstr /V /L "$(notdir $3)") 3>&2 2>&1 1>&3 | findstr /B /L COMPILATION_OK >NUL
+WRAP_COMPILER ?= (($1 2>&1 && echo COMPILATION_OK >&2) | findstr /V /B /L "$(notdir \
+  $3)") 3>&2 2>&1 1>&3 | findstr /B /L COMPILATION_OK >NUL
 
 ifdef SEQ_BUILD
 
@@ -426,24 +431,31 @@ else # !SEQ_BUILD
 # note: auto-dependencies generation is not supported in this mode - /MP conflicts with /showIncludes
 # note: there is support for precompiled headers in this mode
 
-# $1 - outdir, $2 - pch, $3 - non-pch C, $4 - non-pch CXX, $5 - pch C, $6 - pch CXX, $7 - compiler, $8 - aux compiler flags
+# $1 - sources, $2 - outdir, $3 - compiler, $4 - aux compiler flags, $5 - pch header
+# target-specific: TMD, CFLAGS, CXXFLAGS
+CALL_MCC   = $(call SUP,$(TMD)MCC,$1)$(call WRAP_COMPILER,$(call $3,$2,$1,$4/MP $(CFLAGS)),,$1)
+CALL_MCXX  = $(call SUP,$(TMD)MCXX,$1)$(call WRAP_COMPILER,$(call $3,$2,$1,$4/MP $(CXXFLAGS)),,$1)
+CALL_MPCC  = $(call SUP,$(TMD)MPCC,$1)$(call WRAP_COMPILER,$(call $3,$2,$1,$4/MP /Yu$5 /Fp$2$(basename \
+  $(notdir $5))_c.pch /FI$5 $(CFLAGS)),,$1)
+CALL_MPCXX = $(call SUP,$(TMD)MPCXX,$1)$(call WRAP_COMPILER,$(call $3,$2,$1,$4/MP /Yu$5 /Fp$2$(basename \
+  $(notdir $5))_cpp.pch /FI$5 $(CXXFLAGS)),,$1)
+
+# $1 - outdir, $2 - compiler, $3 - aux compiler flags, $4 - pch header, $5 - non-pch C, $6 - non-pch CXX, $7 - pch C, $8 - pch CXX
 # target-specific: TMD, CFLAGS, CXXFLAGS
 CMN_MCL2 = $(if \
-  $3,$(call SUP,$(TMD)MCC,$3)$(call WRAP_COMPILER,$(call $7,$1,$3,$8/MP $(CFLAGS)),,$3)$(newline))$(if \
-  $4,$(call SUP,$(TMD)MCXX,$4)$(call WRAP_COMPILER,$(call $7,$1,$4,$8/MP $(CXXFLAGS)),,$4)$(newline))$(if \
-  $5,$(call SUP,$(TMD)MPCC,$5)$(call WRAP_COMPILER,$(call $7,$1,$5,$8/MP /Yu$2 /Fp$1$(basename \
-    $(notdir $2))_c.pch /FI$2 $(CFLAGS)),,$5)$(newline))$(if \
-  $6,$(call SUP,$(TMD)MPCXX,$6)$(call WRAP_COMPILER,$(call $7,$1,$6,$8/MP /Yu$2 /Fp$1$(basename \
-    $(notdir $2))_cpp.pch /FI$2 $(CXXFLAGS)),,$6)$(newline))
+  $5,$(call xcmd,CALL_MCC,$5,$(MCL_MAX_COUNT),$1,$2,$3,$4)$(newline))$(if \
+  $6,$(call xcmd,CALL_MCXX,$6,$(MCL_MAX_COUNT),$1,$2,$3,$4)$(newline))$(if \
+  $7,$(call xcmd,CALL_MPCC,$7,$(MCL_MAX_COUNT),$1,$2,$3,$4)$(newline))$(if \
+  $8,$(call xcmd,CALL_MPCXX,$8,$(MCL_MAX_COUNT),$1,$2,$3,$4)$(newline))
 
-# $1 - outdir, $2 - C-sources, $3 - CXX-sources, $4 - compiler, $5 - aux compiler flags (either empty or '/DUNICODE /D_UNICODE ')
+# $1 - outdir, $2 - compiler, $3 - aux compiler flags (either empty or '/DUNICODE /D_UNICODE '), $4 - C-sources, $5 - CXX-sources
 # target-specific: PCH, WITH_PCH
-CMN_MCL1 = $(call CMN_MCL2,$1,$(PCH),$(filter-out $(WITH_PCH),$2),$(filter-out \
-  $(WITH_PCH),$3),$(filter $(WITH_PCH),$2),$(filter $(WITH_PCH),$3),$4,$5)
+CMN_MCL1 = $(call CMN_MCL2,$1,$2,$3,$(PCH),$(filter-out $(WITH_PCH),$4),$(filter-out \
+  $(WITH_PCH),$5),$(filter $(WITH_PCH),$4),$(filter $(WITH_PCH),$5))
 
 # $1 - outdir, $2 - sources, $3 - aux compiler flags (either empty or '/DUNICODE /D_UNICODE ')
-CMN_RMCL  = $(call CMN_MCL1,$1,$(filter %.c,$2),$(filter %.cpp,$2),CMN_RCL,$3)
-CMN_SMCL  = $(call CMN_MCL1,$1,$(filter %.c,$2),$(filter %.cpp,$2),CMN_SCL,$3)
+CMN_RMCL  = $(call CMN_MCL1,$1,CMN_RCL,$3,$(filter %.c,$2),$(filter %.cpp,$2))
+CMN_SMCL  = $(call CMN_MCL1,$1,CMN_SCL,$3,$(filter %.c,$2),$(filter %.cpp,$2))
 CMN_RUMCL = $(call CMN_RMCL,$1,$2,/DUNICODE /D_UNICODE )
 CMN_SUMCL = $(call CMN_SMCL,$1,$2,/DUNICODE /D_UNICODE )
 
@@ -513,13 +525,19 @@ ifeq (undefined,$(origin KDEPS_INCLUDE_FILTER))
 KDEPS_INCLUDE_FILTER := $(subst \,\\,$(KMINC))
 endif
 
+# common kernel C/C++ compiler
 # $1 - target, $2 - source
-# target-specific: CFLAGS
-CMN_KCC   = $(call SUP,KCC,$2)$(call WRAP_COMPILER,$(call CMN_KCL,$(dir $1),$2,$(CFLAGS)),$1,$2,$(basename $1).d,$(KDEPS_INCLUDE_FILTER))
-KLIB_R_CC = $(CMN_KCC)
-DRV_R_CC  = $(CMN_KCC)
-KLIB_R_LD = $(KLIB_R_LD1)
-DRV_R_LD  = $(DRV_R_LD1)
+# target-specific: CFLAGS, CXXFLAGS
+CMN_KCC = $(call SUP,KCC,$2)$(call WRAP_COMPILER,$(call CMN_KCL,$(dir $1),$2,$(CFLAGS)),$1,$2,$(basename $1).d,$(KDEPS_INCLUDE_FILTER))
+CMN_KCXX = $(call SUP,KCXX,$2)$(call WRAP_COMPILER,$(call CMN_KCL,$(dir $1),$2,$(CXXFLAGS)),$1,$2,$(basename $1).d,$(KDEPS_INCLUDE_FILTER))
+
+# $1 - target, $2 - source
+KLIB_R_CC  = $(CMN_KCC)
+DRV_R_CC   = $(CMN_KCC)
+KLIB_R_CXX = $(CMN_KCXX)
+DRV_R_CXX  = $(CMN_KCXX)
+KLIB_R_LD  = $(KLIB_R_LD1)
+DRV_R_LD   = $(DRV_R_LD1)
 
 FORCE_SYNC_PDB_KERN ?= $(FORCE_SYNC_PDB)
 
@@ -532,26 +550,44 @@ else # !SEQ_BUILD
 # note: auto-dependencies generation is not supported in this mode - /MP conflicts with /showIncludes
 # note: there is support for precompiled headers in this mode
 
-# $1 - outdir, $2 - pch, $3 - non-pch sources, $4 - pch sources
-# target-specific: CFLAGS
-CMN_MKCL1 = $(if \
-  $3,$(call SUP,MKCC,$3)$(call WRAP_COMPILER,$(call CMN_KCL,$1,$3,/MP $(CFLAGS)),,$3)$(newline))$(if \
-  $4,$(call SUP,MPKCC,$4)$(call WRAP_COMPILER,$(call CMN_KCL,$1,$4,/MP /Yu$2 /Fp$1$(basename \
-    $(notdir $2))_c.pch /FI$2 $(CFLAGS)),,$4)$(newline))
+# $1 - sources, $2 - outdir, $3 - pch header
+# target-specific: CFLAGS, CXXFLAGS
+CALL_MKCC   = $(call SUP,MKCC,$1)$(call WRAP_COMPILER,$(call CMN_KCL,$2,$1,/MP $(CFLAGS)),,$1)
+CALL_MKCXX  = $(call SUP,MKCXX,$1)$(call WRAP_COMPILER,$(call CMN_KCL,$2,$1,/MP $(CXXFLAGS)),,$1)
+CALL_MPKCC  = $(call SUP,MPKCC,$1)$(call WRAP_COMPILER,$(call CMN_KCL,$2,$1,/MP /Yu$3 /Fp$2$(basename \
+  $(notdir $3))_c.pch /FI$3 $(CFLAGS)),,$1)
+CALL_MPKCXX = $(call SUP,MPKCXX,$1)$(call WRAP_COMPILER,$(call CMN_KCL,$2,$1,/MP /Yu$3 /Fp$2$(basename \
+  $(notdir $3))_cpp.pch /FI$3 $(CXXFLAGS)),,$1)
 
-# $1 - outdir, $2 - C-sources
+# $1 - outdir, $2 - pch header, $3 - non-pch C, $4 - non-pch CXX, $5 - pch C, $6 - pch CXX
+CMN_MKCL3 = $(if \
+  $3,$(call xcmd,CALL_MKCC,$3,$(MCL_MAX_COUNT),$1,$2)$(newline))$(if \
+  $4,$(call xcmd,CALL_MKCXX,$4,$(MCL_MAX_COUNT),$1,$2)$(newline))$(if \
+  $5,$(call xcmd,CALL_MPKCC,$5,$(MCL_MAX_COUNT),$1,$2)$(newline))$(if \
+  $6,$(call xcmd,CALL_MPKCXX,$6,$(MCL_MAX_COUNT),$1,$2)$(newline))
+
+# $1 - outdir, $2 - C-sources, $3 - CXX-sources
 # target-specific: PCH, WITH_PCH
-CMN_MKCL = $(call CMN_MKCL1,$1,$(PCH),$(filter-out $(WITH_PCH),$2),$(filter $(WITH_PCH),$2))
+CMN_MKCL2 = $(call CMN_MKCL3,$1,$(PCH),$(filter-out $(WITH_PCH),$2),$(filter-out \
+  $(WITH_PCH),$3),$(filter $(WITH_PCH),$2),$(filter $(WITH_PCH),$3))
+
+# $1 - outdir, $2 - sources
+CMN_MKCL1 = $(call CMN_MKCL2,$1,$(filter %.c,$2),$(filter %.cpp,$2))
 
 # $1 - target, $2 - objects
 # target-specific: SRC, SDEPS
-KLIB_R_LD = $(call CMN_MKCL,$(dir $(firstword $2)),$(sort $(filter $(SRC),$? $(call FILTER_SDEPS,$(SDEPS)))))$(KLIB_R_LD1)
-DRV_R_LD  = $(call CMN_MKCL,$(dir $(firstword $2)),$(sort $(filter $(SRC),$? $(call FILTER_SDEPS,$(SDEPS)))))$(DRV_R_LD1)
+CMN_MKCL = $(call CMN_MKCL1,$(dir $(firstword $2)),$(sort $(filter $(SRC),$? $(call FILTER_SDEPS,$(SDEPS)))))
+
+# $1 - target, $2 - objects
+KLIB_R_LD = $(CMN_MKCL)$(KLIB_R_LD1)
+DRV_R_LD  = $(CMN_MKCL)$(DRV_R_LD1)
 
 # $1 - target, $2 - pch-source, $3 - pch
-# target-specific: CFLAGS
-PCH_KCC = $(call SUP,PCHKCC,$2)$(call WRAP_COMPILER,$(call CMN_KCL,$(dir $1),$2,/Yc$3 /Yl$(basename \
+# target-specific: CFLAGS, CXXFLAGS
+PCH_K_CC  = $(call SUP,PCHKCC,$2)$(call WRAP_COMPILER,$(call CMN_KCL,$(dir $1),$2,/Yc$3 /Yl$(basename \
   $(notdir $2)) /Fp$(dir $1)$(basename $(notdir $3))_c.pch $(CFLAGS)),$1,$2,$(basename $1).d,$(KDEPS_INCLUDE_FILTER))
+PCH_K_CXX = $(call SUP,PCHKCXX,$2)$(call WRAP_COMPILER,$(call CMN_KCL,$(dir $1),$2,/Yc$3 /Yl$(basename \
+  $(notdir $2)) /Fp$(dir $1)$(basename $(notdir $3))_cpp.pch $(CXXFLAGS)),$1,$2,$(basename $1).d,$(KDEPS_INCLUDE_FILTER))
 
 endif # !SEQ_BUILD
 
@@ -591,6 +627,7 @@ endef
 # $3 - $$(basename $$(notdir $$(TRG_PCH)))
 # $4 - $(call FORM_OBJ_DIR,$1,$v)
 # $5 - $(call FORM_TRG,$1,$v)
+# $6 - K or <empty>
 # $v - R,S,RU,SU
 # note: $(NO_DEPS) - may be recursive and so have different values, for example depending on value of $(CURRENT_MAKEFILE)
 # note: $$(PCH_OBJS) will be built before link phase - before sources are compiled with MCL
@@ -601,9 +638,9 @@ $5: WITH_PCH := $$(TRG_WITH_PCH)
 PCH_C_OBJ := $4/$2_$1_$3_c$(OBJ_SUFFIX)
 PCH_CXX_OBJ := $4/$2_$1_$3_cpp$(OBJ_SUFFIX)
 $$(PCH_C_OBJ): $$(PCH_C_SRC) $$(TRG_PCH) | $4 $$(ORDER_DEPS)
-	$$(call PCH_$v_CC,$$@,$$<,$$(PCH))
+	$$(call PCH_$v_$6CC,$$@,$$<,$$(PCH))
 $$(PCH_CXX_OBJ): $$(PCH_CXX_SRC) $$(TRG_PCH) | $4 $$(ORDER_DEPS)
-	$$(call PCH_$v_CXX,$$@,$$<,$$(PCH))
+	$$(call PCH_$v_$6CXX,$$@,$$<,$$(PCH))
 PCH_OBJS := $$(if $$(filter %.c,$$(TRG_WITH_PCH)),$$(PCH_C_OBJ)) $$(if $$(filter %.cpp,$$(TRG_WITH_PCH)),$$(PCH_CXX_OBJ))
 $5: $$(PCH_OBJS)
 ifeq ($(NO_DEPS),)
@@ -619,15 +656,16 @@ endef
 # $1 - EXE,LIB,DLL,KLIB,DRV
 # $2 - $(call GET_TARGET_NAME,$1)
 # $3 - $$(basename $$(notdir $$(TRG_PCH)))
+# $4 - K or <empty>
 PCH_TEMPLATE3 = $(PCH_TEMPLATE1)$(foreach v,$(call GET_VARIANTS,$1),$(call \
-  PCH_TEMPLATE2,$1,$2,$3,$(call FORM_OBJ_DIR,$1,$v),$(call FORM_TRG,$1,$v)))
+  PCH_TEMPLATE2,$1,$2,$3,$(call FORM_OBJ_DIR,$1,$v),$(call FORM_TRG,$1,$v),$4))
 
 # $1 - EXE,LIB,DLL,KLIB,DRV
 # note: must reset target-specific WITH_PCH if not using precompiled header, otherwise:
 # - DLL or LIB target may inherit WITH_PCH value from EXE,
 # - LIB target may inherit WITH_PCH value from DLL
 PCH_TEMPLATE = $(if $(word 2,$(firstword $($1_PCH)$(PCH)) $(firstword $(WITH_PCH)$($1_WITH_PCH))),$(call \
-  PCH_TEMPLATE3,$1,$(GET_TARGET_NAME),$$(basename $$(notdir $$(TRG_PCH)))),$(foreach \
+  PCH_TEMPLATE3,$1,$(GET_TARGET_NAME),$$(basename $$(notdir $$(TRG_PCH))),$(if $(filter DRV,$1),K)),$(foreach \
   v,$(call GET_VARIANTS,$1),$(call FORM_TRG,$1,$v): WITH_PCH:=$(newline)))
 
 endif # !SEQ_BUILD
@@ -902,10 +940,12 @@ $(call CLEAN_BUILD_PROTECT_VARS,SEQ_BUILD YASMC FLEXC BISONC MC SUPPRESS_RC_LOGO
   INCLUDING_FILE_PATTERN UDEPS_INCLUDE_FILTER SED_DEPS_SCRIPT \
   WRAP_COMPILER CMN_CC CMN_CXX SEQ_COMPILERS_TEMPLATE \
   $(foreach v,R $(VARIANTS_FILTER),LIB_$v_CC LIB_$v_CXX EXE_$v_CC EXE_$v_CXX DLL_$v_CC DLL_$v_CXX EXE_$v_LD DLL_$v_LD LIB_$v_LD) \
-  CMN_MCL2 CMN_MCL1 CMN_RMCL CMN_SMCL CMN_RUMCL CMN_SUMCL FILTER_SDEPS1 FILTER_SDEPS CMN_MCL MULTI_COMPILERS_TEMPLATE \
+  MCL_MAX_COUNT CALL_MCC CALL_MCXX CALL_MPCC CALL_MPCXX CMN_MCL2 CMN_MCL1 CMN_RMCL CMN_SMCL CMN_RUMCL CMN_SUMCL \
+  FILTER_SDEPS1 FILTER_SDEPS CMN_MCL MULTI_COMPILERS_TEMPLATE \
   $(foreach v,R $(VARIANTS_FILTER),PCH_$v_CC PCH_$v_CXX) \
-  DEF_DRV_LDFLAGS DRV_R_LD1 KRN_FLAGS CMN_KCL KDEPS_INCLUDE_FILTER CMN_KCC KLIB_R_CC DRV_R_CC KLIB_R_LD DRV_R_LD FORCE_SYNC_PDB_KERN \
-  CMN_MKCL1 CMN_MKCL PCH_KCC KLIB_R_ASM BISON FLEX \
+  DEF_DRV_LDFLAGS DRV_R_LD1 KRN_FLAGS CMN_KCL KDEPS_INCLUDE_FILTER CMN_KCC CMN_KCXX \
+  KLIB_R_CC DRV_R_CC KLIB_R_CXX DRV_R_CXX KLIB_R_LD DRV_R_LD FORCE_SYNC_PDB_KERN \
+  CALL_MKCC CALL_MKCXX CALL_MPKCC CALL_MPKCXX CMN_MKCL3 CMN_MKCL2 CMN_MKCL1 CMN_MKCL PCH_K_CC PCH_K_CXX KLIB_R_ASM BISON FLEX \
   PCH_TEMPLATE1 PCH_TEMPLATE2 PCH_TEMPLATE3 PCH_TEMPLATE ADD_WITH_PCH \
   TRG_ALL_SDEPS MAKE_IMP_PATH EXPORTS_TEMPLATE1 EXPORTS_TEMPLATE \
   EXE_AUX_TEMPLATE2 EXE_AUX_TEMPLATE1 EXE_AUX_TEMPLATE \
