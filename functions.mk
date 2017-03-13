@@ -20,8 +20,8 @@ define comment
 endef
 comment := $(comment)
 
-# print result $2 of the function $1
-infofn = $(info ------$1 result--->$(newline)$2)$2
+# print result $1 and return $1
+infofn = $(info $1)$1
 
 # dump variables from list $1, prefixing output with optional prefix $2, $3 - optional pre-prefix, example:
 # $(call dump,VAR1,prefix,Q) -> print 'Qdump: prefix: VAR1=xxx'
@@ -52,8 +52,8 @@ $1 = $$(info ====begin: $$$$($1) {)$$(if $$1,$$(info $$$$1=$$1))$$(if $$2,$$(inf
   $$(12),$$(info $$$$12=$$(12)))$$(if $$(13),$$(info $$$$13=$$(13)))$$(if $$(14),$$(info $$$$14=$$(14)))$$(if \
   $$(15),$$(info $$$$15=$$(15)))$$(if $$(16),$$(info $$$$16=$$(16)))$$(if $$(17),$$(info $$$$17=$$(17)))$$(if \
   $$(18),$$(info $$$$18=$$(18)))$$(if $$(19),$$(info $$$$19=$$(19)))$$(if $$(20),$$(info $$$$20=$$(20)))$$(call \
-  dump,$2,,$1: )$$(info ------$1 value---->$$(newline)$$(value $1_traced_))$$(call \
-  infofn,$1,$$($1_traced_))$$(call dump,$3,,$1: )$$(info ====end: } $$$$($1))
+  dump,$2,,$1: )$$(info ------$1 value---->$$(newline)$$(value $1_traced_)$$(newline)------$1 result--->)$$(call \
+  infofn,$$($1_traced_))$$(call dump,$3,,$1: )$$(info ====end: } $$$$($1))
 $(call CLEAN_BUILD_PROTECT_VARS1,$1)
 endef
 
@@ -111,15 +111,25 @@ is_less1 = $(if $(filter-out $3,$(lastword $(sort $3 $4))),1,$(if $(filter $3,$4
 # NOTE: assume there are no leading zeros in $1 or $2
 is_less = $(call is_less1,$1,$2,$(repl09),$(call repl09,$2))
 
-# call function $1 many times with arguments from list $2 grouped by $3 elements
-# and with auxiliary argument $4, separating function calls with $5
-xargs = $(call $1,$(wordlist 1,$3,$2),$4)$(if \
-  $(word $(words x $(wordlist 1,$3,$2)),$2),$5$(call \
-  xargs,$1,$(wordlist $(words x $(wordlist 1,$3,$2)),$(words $2),$2),$3,$4,$5))
+# $1 - function
+# $2 - full arguments list
+# $3 - sublist size
+# $4 - sublist size + 1 if $2 is big enough
+# $5 - auxiliary function argument 1
+# $6 - auxiliary function argument 2
+# $7 - auxiliary function argument 3
+# $8 - auxiliary function argument 4
+# $9 - function calls first separator
+# $(10) - function calls separator
+xargs1 = $(if $2,$9$(call $1,$(wordlist 1,$3,$2),$5,$6,$7,$8)$(call xargs1,$1,$(wordlist $4,999999,$2),$3,$4,$5,$6,$7,$8,$(10),$(10)))
 
-# assuming that function $1($(sublist $2),$4) will return shell command
+# call function $1 many times with arguments from list $2 grouped by $3 elements
+# and with auxiliary arguments $4,$5,$6,$7, separating function calls with $8
+xargs = $(call xargs1,$1,$2,$3,$(words x $(wordlist 1,$3,$2)),$4,$5,$6,$7,,$8)
+
+# assuming that function $1($(sublist $2 by $3),$4,$5,$6,$7) will return shell command
 # generate many shell commands separated by $(newline) - each command will be executed in new subshell
-xcmd = $(call xargs,$1,$2,$3,$4,$(newline))
+xcmd = $(call xargs,$1,$2,$3,$4,$5,$6,$7,$(newline))
 
 # return list $1 without last element
 trim = $(wordlist 2,$(words $1),x $1)
@@ -172,5 +182,5 @@ ver_patch = $(firstword $(word 3,$(subst ., ,$1)) 0)
 CLEAN_BUILD_PROTECTED += empty space tab comma newline comment \
   infofn dump trace_params trace_calls_template trace_calls \
   unspaces ifaddq qpath tolower toupper repl09 repl09AZ padto1 padto \
-  is_less1 is_less xargs xcmd trim normp2 normp1 normp \
+  is_less1 is_less xargs1 xargs xcmd trim normp2 normp1 normp \
   cmn_path1 cmn_path back_prefix relpath2 relpath1 relpath join_with ver_major ver_minor ver_patch
