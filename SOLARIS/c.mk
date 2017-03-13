@@ -202,12 +202,12 @@ RPATH_OPTION ?= $(addprefix -R,$(strip $(RPATH)))
 
 # standard C libraries
 ifeq (undefined,$(origin DEF_C_LIBS))
-DEF_C_LIBS := c
+DEF_C_LIBS := -lc
 endif
 
 # standard C++ libraries
 ifeq (undefined,$(origin DEF_CXX_LIBS))
-DEF_CXX_LIBS := Cstd Crun
+DEF_CXX_LIBS := -lCstd -lCrun
 endif
 
 # common linker options for EXE or DLL
@@ -215,8 +215,8 @@ endif
 # target-specific: LIBS, DLLS, LIB_DIR, SYSLIBPATH, SYSLIBS, COMPILER, LDFLAGS
 CMN_LIBS ?= -o $1 $2 $(DEF_SHARED_FLAGS) $(RPATH_OPTION) $(if $(strip \
   $(LIBS)$(DLLS)),-L$(LIB_DIR) $(addprefix -l,$(DLLS)) $(if $(LIBS),-Bstatic $(addprefix -l,$(addsuffix \
-  $(call LIB_VAR_SUFFIX,$3),$(LIBS))) -Bdynamic)) $(addprefix -L,$(SYSLIBPATH)) $(addprefix \
-  -l,$(SYSLIBS) $(if $(filter CXX,$(COMPILER)),$(DEF_CXX_LIBS)) $(DEF_C_LIBS)) $(DEF_SHARED_LIBS) $(LDFLAGS)
+  $(call LIB_VAR_SUFFIX,$3),$(LIBS))) -Bdynamic)) $(addprefix -L,$(SYSLIBPATH)) $(SYSLIBS) $(if \
+  $(filter CXX,$(COMPILER)),$(DEF_CXX_LIBS)) $(DEF_C_LIBS) $(DEF_SHARED_LIBS) $(LDFLAGS)
 
 # what to export from a dll
 # target-specific: MAP

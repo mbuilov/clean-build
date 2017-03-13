@@ -233,8 +233,7 @@ RPATH_LINK_OPTION ?= $(addprefix $(WLPREFIX)-rpath-link=,$(RPATH_LINK))
 # target-specific: LIBS, DLLS, LIB_DIR, SYSLIBPATH, SYSLIBS, LDFLAGS
 CMN_LIBS ?= -pipe -o $1 $2 $(DEF_SHARED_FLAGS) $(RPATH_OPTION) $(RPATH_LINK_OPTION) $(if $(strip \
   $(LIBS)$(DLLS)),-L$(LIB_DIR) $(addprefix -l,$(DLLS)) $(if $(LIBS),$(WLPREFIX)-Bstatic $(addprefix -l,$(addsuffix \
-  $(call LIB_VAR_SUFFIX,$3),$(LIBS))) $(WLPREFIX)-Bdynamic)) $(addprefix -L,$(SYSLIBPATH)) $(addprefix \
-  -l,$(SYSLIBS)) $(DEF_SHARED_LIBS) $(LDFLAGS)
+  $(call LIB_VAR_SUFFIX,$3),$(LIBS))) $(WLPREFIX)-Bdynamic)) $(addprefix -L,$(SYSLIBPATH)) $(SYSLIBS) $(DEF_SHARED_LIBS) $(LDFLAGS)
 
 # what to export from a dll
 # target-specific: MAP
