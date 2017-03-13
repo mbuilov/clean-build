@@ -208,7 +208,7 @@ CMN_LIBS ?= /OUT:$$(ospath) /VERSION:$$(call MK_MAJ_MIN_VER,$$(MODVER)) $(CMN_LI
 # $$1 - target exe or dll, $$2 - objects, $v - variant
 # note: do not add /SUBSYSTEM option if $(LDFLAGS) have already specified one
 # target-specific: LDFLAGS
-DEF_SUBSYSTEM ?= $$(if $$(filter /SUBSYSTEM:%,$$(LDFLAGS)),,/SUBSYSTEM:CONSOLE,$(SUBSYSTEM_VER))
+DEF_SUBSYSTEM ?= $$(if $$(filter /SUBSYSTEM:%,$$(LDFLAGS)),,/SUBSYSTEM:CONSOLE$(if $$(TMD),,,$(SUBSYSTEM_VER)))
 
 # strings to strip off from link.exe output
 # cp1251 ".оздание?кода .оздание?кода?завершено" as cp866 converted to cp1251
@@ -250,7 +250,7 @@ WRAP_EXE_LINKER ?= $(if $(EXE_EXPORTS),$(call WRAP_EXE_EXPORTS_LINKER,$1,$2,$(ba
 # target-specific: TMD, DEF, LDFLAGS, IMP, EXE_EXPORTS
 define EXE_LD_TEMPLATE
 $(empty)
-EXE_$v_LD1 = $$(call SUP,$(TMD)XLINK,$$1)$$(call WRAP_EXE_LINKER,$$1,$$(call WRAP_LINKER,$$(VS$$(TMD)LD) \
+EXE_$v_LD1 = $$(call SUP,$$(TMD)XLINK,$$1)$$(call WRAP_EXE_LINKER,$$1,$$(call WRAP_LINKER,$$(VS$$(TMD)LD) \
   /nologo $$(if $$(DEF),/DEF:$$(call ospath,$$(DEF))) $(CMN_LIBS) $(if $(EXE_EXPORTS),/IMPLIB:$$(call \
   ospath,$$(IMP))) $(DEF_SUBSYSTEM) $(EMBED_MANIFEST_OPTION) $$(LDFLAGS)),$$(IMP))$$(call \
   DEL_DEF_MANIFEST_ON_FAIL,$$1,$$(EMBED_EXE_MANIFEST))
@@ -281,7 +281,7 @@ WRAP_DLL_LINKER ?= $(if $(DLL_NO_EXPORTS),$2$(if $(DEBUG), >&2),$(call WRAP_DLL_
 # target-specific: TMD, DEF, LDFLAGS, IMP, DLL_NO_EXPORTS
 define DLL_LD_TEMPLATE
 $(empty)
-DLL_$v_LD1 = $$(call SUP,$(TMD)LINK,$$1)$$(call WRAP_DLL_LINKER,$$1,$$(call WRAP_LINKER,$$(VS$$(TMD)LD) \
+DLL_$v_LD1 = $$(call SUP,$$(TMD)LINK,$$1)$$(call WRAP_DLL_LINKER,$$1,$$(call WRAP_LINKER,$$(VS$$(TMD)LD) \
   /nologo /DLL $$(if $$(DEF),/DEF:$$(call ospath,$$(DEF))) $(CMN_LIBS) $(if $(DLL_NO_EXPORTS),,/IMPLIB:$$(call \
   ospath,$$(IMP))) $(DEF_SUBSYSTEM) $(EMBED_MANIFEST_OPTION) $$(LDFLAGS)),$$(IMP))$$(call \
   DEL_DEF_MANIFEST_ON_FAIL,$$1,$$(EMBED_DLL_MANIFEST))
@@ -300,7 +300,7 @@ endif
 # target-specific: TMD, LDFLAGS
 define LIB_LD_TEMPLATE
 $(empty)
-LIB_$v_LD1 = $(call CHECK_LIB_UNI_NAME,LIB)$$(call SUP,$(TMD)LIB,$$1)$$(VS$$(TMD)LD) \
+LIB_$v_LD1 = $(call CHECK_LIB_UNI_NAME,LIB)$$(call SUP,$$(TMD)LIB,$$1)$$(VS$$(TMD)LD) \
   /lib /nologo /OUT:$$(call ospath,$$1 $$2) $(DEF_LIB_LDFLAGS) $$(LDFLAGS) >&2
 endef
 $(eval $(foreach v,R $(VARIANTS_FILTER),$(LIB_LD_TEMPLATE)))
@@ -475,9 +475,9 @@ DLL_$v_LD  = $$(call CMN_MCL,$$1,$$2,CMN_$vMCL)$$(DLL_$v_LD1)
 LIB_$v_LD  = $$(call CMN_MCL,$$1,$$2,CMN_$vMCL)$$(LIB_$v_LD1)
 # $$1 - target pch object, $$2 - pch-source, $$3 - pch header
 # target-specific: TMD, CFLAGS, CXXFLAGS
-PCH_$v_CC  = $$(call SUP,$(TMD)PCHCC,$$2)$$(call WRAP_COMPILER,$$(call CMN_$vCL,$$(dir $$1),$$2,/Yc$$3 /Yl$$(basename \
+PCH_$v_CC  = $$(call SUP,$$(TMD)PCHCC,$$2)$$(call WRAP_COMPILER,$$(call CMN_$vCL,$$(dir $$1),$$2,/Yc$$3 /Yl$$(basename \
   $$(notdir $$2)) /Fp$$(dir $$1)$$(basename $$(notdir $$3))_c.pch $$(CFLAGS)),$$1,$$2,$$(basename $$1).d,$(UDEPS_INCLUDE_FILTER))
-PCH_$v_CXX = $$(call SUP,$(TMD)PCHCXX,$$2)$$(call WRAP_COMPILER,$$(call CMN_$vCL,$$(dir $$1),$$2,/Yc$$3 /Yl$$(basename \
+PCH_$v_CXX = $$(call SUP,$$(TMD)PCHCXX,$$2)$$(call WRAP_COMPILER,$$(call CMN_$vCL,$$(dir $$1),$$2,/Yc$$3 /Yl$$(basename \
   $$(notdir $$2)) /Fp$$(dir $$1)$$(basename $$(notdir $$3))_cpp.pch $$(CXXFLAGS)),$$1,$$2,$$(basename $$1).d,$(UDEPS_INCLUDE_FILTER))
 $(empty)
 endef
