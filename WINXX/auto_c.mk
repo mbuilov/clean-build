@@ -153,7 +153,7 @@ ifneq ($(call is_less,$(VS_VER),10),)
 
 ifneq ($(call VS_TOOL_PREFIX,$(UCPU)),\amd64)
 # not for \amd64
-PATH := $(PATH);$(VS)\Common7\IDE
+PATH := $(PATH);$(VS)\VC\bin;$(VS)\Common7\IDE
 endif
 
 else ifneq ($(call is_less,$(VS_VER),13),)
