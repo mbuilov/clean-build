@@ -205,19 +205,19 @@ OBJS = $(addsuffix $(OBJ_SUFFIX),$(basename $(notdir $1)))
 
 # VARIANT_LIB_MAP/VARIANT_IMP_MAP - functions that define which variant of
 #  static/dynamic library to link with EXE or DLL, defined in $(MTOP)/$(OS)/c.mk
-# $1 - target EXE,DLL
-# $2 - variant of target EXE or DLL
+# $1 - target: EXE,DLL
+# $2 - variant of target EXE or DLL: R,P,S,<empty>
 # $3 - dependent static/dynamic library name
 
 # get suffix of dependent LIB
-# $1 - target EXE,DLL
-# $2 - variant of target EXE or DLL
+# $1 - target: EXE,DLL
+# $2 - variant of target EXE or DLL: R,P,S,<empty>
 # $3 - dependent static library name
 DEP_LIB_SUFFIX = $(call LIB_VAR_SUFFIX,$(VARIANT_LIB_MAP))
 
 # get suffix of dependent DLL
-# $1 - target EXE,DLL
-# $2 - variant of target EXE or DLL
+# $1 - target: EXE,DLL
+# $2 - variant of target EXE or DLL: R,P,S,<empty>
 # $3 - dependent dynamic library name
 DEP_IMP_SUFFIX = $(call LIB_VAR_SUFFIX,$(VARIANT_IMP_MAP))
 
@@ -411,7 +411,7 @@ endif
 define DEFINE_C_TARGETS_EVAL
 $(if $(MDEBUG),$(eval $(DEBUG_C_TARGETS)))
 $(eval $(call OSVAR,USE)$(if $(MDEBUG),$$(if $$(USE),$$(info \
-  using: $$(USE))))$(newline)include $$(addprefix $(PROJECT_USE_DIR)/,$$(USE:=.mk)))
+  using: $$(USE))))$(newline)include $$(addprefix $(PROJECT_USE_DIR)/,$$(USE)))
 $(eval $(OSVARS))
 $(eval $(GENERATE_SRC_RULES))
 $(eval $(OS_DEFINE_TARGETS))
