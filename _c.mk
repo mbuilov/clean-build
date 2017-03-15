@@ -203,30 +203,30 @@ TRG_SDEPS = $(call FIX_SDEPS,$(SDEPS) $($1_SDEPS))
 # NOTE: not all $(OBJS) may be built from the $(SRC) - some objects may be built from generated sources
 OBJS = $(addsuffix $(OBJ_SUFFIX),$(basename $(notdir $1)))
 
-# VARIANT_LIB_MAP/VARIANT_IMP_MAP - functions that defines which variant of
+# VARIANT_LIB_MAP/VARIANT_IMP_MAP - functions that define which variant of
 #  static/dynamic library to link with EXE or DLL, defined in $(MTOP)/$(OS)/c.mk
 # $1 - target EXE,DLL
 # $2 - variant of target EXE or DLL
-# $l/$d - dependent static/dynamic library name
+# $3 - dependent static/dynamic library name
 
 # get suffix of dependent LIB
 # $1 - target EXE,DLL
 # $2 - variant of target EXE or DLL
-# $l - dependent static library name
+# $3 - dependent static library name
 DEP_LIB_SUFFIX = $(call LIB_VAR_SUFFIX,$(VARIANT_LIB_MAP))
 
 # get suffix of dependent DLL
 # $1 - target EXE,DLL
 # $2 - variant of target EXE or DLL
-# $d - dependent dynamic library name
+# $3 - dependent dynamic library name
 DEP_IMP_SUFFIX = $(call LIB_VAR_SUFFIX,$(VARIANT_IMP_MAP))
 
 # make file names of dependent libs
 # $1 - EXE,DLL
 # $2 - R,P,S,<empty>
 # $3 - names of dependent libs
-MAKE_DEP_LIBS = $(foreach l,$3,$(LIB_PREFIX)$l$(DEP_LIB_SUFFIX)$(LIB_SUFFIX))
-MAKE_DEP_IMPS = $(foreach d,$3,$(IMP_PREFIX)$d$(DEP_IMP_SUFFIX)$(IMP_SUFFIX))
+MAKE_DEP_LIBS = $(foreach l,$3,$(LIB_PREFIX)$l$(call DEP_LIB_SUFFIX,$1,$2,$l)$(LIB_SUFFIX))
+MAKE_DEP_IMPS = $(foreach d,$3,$(IMP_PREFIX)$d$(call DEP_IMP_SUFFIX,$1,$2,$d)$(IMP_SUFFIX))
 
 # static libraries target depends on
 # $1 - EXE,DLL

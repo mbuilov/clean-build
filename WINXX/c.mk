@@ -163,20 +163,20 @@ DLL_SUFFIX_GEN ?= $(if $(word 2,$3),$(if \
 # for $(DEP_LIB_SUFFIX) from $(MTOP)/c.mk:
 # $1 - target EXE,DLL
 # $2 - variant of target EXE or DLL
-# $l - dependent static library name
+# $3 - dependent static library name
 # use the same variant of dependent static library as target EXE or DLL (for example for S-EXE use S-LIB)
 # NOTE: for RU or SU variant of target EXE or DLL, if dependent library name do not starts with UNI_
 #  - dependent library do not have unicode variant, so convert needed variant to non-unicode one: RU->R or SU->S
-VARIANT_LIB_MAP ?= $(if $(l:UNI_%=),$(2:U=),$2)
+VARIANT_LIB_MAP ?= $(if $(3:UNI_%=),$(2:U=),$2)
 
 # for $(DEP_IMP_SUFFIX) from $(MTOP)/c.mk:
 # $1 - target EXE,DLL
 # $2 - variant of target EXE or DLL
-# $d - dependent dynamic library name
+# $3 - dependent dynamic library name
 # use the same variant of dependent dynamic library as target EXE or DLL (for example for S-EXE use S-DLL)
 # NOTE: for RU or SU variant of target EXE or DLL, if dependent library name do not starts with UNI_
 #  - dependent library do not have unicode variant, so convert needed variant to non-unicode one: RU->R or SU->S
-VARIANT_IMP_MAP ?= $(if $(d:UNI_%=),$(2:U=),$2)
+VARIANT_IMP_MAP ?= $(if $(3:UNI_%=),$(2:U=),$2)
 
 # check that library name built as RU/SU variant is started with UNI_ prefix
 # $1 - library name, $v - variant name: RU,S
