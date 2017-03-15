@@ -41,7 +41,9 @@ BUILT_LIBS         := $(foreach v,$(BUILT_LIB_VARIANTS),$(call FORM_TRG,LIB,$v))
 BUILT_DLLS         := $(foreach v,$(BUILT_DLL_VARIANTS),$(call FORM_TRG,DLL,$v))
 
 # to install libraries, them must be built first
-$(eval install_$(LIBRARY_NAME): $(BUILT_LIBS) $(BUILT_DLLS))
+$(eval install_$(LIBRARY_NAME): $(BUILT_LIBS) $(BUILT_DLLS)\
+$(newline)install: install_$(LIBRARY_NAME)\
+$(newline)uninstall: uninstall_$(LIBRARY_NAME))
 
 ifeq (LINUX,$(OS))
 
