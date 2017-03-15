@@ -138,6 +138,11 @@ endif
 # D - position-independent code in shared libraries (for LIB)
 VARIANTS_FILTER ?= $(if $(filter LIB,$1),D)
 
+# determine suffix for static LIB or for import library of DLL
+# $1 - target variant R,D,<empty>
+LIB_VAR_SUFFIX ?= $(if \
+                  $(filter D,$1),_pic)
+
 # for $(DEP_LIB_SUFFIX) from $(MTOP)/c.mk:
 # $1 - target EXE,DLL
 # $2 - variant of target EXE or DLL
