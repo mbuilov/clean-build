@@ -144,16 +144,16 @@ LIB_VAR_SUFFIX ?= $(if \
                   $(filter D,$1),_pic)
 
 # for $(DEP_LIB_SUFFIX) from $(MTOP)/c.mk:
-# $1 - target EXE,DLL
-# $2 - variant of target EXE or DLL
+# $1 - target: EXE,DLL
+# $2 - variant of target EXE or DLL: R,<empty>
 # $3 - dependent static library name
 # use the same variant (R) of static library as target EXE (R)
 # always use D-variant of static library for DLL
 VARIANT_LIB_MAP ?= $(if $(filter DLL,$1),D,$2)
 
 # for $(DEP_IMP_SUFFIX) from $(MTOP)/c.mk:
-# $1 - target EXE,DLL
-# $2 - variant of target EXE or DLL
+# $1 - target: EXE,DLL
+# $2 - variant of target EXE or DLL: R,<empty>
 # $3 - dependent dynamic library name
 # the same one default variant (R) of DLL may be linked with R-EXE or R-DLL
 ifeq (undefined,$(origin VARIANT_IMP_MAP))

@@ -161,8 +161,8 @@ DLL_SUFFIX_GEN ?= $(if $(word 2,$3),$(if \
                   $(filter SU,$2),_mtu))))
 
 # for $(DEP_LIB_SUFFIX) from $(MTOP)/c.mk:
-# $1 - target EXE,DLL
-# $2 - variant of target EXE or DLL
+# $1 - target: EXE,DLL
+# $2 - variant of target EXE or DLL: R,S,RU,SU,<empty>
 # $3 - dependent static library name
 # use the same variant of dependent static library as target EXE or DLL (for example for S-EXE use S-LIB)
 # NOTE: for RU or SU variant of target EXE or DLL, if dependent library name do not starts with UNI_
@@ -170,8 +170,8 @@ DLL_SUFFIX_GEN ?= $(if $(word 2,$3),$(if \
 VARIANT_LIB_MAP ?= $(if $(3:UNI_%=),$(2:U=),$2)
 
 # for $(DEP_IMP_SUFFIX) from $(MTOP)/c.mk:
-# $1 - target EXE,DLL
-# $2 - variant of target EXE or DLL
+# $1 - target: EXE,DLL
+# $2 - variant of target EXE or DLL: R,S,RU,SU,<empty>
 # $3 - dependent dynamic library name
 # use the same variant of dependent dynamic library as target EXE or DLL (for example for S-EXE use S-DLL)
 # NOTE: for RU or SU variant of target EXE or DLL, if dependent library name do not starts with UNI_
