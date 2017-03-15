@@ -144,6 +144,22 @@ endif
 # SU - same as S, but with unicode support (exe or dll may be linked with UNI_-prefixed static/dynamic library)
 VARIANTS_FILTER ?= S RU SU
 
+# determine suffix for static LIB or for import library of DLL
+# $1 - target variant R,S,RU,SU,<empty>
+LIB_VAR_SUFFIX ?= $(if \
+                  $(filter S,$1),_mt,$(if \
+                  $(filter RU,$1),_u,$(if \
+                  $(filter SU,$1),_mtu)))
+
+# generate target name suffix for DLL,EXE,DRV
+# $1 - DLL,EXE,DRV...
+# $2 - target variant S,RU,SU (not R or <empty>)
+# $3 - list of variants of target $1 to build (filtered by target platform specific $(VARIANTS_FILTER))
+DLL_SUFFIX_GEN ?= $(if $(word 2,$3),$(if \
+                  $(filter S,$2),_mt,$(if \
+                  $(filter RU,$2),_u,$(if \
+                  $(filter SU,$2),_mtu))))
+
 # for $(DEP_LIB_SUFFIX) from $(MTOP)/c.mk:
 # $1 - target EXE,DLL
 # $2 - variant of target EXE or DLL
