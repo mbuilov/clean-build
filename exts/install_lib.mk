@@ -120,7 +120,7 @@ install_$(LIBRARY_NAME): HEADERS := $(LIBRARY_HEADERS)
 install_$(LIBRARY_NAME)_headers: | $(DST_INC_DIR)
 	$$(foreach f,$$(HEADERS),$$(newline)$$(call CP,$(TOP)/$(LIBRARY_NAME)/$$f,"$$(DESTDIR)$$(INCLUDEDIR)/$(LIBRARY_NAME)"))
 
-install_$(LIBRARY_NAME): $(if $(NO_INSTALL_HEADERS1),,install_$(LIBRARY_NAME)_headers) | $(DST_LIB_DIR)
+install_$(LIBRARY_NAME): $(if $(NO_INSTALL_HEADERS1),,install_$(LIBRARY_NAME)_headers) $(if $(BUILT_LIBS)$(BUILT_DLLS), | $(DST_LIB_DIR))
 	$$(foreach l,$$(BUILT_LIBS),$$(newline)$$(call CP,$$l,"$$(DESTDIR)$$(LIBDIR)"))
 	$$(foreach d,$$(BUILT_DLLS),$$(newline)$$(call CP,$$d,"$$(DESTDIR)$$(LIBDIR)"))$(if \
   $(NO_INSTALL_IMPS1),,$(newline)$(tab)$$(foreach i,$$(BUILT_IMPS),$$(newline)$$(call CP,$$i,"$$(DESTDIR)$$(LIBDIR)")))
