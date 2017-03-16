@@ -14,6 +14,9 @@ ifneq (3.80,$(word 1,$(sort $(MAKE_VERSION) 3.80)))
 $(error required GNU Make of version 3.81 or later)
 endif
 
+# make MTOP non-recursive (simple)
+MTOP := $(MTOP)
+
 ifndef MTOP
 $(error MTOP is not defined, example: C:\clean-build,/usr/local/clean-build)
 endif
@@ -145,6 +148,15 @@ endif # ifeq ($(filter distclean,$(MAKECMDGOALS)),)
 # $(PROJECT) configuration file may redefine TARGET value, re-set DEBUG value
 # $(DEBUG) is non-empty for DEBUG targets like "PROJECTD" or "DEBUG"
 DEBUG := $(filter DEBUG %D,$(TARGET))
+
+# fix variables - make them non-recursive
+# note: $(BIN_DIR)/$(OBJ_DIR)/$(LIB_DIR)/$(GEN_DIR) are use these variables and are will be also fixed
+TARGET := $(TARGET)
+OS     := $(OS)
+CPU    := $(CPU)
+UCPU   := $(UCPU)
+KCPU   := $(KCPU)
+TCPU   := $(TCPU)
 
 # run via $(MAKE) V=1 for verbose output
 ifeq ("$(origin V)","command line")
@@ -615,12 +627,12 @@ MAKE_CONTINUE = $(if $(if $1,$(SAVE_VARS))$(MAKE_CONTINUE_BODY_EVAL)$(if $1,$(RE
 FORM_SDEPS = $(addsuffix |$(call join_with,$2,|),$1)
 
 # get dependencies for source files
-# $1 - source files, $2 - sdeps list: <source file>|<dependency1>|<dependency2>|...
+# $1 - source files, $2 - sdeps list: <source file1>|<dependency1>|<dependency2>|... <source file2>|<dependency1>|<dependency2>|...
 EXTRACT_SDEPS = $(foreach d,$(filter $(addsuffix |%,$1),$2),$(wordlist 2,999999,$(subst |, ,$d)))
 
 # fix sdeps paths: add $(VPREFIX) value to non-absolute paths then make absolute paths
-# $1 - sdeps list: <source file>|<dependency1>|<dependency2>|...
-FIX_SDEPS = $(subst $(space),|,$(call FIXPATH,$(subst |, ,$1)))
+# $1 - sdeps list: <source file1>|<dependency1>|<dependency2>|... <source file2>|<dependency1>|<dependency2>|...
+FIX_SDEPS = $(subst | ,|,$(call FIXPATH,$(subst |,| ,$1)))
 
 # protect variables from modifications in target makefiles
 CLEAN_BUILD_PROTECTED_VARS += MTOP MAKEFLAGS NO_DEPS DEBUG PROJECT \
