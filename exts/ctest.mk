@@ -17,7 +17,7 @@ ifndef DO_TEST_EXE_TEMPLATE
 define DO_TEST_EXE_TEMPLATE
 $(call ADD_GENERATED,$1.out)
 $1.out: $1
-	$$(call SUP,TEST,$$@)$$< $3 2> $$@
+	$$(call SUP,TEST,$$@)$$< $3 > $$@
 $(TEST_EXE_SOFTLINKS)
 endef
 
