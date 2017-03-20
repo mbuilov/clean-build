@@ -158,6 +158,9 @@ UCPU   := $(UCPU)
 KCPU   := $(KCPU)
 TCPU   := $(TCPU)
 
+# for simple 'ifdef OS_WINXX' or 'ifdef OS_LINUX'
+OS_$(OS) := 1
+
 # run via $(MAKE) V=1 for verbose output
 ifeq ("$(origin V)","command line")
 VERBOSE := $(V:0=)
@@ -350,6 +353,7 @@ GET_TOOL = $(call GET_TOOLS,$(TOOL_BASE),$(TCPU),$1)
 # override dirs in tool mode (when TOOL_MODE has non-empty value)
 TOOLS_DIR := $(TOOL_BASE)/TOOL-$(TCPU)-$(TARGET)
 
+# override default dirs in tool mode
 define TOOL_OVERRIDE_DIRS
 BIN_DIR := $(TOOLS_DIR)/bin
 OBJ_DIR := $(TOOLS_DIR)/obj
@@ -647,7 +651,7 @@ FIX_SDEPS = $(subst | ,|,$(call FIXPATH,$(subst |,| ,$1)))
 # protect variables from modifications in target makefiles
 CLEAN_BUILD_PROTECTED_VARS += MTOP MAKEFLAGS NO_DEPS DEBUG PROJECT \
   SUPPORTED_OSES SUPPORTED_CPUS SUPPORTED_TARGETS OS CPU UCPU KCPU TCPU TARGET \
-  VERBOSE INFOMF MDEBUG CHECK_MAKEFILE_NOT_PROCESSED \
+  OS_$(OS) VERBOSE INFOMF MDEBUG CHECK_MAKEFILE_NOT_PROCESSED \
   TERM_NO_COLOR PRINT_PERCENTS SUP ADD_SHOWN_PERCENTS REM_SHOWN_MAKEFILE TRY_REM_MAKEFILE \
   GEN_COLOR MGEN_COLOR CP_COLOR LN_COLOR MKDIR_COLOR TOUCH_COLOR \
   COLORIZE SED_MULTI_EXPR ospath isrelpath \
