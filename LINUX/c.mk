@@ -6,19 +6,11 @@
 
 OSTYPE := UNIX
 
-# additional variables that may have target-dependent variants (EXE_RPATH, DLL_RPATH and so on)
-# NOTE: these variables may also have $OS-dependent variants (RPATH_LINUX, DLL_RPATH_UNIX and so on)
-# RPATH - runtime path of external dependencies
-TRG_VARS += RPATH
-
-# additional variables without target-dependent variants
-# NOTE: these variables may also have $OS-dependent variants (MAP_LINUX, MAP_UNIX and so on)
-# MAP - linker map file (used mostly to list exported symbols)
-BLD_VARS += MAP
-
 # reset additional variables
 # $(INST_RPATH) - location where external dependency libraries are installed: /opt/lib or $ORIGIN/../lib
-define RESET_OS_VARS
+# RPATH - runtime path of external dependencies
+# MAP   - linker map file (used mostly to list exported symbols)
+define RESET_OS_CVARS
 RPATH := $(INST_RPATH)
 MAP   :=
 endef

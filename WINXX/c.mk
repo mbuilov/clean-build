@@ -17,13 +17,13 @@ TRG_VARS += RES DEF
 BLD_VARS += # AAA
 
 # reset additional variables
-define RESET_OS_VARS
+define RESET_OS_CVARS
 RES :=
 DEF :=
 endef
 
-# make RESET_OS_VARS variable non-recursive (simple)
-RESET_OS_VARS := $(RESET_OS_VARS)
+# make RESET_OS_CVARS variable non-recursive (simple)
+RESET_OS_CVARS := $(RESET_OS_CVARS)
 
 # max number of sources to compile with /MP compiler option
 # - with too many sources it's possible to exceed max command string length
@@ -889,7 +889,7 @@ RC_DEFINE_PATH = "\"$(subst \,\\,$(ospath))\""
 # $2 - sources:     $(call TRG_SRC,DRV)
 # $3 - sdeps:       $(call TRG_SDEPS,DRV)
 # $4 - objdir:      $(call FORM_OBJ_DIR,DRV,$v)
-# $5 - objects:     $(addprefix $4/,$(call OBJS,$2))
+# $5 - objects:     $(addprefix $4/,$(call GET_OBJS,$2))
 # $v - R
 define DRV_TEMPLATE
 $(call STD_RES_TEMPLATE,DRV)

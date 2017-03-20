@@ -6,19 +6,15 @@
 
 OSTYPE := UNIX
 
-# additional variables that may have target-dependent variants (EXE_RPATH, DLL_RPATH and so on)
-# NOTE: these variables may also have $OS-dependent variants (RPATH_SOLARIS, DLL_RPATH_UNIX and so on)
-# RPATH - runtime path of external dependencies
-TRG_VARS += RPATH
-
-# additional variables without target-dependent variants
-# NOTE: these variables may also have $OS-dependent variants (MAP_SOLARIS, MAP_UNIX and so on)
-# MAP - linker map file (used mostly to list exported symbols)
-BLD_VARS += MAP
+# OS_FORM_TRG defined below will form target name for DRV
+# also, DRV_TEMPLATE below will define how to build DRV
+BLD_TARGETS += DRV
 
 # reset additional variables
 # $(INST_RPATH) - location where external dependency libraries are installed: /opt/lib or $ORIGIN/../lib
-define RESET_OS_VARS
+# RPATH - runtime path of external dependencies
+# MAP   - linker map file (used mostly to list exported symbols)
+define RESET_OS_CVARS
 RPATH := $(INST_RPATH)
 MAP   :=
 endef
@@ -88,7 +84,7 @@ endif
 # note: if OBJ_SUFFIX is defined, then all prefixes/suffixes must be also defined
 ifndef OBJ_SUFFIX
 # exe file suffix
-EXE_SUFFIX :=
+EXE_SUFFIX:=
 # object file suffix
 OBJ_SUFFIX := .o
 # static library (archive) prefix/suffix
@@ -105,8 +101,8 @@ KLIB_NAME_PREFIX := k_
 KLIB_PREFIX := lib$(KLIB_NAME_PREFIX)
 KLIB_SUFFIX := .a
 # kernel module (driver) prefix/suffix
-DRV_PREFIX :=
-DRV_SUFFIX :=
+DRV_PREFIX:=
+DRV_SUFFIX:=
 endif
 
 # import library and dll - the same file
@@ -351,33 +347,43 @@ FLEX  ?= $(call SUP,FLEX,$2)$(FLEXC) -o$1 $2
 
 # auxiliary defines for EXE
 # $1 - $(call FORM_TRG,EXE,$v)
-# $2 - $(call FIXPATH,$(firstword $(EXE_MAP) $(MAP)))
+# $2 - $(call FIXPATH,$(MAP))
 define EXE_AUX_TEMPLATE1
-$1: RPATH := $(subst $$,$$$$,$(RPATH) $(EXE_RPATH))
+$1: RPATH := $(subst $$,$$$$,$(RPATH))
 $1: MAP := $2
 $1: $2
 endef
 EXE_AUX_TEMPLATE2 = $(foreach v,$(call GET_VARIANTS,EXE),$(call EXE_AUX_TEMPLATE1,$(call FORM_TRG,EXE,$v),$2))
-EXE_AUX_TEMPLATE = $(call EXE_AUX_TEMPLATE2,$(call FIXPATH,$(firstword $(EXE_MAP) $(MAP))))
+EXE_AUX_TEMPLATE = $(call EXE_AUX_TEMPLATE2,$(call FIXPATH,$(MAP)))
 
 # auxiliary defines for DLL
 # $1 - $(call FORM_TRG,DLL,$v)
-# $2 - $(call FIXPATH,$(firstword $(DLL_MAP) $(MAP)))
+# $2 - $(call FIXPATH,$(MAP))
 define DLL_AUX_TEMPLATE1
 $1: MODVER := $(MODVER)
-$1: RPATH := $(subst $$,$$$$,$(RPATH) $(DLL_RPATH))
+$1: RPATH := $(subst $$,$$$$,$(RPATH))
 $1: MAP := $2
 $1: $2
 endef
 DLL_AUX_TEMPLATE2 = $(foreach v,$(call GET_VARIANTS,DLL),$(call DLL_AUX_TEMPLATE1,$(call FORM_TRG,DLL,$v),$2))
-DLL_AUX_TEMPLATE = $(call DLL_AUX_TEMPLATE2,$(call FIXPATH,$(firstword $(DLL_MAP) $(MAP))))
+DLL_AUX_TEMPLATE = $(call DLL_AUX_TEMPLATE2,$(call FIXPATH,$(MAP)))
+
+# this code is evaluated from $(DEFINE_TARGETS)
+define OS_DEFINE_TARGETS
+$(if $(EXE),$(EXE_AUX_TEMPLATE))
+$(if $(DLL),$(DLL_AUX_TEMPLATE))
+endef
+
+# DRV was added to $(BLD_TARGETS), so must define how to make DRV target name
+# $1 - target to build, should be DRV
+OS_FORM_TRG ?= $(if $(filter DRV,$1),$(addprefix $(BIN_DIR)/$(DRV_PREFIX),$(addsuffix $(DLL_VAR_SUFFIX)$(DRV_SUFFIX),$(GET_TARGET_NAME))))
 
 # how to build driver, used by $(TRG_RULES)
 # $1 - target file: $(call FORM_TRG,DRV,$v)
-# $2 - sources:     $(call TRG_SRC,DRV)
-# $3 - sdeps:       $(call TRG_SDEPS,DRV)
+# $2 - sources:     $(TRG_SRC)
+# $3 - sdeps:       $(TRG_SDEPS)
 # $4 - objdir:      $(call FORM_OBJ_DIR,DRV,$v)
-# $5 - objects:     $(addprefix $4/,$(call OBJS,$2))
+# $5 - objects:     $(addprefix $4/,$(call GET_OBJS,$2))
 # $v - R,S
 define DRV_TEMPLATE
 $(STD_TARGET_VARS)
@@ -388,31 +394,24 @@ $(call OBJ_RULES,DRV,ASM,$(filter %.asm,$2),$3,$4,$v)
 $1: COMPILER   := $(if $(filter %.cpp,$2),CXX,CC)
 $1: LIB_DIR    := $(LIB_DIR)
 $1: KLIBS      := $(KLIBS)
-$1: INCLUDE    := $(call TRG_INCLUDE,DRV)
-$1: DEFINES    := $(CMNDEFINES) $(KRNDEFS) $(DEFINES) $(DRV_DEFINES)
-$1: CFLAGS     := $(CFLAGS) $(DRV_CFLAGS)
-$1: CXXFLAGS   := $(CXXFLAGS) $(DRV_CXXFLAGS)
-$1: ASMFLAGS   := $(ASMFLAGS) $(DRV_ASMFLAGS)
-$1: LDFLAGS    := $(LDFLAGS) $(DRV_LDFLAGS)
-$1: SYSLIBS    := $(SYSLIBS) $(DRV_SYSLIBS)
-$1: SYSLIBPATH := $(SYSLIBPATH) $(DRV_SYSLIBPATH)
+$1: INCLUDE    := $(TRG_INCLUDE)
+$1: DEFINES    := $(CMNDEFINES) $(KRNDEFS) $(DEFINES)
+$1: CFLAGS     := $(CFLAGS)
+$1: CXXFLAGS   := $(CXXFLAGS)
+$1: ASMFLAGS   := $(ASMFLAGS)
+$1: LDFLAGS    := $(LDFLAGS)
+$1: SYSLIBS    := $(SYSLIBS)
+$1: SYSLIBPATH := $(SYSLIBPATH)
 $1: $(addprefix $(LIB_DIR)/$(KLIB_PREFIX),$(KLIBS:=$(KLIB_SUFFIX))) $5
 	$$(call DRV_R_LD,$$@,$$(filter %$(OBJ_SUFFIX),$$^))
 $(call TOCLEAN,$5)
-endef
-
-# this code is evaluated from $(DEFINE_TARGETS)
-define OS_DEFINE_TARGETS
-$(if $(EXE),$(EXE_AUX_TEMPLATE))
-$(if $(DLL),$(DLL_AUX_TEMPLATE))
-$(call TRG_RULES,DRV)
 endef
 
 # protect variables from modifications in target makefiles
 $(call CLEAN_BUILD_PROTECT_VARS,CC CXX AR TCC TCXX TAR KCC KLD YASM FLEXC BISONC \
   EXE_SUFFIX OBJ_SUFFIX LIB_PREFIX LIB_SUFFIX IMP_PREFIX IMP_SUFFIX \
   DLL_PREFIX DLL_SUFFIX KLIB_NAME_PREFIX KLIB_PREFIX KLIB_SUFFIX DRV_PREFIX DRV_SUFFIX \
-  DLL_DIR IMP_DIR OS_PREDEFINES OS_APPDEFS OS_KRNDEFS VARIANTS_FILTER \
+  DLL_DIR IMP_DIR VARIANTS_FILTER \
   VARIANT_LIB_MAP VARIANT_IMP_MAP DEF_SHARED_FLAGS DEF_EXE_FLAGS DEF_SO_FLAGS DEF_KLD_FLAGS DEF_AR_FLAGS \
   DLL_EXPORTS_DEFINE DLL_IMPORTS_DEFINE \
   RPATH_OPTION DEF_C_LIBS DEF_CXX_LIBS CMN_LIBS VERSION_SCRIPT_OPTION SONAME_OPTION1 SONAME_OPTION \

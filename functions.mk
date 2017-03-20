@@ -96,12 +96,9 @@ repl09AZ = $(call repl09,$(subst \
   I,.,$(subst J,.,$(subst K,.,$(subst L,.,$(subst M,.,$(subst N,.,$(subst O,.,$(subst P,.,$(subst Q,.,$(subst R,.,$(subst \
   S,.,$(subst T,.,$(subst U,.,$(subst V,.,$(subst W,.,$(subst X,.,$(subst Y,.,$(subst Z,.,$1)))))))))))))))))))))))))))
 
-# to align to 8 chars
-padto1 = $(subst .,       ,$(subst ..,      ,$(subst ...,     ,$(subst \
-  ....,    ,$(subst .....,   ,$(subst ......,  ,$(subst ......., ,$1)))))))
-
 # return string of spaces to add to given argument to align total argument length to fixed width (8 chars)
-padto = $(call padto1,$(repl09AZ))
+padto = $(subst .,       ,$(subst ..,      ,$(subst ...,     ,$(subst \
+  ....,    ,$(subst .....,   ,$(subst ......,  ,$(subst ......., ,$(repl09AZ))))))))
 
 # 1) check number of digits: if $4 > $3 -> $2 > $1
 # 2) else if number of digits are equal, check number values
@@ -181,6 +178,6 @@ ver_patch = $(firstword $(word 3,$(subst ., ,$1)) 0)
 # protect variables from modification in target makefiles
 CLEAN_BUILD_PROTECTED += empty space tab comma newline comment \
   infofn dump trace_params trace_calls_template trace_calls \
-  unspaces ifaddq qpath tolower toupper repl09 repl09AZ padto1 padto \
+  unspaces ifaddq qpath tolower toupper repl09 repl09AZ padto \
   is_less1 is_less xargs1 xargs xcmd trim normp2 normp1 normp \
   cmn_path1 cmn_path back_prefix relpath2 relpath1 relpath join_with ver_major ver_minor ver_patch
