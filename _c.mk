@@ -27,7 +27,9 @@ endif
 # S - statically linked multithreaded libc          (for all targets) (only WINDOWS)
 
 # what we may build by including $(MTOP)/c.mk (for ex. LIB := my_lib)
-BLD_TARGETS := EXE LIB DLL KLIB
+# note: DRV is $(OS)-specific, $(MTOP)/$(OS)/c.mk should define DRV_TEMPLATE
+# note: $(MTOP)/$(OS)/c.mk may append more target types to BLD_TARGETS, for example DDD
+BLD_TARGETS := EXE LIB DLL KLIB DRV
 
 # $(TOP)/make/project.mk included by $(MTOP)/defs.mk, if exists, should define something like:
 #
@@ -88,9 +90,7 @@ define OBJ_RULE
 $(empty)
 $7$(OBJ_SUFFIX): $3 $(call EXTRACT_SDEPS,$3,$4) | $5 $$(ORDER_DEPS)
 	$$(call $1_$6_$2,$$@,$$<)
-ifeq ($(NO_DEPS),)
--include $7.d
-endif
+$(if $(NO_DEPS),,-include $7.d)
 $(call TOCLEAN,$7.d)
 endef
 
@@ -122,14 +122,14 @@ DLL_VAR_SUFFIX ?= $(if $(filter-out R,$2),$(call \
 # $1 - EXE,LIB,...
 # $2 - target variant R,P,D,S,<empty>
 # $3 - variants list, by default $(wordlist 2,999999,$($1))
-# $(OS_FORM_TRG) - $(OS) may define more targets, for example:
-#  $(if $(filter DRV,$1),$(addprefix $(BIN_DIR)/$(DRV_PREFIX),$(addsuffix $(DLL_VAR_SUFFIX)$(DRV_SUFFIX),$(GET_TARGET_NAME))))
+# $(OS_FORM_TRG) - $(OS) may define more targets, for example, for DDD:
+#  $(if $(filter DDD,$1),$(addprefix $(BIN_DIR)/$(DDD_PREFIX),$(addsuffix $(DLL_VAR_SUFFIX)$(DDD_SUFFIX),$(GET_TARGET_NAME))))
 FORM_TRG ?= $(if \
   $(filter EXE,$1),$(addprefix $(BIN_DIR)/,$(addsuffix $(DLL_VAR_SUFFIX)$(EXE_SUFFIX),$(GET_TARGET_NAME))),$(if \
   $(filter LIB,$1),$(addprefix $(LIB_DIR)/$(LIB_PREFIX),$(addsuffix $(call LIB_VAR_SUFFIX,$2)$(LIB_SUFFIX),$(GET_TARGET_NAME))),$(if \
   $(filter DLL,$1),$(addprefix $(DLL_DIR)/$(DLL_PREFIX),$(addsuffix $(DLL_VAR_SUFFIX)$(DLL_SUFFIX),$(GET_TARGET_NAME))),$(if \
-  $(filter KLIB,$1),$(addprefix $(LIB_DIR)/$(KLIB_PREFIX),$(addsuffix $(call LIB_VAR_SUFFIX,$2)$(KLIB_SUFFIX),$(GET_TARGET_NAME))),\
-$(OS_FORM_TRG)))))
+  $(filter KLIB,$1),$(addprefix $(LIB_DIR)/$(KLIB_PREFIX),$(addsuffix $(call LIB_VAR_SUFFIX,$2)$(KLIB_SUFFIX),$(GET_TARGET_NAME))),$(if \
+  $(filter DRV,$1),$(addprefix $(BIN_DIR)/$(DRV_PREFIX),$(addsuffix $(DLL_VAR_SUFFIX)$(DRV_SUFFIX),$(GET_TARGET_NAME))),$(OS_FORM_TRG))))))
 
 # example how to make target filenames for all variants specified for the target
 # $1 - EXE,LIB,DLL,...
@@ -141,7 +141,7 @@ SUBST_DEFINES ?= $(subst $$(space),$(space),$1)
 
 # helper macro for target makefiles to pass string define value to C-compiler
 # may be already defined by $(MTOP)/$(OS)/c.mk
-#STRING_DEFINE ?= "$(subst $(space),$$$$(space),$(subst ",\",$1))"
+STRING_DEFINE ?= "$(subst $(space),$$$$(space),$(subst ",\",$1))"
 
 # make absolute paths to include directories - we need absolute paths to headers in generated .d dependency file
 # note: do not touch $(SYSINCLUDE) - it may contain paths with spaces,
@@ -420,12 +420,12 @@ MAKE_C_EVAL = $(eval $(PREPARE_C_VARS)$(DEF_HEAD_CODE))
 
 # protect variables from modifications in target makefiles
 $(call CLEAN_BUILD_PROTECT_VARS,BLD_TARGETS LIB_VAR_SUFFIX \
-  DEFINCLUDE PREDEFINES OS_PREDEFINES APPDEFS OS_APPDEFS KRNDEFS OS_KRNDEFS PRODUCT_VER DEBUG_C_TARGETS \
-  OSVARIANT OSTYPE OSVAR OSVARS OBJ_RULE OBJ_RULES \
-  DLL_SUFFIX_GEN DLL_VAR_SUFFIX FORM_TRG SUBST_DEFINES STRING_DEFINE \
-  TRG_INCLUDE GET_SOURCES TRG_SRC TRG_SDEPS GET_OBJS DEP_LIB_SUFFIX DEP_IMP_SUFFIX \
-  MAKE_DEP_LIBS MAKE_DEP_IMPS DEP_LIBS DEP_IMPS \
-  TRG_RULES2 TRG_RULES1 TRG_RULES EXE_TEMPLATE LIB_TEMPLATE DLL_TEMPLATE KLIB_TEMPLATE \
+  DEFINCLUDE PREDEFINES OS_PREDEFINES APPDEFS OS_APPDEFS KRNDEFS OS_KRNDEFS PRODUCT_VER DEBUG_C_TARGETS VARIANTS_FILTER \
+  OSVARIANT OSTYPE OSVAR OSVARS OBJ_RULE OBJ_RULES DLL_SUFFIX_GEN DLL_VAR_SUFFIX FORM_TRG OS_FORM_TRG DLL_DIR IMP_DIR \
+  EXE_SUFFIX OBJ_SUFFIX LIB_PREFIX LIB_SUFFIX IMP_PREFIX IMP_SUFFIX DLL_PREFIX DLL_SUFFIX KLIB_PREFIX KLIB_SUFFIX DRV_PREFIX DRV_SUFFIX \
+  SUBST_DEFINES STRING_DEFINE TRG_INCLUDE GET_SOURCES TRG_SRC TRG_SDEPS GET_OBJS DEP_LIB_SUFFIX DEP_IMP_SUFFIX \
+  VARIANT_LIB_MAP VARIANT_IMP_MAP MAKE_DEP_LIBS MAKE_DEP_IMPS DEP_LIBS DEP_IMPS \
+  TRG_RULES2 TRG_RULES1 TRG_RULES EXE_TEMPLATE LIB_TEMPLATE DLL_TEMPLATE KLIB_TEMPLATE DRV_TEMPLATE \
   CC_COLOR CXX_COLOR AR_COLOR LD_COLOR XLD_COLOR ASM_COLOR \
   KCC_COLOR KLD_COLOR TCC_COLOR TCXX_COLOR TLD_COLOR TAR_COLOR CHECK_C_RULES PROJECT_USE_DIR \
   OS_DEFINE_TARGETS DEFINE_C_TARGETS_EVAL PREPARE_C_VARS RESET_OS_CVARS MAKE_C_EVAL)

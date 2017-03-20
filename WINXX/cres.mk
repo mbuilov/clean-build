@@ -143,8 +143,8 @@ endif # STD_VERSION_RC_TEMPLATE
 # $1 - EXE,DLL,DRV
 # $2 - $(GET_TARGET_NAME)
 # $3 - $(FORM_OBJ_DIR)
-# note: $$(TRG_RES) will be cleaned up together with $1_RES
 # note: don't use $(STD_TARGET_VARS) - inherit MF,MCONT,TMD from target EXE,DLL,DRV
+# note: $$(TRG_RES) file will be cleaned up together with $(RES)
 define STD_RES_TEMPLATE1
 TRG_RC := $(GEN_DIR)/stdres/$2_$1.rc
 $$(TRG_RC): | $(GEN_DIR)/stdres
@@ -175,16 +175,15 @@ $$(TRG_RES): $$(TRG_RC) $(WIN_RC_PRODUCT_DEFS_HEADER) | $3
 	$$(call RC,$$@,$$<)
 NEEDED_DIRS += $(GEN_DIR)/stdres $3
 $$(call TOCLEAN,$$(TRG_RC))
-$1_RES += $$(TRG_RES)
+RES += $$(TRG_RES)
 endef
 
-# $1 - EXE,DLL,DRV
-# $2 - $(call FORM_TRG,$1,$v)
-# note: after evaluating of STD_RES_TEMPLATE1, standard resource will be added to $1_RES, so postpone expansion of $$($1_RES) here
+# $1 - $(call FORM_TRG,$1,$v)
+# note: after evaluating of STD_RES_TEMPLATE1, standard resource will be appended to RES, so postpone expansion of $$(RES) here
 define ADD_RES_TEMPLATE
 $(empty)
-$2: $(RES) $$($1_RES)
-$2: RES := $(RES) $$($1_RES)
+$1: $$(RES)
+$1: RES := $$(RES)
 endef
 
 # $1 - EXE,DLL,DRV
@@ -193,7 +192,7 @@ endef
 # note: don't add standard resource to the tool or if adding such resource is explicitly disabled in makefile via NO_STD_RES variable
 define STD_RES_TEMPLATE
 $(if $(CB_TOOL_MODE),,$(if $(NO_STD_RES),,$(call STD_RES_TEMPLATE1,$1,$(GET_TARGET_NAME),$(FORM_OBJ_DIR))))
-$(foreach v,$(call GET_VARIANTS,$1),$(call ADD_RES_TEMPLATE,$1,$(call FORM_TRG,$1,$v)))
+$(foreach v,$(call GET_VARIANTS,$1),$(call ADD_RES_TEMPLATE,$(call FORM_TRG,$1,$v)))
 endef
 
 # protect variables from modifications in target makefiles

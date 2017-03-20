@@ -18,7 +18,7 @@ endif
 BLD_WIX_TARGETS := MSI INSTALLER
 
 # remove unneeded quotes, replace spaces with ?, add trailing slash
-WIXN := $(call unspaces,$(subst \\,\,$(subst /,\,$(patsubst "%,%,$(WIX:"=))\)))
+#WIXN := $(call unspaces,$(subst \\,\,$(subst /,\,$(patsubst "%,%,$(WIX:"=))\)))
 
 # add quotes, if needed
 ifndef WIX_CANDLE
@@ -34,13 +34,15 @@ WIX_EXTS_DIR := $(WIXN)bin
 endif
 
 # compile .wxs file
-# $1 - .wixobj, $2 - .wxs
+# $1 - .wixobj
+# $2 - .wxs
 # target-specific: WINCLUDE
 WIXOBJ_CL = $(call SUP,CANDLE,$2)$(WIX_CANDLE) -nologo$(if $(VERBOSE), -v) $(call \
   qpath,$(WEXTS),-ext ) $(call ospath,$2) $(call qpath,$(call ospath,$(WINCLUDE)),-I) -out $(ospath) >&2
 
 # build installer .msi file
-# $1 - target .msi, $2 - objects .wxsobj
+# $1 - target .msi
+# $2 - objects .wxsobj
 # target-specific: WEXTS
 MSI_LD = $(call SUP,LIGHT,$1)$(WIX_LIGHT) -nologo$(if $(VERBOSE), -v) $(call \
   qpath,$(WEXTS),-ext ) $(call ospath,$2) -out $(ospath) >&2
@@ -62,7 +64,10 @@ FORM_WIX_TRG = $(if \
 WIX_OBJS = $(addsuffix .wixobj,$(basename $(notdir $1)))
 
 # rule that defines how to build wix object from .wxs source
-# $1 - source to compile, $2 - sdeps, $3 - objdir, $4 - $(basename $(notdir $1))
+# $1 - source to compile
+# $2 - sdeps
+# $3 - objdir
+# $4 - $(basename $(notdir $1))
 define WIX_OBJ_RULE
 $(empty)
 $3/$4.wixobj: $1 $(call EXTRACT_SDEPS,$1,$2) | $3 $$(ORDER_DEPS)
@@ -70,7 +75,9 @@ $3/$4.wixobj: $1 $(call EXTRACT_SDEPS,$1,$2) | $3 $$(ORDER_DEPS)
 endef
 
 # rule that defines how to build wix objects from sources
-# $1 - .wxs sources to compile, $2 - sdeps, $3 - $(call FORM_OBJ_DIR,INSTALLER)
+# $1 - .wxs sources to compile
+# $2 - sdeps
+# $3 - $(call FORM_OBJ_DIR,INSTALLER)
 WIX_OBJ_RULES = $(foreach x,$1,$(call WIX_OBJ_RULE,$x,$2,$3,$(basename $(notdir $x))))
 
 # $1 - what to build: MSI, INSTALLER
@@ -108,10 +115,10 @@ endef
 # code to be called at beginning of target makefile
 define PREPARE_WIX_VARS
 $(foreach x,$(BLD_WIX_TARGETS),$(newline)$x:=)
-WXS      :=
-WEXTS    :=
-WDEPS    :=
-WINCLUDE :=
+WXS:=
+WEXTS:=
+WDEPS:=
+WINCLUDE:=
 DEFINE_TARGETS_EVAL_NAME := DEFINE_WIX_TARGETS_EVAL
 MAKE_CONTINUE_EVAL_NAME  := MAKE_WIX_EVAL
 endef

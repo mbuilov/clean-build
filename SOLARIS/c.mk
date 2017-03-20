@@ -6,17 +6,13 @@
 
 OSTYPE := UNIX
 
-# OS_FORM_TRG defined below will form target name for DRV
-# also, DRV_TEMPLATE below will define how to build DRV
-BLD_TARGETS += DRV
-
 # reset additional variables
 # $(INST_RPATH) - location where external dependency libraries are installed: /opt/lib or $ORIGIN/../lib
 # RPATH - runtime path of external dependencies
 # MAP   - linker map file (used mostly to list exported symbols)
 define RESET_OS_CVARS
 RPATH := $(INST_RPATH)
-MAP   :=
+MAP:=
 endef
 
 ifneq ($(filter default undefined,$(origin CC)),)
@@ -117,7 +113,13 @@ OSVARIANT:=
 endif
 
 # standard defines
-OS_PREDEFINES ?= $(OSVARIANT) SOLARIS UNIX
+ifeq (undefined,$(origin OS_PREDEFINES))
+ifeq (simple,$(flavor OSVARIANT))
+OS_PREDEFINES := $(OSVARIANT) SOLARIS UNIX
+else
+OS_PREDEFINES = $(OSVARIANT) SOLARIS UNIX
+endif
+endif
 
 # application-level and kernel-level defines
 # note: OS_APPDEFS and OS_KRNDEFS are may be defined as empty
@@ -163,7 +165,7 @@ endif
 
 # default shared libs for target executables and shared libraries
 ifeq (undefined,$(origin DEF_SHARED_LIBS))
-DEF_SHARED_LIBS :=
+DEF_SHARED_LIBS:=
 endif
 
 # default flags for EXE-target linker
@@ -189,12 +191,12 @@ endif
 
 # how to mark exported symbols from a DLL
 ifeq (undefined,$(origin DLL_EXPORTS_DEFINE))
-DLL_EXPORTS_DEFINE :=
+DLL_EXPORTS_DEFINE:=
 endif
 
 # how to mark imported symbols from a DLL
 ifeq (undefined,$(origin DLL_IMPORTS_DEFINE))
-DLL_IMPORTS_DEFINE :=
+DLL_IMPORTS_DEFINE:=
 endif
 
 # runtime-path option for EXE or DLL
@@ -212,7 +214,9 @@ DEF_CXX_LIBS := -lCstd -lCrun
 endif
 
 # common linker options for EXE or DLL
-# $1 - target, $2 - objects, $3 - variant
+# $1 - target
+# $2 - objects
+# $3 - variant
 # target-specific: LIBS, DLLS, LIB_DIR, SYSLIBPATH, SYSLIBS, COMPILER, LDFLAGS
 CMN_LIBS ?= -o $1 $2 $(DEF_SHARED_FLAGS) $(RPATH_OPTION) $(if $(strip \
   $(LIBS)$(DLLS)),-L$(LIB_DIR) $(addprefix -l,$(DLLS)) $(if $(LIBS),-Bstatic $(addprefix -l,$(addsuffix \
@@ -229,7 +233,8 @@ VERSION_SCRIPT_OPTION ?= $(addprefix -M,$(MAP))
 SONAME_OPTION ?= $(addprefix -h $(notdir $1).,$(firstword $(subst ., ,$(MODVER))))
 
 # different linkers
-# $1 - target, $2 - objects
+# $1 - target
+# $2 - objects
 # target-specific: TMD, COMPILER
 EXE_R_LD ?= $(call SUP,$(TMD)XLD,$1)$($(TMD)$(COMPILER)) $(DEF_EXE_FLAGS) $(call CMN_LIBS,$1,$2,R)
 DLL_R_LD ?= $(call SUP,$(TMD)LD,$1)$($(TMD)$(COMPILER)) $(DEF_SO_FLAGS) $(VERSION_SCRIPT_OPTION) $(SONAME_OPTION) $(call CMN_LIBS,$1,$2,D)
@@ -245,7 +250,10 @@ UDEPS_INCLUDE_FILTER := /usr/include/
 endif
 
 # $(SED) script to generate dependencies file from C compiler output
-# $2 - target object file, $3 - source, $4 - $(basename $2).d, $5 - prefixes of system includes to filter out
+# $2 - target object file
+# $3 - source
+# $4 - $(basename $2).d
+# $5 - prefixes of system includes to filter out
 
 # /^$(tab)*\//!{p;d;}           - print all lines not started with optional tabs and /, start new circle
 # s/^\$(tab)*//;                - strip-off leading tabs
@@ -257,7 +265,11 @@ SED_DEPS_SCRIPT ?= \
 -e 's/^\$(tab)*//;$(foreach x,$5,\@^$x.*@d;)s@.*@&:\$(newline)$2: &@;w $4'
 
 # WRAP_COMPILER - either just call compiler or call compiler and auto-generate dependencies
-# $1 - compiler with options, $2 - target, $3 - source, $4 - $(basename $2).d, $5 - prefixes of system includes
+# $1 - compiler with options
+# $2 - target
+# $3 - source
+# $4 - $(basename $2).d
+# $5 - prefixes of system includes
 ifdef NO_DEPS
 WRAP_COMPILER = $1
 else
@@ -288,12 +300,15 @@ DEF_CFLAGS := -xstrconst
 endif
 
 # common options for application-level C++ and C compilers
-# $1 - target, $2 - source
+# $1 - target
+# $2 - source
 # target-specific: DEFINES, INCLUDE
 CC_PARAMS ?= -c $(APP_FLAGS) $(call SUBST_DEFINES,$(addprefix -D,$(DEFINES))) $(addprefix -I,$(INCLUDE))
 
 # C++ and C compilers
-# $1 - target, $2 - source, $3 - aux flags
+# $1 - target
+# $2 - source
+# $3 - aux flags
 # target-specific: TMD, CXXFLAGS, CFLAGS
 CMN_CXX ?= $(call SUP,$(TMD)CXX,$2)$(call \
   WRAP_COMPILER,$($(TMD)CXX) $(CC_PARAMS) $(DEF_CXXFLAGS) $(CXXFLAGS) -o $1 $2 $3,$1,$2,$(basename $1).d,$(UDEPS_INCLUDE_FILTER))
@@ -301,7 +316,8 @@ CMN_CC  ?= $(call SUP,$(TMD)CC,$2)$(call \
   WRAP_COMPILER,$($(TMD)CC) $(CC_PARAMS) $(DEF_CFLAGS) $(CFLAGS) -o $1 $2 $3,$1,$2,$(basename $1).d,$(UDEPS_INCLUDE_FILTER))
 
 # different compilers
-# $1 - target, $2 - source
+# $1 - target
+# $2 - source
 EXE_R_CXX ?= $(CMN_CXX)
 EXE_R_CC  ?= $(CMN_CC)
 LIB_R_CXX ?= $(EXE_R_CXX)
@@ -326,22 +342,26 @@ endif
 endif
 
 # common options for kernel-level C compiler
-# $1 - target, $2 - source
+# $1 - target
+# $2 - source
 # target-specific: DEFINES, INCLUDE, CFLAGS
 KCC_PARAMS ?= -c $(KRN_FLAGS) $(call SUBST_DEFINES,$(addprefix -D,$(DEFINES))) $(addprefix -I,$(INCLUDE)) $(DEF_CFLAGS) $(CFLAGS)
 
 # kernel-level C compilers
-# $1 - target, $2 - source
+# $1 - targets
+# $2 - source
 KLIB_R_CC ?= $(call SUP,KCC,$2)$(call WRAP_COMPILER,$(KCC) $(KCC_PARAMS) -o $1 $2,$1,$2,$(basename $1).d,$(KDEPS_INCLUDE_FILTER))
 DRV_R_CC  ?= $(KLIB_R_CC)
 
 # kernel-level assembler
-# $1 - target, $2 - source
+# $1 - target
+# $2 - source
 # target-specific: ASMFLAGS
 KLIB_R_ASM ?= $(call SUP,ASM,$2)$(YASMC) -o $1 $2 $(ASMFLAGS)
 DRV_R_ASM  ?= $(KLIB_R_ASM)
 
-# $1 - target, $2 - source
+# $1 - target
+# $2 - source
 BISON ?= $(call SUP,BISON,$2)$(BISONC) -o $1 -d --fixed-output-files $(abspath $2)
 FLEX  ?= $(call SUP,FLEX,$2)$(FLEXC) -o$1 $2
 
@@ -374,17 +394,13 @@ $(if $(EXE),$(EXE_AUX_TEMPLATE))
 $(if $(DLL),$(DLL_AUX_TEMPLATE))
 endef
 
-# DRV was added to $(BLD_TARGETS), so must define how to make DRV target name
-# $1 - target to build, should be DRV
-OS_FORM_TRG ?= $(if $(filter DRV,$1),$(addprefix $(BIN_DIR)/$(DRV_PREFIX),$(addsuffix $(DLL_VAR_SUFFIX)$(DRV_SUFFIX),$(GET_TARGET_NAME))))
-
 # how to build driver, used by $(TRG_RULES)
 # $1 - target file: $(call FORM_TRG,DRV,$v)
 # $2 - sources:     $(TRG_SRC)
 # $3 - sdeps:       $(TRG_SDEPS)
 # $4 - objdir:      $(call FORM_OBJ_DIR,DRV,$v)
 # $5 - objects:     $(addprefix $4/,$(call GET_OBJS,$2))
-# $v - R,S
+# $v - R
 define DRV_TEMPLATE
 $(STD_TARGET_VARS)
 NEEDED_DIRS += $4
@@ -403,21 +419,17 @@ $1: LDFLAGS    := $(LDFLAGS)
 $1: SYSLIBS    := $(SYSLIBS)
 $1: SYSLIBPATH := $(SYSLIBPATH)
 $1: $(addprefix $(LIB_DIR)/$(KLIB_PREFIX),$(KLIBS:=$(KLIB_SUFFIX))) $5
-	$$(call DRV_R_LD,$$@,$$(filter %$(OBJ_SUFFIX),$$^))
+	$$(call DRV_$v_LD,$$@,$$(filter %$(OBJ_SUFFIX),$$^))
 $(call TOCLEAN,$5)
 endef
 
 # protect variables from modifications in target makefiles
 $(call CLEAN_BUILD_PROTECT_VARS,CC CXX AR TCC TCXX TAR KCC KLD YASM FLEXC BISONC \
-  EXE_SUFFIX OBJ_SUFFIX LIB_PREFIX LIB_SUFFIX IMP_PREFIX IMP_SUFFIX \
-  DLL_PREFIX DLL_SUFFIX KLIB_NAME_PREFIX KLIB_PREFIX KLIB_SUFFIX DRV_PREFIX DRV_SUFFIX \
-  DLL_DIR IMP_DIR VARIANTS_FILTER \
-  VARIANT_LIB_MAP VARIANT_IMP_MAP DEF_SHARED_FLAGS DEF_EXE_FLAGS DEF_SO_FLAGS DEF_KLD_FLAGS DEF_AR_FLAGS \
+  KLIB_NAME_PREFIX DEF_SHARED_FLAGS DEF_EXE_FLAGS DEF_SO_FLAGS DEF_KLD_FLAGS DEF_AR_FLAGS \
   DLL_EXPORTS_DEFINE DLL_IMPORTS_DEFINE \
   RPATH_OPTION DEF_C_LIBS DEF_CXX_LIBS CMN_LIBS VERSION_SCRIPT_OPTION SONAME_OPTION1 SONAME_OPTION \
   EXE_R_LD DLL_R_LD LIB_R_LD LIB_D_LD KLIB_R_LD DRV_R_LD \
   UDEPS_INCLUDE_FILTER SED_DEPS_SCRIPT WRAP_COMPILER APP_FLAGS DEF_CXXFLAGS DEF_CFLAGS CC_PARAMS CMN_CXX CMN_CC \
   EXE_R_CXX EXE_R_CC LIB_R_CXX LIB_R_CC DLL_R_CXX DLL_R_CC LIB_D_CXX LIB_D_CC KDEPS_INCLUDE_FILTER KRN_FLAGS \
   KCC_PARAMS KLIB_R_CC DRV_R_CC KLIB_R_ASM DRV_R_ASM BISON FLEX \
-  EXE_AUX_TEMPLATE1 EXE_AUX_TEMPLATE2 EXE_AUX_TEMPLATE DLL_AUX_TEMPLATE1 DLL_AUX_TEMPLATE2 DLL_AUX_TEMPLATE \
-  DRV_TEMPLATE)
+  EXE_AUX_TEMPLATE1 EXE_AUX_TEMPLATE2 EXE_AUX_TEMPLATE DLL_AUX_TEMPLATE1 DLL_AUX_TEMPLATE2 DLL_AUX_TEMPLATE)

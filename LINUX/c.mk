@@ -12,7 +12,7 @@ OSTYPE := UNIX
 # MAP   - linker map file (used mostly to list exported symbols)
 define RESET_OS_CVARS
 RPATH := $(INST_RPATH)
-MAP   :=
+MAP:=
 endef
 
 ifneq ($(filter default undefined,$(origin CC)),)
@@ -80,7 +80,7 @@ endif
 # note: if OBJ_SUFFIX is defined, then all prefixes/suffixes must be also defined
 ifndef OBJ_SUFFIX
 # exe file suffix
-EXE_SUFFIX :=
+EXE_SUFFIX:=
 # object file suffix
 OBJ_SUFFIX := .o
 # static library (archive) prefix/suffix
@@ -93,10 +93,10 @@ DLL_SUFFIX := .so
 IMP_PREFIX := $(DLL_PREFIX)
 IMP_SUFFIX := $(DLL_SUFFIX)
 # kernel-mode static library prefix/suffix
-KLIB_PREFIX :=
+KLIB_PREFIX:=
 KLIB_SUFFIX := .o
 # kernel module (driver) prefix/suffix
-DRV_PREFIX :=
+DRV_PREFIX:=
 DRV_SUFFIX := .ko
 endif
 
@@ -112,7 +112,13 @@ OSVARIANT:=
 endif
 
 # standard defines
-OS_PREDEFINES ?= $(OSVARIANT) LINUX UNIX
+ifeq (undefined,$(origin OS_PREDEFINES))
+ifeq (simple,$(flavor OSVARIANT))
+OS_PREDEFINES := $(OSVARIANT) LINUX UNIX
+else
+OS_PREDEFINES = $(OSVARIANT) LINUX UNIX
+endif
+endif
 
 # application-level and kernel-level defines
 # note: OS_APPDEFS and OS_KRNDEFS are may be defined as empty
@@ -174,7 +180,7 @@ endif
 
 # default shared libs for target executables and shared libraries
 ifeq (undefined,$(origin DEF_SHARED_LIBS))
-DEF_SHARED_LIBS :=
+DEF_SHARED_LIBS:=
 endif
 
 # default flags for EXE-target linker
@@ -209,7 +215,7 @@ endif
 
 # how to mark imported symbols from a DLL
 ifeq (undefined,$(origin DLL_IMPORTS_DEFINE))
-DLL_IMPORTS_DEFINE :=
+DLL_IMPORTS_DEFINE:=
 endif
 
 # runtime-path option for EXE or DLL
@@ -221,7 +227,9 @@ RPATH_OPTION ?= $(addprefix $(WLPREFIX)-rpath=,$(strip $(RPATH)))
 RPATH_LINK_OPTION ?= $(addprefix $(WLPREFIX)-rpath-link=,$(RPATH_LINK))
 
 # common linker options for EXE or DLL
-# $1 - target, $2 - objects, $3 - variant
+# $1 - target
+# $2 - objects
+# $3 - variant
 # target-specific: LIBS, DLLS, LIB_DIR, SYSLIBPATH, SYSLIBS, LDFLAGS
 CMN_LIBS ?= -pipe -o $1 $2 $(DEF_SHARED_FLAGS) $(RPATH_OPTION) $(RPATH_LINK_OPTION) $(if $(strip \
   $(LIBS)$(DLLS)),-L$(LIB_DIR) $(addprefix -l,$(DLLS)) $(if $(LIBS),$(WLPREFIX)-Bstatic $(addprefix -l,$(addsuffix \
@@ -237,7 +245,8 @@ VERSION_SCRIPT_OPTION ?= $(addprefix $(WLPREFIX)--version-script=,$(MAP))
 SONAME_OPTION ?= $(addprefix $(WLPREFIX)-soname=$(notdir $1).,$(firstword $(subst ., ,$(MODVER))))
 
 # different linkers
-# $1 - target, $2 - objects
+# $1 - target
+# $2 - objects
 # target-specific: TMD, COMPILER
 EXE_R_LD ?= $(call SUP,$(TMD)XLD,$1)$($(TMD)$(COMPILER)) $(DEF_EXE_FLAGS) $(call CMN_LIBS,$1,$2,R)
 EXE_P_LD ?= $(call SUP,$(TMD)XLD,$1)$($(TMD)$(COMPILER)) $(DEF_EXE_FLAGS) $(call CMN_LIBS,$1,$2,P) -pie
@@ -272,12 +281,14 @@ DEF_CFLAGS := -std=c99 -pedantic
 endif
 
 # common options for application-level C++ and C compilers
-# $1 - target, $2 - source
+# $1 - target
+# $2 - source
 # target-specific: DEFINES, INCLUDE
 CC_PARAMS ?= -pipe -c $(APP_FLAGS) $(AUTO_DEPS_FLAGS) $(call SUBST_DEFINES,$(addprefix -D,$(DEFINES))) $(addprefix -I,$(INCLUDE))
 
 # C++ and C compilers
-# $1 - target, $2 - source
+# $1 - target
+# $2 - source
 # target-specific: WITH_PCH, TMD, PCHS, CXXFLAGS, CFLAG
 CMN_CXX ?= $(if $(filter $2,$(WITH_PCH)),$(call SUP,P$(TMD)CXX,$2)$($(TMD)CXX) -I$(dir $1) -include $(basename \
   $(notdir $(PCH)))_pch_cxx.h,$(call SUP,$(TMD)CXX,$2)$($(TMD)CXX)) $(CC_PARAMS) $(DEF_CXXFLAGS) $(CXXFLAGS)
@@ -285,17 +296,23 @@ CMN_CC  ?= $(if $(filter $2,$(WITH_PCH)),$(call SUP,P$(TMD)CC,$2)$($(TMD)CC) -I$
   $(notdir $(PCH)))_pch_c.h,$(call SUP,$(TMD)CC,$2)$($(TMD)CC)) $(CC_PARAMS) $(DEF_CFLAGS) $(CFLAGS)
 
 # C++ and C precompiled header compilers
-# $1 - target, $2 - source
+# $1 - target
+# $2 - source
 # target-specific: CXXFLAGS, CFLAGS
 PCH_CXX ?= $(call SUP,$(TMD)PCHCXX,$2)$($(TMD)CXX) $(CC_PARAMS) $(DEF_CXXFLAGS) $(CXXFLAGS)
 PCH_CC  ?= $(call SUP,$(TMD)PCHCC,$2)$($(TMD)CC) $(CC_PARAMS) $(DEF_CFLAGS) $(CFLAGS)
 
 # position-independent code for executables/shared objects (synamic libraries)
-PIE_OPTION ?= -fpie
-PIC_OPTION ?= -fpic
+ifeq (undefined,$(origin PIE_OPTION))
+PIE_OPTION := -fpie
+endif
+ifeq (undefined,$(origin PIC_OPTION))
+PIC_OPTION := -fpic
+endif
 
 # different compilers
-# $1 - target, $2 - source
+# $1 - target
+# $2 - source
 EXE_R_CXX ?= $(CMN_CXX) -o $1 $2
 EXE_R_CC  ?= $(CMN_CC) -o $1 $2
 EXE_P_CXX ?= $(EXE_R_CXX) $(PIE_OPTION)
@@ -310,7 +327,8 @@ LIB_D_CXX ?= $(DLL_R_CXX)
 LIB_D_CC  ?= $(DLL_R_CC)
 
 # different precompiler header compilers
-# $1 - target, $2 - source
+# $1 - target
+# $2 - source
 PCH_EXE_R_CXX ?= $(PCH_CXX) -o $1 $2
 PCH_EXE_R_CC  ?= $(PCH_CC) -o $1 $2
 PCH_EXE_P_CXX ?= $(PCH_EXE_R_CXX) $(PIE_OPTION)
@@ -330,21 +348,25 @@ KLIB_PARAMS ?= -pipe -c $(KRN_FLAGS) $(AUTO_DEPS_FLAGS) $(call \
   SUBST_DEFINES,$(addprefix -D,$(DEFINES))) $(addprefix -I,$(INCLUDE)) $(CFLAGS)
 
 # kernel-level C compiler
-# $1 - target, $2 - source
+# $1 - target
+# $2 - source
 # target-specific: WITH_PCH, PCH
 KLIB_R_CC ?= $(if $(filter $2,$(WITH_PCH)),$(call SUP,PKCC,$2)$(KCC) -I$(dir $1) -include $(basename \
   $(notdir $(PCH)))_pch_c.h,$(call SUP,KCC,$2)$(KCC)) $(KLIB_PARAMS) -o $1 $2
 
 # kernel-level precompiled header C compiler
-# $1 - target, $2 - source
+# $1 - target
+# $2 - source
 PCH_KLIB_R_CC ?= $(call SUP,PCHKLIB,$2)$(KCC) $(KLIB_PARAMS) -o $1 $2
 
 # kernel-level assembler
-# $1 - target, $2 - source
+# $1 - target
+# $2 - source
 # target-specific: ASMFLAGS
 KLIB_R_ASM ?= $(call SUP,ASM,$2)$(YASMC) -o $1 $2 $(ASMFLAGS)
 
-# $1 - target, $2 - source
+# $1 - target
+# $2 - source
 BISON ?= $(call SUP,BISON,$2)$(BISONC) -o $1 -d --fixed-output-files $(abspath $2)
 FLEX  ?= $(call SUP,FLEX,$2)$(FLEXC) -o$1 $2
 
@@ -352,34 +374,34 @@ ifndef NO_PCH
 
 # NOTE: $(PCH) - makefile-related path to header to precompile
 
-# $1 - EXE,LIB,DLL,KLIB
-# $2 - $(call FORM_OBJ_DIR,$1,$v)
-# $3 - $(call FORM_TRG,$1,$v)
+# $1 - $(call FORM_OBJ_DIR,$t,$v)
+# $2 - $(call FORM_TRG,$1,$v)
+# $t - EXE,LIB,DLL,KLIB
 # $v - R,P,
 # note: $(NO_DEPS) - may be recursive and so have different values, for example depending on value of $(CURRENT_MAKEFILE)
 define PCH_TEMPLATE1
-TRG_PCH := $(call FIXPATH,$(firstword $($1_PCH) $(PCH)))
-TRG_WITH_PCH := $(call FIXPATH,$(WITH_PCH) $($1_WITH_PCH))
-$3: PCH := $$(TRG_PCH)
-$3: WITH_PCH := $$(TRG_WITH_PCH)
+TRG_PCH := $(call FIXPATH,$(PCH))
+TRG_WITH_PCH := $(call FIXPATH,$(WITH_PCH))
+$2: PCH := $$(TRG_PCH)
+$2: WITH_PCH := $$(TRG_WITH_PCH)
 ifneq ($$(filter %.c,$$(TRG_WITH_PCH)),)
-C_GCH := $2/$$(basename $$(notdir $$(TRG_PCH)))_pch_c.h
-$$(C_GCH).gch: $$(TRG_PCH) | $2 $$(ORDER_DEPS)
-	$$(call PCH_$1_$v_CC,$$@,$$(PCH))
+C_GCH := $1/$$(basename $$(notdir $$(TRG_PCH)))_pch_c.h
+$$(C_GCH).gch: $$(TRG_PCH) | $1 $$(ORDER_DEPS)
+	$$(call PCH_$t_$v_CC,$$@,$$(PCH))
 ifeq ($(NO_DEPS),)
 -include $$(C_GCH).d)
 endif
-$$(addprefix $2/,$$(addsuffix $(OBJ_SUFFIX),$$(basename $$(notdir $$(filter %.c,$$(TRG_WITH_PCH)))))): $$(C_GCH).gch
+$$(addprefix $1/,$$(addsuffix $(OBJ_SUFFIX),$$(basename $$(notdir $$(filter %.c,$$(TRG_WITH_PCH)))))): $$(C_GCH).gch
 $$(call TOCLEAN,$$(C_GCH).gch $$(C_GCH).d)
 endif
 ifneq ($$(filter %.cpp,$$(TRG_WITH_PCH)),)
-CXX_GCH := $2/$$(basename $$(notdir $$(TRG_PCH)))_pch_cxx.h
-$$(CXX_GCH).gch: $$(TRG_PCH) | $2 $$(ORDER_DEPS)
-	$$(call PCH_$1_$v_CXX,$$@,$$(PCH))
+CXX_GCH := $1/$$(basename $$(notdir $$(TRG_PCH)))_pch_cxx.h
+$$(CXX_GCH).gch: $$(TRG_PCH) | $1 $$(ORDER_DEPS)
+	$$(call PCH_$t_$v_CXX,$$@,$$(PCH))
 ifeq ($(NO_DEPS),)
 -include $$(CXX_GCH).d
 endif
-$$(addprefix $2/,$$(addsuffix $(OBJ_SUFFIX),$$(basename $$(notdir $$(filter %.cpp,$$(TRG_WITH_PCH)))))): $$(CXX_GCH).gch
+$$(addprefix $1/,$$(addsuffix $(OBJ_SUFFIX),$$(basename $$(notdir $$(filter %.cpp,$$(TRG_WITH_PCH)))))): $$(CXX_GCH).gch
 $$(call TOCLEAN,$$(CXX_GCH).gch $$(CXX_GCH).d)
 ndif
 endef # PCH_TEMPLATE1
@@ -387,111 +409,116 @@ endef # PCH_TEMPLATE1
 # $t - EXE,LIB,DLL,KLIB
 # note: must reset target-specific WITH_PCH if not using precompiled header,
 # otherwise DLL or LIB target may inherit WITH_PCH value from EXE, LIB target may inherit WITH_PCH value from DLL
-PCH_TEMPLATE2 = $(if $(word 2,$(firstword $($t_PCH)$(PCH)) $(firstword $($t_WITH_PCH)$(WITH_PCH))),$(foreach \
-  v,$(call GET_VARIANTS,$t),$(newline)$(call PCH_TEMPLATE1,$t,$(call FORM_OBJ_DIR,$t,$v),$(call \
+PCH_TEMPLATE2 = $(if $(word 2,$(PCH) $(firstword $(WITH_PCH))),$(foreach \
+  v,$(call GET_VARIANTS,$t),$(newline)$(call PCH_TEMPLATE1,$(call FORM_OBJ_DIR,$t,$v),$(call \
   FORM_TRG,$t,$v))),$(foreach v,$(call GET_VARIANTS,$t),$(call FORM_TRG,$t,$v): WITH_PCH:=$(newline)))
 
 # code to eval to build with precompiled headers
 PCH_TEMPLATES = $(foreach t,EXE LIB DLL KLIB,$(if $($t),$(PCH_TEMPLATE2)))
 
 # set dependencies of objects compiled with pch header on .gch
-# $1 - EXE,LIB,DLL,...
-# $2 - $(filter %.c,$src)
-# $3 - $(filter %.cpp,$src)
-# $4 - pch header name
-# $5 - objdir: $(call FORM_OBJ_DIR,$1,$v)
+# $1 - $(filter %.c,$src)
+# $2 - $(filter %.cpp,$src)
+# $3 - pch header name
+# $4 - objdir
 define ADD_WITH_PCH2
 $(empty)
-$(if $2,$(addprefix $5/,$(addsuffix $(OBJ_SUFFIX),$(basename $(notdir $2)))): $5/$4_pch_c.h.gch)
-$(if $3,$(addprefix $5/,$(addsuffix $(OBJ_SUFFIX),$(basename $(notdir $3)))): $5/$4_pch_cxx.h.gch)
+$(if $1,$(addprefix $4/,$(addsuffix $(OBJ_SUFFIX),$(basename $(notdir $1)))): $4/$3_pch_c.h.gch)
+$(if $2,$(addprefix $4/,$(addsuffix $(OBJ_SUFFIX),$(basename $(notdir $2)))): $4/$3_pch_cxx.h.gch)
 endef
 
 # function to add (generated?) sources to $({EXE,LIB,DLL,...}_WITH_PCH) list - to compile sources with pch header
-# $1 - EXE,LIB,DLL,... $2 - sources
-ADD_WITH_PCH1 = $(foreach v,$(call GET_VARIANTS,$1),$(call ADD_WITH_PCH2,$1,$2,$3,$4,$(call FORM_OBJ_DIR,$1,$v)))
-ADD_WITH_PCH = $(eval $1_WITH_PCH += $2$(call \
-  ADD_WITH_PCH1,$1,$(filter %.c,$2),$(filter %.cpp,$2),$(basename $(notdir $(firstword $($1_PCH) $(PCH))))))
+# $1 - EXE,LIB,DLL,...
+# $2 - sources
+ADD_WITH_PCH1 = $(foreach v,$(GET_VARIANTS),$(call ADD_WITH_PCH2,$2,$3,$4,$(call FORM_OBJ_DIR,$1,$v)))
+ADD_WITH_PCH = $(eval WITH_PCH += $2$(call \
+  ADD_WITH_PCH1,$1,$(filter %.c,$2),$(filter %.cpp,$2),$(basename $(notdir $(PCH)))))
 
 endif # NO_PCH
 
 # auxiliary defines for EXE
 # $1 - $(call FORM_TRG,EXE,$v)
-# $2 - $(call FIXPATH,$(firstword $(EXE_MAP) $(MAP)))
+# $2 - $(call FIXPATH,$(MAP))
 define EXE_AUX_TEMPLATE1
-$1: RPATH := $(subst $$,$$$$,$(RPATH) $(EXE_RPATH))
+$1: RPATH := $(subst $$,$$$$,$(RPATH))
 $1: MAP := $2
 $1: $2
 endef
 EXE_AUX_TEMPLATE2 = $(foreach v,$(call GET_VARIANTS,EXE),$(call EXE_AUX_TEMPLATE1,$(call FORM_TRG,EXE,$v),$2))
-EXE_AUX_TEMPLATE = $(call EXE_AUX_TEMPLATE2,$(call FIXPATH,$(firstword $(EXE_MAP) $(MAP))))
+EXE_AUX_TEMPLATE = $(call EXE_AUX_TEMPLATE2,$(call FIXPATH,$(MAP)))
 
 # auxiliary defines for DLL
 # $1 - $(call FORM_TRG,DLL,$v)
-# $2 - $(call FIXPATH,$(firstword $(DLL_MAP) $(MAP)))
+# $2 - $(call FIXPATH,$(MAP))
 define DLL_AUX_TEMPLATE1
 $1: MODVER := $(MODVER)
-$1: RPATH := $(subst $$,$$$$,$(RPATH) $(DLL_RPATH))
+$1: RPATH := $(subst $$,$$$$,$(RPATH))
 $1: MAP := $2
 $1: $2
 endef
 DLL_AUX_TEMPLATE2 = $(foreach v,$(call GET_VARIANTS,DLL),$(call DLL_AUX_TEMPLATE1,$(call FORM_TRG,DLL,$v),$2))
-DLL_AUX_TEMPLATE = $(call DLL_AUX_TEMPLATE2,$(call FIXPATH,$(firstword $(DLL_MAP) $(MAP))))
-
-# $1 - dest dir, $2 - file, $3 - aux dep
-define COPY_FILE_RULE
-$(empty)
-$1/$(notdir $2): $2 $3 | $1
-	$$(call SUP,CP,$$@)cp -f$(if $(VERBOSE),v) $$< $$@
-endef
-
-# $1 - target file: $(call FORM_TRG,DRV)
-# $2 - sources:     $(call TRG_SRC,DRV)
-# $3 - sdeps:       $(call TRG_SDEPS,DRV)
-# $4 - gendir:      $(GEN_DIR)/$(DRV)_DRV
-# $5 - klibs:       $(addprefix $(KLIB_PREFIX),$(addsuffix $(KLIB_SUFFIX),$(KLIBS)))
-define DRV_TEMPLATE
-$(STD_TARGET_VARS)
-NEEDED_DIRS += $4
-# copy sources
-$(foreach x,$2,$(call COPY_FILE_RULE,$4,$x,$(call EXTRACT_SDEPS,$x,$3)))
-# copy klibs
-$(foreach x,$5,$(call COPY_FILE_RULE,$4,$(LIB_DIR)/$x))
-# generate Makefile for kbuild
-$4/Makefile: | $4
-	$$(call SUP,GEN,$$@)echo "obj-m += $(DRV_PREFIX)$(DRV).o" > $$@ && \
-  echo "$(DRV_PREFIX)$(DRV)-objs := $(notdir $(2:.c=.o)) $5" >> $$@ && \
-  echo "EXTRA_CFLAGS += $(addprefix -D,$(EXTRA_DRV_DEFINES)) $(addprefix -I,$(call TRG_INCLUDE,DRV))" >> $$@
-# call kbuild
-$4/$(DRV_PREFIX)$(DRV)$(DRV_SUFFIX): $(addprefix $4/,$(notdir $2) $5) | $4/Makefile $$(ORDER_DEPS)
-	+$$(call SUP,KBUILD,$$@)$(KMAKE) V=$(if $(VERBOSE),1,0) CC="$(KCC)" LD="$(KLD)" AR="$(AR)" $(addprefix \
-  KBUILD_EXTRA_SYMBOLS=,$(KBUILD_EXTRA_SYMBOLS)) -C $(MODULES_PATH) M=$$(patsubst %/,%,$$(dir $$@)) $(addprefix ARCH=,$(ARCH))
-$1: $4/$(DRV_PREFIX)$(DRV)$(DRV_SUFFIX) | $(BIN_DIR)
-	$$(call SUP,CP,$$@)cp -f$(if $(VERBOSE),v) $$< $$@
-$(call TOCLEAN,$4)
-endef
-
-# how to build kernel module
-DRV_RULES = $(if $(DRV),$(call DRV_TEMPLATE,$(call FORM_TRG,DRV),$(call TRG_SRC,DRV),$(call \
-  TRG_SDEPS,DRV),$(GEN_DIR)/$(DRV)_DRV,$(addprefix $(KLIB_PREFIX),$(addsuffix $(KLIB_SUFFIX),$(KLIBS)))))
+DLL_AUX_TEMPLATE = $(call DLL_AUX_TEMPLATE2,$(call FIXPATH,$(MAP)))
 
 # this code is evaluated from $(DEFINE_TARGETS)
 define OS_DEFINE_TARGETS
 $(PCH_TEMPLATES)
 $(if $(EXE),$(EXE_AUX_TEMPLATE))
 $(if $(DLL),$(DLL_AUX_TEMPLATE))
-$(DRV_RULES)
+endef
+
+# $1 - destination directory
+# $2 - file
+# $3 - aux dep
+define COPY_FILE_RULE
+$(empty)
+$1/$(notdir $2): $2 $3 | $1
+	$$(call SUP,CP,$$@)cp -f$(if $(VERBOSE),v) $$< $$@
+endef
+
+# $1 - target file: $(call FORM_TRG,DRV,$v)
+# $2 - sources:     $(TRG_SRC)
+# $3 - sdeps:       $(TRG_SDEPS)
+# $4 - objdir:      $(call FORM_OBJ_DIR,DRV,$v)
+# $5 - klibs:       $(addprefix $(KLIB_PREFIX),$(KLIBS:=$(KLIB_SUFFIX)))
+# 1) copy sources
+# 2) copy klibs
+# 3) generate Makefile for kbuild
+# 4) call kbuild
+define DRV_TEMPLATE1
+$(foreach x,$2,$(call COPY_FILE_RULE,$4,$x,$(call EXTRACT_SDEPS,$x,$3)))
+$(foreach x,$5,$(call COPY_FILE_RULE,$4,$(LIB_DIR)/$x))
+$4/Makefile: | $4
+	$$(call SUP,GEN,$$@)echo "obj-m += $(DRV_PREFIX)$(DRV).o" > $$@
+	$(if $(VERBOSE),,@)echo "$(DRV_PREFIX)$(DRV)-objs := $(notdir $(2:.c=.o)) $5" >> $$@
+	$(if $(VERBOSE),,@)echo "EXTRA_CFLAGS += $(addprefix -D,$(EXTRA_DRV_DEFINES)) $(addprefix -I,$(TRG_INCLUDE))" >> $$@
+$4/$(DRV_PREFIX)$(DRV)$(DRV_SUFFIX): $(addprefix $4/,$(notdir $2) $5) | $4/Makefile $$(ORDER_DEPS)
+	+$$(call SUP,KBUILD,$$@)$(KMAKE) V=$(if $(VERBOSE),1,0) CC="$(KCC)" LD="$(KLD)" AR="$(AR)" $(addprefix \
+  KBUILD_EXTRA_SYMBOLS=,$(KBUILD_EXTRA_SYMBOLS)) -C $(MODULES_PATH) M=$$(patsubst %/,%,$$(dir $$@)) $(addprefix ARCH=,$(ARCH))
+$1: $4/$(DRV_PREFIX)$(DRV)$(DRV_SUFFIX)
+	$$(call SUP,CP,$$@)cp -f$(if $(VERBOSE),v) $$< $$@
+endef
+
+# how to build driver, used by $(TRG_RULES)
+# $1 - target file: $(call FORM_TRG,DRV,$v)
+# $2 - sources:     $(TRG_SRC)
+# $3 - sdeps:       $(TRG_SDEPS)
+# $4 - objdir:      $(call FORM_OBJ_DIR,DRV,$v)
+# $5 - objects:     $(addprefix $4/,$(call GET_OBJS,$2))
+# $v - R
+define DRV_TEMPLATE
+$(STD_TARGET_VARS)
+NEEDED_DIRS += $4
+$(call DRV_TEMPLATE1,$1,$2,$3,$4,$(addprefix $(KLIB_PREFIX),$(KLIBS:=$(KLIB_SUFFIX))))
+$(call TOCLEAN,$4)
 endef
 
 # protect variables from modifications in target makefiles
 $(call CLEAN_BUILD_PROTECT_VARS,CC CXX MODULES_PATH LD AR TCC TCXX TLD TAR KCC KLD KMAKE YASMC FLEXC BISONC \
-  EXE_SUFFIX OBJ_SUFFIX LIB_PREFIX LIB_SUFFIX IMP_PREFIX IMP_SUFFIX DLL_PREFIX DLL_SUFFIX KLIB_PREFIX KLIB_SUFFIX DRV_PREFIX DRV_SUFFIX \
-  DLL_DIR IMP_DIR OS_PREDEFINES OS_APPDEFS OS_KRNDEFS WLPREFIX VARIANTS_FILTER VARIANT_LIB_MAP VARIANT_IMP_MAP DEF_SHARED_FLAGS \
-  DEF_EXE_FLAGS DEF_SO_FLAGS DEF_LD_FLAGS DEF_KLD_FLAGS DEF_AR_FLAGS DLL_EXPORTS_DEFINE DLL_IMPORTS_DEFINE \
+  WLPREFIX DEF_SHARED_FLAGS DEF_EXE_FLAGS DEF_SO_FLAGS DEF_LD_FLAGS DEF_KLD_FLAGS DEF_AR_FLAGS DLL_EXPORTS_DEFINE DLL_IMPORTS_DEFINE \
   RPATH_OPTION RPATH_LINK_OPTION CMN_LIBS VERSION_SCRIPT_OPTION SONAME_OPTION1 SONAME_OPTION \
   EXE_R_LD EXE_P_LD DLL_R_LD LIB_R_LD LIB_P_LD LIB_D_LD KLIB_LD AUTO_DEPS_FLAGS APP_FLAGS KRN_FLAGS DEF_CXXFLAGS DEF_CFLAGS CC_PARAMS \
   CMN_CXX CMN_CC PCH_CXX PCH_CC EXE_R_CXX EXE_R_CC EXE_P_CXX EXE_P_CC LIB_R_CXX LIB_R_CC LIB_P_CXX LIB_P_CC DLL_R_CXX DLL_R_CC \
   LIB_D_CXX LIB_D_CC PCH_EXE_R_CXX PCH_EXE_R_CC PCH_EXE_P_CXX PCH_EXE_P_CC PCH_LIB_R_CXX PCH_LIB_R_CC PCH_LIB_P_CXX PCH_LIB_P_CC \
   PCH_DLL_R_CXX PCH_DLL_R_CC PCH_LIB_D_CXX PCH_LIB_D_CC KLIB_PARAMS KLIB_R_CC PCH_KLIB_R_CC KLIB_R_ASM BISON FLEX \
   PCH_TEMPLATE1 PCH_TEMPLATE2 PCH_TEMPLATES ADD_WITH_PCH2 ADD_WITH_PCH1 ADD_WITH_PCH \
-  EXE_AUX_TEMPLATE1 EXE_AUX_TEMPLATE2 EXE_AUX_TEMPLATE DLL_AUX_TEMPLATE1 DLL_AUX_TEMPLATE2 DLL_AUX_TEMPLATE \
-  COPY_FILE_RULE DRV_TEMPLATE DRV_RULES)
+  EXE_AUX_TEMPLATE1 EXE_AUX_TEMPLATE2 EXE_AUX_TEMPLATE DLL_AUX_TEMPLATE1 DLL_AUX_TEMPLATE2 DLL_AUX_TEMPLATE COPY_FILE_RULE DRV_TEMPLATE1)
