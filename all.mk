@@ -38,9 +38,6 @@ all: $(PROCESSED_MAKEFILES)
 clean:
 	$(call RM,$(CLEAN))$(eval CLEAN_CODE := $(CLEAN_COMMANDS))$(CLEAN_CODE)
 
-# empty rule: don't complain if order deps are not resolved when build started in sub-directory
-$(ORDER_DEPS):
-
 # build all to build or run tests
 check tests: all
 

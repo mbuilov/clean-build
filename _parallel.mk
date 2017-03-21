@@ -13,10 +13,24 @@ endif
 NORM_MAKEFILES = $(patsubst $(TOP)/%,%$2,$(abspath $(foreach \
   x,$1,$(if $(call isrelpath,$x),$(VPREFIX))$x$(if $(filter-out %.mk %/Makefile Makefile,$x),/Makefile))))
 
-# overwrite code for adding $(MDEPS) - list of makefiles that need to be built before target makefile - to $(ORDER_DEPS)
-FIX_ORDER_DEPS := ORDER_DEPS := $$(strip $$(ORDER_DEPS) $$(call NORM_MAKEFILES,$$(MDEPS),-))$(newline)MDEPS:=
+# add empty rules for $(MDEPS): don't complain if order deps are not resolved when build started in sub-directory
+# note: $(ORDER_DEPS) - names of dependency makefiles with '-' suffix
+# note: reset MDEPS
+define APPEND_MDEPS
+MDEPS := $(filter-out $(ORDER_DEPS),$(call NORM_MAKEFILES,$(MDEPS),-))
+ifdef MDEPS
+$$(MDEPS):
+ORDER_DEPS += $$(MDEPS)
+MDEPS:=
+endif
+endef
 
-# don't complain about changed FIX_ORDER_DEPS value - replace old FIX_ORDER_DEPS value with a new one
+# overwrite code for adding $(MDEPS) - list of makefiles that need to be built before target makefile - to $(ORDER_DEPS)
+# note: reset MDEPS to not update ORDER_DEPS on each evaluation of STD_TARGET_VARS in target makefile
+FIX_ORDER_DEPS := $(value APPEND_MDEPS)
+
+# don't complain about new FIX_ORDER_DEPS value
+# - replace old FIX_ORDER_DEPS value defined in $(MTOP)/defs.mk with a new one
 $(call CLEAN_BUILD_PROTECT_VARS,FIX_ORDER_DEPS)
 
 # $m - next $(TOP)-related makefile to include
@@ -33,11 +47,13 @@ endef
 
 # note: $(TO_MAKE) - list of $(TOP)-related makefiles to include
 ifdef REM_SHOWN_MAKEFILE
+# non-verbose build
 define CB_INCLUDE
 INTERMEDIATE_MAKEFILES += 1
 $(foreach m,$(TO_MAKE),$(CB_INCLUDE_TEMPLATE))
 endef
 else # !REM_SHOWN_MAKEFILE
+# verbose build
 define CB_INCLUDE
 $(foreach m,$(TO_MAKE),$(CB_INCLUDE_TEMPLATE))
 endef
@@ -50,4 +66,4 @@ CB_INCLUDE_LEVEL:=
 INTERMEDIATE_MAKEFILES:=
 
 # protect variables from modifications in target makefiles
-$(call CLEAN_BUILD_PROTECT_VARS,NORM_MAKEFILES CB_INCLUDE_TEMPLATE CB_INCLUDE)
+$(call CLEAN_BUILD_PROTECT_VARS,NORM_MAKEFILES APPEND_MDEPS CB_INCLUDE_TEMPLATE CB_INCLUDE)

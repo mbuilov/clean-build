@@ -19,10 +19,8 @@ DEF_HEAD_CODE_PROCESSED:=
 
 # add $(TOP)-related list of makefiles that need to be built before current makefile to $(ORDER_DEPS)
 # - list of order-only dependencies of targets of current makefile
-ORDER_DEPS := $(strip $(ORDER_DEPS) $(call NORM_MAKEFILES,$(MDEPS),-))
-
 # reset $(MDEPS) - next included makefile may have it's own dependencies
-MDEPS:=
+$(eval $(APPEND_MDEPS))
 
 # avoid errors in $(CLEAN_BUILD_CHECK_AT_HEAD) in next included makefile
 CLEAN_BUILD_NEED_TAIL_CODE:=
