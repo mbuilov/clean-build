@@ -430,7 +430,7 @@ endef
 # function to add (generated?) sources to $({EXE,LIB,DLL,...}_WITH_PCH) list - to compile sources with pch header
 # $1 - EXE,LIB,DLL,...
 # $2 - sources
-ADD_WITH_PCH1 = $(foreach v,$(GET_VARIANTS),$(call ADD_WITH_PCH2,$2,$3,$4,$(call FORM_OBJ_DIR,$1,$v)))
+ADD_WITH_PCH1 = $(foreach v,$(call GET_VARIANTS,$1),$(call ADD_WITH_PCH2,$2,$3,$4,$(call FORM_OBJ_DIR,$1,$v)))
 ADD_WITH_PCH = $(eval WITH_PCH += $2$(call \
   ADD_WITH_PCH1,$1,$(filter %.c,$2),$(filter %.cpp,$2),$(basename $(notdir $(PCH)))))
 
