@@ -18,7 +18,7 @@ endif
 BLD_WIX_TARGETS := MSI INSTALLER
 
 # remove unneeded quotes, replace spaces with ?, add trailing slash
-#WIXN := $(call unspaces,$(subst \\,\,$(subst /,\,$(patsubst "%,%,$(WIX:"=))\)))
+WIXN := $(call unspaces,$(subst \\,\,$(subst /,\,$(patsubst "%,%,$(WIX:"=))\)))
 
 # add quotes, if needed
 ifndef WIX_CANDLE
