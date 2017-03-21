@@ -27,7 +27,7 @@ endef
 
 # overwrite code for adding $(MDEPS) - list of makefiles that need to be built before target makefile - to $(ORDER_DEPS)
 # note: reset MDEPS to not update ORDER_DEPS on each evaluation of STD_TARGET_VARS in target makefile
-FIX_ORDER_DEPS := $(value APPEND_MDEPS)
+FIX_ORDER_DEPS = $(APPEND_MDEPS)
 
 # don't complain about new FIX_ORDER_DEPS value
 # - replace old FIX_ORDER_DEPS value defined in $(MTOP)/defs.mk with a new one
