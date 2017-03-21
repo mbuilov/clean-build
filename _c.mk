@@ -221,7 +221,7 @@ endif
 # $1 - EXE,DLL,...
 # $2 - $(TRG_SRC)
 # $3 - $(TRG_SDEPS)
-TRG_RULES1 = $(foreach v,$(GET_VARIANTS),$(newline)$(call TRG_RULES2,$1,$(call FORM_TRG,$1,$v),$2,$3,$(call FORM_OBJ_DIR,$1,$v)))
+TRG_RULES1 = $(foreach v,$(call GET_VARIANTS,$1),$(newline)$(call TRG_RULES2,$1,$(call FORM_TRG,$1,$v),$2,$3,$(call FORM_OBJ_DIR,$1,$v)))
 
 # expand target rules template $t_TEMPLATE, for example - see EXE_TEMPLATE
 # $1 - $(BLD_TARGETS)
