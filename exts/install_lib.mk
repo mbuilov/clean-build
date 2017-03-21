@@ -45,7 +45,7 @@ $(eval install_$(LIBRARY_NAME): $(BUILT_LIBS) $(BUILT_DLLS)\
 $(newline)install: install_$(LIBRARY_NAME)\
 $(newline)uninstall: uninstall_$(LIBRARY_NAME))
 
-ifeq (LINUX,$(OS))
+ifdef OS_LINUX
 
 ifndef INSTALL_LIB_TEMPLATE_LINUX
 
@@ -99,7 +99,7 @@ endif # INSTALL_LIB_TEMPLATE_LINUX
 
 $(eval $(call INSTALL_LIB_TEMPLATE_LINUX,$(call GET_ALL_LIBS,$(BUILT_LIBS),$(BUILT_LIB_VARIANTS),$(BUILT_DLLS),$(BUILT_DLL_VARIANTS))))
 
-else ifeq (WINXX,$(OS))
+else ifdef OS_WINXX
 
 DST_INC_DIR := $(subst $(space),\$(space),$(DESTDIR)$(INCLUDEDIR)/$(LIBRARY_NAME))
 DST_LIB_DIR := $(subst $(space),\$(space),$(DESTDIR)$(LIBDIR))
