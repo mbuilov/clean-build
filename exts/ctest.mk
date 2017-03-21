@@ -23,7 +23,7 @@ endef
 
 # $1 - $(call FORM_TRG,EXE,$v)
 # $2 - built shared libraries needed by executable, in form <library_name>.<major_number>
-ifeq (UNIX,$(OSTYPE))
+ifdef OSTYPE_UNIX
 TEST_EXE_SOFTLINKS ?= $(if $2,$1: | $(addprefix $(LIB_DIR)/$(DLL_PREFIX),$(subst .,$(DLL_SUFFIX).,$2))$(call TEST_NEED_SIMLINKS,$2))
 endif
 
@@ -38,7 +38,7 @@ CB_GENERATED_SIMLINK_RULES += $d
 endef
 
 # $1 - built shared libraries needed by executable, in form <library_name>.<major_number>
-ifeq (UNIX,$(OSTYPE))
+ifdef OSTYPE_UNIX
 CB_GENERATED_SIMLINK_RULES:=
 TEST_NEED_SIMLINKS ?= $(foreach d,$1,$(if $(filter $d,$(CB_GENERATED_SIMLINK_RULES)),,$(eval $(call \
   SO_SOFTLINK_TEMPLATE,$(LIB_DIR)/$(DLL_PREFIX)$(subst .,$(DLL_SUFFIX).,$d),$(DLL_PREFIX)$(firstword $(subst ., ,$d))$(DLL_SUFFIX)))))
