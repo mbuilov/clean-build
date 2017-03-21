@@ -745,7 +745,7 @@ endef
 # $2 - $(call GET_TARGET_NAME,$1)
 # $3 - $$(basename $$(notdir $$(TRG_PCH)))
 # $4 - K or <empty>
-PCH_TEMPLATE3 = $(PCH_TEMPLATE1)$(foreach v,$(GET_VARIANTS),$(call \
+PCH_TEMPLATE3 = $(PCH_TEMPLATE1)$(foreach v,$(call GET_VARIANTS,$1),$(call \
   PCH_TEMPLATE2,$1,$2,$3,$(call FORM_OBJ_DIR,$1,$v),$(call FORM_TRG,$1,$v),$4))
 
 # $1 - EXE,LIB,DLL,KLIB,DRV
@@ -754,7 +754,7 @@ PCH_TEMPLATE3 = $(PCH_TEMPLATE1)$(foreach v,$(GET_VARIANTS),$(call \
 # - LIB target may inherit WITH_PCH value from DLL
 PCH_TEMPLATE = $(if $(word 2,$(PCH) $(WITH_PCH)),$(call \
   PCH_TEMPLATE3,$1,$(GET_TARGET_NAME),$$(basename $$(notdir $$(TRG_PCH))),$(if $(filter DRV,$1),K)),$(foreach \
-  v,$(GET_VARIANTS),$(call FORM_TRG,$1,$v): WITH_PCH:=$(newline)))
+  v,$(call GET_VARIANTS,$1),$(call FORM_TRG,$1,$v): WITH_PCH:=$(newline)))
 
 endif # !SEQ_BUILD
 
@@ -895,7 +895,7 @@ endef
 # $2 - $(TRG_SRC)
 # $3 - $(TRG_SDEPS)
 # $4 - $(TRG_ALL_SDEPS)
-LIB_AUX_TEMPLATE1 = $(foreach v,$(GET_VARIANTS),$(call \
+LIB_AUX_TEMPLATE1 = $(foreach v,$(call GET_VARIANTS,$1),$(call \
   LIB_AUX_TEMPLATE2,$1,$2,$3,$4,$(call FORM_TRG,$1,$v),$(call FORM_OBJ_DIR,$1,$v)))
 
 # auxiliary defines for LIB,KLIB:
