@@ -299,17 +299,19 @@ CURRENT_MAKEFILE := $(CURRENT_MAKEFILE:$(TOP)/%=%)
 # all files must be generated in this directories
 CLOBBER_DIRS := $(addprefix $(XTOP)/,bin obj lib gen)
 
+# to allow parallel builds for different combinations of
+#  $(OS)/$(KCPU)/$(UCPU)/$(TARGET) create unique directories for each combination
+TARGET_TRIPLET := $(OS)-$(KCPU)-$(UCPU)-$(TARGET)
+
 # output directories:
 # bin - for executables, dlls, res
 # lib - for libraries, shared objects
 # obj - for object files
 # gen - for generated files (headers, sources, resources, etc)
-# NOTE: to allow parallel builds for different combinations of
-#  $(OS)/$(KCPU)/$(UCPU)/$(TARGET) create unique directories for each combination
-DEF_BIN_DIR := $(XTOP)/bin/$(OS)-$(KCPU)-$(UCPU)-$(TARGET)
-DEF_OBJ_DIR := $(XTOP)/obj/$(OS)-$(KCPU)-$(UCPU)-$(TARGET)
-DEF_LIB_DIR := $(XTOP)/lib/$(OS)-$(KCPU)-$(UCPU)-$(TARGET)
-DEF_GEN_DIR := $(XTOP)/gen/$(OS)-$(KCPU)-$(UCPU)-$(TARGET)
+DEF_BIN_DIR := $(XTOP)/bin/$(TARGET_TRIPLET)
+DEF_OBJ_DIR := $(XTOP)/obj/$(TARGET_TRIPLET)
+DEF_LIB_DIR := $(XTOP)/lib/$(TARGET_TRIPLET)
+DEF_GEN_DIR := $(XTOP)/gen/$(TARGET_TRIPLET)
 
 # restore default dirs after tool mode
 define SET_DEFAULT_DIRS
@@ -651,7 +653,7 @@ CLEAN_BUILD_PROTECTED_VARS += MTOP MAKEFLAGS NO_DEPS DEBUG PROJECT \
   TERM_NO_COLOR PRINT_PERCENTS SUP ADD_SHOWN_PERCENTS REM_SHOWN_MAKEFILE TRY_REM_MAKEFILE \
   GEN_COLOR MGEN_COLOR CP_COLOR LN_COLOR MKDIR_COLOR TOUCH_COLOR \
   COLORIZE SED_MULTI_EXPR ospath isrelpath \
-  CLOBBER_DIRS DEF_BIN_DIR DEF_OBJ_DIR DEF_LIB_DIR DEF_GEN_DIR SET_DEFAULT_DIRS BIN_DIR OBJ_DIR LIB_DIR GEN_DIR \
+  CLOBBER_DIRS TARGET_TRIPLET DEF_BIN_DIR DEF_OBJ_DIR DEF_LIB_DIR DEF_GEN_DIR SET_DEFAULT_DIRS BIN_DIR OBJ_DIR LIB_DIR GEN_DIR \
   TOOL_BASE MK_TOOLS_DIR GET_TOOLS GET_TOOL TOOLS_DIR TOOL_OVERRIDE_DIRS \
   FIX_ORDER_DEPS STD_TARGET_VARS1 STD_TARGET_VARS TOCLEAN GET_VPREFIX ADDVPREFIX FIXPATH MAKEFILE_DEBUG_INFO \
   DEF_TAIL_CODE_DEBUG DEF_HEAD_CODE DEF_HEAD_CODE_EVAL DEF_TAIL_CODE DEF_TAIL_CODE_EVAL \
