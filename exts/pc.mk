@@ -104,7 +104,7 @@ INSTALL_PKGCONF ?= $(foreach l,$(firstword $1),$(call ECHO_INSTALL,$(call $2,$l,
 INSTALL_PKGCONFS ?= $(foreach r,$1,$(newline)$(call INSTALL_PKGCONF,$(subst ?, ,$r),$2))
 
 # protect variables from modifications in target makefiles
-$(call CLEAN_BUILD_PROTECT_VARS,PKGCONF_TEMPLATE PKGCONF_DEF_TEMPLATE pc_escape pc_unescape pc_nchoose \
+$(call CLEAN_BUILD_PROTECT_VARS,PKGCONF_TEMPLATE pc_escape pc_unescape pc_nchoose \
   PKGCONF_PREFIX PKGCONF_EXEC_PREFIX PKGCONF_LIBDIR PKGCONF_INCLUDEDIR PKGCONF_CFLAGS PKGCONF_LIBS PKGCONF_DEF_TEMPLATE \
   INSTALLED_PKGCONF INSTALLED_PKGCONFS INSTALL_PKGCONF INSTALL_PKGCONFS)
 
