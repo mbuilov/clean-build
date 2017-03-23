@@ -91,7 +91,8 @@ DEBUG_C_TARGETS := $(call GET_DEBUG_TARGETS,$(BLD_TARGETS),FORM_TRG,VARIANTS_FIL
 # $7 - $5/$(basename $(notdir $3))
 # if $(NO_DEPS) is empty, then try to include dependency file .d (ignore if file does not exist)
 # note: $(NO_DEPS) - may be recursive and so have different values, for example depending on value of $(CURRENT_MAKEFILE)
-# NOTE: postpone expansion of ORDER_DEPS - $(FIX_ORDER_DEPS) from $(STD_TARGET_VARS) changes $(ORDER_DEPS) value
+# note: postpone expansion of ORDER_DEPS - $(FIX_ORDER_DEPS) from $(STD_TARGET_VARS) changes $(ORDER_DEPS) value
+# note: first line must be empty
 define OBJ_RULE
 $(empty)
 $7$(OBJ_SUFFIX): $3 $(call EXTRACT_SDEPS,$3,$4) | $5 $$(ORDER_DEPS)
@@ -109,7 +110,7 @@ endef
 # $6 - variant (if empty, then R)
 OBJ_RULES ?= $(foreach v,$(patsubst ,R,$6),$(foreach x,$3,$(call OBJ_RULE,$1,$2,$x,$4,$5,$v,$5/$(basename $(notdir $x)))))
 
-# generate target name suffix for DLL,EXE
+# get target name suffix for DLL,EXE... in case of multiple target variants
 # $1 - DLL,EXE...
 # $2 - target variant S,P,... but not R or <empty>
 # $3 - list of variants of target $1 to build (filtered by target platform specific $(VARIANTS_FILTER))
@@ -128,14 +129,15 @@ DLL_VAR_SUFFIX ?= $(if $(filter-out R,$2),$(call \
 # $1 - EXE,LIB,...
 # $2 - target variant R,P,D,S,<empty>
 # $3 - variants list, by default $(wordlist 2,999999,$($1))
+# note: gives empty result if $($1) is empty
 # $(OS_FORM_TRG) - $(OS) may define more targets, for example, for DDD:
-#  $(if $(filter DDD,$1),$(addprefix $(BIN_DIR)/$(DDD_PREFIX),$(addsuffix $(DLL_VAR_SUFFIX)$(DDD_SUFFIX),$(GET_TARGET_NAME))))
+#  $(if $(filter DDD,$1),$(addprefix $(BIN_DIR)/$(DDD_PREFIX),$(GET_TARGET_NAME:=$(DLL_VAR_SUFFIX)$(DDD_SUFFIX))))
 FORM_TRG ?= $(if \
-  $(filter EXE,$1),$(addprefix $(BIN_DIR)/,$(addsuffix $(DLL_VAR_SUFFIX)$(EXE_SUFFIX),$(GET_TARGET_NAME))),$(if \
-  $(filter LIB,$1),$(addprefix $(LIB_DIR)/$(LIB_PREFIX),$(addsuffix $(call LIB_VAR_SUFFIX,$2)$(LIB_SUFFIX),$(GET_TARGET_NAME))),$(if \
-  $(filter DLL,$1),$(addprefix $(DLL_DIR)/$(DLL_PREFIX),$(addsuffix $(DLL_VAR_SUFFIX)$(DLL_SUFFIX),$(GET_TARGET_NAME))),$(if \
-  $(filter KLIB,$1),$(addprefix $(LIB_DIR)/$(KLIB_PREFIX),$(addsuffix $(call LIB_VAR_SUFFIX,$2)$(KLIB_SUFFIX),$(GET_TARGET_NAME))),$(if \
-  $(filter DRV,$1),$(addprefix $(BIN_DIR)/$(DRV_PREFIX),$(addsuffix $(DLL_VAR_SUFFIX)$(DRV_SUFFIX),$(GET_TARGET_NAME))),$(OS_FORM_TRG))))))
+  $(filter EXE,$1),$(addprefix $(BIN_DIR)/,$(GET_TARGET_NAME:=$(DLL_VAR_SUFFIX)$(EXE_SUFFIX))),$(if \
+  $(filter LIB,$1),$(addprefix $(LIB_DIR)/$(LIB_PREFIX),$(GET_TARGET_NAME:=$(call LIB_VAR_SUFFIX,$2)$(LIB_SUFFIX))),$(if \
+  $(filter DLL,$1),$(addprefix $(DLL_DIR)/$(DLL_PREFIX),$(GET_TARGET_NAME:=$(DLL_VAR_SUFFIX)$(DLL_SUFFIX))),$(if \
+  $(filter KLIB,$1),$(addprefix $(LIB_DIR)/$(KLIB_PREFIX),$(GET_TARGET_NAME:=$(call LIB_VAR_SUFFIX,$2)$(KLIB_SUFFIX))),$(if \
+  $(filter DRV,$1),$(addprefix $(BIN_DIR)/$(DRV_PREFIX),$(GET_TARGET_NAME:=$(DLL_VAR_SUFFIX)$(DRV_SUFFIX))),$(OS_FORM_TRG))))))
 
 # example how to make target filenames for all variants specified for the target
 # $1 - EXE,LIB,DLL,...
@@ -204,49 +206,43 @@ DEP_LIBS ?= $(addprefix $(LIB_DIR)/,$(call MAKE_DEP_LIBS,$1,$2,$(LIBS)))
 # $2 - variant of target EXE or DLL: R,P,S,<empty>
 DEP_IMPS ?= $(addprefix $(IMP_DIR)/,$(call MAKE_DEP_IMPS,$1,$2,$(DLLS)))
 
-# $1 - EXE,DLL,...
-# $2 - $(call FORM_TRG,$1,$v)
-# $3 - $(TRG_SRC)
-# $4 - $(TRG_SDEPS)
-# $5 - $(call FORM_OBJ_DIR,$1,$v)
+# $1 - $(call FORM_TRG,$t,$v)
+# $2 - $(TRG_SRC)
+# $3 - $(TRG_SDEPS)
+# $4 - $(call FORM_OBJ_DIR,$t,$v)
+# $t - EXE,DLL,...
 # $v - R,P,S,...
 ifdef MCHECK
 # check that target template is defined
-TRG_RULES2 = $(if $(value $1_TEMPLATE),$(call $1_TEMPLATE,$2,$3,$4,$5,$(addprefix $5/,$(call GET_OBJS,$3))),$(error \
-  $1_TEMPLATE not defined! (define it in $(MTOP)/$(OS)/c.mk)))
+TRG_RULES2 = $(if $(value $t_TEMPLATE),$(call $t_TEMPLATE,$1,$2,$3,$4,$(addprefix $4/,$(call GET_OBJS,$2))),$(error \
+  $t_TEMPLATE not defined! (define it in $(MTOP)/$(OS)/c.mk)))
 else
-TRG_RULES2 = $(call $1_TEMPLATE,$2,$3,$4,$5,$(addprefix $5/,$(call GET_OBJS,$3)))
+TRG_RULES2 = $(call $t_TEMPLATE,$1,$2,$3,$4,$(addprefix $4/,$(call GET_OBJS,$2)))
 endif
 
-# $1 - EXE,DLL,...
-# $2 - $(TRG_SRC)
-# $3 - $(TRG_SDEPS)
-TRG_RULES1 = $(foreach v,$(call GET_VARIANTS,$1),$(newline)$(call TRG_RULES2,$1,$(call FORM_TRG,$1,$v),$2,$3,$(call FORM_OBJ_DIR,$1,$v)))
+# $1 - $(TRG_SRC)
+# $2 - $(TRG_SDEPS)
+# $t - EXE,DLL,...
+TRG_RULES1 = $(foreach v,$(call GET_VARIANTS,$t),$(newline)$(call TRG_RULES2,$(call FORM_TRG,$t,$v),$1,$2,$(call FORM_OBJ_DIR,$t,$v)))
 
 # expand target rules template $t_TEMPLATE, for example - see EXE_TEMPLATE
 # $1 - $(BLD_TARGETS)
-ifdef MCHECK
-# check that no other targets are defined
-TRG_RULES ?= $(if $($(firstword $1)),$(foreach t,$(wordlist 2,999999,$1),$(if $($t),$(error \
-  either $(firstword $1) or $t can be defined, but not both)))$(call \
-  TRG_RULES1,$(firstword $1),$(TRG_SRC),$(TRG_SDEPS)),$(if $(word 2,$1),$(call TRG_RULES,$(wordlist 2,999999,$1))))
-else
-TRG_RULES ?= $(foreach t,$1,$(if $($t),$(call TRG_RULES1,$t,$(TRG_SRC),$(TRG_SDEPS))))
-endif
+TRG_RULES ?= $(foreach t,$1,$(if $($t),$(call TRG_RULES1,$(TRG_SRC),$(TRG_SDEPS))))
 
 # how to build executable, used by $(TRG_RULES)
-# $1 - target file: $(call FORM_TRG,EXE,$v)
+# $1 - target file: $(call FORM_TRG,$t,$v)
 # $2 - sources:     $(TRG_SRC)
 # $3 - sdeps:       $(TRG_SDEPS)
-# $4 - objdir:      $(call FORM_OBJ_DIR,EXE,$v)
+# $4 - objdir:      $(call FORM_OBJ_DIR,$t,$v)
 # $5 - objects:     $(addprefix $4/,$(call GET_OBJS,$2))
+# $t - EXE
 # $v - R,P,S,...
 define EXE_TEMPLATE
 $(STD_TARGET_VARS)
 NEEDED_DIRS += $4
-$(call OBJ_RULES,EXE,CC,$(filter %.c,$2),$3,$4,$v)
-$(call OBJ_RULES,EXE,CXX,$(filter %.cpp,$2),$3,$4,$v)
-$(call OBJ_RULES,EXE,ASM,$(filter %.asm,$2),$3,$4,$v)
+$(call OBJ_RULES,$t,CC,$(filter %.c,$2),$3,$4,$v)
+$(call OBJ_RULES,$t,CXX,$(filter %.cpp,$2),$3,$4,$v)
+$(call OBJ_RULES,$t,ASM,$(filter %.asm,$2),$3,$4,$v)
 $1: COMPILER   := $(if $(filter %.cpp,$2),CXX,CC)
 $1: LIB_DIR    := $(LIB_DIR)
 $1: LIBS       := $(LIBS)
@@ -259,24 +255,25 @@ $1: ASMFLAGS   := $(ASMFLAGS)
 $1: LDFLAGS    := $(LDFLAGS)
 $1: SYSLIBS    := $(SYSLIBS)
 $1: SYSLIBPATH := $(SYSLIBPATH)
-$1: $(call DEP_LIBS,EXE,$v) $(call DEP_IMPS,EXE,$v) $5
-	$$(call EXE_$v_LD,$$@,$$(filter %$(OBJ_SUFFIX),$$^))
+$1: $(call DEP_LIBS,$t,$v) $(call DEP_IMPS,$t,$v) $5
+	$$(call $t_$v_LD,$$@,$$(filter %$(OBJ_SUFFIX),$$^))
 $(call TOCLEAN,$5)
 endef
 
 # how to build dynamic (shared) library, used by $(TRG_RULES)
-# $1 - target file: $(call FORM_TRG,DLL,$v)
+# $1 - target file: $(call FORM_TRG,$t,$v)
 # $2 - sources:     $(TRG_SRC)
 # $3 - sdeps:       $(TRG_SDEPS)
-# $4 - objdir:      $(call FORM_OBJ_DIR,DLL,$v)
+# $4 - objdir:      $(call FORM_OBJ_DIR,$t,$v)
 # $5 - objects:     $(addprefix $4/,$(call GET_OBJS,$2))
+# $t - DLL
 # $v - R,S
 define DLL_TEMPLATE
 $(STD_TARGET_VARS)
 NEEDED_DIRS += $4
-$(call OBJ_RULES,DLL,CC,$(filter %.c,$2),$3,$4,$v)
-$(call OBJ_RULES,DLL,CXX,$(filter %.cpp,$2),$3,$4,$v)
-$(call OBJ_RULES,DLL,ASM,$(filter %.asm,$2),$3,$4,$v)
+$(call OBJ_RULES,$t,CC,$(filter %.c,$2),$3,$4,$v)
+$(call OBJ_RULES,$t,CXX,$(filter %.cpp,$2),$3,$4,$v)
+$(call OBJ_RULES,$t,ASM,$(filter %.asm,$2),$3,$4,$v)
 $1: COMPILER   := $(if $(filter %.cpp,$2),CXX,CC)
 $1: LIB_DIR    := $(LIB_DIR)
 $1: LIBS       := $(LIBS)
@@ -289,24 +286,25 @@ $1: ASMFLAGS   := $(ASMFLAGS)
 $1: LDFLAGS    := $(LDFLAGS)
 $1: SYSLIBS    := $(SYSLIBS)
 $1: SYSLIBPATH := $(SYSLIBPATH)
-$1: $(call DEP_LIBS,DLL,$v) $(call DEP_IMPS,DLL,$v) $5
-	$$(call DLL_$v_LD,$$@,$$(filter %$(OBJ_SUFFIX),$$^))
+$1: $(call DEP_LIBS,$t,$v) $(call DEP_IMPS,$t,$v) $5
+	$$(call $t_$v_LD,$$@,$$(filter %$(OBJ_SUFFIX),$$^))
 $(call TOCLEAN,$5)
 endef
 
 # how to build static library for EXE/DLL or static library for DLL only, used by $(TRG_RULES)
-# $1 - target file: $(call FORM_TRG,LIB,$v)
+# $1 - target file: $(call FORM_TRG,$t,$v)
 # $2 - sources:     $(TRG_SRC)
 # $3 - sdeps:       $(TRG_SDEPS)
-# $4 - objdir:      $(call FORM_OBJ_DIR,LIB,$v)
+# $4 - objdir:      $(call FORM_OBJ_DIR,$t,$v)
 # $5 - objects:     $(addprefix $4/,$(call GET_OBJS,$2))
+# $t - LIB
 # $v - R,P,D,S
 define LIB_TEMPLATE
 $(STD_TARGET_VARS)
 NEEDED_DIRS += $4
-$(call OBJ_RULES,LIB,CC,$(filter %.c,$2),$3,$4,$v)
-$(call OBJ_RULES,LIB,CXX,$(filter %.cpp,$2),$3,$4,$v)
-$(call OBJ_RULES,LIB,ASM,$(filter %.asm,$2),$3,$4,$v)
+$(call OBJ_RULES,$t,CC,$(filter %.c,$2),$3,$4,$v)
+$(call OBJ_RULES,$t,CXX,$(filter %.cpp,$2),$3,$4,$v)
+$(call OBJ_RULES,$t,ASM,$(filter %.asm,$2),$3,$4,$v)
 $1: COMPILER   := $(if $(filter %.cpp,$2),CXX,CC)
 $1: INCLUDE    := $(TRG_INCLUDE)
 $1: DEFINES    := $(CMNDEFINES) $(APPDEFS) $(DEFINES)
@@ -315,23 +313,24 @@ $1: CXXFLAGS   := $(CXXFLAGS)
 $1: ASMFLAGS   := $(ASMFLAGS)
 $1: LDFLAGS    := $(LDFLAGS)
 $1: $5
-	$$(call LIB_$v_LD,$$@,$$(filter %$(OBJ_SUFFIX),$$^))
+	$$(call $t_$v_LD,$$@,$$(filter %$(OBJ_SUFFIX),$$^))
 $(call TOCLEAN,$5)
 endef
 
 # how to build kernel-mode static library for driver, used by $(TRG_RULES)
-# $1 - target file: $(call FORM_TRG,KLIB,$v)
+# $1 - target file: $(call FORM_TRG,$t,$v)
 # $2 - sources:     $(TRG_SRC)
 # $3 - sdeps:       $(TRG_SDEPS)
-# $4 - objdir:      $(call FORM_OBJ_DIR,KLIB,$v)
+# $4 - objdir:      $(call FORM_OBJ_DIR,$t,$v)
 # $5 - objects:     $(addprefix $4/,$(call GET_OBJS,$2))
+# $t - KLIB
 # $v - R
 define KLIB_TEMPLATE
 $(STD_TARGET_VARS)
 NEEDED_DIRS += $4
-$(call OBJ_RULES,KLIB,CC,$(filter %.c,$2),$3,$4,$v)
-$(call OBJ_RULES,KLIB,CXX,$(filter %.cpp,$2),$3,$4,$v)
-$(call OBJ_RULES,KLIB,ASM,$(filter %.asm,$2),$3,$4,$v)
+$(call OBJ_RULES,$t,CC,$(filter %.c,$2),$3,$4,$v)
+$(call OBJ_RULES,$t,CXX,$(filter %.cpp,$2),$3,$4,$v)
+$(call OBJ_RULES,$t,ASM,$(filter %.asm,$2),$3,$4,$v)
 $1: COMPILER   := $(if $(filter %.cpp,$2),CXX,CC)
 $1: INCLUDE    := $(TRG_INCLUDE)
 $1: DEFINES    := $(CMNDEFINES) $(KRNDEFS) $(DEFINES)
@@ -340,7 +339,7 @@ $1: CXXFLAGS   := $(CXXFLAGS)
 $1: ASMFLAGS   := $(ASMFLAGS)
 $1: LDFLAGS    := $(LDFLAGS)
 $1: $5
-	$$(call KLIB_$v_LD,$$@,$$(filter %$(OBJ_SUFFIX),$$^))
+	$$(call $t_$v_LD,$$@,$$(filter %$(OBJ_SUFFIX),$$^))
 $(call TOCLEAN,$5)
 endef
 

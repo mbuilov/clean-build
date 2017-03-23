@@ -150,7 +150,8 @@ LIB_VAR_SUFFIX ?= $(if \
                   $(filter P,$1),_pie,$(if \
                   $(filter D,$1),_pic))
 
-# generate target name suffix for DLL,EXE,DRV
+# for $(DLL_VAR_SUFFIX) from $(MTOP)/c.mk:
+# get target name suffix for DLL,EXE,DRV in case of multiple target variants
 # $1 - DLL,EXE,DRV...
 # $2 - target variant P (not R or <empty>)
 # $3 - list of variants of target $1 to build (filtered by target platform specific $(VARIANTS_FILTER))
@@ -404,17 +405,15 @@ endif
 $$(addprefix $1/,$$(addsuffix $(OBJ_SUFFIX),$$(basename $$(notdir $$(filter %.cpp,$$(TRG_WITH_PCH)))))): $$(CXX_GCH).gch
 $$(call TOCLEAN,$$(CXX_GCH).gch $$(CXX_GCH).d)
 ndif
-endef # PCH_TEMPLATE1
+endef
 
+# code to eval to build with precompiled headers
 # $t - EXE,LIB,DLL,KLIB
 # note: must reset target-specific WITH_PCH if not using precompiled header,
 # otherwise DLL or LIB target may inherit WITH_PCH value from EXE, LIB target may inherit WITH_PCH value from DLL
-PCH_TEMPLATE2 = $(if $(word 2,$(PCH) $(firstword $(WITH_PCH))),$(foreach \
+PCH_TEMPLATE = $(if $(word 2,$(PCH) $(firstword $(WITH_PCH))),$(foreach \
   v,$(call GET_VARIANTS,$t),$(newline)$(call PCH_TEMPLATE1,$(call FORM_OBJ_DIR,$t,$v),$(call \
   FORM_TRG,$t,$v))),$(foreach v,$(call GET_VARIANTS,$t),$(call FORM_TRG,$t,$v): WITH_PCH:=$(newline)))
-
-# code to eval to build with precompiled headers
-PCH_TEMPLATES = $(foreach t,EXE LIB DLL KLIB,$(if $($t),$(PCH_TEMPLATE2)))
 
 # set dependencies of objects compiled with pch header on .gch
 # $1 - $(filter %.c,$src)
@@ -437,33 +436,35 @@ ADD_WITH_PCH = $(eval WITH_PCH += $2$(call \
 endif # NO_PCH
 
 # auxiliary defines for EXE
-# $1 - $(call FORM_TRG,EXE,$v)
+# $1 - $(call FORM_TRG,$t,$v)
 # $2 - $(call FIXPATH,$(MAP))
-define EXE_AUX_TEMPLATE1
+# $t - EXE
+define EXE_AUX_TEMPLATE2
 $1: RPATH := $(subst $$,$$$$,$(RPATH))
 $1: MAP := $2
 $1: $2
 endef
-EXE_AUX_TEMPLATE2 = $(foreach v,$(call GET_VARIANTS,EXE),$(call EXE_AUX_TEMPLATE1,$(call FORM_TRG,EXE,$v),$2))
-EXE_AUX_TEMPLATE = $(call EXE_AUX_TEMPLATE2,$(call FIXPATH,$(MAP)))
 
 # auxiliary defines for DLL
-# $1 - $(call FORM_TRG,DLL,$v)
+# $1 - $(call FORM_TRG,$t,$v)
 # $2 - $(call FIXPATH,$(MAP))
-define DLL_AUX_TEMPLATE1
+# $t - DLL
+define DLL_AUX_TEMPLATE2
 $1: MODVER := $(MODVER)
 $1: RPATH := $(subst $$,$$$$,$(RPATH))
 $1: MAP := $2
 $1: $2
 endef
-DLL_AUX_TEMPLATE2 = $(foreach v,$(call GET_VARIANTS,DLL),$(call DLL_AUX_TEMPLATE1,$(call FORM_TRG,DLL,$v),$2))
-DLL_AUX_TEMPLATE = $(call DLL_AUX_TEMPLATE2,$(call FIXPATH,$(MAP)))
+
+# auxiliary defines for EXE or DLL
+# $t - EXE or DLL
+MOD_AUX_TEMPLATE1 = $(foreach v,$(call GET_VARIANTS,$t),$(call $t_AUX_TEMPLATE2,$(call FORM_TRG,$t,$v),$2))
+MOD_AUX_TEMPLATE = $(call MOD_AUX_TEMPLATE1,$(call FIXPATH,$(MAP)))
 
 # this code is evaluated from $(DEFINE_TARGETS)
 define OS_DEFINE_TARGETS
-$(PCH_TEMPLATES)
-$(if $(EXE),$(EXE_AUX_TEMPLATE))
-$(if $(DLL),$(DLL_AUX_TEMPLATE))
+$(foreach t,EXE LIB DLL KLIB,$(if $($t),$(PCH_TEMPLATE)))
+$(foreach t,EXE DLL,$(if $($t),$(MOD_AUX_TEMPLATE)))
 endef
 
 # $1 - destination directory
@@ -499,11 +500,12 @@ $1: $4/$(DRV_PREFIX)$(DRV)$(DRV_SUFFIX)
 endef
 
 # how to build driver, used by $(TRG_RULES)
-# $1 - target file: $(call FORM_TRG,DRV,$v)
+# $1 - target file: $(call FORM_TRG,$t,$v)
 # $2 - sources:     $(TRG_SRC)
 # $3 - sdeps:       $(TRG_SDEPS)
-# $4 - objdir:      $(call FORM_OBJ_DIR,DRV,$v)
+# $4 - objdir:      $(call FORM_OBJ_DIR,$t,$v)
 # $5 - objects:     $(addprefix $4/,$(call GET_OBJS,$2))
+# $t - DRV
 # $v - R
 define DRV_TEMPLATE
 $(STD_TARGET_VARS)
@@ -520,5 +522,5 @@ $(call CLEAN_BUILD_PROTECT_VARS,CC CXX MODULES_PATH LD AR TCC TCXX TLD TAR KCC K
   CMN_CXX CMN_CC PCH_CXX PCH_CC EXE_R_CXX EXE_R_CC EXE_P_CXX EXE_P_CC LIB_R_CXX LIB_R_CC LIB_P_CXX LIB_P_CC DLL_R_CXX DLL_R_CC \
   LIB_D_CXX LIB_D_CC PCH_EXE_R_CXX PCH_EXE_R_CC PCH_EXE_P_CXX PCH_EXE_P_CC PCH_LIB_R_CXX PCH_LIB_R_CC PCH_LIB_P_CXX PCH_LIB_P_CC \
   PCH_DLL_R_CXX PCH_DLL_R_CC PCH_LIB_D_CXX PCH_LIB_D_CC KLIB_PARAMS KLIB_R_CC PCH_KLIB_R_CC KLIB_R_ASM BISON FLEX \
-  PCH_TEMPLATE1 PCH_TEMPLATE2 PCH_TEMPLATES ADD_WITH_PCH2 ADD_WITH_PCH1 ADD_WITH_PCH \
-  EXE_AUX_TEMPLATE1 EXE_AUX_TEMPLATE2 EXE_AUX_TEMPLATE DLL_AUX_TEMPLATE1 DLL_AUX_TEMPLATE2 DLL_AUX_TEMPLATE COPY_FILE_RULE DRV_TEMPLATE1)
+  PCH_TEMPLATE1 PCH_TEMPLATE ADD_WITH_PCH2 ADD_WITH_PCH1 ADD_WITH_PCH \
+  EXE_AUX_TEMPLATE2 DLL_AUX_TEMPLATE2 MOD_AUX_TEMPLATE1 MOD_AUX_TEMPLATE COPY_FILE_RULE DRV_TEMPLATE1)

@@ -366,47 +366,50 @@ BISON ?= $(call SUP,BISON,$2)$(BISONC) -o $1 -d --fixed-output-files $(abspath $
 FLEX  ?= $(call SUP,FLEX,$2)$(FLEXC) -o$1 $2
 
 # auxiliary defines for EXE
-# $1 - $(call FORM_TRG,EXE,$v)
+# $1 - $(call FORM_TRG,$t,$v)
 # $2 - $(call FIXPATH,$(MAP))
-define EXE_AUX_TEMPLATE1
+# $t - EXE
+define EXE_AUX_TEMPLATE2
 $1: RPATH := $(subst $$,$$$$,$(RPATH))
 $1: MAP := $2
 $1: $2
 endef
-EXE_AUX_TEMPLATE2 = $(foreach v,$(call GET_VARIANTS,EXE),$(call EXE_AUX_TEMPLATE1,$(call FORM_TRG,EXE,$v),$2))
-EXE_AUX_TEMPLATE = $(call EXE_AUX_TEMPLATE2,$(call FIXPATH,$(MAP)))
 
 # auxiliary defines for DLL
-# $1 - $(call FORM_TRG,DLL,$v)
+# $1 - $(call FORM_TRG,$t,$v)
 # $2 - $(call FIXPATH,$(MAP))
-define DLL_AUX_TEMPLATE1
+# $t - DLL
+define DLL_AUX_TEMPLATE2
 $1: MODVER := $(MODVER)
 $1: RPATH := $(subst $$,$$$$,$(RPATH))
 $1: MAP := $2
 $1: $2
 endef
-DLL_AUX_TEMPLATE2 = $(foreach v,$(call GET_VARIANTS,DLL),$(call DLL_AUX_TEMPLATE1,$(call FORM_TRG,DLL,$v),$2))
-DLL_AUX_TEMPLATE = $(call DLL_AUX_TEMPLATE2,$(call FIXPATH,$(MAP)))
+
+# auxiliary defines for EXE or DLL
+# $t - EXE or DLL
+MOD_AUX_TEMPLATE1 = $(foreach v,$(call GET_VARIANTS,$t),$(call $t_AUX_TEMPLATE2,$(call FORM_TRG,$t,$v),$2))
+MOD_AUX_TEMPLATE = $(call MOD_AUX_TEMPLATE1,$(call FIXPATH,$(MAP)))
 
 # this code is evaluated from $(DEFINE_TARGETS)
 define OS_DEFINE_TARGETS
-$(if $(EXE),$(EXE_AUX_TEMPLATE))
-$(if $(DLL),$(DLL_AUX_TEMPLATE))
+$(foreach t,EXE DLL,$(if $($t),$(MOD_AUX_TEMPLATE)))
 endef
 
 # how to build driver, used by $(TRG_RULES)
-# $1 - target file: $(call FORM_TRG,DRV,$v)
+# $1 - target file: $(call FORM_TRG,$t,$v)
 # $2 - sources:     $(TRG_SRC)
 # $3 - sdeps:       $(TRG_SDEPS)
-# $4 - objdir:      $(call FORM_OBJ_DIR,DRV,$v)
+# $4 - objdir:      $(call FORM_OBJ_DIR,$t,$v)
 # $5 - objects:     $(addprefix $4/,$(call GET_OBJS,$2))
+# $t - DRV
 # $v - R
 define DRV_TEMPLATE
 $(STD_TARGET_VARS)
 NEEDED_DIRS += $4
-$(call OBJ_RULES,DRV,CC,$(filter %.c,$2),$3,$4,$v)
-$(call OBJ_RULES,DRV,CXX,$(filter %.cpp,$2),$3,$4,$v)
-$(call OBJ_RULES,DRV,ASM,$(filter %.asm,$2),$3,$4,$v)
+$(call OBJ_RULES,$t,CC,$(filter %.c,$2),$3,$4,$v)
+$(call OBJ_RULES,$t,CXX,$(filter %.cpp,$2),$3,$4,$v)
+$(call OBJ_RULES,$t,ASM,$(filter %.asm,$2),$3,$4,$v)
 $1: COMPILER   := $(if $(filter %.cpp,$2),CXX,CC)
 $1: LIB_DIR    := $(LIB_DIR)
 $1: KLIBS      := $(KLIBS)
@@ -419,7 +422,7 @@ $1: LDFLAGS    := $(LDFLAGS)
 $1: SYSLIBS    := $(SYSLIBS)
 $1: SYSLIBPATH := $(SYSLIBPATH)
 $1: $(addprefix $(LIB_DIR)/$(KLIB_PREFIX),$(KLIBS:=$(KLIB_SUFFIX))) $5
-	$$(call DRV_$v_LD,$$@,$$(filter %$(OBJ_SUFFIX),$$^))
+	$$(call $t_$v_LD,$$@,$$(filter %$(OBJ_SUFFIX),$$^))
 $(call TOCLEAN,$5)
 endef
 
@@ -432,4 +435,4 @@ $(call CLEAN_BUILD_PROTECT_VARS,CC CXX AR TCC TCXX TAR KCC KLD YASM FLEXC BISONC
   UDEPS_INCLUDE_FILTER SED_DEPS_SCRIPT WRAP_COMPILER APP_FLAGS DEF_CXXFLAGS DEF_CFLAGS CC_PARAMS CMN_CXX CMN_CC \
   EXE_R_CXX EXE_R_CC LIB_R_CXX LIB_R_CC DLL_R_CXX DLL_R_CC LIB_D_CXX LIB_D_CC KDEPS_INCLUDE_FILTER KRN_FLAGS \
   KCC_PARAMS KLIB_R_CC DRV_R_CC KLIB_R_ASM DRV_R_ASM BISON FLEX \
-  EXE_AUX_TEMPLATE1 EXE_AUX_TEMPLATE2 EXE_AUX_TEMPLATE DLL_AUX_TEMPLATE1 DLL_AUX_TEMPLATE2 DLL_AUX_TEMPLATE)
+  EXE_AUX_TEMPLATE2 DLL_AUX_TEMPLATE2 MOD_AUX_TEMPLATE1 MOD_AUX_TEMPLATE)
