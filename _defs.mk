@@ -385,7 +385,7 @@ FIX_ORDER_DEPS:=
 define STD_TARGET_VARS1
 $(FIX_ORDER_DEPS)
 $1: MF    := $(CURRENT_MAKEFILE)
-$1: MCONT := $(filter-out @1,@$(words 1 $(subst 2,,$(MAKE_CONT))))
+$1: MCONT := $(filter-out +0,+$(words $(subst 2,,$(MAKE_CONT))))
 $1: TMD   := $(CB_TOOL_MODE)
 $1: | $2 $$(ORDER_DEPS)
 $(CURRENT_MAKEFILE)-: $1
