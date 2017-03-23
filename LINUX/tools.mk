@@ -18,6 +18,7 @@ CP    = cp$(if $(VERBOSE), -v) $1 $2
 LN    = ln -sf$(if $(VERBOSE),v) $1 $2
 TOUCH = touch $1
 CHMOD = chmod$(if $(VERBOSE), -v) $1 $2
+PATHSEP := :
 
 # execute command $2 in directory $1
 EXECIN = pushd $1 >/dev/null && { $2 && popd >/dev/null || { popd >/dev/null; false; } }
@@ -26,4 +27,4 @@ EXECIN = pushd $1 >/dev/null && { $2 && popd >/dev/null || { popd >/dev/null; fa
 DEL_ON_FAIL = || ($(DEL); false)
 
 # protect variables from modifications in target makefiles
-$(call CLEAN_BUILD_PROTECT_VARS,DEL RM MKDIR SED SED_EXPR CAT ECHO EXECIN NUL CP LN TOUCH CHMOD DEL_ON_FAIL)
+$(call CLEAN_BUILD_PROTECT_VARS,DEL RM MKDIR SED SED_EXPR CAT ECHO EXECIN NUL CP LN TOUCH CHMOD PATHSEP DEL_ON_FAIL)

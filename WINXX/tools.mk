@@ -90,6 +90,9 @@ DEL_ON_FAIL = || ($(foreach x,$1,($(call DEL,$x)) &) cmd /c exit 1)
 # suffix of built tool executables
 TOOL_SUFFIX := .exe
 
+# paths separator, as used in %PATH% environment variable
+PATHSEP := ;
+
 # protect variables from modifications in target makefiles
 $(call CLEAN_BUILD_PROTECT_VARS,DEL_ARGS_LIMIT DEL1 DEL DEL_DIR1 DEL_DIR RM1 RM MKDIR SED SED_EXPR \
-  CAT open_brace close_brace ECHO_LINE ECHO1 ECHO EXECIN NUL SUPPRESS_CP_OUTPUT CP TOUCH1 TOUCH DEL_ON_FAIL TOOL_SUFFIX)
+  CAT open_brace close_brace ECHO_LINE ECHO1 ECHO EXECIN NUL SUPPRESS_CP_OUTPUT CP TOUCH1 TOUCH DEL_ON_FAIL TOOL_SUFFIX PATHSEP)
