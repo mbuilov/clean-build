@@ -28,6 +28,11 @@ ifeq ("$(origin S)","command line")
 SEQ_BUILD := $(S:0=)
 endif
 
+# dependencies generation supported only for non-multisource (sequencial) builds
+ifeq ($(SEQ_BUILD),)
+NO_DEPS := 1
+endif
+
 include $(MTOP)/WINXX/auto_c.mk
 
 ifndef YASMC
