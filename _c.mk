@@ -82,33 +82,33 @@ KRNDEFS    += $(OS_KRNDEFS)
 DEBUG_C_TARGETS := $(call GET_DEBUG_TARGETS,$(BLD_TARGETS),FORM_TRG,VARIANTS_FILTER)
 
 # rule that defines how to build object from source
-# $1 - EXE,LIB,...
-# $2 - CXX,CC,ASM,...
-# $3 - source
-# $4 - sdeps
-# $5 - objdir
-# $6 - variant (non-empty!)
-# $7 - $5/$(basename $(notdir $3))
+# $1 - CXX,CC,ASM,...
+# $2 - source
+# $3 - sdeps
+# $4 - objdir
+# $5 - $4/$(basename $(notdir $2))
+# $v - variant (non-empty!)
+# $t - EXE,LIB,...
 # if $(NO_DEPS) is empty, then try to include dependency file .d (ignore if file does not exist)
 # note: $(NO_DEPS) - may be recursive and so have different values, for example depending on value of $(CURRENT_MAKEFILE)
 # note: postpone expansion of ORDER_DEPS - $(FIX_ORDER_DEPS) from $(STD_TARGET_VARS) changes $(ORDER_DEPS) value
 # note: first line must be empty
 define OBJ_RULE
 $(empty)
-$7$(OBJ_SUFFIX): $3 $(call EXTRACT_SDEPS,$3,$4) | $5 $$(ORDER_DEPS)
-	$$(call $1_$6_$2,$$@,$$<)
-$(if $(NO_DEPS),,-include $7.d)
-$(call TOCLEAN,$7.d)
+$5$(OBJ_SUFFIX): $2 $(call EXTRACT_SDEPS,$2,$3) | $4 $$(ORDER_DEPS)
+	$$(call $t_$v_$1,$$@,$$<)
+$(if $(NO_DEPS),,-include $5.d)
+$(call TOCLEAN,$5.d)
 endef
 
 # rule that defines how to build objects from sources
-# $1 - EXE,LIB,...
-# $2 - CXX,CC,ASM,...
-# $3 - sources to compile
-# $4 - sdeps
-# $5 - objdir
-# $6 - variant (if empty, then R)
-OBJ_RULES ?= $(foreach v,$(patsubst ,R,$6),$(foreach x,$3,$(call OBJ_RULE,$1,$2,$x,$4,$5,$v,$5/$(basename $(notdir $x)))))
+# $1 - CXX,CC,ASM,...
+# $2 - sources to compile
+# $3 - sdeps
+# $4 - objdir
+# $v - non-empty variant: R,P,S,...
+# $t - EXE,LIB,...
+OBJ_RULES ?= $(foreach x,$2,$(call OBJ_RULE,$1,$x,$3,$4,$4/$(basename $(notdir $x))))
 
 # get target name suffix for DLL,EXE... in case of multiple target variants
 # $1 - DLL,EXE...
@@ -211,7 +211,7 @@ DEP_IMPS ?= $(addprefix $(IMP_DIR)/,$(call MAKE_DEP_IMPS,$1,$2,$(DLLS)))
 # $3 - $(TRG_SDEPS)
 # $4 - $(call FORM_OBJ_DIR,$t,$v)
 # $t - EXE,DLL,...
-# $v - R,P,S,...
+# $v - non-empty variant: R,P,S,...
 ifdef MCHECK
 # check that target template is defined
 TRG_RULES2 = $(if $(value $t_TEMPLATE),$(call $t_TEMPLATE,$1,$2,$3,$4,$(addprefix $4/,$(call GET_OBJS,$2))),$(error \
@@ -236,13 +236,13 @@ TRG_RULES ?= $(foreach t,$1,$(if $($t),$(call TRG_RULES1,$(TRG_SRC),$(TRG_SDEPS)
 # $4 - objdir:      $(call FORM_OBJ_DIR,$t,$v)
 # $5 - objects:     $(addprefix $4/,$(call GET_OBJS,$2))
 # $t - EXE
-# $v - R,P,S,...
+# $v - non-empty variant: R,P,S,...
 define EXE_TEMPLATE
 $(STD_TARGET_VARS)
 NEEDED_DIRS += $4
-$(call OBJ_RULES,$t,CC,$(filter %.c,$2),$3,$4,$v)
-$(call OBJ_RULES,$t,CXX,$(filter %.cpp,$2),$3,$4,$v)
-$(call OBJ_RULES,$t,ASM,$(filter %.asm,$2),$3,$4,$v)
+$(call OBJ_RULES,CC,$(filter %.c,$2),$3,$4)
+$(call OBJ_RULES,CXX,$(filter %.cpp,$2),$3,$4)
+$(call OBJ_RULES,ASM,$(filter %.asm,$2),$3,$4)
 $1: COMPILER   := $(if $(filter %.cpp,$2),CXX,CC)
 $1: LIB_DIR    := $(LIB_DIR)
 $1: LIBS       := $(LIBS)
@@ -267,13 +267,13 @@ endef
 # $4 - objdir:      $(call FORM_OBJ_DIR,$t,$v)
 # $5 - objects:     $(addprefix $4/,$(call GET_OBJS,$2))
 # $t - DLL
-# $v - R,S
+# $v - non-empty variant: R,S
 define DLL_TEMPLATE
 $(STD_TARGET_VARS)
 NEEDED_DIRS += $4
-$(call OBJ_RULES,$t,CC,$(filter %.c,$2),$3,$4,$v)
-$(call OBJ_RULES,$t,CXX,$(filter %.cpp,$2),$3,$4,$v)
-$(call OBJ_RULES,$t,ASM,$(filter %.asm,$2),$3,$4,$v)
+$(call OBJ_RULES,CC,$(filter %.c,$2),$3,$4)
+$(call OBJ_RULES,CXX,$(filter %.cpp,$2),$3,$4)
+$(call OBJ_RULES,ASM,$(filter %.asm,$2),$3,$4)
 $1: COMPILER   := $(if $(filter %.cpp,$2),CXX,CC)
 $1: LIB_DIR    := $(LIB_DIR)
 $1: LIBS       := $(LIBS)
@@ -298,13 +298,13 @@ endef
 # $4 - objdir:      $(call FORM_OBJ_DIR,$t,$v)
 # $5 - objects:     $(addprefix $4/,$(call GET_OBJS,$2))
 # $t - LIB
-# $v - R,P,D,S
+# $v - non-empty variant: R,P,D,S
 define LIB_TEMPLATE
 $(STD_TARGET_VARS)
 NEEDED_DIRS += $4
-$(call OBJ_RULES,$t,CC,$(filter %.c,$2),$3,$4,$v)
-$(call OBJ_RULES,$t,CXX,$(filter %.cpp,$2),$3,$4,$v)
-$(call OBJ_RULES,$t,ASM,$(filter %.asm,$2),$3,$4,$v)
+$(call OBJ_RULES,CC,$(filter %.c,$2),$3,$4)
+$(call OBJ_RULES,CXX,$(filter %.cpp,$2),$3,$4)
+$(call OBJ_RULES,ASM,$(filter %.asm,$2),$3,$4)
 $1: COMPILER   := $(if $(filter %.cpp,$2),CXX,CC)
 $1: INCLUDE    := $(TRG_INCLUDE)
 $1: DEFINES    := $(CMNDEFINES) $(APPDEFS) $(DEFINES)
@@ -324,13 +324,13 @@ endef
 # $4 - objdir:      $(call FORM_OBJ_DIR,$t,$v)
 # $5 - objects:     $(addprefix $4/,$(call GET_OBJS,$2))
 # $t - KLIB
-# $v - R
+# $v - non-empty variant: R
 define KLIB_TEMPLATE
 $(STD_TARGET_VARS)
 NEEDED_DIRS += $4
-$(call OBJ_RULES,$t,CC,$(filter %.c,$2),$3,$4,$v)
-$(call OBJ_RULES,$t,CXX,$(filter %.cpp,$2),$3,$4,$v)
-$(call OBJ_RULES,$t,ASM,$(filter %.asm,$2),$3,$4,$v)
+$(call OBJ_RULES,CC,$(filter %.c,$2),$3,$4)
+$(call OBJ_RULES,CXX,$(filter %.cpp,$2),$3,$4)
+$(call OBJ_RULES,ASM,$(filter %.asm,$2),$3,$4)
 $1: COMPILER   := $(if $(filter %.cpp,$2),CXX,CC)
 $1: INCLUDE    := $(TRG_INCLUDE)
 $1: DEFINES    := $(CMNDEFINES) $(KRNDEFS) $(DEFINES)

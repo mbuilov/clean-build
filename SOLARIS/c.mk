@@ -403,13 +403,13 @@ endef
 # $4 - objdir:      $(call FORM_OBJ_DIR,$t,$v)
 # $5 - objects:     $(addprefix $4/,$(call GET_OBJS,$2))
 # $t - DRV
-# $v - R
+# $v - non-empty variant: R
 define DRV_TEMPLATE
 $(STD_TARGET_VARS)
 NEEDED_DIRS += $4
-$(call OBJ_RULES,$t,CC,$(filter %.c,$2),$3,$4,$v)
-$(call OBJ_RULES,$t,CXX,$(filter %.cpp,$2),$3,$4,$v)
-$(call OBJ_RULES,$t,ASM,$(filter %.asm,$2),$3,$4,$v)
+$(call OBJ_RULES,CC,$(filter %.c,$2),$3,$4)
+$(call OBJ_RULES,CXX,$(filter %.cpp,$2),$3,$4)
+$(call OBJ_RULES,ASM,$(filter %.asm,$2),$3,$4)
 $1: COMPILER   := $(if $(filter %.cpp,$2),CXX,CC)
 $1: LIB_DIR    := $(LIB_DIR)
 $1: KLIBS      := $(KLIBS)
