@@ -455,10 +455,11 @@ ifdef SEQ_BUILD
 # $2 - source
 # $3 - compiler
 # target-specific: TMD, CFLAGS, CXXFLAGS
-CMN_CC = $(call SUP,$(TMD)CC,$2)$(call WRAP_COMPILER,$(call $3,$(dir $1),$2,$(CFLAGS)),$1,$2,$(basename $1).d,$(UDEPS_INCLUDE_FILTER))
-CMN_CXX = $(call SUP,$(TMD)CXX,$2)$(call WRAP_COMPILER,$(call $3,$(dir $1),$2,$(CXXFLAGS)),$1,$2,$(basename $1).d,$(UDEPS_INCLUDE_FILTER))
+CMN_CC ?= $(call SUP,$(TMD)CC,$2)$(call WRAP_COMPILER,$(call $3,$(dir $1),$2,$(CFLAGS)),$1,$2,$(basename $1).d,$(UDEPS_INCLUDE_FILTER))
+CMN_CXX ?= $(call SUP,$(TMD)CXX,$2)$(call WRAP_COMPILER,$(call $3,$(dir $1),$2,$(CXXFLAGS)),$1,$2,$(basename $1).d,$(UDEPS_INCLUDE_FILTER))
 
 # define compilers for different target variants
+ifndef SEQ_COMPILERS_TEMPLATE
 define SEQ_COMPILERS_TEMPLATE
 $(empty)
 # $1 - target object, $2 - source
@@ -474,6 +475,7 @@ DLL_$v_LD = $$(DLL_$v_LD1)
 LIB_$v_LD = $$(LIB_$v_LD1)
 $(empty)
 endef
+endif
 $(eval $(foreach v,R $(VARIANTS_FILTER),$(SEQ_COMPILERS_TEMPLATE)))
 
 # option for parallel builds, starting from Visual Studio 2013
@@ -533,14 +535,15 @@ CMN_SUMCL = $(call CMN_SMCL,$1,$2,/DUNICODE /D_UNICODE )
 # also recompile sources that are dependent on changed sources
 # $1 - $(SDEPS) - list of sdeps: <source file>|<dependency1>|<dependency2>|...
 FILTER_SDEPS1 = $(if $(filter $(wordlist 2,999999,$1),$?),$(firstword $1))
-FILTER_SDEPS = $(foreach d,$1,$(call FILTER_SDEPS1,$(subst |, ,$d)))
+FILTER_SDEPS ?= $(foreach d,$1,$(call FILTER_SDEPS1,$(subst |, ,$d)))
 
 # $1 - target
 # $2 - objects
 # $3 - CMN_RMCL, CMN_SMCL, CMN_RUMCL, CMN_SUMCL
 # target-specific: SRC, SDEPS
-CMN_MCL = $(call $3,$(dir $(firstword $2)),$(sort $(filter $(SRC),$? $(call FILTER_SDEPS,$(SDEPS)))))
+CMN_MCL ?= $(call $3,$(dir $(firstword $2)),$(sort $(filter $(SRC),$? $(call FILTER_SDEPS,$(SDEPS)))))
 
+ifndef MULTI_COMPILERS_TEMPLATE
 define MULTI_COMPILERS_TEMPLATE
 # $$1 - target EXE,LIB,DLL,... $$2 - objects
 EXE_$v_LD  = $$(call CMN_MCL,$$1,$$2,CMN_$vMCL)$$(EXE_$v_LD1)
@@ -554,6 +557,7 @@ PCH_$v_CXX = $$(call SUP,$$(TMD)PCHCXX,$$2)$$(call WRAP_COMPILER,$$(call CMN_$vC
   $$(notdir $$2)) /Fp$$(dir $$1)$$(basename $$(notdir $$3))_cpp.pch $$(CXXFLAGS)),$$1,$$2,$$(basename $$1).d,$(UDEPS_INCLUDE_FILTER))
 $(empty)
 endef
+endif
 $(eval $(foreach v,R $(VARIANTS_FILTER),$(MULTI_COMPILERS_TEMPLATE)))
 
 endif # !SEQ_BUILD
@@ -586,7 +590,7 @@ endif
 # $2 - sources
 # $3 - flags
 # target-specific: DEFINES, INCLUDE
-CMN_KCL = $(WKCL) /nologo /c $(KRN_FLAGS) $(call SUBST_DEFINES,$(addprefix /D,$(DEFINES))) $(call \
+CMN_KCL ?= $(WKCL) /nologo /c $(KRN_FLAGS) $(call SUBST_DEFINES,$(addprefix /D,$(DEFINES))) $(call \
   qpath,$(call ospath,$(INCLUDE)) $(KMINC),/I) /Fo$(ospath) /Fd$(ospath) $3 $(call ospath,$2)
 
 ifdef SEQ_BUILD
@@ -605,8 +609,8 @@ endif
 # $1 - target
 # $2 - source
 # target-specific: CFLAGS, CXXFLAGS
-CMN_KCC = $(call SUP,KCC,$2)$(call WRAP_COMPILER,$(call CMN_KCL,$(dir $1),$2,$(CFLAGS)),$1,$2,$(basename $1).d,$(KDEPS_INCLUDE_FILTER))
-CMN_KCXX = $(call SUP,KCXX,$2)$(call WRAP_COMPILER,$(call CMN_KCL,$(dir $1),$2,$(CXXFLAGS)),$1,$2,$(basename $1).d,$(KDEPS_INCLUDE_FILTER))
+CMN_KCC ?= $(call SUP,KCC,$2)$(call WRAP_COMPILER,$(call CMN_KCL,$(dir $1),$2,$(CFLAGS)),$1,$2,$(basename $1).d,$(KDEPS_INCLUDE_FILTER))
+CMN_KCXX ?= $(call SUP,KCXX,$2)$(call WRAP_COMPILER,$(call CMN_KCL,$(dir $1),$2,$(CXXFLAGS)),$1,$2,$(basename $1).d,$(KDEPS_INCLUDE_FILTER))
 
 # $1 - target
 # $2 - source
@@ -665,7 +669,7 @@ CMN_MKCL1 = $(call CMN_MKCL2,$1,$(filter %.c,$2),$(filter %.cpp,$2))
 # $1 - target
 # $2 - objects
 # target-specific: SRC, SDEPS
-CMN_MKCL = $(call CMN_MKCL1,$(dir $(firstword $2)),$(sort $(filter $(SRC),$? $(call FILTER_SDEPS,$(SDEPS)))))
+CMN_MKCL ?= $(call CMN_MKCL1,$(dir $(firstword $2)),$(sort $(filter $(SRC),$? $(call FILTER_SDEPS,$(SDEPS)))))
 
 # $1 - target
 # $2 - objects
@@ -758,7 +762,7 @@ PCH_TEMPLATE3 = $(PCH_TEMPLATE1)$(foreach v,$(call GET_VARIANTS,$t),$(call \
 # note: must reset target-specific WITH_PCH if not using precompiled header, otherwise:
 # - DLL or LIB target may inherit WITH_PCH value from EXE,
 # - LIB target may inherit WITH_PCH value from DLL
-PCH_TEMPLATE = $(if $(word 2,$(PCH) $(WITH_PCH)),$(call \
+PCH_TEMPLATE ?= $(if $(word 2,$(PCH) $(WITH_PCH)),$(call \
   PCH_TEMPLATE3,$(call GET_TARGET_NAME,$t),$$(basename $$(notdir $$(TRG_PCH))),$(if $(filter DRV,$t),K)),$(foreach \
   v,$(call GET_VARIANTS,$t),$(call FORM_TRG,$t,$v): WITH_PCH:=$(newline)))
 
@@ -767,17 +771,17 @@ endif # !SEQ_BUILD
 # function to add (generated?) sources to $(WITH_PCH) list - to compile sources with pch header
 # $1 - EXE,LIB,DLL,...
 # $2 - sources
-ADD_WITH_PCH = $(eval WITH_PCH += $2)
+ADD_WITH_PCH ?= $(eval WITH_PCH += $2)
 
 # auxiliary dependencies
 
 # get dependencies of all sources
-TRG_ALL_SDEPS = $(call FIXPATH,$(sort $(foreach d,$(SDEPS),$(wordlist 2,999999,$(subst |, ,$d)))))
+TRG_ALL_SDEPS ?= $(call FIXPATH,$(sort $(foreach d,$(SDEPS),$(wordlist 2,999999,$(subst |, ,$d)))))
 
 # generate import library path
 # $1 - built dll name without optional variant suffix
 # $2 - built dll variant
-MAKE_IMP_PATH = $(IMP_DIR)/$(IMP_PREFIX)$1$(call LIB_VAR_SUFFIX,$2)$(IMP_SUFFIX)
+MAKE_IMP_PATH ?= $(IMP_DIR)/$(IMP_PREFIX)$1$(call LIB_VAR_SUFFIX,$2)$(IMP_SUFFIX)
 
 # for DLL or EXE that exports symbols
 # $1 - $(call FORM_TRG,$t,$v)
@@ -811,7 +815,7 @@ endef
 # $t - DLL or EXE
 # $n - $(call GET_TARGET_NAME,$t)
 # $v - R,S
-EXPORTS_TEMPLATE = $(if $3,$(call EXPORTS_TEMPLATE1,$1,$2,$(call MAKE_IMP_PATH,$n,$v)),$(NO_EXPORTS_TEMPLATE))
+EXPORTS_TEMPLATE ?= $(if $3,$(call EXPORTS_TEMPLATE1,$1,$2,$(call MAKE_IMP_PATH,$n,$v)),$(NO_EXPORTS_TEMPLATE))
 
 # $1 - $(TRG_SRC)
 # $2 - $(TRG_SDEPS)
@@ -870,15 +874,17 @@ EXP_AUX_TEMPLATE1 = $(foreach n,$(call GET_TARGET_NAME,$t),$(foreach v,$(call GE
 # - precompiled header
 # - target-specific SRC and SDEPS (for CMN_MCL) and IMP (for EXE_LD_TEMPLATE/DLL_LD_TEMPLATE)
 # $t - EXE or DLL
+ifndef EXP_AUX_TEMPLATE
 define EXP_AUX_TEMPLATE
 $(call STD_RES_TEMPLATE,$t)
 $(PCH_TEMPLATE)
 $(call EXP_AUX_TEMPLATE1,$(TRG_SRC),$(TRG_SDEPS),$(TRG_ALL_SDEPS),$(call FIXPATH,$(DEF)))
 endef
+endif
 
 # called by OS_DEFINE_TARGETS
-EXE_AUX_TEMPLATE = $(EXP_AUX_TEMPLATE)
-DLL_AUX_TEMPLATE = $(EXP_AUX_TEMPLATE)
+EXE_AUX_TEMPLATE ?= $(EXP_AUX_TEMPLATE)
+DLL_AUX_TEMPLATE ?= $(EXP_AUX_TEMPLATE)
 
 # $1 - $(TRG_SRC)
 # $2 - $(TRG_SDEPS)
@@ -908,6 +914,7 @@ ARC_AUX_TEMPLATE1 = $(foreach v,$(call GET_VARIANTS,$t),$(call \
 # - precompiled header
 # - target-specific SRC and SDEPS (for CMN_MCL)
 # $t - LIB or KLIB
+ifndef ARC_AUX_TEMPLATE
 define ARC_AUX_TEMPLATE
 $(empty)
 ifneq ($(RES),)
@@ -916,10 +923,11 @@ endif
 $(PCH_TEMPLATE)
 $(call ARC_AUX_TEMPLATE1,$(TRG_SRC),$(TRG_SDEPS),$(TRG_ALL_SDEPS))
 endef
+endif
 
 # called by OS_DEFINE_TARGETS
-LIB_AUX_TEMPLATE = $(ARC_AUX_TEMPLATE)
-KLIB_AUX_TEMPLATE = $(ARC_AUX_TEMPLATE)
+LIB_AUX_TEMPLATE ?= $(ARC_AUX_TEMPLATE)
+KLIB_AUX_TEMPLATE ?= $(ARC_AUX_TEMPLATE)
 
 # add rule to make auxiliary res for the target and generate header from .mc-file
 # note: defines MC_H and MC_RC variables - absolute pathnames to generated .h and .rc files
@@ -934,7 +942,7 @@ $$(call TOCLEAN,$$(MC_DIR))
 $$(call MULTI_TARGET,$$(MC_H) $$(MC_RC),$2,$$$$(call MC,$$(MC_H) $$(MC_RC)) -h $$(call \
   ospath,$$(MC_DIR)) -r $$(call ospath,$$(MC_DIR)) $$$$(call ospath,$$$$<))
 endef
-ADD_MC_RULE = $(eval $(ADD_MC_RULE1))
+ADD_MC_RULE ?= $(eval $(ADD_MC_RULE1))
 
 # rules to build auxiliary resources
 # note: must be recursive macro - to delay expansion of RC options,
@@ -966,12 +974,12 @@ endef
 # $3 - options for RC
 # $4 - optional deps for .res
 # NOTE: $3 - options for RC are expanded in $(OS_DEFINE_TARGETS), after including USEs
-ADD_RES_RULE = $(eval CB_WINXX_RES_RULES += $(subst $(newline),$$(newline),$(call ADD_RES_RULE1,$1,$2,$3,$4,$(call FORM_OBJ_DIR,$1))))
+ADD_RES_RULE ?= $(eval CB_WINXX_RES_RULES += $(subst $(newline),$$(newline),$(call ADD_RES_RULE1,$1,$2,$3,$4,$(call FORM_OBJ_DIR,$1))))
 
 # used to specify path to some resource for rc.exe via /DMY_BMP=$(call RC_DEFINE_PATH,$(TOP)/xx/yy/tt.bmp)
-RC_DEFINE_PATH = "\"$(subst \,\\,$(ospath))\""
+RC_DEFINE_PATH ?= "\"$(subst \,\\,$(ospath))\""
 
-# how to build driver, used by $(TRG_RULES)
+# how to build driver, used by $(C_RULES)
 # $1 - target file: $(call FORM_TRG,$t,$v)
 # $2 - sources:     $(TRG_SRC)
 # $3 - sdeps:       $(TRG_SDEPS)
@@ -979,6 +987,7 @@ RC_DEFINE_PATH = "\"$(subst \,\\,$(ospath))\""
 # $5 - objects:     $(addprefix $4/,$(call GET_OBJS,$2))
 # $t - DRV
 # $v - non-empty variant: R
+ifndef DRV_TEMPLATE
 define DRV_TEMPLATE
 $(call STD_RES_TEMPLATE,$t)
 $(PCH_TEMPLATE)
@@ -1008,12 +1017,14 @@ ifdef DEBUG
 $(call TOCLEAN,$4/vc*.pdb $(1:$(DRV_SUFFIX)=.pdb))
 endif
 endef
+endif
 
 # this code is evaluated from $(DEFINE_TARGETS)
 # NOTE: $(STD_RES_TEMPLATE) adds standard resource to RES, so postpone evaluation of $(RES) when adding it to CLEAN
 # NOTE: reset NO_STD_RES     - it may be temporary set to disable adding standard resource to the target
 # NOTE: reset DLL_NO_EXPORTS - it may be defined to pass check that DLL must export symbols
 # NOTE: reset EXE_EXPORTS    - it may be defined to strip-off diagnostic linker message about exe-exported symbols
+ifndef OS_DEFINE_TARGETS
 define OS_DEFINE_TARGETS
 $(subst $$(newline),$(newline),$(value CB_WINXX_RES_RULES))
 $(foreach t,EXE DLL LIB KLIB,$(if $($t),$($t_AUX_TEMPLATE)))
@@ -1023,6 +1034,7 @@ NO_STD_RES:=
 DLL_NO_EXPORTS:=
 EXE_EXPORTS:=
 endef
+endif
 
 # protect variables from modifications in target makefiles
 $(call CLEAN_BUILD_PROTECT_VARS,SEQ_BUILD YASMC FLEXC BISONC MC SUPPRESS_RC_LOGO RC_LOGO_STRINGS WRAP_RC RC \
