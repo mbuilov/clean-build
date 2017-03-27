@@ -76,11 +76,6 @@ PREDEFINES += $(OS_PREDEFINES)
 APPDEFS    += $(OS_APPDEFS)
 KRNDEFS    += $(OS_KRNDEFS)
 
-# define code to print debug info about built targets
-# note: GET_DEBUG_TARGETS - defined in $(MTOP)/defs.mk
-# note: FORM_TRG will be defined below, VARIANTS_FILTER - defined in $(MTOP)/$(OS)/c.mk
-DEBUG_C_TARGETS := $(call GET_DEBUG_TARGETS,$(BLD_TARGETS),FORM_TRG,VARIANTS_FILTER)
-
 # rule that defines how to build object from source
 # $1 - CXX,CC,ASM,...
 # $2 - source
@@ -214,22 +209,22 @@ DEP_IMPS ?= $(addprefix $(IMP_DIR)/,$(call MAKE_DEP_IMPS,$1,$2,$(DLLS)))
 # $v - non-empty variant: R,P,S,...
 ifdef MCHECK
 # check that target template is defined
-TRG_RULES2 = $(if $(value $t_TEMPLATE),$(call $t_TEMPLATE,$1,$2,$3,$4,$(addprefix $4/,$(call GET_OBJS,$2))),$(error \
+C_RULES2 = $(if $(value $t_TEMPLATE),$(call $t_TEMPLATE,$1,$2,$3,$4,$(addprefix $4/,$(call GET_OBJS,$2))),$(error \
   $t_TEMPLATE not defined! (define it in $(MTOP)/$(OS)/c.mk)))
 else
-TRG_RULES2 = $(call $t_TEMPLATE,$1,$2,$3,$4,$(addprefix $4/,$(call GET_OBJS,$2)))
+C_RULES2 = $(call $t_TEMPLATE,$1,$2,$3,$4,$(addprefix $4/,$(call GET_OBJS,$2)))
 endif
 
 # $1 - $(TRG_SRC)
 # $2 - $(TRG_SDEPS)
 # $t - EXE,DLL,...
-TRG_RULES1 = $(foreach v,$(call GET_VARIANTS,$t),$(newline)$(call TRG_RULES2,$(call FORM_TRG,$t,$v),$1,$2,$(call FORM_OBJ_DIR,$t,$v)))
+C_RULES1 = $(foreach v,$(call GET_VARIANTS,$t),$(newline)$(call C_RULES2,$(call FORM_TRG,$t,$v),$1,$2,$(call FORM_OBJ_DIR,$t,$v)))
 
 # expand target rules template $t_TEMPLATE, for example - see EXE_TEMPLATE
 # $1 - $(BLD_TARGETS)
-TRG_RULES ?= $(foreach t,$1,$(if $($t),$(call TRG_RULES1,$(TRG_SRC),$(TRG_SDEPS))))
+C_RULES ?= $(foreach t,$1,$(if $($t),$(call C_RULES1,$(TRG_SRC),$(TRG_SDEPS))))
 
-# how to build executable, used by $(TRG_RULES)
+# how to build executable, used by $(C_RULES)
 # $1 - target file: $(call FORM_TRG,$t,$v)
 # $2 - sources:     $(TRG_SRC)
 # $3 - sdeps:       $(TRG_SDEPS)
@@ -237,6 +232,7 @@ TRG_RULES ?= $(foreach t,$1,$(if $($t),$(call TRG_RULES1,$(TRG_SRC),$(TRG_SDEPS)
 # $5 - objects:     $(addprefix $4/,$(call GET_OBJS,$2))
 # $t - EXE
 # $v - non-empty variant: R,P,S,...
+ifndef EXE_TEMPLATE
 define EXE_TEMPLATE
 $(STD_TARGET_VARS)
 NEEDED_DIRS += $4
@@ -259,8 +255,9 @@ $1: $(call DEP_LIBS,$t,$v) $(call DEP_IMPS,$t,$v) $5
 	$$(call $t_$v_LD,$$@,$$(filter %$(OBJ_SUFFIX),$$^))
 $(call TOCLEAN,$5)
 endef
+endif
 
-# how to build dynamic (shared) library, used by $(TRG_RULES)
+# how to build dynamic (shared) library, used by $(C_RULES)
 # $1 - target file: $(call FORM_TRG,$t,$v)
 # $2 - sources:     $(TRG_SRC)
 # $3 - sdeps:       $(TRG_SDEPS)
@@ -268,6 +265,7 @@ endef
 # $5 - objects:     $(addprefix $4/,$(call GET_OBJS,$2))
 # $t - DLL
 # $v - non-empty variant: R,S
+ifndef DLL_TEMPLATE
 define DLL_TEMPLATE
 $(STD_TARGET_VARS)
 NEEDED_DIRS += $4
@@ -290,8 +288,9 @@ $1: $(call DEP_LIBS,$t,$v) $(call DEP_IMPS,$t,$v) $5
 	$$(call $t_$v_LD,$$@,$$(filter %$(OBJ_SUFFIX),$$^))
 $(call TOCLEAN,$5)
 endef
+endif
 
-# how to build static library for EXE/DLL or static library for DLL only, used by $(TRG_RULES)
+# how to build static library for EXE/DLL or static library for DLL only, used by $(C_RULES)
 # $1 - target file: $(call FORM_TRG,$t,$v)
 # $2 - sources:     $(TRG_SRC)
 # $3 - sdeps:       $(TRG_SDEPS)
@@ -299,6 +298,7 @@ endef
 # $5 - objects:     $(addprefix $4/,$(call GET_OBJS,$2))
 # $t - LIB
 # $v - non-empty variant: R,P,D,S
+ifndef LIB_TEMPLATE
 define LIB_TEMPLATE
 $(STD_TARGET_VARS)
 NEEDED_DIRS += $4
@@ -316,8 +316,9 @@ $1: $5
 	$$(call $t_$v_LD,$$@,$$(filter %$(OBJ_SUFFIX),$$^))
 $(call TOCLEAN,$5)
 endef
+endif
 
-# how to build kernel-mode static library for driver, used by $(TRG_RULES)
+# how to build kernel-mode static library for driver, used by $(C_RULES)
 # $1 - target file: $(call FORM_TRG,$t,$v)
 # $2 - sources:     $(TRG_SRC)
 # $3 - sdeps:       $(TRG_SDEPS)
@@ -325,6 +326,7 @@ endef
 # $5 - objects:     $(addprefix $4/,$(call GET_OBJS,$2))
 # $t - KLIB
 # $v - non-empty variant: R
+ifndef KLIB_TEMPLATE
 define KLIB_TEMPLATE
 $(STD_TARGET_VARS)
 NEEDED_DIRS += $4
@@ -342,8 +344,11 @@ $1: $5
 	$$(call $t_$v_LD,$$@,$$(filter %$(OBJ_SUFFIX),$$^))
 $(call TOCLEAN,$5)
 endef
+endif
 
 # tools colors
+# if CC_COLOR is defined, other tools colors must also be defined
+ifndef CC_COLOR
 CC_COLOR   := [01;31m
 CXX_COLOR  := [01;36m
 AR_COLOR   := [01;32m
@@ -357,11 +362,12 @@ TCXX_COLOR := [00;32m
 TLD_COLOR  := [00;33m
 TXLD_COLOR := [01;37m
 TAR_COLOR  := [01;32m
+endif
 
 # check that LIBS specified only when building EXE or DLL,
 # check that KLIBS specified only when building DRV
 ifdef MCHECK
-CHECK_C_RULES = $(if \
+CHECK_C_RULES ?= $(if \
   $(CB_TOOL_MODE),$(if $(KLIB)$(DRV),$(error cannot build drivers in tool mode))) $(if \
   $(if $(EXE)$(DLL),,$(LIBS)),$(warning LIBS = $(LIBS) is used only when building EXE or DLL)) $(if \
   $(if $(DRV),,$(KLIBS)),$(warning KLIBS = $(KLIBS) is used only when building DRV))
@@ -380,17 +386,20 @@ endif
 #   to allow additional $(OS)-specific dependencies on targets
 # 5) check and evaluate rules
 # 6) evaluate $(DEF_TAIL_CODE)
+ifndef DEFINE_C_TARGETS_EVAL
 define DEFINE_C_TARGETS_EVAL
-$(if $(MDEBUG),$(eval $(DEBUG_C_TARGETS)))
+$(if $(MDEBUG),$(eval $(call DEBUG_TARGETS,$(BLD_TARGETS),FORM_TRG,VARIANTS_FILTER)))
 $(eval $(if $(MDEBUG),$(if $(USE),$(info using: $(USE))))$(newline)include $(addprefix $(PROJECT_USE_DIR)/,$(USE)))
 $(eval $(GENERATE_SRC_RULES))
 $(eval $(OS_DEFINE_TARGETS))
-$(eval $(CHECK_C_RULES)$(call TRG_RULES,$(BLD_TARGETS)))
+$(eval $(CHECK_C_RULES)$(call C_RULES,$(BLD_TARGETS)))
 $(DEF_TAIL_CODE_EVAL)
 endef
+endif
 
 # code to be called at beginning of target makefile
 # $(MODVER) - module version (for dll, exe or driver) in form major.minor.patch (for example 1.2.3)
+ifndef PREPARE_C_VARS
 define PREPARE_C_VARS
 $(RESET_OS_CVARS)
 $(foreach t,$(BLD_TARGETS),$t:=$(newline))
@@ -417,20 +426,25 @@ KLIBS:=
 DEFINE_TARGETS_EVAL_NAME := DEFINE_C_TARGETS_EVAL
 MAKE_CONTINUE_EVAL_NAME  := MAKE_C_EVAL
 endef
+ifeq (5,$(words $(filter \
+  simple,$(flavor RESET_OS_CVARS) $(flavor BLD_TARGETS) $(flavor PRODUCT_VER) $(flavor PREDEFINES) $(flavor DEFINCLUDE))))
+PREPARE_C_VARS := $(PREPARE_C_VARS)
+endif
+endif
 
 # reset build targets, target-specific variables and variables modifiable in target makefiles
 # then define bin/lib/obj/... dirs
 # NOTE: expanded by $(MTOP)/c.mk
-MAKE_C_EVAL = $(eval $(PREPARE_C_VARS)$(DEF_HEAD_CODE))
+MAKE_C_EVAL ?= $(eval $(PREPARE_C_VARS)$(DEF_HEAD_CODE))
 
 # protect variables from modifications in target makefiles
 $(call CLEAN_BUILD_PROTECT_VARS,BLD_TARGETS OSTYPE_$(OSTYPE) OSVARIANT_$(OSVARIANT) LIB_VAR_SUFFIX \
-  DEFINCLUDE PREDEFINES OS_PREDEFINES APPDEFS OS_APPDEFS KRNDEFS OS_KRNDEFS PRODUCT_VER DEBUG_C_TARGETS VARIANTS_FILTER \
+  DEFINCLUDE PREDEFINES OS_PREDEFINES APPDEFS OS_APPDEFS KRNDEFS OS_KRNDEFS PRODUCT_VER VARIANTS_FILTER \
   OSVARIANT OSTYPE OSVAR OSVARS OBJ_RULE OBJ_RULES DLL_SUFFIX_GEN DLL_VAR_SUFFIX FORM_TRG OS_FORM_TRG DLL_DIR IMP_DIR \
   EXE_SUFFIX OBJ_SUFFIX LIB_PREFIX LIB_SUFFIX IMP_PREFIX IMP_SUFFIX DLL_PREFIX DLL_SUFFIX KLIB_PREFIX KLIB_SUFFIX DRV_PREFIX DRV_SUFFIX \
   SUBST_DEFINES STRING_DEFINE TRG_INCLUDE GET_SOURCES TRG_SRC TRG_SDEPS GET_OBJS DEP_LIB_SUFFIX DEP_IMP_SUFFIX \
   VARIANT_LIB_MAP VARIANT_IMP_MAP MAKE_DEP_LIBS MAKE_DEP_IMPS DEP_LIBS DEP_IMPS \
-  TRG_RULES2 TRG_RULES1 TRG_RULES EXE_TEMPLATE LIB_TEMPLATE DLL_TEMPLATE KLIB_TEMPLATE DRV_TEMPLATE \
+  C_RULES2 C_RULES1 C_RULES EXE_TEMPLATE LIB_TEMPLATE DLL_TEMPLATE KLIB_TEMPLATE DRV_TEMPLATE \
   CC_COLOR CXX_COLOR AR_COLOR LD_COLOR XLD_COLOR ASM_COLOR \
   KCC_COLOR KLD_COLOR TCC_COLOR TCXX_COLOR TLD_COLOR TAR_COLOR CHECK_C_RULES PROJECT_USE_DIR \
   OS_DEFINE_TARGETS DEFINE_C_TARGETS_EVAL PREPARE_C_VARS RESET_OS_CVARS MAKE_C_EVAL)
