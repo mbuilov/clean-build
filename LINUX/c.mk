@@ -6,14 +6,23 @@
 
 OSTYPE := UNIX
 
+# INST_RPATH - location where external dependency libraries are installed: /opt/lib or $ORIGIN/../lib
+ifeq (undefined,$(origin INST_RPATH))
+INST_RPATH:=
+endif
+
 # reset additional variables
-# $(INST_RPATH) - location where external dependency libraries are installed: /opt/lib or $ORIGIN/../lib
 # RPATH - runtime path of external dependencies
 # MAP   - linker map file (used mostly to list exported symbols)
 define RESET_OS_CVARS
 RPATH := $(INST_RPATH)
 MAP:=
 endef
+
+# make RESET_OS_CVARS variable non-recursive (simple)
+ifeq (simple,$(flavor INST_RPATH))
+RESET_OS_CVARS := $(RESET_OS_CVARS)
+endif
 
 ifneq ($(filter default undefined,$(origin CC)),)
 CC := gcc -m$(if $(UCPU:%64=),32,64)
@@ -411,7 +420,7 @@ endef
 # $t - EXE,LIB,DLL,KLIB
 # note: must reset target-specific WITH_PCH if not using precompiled header,
 # otherwise DLL or LIB target may inherit WITH_PCH value from EXE, LIB target may inherit WITH_PCH value from DLL
-PCH_TEMPLATE = $(if $(word 2,$(PCH) $(firstword $(WITH_PCH))),$(foreach \
+PCH_TEMPLATE ?= $(if $(word 2,$(PCH) $(firstword $(WITH_PCH))),$(foreach \
   v,$(call GET_VARIANTS,$t),$(newline)$(call PCH_TEMPLATE1,$(call FORM_OBJ_DIR,$t,$v),$(call \
   FORM_TRG,$t,$v))),$(foreach v,$(call GET_VARIANTS,$t),$(call FORM_TRG,$t,$v): WITH_PCH:=$(newline)))
 
@@ -430,7 +439,7 @@ endef
 # $1 - EXE,LIB,DLL,...
 # $2 - sources
 ADD_WITH_PCH1 = $(foreach v,$(call GET_VARIANTS,$1),$(call ADD_WITH_PCH2,$2,$3,$4,$(call FORM_OBJ_DIR,$1,$v)))
-ADD_WITH_PCH = $(eval WITH_PCH += $2$(call \
+ADD_WITH_PCH ?= $(eval WITH_PCH += $2$(call \
   ADD_WITH_PCH1,$1,$(filter %.c,$2),$(filter %.cpp,$2),$(basename $(notdir $(PCH)))))
 
 endif # NO_PCH
@@ -462,10 +471,12 @@ MOD_AUX_TEMPLATE1 = $(foreach v,$(call GET_VARIANTS,$t),$(call $t_AUX_TEMPLATE2,
 MOD_AUX_TEMPLATE = $(call MOD_AUX_TEMPLATE1,$(call FIXPATH,$(MAP)))
 
 # this code is evaluated from $(DEFINE_TARGETS)
+ifndef OS_DEFINE_TARGETS
 define OS_DEFINE_TARGETS
 $(foreach t,EXE LIB DLL KLIB,$(if $($t),$(PCH_TEMPLATE)))
 $(foreach t,EXE DLL,$(if $($t),$(MOD_AUX_TEMPLATE)))
 endef
+endif
 
 # $1 - destination directory
 # $2 - file
@@ -499,7 +510,7 @@ $1: $4/$(DRV_PREFIX)$(DRV)$(DRV_SUFFIX)
 	$$(call SUP,CP,$$@)cp -f$(if $(VERBOSE),v) $$< $$@
 endef
 
-# how to build driver, used by $(TRG_RULES)
+# how to build driver, used by $(C_RULES)
 # $1 - target file: $(call FORM_TRG,$t,$v)
 # $2 - sources:     $(TRG_SRC)
 # $3 - sdeps:       $(TRG_SDEPS)
@@ -507,12 +518,14 @@ endef
 # $5 - objects:     $(addprefix $4/,$(call GET_OBJS,$2))
 # $t - DRV
 # $v - R
+ifndef DRV_TEMPLATE
 define DRV_TEMPLATE
 $(STD_TARGET_VARS)
 NEEDED_DIRS += $4
 $(call DRV_TEMPLATE1,$1,$2,$3,$4,$(addprefix $(KLIB_PREFIX),$(KLIBS:=$(KLIB_SUFFIX))))
 $(call TOCLEAN,$4)
 endef
+endif
 
 # protect variables from modifications in target makefiles
 $(call CLEAN_BUILD_PROTECT_VARS,CC CXX MODULES_PATH LD AR TCC TCXX TLD TAR KCC KLD KMAKE YASMC FLEXC BISONC \
