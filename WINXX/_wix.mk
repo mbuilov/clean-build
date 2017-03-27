@@ -37,31 +37,27 @@ endif
 # $1 - .wixobj
 # $2 - .wxs
 # target-specific: WINCLUDE
-WIXOBJ_CL = $(call SUP,CANDLE,$2)$(WIX_CANDLE) -nologo$(if $(VERBOSE), -v) $(call \
+WIXOBJ_CL ?= $(call SUP,CANDLE,$2)$(WIX_CANDLE) -nologo$(if $(VERBOSE), -v) $(call \
   qpath,$(WEXTS),-ext ) $(call ospath,$2) $(call qpath,$(call ospath,$(WINCLUDE)),-I) -out $(ospath) >&2
 
 # build installer .msi file
 # $1 - target .msi
 # $2 - objects .wxsobj
 # target-specific: WEXTS
-MSI_LD = $(call SUP,LIGHT,$1)$(WIX_LIGHT) -nologo$(if $(VERBOSE), -v) $(call \
+MSI_LD ?= $(call SUP,LIGHT,$1)$(WIX_LIGHT) -nologo$(if $(VERBOSE), -v) $(call \
   qpath,$(WEXTS),-ext ) $(call ospath,$2) -out $(ospath) >&2
 
 # build installer .exe file
-INSTALLER_LD = $(MSI_LD)
-
-# define code to print debug info about built targets
-# note: GET_DEBUG_TARGETS - defined in $(MTOP)/defs.mk
-DEBUG_WIX_TARGETS := $(call GET_DEBUG_TARGETS,$(BLD_WIX_TARGETS),FORM_WIX_TRG)
+INSTALLER_LD ?= $(MSI_LD)
 
 # make target filename, $1 - MSI,INSTALLER
-FORM_WIX_TRG = $(if \
-               $(filter MSI,$1),$(BIN_DIR)/$($1).msi,$(if \
-               $(filter INSTALLER,$1),$(BIN_DIR)/$($1).exe))
+FORM_WIX_TRG ?= $(if \
+  $(filter MSI,$1),$(BIN_DIR)/$($1).msi,$(if \
+  $(filter INSTALLER,$1),$(BIN_DIR)/$($1).exe))
 
 # objects to build for the target
 # $1 - .wxs sources to compile
-WIX_OBJS = $(addsuffix .wixobj,$(basename $(notdir $1)))
+WIX_OBJS ?= $(addsuffix .wixobj,$(basename $(notdir $1)))
 
 # rule that defines how to build wix object from .wxs source
 # $1 - source to compile
@@ -78,7 +74,7 @@ endef
 # $1 - .wxs sources to compile
 # $2 - sdeps
 # $3 - $(call FORM_OBJ_DIR,INSTALLER)
-WIX_OBJ_RULES = $(foreach x,$1,$(call WIX_OBJ_RULE,$x,$2,$3,$(basename $(notdir $x))))
+WIX_OBJ_RULES ?= $(foreach x,$1,$(call WIX_OBJ_RULE,$x,$2,$3,$(basename $(notdir $x))))
 
 # $1 - what to build: MSI, INSTALLER
 # $2 - target file: $(call FORM_WIX_TRG,$1)
@@ -87,6 +83,7 @@ WIX_OBJ_RULES = $(foreach x,$1,$(call WIX_OBJ_RULE,$x,$2,$3,$(basename $(notdir 
 # $5 - objdir:      $(call FORM_OBJ_DIR,$1)
 # $6 - objects:     $(addprefix $5/,$(call WIX_OBJS,$3))
 # note: calls either MSI_LD or INSTALLER_LD
+ifndef WIX_TEMPLATE
 define WIX_TEMPLATE
 $(call STD_TARGET_VARS,$2)
 NEEDED_DIRS += $5
@@ -97,22 +94,26 @@ $2: $6
 	$$(call $1_LD,$$@,$$(filter %.wixobj,$$^))
 $(call TOCLEAN,$6 $(basename $2).wixpdb)
 endef
+endif
 
 # how to build installer msi or exe
 WIX_RULES1 = $(call WIX_TEMPLATE,$1,$2,$3,$4,$5,$(addprefix $5/,$(call WIX_OBJS,$3)))
-WIX_RULES = $(call WIX_RULES1,$1,$(call FORM_WIX_TRG,$1),$(call FIXPATH,$(WXS)),$(call FIX_SDEPS,$(WDEPS)),$(call FORM_OBJ_DIR,$1))
+WIX_RULES ?= $(call WIX_RULES1,$1,$(call FORM_WIX_TRG,$1),$(call FIXPATH,$(WXS)),$(call FIX_SDEPS,$(WDEPS)),$(call FORM_OBJ_DIR,$1))
 
-MSI_RULES = $(if $(MSI),$(call WIX_RULES,MSI))
-INSTALLER_RULES = $(if $(INSTALLER),$(call WIX_RULES,INSTALLER))
+MSI_RULES ?= $(if $(MSI),$(call WIX_RULES,MSI))
+INSTALLER_RULES ?= $(if $(INSTALLER),$(call WIX_RULES,INSTALLER))
 
 # this code is normally evaluated at end of target makefile
+ifndef DEFINE_WIX_TARGETS_EVAL
 define DEFINE_WIX_TARGETS_EVAL
-$(if $(MDEBUG),$(eval $(DEBUG_WIX_TARGETS)))
+$(if $(MDEBUG),$(eval $(call DEBUG_TARGETS,$(BLD_WIX_TARGETS),FORM_WIX_TRG)))
 $(eval $(MSI_RULES)$(INSTALLER_RULES))
 $(DEF_TAIL_CODE_EVAL)
 endef
+endif
 
 # code to be called at beginning of target makefile
+ifndef PREPARE_WIX_VARS
 define PREPARE_WIX_VARS
 $(foreach x,$(BLD_WIX_TARGETS),$(newline)$x:=)
 WXS:=
@@ -122,13 +123,16 @@ WINCLUDE:=
 DEFINE_TARGETS_EVAL_NAME := DEFINE_WIX_TARGETS_EVAL
 MAKE_CONTINUE_EVAL_NAME  := MAKE_WIX_EVAL
 endef
+ifeq (simple,$(flavor BLD_WIX_TARGETS))
 PREPARE_WIX_VARS := $(PREPARE_WIX_VARS)
+endif
+endif
 
 # reset build targets, target-specific variables and variables modifiable in target makefiles
 # then define bin/lib/obj/... dirs
-MAKE_WIX_EVAL = $(eval $(PREPARE_WIX_VARS)$(DEF_HEAD_CODE))
+MAKE_WIX_EVAL ?= $(eval $(PREPARE_WIX_VARS)$(DEF_HEAD_CODE))
 
 # protect variables from modifications in target makefiles
 $(call CLEAN_BUILD_PROTECT_VARS,WIX_MK_INCLUDED WIX WIXN BLD_WIX_TARGETS WIX_CANDLE WIX_LIGHT WIX_EXTS_DIR \
-  WIXOBJ_CL MSI_LD INSTALLER_LD DEBUG_WIX_TARGETS FORM_WIX_TRG WIX_OBJS WIX_OBJ_RULE WIX_OBJ_RULES WIX_TEMPLATE \
+  WIXOBJ_CL MSI_LD INSTALLER_LD FORM_WIX_TRG WIX_OBJS WIX_OBJ_RULE WIX_OBJ_RULES WIX_TEMPLATE \
   WIX_RULES1 WIX_RULES MSI_RULES INSTALLER_RULES DEFINE_WIX_TARGETS_EVAL PREPARE_WIX_VARS MAKE_WIX_EVAL)
