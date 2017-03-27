@@ -259,12 +259,15 @@ endif # !SUP
 endif # !distclean && !clean
 
 # tools colors
+# if GEN_COLOR is defined, other tools colors must also be defined
+ifndef GEN_COLOR
 GEN_COLOR   := [01;32m
 MGEN_COLOR  := [01;32m
 CP_COLOR    := [00;36m
 LN_COLOR    := [00;36m
 MKDIR_COLOR := [00;36m
 TOUCH_COLOR := [00;36m
+endif
 
 # print in color short name of called tool $1 with argument $2
 ifdef TERM_NO_COLOR
@@ -341,7 +344,7 @@ endif
 # where tools are built
 # $1 - TOOL_BASE
 # $2 - TCPU
-MK_TOOLS_DIR = $1/TOOL-$2-$(TARGET)/bin
+MK_TOOLS_DIR ?= $1/TOOL-$2-$(TARGET)/bin
 
 # call with
 # $1 - TOOL_BASE
@@ -395,7 +398,7 @@ endef
 
 # standard target-specific variables
 # $1 - generated file(s) (absolute paths)
-STD_TARGET_VARS = $(call STD_TARGET_VARS1,$1,$(patsubst %/,%,$(sort $(dir $1))))
+STD_TARGET_VARS ?= $(call STD_TARGET_VARS1,$1,$(patsubst %/,%,$(sort $(dir $1))))
 
 # compute values of next variables right after +=, not at call time:
 # CLEAN          - files/directories list to delete on $(MAKE) clean
@@ -424,7 +427,7 @@ ADDVPREFIX = $(foreach x,$1,$(if $(call isrelpath,$x),$(VPREFIX))$x)
 
 # add $(VPREFIX) (path to directory of currently executing makefile relative to $(CURDIR)) value to non-absolute paths
 # then make absolute paths - we need absolute paths to sources to apply generated dependencies in .d files
-FIXPATH = $(abspath $(ADDVPREFIX))
+FIXPATH ?= $(abspath $(ADDVPREFIX))
 
 # list of all processed makefiles names
 # note: PROCESSED_MAKEFILES is never cleared, only appended
@@ -434,10 +437,10 @@ PROCESSED_MAKEFILES:=
 ifdef MDEBUG
 
 # info about which makefile is expanded now and order dependencies for it
-MAKEFILE_DEBUG_INFO = $(subst $(space),,$(foreach x,$(CB_INCLUDE_LEVEL),.))$(CURRENT_MAKEFILE)$(if $(ORDER_DEPS), | $(ORDER_DEPS:-=))
+MAKEFILE_DEBUG_INFO ?= $(subst $(space),,$(foreach x,$(CB_INCLUDE_LEVEL),.))$(CURRENT_MAKEFILE)$(if $(ORDER_DEPS), | $(ORDER_DEPS:-=))
 
 # note: show debug info only if $1 does not contains @ (used by $(MTOP)/parallel.mk)
-DEF_TAIL_CODE_DEBUG = $(if $(filter @,$1),,$$(info $(MAKEFILE_DEBUG_INFO)))
+DEF_TAIL_CODE_DEBUG ?= $(if $(filter @,$1),,$$(info $(MAKEFILE_DEBUG_INFO)))
 
 endif # MDEBUG
 
@@ -452,6 +455,7 @@ endif # MDEBUG
 # NOTE: $(MTOP)/defs.mk may be included before $(MTOP)/parallel.mk,
 #  to not execute $(DEF_HEAD_CODE) second time in $(MTOP)/parallel.mk, define DEF_HEAD_CODE_PROCESSED variable
 # NOTE: add $(empty) as first line of $(DEF_HEAD_CODE) - to allow to join it and eval: $(eval $(MY_CODE)$(DEF_HEAD_CODE))
+ifndef DEF_HEAD_CODE
 define DEF_HEAD_CODE
 $(empty)
 $(CLEAN_BUILD_CHECK_AT_HEAD)
@@ -462,10 +466,11 @@ CB_TOOL_MODE := $(if $(TOOL_MODE),T)
 $(if $(TOOL_MODE),$(TOOL_OVERRIDE_DIRS),$(SET_DEFAULT_DIRS))
 DEF_HEAD_CODE_PROCESSED := 1
 endef
+endif
 
 # expand this macro to evaluate default head code
 # note: by default it expanded at start of next $(MAKE_CONTINUE) round
-DEF_HEAD_CODE_EVAL = $(eval $(DEF_HEAD_CODE))
+DEF_HEAD_CODE_EVAL ?= $(eval $(DEF_HEAD_CODE))
 
 # code to $(eval) at end of each makefile
 # include $(MTOP)/all.mk only if $(CB_INCLUDE_LEVEL) is empty and will not call $(MAKE_CONTINUE)
@@ -473,15 +478,17 @@ DEF_HEAD_CODE_EVAL = $(eval $(DEF_HEAD_CODE))
 # note: $(MAKE_CONTINUE) before expanding $(DEF_TAIL_CODE) adds 2 to $(MAKE_CONT) list
 # note: $(MTOP)/parallel.mk executes $(eval $(call DEF_TAIL_CODE,@)) to not show debug info second time in $(DEF_TAIL_CODE_DEBUG)
 # note: reset DEF_HEAD_CODE_PROCESSED value - to allow to evaluate $(DEF_HEAD_CODE_EVAL) in next included $(MTOP)/parallel.mk
+ifndef DEF_TAIL_CODE
 define DEF_TAIL_CODE
 $(CLEAN_BUILD_CHECK_AT_TAIL)
 $(DEF_TAIL_CODE_DEBUG)
 $(if $(CB_INCLUDE_LEVEL)$(filter 2,$(MAKE_CONT)),,include $(MTOP)/all.mk)
 DEF_HEAD_CODE_PROCESSED:=
 endef
+endif
 
 # expand this macro to evaluate default tail code
-DEF_TAIL_CODE_EVAL = $(eval $(DEF_TAIL_CODE))
+DEF_TAIL_CODE_EVAL ?= $(eval $(DEF_TAIL_CODE))
 
 # get target variants list or default variant R
 # $1 - EXE,LIB,...
@@ -507,14 +514,9 @@ ifdef MDEBUG
 # $1 - targets to build (EXE,LIB,DLL,...)
 # $2 - function to form target file name (FORM_TRG), must be defined at time of $(eval)
 # $3 - variants filter function (VARIANTS_FILTER by default), must be defined at time of $(eval)
-# $t - EXE,LIB,DLL...
-define DEBUG_TARGETS1
-ifneq ($$($t),)
-$$(foreach v,$$(call GET_VARIANTS,$t,$3),$$(info $$(if $$(CB_TOOL_MODE),[TOOL]: )$t $$(subst \
-  R ,,$$v )= $$(call GET_TARGET_NAME,$t) '$$(patsubst $(TOP)/%,%,$$(call $2,$t,$$v))'))
-endif
-endef
-GET_DEBUG_TARGETS = $(foreach t,$1,$(newline)$(DEBUG_TARGETS1))
+DEBUG_TARGETS ?= $(foreach t,$1,$(if $($t),$(newline)$(foreach \
+  v,$(call GET_VARIANTS,$t,$3),$(info $(if $(CB_TOOL_MODE),[TOOL]: )$t $(subst \
+  R ,,$v )= $(call GET_TARGET_NAME,$t) '$(patsubst $(TOP)/%,%,$(call $2,$t,$v))'))))
 
 endif # MDEBUG
 
@@ -522,17 +524,19 @@ endif # MDEBUG
 # $1 - target to build (EXE,LIB,DLL,...)
 # $2 - target variant (may be empty for default variant)
 # add target-specific suffix(_EXE,_LIB,_DLL,...) to distinguish objects for the targets with equal names
-FORM_OBJ_DIR = $(OBJ_DIR)/$(GET_TARGET_NAME)$(if $(filter-out R,$2),_$2)_$1
+FORM_OBJ_DIR ?= $(OBJ_DIR)/$(GET_TARGET_NAME)$(if $(filter-out R,$2),_$2)_$1
 
 ifdef MCHECK
 
 # check that files $1 are generated in $(GEN_DIR), $(BIN_DIR), $(OBJ_DIR) or $(LIB_DIR)
+ifndef CHECK_GENERATED
 define CHECK_GENERATED
 ifneq ($(filter-out $(GEN_DIR)/% $(BIN_DIR)/% $(OBJ_DIR)/% $(LIB_DIR)/%,$1),)
 $$(error some files are generated not under $$(GEN_DIR), $$(BIN_DIR), $$(OBJ_DIR) or $$(LIB_DIR): $(filter-out \
   $(GEN_DIR)/% $(BIN_DIR)/% $(OBJ_DIR)/% $(LIB_DIR)/%,$1))
 endif
 endef
+endif
 
 endif # MCHECK
 
@@ -568,7 +572,7 @@ ifdef MCHECK
 # NOTE: must not use $@ in rule because it may have different values (any target from multi-targets list),
 #       must not use $(lastword $^) - tail of list of prerequisites may have different values (because of different $@)
 # $3 - rule
-MULTI_TARGET_CHECK = $(if \
+MULTI_TARGET_CHECK ?= $(if \
   $(filter-out $(words x$3x),$(words x$(subst $$@, ,$3)x)),$(warning \
    do not use $$@ in rule:$(newline)$3))$(if \
   $(filter-out $(words x$(strip $3)x),$(words x$(subst $$(lastword $$^), 1 ,$(strip $3))x)),$(warning \
@@ -587,7 +591,7 @@ MULTI_TARGET_SEQ = $(subst ||,| ,$(subst $(space),$(newline),$(filter-out \
 # $3 - rule
 # note: directories for generated files will be auto-created
 # note: rule must update all targets
-MULTI_TARGET = $(MULTI_TARGET_CHECK)$(eval $(MULTI_TARGET_SEQ)$(call MULTI_TARGET_RULE,$1,$2,$3,$(words $(MULTI_TARGET_NUM))))
+MULTI_TARGET ?= $(MULTI_TARGET_CHECK)$(eval $(MULTI_TARGET_SEQ)$(call MULTI_TARGET_RULE,$1,$2,$3,$(words $(MULTI_TARGET_NUM))))
 
 # $(DEFINE_TARGETS_EVAL_NAME) - contains name of macro that when expanded
 # evaluates code to define targets (at least, by evaluating $(DEF_TAIL_CODE))
@@ -597,11 +601,11 @@ DEFINE_TARGETS_EVAL_NAME := DEF_TAIL_CODE_EVAL
 # evaluate code in $($(DEFINE_TARGETS_EVAL_NAME)) only once, then reset DEFINE_TARGETS_EVAL to DEF_TAIL_CODE_EVAL
 # note: surround $($(DEFINE_TARGETS_EVAL_NAME)) with fake $(if ...) to suppress any text output
 # - $(DEFINE_TARGETS) must not expand to any text - to allow calling it via just $(DEFINE_TARGETS) in target makefile
-DEFINE_TARGETS = $(if $($(DEFINE_TARGETS_EVAL_NAME))$(eval DEFINE_TARGETS_EVAL_NAME:=DEF_TAIL_CODE_EVAL),)
+DEFINE_TARGETS ?= $(if $($(DEFINE_TARGETS_EVAL_NAME))$(eval DEFINE_TARGETS_EVAL_NAME:=DEF_TAIL_CODE_EVAL),)
 
 # may be used to save vars before $(MAKE_CONTINUE) and restore after
-SAVE_VARS = $(eval $(foreach v,$1,$v_=$(if $(filter simple,$(flavor $v)),:=$(subst $$,$$$$,$(value $v)),=$(value $v))$(newline)))
-RESTORE_VARS = $(eval $(foreach v,$1,$v$(value $v_)$(newline)))
+SAVE_VARS ?= $(eval $(foreach v,$1,$v_=$(if $(filter simple,$(flavor $v)),:=$(subst $$,$$$$,$(value $v)),=$(value $v))$(newline)))
+RESTORE_VARS ?= $(eval $(foreach v,$1,$v$(value $v_)$(newline)))
 
 # $(MAKE_CONTINUE_EVAL_NAME) - contains name of macro that when expanded evaluates code to prepare (at least, by evaluating $(DEF_HEAD_CODE))
 MAKE_CONTINUE_EVAL_NAME := DEF_HEAD_CODE_EVAL
@@ -631,20 +635,20 @@ endef
 
 # note: surround $(MAKE_CONTINUE) with fake $(if...) to suppress any text output
 # - to be able to call it with just $(MAKE_CONTINUE) in target makefile
-MAKE_CONTINUE = $(if $(if $1,$(SAVE_VARS))$(MAKE_CONTINUE_BODY_EVAL)$(if $1,$(RESTORE_VARS)),)
+MAKE_CONTINUE ?= $(if $(if $1,$(SAVE_VARS))$(MAKE_CONTINUE_BODY_EVAL)$(if $1,$(RESTORE_VARS)),)
 
 # helper macro: make SDEPS list
 # example: $(call FORM_SDEPS,src1 src2,dep1 dep2 dep3) -> src1|dep1|dep2|dep3 src2|dep1|dep2|dep3
-FORM_SDEPS = $(addsuffix |$(call join_with,$2,|),$1)
+FORM_SDEPS ?= $(addsuffix |$(call join_with,$2,|),$1)
 
 # get dependencies for source files
 # $1 - source files
 # $2 - sdeps list: <source file1>|<dependency1>|<dependency2>|... <source file2>|<dependency1>|<dependency2>|...
-EXTRACT_SDEPS = $(foreach d,$(filter $(addsuffix |%,$1),$2),$(wordlist 2,999999,$(subst |, ,$d)))
+EXTRACT_SDEPS ?= $(foreach d,$(filter $(addsuffix |%,$1),$2),$(wordlist 2,999999,$(subst |, ,$d)))
 
 # fix sdeps paths: add $(VPREFIX) value to non-absolute paths then make absolute paths
 # $1 - sdeps list: <source file1>|<dependency1>|<dependency2>|... <source file2>|<dependency1>|<dependency2>|...
-FIX_SDEPS = $(subst | ,|,$(call FIXPATH,$(subst |,| ,$1)))
+FIX_SDEPS ?= $(subst | ,|,$(call FIXPATH,$(subst |,| ,$1)))
 
 # protect variables from modifications in target makefiles
 CLEAN_BUILD_PROTECTED_VARS += MTOP MAKEFLAGS NO_DEPS DEBUG PROJECT \
@@ -657,6 +661,6 @@ CLEAN_BUILD_PROTECTED_VARS += MTOP MAKEFLAGS NO_DEPS DEBUG PROJECT \
   TOOL_BASE MK_TOOLS_DIR GET_TOOLS GET_TOOL TOOLS_DIR TOOL_OVERRIDE_DIRS \
   FIX_ORDER_DEPS STD_TARGET_VARS1 STD_TARGET_VARS TOCLEAN GET_VPREFIX ADDVPREFIX FIXPATH MAKEFILE_DEBUG_INFO \
   DEF_TAIL_CODE_DEBUG DEF_HEAD_CODE DEF_HEAD_CODE_EVAL DEF_TAIL_CODE DEF_TAIL_CODE_EVAL \
-  FILTER_VARIANTS_LIST GET_VARIANTS GET_TARGET_NAME DEBUG_TARGETS1 GET_DEBUG_TARGETS FORM_OBJ_DIR \
+  FILTER_VARIANTS_LIST GET_VARIANTS GET_TARGET_NAME DEBUG_TARGETS FORM_OBJ_DIR \
   CHECK_GENERATED ADD_GENERATED MULTI_TARGET_RULE MULTI_TARGET_CHECK MULTI_TARGET_SEQ MULTI_TARGET \
   DEFINE_TARGETS SAVE_VARS RESTORE_VARS MAKE_CONTINUE_BODY_EVAL MAKE_CONTINUE FORM_SDEPS EXTRACT_SDEPS FIX_SDEPS
