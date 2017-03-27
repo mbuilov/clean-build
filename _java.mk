@@ -22,37 +22,34 @@ BLD_JTARGETS := JAR
 
 include $(MTOP)/$(OS)/java.mk
 
-# define code to print debug info about built targets
-DEBUG_JAVA_TARGETS := $(call GET_DEBUG_TARGETS,$(BLD_JTARGETS),FORM_JTRG)
-
 # make target filename, $1 - JAR
 # note: $(JAREXT) - either .jar or .war
-FORM_JTRG = $(if \
-            $(filter JAR,$1),$(BIN_DIR)/$($1)$(JAREXT))
+FORM_JTRG ?= $(if \
+  $(filter JAR,$1),$(BIN_DIR)/$($1)$(JAREXT))
 
 # form $(BUNDLES) or $(BUNDLE_FILES) list
 # $1 - root directory
 # $2 - files in root directory
-FORM_BUNDLES = $(call FIXPATH,$1)|$(subst $(space),|,$2)
+FORM_BUNDLES ?= $(call FIXPATH,$1)|$(subst $(space),|,$2)
 
 # form options for $(JARC)
 # $1 - list of bundles to add to the .jar formed by FORM_BUNDLES
 # dir1|name11|name12 dir2|name21|name22|... -> -C dir1 name11 -C dir1 name12 -C dir2 name21 -C dir2 name22...
 JAR_BUNDLES_OPTIONS1 = $(addprefix $(call qpath,$(firstword $1),-C ) ,$(wordlist 2,999999,$1))
-JAR_BUNDLES_OPTIONS = $(foreach x,$1,$(call JAR_BUNDLES_OPTIONS1,$(call ospath,$(subst |, ,$x))))
+JAR_BUNDLES_OPTIONS ?= $(foreach x,$1,$(call JAR_BUNDLES_OPTIONS1,$(call ospath,$(subst |, ,$x))))
 
 # make jar dependencies from bundle files
 # $1 - list of files formed by FORM_BUNDLES
 # dir1|name11|name12 dir2|name21|name22|... -> dir1/name11 dir1/name12 dir2/name21 dir2/name22...
 MAKE_BUNDLE_DEPS1 = $(addprefix $(firstword $1)/,$(wordlist 2,999999,$1))
-MAKE_BUNDLE_DEPS = $(foreach x,$1,$(call MAKE_BUNDLE_DEPS1,$(subst |, ,$x)))
+MAKE_BUNDLE_DEPS ?= $(foreach x,$1,$(call MAKE_BUNDLE_DEPS1,$(subst |, ,$x)))
 
 # directory name java classes are compiled to
 JCLS_DIR := cls
 
 # $1 - entries for classpath list
 # note: $(PATHSEP) - either ; (windows) or : (unix)
-FORM_CLASS_PATH = -classpath $(call qpath,$(subst $(space),$(PATHSEP),$(strip $(ospath))))
+FORM_CLASS_PATH ?= -classpath $(call qpath,$(subst $(space),$(PATHSEP),$(strip $(ospath))))
 
 ifeq (undefined,$(origin JAVAC_OPTIONS))
 JAVAC_OPTIONS := $(if $(JLINT),-Xlint)$(if $(DEBUG), -g) -encoding utf8
@@ -70,7 +67,7 @@ endif
 # $1 - sources
 # $2 - args file name
 CREATE_JARGS_FILE1 = $(if $(VERBOSE),,@)$(call ECHO_LINE,$1) >> $2
-CREATE_JARGS_FILE = $(call DEL,$2)$(newline)$(call \
+CREATE_JARGS_FILE ?= $(call DEL,$2)$(newline)$(call \
   xcmd,CREATE_JARGS_FILE1,$1,$(ARGS_FILE_SOURCES_PER_LINE),$2)$(newline)$(if $(VERBOSE),,@)
 
 # $1 - .java sources
@@ -83,7 +80,7 @@ JAVA_CC2 = $(if $2,$(call CREATE_JARGS_FILE,$1,$(JOBJDIR)/java.txt)) \
 
 # compile $1 - .java sources
 JAVA_CC1 = $(call SUP,JAVAC,$1)$(call JAVA_CC2,$(ospath),$(word $(ARGS_FILE_SOURCES_PER_LINE),$1))
-JAVA_CC  = $(if $1,$(JAVA_CC1))
+JAVA_CC ?= $(if $1,$(JAVA_CC1))
 
 # $1 - .scala + .java sources
 # $2 - $(word $(ARGS_FILE_SOURCES_PER_LINE),$1)
@@ -95,7 +92,7 @@ SCALA_CC2 = $(if $2,$(call CREATE_JARGS_FILE,$1,$(JOBJDIR)/scala.txt)) \
 # compile $1 - .scala
 # note: $2 - .java sources only parsed by scala compiler - it does not compiles .java sources
 SCALA_CC1 = $(call SUP,SCALAC,$1)$(call SCALA_CC2,$(call ospath,$2),$(word $(ARGS_FILE_SOURCES_PER_LINE),$2))
-SCALA_CC  = $(if $1,$(if $(SCALAC),$(call SCALA_CC1,$1,$1 $2),$(error \
+SCALA_CC ?= $(if $1,$(if $(SCALAC),$(call SCALA_CC1,$1,$1 $2),$(error \
   SCALAC not defined, example: $$(JAVA) $$(call FORM_CLASS_PATH,scala-compiler-2.11.6.jar) scala.tools.nsc.Main)))
 
 # $1 - .jar target
@@ -109,7 +106,7 @@ JAR_LD1 = $(call SUP,JAR,$1)$(if $2,$(call CREATE_JARGS_FILE,$(ALL_BUNDLES),$(JO
 # note: always rebuild all sources if any of $(JARS), $(EXTJARS), $(JSRC), $(SCALA) or $(JSCALA) is newer than the target jar
 # because $(JARC) do not checks cross-classes dependencies, it just creates .zip
 # target-specific: JARS, EXTJARS, JSRC, SCALA, JSCALA, ALL_BUNDLES
-JAR_LD = $(if $(filter $(JARS) $(EXTJARS) $(JSRC) $(SCALA) $(JSCALA),$?),$(call \
+JAR_LD ?= $(if $(filter $(JARS) $(EXTJARS) $(JSRC) $(SCALA) $(JSCALA),$?),$(call \
   SCALA_CC,$(SCALA),$(JSCALA))$(call JAVA_CC,$(JSRC)))$(call JAR_LD1,$1,$(word $(ARGS_FILE_SOURCES_PER_LINE),$(ALL_BUNDLES)))
 
 # $1 - target jar:              $(call FORM_JTRG,JAR)
@@ -119,6 +116,7 @@ JAR_LD = $(if $(filter $(JARS) $(EXTJARS) $(JSRC) $(SCALA) $(JSCALA),$?),$(call 
 # $5 - manifest:                $(call FIXPATH,$(MANIFEST))
 # $6 - objdir:                  $(call FORM_OBJ_DIR,JAR)
 # $7 - jars:                    $(addprefix $(BIN_DIR)/,$(addsuffix .jar,$(JARS)))
+ifndef JAR_TEMPLATE
 define JAR_TEMPLATE
 $(STD_TARGET_VARS)
 NEEDED_DIRS += $6/$(JCLS_DIR)
@@ -139,29 +137,36 @@ $1: $(EXTJARS) $7 $2 $3 $4 $5 $(call MAKE_BUNDLE_DEPS,$(BUNDLE_FILES)) | $6/$(JC
 	$$(eval $1: COMMANDS := $(subst $$,$$$$,$(JARACTIONS)))$$(COMMANDS)$$(call JAR_LD,$$@)
 $(call TOCLEAN,$6)
 endef
+endif
 
 # how to build .jar library template
 # NOTE: if $(JSCALA) value is empty then it defaults to $(JSRC), to assign nothing to JSCALA use JSCALA = $(empty)
-JAR_RULES = $(if $(JAR),$(call JAR_TEMPLATE,$(call FORM_JTRG,JAR),$(call \
+JAR_RULES ?= $(if $(JAR),$(call JAR_TEMPLATE,$(call FORM_JTRG,JAR),$(call \
   FIXPATH,$(JSRC)),$(call FIXPATH,$(SCALA)),$(call FIXPATH,$(if $(value JSCALA),$(JSCALA),$(JSRC))),$(call \
   FIXPATH,$(MANIFEST)),$(call FORM_OBJ_DIR,JAR),$(addprefix $(BIN_DIR)/,$(addsuffix .jar,$(JARS)))))
 
 # tools colors
+# if JAR_COLOR is defined, other tools colors must also be defined
+ifndef JAR_COLOR
 JAR_COLOR    := [01;33m
 JAVAC_COLOR  := [01;36m
 SCALAC_COLOR := [01;36m
+endif
 
 # this code is normally evaluated at end of target makefile
+ifndef DEFINE_JAVA_TARGETS_EVAL
 define DEFINE_JAVA_TARGETS_EVAL
-$(if $(MDEBUG),$(eval $(DEBUG_JAVA_TARGETS)))
+$(if $(MDEBUG),$(eval $(call DEBUG_TARGETS,$(BLD_JTARGETS),FORM_JTRG)))
 $(eval $(JAR_RULES))
 $(DEF_TAIL_CODE_EVAL)
 endef
+endif
 
 # code to be called at beginning of target makefile
 # note: target jar will depend on $(BUNDLE_FILES)
+ifndef PREPARE_JAVA_VARS
 define PREPARE_JAVA_VARS
-JAR:=
+$(foreach x,$(BLD_JTARGETS),$(newline)$x:=)
 JSRC:=
 SCALA:=
 JSCALA:=
@@ -180,14 +185,18 @@ JAREXT := .jar
 DEFINE_TARGETS_EVAL_NAME := DEFINE_JAVA_TARGETS_EVAL
 MAKE_CONTINUE_EVAL_NAME  := MAKE_JAVA_EVAL
 endef
+ifeq (simple,$(flavor BLD_JTARGETS))
+PREPARE_JAVA_VARS := $(PREPARE_JAVA_VARS)
+endif
+endif
 
 # reset build targets, target-specific variables and variables modifiable in target makefiles
 # then define bin/lib/obj/... dirs
 # NOTE: expanded by $(MTOP)/java.mk
-MAKE_JAVA_EVAL = $(eval $(PREPARE_JAVA_VARS)$(DEF_HEAD_CODE))
+MAKE_JAVA_EVAL ?= $(eval $(PREPARE_JAVA_VARS)$(DEF_HEAD_CODE))
 
 # protect variables from modifications in target makefiles
-$(call CLEAN_BUILD_PROTECT_VARS,JLINT BLD_JTARGETS DEBUG_JAVA_TARGETS \
+$(call CLEAN_BUILD_PROTECT_VARS,JLINT BLD_JTARGETS \
   FORM_JTRG JAR_BUNDLES_OPTIONS1 JAR_BUNDLES_OPTIONS MAKE_BUNDLE_DEPS1 MAKE_BUNDLE_DEPS \
   JCLS_DIR FORM_CLASS_PATH JAVAC_OPTIONS SCALAC_OPTIONS \
   ARGS_FILE_SOURCES_PER_LINE CREATE_JARGS_FILE1 CREATE_JARGS_FILE \
