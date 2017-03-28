@@ -105,20 +105,20 @@ endef
 # $t - EXE,LIB,...
 OBJ_RULES ?= $(foreach x,$2,$(call OBJ_RULE,$1,$x,$3,$4,$4/$(basename $(notdir $x))))
 
-# get target name suffix for DLL,EXE... in case of multiple target variants
-# $1 - DLL,EXE...
+# get target name suffix for EXE,DRV... in case of multiple target variants
+# $1 - EXE,DRV...
 # $2 - target variant S,P,... but not R or <empty>
 # $3 - list of variants of target $1 to build (filtered by target platform specific $(VARIANTS_FILTER))
-DLL_SUFFIX_GEN ?= $(if $(word 2,$3),$(call tolower,$2))
+EXE_SUFFIX_GEN ?= $(if $(word 2,$3),$(call tolower,$2))
 
-# determine target name suffix for DLL,EXE
-# $1 - DLL,EXE...
+# determine target name suffix for EXE,DRV...
+# $1 - EXE,DRV...
 # $2 - target variant R,S,P,<empty>
 # $3 - list of variants of target $1 to build, by default $(wordlist 2,999999,$($1))
 # Note: no suffix if building R-variant
 # Note: variants list $3 may be not filtered by target platform specific $(VARIANTS_FILTER)
-DLL_VAR_SUFFIX ?= $(if $(filter-out R,$2),$(call \
-  DLL_SUFFIX_GEN,$1,$2,$(filter R $(VARIANTS_FILTER),$(if $3,$3,$(wordlist 2,999999,$($1))))))
+EXE_VAR_SUFFIX ?= $(if $(filter-out R,$2),$(call \
+  EXE_SUFFIX_GEN,$1,$2,$(filter R $(VARIANTS_FILTER),$(if $3,$3,$(wordlist 2,999999,$($1))))))
 
 # make target filename
 # $1 - EXE,LIB,...
@@ -126,13 +126,13 @@ DLL_VAR_SUFFIX ?= $(if $(filter-out R,$2),$(call \
 # $3 - variants list, by default $(wordlist 2,999999,$($1))
 # note: gives empty result if $($1) is empty
 # $(OS_FORM_TRG) - $(OS) may define more targets, for example, for DDD:
-#  $(if $(filter DDD,$1),$(addprefix $(BIN_DIR)/$(DDD_PREFIX),$(GET_TARGET_NAME:=$(DLL_VAR_SUFFIX)$(DDD_SUFFIX))))
+#  $(if $(filter DDD,$1),$(addprefix $(BIN_DIR)/$(DDD_PREFIX),$(GET_TARGET_NAME:=$(EXE_VAR_SUFFIX)$(DDD_SUFFIX))))
 FORM_TRG ?= $(if \
-  $(filter EXE,$1),$(addprefix $(BIN_DIR)/,$(GET_TARGET_NAME:=$(DLL_VAR_SUFFIX)$(EXE_SUFFIX))),$(if \
+  $(filter EXE,$1),$(addprefix $(BIN_DIR)/,$(GET_TARGET_NAME:=$(EXE_VAR_SUFFIX)$(EXE_SUFFIX))),$(if \
   $(filter LIB,$1),$(addprefix $(LIB_DIR)/$(LIB_PREFIX),$(GET_TARGET_NAME:=$(call LIB_VAR_SUFFIX,$2)$(LIB_SUFFIX))),$(if \
-  $(filter DLL,$1),$(addprefix $(DLL_DIR)/$(DLL_PREFIX),$(GET_TARGET_NAME:=$(DLL_VAR_SUFFIX)$(DLL_SUFFIX))),$(if \
+  $(filter DLL,$1),$(addprefix $(DLL_DIR)/$(DLL_PREFIX),$(GET_TARGET_NAME:=$(call LIB_VAR_SUFFIX,$2)$(DLL_SUFFIX))),$(if \
   $(filter KLIB,$1),$(addprefix $(LIB_DIR)/$(KLIB_PREFIX),$(GET_TARGET_NAME:=$(call LIB_VAR_SUFFIX,$2)$(KLIB_SUFFIX))),$(if \
-  $(filter DRV,$1),$(addprefix $(BIN_DIR)/$(DRV_PREFIX),$(GET_TARGET_NAME:=$(DLL_VAR_SUFFIX)$(DRV_SUFFIX))),$(OS_FORM_TRG))))))
+  $(filter DRV,$1),$(addprefix $(BIN_DIR)/$(DRV_PREFIX),$(GET_TARGET_NAME:=$(EXE_VAR_SUFFIX)$(DRV_SUFFIX))),$(OS_FORM_TRG))))))
 
 # example how to make target filenames for all variants specified for the target
 # $1 - EXE,LIB,DLL,...
@@ -440,7 +440,7 @@ MAKE_C_EVAL ?= $(eval $(PREPARE_C_VARS)$(DEF_HEAD_CODE))
 # protect variables from modifications in target makefiles
 $(call CLEAN_BUILD_PROTECT_VARS,BLD_TARGETS OSTYPE_$(OSTYPE) OSVARIANT_$(OSVARIANT) LIB_VAR_SUFFIX \
   DEFINCLUDE PREDEFINES OS_PREDEFINES APPDEFS OS_APPDEFS KRNDEFS OS_KRNDEFS PRODUCT_VER VARIANTS_FILTER \
-  OSVARIANT OSTYPE OSVAR OSVARS OBJ_RULE OBJ_RULES DLL_SUFFIX_GEN DLL_VAR_SUFFIX FORM_TRG OS_FORM_TRG DLL_DIR IMP_DIR \
+  OSVARIANT OSTYPE OSVAR OSVARS OBJ_RULE OBJ_RULES EXE_SUFFIX_GEN EXE_VAR_SUFFIX FORM_TRG OS_FORM_TRG DLL_DIR IMP_DIR \
   EXE_SUFFIX OBJ_SUFFIX LIB_PREFIX LIB_SUFFIX IMP_PREFIX IMP_SUFFIX DLL_PREFIX DLL_SUFFIX KLIB_PREFIX KLIB_SUFFIX DRV_PREFIX DRV_SUFFIX \
   SUBST_DEFINES STRING_DEFINE TRG_INCLUDE GET_SOURCES TRG_SRC TRG_SDEPS GET_OBJS DEP_LIB_SUFFIX DEP_IMP_SUFFIX \
   VARIANT_LIB_MAP VARIANT_IMP_MAP MAKE_DEP_LIBS MAKE_DEP_IMPS DEP_LIBS DEP_IMPS \

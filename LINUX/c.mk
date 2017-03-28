@@ -159,12 +159,12 @@ LIB_VAR_SUFFIX ?= $(if \
                   $(filter P,$1),_pie,$(if \
                   $(filter D,$1),_pic))
 
-# for $(DLL_VAR_SUFFIX) from $(MTOP)/c.mk:
-# get target name suffix for DLL,EXE,DRV in case of multiple target variants
-# $1 - DLL,EXE,DRV...
+# for $(EXE_VAR_SUFFIX) from $(MTOP)/c.mk:
+# get target name suffix for EXE,DRV in case of multiple target variants
+# $1 - EXE,DRV
 # $2 - target variant P (not R or <empty>)
 # $3 - list of variants of target $1 to build (filtered by target platform specific $(VARIANTS_FILTER))
-DLL_SUFFIX_GEN ?= $(if $(word 2,$3),_pie)
+EXE_SUFFIX_GEN ?= $(if $(word 2,$3),_pie)
 
 # for $(DEP_LIB_SUFFIX) from $(MTOP)/c.mk:
 # $1 - target: EXE,DLL
