@@ -27,13 +27,13 @@ endif
 ifneq ($(filter default undefined,$(origin CC)),)
 # 64-bit arch: CC="cc -m64"
 # 32-bit arch: CC="cc -m32"
-CC := cc -m$(if $(UCPU:%64=),32,64)
+CC := cc -m$(if $(UCPU:%64=),32,64 -xport64)
 endif
 
 ifneq ($(filter default undefined,$(origin CXX)),)
 # 64-bit arch: CXX="CC -m64"
 # 32-bit arch: CXX="CC -m32"
-CXX := CC -m$(if $(UCPU:%64=),32,64)
+CXX := CC -m$(if $(UCPU:%64=),32,64 -xport64)
 endif
 
 ifneq ($(filter default undefined,$(origin AR)),)
