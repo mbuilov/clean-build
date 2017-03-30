@@ -21,14 +21,16 @@ Main features:
 - support for cross-makefiles dependencies
 - support for cross-compilation
 - builtin support for building targets written on languages: C, C++, Java, Scala, Wix
-- support for C/C++ precompiled headers on LINUX and WINDOWS
-- support for build-time generation of source-header dependencies (for C/C++)
+- support for C/C++ precompiled headers
+- support for build-time generation of source-header file dependencies (for C/C++)
 - support for compiling many-sources-at-once on WINDOWS
-- support for debugging, checking and tracing of target makefiles
+- functions for debugging, checking and tracing of target makefiles
 - predefined patterns for building shared and static libraries, executables, kernel modules and java archives
 - support for custom rules generating multiple target files at one call
-- simple batch-file generation for building from scratch without gnu make: make V=1 > build.bat
-- pretty-printed build log
+- simple batch-file generation for building from scratch without using gnu make: make V=1 > build.bat
+- pretty-printed build log on all supported platforms
+
+Full documentation see on [Wiki](https://github.com/mbuilov/clean-build/wiki) page.
 
 An example build log on Windows:
 
