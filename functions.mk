@@ -23,42 +23,43 @@ comment := $(comment)
 # print result $1 and return $1
 infofn = $(info $1)$1
 
-# dump variables from list $1, prefixing output with optional prefix $2, $3 - optional pre-prefix, example:
+# dump variables
+# $1 - list of variables to dump
+# $2 - optional prefix
+# $3 - optional pre-prefix
 # $(call dump,VAR1,prefix,Q) -> print 'Qdump: prefix: VAR1=xxx'
-dump = $(foreach v,$1,$(info $3dump: $(addsuffix : ,$2)$v$(if $(filter recursive,$(flavor $v)),,:)=$(value $v)))
+dump = $(foreach v,$1,$(info $3dump: $(2:=: )$v$(if $(filter recursive,$(flavor $v)),,:)=$(value $v)))
 
-# trace function call parameters - print function name and parameter values
-# add $(trace_params) as the first statement of traced function body, for example: fun = $(trace_params)fn_body
-trace_params = $(info params: $$($0) {)$(if $1,$(info $$1=$1))$(if $2,$(info $$2=$2))$(if $3,$(info $$3=$3))$(if \
+# dump function arguments
+dump_args = $(if $1,$(info $$1=$1))$(if $2,$(info $$2=$2))$(if $3,$(info $$3=$3))$(if \
   $4,$(info $$4=$4))$(if $5,$(info $$5=$5))$(if $6,$(info $$6=$6))$(if $7,$(info $$7=$7))$(if \
   $8,$(info $$8=$8))$(if $9,$(info $$9=$9))$(if $(10),$(info $$10=$(10)))$(if $(11),$(info $$11=$(11)))$(if \
   $(12),$(info $$12=$(12)))$(if $(13),$(info $$13=$(13)))$(if $(14),$(info $$14=$(14)))$(if \
   $(15),$(info $$15=$(15)))$(if $(16),$(info $$16=$(16)))$(if $(17),$(info $$17=$(17)))$(if \
-  $(18),$(info $$18=$(18)))$(if $(19),$(info $$19=$(19)))$(if $(20),$(info $$20=$(20)))$(info params: } $$($0))
+  $(18),$(info $$18=$(18)))$(if $(19),$(info $$19=$(19)))$(if $(20),$(info $$20=$(20)))
+
+# trace function call parameters - print function name and parameter values
+# - add $(trace_params) as the first statement of traced function body
+# example: fun = $(trace_params)fn_body
+trace_params = $(info params: $$($0) {)$(dump_args)$(info params: } $$($0))
 
 # helper template for $(trace_calls)
 # $1 - macro name
 # $2 - names of variables to dump before traced call
 # $3 - names of variables to dump after traced call
-# note: $1 may be defined as multi-line macro via 'define' directive - replace $(newline)'s with $$(newline)
 define trace_calls_template
 $(empty)
-define $1_traced_
-$(value $1)
+$1_value_ = $(value $1)
+define $1
+$$(info ====begin: $$$$($1) {)$$(dump_args)$$(call dump,$2,,$1: )$$(info ------$1 value---->)$$(info \
+  $$(value $1_value_))$$(info ------$1 result--->)$$(eval $1_result_ := $$(value $1_value_))$$(call \
+  infofn,$$($1_result_))$$(call dump,$3,,$1: )$$(info ====end: } $$$$($1))
 endef
-$1 = $$(info ====begin: $$$$($1) {)$$(if $$1,$$(info $$$$1=$$1))$$(if $$2,$$(info $$$$2=$$2))$$(if $$3,$$(info $$$$3=$$3))$$(if \
-  $$4,$$(info $$$$4=$$4))$$(if $$5,$$(info $$$$5=$$5))$$(if $$6,$$(info $$$$6=$$6))$$(if $$7,$$(info $$$$7=$$7))$$(if \
-  $$8,$$(info $$$$8=$$8))$$(if $$9,$$(info $$$$9=$$9))$$(if $$(10),$$(info $$$$10=$$(10)))$$(if $$(11),$$(info $$$$11=$$(11)))$$(if \
-  $$(12),$$(info $$$$12=$$(12)))$$(if $$(13),$$(info $$$$13=$$(13)))$$(if $$(14),$$(info $$$$14=$$(14)))$$(if \
-  $$(15),$$(info $$$$15=$$(15)))$$(if $$(16),$$(info $$$$16=$$(16)))$$(if $$(17),$$(info $$$$17=$$(17)))$$(if \
-  $$(18),$$(info $$$$18=$$(18)))$$(if $$(19),$$(info $$$$19=$$(19)))$$(if $$(20),$$(info $$$$20=$$(20)))$$(call \
-  dump,$2,,$1: )$$(info ------$1 value---->$$(newline)$$(value $1_traced_)$$(newline)------$1 result--->)$$(call \
-  infofn,$$($1_traced_))$$(call dump,$3,,$1: )$$(info ====end: } $$$$($1))
-$(call CLEAN_BUILD_PROTECT_VARS1,$1)
+$(call CLEAN_BUILD_PROTECT_VARS1,$1 $1_value_)
 endef
 
 # replace macros with their trace equivalents
-# $1 - macro names
+# $1 - traced macro names
 # $2 - names of variables to dump before traced call
 # $3 - names of variables to dump after traced call
 # note: may also be used for simple variables, for example: $(call trace_calls,Macro,VarPre,VarPost)
@@ -177,7 +178,7 @@ ver_patch = $(firstword $(word 3,$(subst ., ,$1)) 0)
 
 # protect variables from modification in target makefiles
 CLEAN_BUILD_PROTECTED += empty space tab comma newline comment \
-  infofn dump trace_params trace_calls_template trace_calls \
+  infofn dump dump_args trace_params trace_calls_template trace_calls \
   unspaces ifaddq qpath tolower toupper repl09 repl09AZ padto \
   is_less1 is_less xargs1 xargs xcmd trim normp2 normp1 normp \
   cmn_path1 cmn_path back_prefix relpath2 relpath1 relpath join_with ver_major ver_minor ver_patch
