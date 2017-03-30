@@ -300,12 +300,12 @@ ifeq (undefined,$(origin DEF_CXXFLAGS))
 # disable some C++ warnings:
 # badargtype2w - (Anachronism) when passing pointers to functions
 # wbadasg      - (Anachronism) assigning extern "C" ...
-DEF_CXXFLAGS := -xstrconst -erroff=badargtype2w,wbadasg
+DEF_CXXFLAGS := -erroff=badargtype2w,wbadasg
 endif
 
 # default flags for C compiler
 ifeq (undefined,$(origin DEF_CFLAGS))
-DEF_CFLAGS := -xstrconst
+DEF_CFLAGS:=
 endif
 
 # common options for application-level C++ and C compilers
