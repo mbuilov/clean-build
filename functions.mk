@@ -21,7 +21,7 @@ endef
 comment := $(comment)
 
 # print result $1 and return $1
-infofn = $(info $1)$1
+infofn = $(info $1===)$1
 
 # dump variables
 # $1 - list of variables to dump
@@ -30,7 +30,7 @@ infofn = $(info $1)$1
 # $(call dump,VAR1,prefix,Q) -> print 'Qdump: prefix: VAR1=xxx'
 dump = $(foreach v,$1,$(info $3dump: $(2:=: )$v$(if $(filter recursive,$(flavor $v)),,:)=$(value $v)))
 
-# dump function arguments
+# dump function arguments (max 20)
 dump_args = $(if $1,$(info $$1=$1))$(if $2,$(info $$2=$2))$(if $3,$(info $$3=$3))$(if \
   $4,$(info $$4=$4))$(if $5,$(info $$5=$5))$(if $6,$(info $$6=$6))$(if $7,$(info $$7=$7))$(if \
   $8,$(info $$8=$8))$(if $9,$(info $$9=$9))$(if $(10),$(info $$10=$(10)))$(if $(11),$(info $$11=$(11)))$(if \
@@ -49,11 +49,14 @@ trace_params = $(info params: $$($0) {)$(dump_args)$(info params: } $$($0))
 # $3 - names of variables to dump after traced call
 define trace_calls_template
 $(empty)
-$1_value_ = $(value $1)
+define $1_
+$(value $1)
+endef
 define $1
-$$(info ====begin: $$$$($1) {)$$(dump_args)$$(call dump,$2,,$1: )$$(info ------$1 value---->)$$(info \
-  $$(value $1_value_))$$(info ------$1 result--->)$$(eval $1_result_ := $$(value $1_value_))$$(call \
-  infofn,$$($1_result_))$$(call dump,$3,,$1: )$$(info ====end: } $$$$($1))
+$$(info +++begin: $$$$($1) {)$$(dump_args)$$(call dump,$2,,$1: )$$(info ------$1 value---->)$$(info \
+  $$(value $1_)===)$$(info ------$1 result--->)$$(call infofn,$$(call \
+  $1_,$$1,$$2,$$3,$$4,$$5,$$6,$$7,$$8,$$9,$$(10),$$(11),$$(12),$$(13),$$(14),$$(15),$$(16),$$(17),$$(18),$$(19),$$(20)))$$(call \
+  dump,$3,,$1: )$$(info end: } $$$$($1))
 endef
 $(call CLEAN_BUILD_PROTECT_VARS1,$1 $1_value_)
 endef
