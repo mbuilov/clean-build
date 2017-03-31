@@ -6,10 +6,17 @@
 
 ifndef ECHO_INSTALL
 
+# CHMOD tool color
+ifndef CHMOD_COLOR
+CHMOD_COLOR := [01;35m
+endif
+
 # print $1 to file $2, then change its access mode to $3
+# note: pass non-empty 3-d argument to SUP function to not update percents
+# note: pass non-empty 4-d argument to SUP function to not colorize tool arguments
 define ECHO_INSTALL
-$(ECHO) > $2
-$(call CHMOD,$3,$2)
+$(call SUP,GEN,$2,@,1)$(ECHO) > $2
+$(call SUP,CHMOD,$2,@,1)$(call CHMOD,$3,$2)
 endef
 
 # protect variables from modifications in target makefiles
