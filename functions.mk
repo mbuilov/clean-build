@@ -21,7 +21,7 @@ endef
 comment := $(comment)
 
 # print result $1 and return $1
-infofn = $(info $1===)$1
+infofn = $(info $1)$1
 
 # dump variables
 # $1 - list of variables to dump
@@ -44,7 +44,7 @@ dump_args = $(if $1,$(info $$1=$1))$(if $2,$(info $$2=$2))$(if $3,$(info $$3=$3)
 trace_params = $(info params: $$($0) {)$(dump_args)$(info params: } $$($0))
 
 # helper template for $(trace_calls)
-# $1 - macro name
+# $1 - macro name, must accept no more than 20 arguments
 # $2 - names of variables to dump before traced call
 # $3 - names of variables to dump after traced call
 define trace_calls_template
@@ -54,7 +54,7 @@ $(value $1)
 endef
 define $1
 $$(info +++begin: $$$$($1) {)$$(dump_args)$$(call dump,$2,,$1: )$$(info ------$1 value---->)$$(info \
-  $$(value $1_)===)$$(info ------$1 result--->)$$(call infofn,$$(call \
+  $$(value $1_))$$(info ------$1 result--->)$$(call infofn,$$(call \
   $1_,$$1,$$2,$$3,$$4,$$5,$$6,$$7,$$8,$$9,$$(10),$$(11),$$(12),$$(13),$$(14),$$(15),$$(16),$$(17),$$(18),$$(19),$$(20)))$$(call \
   dump,$3,,$1: )$$(info end: } $$$$($1))
 endef
