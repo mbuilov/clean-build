@@ -45,9 +45,59 @@ $(eval install_$(LIBRARY_NAME): $(BUILT_LIBS) $(BUILT_DLLS)\
 $(newline)install: install_$(LIBRARY_NAME)\
 $(newline)uninstall: uninstall_$(LIBRARY_NAME))
 
+ifdef OSTYPE_UNIX
+
+# uninstall files
+# $1 - files to delete
+# $2 - r or <empty>
+# note: pass non-empty 3-d argument to SUP function to not update percents
+# note: pass non-empty 4-d argument to SUP function to not colorize tool arguments
+UNINSTALL_RM ?= $(call SUP,RM,$1,@,1)rm -f$2$(if $(OS_LINUX),$(if $(VERBOSE),v)) $1
+
+# create symbolic link while installing files
+# $1 - target
+# $2 - simlink
+# note: pass non-empty 3-d argument to SUP function to not update percents
+# note: pass non-empty 4-d argument to SUP function to not colorize tool arguments
+INSTALL_LN ?= $(call SUP,LN,$2 -> $1,@,1)$(call LN,$1,$2)
+
+# INSTALL tool color
+ifndef INSTALL_COLOR
+INSTALL_COLOR := [01;31m
+endif
+
+# RM tool color
+ifndef RM_COLOR
+RM_COLOR := [01;31m
+endif
+
+# post-install/uninstall shared libraries
+# $1 - inst/uninst
+# note: pass non-empty 3-d argument to SUP function to not update percents
+# note: pass non-empty 4-d argument to SUP function to not colorize tool arguments
+ifndef LDCONFIG_TEMPLATE
+
 ifdef OS_LINUX
 
-ifndef INSTALL_LIB_TEMPLATE_LINUX
+# LDCONFIG tool color
+ifndef LDCONFIG_COLOR
+LDCONFIG_COLOR := [01;33m
+endif
+
+LDCONFIG_TEMPLATE = $(if $(BUILT_DLLS),$(newline)$(tab)$$(call \
+  SUP,LDCONFIG,'$$(DESTDIR)$$(LIBDIR)',@,1)$$(LDCONFIG) -n$(if $(VERBOSE),v) '$$(DESTDIR)$$(LIBDIR)')
+
+else ifdef OS_SOLARIS
+
+# $j - major version
+LDCONFIG_TEMPLATE = $(foreach j,$(filter-out $(MODVER),$(firstword $(subst ., ,$(MODVER)))),$(if $(filter inst,$1),$$(foreach \
+  d,$$(notdir $$(BUILT_DLLS)),$$(newline)$$(call INSTALL_LN,$$d.$(MODVER),'$$(DESTDIR)$$(LIBDIR)/$$d.$j')),$(if \
+  $(BUILT_DLLS),$(newline)$(tab)$$(call UNINSTALL_RM,$$(foreach d,$$(notdir $$(BUILT_DLLS)),'$$(DESTDIR)$$(LIBDIR)/$$d.$j')))))
+
+endif
+endif # LDCONFIG_TEMPLATE
+
+ifndef INSTALL_LIB_TEMPLATE_UNIX
 
 include $(MTOP)/exts/all_libs.mk
 include $(MTOP)/exts/pc.mk
@@ -60,7 +110,9 @@ VARIANT_CFLAGS ?= $(if \
   $(filter D,$1), $(PIC_OPTION)))
 
 # $1 - $(call GET_ALL_LIBS,$(BUILT_LIBS),$(BUILT_LIB_VARIANTS),$(BUILT_DLLS),$(BUILT_DLL_VARIANTS))
-define INSTALL_LIB_TEMPLATE_LINUX
+# note: pass non-empty 3-d argument to SUP function to not update percents
+# note: pass non-empty 4-d argument to SUP function to not colorize tool arguments
+define INSTALL_LIB_TEMPLATE_UNIX
 
 # define these variables as target-specific to be able to use them in $(LIBRARY_PC_GEN)
 install_$(LIBRARY_NAME) uninstall_$(LIBRARY_NAME): MODVER  := $(MODVER)
@@ -71,35 +123,38 @@ install_$(LIBRARY_NAME) uninstall_$(LIBRARY_NAME): ALL_BUILT_LIBS := $1
 install_$(LIBRARY_NAME): HEADERS := $(LIBRARY_HEADERS)
 
 install_$(LIBRARY_NAME)_headers:
-	$$(INSTALL) -d '$$(DESTDIR)$$(INCLUDEDIR)/$(LIBRARY_NAME)'
-	$$(INSTALL) -m 644 $$(addprefix $(TOP)/$(LIBRARY_NAME)/,$$(HEADERS)) '$$(DESTDIR)$$(INCLUDEDIR)/$(LIBRARY_NAME)'
+	$$(call SUP,INSTALL,'$$(DESTDIR)$$(INCLUDEDIR)/$(LIBRARY_NAME)',@,1)$$(INSTALL) -d '$$(DESTDIR)$$(INCLUDEDIR)/$(LIBRARY_NAME)'
+	$$(call SUP,INSTALL,$$(addprefix '$$(DESTDIR)$$(INCLUDEDIR)/$(LIBRARY_NAME)/,$$(HEADERS:=')),@,1)$$(INSTALL) -m 644 $$(addprefix \
+  $(TOP)/$(LIBRARY_NAME)/,$$(HEADERS)) '$$(DESTDIR)$$(INCLUDEDIR)/$(LIBRARY_NAME)'
 
 install_$(LIBRARY_NAME): $(if $(NO_INSTALL_HEADERS1),,install_$(LIBRARY_NAME)_headers)$(if \
-  $(BUILT_LIBS)$(BUILT_DLLS),$(newline)$(tab)$$(INSTALL) -d '$$(DESTDIR)$$(LIBDIR)')
-	$$(foreach l,$$(BUILT_LIBS),$$(newline)$$(INSTALL) -m 644 $$l '$$(DESTDIR)$$(LIBDIR)')
-	$$(foreach d,$$(BUILT_DLLS),$$(newline)$$(INSTALL) -m 755 $$d '$$(DESTDIR)$$(LIBDIR)/$$(notdir $$d).$(MODVER)')
-	$$(foreach d,$$(BUILT_DLLS),$$(newline)ln -sf$(if $(VERBOSE),v) $$(notdir $$d).$(MODVER) '$$(DESTDIR)$$(LIBDIR)/$$(notdir $$d)') $(if \
+  $(BUILT_LIBS)$(BUILT_DLLS),$(newline)$(tab)$$(call \
+ SUP,INSTALL,'$$(DESTDIR)$$(LIBDIR)',@,1)$$(INSTALL) -d '$$(DESTDIR)$$(LIBDIR)')
+	$$(foreach l,$$(BUILT_LIBS),$$(newline)$$(call \
+ SUP,INSTALL,'$$(DESTDIR)$$(LIBDIR)/$$(notdir $$l)',@,1)$$(INSTALL) -m 644 $$l '$$(DESTDIR)$$(LIBDIR)')
+	$$(foreach d,$$(BUILT_DLLS),$$(newline)$$(call \
+ SUP,INSTALL,'$$(DESTDIR)$$(LIBDIR)/$$(notdir $$d).$(MODVER)',@,1)$$(INSTALL) -m 755 $$d '$$(DESTDIR)$$(LIBDIR)/$$(notdir $$d).$(MODVER)')
+	$$(foreach d,$$(notdir $$(BUILT_DLLS)),$$(newline)$$(call INSTALL_LN,$$d.$(MODVER),'$$(DESTDIR)$$(LIBDIR)/$$d'))$(if \
   $(NO_INSTALL_LA1),,$(newline)$(tab)$$(call INSTALL_LIBTOOL_ARCHIVES,$$(ALL_BUILT_LIBS),$$(BUILT_LIBS),$$(BUILT_DLLS)))$(if \
-  $(NO_INSTALL_PC1),,$(if $(BUILT_LIBS)$(BUILT_DLLS),$(newline)$(tab)$$(INSTALL) -d '$$(DESTDIR)$$(PKG_CONFIG_DIR)'))$(if \
-  $(NO_INSTALL_PC1),,$(newline)$(tab)$$(call INSTALL_PKGCONFS,$$(ALL_BUILT_LIBS),$(LIBRARY_PC_GEN)))$(if \
-  $(BUILT_DLLS),$(newline)$(tab)$$(LDCONFIG) -n$(if $(VERBOSE),v) '$$(DESTDIR)$$(LIBDIR)')
+  $(NO_INSTALL_PC1),,$(if $(BUILT_LIBS)$(BUILT_DLLS),$(newline)$(tab)$$(call \
+ SUP,INSTALL,'$$(DESTDIR)$$(PKG_CONFIG_DIR)',@,1)$$(INSTALL) -d '$$(DESTDIR)$$(PKG_CONFIG_DIR)'))$(if \
+  $(NO_INSTALL_PC1),,$(newline)$(tab)$$(call INSTALL_PKGCONFS,$$(ALL_BUILT_LIBS),$(LIBRARY_PC_GEN)))$(call LDCONFIG_TEMPLATE,inst)
 
 uninstall_$(LIBRARY_NAME):
-	rm -rf$(if $(VERBOSE),v) $(if \
+	$$(call UNINSTALL_RM,$(if \
   $(NO_INSTALL_HEADERS1),,'$$(DESTDIR)$$(INCLUDEDIR)/$(LIBRARY_NAME)') $$(foreach \
   l,$$(BUILT_LIBS),'$$(DESTDIR)$$(LIBDIR)/$$(notdir $$l)') $$(foreach \
-  d,$$(BUILT_DLLS),'$$(DESTDIR)$$(LIBDIR)/$$(notdir $$d)' '$$(DESTDIR)$$(LIBDIR)/$$(notdir $$d).$(MODVER)') $(if \
+  d,$$(notdir $$(BUILT_DLLS)),'$$(DESTDIR)$$(LIBDIR)/$$d' '$$(DESTDIR)$$(LIBDIR)/$$d.$(MODVER)') $(if \
   $(NO_INSTALL_LA1),,$$(call INSTALLED_LIBTOOL_ARCHIVES,$$(ALL_BUILT_LIBS),$$(BUILT_LIBS),$$(BUILT_DLLS))) $(if \
-  $(NO_INSTALL_PC1),,$$(call INSTALLED_PKGCONFS,$$(ALL_BUILT_LIBS)))$(if \
-  $(BUILT_DLLS),$(newline)$(tab)$$(LDCONFIG) -n$(if $(VERBOSE),v) '$$(DESTDIR)$$(LIBDIR)')
+  $(NO_INSTALL_PC1),,$$(call INSTALLED_PKGCONFS,$$(ALL_BUILT_LIBS))),r)$(call LDCONFIG_TEMPLATE,uninst)
 
 endef
 
-endif # INSTALL_LIB_TEMPLATE_LINUX
+endif # INSTALL_LIB_TEMPLATE_UNIX
 
-$(eval $(call INSTALL_LIB_TEMPLATE_LINUX,$(call GET_ALL_LIBS,$(BUILT_LIBS),$(BUILT_LIB_VARIANTS),$(BUILT_DLLS),$(BUILT_DLL_VARIANTS))))
+$(eval $(call INSTALL_LIB_TEMPLATE_UNIX,$(call GET_ALL_LIBS,$(BUILT_LIBS),$(BUILT_LIB_VARIANTS),$(BUILT_DLLS),$(BUILT_DLL_VARIANTS))))
 
-else ifdef OS_WINXX
+else ifdef OSTYPE_WINDOWS
 
 DST_INC_DIR := $(subst $(space),\$(space),$(DESTDIR)$(INCLUDEDIR)/$(LIBRARY_NAME))
 DST_LIB_DIR := $(subst $(space),\$(space),$(DESTDIR)$(LIBDIR))
@@ -136,6 +191,6 @@ endif # INSTALL_LIB_TEMPLATE_WINDOWS
 
 $(eval $(call INSTALL_LIB_TEMPLATE_WINDOWS,$(foreach v,$(BUILT_DLL_VARIANTS),$(call MAKE_IMP_PATH,$(call FORM_TRG,DLL,$v),$v))))
 
-endif # WINXX
+endif # OSTYPE_WINDOWS
 
 $(eval .PHONY: install_$(LIBRARY_NAME)_headers install_$(LIBRARY_NAME) uninstall_$(LIBRARY_NAME))
