@@ -270,11 +270,15 @@ TOUCH_COLOR := [00;36m
 endif
 
 # print in color short name of called tool $1 with argument $2
+# $1 - tool
+# $2 - argument
+# $3 - ignored (used by TRY_REM_MAKEFILE)
+# $4 - if not empty, do not colorize argument
 ifdef TERM_NO_COLOR
 COLORIZE ?= $1$(padto)$2
 else
 COLORIZE ?= $(if $($1_COLOR),$($1_COLOR)$1[0m,$1)$(padto)$(if \
-  $($1_COLOR),$(join $(dir $2),$(addsuffix [0m,$(addprefix $($1_COLOR),$(notdir $2)))),$2)
+  $4,$2,$(if $($1_COLOR),$(join $(dir $2),$(addsuffix [0m,$(addprefix $($1_COLOR),$(notdir $2)))),$2))
 endif
 
 # helper macro: convert multi-line sed script $1 to multiple sed expressions - one expression for each script line
