@@ -76,25 +76,36 @@ PREDEFINES += $(OS_PREDEFINES)
 APPDEFS    += $(OS_APPDEFS)
 KRNDEFS    += $(OS_KRNDEFS)
 
-# rule that defines how to build object from source
+# $1 - objdir
+# $2 - source deps list
+# $x - source
+ADD_OBJ_SDEPS ?= $(if $2,$(newline)$1/$(basename $(notdir $x))$(OBJ_SUFFIX): $2)
+
 # $1 - CXX,CC,ASM,...
-# $2 - source
+# $2 - sources to compile
 # $3 - sdeps
 # $4 - objdir
-# $5 - $4/$(basename $(notdir $2))
-# $v - variant (non-empty!)
+# $5 - $(addsuffix $(OBJ_SUFFIX),$(addprefix $4/,$(basename $(notdir $2))))
+# $v - non-empty variant: R,P,S,...
 # $t - EXE,LIB,...
-# if $(NO_DEPS) is empty, then try to include dependency file .d (ignore if file does not exist)
 # note: $(NO_DEPS) - may be recursive and so have different values, for example depending on value of $(CURRENT_MAKEFILE)
 # note: postpone expansion of ORDER_DEPS - $(FIX_ORDER_DEPS) from $(STD_TARGET_VARS) changes $(ORDER_DEPS) value
-# note: first line must be empty
-define OBJ_RULE
-$(empty)
-$5$(OBJ_SUFFIX): $2 $(call EXTRACT_SDEPS,$2,$3) | $4 $$(ORDER_DEPS)
+define OBJ_RULES2
+$(addprefix $(newline),$(join $(addsuffix :,$5),$2))
+$(if $3,$(foreach x,$2,$(call ADD_OBJ_SDEPS,$4,$(call EXTRACT_SDEPS,$x,$3))))
+$5: | $4 $$(ORDER_DEPS)
 	$$(call $t_$v_$1,$$@,$$<)
-$(if $(NO_DEPS),,-include $5.d)
-$(call TOCLEAN,$5.d)
 endef
+
+# $1 - CXX,CC,ASM,...
+# $2 - sources to compile
+# $3 - sdeps
+# $4 - objdir
+# $5 - $(addprefix $4/,$(basename $(notdir $2)))
+# $v - non-empty variant: R,P,S,...
+# $t - EXE,LIB,...
+OBJ_RULES1 = $(if $(value TOCLEAN),$(call TOCLEAN,$(addsuffix .d,$5)),$(call \
+  OBJ_RULES2,$1,$2,$3,$4,$(addsuffix $(OBJ_SUFFIX),$5))$(if $(NO_DEPS),,$(newline)-include $(addsuffix .d,$5)))
 
 # rule that defines how to build objects from sources
 # $1 - CXX,CC,ASM,...
@@ -103,7 +114,7 @@ endef
 # $4 - objdir
 # $v - non-empty variant: R,P,S,...
 # $t - EXE,LIB,...
-OBJ_RULES ?= $(foreach x,$2,$(call OBJ_RULE,$1,$x,$3,$4,$4/$(basename $(notdir $x))))
+OBJ_RULES ?= $(if $2,$(call OBJ_RULES1,$1,$2,$3,$4,$(addprefix $4/,$(basename $(notdir $2)))))
 
 # get target name suffix for EXE,DRV... in case of multiple target variants
 # $1 - EXE,DRV...
@@ -440,7 +451,8 @@ MAKE_C_EVAL ?= $(eval $(PREPARE_C_VARS)$(DEF_HEAD_CODE))
 # protect variables from modifications in target makefiles
 $(call CLEAN_BUILD_PROTECT_VARS,BLD_TARGETS OSTYPE_$(OSTYPE) OSVARIANT_$(OSVARIANT) LIB_VAR_SUFFIX \
   DEFINCLUDE PREDEFINES OS_PREDEFINES APPDEFS OS_APPDEFS KRNDEFS OS_KRNDEFS PRODUCT_VER VARIANTS_FILTER \
-  OSVARIANT OSTYPE OSVAR OSVARS OBJ_RULE OBJ_RULES EXE_SUFFIX_GEN EXE_VAR_SUFFIX FORM_TRG OS_FORM_TRG DLL_DIR IMP_DIR \
+  OSVARIANT OSTYPE OSVAR OSVARS ADD_OBJ_SDEPS OBJ_RULES2 OBJ_RULES1 OBJ_RULES \
+  EXE_SUFFIX_GEN EXE_VAR_SUFFIX FORM_TRG OS_FORM_TRG DLL_DIR IMP_DIR \
   EXE_SUFFIX OBJ_SUFFIX LIB_PREFIX LIB_SUFFIX IMP_PREFIX IMP_SUFFIX DLL_PREFIX DLL_SUFFIX KLIB_PREFIX KLIB_SUFFIX DRV_PREFIX DRV_SUFFIX \
   SUBST_DEFINES STRING_DEFINE TRG_INCLUDE GET_SOURCES TRG_SRC TRG_SDEPS GET_OBJS DEP_LIB_SUFFIX DEP_IMP_SUFFIX \
   VARIANT_LIB_MAP VARIANT_IMP_MAP MAKE_DEP_LIBS MAKE_DEP_IMPS DEP_LIBS DEP_IMPS \
