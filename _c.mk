@@ -409,7 +409,10 @@ endef
 endif
 
 # reset variables in from $(BLD_TARGETS) list
-BLD_TARGETS_RESET := $(subst $(space),:=$(newline),$(BLD_TARGETS)):=
+BLD_TARGETS_RESET = $(subst $(space),:=$(newline),$(BLD_TARGETS)):=
+ifeq (simple,$(flavor BLD_TARGETS))
+BLD_TARGETS_RESET := $(BLD_TARGETS_RESET)
+endif
 
 # code to be called at beginning of target makefile
 # $(MODVER) - module version (for dll, exe or driver) in form major.minor.patch (for example 1.2.3)
