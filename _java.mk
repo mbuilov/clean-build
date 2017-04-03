@@ -25,6 +25,9 @@ include $(MTOP)/$(OS)/java.mk
 # function to form paths passed to $(JAVAC),$(SCALAC) or $(JARC)
 jpath ?= $(ospath)
 
+# path separator for $(FORM_CLASS_PATH)
+JPATHSEP ?= $(PATHSEP)
+
 # make target filename, $1 - JAR
 # note: $(JAREXT) - either .jar or .war
 FORM_JTRG ?= $(if \
@@ -51,8 +54,8 @@ MAKE_BUNDLE_DEPS ?= $(foreach x,$1,$(call MAKE_BUNDLE_DEPS1,$(subst |, ,$x)))
 JCLS_DIR := cls
 
 # $1 - entries for classpath list
-# note: $(PATHSEP) - either ; (windows) or : (unix)
-FORM_CLASS_PATH ?= -classpath $(call qpath,$(subst $(space),$(PATHSEP),$(strip $(jpath))))
+# note: $(JPATHSEP) - either ; (windows) or : (unix)
+FORM_CLASS_PATH ?= -classpath $(call qpath,$(subst $(space),$(JPATHSEP),$(strip $(jpath))))
 
 ifeq (undefined,$(origin JAVAC_OPTIONS))
 JAVAC_OPTIONS := $(if $(JLINT),-Xlint)$(if $(DEBUG), -g) -encoding utf8
@@ -148,6 +151,24 @@ JAR_RULES ?= $(if $(JAR),$(call JAR_TEMPLATE,$(call FORM_JTRG,JAR),$(call \
   FIXPATH,$(JSRC)),$(call FIXPATH,$(SCALA)),$(call FIXPATH,$(if $(value JSCALA),$(JSCALA),$(JSRC))),$(call \
   FIXPATH,$(MANIFEST)),$(call FORM_OBJ_DIR,JAR),$(addprefix $(BIN_DIR)/,$(addsuffix .jar,$(JARS)))))
 
+# Jar manifest template
+# $1 - javay/server/
+# $2 - Java API
+# $3 - dot-separated digits: 1.2.3
+# $4 - Acme Inc.
+# $5 - javay.server
+# $6 - free form string
+# $7 - Vega Software Foundation
+define JAR_MANIFEST
+Name: $1
+Specification-Title: $2
+Specification-Version: $3
+Specification-Vendor: $4
+Implementation-Title: $5
+Implementation-Version: $6
+Implementation-Vendor: $7
+endef
+
 # tools colors
 # if JAR_COLOR is defined, other tools colors must also be defined
 ifndef JAR_COLOR
@@ -200,8 +221,8 @@ MAKE_JAVA_EVAL ?= $(eval $(PREPARE_JAVA_VARS)$(DEF_HEAD_CODE))
 
 # protect variables from modifications in target makefiles
 $(call CLEAN_BUILD_PROTECT_VARS,JLINT BLD_JTARGETS \
-  jpath FORM_JTRG JAR_BUNDLES_OPTIONS1 JAR_BUNDLES_OPTIONS MAKE_BUNDLE_DEPS1 MAKE_BUNDLE_DEPS \
+  jpath JPATHSEP FORM_JTRG JAR_BUNDLES_OPTIONS1 JAR_BUNDLES_OPTIONS MAKE_BUNDLE_DEPS1 MAKE_BUNDLE_DEPS \
   JCLS_DIR FORM_CLASS_PATH JAVAC_OPTIONS SCALAC_OPTIONS \
   ARGS_FILE_SOURCES_PER_LINE CREATE_JARGS_FILE1 CREATE_JARGS_FILE \
   JAVA_CC2 JAVA_CC1 JAVA_CC SCALA_CC2 SCALA_CC1 SCALA_CC JAR_LD1 JAR_LD JAR_TEMPLATE JAR_RULES \
-  JAR_COLOR JAVAC_COLOR SCALAC_COLOR DEFINE_JAVA_TARGETS_EVAL PREPARE_JAVA_VARS MAKE_JAVA_EVAL)
+  JAR_MANIFEST JAR_COLOR JAVAC_COLOR SCALAC_COLOR DEFINE_JAVA_TARGETS_EVAL PREPARE_JAVA_VARS MAKE_JAVA_EVAL)
