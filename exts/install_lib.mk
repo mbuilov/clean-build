@@ -80,12 +80,12 @@ ifndef LDCONFIG_TEMPLATE
 ifdef OS_LINUX
 
 # LDCONFIG tool color
-ifndef LDCONFIG_COLOR
-LDCONFIG_COLOR := [01;33m
+ifndef LDCONF_COLOR
+LDCONF_COLOR := [01;33m
 endif
 
 LDCONFIG_TEMPLATE = $(if $(BUILT_DLLS),$(newline)$(tab)$$(call \
-  SUP,LDCONFIG,'$$(DESTDIR)$$(LIBDIR)',@,1)$$(LDCONFIG) -n$(if $(VERBOSE),v) '$$(DESTDIR)$$(LIBDIR)')
+  SUP,LDCONF,'$$(DESTDIR)$$(LIBDIR)',@,1)$$(LDCONFIG) -n$(if $(VERBOSE),v) '$$(DESTDIR)$$(LIBDIR)')
 
 else ifdef OS_SOLARIS
 
