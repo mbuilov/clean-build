@@ -22,6 +22,9 @@ BLD_JTARGETS := JAR
 
 include $(MTOP)/$(OS)/java.mk
 
+# function to form paths passed to $(JAVAC),$(SCALAC) or $(JARC)
+jpath ?= ospath
+
 # make target filename, $1 - JAR
 # note: $(JAREXT) - either .jar or .war
 FORM_JTRG ?= $(if \
@@ -36,7 +39,7 @@ FORM_BUNDLES ?= $(call FIXPATH,$1)|$(subst $(space),|,$2)
 # $1 - list of bundles to add to the .jar formed by FORM_BUNDLES
 # dir1|name11|name12 dir2|name21|name22|... -> -C dir1 name11 -C dir1 name12 -C dir2 name21 -C dir2 name22...
 JAR_BUNDLES_OPTIONS1 = $(addprefix $(call qpath,$(firstword $1),-C ) ,$(wordlist 2,999999,$1))
-JAR_BUNDLES_OPTIONS ?= $(foreach x,$1,$(call JAR_BUNDLES_OPTIONS1,$(call ospath,$(subst |, ,$x))))
+JAR_BUNDLES_OPTIONS ?= $(foreach x,$1,$(call JAR_BUNDLES_OPTIONS1,$(call jpath,$(subst |, ,$x))))
 
 # make jar dependencies from bundle files
 # $1 - list of files formed by FORM_BUNDLES
@@ -49,7 +52,7 @@ JCLS_DIR := cls
 
 # $1 - entries for classpath list
 # note: $(PATHSEP) - either ; (windows) or : (unix)
-FORM_CLASS_PATH ?= -classpath $(call qpath,$(subst $(space),$(PATHSEP),$(strip $(ospath))))
+FORM_CLASS_PATH ?= -classpath $(call qpath,$(subst $(space),$(PATHSEP),$(strip $(jpath))))
 
 ifeq (undefined,$(origin JAVAC_OPTIONS))
 JAVAC_OPTIONS := $(if $(JLINT),-Xlint)$(if $(DEBUG), -g) -encoding utf8
@@ -66,7 +69,7 @@ endif
 # create arguments file for java compiler
 # $1 - sources
 # $2 - args file name
-CREATE_JARGS_FILE1 = $(if $(VERBOSE),,@)$(call ECHO_LINE,$1) >> $2
+CREATE_JARGS_FILE1 = $(if $(VERBOSE),,@)$(call ECHO_LINE,$1) >> $(call ospath,$2)
 CREATE_JARGS_FILE ?= $(call DEL,$2)$(newline)$(call \
   xcmd,CREATE_JARGS_FILE1,$1,$(ARGS_FILE_SOURCES_PER_LINE),$2)$(newline)$(if $(VERBOSE),,@)
 
@@ -75,23 +78,23 @@ CREATE_JARGS_FILE ?= $(call DEL,$2)$(newline)$(call \
 # note: javac call is added just before creating jar - all .java sources are compiled at once
 # target-specific: JAVAC_FLAGS, JOBJDIR, CLASSPATH, EXTJARS, JARS
 JAVA_CC2 = $(if $2,$(call CREATE_JARGS_FILE,$1,$(JOBJDIR)/java.txt)) \
-  $(JAVAC) $(JAVAC_OPTIONS) $(JAVAC_FLAGS) -d $(call ospath,$(JOBJDIR)/$(JCLS_DIR)) $(if \
-  $2,@$(JOBJDIR)/java.txt,$1) $(call FORM_CLASS_PATH,$(JOBJDIR)/$(JCLS_DIR) $(CLASSPATH) $(EXTJARS) $(JARS))$(newline)
+  $(JAVAC) $(JAVAC_OPTIONS) $(JAVAC_FLAGS) -d $(call jpath,$(JOBJDIR)/$(JCLS_DIR)) $(if \
+  $2,@$(call jpath,$(JOBJDIR)/java.txt),$1) $(call FORM_CLASS_PATH,$(JOBJDIR)/$(JCLS_DIR) $(CLASSPATH) $(EXTJARS) $(JARS))$(newline)
 
 # compile $1 - .java sources
-JAVA_CC1 = $(call SUP,JAVAC,$1)$(call JAVA_CC2,$(ospath),$(word $(ARGS_FILE_SOURCES_PER_LINE),$1))
+JAVA_CC1 = $(call SUP,JAVAC,$1)$(call JAVA_CC2,$(jpath),$(word $(ARGS_FILE_SOURCES_PER_LINE),$1))
 JAVA_CC ?= $(if $1,$(JAVA_CC1))
 
 # $1 - .scala + .java sources
 # $2 - $(word $(ARGS_FILE_SOURCES_PER_LINE),$1)
 # target-specific: SCALAC_FLAGS, JOBJDIR, CLASSPATH, EXTJARS, JARS
 SCALA_CC2 = $(if $2,$(call CREATE_JARGS_FILE,$1,$(JOBJDIR)/scala.txt)) \
-  $(SCALAC) $(SCALAC_OPTIONS) $(SCALAC_FLAGS) -d $(call ospath,$(JOBJDIR)/$(JCLS_DIR)) $(if \
-  $2,@$(JOBJDIR)/scala.txt,$1) $(call FORM_CLASS_PATH,$(JOBJDIR)/$(JCLS_DIR) $(CLASSPATH) $(EXTJARS) $(JARS))$(newline)
+  $(SCALAC) $(SCALAC_OPTIONS) $(SCALAC_FLAGS) -d $(call jpath,$(JOBJDIR)/$(JCLS_DIR)) $(if \
+  $2,@$(call jpath,$(JOBJDIR)/scala.txt),$1) $(call FORM_CLASS_PATH,$(JOBJDIR)/$(JCLS_DIR) $(CLASSPATH) $(EXTJARS) $(JARS))$(newline)
 
 # compile $1 - .scala
 # note: $2 - .java sources only parsed by scala compiler - it does not compiles .java sources
-SCALA_CC1 = $(call SUP,SCALAC,$1)$(call SCALA_CC2,$(call ospath,$2),$(word $(ARGS_FILE_SOURCES_PER_LINE),$2))
+SCALA_CC1 = $(call SUP,SCALAC,$1)$(call SCALA_CC2,$(call jpath,$2),$(word $(ARGS_FILE_SOURCES_PER_LINE),$2))
 SCALA_CC ?= $(if $1,$(if $(SCALAC),$(call SCALA_CC1,$1,$1 $2),$(error \
   SCALAC not defined, example: $$(JAVA) $$(call FORM_CLASS_PATH,scala-compiler-2.11.6.jar) scala.tools.nsc.Main)))
 
@@ -99,8 +102,8 @@ SCALA_CC ?= $(if $1,$(if $(SCALAC),$(call SCALA_CC1,$1,$1 $2),$(error \
 # $2 - $(word $(ARGS_FILE_SOURCES_PER_LINE),$(ALL_BUNDLES))
 # target-specific: JRFLAGS, MANIFEST, JOBJDIR, ALL_BUNDLES
 JAR_LD1 = $(call SUP,JAR,$1)$(if $2,$(call CREATE_JARGS_FILE,$(ALL_BUNDLES),$(JOBJDIR)/jar.txt)) \
-  $(JARC) $(JRFLAGS) -cf$(if $(MANIFEST),m) $(ospath) $(call ospath,$(MANIFEST)) -C $(call ospath,$(JOBJDIR)/$(JCLS_DIR)) . $(if \
-  $2,@$(JOBJDIR)/jar.txt,$(ALL_BUNDLES))$(DEL_ON_FAIL)
+  $(JARC) $(JRFLAGS) -cf$(if $(MANIFEST),m) $(jpath) $(call jpath,$(MANIFEST)) -C $(call jpath,$(JOBJDIR)/$(JCLS_DIR)) . $(if \
+  $2,@$(call jpath,$(JOBJDIR)/jar.txt),$(ALL_BUNDLES))$(DEL_ON_FAIL)
 
 # make jar, $1 - .jar target
 # note: always rebuild all sources if any of $(JARS), $(EXTJARS), $(JSRC), $(SCALA) or $(JSCALA) is newer than the target jar
@@ -197,7 +200,7 @@ MAKE_JAVA_EVAL ?= $(eval $(PREPARE_JAVA_VARS)$(DEF_HEAD_CODE))
 
 # protect variables from modifications in target makefiles
 $(call CLEAN_BUILD_PROTECT_VARS,JLINT BLD_JTARGETS \
-  FORM_JTRG JAR_BUNDLES_OPTIONS1 JAR_BUNDLES_OPTIONS MAKE_BUNDLE_DEPS1 MAKE_BUNDLE_DEPS \
+  jpath FORM_JTRG JAR_BUNDLES_OPTIONS1 JAR_BUNDLES_OPTIONS MAKE_BUNDLE_DEPS1 MAKE_BUNDLE_DEPS \
   JCLS_DIR FORM_CLASS_PATH JAVAC_OPTIONS SCALAC_OPTIONS \
   ARGS_FILE_SOURCES_PER_LINE CREATE_JARGS_FILE1 CREATE_JARGS_FILE \
   JAVA_CC2 JAVA_CC1 JAVA_CC SCALA_CC2 SCALA_CC1 SCALA_CC JAR_LD1 JAR_LD JAR_TEMPLATE JAR_RULES \
