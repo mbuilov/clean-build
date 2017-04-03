@@ -123,13 +123,13 @@ install_$(LIBRARY_NAME) uninstall_$(LIBRARY_NAME): ALL_BUILT_LIBS := $1
 install_$(LIBRARY_NAME): HEADERS := $(LIBRARY_HEADERS)
 
 install_$(LIBRARY_NAME)_headers:
-	$$(call SUP,INSTALL,'$$(DESTDIR)$$(INCLUDEDIR)/$(LIBRARY_NAME)',@,1)$$(INSTALL) -d '$$(DESTDIR)$$(INCLUDEDIR)/$(LIBRARY_NAME)'
-	$$(call SUP,INSTALL,$$(addprefix '$$(DESTDIR)$$(INCLUDEDIR)/$(LIBRARY_NAME)/,$$(HEADERS:=')),@,1)$$(INSTALL) -m 644 $$(addprefix \
+	$$(call SUP,MKDIR,'$$(DESTDIR)$$(INCLUDEDIR)/$(LIBRARY_NAME)',@,1)$$(INSTALL) -d '$$(DESTDIR)$$(INCLUDEDIR)/$(LIBRARY_NAME)'
+	$$(call SUP,INSTALL,$$(HEADERS) -> '$$(DESTDIR)$$(INCLUDEDIR)/$(LIBRARY_NAME)',@,1)$$(INSTALL) -m 644 $$(addprefix \
   $(TOP)/$(LIBRARY_NAME)/,$$(HEADERS)) '$$(DESTDIR)$$(INCLUDEDIR)/$(LIBRARY_NAME)'
 
 install_$(LIBRARY_NAME): $(if $(NO_INSTALL_HEADERS1),,install_$(LIBRARY_NAME)_headers)$(if \
   $(BUILT_LIBS)$(BUILT_DLLS),$(newline)$(tab)$$(call \
- SUP,INSTALL,'$$(DESTDIR)$$(LIBDIR)',@,1)$$(INSTALL) -d '$$(DESTDIR)$$(LIBDIR)')
+ SUP,MKDIR,'$$(DESTDIR)$$(LIBDIR)',@,1)$$(INSTALL) -d '$$(DESTDIR)$$(LIBDIR)')
 	$$(foreach l,$$(BUILT_LIBS),$$(newline)$$(call \
  SUP,INSTALL,'$$(DESTDIR)$$(LIBDIR)/$$(notdir $$l)',@,1)$$(INSTALL) -m 644 $$l '$$(DESTDIR)$$(LIBDIR)')
 	$$(foreach d,$$(BUILT_DLLS),$$(newline)$$(call \
@@ -137,7 +137,7 @@ install_$(LIBRARY_NAME): $(if $(NO_INSTALL_HEADERS1),,install_$(LIBRARY_NAME)_he
 	$$(foreach d,$$(notdir $$(BUILT_DLLS)),$$(newline)$$(call INSTALL_LN,$$d.$(MODVER),'$$(DESTDIR)$$(LIBDIR)/$$d'))$(if \
   $(NO_INSTALL_LA1),,$(newline)$(tab)$$(call INSTALL_LIBTOOL_ARCHIVES,$$(ALL_BUILT_LIBS),$$(BUILT_LIBS),$$(BUILT_DLLS)))$(if \
   $(NO_INSTALL_PC1),,$(if $(BUILT_LIBS)$(BUILT_DLLS),$(newline)$(tab)$$(call \
- SUP,INSTALL,'$$(DESTDIR)$$(PKG_CONFIG_DIR)',@,1)$$(INSTALL) -d '$$(DESTDIR)$$(PKG_CONFIG_DIR)'))$(if \
+ SUP,MKDIR,'$$(DESTDIR)$$(PKG_CONFIG_DIR)',@,1)$$(INSTALL) -d '$$(DESTDIR)$$(PKG_CONFIG_DIR)'))$(if \
   $(NO_INSTALL_PC1),,$(newline)$(tab)$$(call INSTALL_PKGCONFS,$$(ALL_BUILT_LIBS),$(LIBRARY_PC_GEN)))$(call LDCONFIG_TEMPLATE,inst)
 
 uninstall_$(LIBRARY_NAME):
