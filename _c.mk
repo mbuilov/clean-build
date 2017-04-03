@@ -91,7 +91,7 @@ ADD_OBJ_SDEPS ?= $(if $2,$(newline)$1/$(basename $(notdir $x))$(OBJ_SUFFIX): $2)
 # note: $(NO_DEPS) - may be recursive and so have different values, for example depending on value of $(CURRENT_MAKEFILE)
 # note: postpone expansion of ORDER_DEPS - $(FIX_ORDER_DEPS) from $(STD_TARGET_VARS) changes $(ORDER_DEPS) value
 define OBJ_RULES2
-$(addprefix $(newline),$(join $(addsuffix :,$5),$2))
+$(subst $(space),$(newline),$(join $(addsuffix :,$5),$2))
 $(if $3,$(foreach x,$2,$(call ADD_OBJ_SDEPS,$4,$(call EXTRACT_SDEPS,$x,$3))))
 $5: | $4 $$(ORDER_DEPS)
 	$$(call $t_$v_$1,$$@,$$<)
@@ -408,12 +408,15 @@ $(DEF_TAIL_CODE_EVAL)
 endef
 endif
 
+# reset variables in from $(BLD_TARGETS) list
+BLD_TARGETS_RESET := $(subst $(space),:=$(newline),$(BLD_TARGETS)):=
+
 # code to be called at beginning of target makefile
 # $(MODVER) - module version (for dll, exe or driver) in form major.minor.patch (for example 1.2.3)
 ifndef PREPARE_C_VARS
 define PREPARE_C_VARS
 $(RESET_OS_CVARS)
-$(foreach t,$(BLD_TARGETS),$t:=$(newline))
+$(BLD_TARGETS_RESET)
 MODVER     := $(PRODUCT_VER)
 CMNDEFINES := $(PREDEFINES)
 CMNINCLUDE := $(DEFINCLUDE)
@@ -459,4 +462,4 @@ $(call CLEAN_BUILD_PROTECT_VARS,BLD_TARGETS OSTYPE_$(OSTYPE) OSVARIANT_$(OSVARIA
   C_RULES2 C_RULES1 C_RULES EXE_TEMPLATE LIB_TEMPLATE DLL_TEMPLATE KLIB_TEMPLATE DRV_TEMPLATE \
   CC_COLOR CXX_COLOR AR_COLOR LD_COLOR XLD_COLOR ASM_COLOR \
   KCC_COLOR KLD_COLOR TCC_COLOR TCXX_COLOR TLD_COLOR TAR_COLOR CHECK_C_RULES PROJECT_USE_DIR \
-  OS_DEFINE_TARGETS DEFINE_C_TARGETS_EVAL PREPARE_C_VARS RESET_OS_CVARS MAKE_C_EVAL)
+  OS_DEFINE_TARGETS DEFINE_C_TARGETS_EVAL BLD_TARGETS_RESET PREPARE_C_VARS RESET_OS_CVARS MAKE_C_EVAL)
