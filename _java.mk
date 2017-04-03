@@ -151,7 +151,7 @@ JAR_RULES ?= $(if $(JAR),$(call JAR_TEMPLATE,$(call FORM_JTRG,JAR),$(call \
   FIXPATH,$(JSRC)),$(call FIXPATH,$(SCALA)),$(call FIXPATH,$(if $(value JSCALA),$(JSCALA),$(JSRC))),$(call \
   FIXPATH,$(MANIFEST)),$(call FORM_OBJ_DIR,JAR),$(addprefix $(BIN_DIR)/,$(addsuffix .jar,$(JARS)))))
 
-# Jar manifest template
+# Jar package version manifest template
 # $1 - javay/server/
 # $2 - Java API
 # $3 - dot-separated digits: 1.2.3
@@ -159,7 +159,7 @@ JAR_RULES ?= $(if $(JAR),$(call JAR_TEMPLATE,$(call FORM_JTRG,JAR),$(call \
 # $5 - javay.server
 # $6 - free form string
 # $7 - Vega Software Foundation
-define JAR_MANIFEST
+define JAR_VERSION_MANIFEST
 Name: $1
 Specification-Title: $2
 Specification-Version: $3
@@ -225,4 +225,4 @@ $(call CLEAN_BUILD_PROTECT_VARS,JLINT BLD_JTARGETS \
   JCLS_DIR FORM_CLASS_PATH JAVAC_OPTIONS SCALAC_OPTIONS \
   ARGS_FILE_SOURCES_PER_LINE CREATE_JARGS_FILE1 CREATE_JARGS_FILE \
   JAVA_CC2 JAVA_CC1 JAVA_CC SCALA_CC2 SCALA_CC1 SCALA_CC JAR_LD1 JAR_LD JAR_TEMPLATE JAR_RULES \
-  JAR_MANIFEST JAR_COLOR JAVAC_COLOR SCALAC_COLOR DEFINE_JAVA_TARGETS_EVAL PREPARE_JAVA_VARS MAKE_JAVA_EVAL)
+  JAR_VERSION_MANIFEST JAR_COLOR JAVAC_COLOR SCALAC_COLOR DEFINE_JAVA_TARGETS_EVAL PREPARE_JAVA_VARS MAKE_JAVA_EVAL)
