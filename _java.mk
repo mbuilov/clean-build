@@ -169,7 +169,7 @@ endif
 # note: target jar will depend on $(BUNDLE_FILES)
 ifndef PREPARE_JAVA_VARS
 define PREPARE_JAVA_VARS
-$(foreach x,$(BLD_JTARGETS),$(newline)$x:=)
+$(subst $(space),:=$(newline),$(BLD_JTARGETS)):=
 JSRC:=
 SCALA:=
 JSCALA:=
