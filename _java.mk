@@ -23,7 +23,7 @@ BLD_JTARGETS := JAR
 include $(MTOP)/$(OS)/java.mk
 
 # function to form paths passed to $(JAVAC),$(SCALAC) or $(JARC)
-jpath ?= ospath
+jpath ?= $(ospath)
 
 # make target filename, $1 - JAR
 # note: $(JAREXT) - either .jar or .war
