@@ -30,8 +30,7 @@ JPATHSEP ?= $(PATHSEP)
 
 # make target filename, $1 - JAR
 # note: $(JAREXT) - either .jar or .war
-FORM_JTRG ?= $(if \
-  $(filter JAR,$1),$(BIN_DIR)/$($1)$(JAREXT))
+FORM_JTRG ?= $(BIN_DIR)/$($1)$(JAREXT)
 
 # form $(BUNDLES) or $(BUNDLE_FILES) list
 # $1 - root directory
@@ -55,7 +54,7 @@ JCLS_DIR := cls
 
 # $1 - entries for classpath list
 # note: $(JPATHSEP) - either ; (windows) or : (unix)
-FORM_CLASS_PATH ?= -classpath $(call qpath,$(subst $(space),$(JPATHSEP),$(strip $(jpath))))
+FORM_CLASS_PATH ?= $(if $1,-classpath $(call qpath,$(subst $(space),$(JPATHSEP),$(strip $(jpath)))))
 
 ifeq (undefined,$(origin JAVAC_OPTIONS))
 JAVAC_OPTIONS := $(if $(JLINT),-Xlint)$(if $(DEBUG), -g) -encoding utf8
