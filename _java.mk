@@ -114,6 +114,10 @@ JAR_LD1 = $(call SUP,JAR,$1)$(if $2,$(call CREATE_JARGS_FILE,$(ALL_BUNDLES),$(JO
 JAR_LD ?= $(if $(filter $(JARS) $(EXTJARS) $(JSRC) $(SCALA) $(JSCALA),$?),$(call \
   SCALA_CC,$(SCALA),$(JSCALA))$(call JAVA_CC,$(JSRC)))$(call JAR_LD1,$1,$(word $(ARGS_FILE_SOURCES_PER_LINE),$(ALL_BUNDLES)))
 
+# make list of full paths to built jars
+# $1 - list of built jars
+FORM_BUILT_JARS ?= $(addprefix $(BIN_DIR)/,$(addsuffix .jar,$1))
+
 # $1 - target jar:              $(call FORM_JTRG,JAR)
 # $2 - .java sources:           $(call FIXPATH,$(JSRC))
 # $3 - .scala sources:          $(call FIXPATH,$(SCALA))
@@ -148,7 +152,7 @@ endif
 # NOTE: if $(JSCALA) value is empty then it defaults to $(JSRC), to assign nothing to JSCALA use JSCALA = $(empty)
 JAR_RULES ?= $(if $(JAR),$(call JAR_TEMPLATE,$(call FORM_JTRG,JAR),$(call \
   FIXPATH,$(JSRC)),$(call FIXPATH,$(SCALA)),$(call FIXPATH,$(if $(value JSCALA),$(JSCALA),$(JSRC))),$(call \
-  FIXPATH,$(MANIFEST)),$(call FORM_OBJ_DIR,JAR),$(addprefix $(BIN_DIR)/,$(addsuffix .jar,$(JARS)))))
+  FIXPATH,$(MANIFEST)),$(call FORM_OBJ_DIR,JAR),$(call FORM_BUILT_JARS,$(JARS))))
 
 # Jar package version manifest template
 # $1 - javay/server/
@@ -223,5 +227,5 @@ $(call CLEAN_BUILD_PROTECT_VARS,JLINT BLD_JTARGETS \
   jpath JPATHSEP FORM_JTRG JAR_BUNDLES_OPTIONS1 JAR_BUNDLES_OPTIONS MAKE_BUNDLE_DEPS1 MAKE_BUNDLE_DEPS \
   JCLS_DIR FORM_CLASS_PATH JAVAC_OPTIONS SCALAC_OPTIONS \
   ARGS_FILE_SOURCES_PER_LINE CREATE_JARGS_FILE1 CREATE_JARGS_FILE \
-  JAVA_CC2 JAVA_CC1 JAVA_CC SCALA_CC2 SCALA_CC1 SCALA_CC JAR_LD1 JAR_LD JAR_TEMPLATE JAR_RULES \
+  JAVA_CC2 JAVA_CC1 JAVA_CC SCALA_CC2 SCALA_CC1 SCALA_CC JAR_LD1 JAR_LD FORM_BUILT_JARS JAR_TEMPLATE JAR_RULES \
   JAR_VERSION_MANIFEST JAR_COLOR JAVAC_COLOR SCALAC_COLOR DEFINE_JAVA_TARGETS_EVAL PREPARE_JAVA_VARS MAKE_JAVA_EVAL)
