@@ -17,8 +17,10 @@ ifndef DO_TEST_EXE_TEMPLATE
 # $4 - additional paths to append to PATH environment variable to run executable
 define DO_TEST_EXE_TEMPLATE
 $(call ADD_GENERATED,$1.out)
+$1.out: TEST_AUX_PATH := $4
+$1.out: TEST_AUX_PARAMS := $3
 $1.out: $1
-	$(if $4,$$(eval $1.out: PATH := $$(PATH)$$(if $$(PATH),$(PATHSEP))$4))$$(call SUP,TEST,$$@)$$< $3 > $$@
+	$$(call SUP,TEST,$$@)$$(call RUN_WITH_PATH,$$(TEST_AUX_PATH),$$< $$(TEST_AUX_PARAMS) > $$@)
 $(TEST_EXE_SOFTLINKS)
 endef
 

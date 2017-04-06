@@ -65,7 +65,6 @@ RM  = $(call xcmd,RM1,$1,$(DEL_ARGS_LIMIT))
 MKDIR = mkdir $(ospath)
 
 SED  ?= sed.exe
-SED  := $(SED) -b
 SED_EXPR = "$(subst %,%%,$1)"
 CAT   = type $(ospath)
 open_brace:=(
@@ -93,6 +92,11 @@ TOOL_SUFFIX := .exe
 # paths separator, as used in %PATH% environment variable
 PATHSEP := ;
 
+# if %PATH% environment variable was modified for calling a tool, print new %PATH% value in generated batch
+show_with_path ?= $(info setlocal$(newline)set PATH=$(PATH)$(newline)$1)
+show_path_end ?= $(newline)@echo endlocal
+
 # protect variables from modifications in target makefiles
 $(call CLEAN_BUILD_PROTECT_VARS,DEL_ARGS_LIMIT DEL1 DEL DEL_DIR1 DEL_DIR RM1 RM MKDIR SED SED_EXPR \
-  CAT open_brace close_brace ECHO_LINE ECHO1 ECHO EXECIN NUL SUPPRESS_CP_OUTPUT CP TOUCH1 TOUCH DEL_ON_FAIL TOOL_SUFFIX PATHSEP)
+  CAT open_brace close_brace ECHO_LINE ECHO1 ECHO EXECIN NUL SUPPRESS_CP_OUTPUT CP TOUCH1 TOUCH DEL_ON_FAIL TOOL_SUFFIX PATHSEP \
+  show_path_local show_path_end)

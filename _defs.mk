@@ -654,6 +654,16 @@ EXTRACT_SDEPS ?= $(foreach d,$(filter $(addsuffix |%,$1),$2),$(wordlist 2,999999
 # $1 - sdeps list: <source file1>|<dependency1>|<dependency2>|... <source file2>|<dependency1>|<dependency2>|...
 FIX_SDEPS ?= $(subst | ,|,$(call FIXPATH,$(subst |,| ,$1)))
 
+# show PATH environment variable with running command
+show_with_path ?= $(info PATH="$(PATH)" $1)
+
+# run executable with modified PATH environment variable
+# $1 - additional paths to append to PATH
+# $2 - command to run (with arguments)
+# note: this function should be used for rule body, where automatic variable $$@ is defined
+RUN_WITH_PATH = $(if $1,$(eval $@: PATH := $(PATH)$(if $(PATH),$(PATHSEP))$1)$(if $(VERBOSE),$(call \
+  show_with_path,$2)@))$2$(if $1,$(if $(VERBOSE),$(call show_path_end)))
+
 # protect variables from modifications in target makefiles
 CLEAN_BUILD_PROTECTED_VARS += MTOP MAKEFLAGS NO_DEPS DEBUG PROJECT \
   SUPPORTED_OSES SUPPORTED_CPUS SUPPORTED_TARGETS OS CPU UCPU KCPU TCPU TARGET \
@@ -667,4 +677,5 @@ CLEAN_BUILD_PROTECTED_VARS += MTOP MAKEFLAGS NO_DEPS DEBUG PROJECT \
   DEF_TAIL_CODE_DEBUG DEF_HEAD_CODE DEF_HEAD_CODE_EVAL DEF_TAIL_CODE DEF_TAIL_CODE_EVAL \
   FILTER_VARIANTS_LIST GET_VARIANTS GET_TARGET_NAME DEBUG_TARGETS FORM_OBJ_DIR \
   CHECK_GENERATED ADD_GENERATED MULTI_TARGET_RULE MULTI_TARGET_CHECK MULTI_TARGET_SEQ MULTI_TARGET \
-  DEFINE_TARGETS SAVE_VARS RESTORE_VARS MAKE_CONTINUE_BODY_EVAL MAKE_CONTINUE FORM_SDEPS EXTRACT_SDEPS FIX_SDEPS
+  DEFINE_TARGETS SAVE_VARS RESTORE_VARS MAKE_CONTINUE_BODY_EVAL MAKE_CONTINUE FORM_SDEPS EXTRACT_SDEPS FIX_SDEPS \
+  show_with_path show_path_end RUN_WITH_PATH
