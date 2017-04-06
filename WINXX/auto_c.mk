@@ -198,6 +198,9 @@ endif
 
 endif
 
+# PATH variable may have changed, print it to generated batch file
+$(if $(VERBOSE),$(info setlocal$(newline)set PATH=$(PATH)))
+
 # option for parallel builds, starting from Visual Studio 2013
 ifneq ($(call is_less,11,$(VS_VER)),)
 FORCE_SYNC_PDB ?= /FS
