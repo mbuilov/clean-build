@@ -314,7 +314,8 @@ endif
 CURRENT_MAKEFILE := $(CURRENT_MAKEFILE:$(TOP)/%=%)
 
 # all files must be generated in this directories
-BUILD_DIR := $(XTOP)/build
+BUILD_DIR ?= $(XTOP)/build
+BUILD_DIR := $(BUILD_DIR)
 
 # to allow parallel builds for different combinations of
 #  $(OS)/$(KCPU)/$(UCPU)/$(TARGET) create unique directories for each combination
