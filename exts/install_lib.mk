@@ -13,7 +13,7 @@
 # next variables must be defined before including this file:
 # LIBRARY_NAME    - install/uninstall target name and name of installed headers directory
 # LIBRARY_HEADERS - header files of installed library
-# LIBRARY_PC_GEN  - name of pkg-config file generator macro (see $(MTOP)/UNIX/pc.mk)
+# LIBRARY_PC_GEN  - name of pkg-config file generator macro
 
 # do not install/uninstall header files
 NO_INSTALL_HEADERS1 := $(NO_INSTALL_HEADERS)
