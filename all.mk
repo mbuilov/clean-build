@@ -12,13 +12,13 @@
 
 GET_DIR = $(patsubst %/,%,$(patsubst ./%,%,$(filter %/,$(dir $1))))
 SPLIT_DIRS = $(if $1,$1 $(call SPLIT_DIRS,$(GET_DIR)))
-NEEDED_DIRS := $(sort $(call SPLIT_DIRS,$(NEEDED_DIRS:$(XTOP)/%=%)))
+NEEDED_DIRS := $(sort $(call SPLIT_DIRS,$(NEEDED_DIRS:$(BUILD)/%=%)))
 
 # define order-only dependencies for directories
-$(eval $(foreach x,$(NEEDED_DIRS),$(addprefix $(newline)$(XTOP)/$x:| $(XTOP)/,$(call GET_DIR,$x))))
+$(eval $(foreach x,$(NEEDED_DIRS),$(addprefix $(newline)$(BUILD)/$x:| $(BUILD)/,$(call GET_DIR,$x))))
 
-# define rules to create $(XTOP)-related needed directories
-$(addprefix $(XTOP)/,$(NEEDED_DIRS)):
+# define rules to create $(BUILD)-related needed directories
+$(addprefix $(BUILD)/,$(NEEDED_DIRS)):
 	$(call SUP,MKDIR,$@,1)$(call MKDIR,$@)
 
 # default target
