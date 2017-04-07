@@ -91,8 +91,9 @@ ADD_OBJ_SDEPS ?= $(if $2,$(newline)$1/$(basename $(notdir $x))$(OBJ_SUFFIX): $2)
 # note: $(NO_DEPS) - may be recursive and so have different values, for example depending on value of $(CURRENT_MAKEFILE)
 # note: postpone expansion of ORDER_DEPS - $(FIX_ORDER_DEPS) from $(STD_TARGET_VARS) changes $(ORDER_DEPS) value
 define OBJ_RULES2
-$(subst $(space),$(newline),$(join $(addsuffix :,$5),$2))
-$(if $3,$(foreach x,$2,$(call ADD_OBJ_SDEPS,$4,$(call EXTRACT_SDEPS,$x,$3))))
+$5
+$(subst $(space),$(newline),$(join $(addsuffix :,$5),$2))$(if \
+  $3,$(foreach x,$2,$(call ADD_OBJ_SDEPS,$4,$(call EXTRACT_SDEPS,$x,$3))))
 $5: | $4 $$(ORDER_DEPS)
 	$$(call $t_$v_$1,$$@,$$<)
 endef
@@ -104,8 +105,11 @@ endef
 # $5 - $(addprefix $4/,$(basename $(notdir $2)))
 # $v - non-empty variant: R,P,S,...
 # $t - EXE,LIB,...
-OBJ_RULES1 = $(if $(value TOCLEAN),$(call TOCLEAN,$(addsuffix .d,$5)),$(call \
-  OBJ_RULES2,$1,$2,$3,$4,$(addsuffix $(OBJ_SUFFIX),$5))$(if $(NO_DEPS),,$(newline)-include $(addsuffix .d,$5)))
+ifdef TOCLEAN
+OBJ_RULES1 = $(call TOCLEAN,$(addsuffix .d,$5) $(addsuffix $(OBJ_SUFFIX),$5))
+else
+OBJ_RULES1 = $(call OBJ_RULES2,$1,$2,$3,$4,$(addsuffix $(OBJ_SUFFIX),$5))$(if $(NO_DEPS),,$(newline)-include $(addsuffix .d,$5))
+endif
 
 # rule that defines how to build objects from sources
 # $1 - CXX,CC,ASM,...
@@ -220,10 +224,10 @@ DEP_IMPS ?= $(addprefix $(IMP_DIR)/,$(call MAKE_DEP_IMPS,$1,$2,$(DLLS)))
 # $v - non-empty variant: R,P,S,...
 ifdef MCHECK
 # check that target template is defined
-C_RULES2 = $(if $(value $t_TEMPLATE),$(call $t_TEMPLATE,$1,$2,$3,$4,$(addprefix $4/,$(call GET_OBJS,$2))),$(error \
+C_RULES2 = $(if $(value $t_TEMPLATE),$($t_TEMPLATE),$(error \
   $t_TEMPLATE not defined! (define it in $(OSDIR)/$(OS)/c.mk)))
 else
-C_RULES2 = $(call $t_TEMPLATE,$1,$2,$3,$4,$(addprefix $4/,$(call GET_OBJS,$2)))
+C_RULES2 = $($t_TEMPLATE)
 endif
 
 # $1 - $(TRG_SRC)
@@ -240,16 +244,15 @@ C_RULES ?= $(foreach t,$1,$(if $($t),$(call C_RULES1,$(TRG_SRC),$(TRG_SDEPS))))
 # $2 - sources:     $(TRG_SRC)
 # $3 - sdeps:       $(TRG_SDEPS)
 # $4 - objdir:      $(call FORM_OBJ_DIR,$t,$v)
-# $5 - objects:     $(addprefix $4/,$(call GET_OBJS,$2))
 # $t - EXE
 # $v - non-empty variant: R,P,S,...
 ifndef EXE_TEMPLATE
 define EXE_TEMPLATE
 $(STD_TARGET_VARS)
 NEEDED_DIRS += $4
-$(call OBJ_RULES,CC,$(filter %.c,$2),$3,$4)
-$(call OBJ_RULES,CXX,$(filter %.cpp,$2),$3,$4)
-$(call OBJ_RULES,ASM,$(filter %.asm,$2),$3,$4)
+$1: $(call OBJ_RULES,CC,$(filter %.c,$2),$3,$4)
+$1: $(call OBJ_RULES,CXX,$(filter %.cpp,$2),$3,$4)
+$1: $(call OBJ_RULES,ASM,$(filter %.asm,$2),$3,$4)
 $1: COMPILER   := $(if $(filter %.cpp,$2),CXX,CC)
 $1: LIB_DIR    := $(LIB_DIR)
 $1: LIBS       := $(LIBS)
@@ -262,9 +265,8 @@ $1: ASMFLAGS   := $(ASMFLAGS)
 $1: LDFLAGS    := $(LDFLAGS)
 $1: SYSLIBS    := $(SYSLIBS)
 $1: SYSLIBPATH := $(SYSLIBPATH)
-$1: $(call DEP_LIBS,$t,$v) $(call DEP_IMPS,$t,$v) $5
+$1: $(call DEP_LIBS,$t,$v) $(call DEP_IMPS,$t,$v)
 	$$(call $t_$v_LD,$$@,$$(filter %$(OBJ_SUFFIX),$$^))
-$(call TOCLEAN,$5)
 endef
 endif
 
@@ -273,16 +275,15 @@ endif
 # $2 - sources:     $(TRG_SRC)
 # $3 - sdeps:       $(TRG_SDEPS)
 # $4 - objdir:      $(call FORM_OBJ_DIR,$t,$v)
-# $5 - objects:     $(addprefix $4/,$(call GET_OBJS,$2))
 # $t - DLL
 # $v - non-empty variant: R,S
 ifndef DLL_TEMPLATE
 define DLL_TEMPLATE
 $(STD_TARGET_VARS)
 NEEDED_DIRS += $4
-$(call OBJ_RULES,CC,$(filter %.c,$2),$3,$4)
-$(call OBJ_RULES,CXX,$(filter %.cpp,$2),$3,$4)
-$(call OBJ_RULES,ASM,$(filter %.asm,$2),$3,$4)
+$1: $(call OBJ_RULES,CC,$(filter %.c,$2),$3,$4)
+$1: $(call OBJ_RULES,CXX,$(filter %.cpp,$2),$3,$4)
+$1: $(call OBJ_RULES,ASM,$(filter %.asm,$2),$3,$4)
 $1: COMPILER   := $(if $(filter %.cpp,$2),CXX,CC)
 $1: LIB_DIR    := $(LIB_DIR)
 $1: LIBS       := $(LIBS)
@@ -295,9 +296,8 @@ $1: ASMFLAGS   := $(ASMFLAGS)
 $1: LDFLAGS    := $(LDFLAGS)
 $1: SYSLIBS    := $(SYSLIBS)
 $1: SYSLIBPATH := $(SYSLIBPATH)
-$1: $(call DEP_LIBS,$t,$v) $(call DEP_IMPS,$t,$v) $5
+$1: $(call DEP_LIBS,$t,$v) $(call DEP_IMPS,$t,$v)
 	$$(call $t_$v_LD,$$@,$$(filter %$(OBJ_SUFFIX),$$^))
-$(call TOCLEAN,$5)
 endef
 endif
 
@@ -306,16 +306,15 @@ endif
 # $2 - sources:     $(TRG_SRC)
 # $3 - sdeps:       $(TRG_SDEPS)
 # $4 - objdir:      $(call FORM_OBJ_DIR,$t,$v)
-# $5 - objects:     $(addprefix $4/,$(call GET_OBJS,$2))
 # $t - LIB
 # $v - non-empty variant: R,P,D,S
 ifndef LIB_TEMPLATE
 define LIB_TEMPLATE
 $(STD_TARGET_VARS)
 NEEDED_DIRS += $4
-$(call OBJ_RULES,CC,$(filter %.c,$2),$3,$4)
-$(call OBJ_RULES,CXX,$(filter %.cpp,$2),$3,$4)
-$(call OBJ_RULES,ASM,$(filter %.asm,$2),$3,$4)
+$1: $(call OBJ_RULES,CC,$(filter %.c,$2),$3,$4)
+$1: $(call OBJ_RULES,CXX,$(filter %.cpp,$2),$3,$4)
+$1: $(call OBJ_RULES,ASM,$(filter %.asm,$2),$3,$4)
 $1: COMPILER   := $(if $(filter %.cpp,$2),CXX,CC)
 $1: INCLUDE    := $(TRG_INCLUDE)
 $1: DEFINES    := $(CMNDEFINES) $(APPDEFS) $(DEFINES)
@@ -323,9 +322,8 @@ $1: CFLAGS     := $(CFLAGS)
 $1: CXXFLAGS   := $(CXXFLAGS)
 $1: ASMFLAGS   := $(ASMFLAGS)
 $1: LDFLAGS    := $(LDFLAGS)
-$1: $5
+$1:
 	$$(call $t_$v_LD,$$@,$$(filter %$(OBJ_SUFFIX),$$^))
-$(call TOCLEAN,$5)
 endef
 endif
 
@@ -334,16 +332,15 @@ endif
 # $2 - sources:     $(TRG_SRC)
 # $3 - sdeps:       $(TRG_SDEPS)
 # $4 - objdir:      $(call FORM_OBJ_DIR,$t,$v)
-# $5 - objects:     $(addprefix $4/,$(call GET_OBJS,$2))
 # $t - KLIB
 # $v - non-empty variant: R
 ifndef KLIB_TEMPLATE
 define KLIB_TEMPLATE
 $(STD_TARGET_VARS)
 NEEDED_DIRS += $4
-$(call OBJ_RULES,CC,$(filter %.c,$2),$3,$4)
-$(call OBJ_RULES,CXX,$(filter %.cpp,$2),$3,$4)
-$(call OBJ_RULES,ASM,$(filter %.asm,$2),$3,$4)
+$1: $(call OBJ_RULES,CC,$(filter %.c,$2),$3,$4)
+$1: $(call OBJ_RULES,CXX,$(filter %.cpp,$2),$3,$4)
+$1: $(call OBJ_RULES,ASM,$(filter %.asm,$2),$3,$4)
 $1: COMPILER   := $(if $(filter %.cpp,$2),CXX,CC)
 $1: INCLUDE    := $(TRG_INCLUDE)
 $1: DEFINES    := $(CMNDEFINES) $(KRNDEFS) $(DEFINES)
@@ -351,9 +348,8 @@ $1: CFLAGS     := $(CFLAGS)
 $1: CXXFLAGS   := $(CXXFLAGS)
 $1: ASMFLAGS   := $(ASMFLAGS)
 $1: LDFLAGS    := $(LDFLAGS)
-$1: $5
+$1:
 	$$(call $t_$v_LD,$$@,$$(filter %$(OBJ_SUFFIX),$$^))
-$(call TOCLEAN,$5)
 endef
 endif
 
