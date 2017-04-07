@@ -13,7 +13,7 @@ include $(MTOP)/defs.mk
 ifneq ($(filter distclean,$(MAKECMDGOALS)),)
 
 distclean:
-	$(call RM,$(BUILD_DIR))
+	$(call RM,$(BUILD))
 
 else # !distclean
 
