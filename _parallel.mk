@@ -15,19 +15,11 @@ NORM_MAKEFILES = $(patsubst $(TOP)/%,%$2,$(abspath $(foreach \
 
 # add empty rules for $(MDEPS): don't complain if order deps are not resolved when build started in sub-directory
 # note: $(ORDER_DEPS) - names of dependency makefiles with '-' suffix
-# note: reset MDEPS
-define APPEND_MDEPS
-MDEPS := $(filter-out $(ORDER_DEPS),$(call NORM_MAKEFILES,$(MDEPS),-))
-ifdef MDEPS
-$$(MDEPS):
-ORDER_DEPS += $$(MDEPS)
-MDEPS:=
-endif
-endef
+APPEND_MDEPS ?= $(if $1,$1:$(newline)ORDER_DEPS += $1$(newline))
 
 # overwrite code for adding $(MDEPS) - list of makefiles that need to be built before target makefile - to $(ORDER_DEPS)
 # note: reset MDEPS to not update ORDER_DEPS on each evaluation of STD_TARGET_VARS in target makefile
-FIX_ORDER_DEPS = $(APPEND_MDEPS)
+FIX_ORDER_DEPS = $(call APPEND_MDEPS,$(filter-out $(ORDER_DEPS),$(call NORM_MAKEFILES,$(MDEPS),-)))MDEPS:=
 
 # don't complain about new FIX_ORDER_DEPS value
 # - replace old FIX_ORDER_DEPS value defined in $(MTOP)/defs.mk with a new one
