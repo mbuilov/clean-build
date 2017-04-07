@@ -5,10 +5,10 @@
 #----------------------------------------------------------------------------------
 
 # this file included by $(MTOP)/defs.mk
-# check values of $(TOP) and $(XTOP) variables
+# check values of $(TOP) and $(BUILD) variables
 
-# make TOP or XTOP non-recursive (simple), then check its value
-# $1 (TOP or XTOP) must contain unix-style path to directory without spaces like C:/opt/project or /home/oper/project
+# make TOP or BUILD non-recursive (simple), then check their values
+# $1 (TOP or BUILD) must contain unix-style path to directory without spaces like C:/opt/project or /home/oper/project
 define CHECK_TOP1
 $1 := $($1)
 ifneq ($(words x$($1)x),1)
@@ -31,12 +31,15 @@ endif
 $(call CHECK_TOP,TOP)
 
 # directory for built files - base for $(BIN_DIR), $(LIB_DIR), $(OBJ_DIR), $(GEN_DIR)
-# note: make XTOP non-recursive (simple)
-ifndef XTOP
-XTOP := $(TOP)
+# note: make BUILD non-recursive (simple)
+ifndef BUILD
+BUILD := $(TOP)/build
 else
-$(call CHECK_TOP,XTOP)
+$(call CHECK_TOP,BUILD)
+ifneq ($(filter $(BUILD)/%,$(TOP)/),)
+$(error BUILD=$(BUILD) cannot be a base for TOP=$(TOP))
+endif
 endif
 
 # protect variables from modification in target makefiles
-CLEAN_BUILD_PROTECTED_VARS += CHECK_TOP1 CHECK_TOP TOP XTOP
+CLEAN_BUILD_PROTECTED_VARS += CHECK_TOP1 CHECK_TOP TOP BUILD
