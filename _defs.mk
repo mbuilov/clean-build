@@ -176,8 +176,13 @@ ifeq ("$(origin D)","command line")
 MDEBUG := $(D:0=)
 endif
 
+# directory of $(OS)-specific definitions
+ifndef OSDIR
+OSDIR := $(MTOP)
+endif
+
 ifdef MDEBUG
-$(call dump,MTOP TOP XTOP TARGET OS CPU UCPU KCPU TCPU)
+$(call dump,MTOP OSDIR TOP XTOP TARGET OS CPU UCPU KCPU TCPU)
 endif
 
 ifdef MCHECK
@@ -191,8 +196,13 @@ endef
 
 endif # MCHECK
 
+# check that $(OSDIR)/$(OS)/tools.mk exists
+ifeq ($(wildcard $(OSDIR)/$(OS)/tools.mk),)
+$(error file $(OSDIR)/$(OS)/tools.mk does not exists)
+endif
+
 # define utilities of the OS we are building on
-include $(MTOP)/$(OS)/tools.mk
+include $(OSDIR)/$(OS)/tools.mk
 
 # colorize percents
 ifdef TERM_NO_COLOR
@@ -667,7 +677,7 @@ RUN_WITH_PATH = $(if $1,$(eval $@: PATH := $(PATH)$(if $(PATH),$(PATHSEP))$1)$(i
 # protect variables from modifications in target makefiles
 CLEAN_BUILD_PROTECTED_VARS += MTOP MAKEFLAGS NO_DEPS DEBUG PROJECT \
   SUPPORTED_OSES SUPPORTED_CPUS SUPPORTED_TARGETS OS CPU UCPU KCPU TCPU TARGET \
-  OS_$(OS) VERBOSE INFOMF MDEBUG CHECK_MAKEFILE_NOT_PROCESSED \
+  OS_$(OS) VERBOSE INFOMF MDEBUG OSDIR CHECK_MAKEFILE_NOT_PROCESSED \
   TERM_NO_COLOR PRINT_PERCENTS SUP ADD_SHOWN_PERCENTS REM_SHOWN_MAKEFILE TRY_REM_MAKEFILE \
   GEN_COLOR MGEN_COLOR CP_COLOR LN_COLOR MKDIR_COLOR TOUCH_COLOR \
   COLORIZE SED_MULTI_EXPR ospath isrelpath \

@@ -27,8 +27,8 @@ endif
 # S - statically linked multithreaded libc          (for all targets) (only WINDOWS)
 
 # what we may build by including $(MTOP)/c.mk (for ex. LIB := my_lib)
-# note: DRV is $(OS)-specific, $(MTOP)/$(OS)/c.mk should define DRV_TEMPLATE
-# note: $(MTOP)/$(OS)/c.mk may append more target types to BLD_TARGETS, for example DDD
+# note: DRV is $(OS)-specific, $(OSDIR)/$(OS)/c.mk should define DRV_TEMPLATE
+# note: $(OSDIR)/$(OS)/c.mk may append more target types to BLD_TARGETS, for example DDD
 BLD_TARGETS := EXE LIB DLL KLIB DRV
 
 # $(TOP)/make/project.mk included by $(MTOP)/defs.mk, if exists, should define something like:
@@ -59,7 +59,7 @@ BLD_TARGETS := EXE LIB DLL KLIB DRV
 #  this is also default version for any built module (exe, dll or driver)
 #  PRODUCT_VER := 1.0.0
 
-include $(MTOP)/$(OS)/c.mk
+include $(OSDIR)/$(OS)/c.mk
 
 # for simple 'ifdef OSTYPE_WINDOWS' or 'ifdef OSTYPE_UNIX'
 OSTYPE_$(OSTYPE) := 1
@@ -71,7 +71,7 @@ OSVARIANT_$(OSVARIANT) := 1
 # $1 - target variant R,P,D,S,<empty>
 LIB_VAR_SUFFIX ?= $(if $(filter-out R,$1),_$1)
 
-# add defines from $(MTOP)/$(OS)/c.mk
+# add defines from $(OSDIR)/$(OS)/c.mk
 PREDEFINES += $(OS_PREDEFINES)
 APPDEFS    += $(OS_APPDEFS)
 KRNDEFS    += $(OS_KRNDEFS)
@@ -154,7 +154,7 @@ FORM_TRG ?= $(if \
 SUBST_DEFINES ?= $(subst $$(space),$(space),$1)
 
 # helper macro for target makefiles to pass string define value to C-compiler
-# may be already defined by $(MTOP)/$(OS)/c.mk
+# may be already defined by $(OSDIR)/$(OS)/c.mk
 STRING_DEFINE ?= "$(subst $(space),$$$$(space),$(subst ",\",$1))"
 
 # make absolute paths to include directories - we need absolute paths to headers in generated .d dependency file
@@ -177,7 +177,7 @@ TRG_SDEPS ?= $(call FIX_SDEPS,$(SDEPS))
 GET_OBJS ?= $(addsuffix $(OBJ_SUFFIX),$(basename $(notdir $1)))
 
 # VARIANT_LIB_MAP/VARIANT_IMP_MAP - functions that define which variant of
-#  static/dynamic library to link with EXE or DLL, defined in $(MTOP)/$(OS)/c.mk
+#  static/dynamic library to link with EXE or DLL, defined in $(OSDIR)/$(OS)/c.mk
 # $1 - target: EXE,DLL
 # $2 - variant of target EXE or DLL: R,P,S,<empty>
 # $3 - dependent static/dynamic library name
@@ -221,7 +221,7 @@ DEP_IMPS ?= $(addprefix $(IMP_DIR)/,$(call MAKE_DEP_IMPS,$1,$2,$(DLLS)))
 ifdef MCHECK
 # check that target template is defined
 C_RULES2 = $(if $(value $t_TEMPLATE),$(call $t_TEMPLATE,$1,$2,$3,$4,$(addprefix $4/,$(call GET_OBJS,$2))),$(error \
-  $t_TEMPLATE not defined! (define it in $(MTOP)/$(OS)/c.mk)))
+  $t_TEMPLATE not defined! (define it in $(OSDIR)/$(OS)/c.mk)))
 else
 C_RULES2 = $(call $t_TEMPLATE,$1,$2,$3,$4,$(addprefix $4/,$(call GET_OBJS,$2)))
 endif

@@ -20,7 +20,7 @@ endif
 # what we may build by including $(MTOP)/java.mk (for ex. JAR := my_jar)
 BLD_JTARGETS := JAR
 
-include $(MTOP)/$(OS)/java.mk
+include $(OSDIR)/$(OS)/java.mk
 
 # function to form paths passed to $(JAVAC),$(SCALAC) or $(JARC)
 jpath ?= $(ospath)
