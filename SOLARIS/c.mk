@@ -86,27 +86,63 @@ BISONC := bison
 endif
 
 # prefixes/suffixes of build targets, may be already defined in $(TOP)/make/project.mk
-# note: if OBJ_SUFFIX is defined, then all prefixes/suffixes must be also defined
-ifndef OBJ_SUFFIX
+
 # exe file suffix
+ifeq (undefined,$(origin EXE_SUFFIX))
 EXE_SUFFIX:=
+endif
+
 # object file suffix
+ifeq (undefined,$(origin OBJ_SUFFIX))
 OBJ_SUFFIX := .o
+endif
+
 # static library (archive) prefix/suffix
+ifeq (undefined,$(origin LIB_PREFIX))
 LIB_PREFIX := lib
+endif
+
+ifeq (undefined,$(origin LIB_SUFFIX))
 LIB_SUFFIX := .a
+endif
+
 # dynamically loaded library (shared object) prefix/suffix
+ifeq (undefined,$(origin DLL_PREFIX))
 DLL_PREFIX := lib
+endif
+
+ifeq (undefined,$(origin DLL_SUFFIX))
 DLL_SUFFIX := .so
+endif
+
 # import library for dll prefix/suffix
+ifeq (undefined,$(origin IMP_PREFIX))
 IMP_PREFIX := $(DLL_PREFIX)
+endif
+
+ifeq (undefined,$(origin IMP_SUFFIX))
 IMP_SUFFIX := $(DLL_SUFFIX)
+endif
+
 # kernel-mode static library prefix/suffix
+ifeq (undefined,$(origin KLIB_NAME_PREFIX))
 KLIB_NAME_PREFIX := k_
+endif
+
+ifeq (undefined,$(origin KLIB_PREFIX))
 KLIB_PREFIX := lib$(KLIB_NAME_PREFIX)
+endif
+
+ifeq (undefined,$(origin KLIB_SUFFIX))
 KLIB_SUFFIX := .a
+endif
+
 # kernel module (driver) prefix/suffix
+ifeq (undefined,$(origin DRV_PREFIX))
 DRV_PREFIX:=
+endif
+
+ifeq (undefined,$(origin DRV_SUFFIX))
 DRV_SUFFIX:=
 endif
 
@@ -412,16 +448,15 @@ endif
 # $2 - sources:     $(TRG_SRC)
 # $3 - sdeps:       $(TRG_SDEPS)
 # $4 - objdir:      $(call FORM_OBJ_DIR,$t,$v)
-# $5 - objects:     $(addprefix $4/,$(call GET_OBJS,$2))
 # $t - DRV
 # $v - non-empty variant: R
 ifndef DRV_TEMPLATE
 define DRV_TEMPLATE
 $(STD_TARGET_VARS)
 NEEDED_DIRS += $4
-$(call OBJ_RULES,CC,$(filter %.c,$2),$3,$4)
-$(call OBJ_RULES,CXX,$(filter %.cpp,$2),$3,$4)
-$(call OBJ_RULES,ASM,$(filter %.asm,$2),$3,$4)
+$1: $(call OBJ_RULES,CC,$(filter %.c,$2),$3,$4)
+$1: $(call OBJ_RULES,CXX,$(filter %.cpp,$2),$3,$4)
+$1: $(call OBJ_RULES,ASM,$(filter %.asm,$2),$3,$4)
 $1: COMPILER   := $(if $(filter %.cpp,$2),CXX,CC)
 $1: LIB_DIR    := $(LIB_DIR)
 $1: KLIBS      := $(KLIBS)
@@ -433,9 +468,8 @@ $1: ASMFLAGS   := $(ASMFLAGS)
 $1: LDFLAGS    := $(LDFLAGS)
 $1: SYSLIBS    := $(SYSLIBS)
 $1: SYSLIBPATH := $(SYSLIBPATH)
-$1: $(addprefix $(LIB_DIR)/$(KLIB_PREFIX),$(KLIBS:=$(KLIB_SUFFIX))) $5
+$1: $(addprefix $(LIB_DIR)/$(KLIB_PREFIX),$(KLIBS:=$(KLIB_SUFFIX)))
 	$$(call $t_$v_LD,$$@,$$(filter %$(OBJ_SUFFIX),$$^))
-$(call TOCLEAN,$5)
 endef
 endif
 
