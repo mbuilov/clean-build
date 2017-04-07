@@ -49,7 +49,7 @@ ifneq ($(filter clean,$(MAKECMDGOALS)),)
 NO_DEPS := 1
 endif
 
-# check values of TOP (and, if defined, XTOP) variables, include functions library
+# check values of TOP (and, if defined, BUILD) variables, include functions library
 include $(MTOP)/protection.mk
 include $(MTOP)/functions.mk
 include $(MTOP)/top.mk
@@ -182,7 +182,7 @@ OSDIR := $(MTOP)
 endif
 
 ifdef MDEBUG
-$(call dump,MTOP OSDIR TOP XTOP TARGET OS CPU UCPU KCPU TCPU)
+$(call dump,MTOP OSDIR TOP BUILD TARGET OS CPU UCPU KCPU TCPU)
 endif
 
 ifdef MCHECK
@@ -313,10 +313,6 @@ endif
 # make current makefile path relative to $(TOP)
 CURRENT_MAKEFILE := $(CURRENT_MAKEFILE:$(TOP)/%=%)
 
-# all files must be generated in this directories
-BUILD_DIR ?= $(XTOP)/build
-BUILD_DIR := $(BUILD_DIR)
-
 # to allow parallel builds for different combinations of
 #  $(OS)/$(KCPU)/$(UCPU)/$(TARGET) create unique directories for each combination
 TARGET_TRIPLET := $(OS)-$(KCPU)-$(UCPU)-$(TARGET)
@@ -326,10 +322,10 @@ TARGET_TRIPLET := $(OS)-$(KCPU)-$(UCPU)-$(TARGET)
 # lib - for libraries, shared objects
 # obj - for object files
 # gen - for generated files (headers, sources, resources, etc)
-DEF_BIN_DIR := $(BUILD_DIR)/bin-$(TARGET_TRIPLET)
-DEF_OBJ_DIR := $(BUILD_DIR)/obj-$(TARGET_TRIPLET)
-DEF_LIB_DIR := $(BUILD_DIR)/lib-$(TARGET_TRIPLET)
-DEF_GEN_DIR := $(BUILD_DIR)/gen-$(TARGET_TRIPLET)
+DEF_BIN_DIR := $(BUILD)/bin-$(TARGET_TRIPLET)
+DEF_OBJ_DIR := $(BUILD)/obj-$(TARGET_TRIPLET)
+DEF_LIB_DIR := $(BUILD)/lib-$(TARGET_TRIPLET)
+DEF_GEN_DIR := $(BUILD)/gen-$(TARGET_TRIPLET)
 
 # restore default dirs after tool mode
 define SET_DEFAULT_DIRS
@@ -682,7 +678,7 @@ CLEAN_BUILD_PROTECTED_VARS += MTOP MAKEFLAGS NO_DEPS DEBUG PROJECT \
   TERM_NO_COLOR PRINT_PERCENTS SUP ADD_SHOWN_PERCENTS REM_SHOWN_MAKEFILE TRY_REM_MAKEFILE \
   GEN_COLOR MGEN_COLOR CP_COLOR LN_COLOR MKDIR_COLOR TOUCH_COLOR \
   COLORIZE SED_MULTI_EXPR ospath isrelpath \
-  BUILD_DIR TARGET_TRIPLET DEF_BIN_DIR DEF_OBJ_DIR DEF_LIB_DIR DEF_GEN_DIR SET_DEFAULT_DIRS BIN_DIR OBJ_DIR LIB_DIR GEN_DIR \
+  TARGET_TRIPLET DEF_BIN_DIR DEF_OBJ_DIR DEF_LIB_DIR DEF_GEN_DIR SET_DEFAULT_DIRS BIN_DIR OBJ_DIR LIB_DIR GEN_DIR \
   TOOL_BASE MK_TOOLS_DIR GET_TOOLS GET_TOOL TOOL_OVERRIDE_DIRS \
   FIX_ORDER_DEPS STD_TARGET_VARS1 STD_TARGET_VARS TOCLEAN GET_VPREFIX ADDVPREFIX FIXPATH MAKEFILE_DEBUG_INFO \
   DEF_TAIL_CODE_DEBUG DEF_HEAD_CODE DEF_HEAD_CODE_EVAL DEF_TAIL_CODE DEF_TAIL_CODE_EVAL \
