@@ -325,10 +325,10 @@ TARGET_TRIPLET := $(OS)-$(KCPU)-$(UCPU)-$(TARGET)
 # lib - for libraries, shared objects
 # obj - for object files
 # gen - for generated files (headers, sources, resources, etc)
-DEF_BIN_DIR := $(XTOP)/bin/$(TARGET_TRIPLET)
-DEF_OBJ_DIR := $(XTOP)/obj/$(TARGET_TRIPLET)
-DEF_LIB_DIR := $(XTOP)/lib/$(TARGET_TRIPLET)
-DEF_GEN_DIR := $(XTOP)/gen/$(TARGET_TRIPLET)
+DEF_BIN_DIR := $(XTOP)/build/bin-$(TARGET_TRIPLET)
+DEF_OBJ_DIR := $(XTOP)/build/obj-$(TARGET_TRIPLET)
+DEF_LIB_DIR := $(XTOP)/build/lib-$(TARGET_TRIPLET)
+DEF_GEN_DIR := $(XTOP)/build/gen-$(TARGET_TRIPLET)
 
 # restore default dirs after tool mode
 define SET_DEFAULT_DIRS
@@ -358,7 +358,7 @@ endif
 # where tools are built
 # $1 - TOOL_BASE
 # $2 - TCPU
-MK_TOOLS_DIR ?= $1/TOOL-$2-$(TARGET)/bin
+MK_TOOLS_DIR ?= $1/bin-TOOL-$2-$(TARGET)
 
 # call with
 # $1 - TOOL_BASE
@@ -369,15 +369,12 @@ GET_TOOLS = $(addsuffix $(TOOL_SUFFIX),$(addprefix $(MK_TOOLS_DIR)/,$3))
 # get path to a tool $1 for current $(TOOL_BASE) and $(TCPU)
 GET_TOOL = $(call GET_TOOLS,$(TOOL_BASE),$(TCPU),$1)
 
-# override dirs in tool mode (when TOOL_MODE has non-empty value)
-TOOLS_DIR := $(TOOL_BASE)/TOOL-$(TCPU)-$(TARGET)
-
-# override default dirs in tool mode
+# override default dirs in tool mode (when TOOL_MODE has non-empty value)
 define TOOL_OVERRIDE_DIRS
-BIN_DIR := $(TOOLS_DIR)/bin
-OBJ_DIR := $(TOOLS_DIR)/obj
-LIB_DIR := $(TOOLS_DIR)/lib
-GEN_DIR := $(TOOLS_DIR)/gen
+BIN_DIR := $(TOOL_BASE)/bin-TOOL-$(TCPU)-$(TARGET)
+OBJ_DIR := $(TOOL_BASE)/obj-TOOL-$(TCPU)-$(TARGET)
+LIB_DIR := $(TOOL_BASE)/lib-TOOL-$(TCPU)-$(TARGET)
+GEN_DIR := $(TOOL_BASE)/gen-TOOL-$(TCPU)-$(TARGET)
 $(call CLEAN_BUILD_PROTECT_VARS1,BIN_DIR OBJ_DIR LIB_DIR GEN_DIR)
 endef
 TOOL_OVERRIDE_DIRS := $(TOOL_OVERRIDE_DIRS)
@@ -458,6 +455,9 @@ DEF_TAIL_CODE_DEBUG ?= $(if $(filter @,$1),,$$(info $(MAKEFILE_DEBUG_INFO)))
 
 endif # MDEBUG
 
+# reset
+CB_TOOL_MODE:=
+
 # code to $(eval) at beginning of each makefile
 # 1) add $(CURRENT_MAKEFILE) to build
 # 2) change bin,lib,obj,gen dirs in TOOL_MODE or restore them to default values in non-TOOL_MODE
@@ -465,7 +465,7 @@ endif # MDEBUG
 #  $(MAKE_CONTINUE) before expanding $(DEF_HEAD_CODE) adds 2 to $(MAKE_CONT) list (which is normally empty or contains 1 1...)
 #  - so we know if $(DEF_HEAD_CODE) was expanded from $(MAKE_CONTINUE) - remove 2 from $(MAKE_CONT) in this case
 #  - if $(DEF_HEAD_CODE) was expanded not from $(MAKE_CONTINUE) - no 2 in $(MAKE_CONT) - reset $(MAKE_CONT)
-# NOTE: set CB_TOOL_MODE to remember that we are in TOOL_MODE - for $(MAKE_CONTINUE)
+# NOTE: set CB_TOOL_MODE to remember if we are in tool mode - TOOL_MODE variable may be changed before calling $(MAKE_CONTINUE)
 # NOTE: $(MTOP)/defs.mk may be included before $(MTOP)/parallel.mk,
 #  to not execute $(DEF_HEAD_CODE) second time in $(MTOP)/parallel.mk, define DEF_HEAD_CODE_PROCESSED variable
 # NOTE: add $(empty) as first line of $(DEF_HEAD_CODE) - to allow to join it and eval: $(eval $(MY_CODE)$(DEF_HEAD_CODE))
@@ -477,7 +477,7 @@ $(if $(filter 2,$(MAKE_CONT)),MAKE_CONT := $(subst 2,1,$(MAKE_CONT)),MAKE_CONT:=
   $(newline)$(CHECK_MAKEFILE_NOT_PROCESSED)\
   $(newline)PROCESSED_MAKEFILES += $(CURRENT_MAKEFILE)-)
 CB_TOOL_MODE := $(if $(TOOL_MODE),T)
-$(if $(TOOL_MODE),$(TOOL_OVERRIDE_DIRS),$(SET_DEFAULT_DIRS))
+$(if $(TOOL_MODE),$(if $(CB_TOOL_MODE),,$(TOOL_OVERRIDE_DIRS)),$(if $(CB_TOOL_MODE),$(SET_DEFAULT_DIRS)))
 DEF_HEAD_CODE_PROCESSED := 1
 endef
 endif
@@ -682,7 +682,7 @@ CLEAN_BUILD_PROTECTED_VARS += MTOP MAKEFLAGS NO_DEPS DEBUG PROJECT \
   GEN_COLOR MGEN_COLOR CP_COLOR LN_COLOR MKDIR_COLOR TOUCH_COLOR \
   COLORIZE SED_MULTI_EXPR ospath isrelpath \
   CLOBBER_DIRS TARGET_TRIPLET DEF_BIN_DIR DEF_OBJ_DIR DEF_LIB_DIR DEF_GEN_DIR SET_DEFAULT_DIRS BIN_DIR OBJ_DIR LIB_DIR GEN_DIR \
-  TOOL_BASE MK_TOOLS_DIR GET_TOOLS GET_TOOL TOOLS_DIR TOOL_OVERRIDE_DIRS \
+  TOOL_BASE MK_TOOLS_DIR GET_TOOLS GET_TOOL TOOL_OVERRIDE_DIRS \
   FIX_ORDER_DEPS STD_TARGET_VARS1 STD_TARGET_VARS TOCLEAN GET_VPREFIX ADDVPREFIX FIXPATH MAKEFILE_DEBUG_INFO \
   DEF_TAIL_CODE_DEBUG DEF_HEAD_CODE DEF_HEAD_CODE_EVAL DEF_TAIL_CODE DEF_TAIL_CODE_EVAL \
   FILTER_VARIANTS_LIST GET_VARIANTS GET_TARGET_NAME DEBUG_TARGETS FORM_OBJ_DIR \
