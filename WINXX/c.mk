@@ -79,26 +79,59 @@ RC ?= $(call SUP,$(TMD)RC,$1)$(call WRAP_RC,$($(TMD)RC1) $(SUPPRESS_RC_LOGO)$(if
   $(VERBOSE), /v) $3 $(call qpath,$(VS$(TMD)INC) $(UM$(TMD)INC),/I) /fo$(call ospath,$1 $2))
 
 # prefixes/suffixes of build targets, may be already defined in $(TOP)/make/project.mk
-# note: if OBJ_SUFFIX is defined, then all prefixes/suffixes must be also defined
-ifndef OBJ_SUFFIX
+
 # exe file suffix
+ifeq (undefined,$(origin EXE_SUFFIX))
 EXE_SUFFIX := .exe
+endif
+
 # object file suffix
+ifeq (undefined,$(origin OBJ_SUFFIX))
 OBJ_SUFFIX := .obj
+endif
+
 # static library (archive) prefix/suffix
+ifeq (undefined,$(origin LIB_PREFIX))
 LIB_PREFIX:=
+endif
+
+ifeq (undefined,$(origin LIB_SUFFIX))
 LIB_SUFFIX := .a
+endif
+
 # dynamically loaded library (shared object) prefix/suffix
+ifeq (undefined,$(origin DLL_PREFIX))
 DLL_PREFIX:=
+endif
+
+ifeq (undefined,$(origin DLL_SUFFIX))
 DLL_SUFFIX := .dll
+endif
+
 # import library for dll prefix/suffix
+ifeq (undefined,$(origin IMP_PREFIX))
 IMP_PREFIX:=
+endif
+
+ifeq (undefined,$(origin IMP_SUFFIX))
 IMP_SUFFIX := .lib
+endif
+
 # kernel-mode static library prefix/suffix
+ifeq (undefined,$(origin KLIB_PREFIX))
 KLIB_PREFIX:=
+endif
+
+ifeq (undefined,$(origin KLIB_SUFFIX))
 KLIB_SUFFIX := .ka
+endif
+
 # kernel module (driver) prefix/suffix
+ifeq (undefined,$(origin DRV_PREFIX))
 DRV_PREFIX := drv
+endif
+
+ifeq (undefined,$(origin DRV_SUFFIX))
 DRV_SUFFIX := .sys
 endif
 
@@ -984,7 +1017,6 @@ RC_DEFINE_PATH ?= "\"$(subst \,\\,$(ospath))\""
 # $2 - sources:     $(TRG_SRC)
 # $3 - sdeps:       $(TRG_SDEPS)
 # $4 - objdir:      $(call FORM_OBJ_DIR,$t,$v)
-# $5 - objects:     $(addprefix $4/,$(call GET_OBJS,$2))
 # $t - DRV
 # $v - non-empty variant: R
 ifndef DRV_TEMPLATE
@@ -993,9 +1025,9 @@ $(call STD_RES_TEMPLATE,$t)
 $(PCH_TEMPLATE)
 $(STD_TARGET_VARS)
 NEEDED_DIRS += $4
-$(call OBJ_RULES,CC,$(filter %.c,$2),$3,$4)
-$(call OBJ_RULES,CXX,$(filter %.cpp,$2),$3,$4)
-$(call OBJ_RULES,ASM,$(filter %.asm,$2),$3,$4)
+$1: $(call OBJ_RULES,CC,$(filter %.c,$2),$3,$4)
+$1: $(call OBJ_RULES,CXX,$(filter %.cpp,$2),$3,$4)
+$1: $(call OBJ_RULES,ASM,$(filter %.asm,$2),$3,$4)
 $1: SRC        := $2
 $1: SDEPS      := $3
 $1: MODVER     := $(MODVER)
@@ -1010,9 +1042,8 @@ $1: ASMFLAGS   := $(ASMFLAGS)
 $1: LDFLAGS    := $(LDFLAGS)
 $1: SYSLIBS    := $(SYSLIBS)
 $1: SYSLIBPATH := $(SYSLIBPATH)
-$1: $(addprefix $(LIB_DIR)/$(KLIB_PREFIX),$(KLIBS:=$(KLIB_SUFFIX))) $5 $2 $(TRG_ALL_SDEPS)
+$1: $(addprefix $(LIB_DIR)/$(KLIB_PREFIX),$(KLIBS:=$(KLIB_SUFFIX))) $2 $(TRG_ALL_SDEPS)
 	$$(call $t_$v_LD,$$@,$$(filter %$(OBJ_SUFFIX),$$^))
-$(call TOCLEAN,$5)
 ifdef DEBUG
 $(call TOCLEAN,$4/vc*.pdb $(1:$(DRV_SUFFIX)=.pdb))
 endif
