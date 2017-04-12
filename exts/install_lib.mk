@@ -85,7 +85,7 @@ endif
 # note: pass non-empty 4-d argument to SUP function to not colorize tool arguments
 ifndef LDCONFIG_TEMPLATE
 
-ifdef OS_LINUX
+ifdef LDCONFIG
 
 # LDCONFIG tool color
 ifndef LDCONF_COLOR
@@ -96,7 +96,7 @@ endif
 LDCONFIG_TEMPLATE = $(if $(BUILT_DLLS),$(newline)$(tab)$$(call \
   SUP,LDCONF,'$$(DESTDIR)$$(LIBDIR)',@,1)$$(LDCONFIG) -n$(if $(VERBOSE),v) '$$(DESTDIR)$$(LIBDIR)')
 
-else ifdef OS_SOLARIS
+else
 
 # $j - major version
 LDCONFIG_TEMPLATE = $(foreach j,$(filter-out $(MODVER),$(firstword $(subst ., ,$(MODVER)))),$(if $(filter inst,$1),$$(foreach \
