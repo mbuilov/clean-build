@@ -14,7 +14,7 @@ ifndef DO_TEST_EXE_TEMPLATE
 # $1 - $(call FORM_TRG,EXE,$v)
 # $2 - built shared libraries needed by executable, in form <library_name>.<major_number>
 # $3 - auxiliary parameters to pass to executable
-# $4 - additional paths to append to PATH environment variable to run executable
+# $4 - dlls search paths: appended to PATH (for WINDOWS) or LD_LIBRARY_PATH (for UNIX-like OS) environment variable to run executable
 define DO_TEST_EXE_TEMPLATE
 $(call ADD_GENERATED,$1.out)
 $1.out: TEST_AUX_PATH := $4
@@ -52,7 +52,7 @@ ifneq ($(filter check clean,$(MAKECMDGOALS)),)
 # for 'check' target, run built executable(s)
 # $1 - built shared libraries needed by executable, in form <library_name>.<major_number>
 # $2 - auxiliary parameters to pass to executable
-# $3 - additional path to append to PATH environment variable to run executable
+# $3 - dlls search paths: appended to PATH (for WINDOWS) or LD_LIBRARY_PATH (for UNIX-like OS) environment variable to run executable
 DO_TEST_EXE ?= $(eval $(foreach v,$(call GET_VARIANTS,EXE),$(newline)$(call DO_TEST_EXE_TEMPLATE,$(call FORM_TRG,EXE,$v),$1,$2,$3)))
 
 endif # check
