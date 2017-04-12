@@ -52,32 +52,28 @@ ifdef OSTYPE_UNIX
 # $2 - r or <empty>
 # note: pass non-empty 3-d argument to SUP function to not update percents
 # note: pass non-empty 4-d argument to SUP function to not colorize tool arguments
-ifndef UNINSTALL_RM
-UNINSTALL_RM = $(call SUP,RM,$1,@,1)rm -f$2$(if $(OS_LINUX),$(if $(VERBOSE),v)) $1
+UNINSTALL_RM ?= $(call SUP,RM,$1,@,1)rm -f$2$(if $(OS_LINUX),$(if $(VERBOSE),v)) $1
 $(call CLEAN_BUILD_PROTECT_VARS,UNINSTALL_RM)
-endif
 
 # create symbolic link while installing files
 # $1 - target
 # $2 - simlink
 # note: pass non-empty 3-d argument to SUP function to not update percents
 # note: pass non-empty 4-d argument to SUP function to not colorize tool arguments
-ifndef INSTALL_LN
-INSTALL_LN = $(call SUP,LN,$2 -> $1,@,1)$(call LN,$1,$2)
+INSTALL_LN ?= $(call SUP,LN,'$2' -> $1,@,1)$(call LN,$1,'$2')
 $(call CLEAN_BUILD_PROTECT_VARS,INSTALL_LN)
-endif
 
 # INSTALL tool color
 ifndef INSTALL_COLOR
 INSTALL_COLOR := [01;31m
-$(call CLEAN_BUILD_PROTECT_VARS,INSTALL_COLOR)
 endif
+$(call CLEAN_BUILD_PROTECT_VARS,INSTALL_COLOR)
 
 # RM tool color
 ifndef RM_COLOR
 RM_COLOR := [01;31m
-$(call CLEAN_BUILD_PROTECT_VARS,RM_COLOR)
 endif
+$(call CLEAN_BUILD_PROTECT_VARS,RM_COLOR)
 
 # post-install/uninstall shared libraries
 # $1 - inst/uninst
@@ -90,8 +86,8 @@ ifdef LDCONFIG
 # LDCONFIG tool color
 ifndef LDCONF_COLOR
 LDCONF_COLOR := [01;33m
-$(call CLEAN_BUILD_PROTECT_VARS,LDCONF_COLOR)
 endif
+$(call CLEAN_BUILD_PROTECT_VARS,LDCONF_COLOR)
 
 LDCONFIG_TEMPLATE = $(if $(BUILT_DLLS),$(newline)$(tab)$$(call \
   SUP,LDCONF,'$$(DESTDIR)$$(LIBDIR)',@,1)$$(LDCONFIG) -n$(if $(VERBOSE),v) '$$(DESTDIR)$$(LIBDIR)')
@@ -100,13 +96,13 @@ else
 
 # $j - major version
 LDCONFIG_TEMPLATE = $(foreach j,$(filter-out $(MODVER),$(firstword $(subst ., ,$(MODVER)))),$(if $(filter inst,$1),$$(foreach \
-  d,$$(notdir $$(BUILT_DLLS)),$$(newline)$$(call INSTALL_LN,$$d.$(MODVER),'$$(DESTDIR)$$(LIBDIR)/$$d.$j')),$(if \
+  d,$$(notdir $$(BUILT_DLLS)),$$(newline)$$(call INSTALL_LN,$$d.$(MODVER),$$(DESTDIR)$$(LIBDIR)/$$d.$j)),$(if \
   $(BUILT_DLLS),$(newline)$(tab)$$(call UNINSTALL_RM,$$(foreach d,$$(notdir $$(BUILT_DLLS)),'$$(DESTDIR)$$(LIBDIR)/$$d.$j')))))
 
 endif
 
-$(call CLEAN_BUILD_PROTECT_VARS,LDCONFIG_TEMPLATE)
 endif # LDCONFIG_TEMPLATE
+$(call CLEAN_BUILD_PROTECT_VARS,LDCONFIG_TEMPLATE)
 
 ifndef INSTALL_LIB_TEMPLATE_UNIX
 
@@ -116,12 +112,10 @@ include $(MTOP)/exts/la.mk
 
 # this macro may be usable for $(LIBRARY_PC_GEN)
 # choose CFLAGS option for static library variant $1
-ifndef VARIANT_CFLAGS
-VARIANT_CFLAGS = $(if \
+VARIANT_CFLAGS ?= $(if \
   $(filter P,$1), $(PIE_OPTION),$(if \
   $(filter D,$1), $(PIC_OPTION)))
 $(call CLEAN_BUILD_PROTECT_VARS,VARIANT_CFLAGS)
-endif
 
 # $1 - $(call GET_ALL_LIBS,$(BUILT_LIBS),$(BUILT_LIB_VARIANTS),$(BUILT_DLLS),$(BUILT_DLL_VARIANTS))
 # note: pass non-empty 3-d argument to SUP function to not update percents
@@ -148,7 +142,7 @@ install_$(LIBRARY_NAME): $(if $(NO_INSTALL_HEADERS1),,install_$(LIBRARY_NAME)_he
  SUP,INSTALL,'$$(DESTDIR)$$(LIBDIR)/$$(notdir $$l)',@,1)$$(INSTALL) -m 644 $$l '$$(DESTDIR)$$(LIBDIR)')
 	$$(foreach d,$$(BUILT_DLLS),$$(newline)$$(call \
  SUP,INSTALL,'$$(DESTDIR)$$(LIBDIR)/$$(notdir $$d).$(MODVER)',@,1)$$(INSTALL) -m 755 $$d '$$(DESTDIR)$$(LIBDIR)/$$(notdir $$d).$(MODVER)')
-	$$(foreach d,$$(notdir $$(BUILT_DLLS)),$$(newline)$$(call INSTALL_LN,$$d.$(MODVER),'$$(DESTDIR)$$(LIBDIR)/$$d'))$(if \
+	$$(foreach d,$$(notdir $$(BUILT_DLLS)),$$(newline)$$(call INSTALL_LN,$$d.$(MODVER),$$(DESTDIR)$$(LIBDIR)/$$d))$(if \
   $(NO_INSTALL_LA1),,$(newline)$(tab)$$(call INSTALL_LIBTOOL_ARCHIVES,$$(ALL_BUILT_LIBS),$$(BUILT_LIBS),$$(BUILT_DLLS)))$(if \
   $(NO_INSTALL_PC1),,$(if $(BUILT_LIBS)$(BUILT_DLLS),$(newline)$(tab)$$(call \
  SUP,MKDIR,'$$(DESTDIR)$$(PKG_CONFIG_DIR)',@,1)$$(INSTALL) -d '$$(DESTDIR)$$(PKG_CONFIG_DIR)'))$(if \
@@ -164,8 +158,8 @@ uninstall_$(LIBRARY_NAME):
 
 endef
 
-$(call CLEAN_BUILD_PROTECT_VARS,INSTALL_LIB_TEMPLATE_UNIX)
 endif # INSTALL_LIB_TEMPLATE_UNIX
+$(call CLEAN_BUILD_PROTECT_VARS,INSTALL_LIB_TEMPLATE_UNIX)
 
 $(eval $(call INSTALL_LIB_TEMPLATE_UNIX,$(call GET_ALL_LIBS,$(BUILT_LIBS),$(BUILT_LIB_VARIANTS),$(BUILT_DLLS),$(BUILT_DLL_VARIANTS))))
 
@@ -174,12 +168,10 @@ else ifdef OSTYPE_WINDOWS
 DST_INC_DIR := $(subst $(space),\ ,$(DESTDIR)$(INCLUDEDIR)/$(LIBRARY_NAME))
 DST_LIB_DIR := $(subst $(space),\ ,$(DESTDIR)$(LIBDIR))
 
-ifndef INSTALL_MKDIR
 # $1 - "$(subst /,\,$(subst \ , ,$@))"
 # note: pass non-empty 3-d argument to SUP function to not update percents
-INSTALL_MKDIR = $(call SUP,MKDIR,$1,@)$(call MKDIR,$1)
+INSTALL_MKDIR ?= $(call SUP,MKDIR,$1,@)$(call MKDIR,$1)
 $(call CLEAN_BUILD_PROTECT_VARS,INSTALL_MKDIR)
-endif
 
 $(DST_LIB_DIR): | $(if $(NO_INSTALL_HEADERS1),,$(DST_INC_DIR))
 $(DST_INC_DIR) $(DST_LIB_DIR):
@@ -218,8 +210,8 @@ uninstall_$(LIBRARY_NAME):$(if \
   SUP,DEL,"$$(DESTDIR)$$(LIBDIR)\$$i",@)$$(call DEL,"$$(DESTDIR)$$(LIBDIR)/$$i")))
 
 endef
-$(call CLEAN_BUILD_PROTECT_VARS,INSTALL_LIB_TEMPLATE_WINDOWS)
 endif # INSTALL_LIB_TEMPLATE_WINDOWS
+$(call CLEAN_BUILD_PROTECT_VARS,INSTALL_LIB_TEMPLATE_WINDOWS)
 
 $(eval $(call INSTALL_LIB_TEMPLATE_WINDOWS,$(foreach v,$(BUILT_DLL_VARIANTS),$(call MAKE_IMP_PATH,$(call GET_TARGET_NAME,DLL),$v))))
 
