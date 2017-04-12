@@ -15,11 +15,12 @@ NORM_MAKEFILES = $(patsubst $(TOP)/%,%$2,$(abspath $(foreach \
 
 # add empty rules for $(MDEPS): don't complain if order deps are not resolved when build started in sub-directory
 # note: $(ORDER_DEPS) - names of dependency makefiles with '-' suffix
-APPEND_MDEPS ?= $(if $1,$1:$(newline)ORDER_DEPS += $1$(newline))
+# note: reset MDEPS to not update ORDER_DEPS on each evaluation of STD_TARGET_VARS in target makefile
+APPEND_MDEPS1 = $(if $1,$1:$(newline)ORDER_DEPS+=$1$(newline))
+APPEND_MDEPS ?= $(call APPEND_MDEPS1,$(filter-out $(ORDER_DEPS),$(call NORM_MAKEFILES,$(MDEPS),-)))MDEPS:=
 
 # overwrite code for adding $(MDEPS) - list of makefiles that need to be built before target makefile - to $(ORDER_DEPS)
-# note: reset MDEPS to not update ORDER_DEPS on each evaluation of STD_TARGET_VARS in target makefile
-FIX_ORDER_DEPS = $(call APPEND_MDEPS,$(filter-out $(ORDER_DEPS),$(call NORM_MAKEFILES,$(MDEPS),-)))MDEPS:=
+FIX_ORDER_DEPS = $(APPEND_MDEPS)
 
 # don't complain about new FIX_ORDER_DEPS value
 # - replace old FIX_ORDER_DEPS value defined in $(MTOP)/defs.mk with a new one
@@ -39,16 +40,18 @@ endef
 
 # note: $(TO_MAKE) - list of $(TOP)-related makefiles to include
 ifdef REM_SHOWN_MAKEFILE
+
 # non-verbose build
 define CB_INCLUDE
 INTERMEDIATE_MAKEFILES+=1
 $(foreach m,$(TO_MAKE),$(CB_INCLUDE_TEMPLATE))
 endef
+
 else # !REM_SHOWN_MAKEFILE
+
 # verbose build
-define CB_INCLUDE
-$(foreach m,$(TO_MAKE),$(CB_INCLUDE_TEMPLATE))
-endef
+CB_INCLUDE = $(foreach m,$(TO_MAKE),$(CB_INCLUDE_TEMPLATE))
+
 endif # !REM_SHOWN_MAKEFILE
 
 # used to remember makefiles include level
@@ -58,4 +61,4 @@ CB_INCLUDE_LEVEL:=
 INTERMEDIATE_MAKEFILES:=
 
 # protect variables from modifications in target makefiles
-$(call CLEAN_BUILD_PROTECT_VARS,NORM_MAKEFILES APPEND_MDEPS CB_INCLUDE_TEMPLATE CB_INCLUDE)
+$(call CLEAN_BUILD_PROTECT_VARS,NORM_MAKEFILES APPEND_MDEPS1 APPEND_MDEPS CB_INCLUDE_TEMPLATE CB_INCLUDE)
