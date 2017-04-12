@@ -302,6 +302,11 @@ ospath ?= $1
 # NOTE: WINXX/tools.mk defines $(isrelpath)
 isrelpath ?= $(filter-out /%,$1)
 
+# paths separator char
+ifndef PATHSEP
+PATHSEP := :
+endif
+
 # get absolute path to current makefile
 CURRENT_MAKEFILE := $(abspath $(subst \,/,$(firstword $(MAKEFILE_LIST))))
 
@@ -661,15 +666,22 @@ EXTRACT_SDEPS ?= $(foreach d,$(filter $(addsuffix |%,$1),$2),$(wordlist 2,999999
 # $1 - sdeps list: <source file1>|<dependency1>|<dependency2>|... <source file2>|<dependency1>|<dependency2>|...
 FIX_SDEPS ?= $(subst | ,|,$(call FIXPATH,$(subst |,| ,$1)))
 
-# show PATH environment variable with running command
-show_with_path ?= $(info PATH="$(PATH)" $1)
+# name of environment variable to modify in $(RUN_WITH_DLL_PATH)
+# note: $(DLL_PATH_VAR) should be PATH (for WINDOWS) or LD_LIBRARY_PATH (for UNIX-like OS)
+ifndef DLL_PATH_VAR
+DLL_PATH_VAR := LD_LIBRARY_PATH
+endif
 
-# run executable with modified PATH environment variable
-# $1 - additional paths to append to PATH
-# $2 - command to run (with arguments)
-# note: this function should be used for rule body, where automatic variable $$@ is defined
-RUN_WITH_PATH = $(if $1,$(eval $@: PATH := $(PATH)$(if $(PATH),$(PATHSEP))$1)$(if $(VERBOSE),$(call \
-  show_with_path,$2)@))$2$(if $1,$(if $(VERBOSE),$(call show_path_end)))
+# show modified $(DLL_PATH_VAR) environment variable with running command
+# $1 - command to run (with parameters)
+show_with_dll_path ?= $(info $(DLL_PATH_VAR)="$($(DLL_PATH_VAR))" $1)
+
+# run executable with modified $(DLL_PATH_VAR) environment variable
+# $1 - additional paths to append to $(DLL_PATH_VAR)
+# $2 - command to run (with parameters)
+# note: this function should be used for rule body, where automatic variable $@ is defined
+RUN_WITH_DLL_PATH = $(if $1,$(eval $@: $(DLL_PATH_VAR) := $($(DLL_PATH_VAR))$(if $($(DLL_PATH_VAR)),$(PATHSEP))$1)$(if $(VERBOSE),$(call \
+  show_with_dll_path,$2)@))$2$(if $1,$(if $(VERBOSE),$(call show_dll_path_end)))
 
 # protect variables from modifications in target makefiles
 CLEAN_BUILD_PROTECTED_VARS += MTOP MAKEFLAGS NO_DEPS DEBUG PROJECT \
@@ -677,12 +689,12 @@ CLEAN_BUILD_PROTECTED_VARS += MTOP MAKEFLAGS NO_DEPS DEBUG PROJECT \
   OS_$(OS) VERBOSE INFOMF MDEBUG OSDIR CHECK_MAKEFILE_NOT_PROCESSED \
   TERM_NO_COLOR PRINT_PERCENTS SUP ADD_SHOWN_PERCENTS REM_SHOWN_MAKEFILE TRY_REM_MAKEFILE \
   GEN_COLOR MGEN_COLOR CP_COLOR LN_COLOR MKDIR_COLOR TOUCH_COLOR \
-  COLORIZE SED_MULTI_EXPR ospath isrelpath \
+  COLORIZE SED_MULTI_EXPR ospath isrelpath PATHSEP \
   TARGET_TRIPLET DEF_BIN_DIR DEF_OBJ_DIR DEF_LIB_DIR DEF_GEN_DIR SET_DEFAULT_DIRS BIN_DIR OBJ_DIR LIB_DIR GEN_DIR \
-  TOOL_BASE MK_TOOLS_DIR GET_TOOLS GET_TOOL TOOL_OVERRIDE_DIRS \
+  TOOL_BASE MK_TOOLS_DIR GET_TOOLS TOOL_SUFFIX GET_TOOL TOOL_OVERRIDE_DIRS \
   FIX_ORDER_DEPS STD_TARGET_VARS1 STD_TARGET_VARS TOCLEAN GET_VPREFIX ADDVPREFIX FIXPATH MAKEFILE_DEBUG_INFO \
   DEF_TAIL_CODE_DEBUG DEF_HEAD_CODE DEF_HEAD_CODE_EVAL DEF_TAIL_CODE DEF_TAIL_CODE_EVAL \
   FILTER_VARIANTS_LIST GET_VARIANTS GET_TARGET_NAME DEBUG_TARGETS FORM_OBJ_DIR \
   CHECK_GENERATED ADD_GENERATED MULTI_TARGET_RULE MULTI_TARGET_CHECK MULTI_TARGET_SEQ MULTI_TARGET \
   DEFINE_TARGETS SAVE_VARS RESTORE_VARS MAKE_CONTINUE_BODY_EVAL MAKE_CONTINUE FORM_SDEPS EXTRACT_SDEPS FIX_SDEPS \
-  show_with_path show_path_end RUN_WITH_PATH
+  DLL_PATH_VAR show_with_dll_path show_dll_path_end RUN_WITH_DLL_PATH

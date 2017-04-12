@@ -67,8 +67,6 @@ MKDIR = mkdir $(ospath)
 SED  ?= sed.exe
 SED_EXPR = "$(subst %,%%,$1)"
 CAT   = type $(ospath)
-open_brace:=(
-close_brace:=)
 ECHO_LINE = echo$(if $1, $(subst $(open_brace),^$(open_brace),$(subst $(close_brace),^$(close_brace),$(subst \
              %,%%,$(subst <,^<,$(subst >,^>,$(subst |,^|,$(subst &,^&,$(subst ",^",$(subst ^,^^,$1))))))))),.)
 ECHO1 = $(if $(word 2,$1),($(foreach x,$1,($(call ECHO_LINE,$(subst $$(newline),,$(subst $$(space), ,$(subst \
@@ -92,11 +90,13 @@ TOOL_SUFFIX := .exe
 # paths separator, as used in %PATH% environment variable
 PATHSEP := ;
 
+# name of environment variable to modify in $(RUN_WITH_DLL_PATH)
+DLL_PATH_VAR := PATH
+
 # if %PATH% environment variable was modified for calling a tool, print new %PATH% value in generated batch
-show_with_path ?= $(info setlocal$(newline)set PATH=$(PATH)$(newline)$1)
-show_path_end ?= $(newline)@echo endlocal
+show_with_dll_path ?= $(info setlocal$(newline)set PATH=$(PATH)$(newline)$1)
+show_dll_path_end ?= $(newline)@echo endlocal
 
 # protect variables from modifications in target makefiles
 $(call CLEAN_BUILD_PROTECT_VARS,DEL_ARGS_LIMIT DEL1 DEL DEL_DIR1 DEL_DIR RM1 RM MKDIR SED SED_EXPR \
-  CAT open_brace close_brace ECHO_LINE ECHO1 ECHO EXECIN NUL SUPPRESS_CP_OUTPUT CP TOUCH1 TOUCH DEL_ON_FAIL TOOL_SUFFIX PATHSEP \
-  show_path_local show_path_end)
+  CAT ECHO_LINE ECHO1 ECHO EXECIN NUL SUPPRESS_CP_OUTPUT CP TOUCH1 TOUCH DEL_ON_FAIL)
