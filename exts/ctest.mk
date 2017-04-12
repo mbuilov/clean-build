@@ -20,7 +20,7 @@ $(call ADD_GENERATED,$1.out)
 $1.out: TEST_AUX_PATH := $4
 $1.out: TEST_AUX_PARAMS := $3
 $1.out: $1
-	$$(call SUP,TEST,$$@)$$(call RUN_WITH_PATH,$$(TEST_AUX_PATH),$$< $$(TEST_AUX_PARAMS) > $$@)
+	$$(call SUP,TEST,$$@)$$(call RUN_WITH_DLL_PATH,$$(TEST_AUX_PATH),$$< $$(TEST_AUX_PARAMS) > $$@)
 $(TEST_EXE_SOFTLINKS)
 endef
 
