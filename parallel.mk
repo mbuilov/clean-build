@@ -31,7 +31,7 @@ $(info $(MAKEFILE_DEBUG_INFO))
 endif
 
 # make $(TOP)-related list of makefiles to include
-TO_MAKE := $(call NORM_MAKEFILES,$(TO_MAKE))
+TO_MAKE:=$(call NORM_MAKEFILES,$(TO_MAKE))
 
 # $(CURRENT_MAKEFILE) is built if all $(TO_MAKE) makefiles are built
 # note: $(CURRENT_MAKEFILE)- and other order-dependent makefile names - are .PHONY targets,
@@ -40,9 +40,9 @@ TO_MAKE := $(call NORM_MAKEFILES,$(TO_MAKE))
 $(CURRENT_MAKEFILE)-: $(addsuffix -,$(TO_MAKE))
 
 # increase makefile include level, include and process makefiles, decrease makefile include level
-CB_INCLUDE_LEVEL += 1
+CB_INCLUDE_LEVEL+=1
 $(eval $(CB_INCLUDE))
-CB_INCLUDE_LEVEL := $(wordlist 2,999999,$(CB_INCLUDE_LEVEL))
+CB_INCLUDE_LEVEL:=$(wordlist 2,999999,$(CB_INCLUDE_LEVEL))
 
 # check if need to include $(MTOP)/all.mk
 # NOTE: call DEF_TAIL_CODE with @ - to not show debug info that was already shown above

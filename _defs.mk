@@ -400,12 +400,12 @@ FIX_ORDER_DEPS:=
 # NOTE: MCONT will be either empty or 2,3,4... - MCONT cannot be 1 - some rules may be defined before calling $(MAKE_CONTINUE)
 define STD_TARGET_VARS1
 $(FIX_ORDER_DEPS)
-$1: MF    := $(CURRENT_MAKEFILE)
-$1: MCONT := $(filter-out +0,+$(words $(subst 2,,$(MAKE_CONT))))
-$1: TMD   := $(CB_TOOL_MODE)
-$1: | $2 $$(ORDER_DEPS)
-$(CURRENT_MAKEFILE)-: $1
-NEEDED_DIRS += $2
+$1:MF:=$(CURRENT_MAKEFILE)
+$1:MCONT:=$(filter-out +0,+$(words $(subst 2,,$(MAKE_CONT))))
+$1:TMD:=$(CB_TOOL_MODE)
+$1:| $2 $$(ORDER_DEPS)
+$(CURRENT_MAKEFILE)-:$1
+NEEDED_DIRS+=$2
 $(TOCLEAN)
 endef
 
@@ -475,12 +475,12 @@ ifndef DEF_HEAD_CODE
 define DEF_HEAD_CODE
 $(empty)
 $(CLEAN_BUILD_CHECK_AT_HEAD)
-$(if $(filter 2,$(MAKE_CONT)),MAKE_CONT := $(subst 2,1,$(MAKE_CONT)),MAKE_CONT:=\
+$(if $(filter 2,$(MAKE_CONT)),MAKE_CONT:=$(subst 2,1,$(MAKE_CONT)),MAKE_CONT:=\
   $(newline)$(CHECK_MAKEFILE_NOT_PROCESSED)\
-  $(newline)PROCESSED_MAKEFILES += $(CURRENT_MAKEFILE)-)
-CB_TOOL_MODE := $(if $(TOOL_MODE),T)
+  $(newline)PROCESSED_MAKEFILES+=$(CURRENT_MAKEFILE)-)
+CB_TOOL_MODE:=$(if $(TOOL_MODE),T)
 $(if $(TOOL_MODE),$(if $(CB_TOOL_MODE),,$(TOOL_OVERRIDE_DIRS)),$(if $(CB_TOOL_MODE),$(SET_DEFAULT_DIRS)))
-DEF_HEAD_CODE_PROCESSED := 1
+DEF_HEAD_CODE_PROCESSED:=1
 endef
 endif
 
@@ -626,6 +626,9 @@ RESTORE_VARS ?= $(eval $(foreach v,$1,$v$(value $v_)$(newline)))
 # $(MAKE_CONTINUE_EVAL_NAME) - contains name of macro that when expanded evaluates code to prepare (at least, by evaluating $(DEF_HEAD_CODE))
 MAKE_CONTINUE_EVAL_NAME := DEF_HEAD_CODE_EVAL
 
+# reset
+MAKE_CONT:=
+
 # increment MAKE_CONT, eval tail code with $(DEFINE_TARGETS)
 # and start next circle - simulate including of appropriate $(MTOP)/c.mk or $(MTOP)/java.mk
 # by evaluating head-code $($(MAKE_CONTINUE_EVAL_NAME)) - which must be initially set in $(MTOP)/c.mk or $(MTOP)/java.mk
@@ -633,7 +636,7 @@ MAKE_CONTINUE_EVAL_NAME := DEF_HEAD_CODE_EVAL
 # because $(MAKE_CONTINUE) resets it to DEF_HEAD_CODE_EVAL
 # NOTE: TOOL_MODE value may be changed in target makefile before $(MAKE_CONTINUE)
 define MAKE_CONTINUE_BODY_EVAL
-$(eval MAKE_CONT := $(MAKE_CONT) 2)
+$(eval MAKE_CONT+=2)
 $(DEFINE_TARGETS)
 $(eval MAKE_CONTINUE_EVAL:=$(MAKE_CONTINUE_EVAL_NAME)$(newline)MAKE_CONTINUE_EVAL_NAME:=DEF_HEAD_CODE_EVAL)
 $($(MAKE_CONTINUE_EVAL))

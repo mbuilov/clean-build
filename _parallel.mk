@@ -30,10 +30,10 @@ $(call CLEAN_BUILD_PROTECT_VARS,FIX_ORDER_DEPS)
 # NOTE: $(TOOL_MODE) value may be changed (set) in included makefile, so restore TOOL_MODE before including next makefile
 define CB_INCLUDE_TEMPLATE
 $(empty)
-VPREFIX := $(call GET_VPREFIX,$m)
-CURRENT_MAKEFILE := $m
-ORDER_DEPS := $(ORDER_DEPS)
-TOOL_MODE := $(TOOL_MODE)
+VPREFIX:=$(call GET_VPREFIX,$m)
+CURRENT_MAKEFILE:=$m
+ORDER_DEPS:=$(ORDER_DEPS)
+TOOL_MODE:=$(TOOL_MODE)
 include $(TOP)/$m
 endef
 
@@ -41,7 +41,7 @@ endef
 ifdef REM_SHOWN_MAKEFILE
 # non-verbose build
 define CB_INCLUDE
-INTERMEDIATE_MAKEFILES += 1
+INTERMEDIATE_MAKEFILES+=1
 $(foreach m,$(TO_MAKE),$(CB_INCLUDE_TEMPLATE))
 endef
 else # !REM_SHOWN_MAKEFILE
