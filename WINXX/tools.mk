@@ -97,6 +97,9 @@ DLL_PATH_VAR := PATH
 show_with_dll_path ?= $(info setlocal$(newline)set PATH=$(PATH)$(newline)$1)
 show_dll_path_end ?= $(newline)@echo endlocal
 
+# there is no support for embedding dll search path into executables or dlls
+NO_RPATH := 1
+
 # protect variables from modifications in target makefiles
 $(call CLEAN_BUILD_PROTECT_VARS,DEL_ARGS_LIMIT DEL1 DEL DEL_DIR1 DEL_DIR RM1 RM MKDIR SED SED_EXPR \
-  CAT ECHO_LINE ECHO1 ECHO EXECIN NUL SUPPRESS_CP_OUTPUT CP TOUCH1 TOUCH DEL_ON_FAIL)
+  CAT ECHO_LINE ECHO1 ECHO EXECIN NUL SUPPRESS_CP_OUTPUT CP TOUCH1 TOUCH DEL_ON_FAIL NO_RPATH)
