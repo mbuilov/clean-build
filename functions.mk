@@ -19,6 +19,8 @@ define comment
 #
 endef
 comment := $(comment)
+open_brace  := (
+close_brace := )
 
 # print result $1 and return $1
 infofn = $(info $1)$1
@@ -180,7 +182,7 @@ ver_minor = $(firstword $(word 2,$(subst ., ,$1)) 0)
 ver_patch = $(firstword $(word 3,$(subst ., ,$1)) 0)
 
 # protect variables from modification in target makefiles
-CLEAN_BUILD_PROTECTED += empty space tab comma newline comment \
+CLEAN_BUILD_PROTECTED += empty space tab comma newline comment open_brace close_brace \
   infofn dump dump_args trace_params trace_calls_template trace_calls \
   unspaces ifaddq qpath tolower toupper repl09 repl09AZ padto \
   is_less1 is_less xargs1 xargs xcmd trim normp2 normp1 normp \
