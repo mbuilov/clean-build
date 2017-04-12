@@ -94,7 +94,7 @@ define OBJ_RULES2
 $5
 $(subst $(space),$(newline),$(join $(addsuffix :,$5),$2))$(if \
   $3,$(foreach x,$2,$(call ADD_OBJ_SDEPS,$4,$(call EXTRACT_SDEPS,$x,$3))))
-$5: | $4 $$(ORDER_DEPS)
+$5:| $4 $$(ORDER_DEPS)
 	$$(call $t_$v_$1,$$@,$$<)
 endef
 
@@ -249,23 +249,23 @@ C_RULES ?= $(foreach t,$1,$(if $($t),$(call C_RULES1,$(TRG_SRC),$(TRG_SDEPS))))
 ifndef EXE_TEMPLATE
 define EXE_TEMPLATE
 $(STD_TARGET_VARS)
-NEEDED_DIRS += $4
-$1: $(call OBJ_RULES,CC,$(filter %.c,$2),$3,$4)
-$1: $(call OBJ_RULES,CXX,$(filter %.cpp,$2),$3,$4)
-$1: $(call OBJ_RULES,ASM,$(filter %.asm,$2),$3,$4)
-$1: COMPILER   := $(if $(filter %.cpp,$2),CXX,CC)
-$1: LIB_DIR    := $(LIB_DIR)
-$1: LIBS       := $(LIBS)
-$1: DLLS       := $(DLLS)
-$1: INCLUDE    := $(TRG_INCLUDE)
-$1: DEFINES    := $(CMNDEFINES) $(APPDEFS) $(DEFINES)
-$1: CFLAGS     := $(CFLAGS)
-$1: CXXFLAGS   := $(CXXFLAGS)
-$1: ASMFLAGS   := $(ASMFLAGS)
-$1: LDFLAGS    := $(LDFLAGS)
-$1: SYSLIBS    := $(SYSLIBS)
-$1: SYSLIBPATH := $(SYSLIBPATH)
-$1: $(call DEP_LIBS,$t,$v) $(call DEP_IMPS,$t,$v)
+NEEDED_DIRS+=$4
+$1:$(call OBJ_RULES,CC,$(filter %.c,$2),$3,$4)
+$1:$(call OBJ_RULES,CXX,$(filter %.cpp,$2),$3,$4)
+$1:$(call OBJ_RULES,ASM,$(filter %.asm,$2),$3,$4)
+$1:COMPILER   := $(if $(filter %.cpp,$2),CXX,CC)
+$1:LIB_DIR    := $(LIB_DIR)
+$1:LIBS       := $(LIBS)
+$1:DLLS       := $(DLLS)
+$1:INCLUDE    := $(TRG_INCLUDE)
+$1:DEFINES    := $(CMNDEFINES) $(APPDEFS) $(DEFINES)
+$1:CFLAGS     := $(CFLAGS)
+$1:CXXFLAGS   := $(CXXFLAGS)
+$1:ASMFLAGS   := $(ASMFLAGS)
+$1:LDFLAGS    := $(LDFLAGS)
+$1:SYSLIBS    := $(SYSLIBS)
+$1:SYSLIBPATH := $(SYSLIBPATH)
+$1:$(call DEP_LIBS,$t,$v) $(call DEP_IMPS,$t,$v)
 	$$(call $t_$v_LD,$$@,$$(filter %$(OBJ_SUFFIX),$$^))
 endef
 endif
@@ -280,23 +280,23 @@ endif
 ifndef DLL_TEMPLATE
 define DLL_TEMPLATE
 $(STD_TARGET_VARS)
-NEEDED_DIRS += $4
-$1: $(call OBJ_RULES,CC,$(filter %.c,$2),$3,$4)
-$1: $(call OBJ_RULES,CXX,$(filter %.cpp,$2),$3,$4)
-$1: $(call OBJ_RULES,ASM,$(filter %.asm,$2),$3,$4)
-$1: COMPILER   := $(if $(filter %.cpp,$2),CXX,CC)
-$1: LIB_DIR    := $(LIB_DIR)
-$1: LIBS       := $(LIBS)
-$1: DLLS       := $(DLLS)
-$1: INCLUDE    := $(TRG_INCLUDE)
-$1: DEFINES    := $(CMNDEFINES) $(APPDEFS) $(DEFINES)
-$1: CFLAGS     := $(CFLAGS)
-$1: CXXFLAGS   := $(CXXFLAGS)
-$1: ASMFLAGS   := $(ASMFLAGS)
-$1: LDFLAGS    := $(LDFLAGS)
-$1: SYSLIBS    := $(SYSLIBS)
-$1: SYSLIBPATH := $(SYSLIBPATH)
-$1: $(call DEP_LIBS,$t,$v) $(call DEP_IMPS,$t,$v)
+NEEDED_DIRS+=$4
+$1:$(call OBJ_RULES,CC,$(filter %.c,$2),$3,$4)
+$1:$(call OBJ_RULES,CXX,$(filter %.cpp,$2),$3,$4)
+$1:$(call OBJ_RULES,ASM,$(filter %.asm,$2),$3,$4)
+$1:COMPILER   := $(if $(filter %.cpp,$2),CXX,CC)
+$1:LIB_DIR    := $(LIB_DIR)
+$1:LIBS       := $(LIBS)
+$1:DLLS       := $(DLLS)
+$1:INCLUDE    := $(TRG_INCLUDE)
+$1:DEFINES    := $(CMNDEFINES) $(APPDEFS) $(DEFINES)
+$1:CFLAGS     := $(CFLAGS)
+$1:CXXFLAGS   := $(CXXFLAGS)
+$1:ASMFLAGS   := $(ASMFLAGS)
+$1:LDFLAGS    := $(LDFLAGS)
+$1:SYSLIBS    := $(SYSLIBS)
+$1:SYSLIBPATH := $(SYSLIBPATH)
+$1:$(call DEP_LIBS,$t,$v) $(call DEP_IMPS,$t,$v)
 	$$(call $t_$v_LD,$$@,$$(filter %$(OBJ_SUFFIX),$$^))
 endef
 endif
@@ -311,17 +311,17 @@ endif
 ifndef LIB_TEMPLATE
 define LIB_TEMPLATE
 $(STD_TARGET_VARS)
-NEEDED_DIRS += $4
-$1: $(call OBJ_RULES,CC,$(filter %.c,$2),$3,$4)
-$1: $(call OBJ_RULES,CXX,$(filter %.cpp,$2),$3,$4)
-$1: $(call OBJ_RULES,ASM,$(filter %.asm,$2),$3,$4)
-$1: COMPILER   := $(if $(filter %.cpp,$2),CXX,CC)
-$1: INCLUDE    := $(TRG_INCLUDE)
-$1: DEFINES    := $(CMNDEFINES) $(APPDEFS) $(DEFINES)
-$1: CFLAGS     := $(CFLAGS)
-$1: CXXFLAGS   := $(CXXFLAGS)
-$1: ASMFLAGS   := $(ASMFLAGS)
-$1: LDFLAGS    := $(LDFLAGS)
+NEEDED_DIRS+=$4
+$1:$(call OBJ_RULES,CC,$(filter %.c,$2),$3,$4)
+$1:$(call OBJ_RULES,CXX,$(filter %.cpp,$2),$3,$4)
+$1:$(call OBJ_RULES,ASM,$(filter %.asm,$2),$3,$4)
+$1:COMPILER   := $(if $(filter %.cpp,$2),CXX,CC)
+$1:INCLUDE    := $(TRG_INCLUDE)
+$1:DEFINES    := $(CMNDEFINES) $(APPDEFS) $(DEFINES)
+$1:CFLAGS     := $(CFLAGS)
+$1:CXXFLAGS   := $(CXXFLAGS)
+$1:ASMFLAGS   := $(ASMFLAGS)
+$1:LDFLAGS    := $(LDFLAGS)
 $1:
 	$$(call $t_$v_LD,$$@,$$(filter %$(OBJ_SUFFIX),$$^))
 endef
@@ -337,17 +337,17 @@ endif
 ifndef KLIB_TEMPLATE
 define KLIB_TEMPLATE
 $(STD_TARGET_VARS)
-NEEDED_DIRS += $4
-$1: $(call OBJ_RULES,CC,$(filter %.c,$2),$3,$4)
-$1: $(call OBJ_RULES,CXX,$(filter %.cpp,$2),$3,$4)
-$1: $(call OBJ_RULES,ASM,$(filter %.asm,$2),$3,$4)
-$1: COMPILER   := $(if $(filter %.cpp,$2),CXX,CC)
-$1: INCLUDE    := $(TRG_INCLUDE)
-$1: DEFINES    := $(CMNDEFINES) $(KRNDEFS) $(DEFINES)
-$1: CFLAGS     := $(CFLAGS)
-$1: CXXFLAGS   := $(CXXFLAGS)
-$1: ASMFLAGS   := $(ASMFLAGS)
-$1: LDFLAGS    := $(LDFLAGS)
+NEEDED_DIRS+=$4
+$1:$(call OBJ_RULES,CC,$(filter %.c,$2),$3,$4)
+$1:$(call OBJ_RULES,CXX,$(filter %.cpp,$2),$3,$4)
+$1:$(call OBJ_RULES,ASM,$(filter %.asm,$2),$3,$4)
+$1:COMPILER   := $(if $(filter %.cpp,$2),CXX,CC)
+$1:INCLUDE    := $(TRG_INCLUDE)
+$1:DEFINES    := $(CMNDEFINES) $(KRNDEFS) $(DEFINES)
+$1:CFLAGS     := $(CFLAGS)
+$1:CXXFLAGS   := $(CXXFLAGS)
+$1:ASMFLAGS   := $(ASMFLAGS)
+$1:LDFLAGS    := $(LDFLAGS)
 $1:
 	$$(call $t_$v_LD,$$@,$$(filter %$(OBJ_SUFFIX),$$^))
 endef
@@ -416,9 +416,9 @@ ifndef PREPARE_C_VARS
 define PREPARE_C_VARS
 $(RESET_OS_CVARS)
 $(BLD_TARGETS_RESET)
-MODVER     := $(PRODUCT_VER)
-CMNDEFINES := $(PREDEFINES)
-CMNINCLUDE := $(DEFINCLUDE)
+MODVER:=$(PRODUCT_VER)
+CMNDEFINES:=$(PREDEFINES)
+CMNINCLUDE:=$(DEFINCLUDE)
 PCH:=
 WITH_PCH:=
 USE:=
@@ -436,8 +436,8 @@ SYSINCLUDE:=
 DLLS:=
 LIBS:=
 KLIBS:=
-DEFINE_TARGETS_EVAL_NAME := DEFINE_C_TARGETS_EVAL
-MAKE_CONTINUE_EVAL_NAME  := MAKE_C_EVAL
+DEFINE_TARGETS_EVAL_NAME:=DEFINE_C_TARGETS_EVAL
+MAKE_CONTINUE_EVAL_NAME:=MAKE_C_EVAL
 endef
 ifeq (5,$(words $(filter \
   simple,$(flavor RESET_OS_CVARS) $(flavor BLD_TARGETS) $(flavor PRODUCT_VER) $(flavor PREDEFINES) $(flavor DEFINCLUDE))))
