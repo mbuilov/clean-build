@@ -299,8 +299,13 @@ SED_MULTI_EXPR = $(subst $$(space), ,$(foreach s,$(subst $(newline), ,$(subst $(
 ospath ?= $1
 
 # for UNIX: absolute paths are started with /
-# NOTE: WINXX/tools.mk defines $(isrelpath)
+# NOTE: WINXX/tools.mk defines own $(isrelpath)
 isrelpath ?= $(filter-out /%,$1)
+
+# add $1 only to non-absolute paths in $2
+# note: $1 must end with /
+# NOTE: WINXX/tools.mk defines own $(nonrelpath)
+nonrelpath ?= $(patsubst $1/%,/%,$(addprefix $1,$2))
 
 # paths separator char
 ifndef PATHSEP
@@ -436,7 +441,7 @@ GET_VPREFIX = $(call relpath,$(CURDIR),$(dir $(TOP)/$1))
 VPREFIX := $(call GET_VPREFIX,$(CURRENT_MAKEFILE))
 
 # add $(VPREFIX) (path to directory of currently executing makefile relative to $(CURDIR)) value to non-absolute paths
-ADDVPREFIX = $(foreach x,$1,$(if $(call isrelpath,$x),$(VPREFIX))$x)
+ADDVPREFIX = $(call nonrelpath,$(VPREFIX),$1)
 
 # add $(VPREFIX) (path to directory of currently executing makefile relative to $(CURDIR)) value to non-absolute paths
 # then make absolute paths - we need absolute paths to sources to apply generated dependencies in .d files
@@ -692,7 +697,7 @@ CLEAN_BUILD_PROTECTED_VARS += MTOP MAKEFLAGS NO_DEPS DEBUG PROJECT \
   OS_$(OS) VERBOSE INFOMF MDEBUG OSDIR CHECK_MAKEFILE_NOT_PROCESSED \
   TERM_NO_COLOR PRINT_PERCENTS SUP ADD_SHOWN_PERCENTS REM_SHOWN_MAKEFILE TRY_REM_MAKEFILE \
   GEN_COLOR MGEN_COLOR CP_COLOR LN_COLOR MKDIR_COLOR TOUCH_COLOR \
-  COLORIZE SED_MULTI_EXPR ospath isrelpath PATHSEP \
+  COLORIZE SED_MULTI_EXPR ospath isrelpath nonrelpath PATHSEP \
   TARGET_TRIPLET DEF_BIN_DIR DEF_OBJ_DIR DEF_LIB_DIR DEF_GEN_DIR SET_DEFAULT_DIRS BIN_DIR OBJ_DIR LIB_DIR GEN_DIR \
   TOOL_BASE MK_TOOLS_DIR GET_TOOLS TOOL_SUFFIX GET_TOOL TOOL_OVERRIDE_DIRS \
   FIX_ORDER_DEPS STD_TARGET_VARS1 STD_TARGET_VARS TOCLEAN GET_VPREFIX ADDVPREFIX FIXPATH MAKEFILE_DEBUG_INFO \

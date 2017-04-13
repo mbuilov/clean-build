@@ -41,7 +41,16 @@ ospath = $(subst /,\,$1)
 
 # absolute paths contain ':', for example c:/agent
 # NOTE: assume there are no spaces and ':' in the path to sources
-isrelpath = $(if $(word 2,$(subst :, ,$1)),,1)
+isrelpath = $(if $(findstring :,$1),,1)
+
+# $1 - prefix
+# $2 - list of disks (C: D:)
+# $3 - list of files prefixed with $1
+nonrelpath1 = $(if $2,$(call nonrelpath1,$1,$(wordlist 2,999999,$2),$(patsubst $1$(firstword $2)%,$(firstword $2)%,$3)),$3)
+
+# add $1 only to non-absolute paths in $2
+# note: $1 must end with /
+nonrelpath = $(call nonrelpath1,$1,$(sort $(filter %:,$(subst :,: ,$2))),$(addprefix $1,$2))
 
 # delete one file
 DEL1 = if exist $1 del /F /Q $1
@@ -101,5 +110,5 @@ show_dll_path_end ?= $(newline)@echo endlocal
 NO_RPATH := 1
 
 # protect variables from modifications in target makefiles
-$(call CLEAN_BUILD_PROTECT_VARS,DEL_ARGS_LIMIT DEL1 DEL DEL_DIR1 DEL_DIR RM1 RM MKDIR SED SED_EXPR \
+$(call CLEAN_BUILD_PROTECT_VARS,DEL_ARGS_LIMIT nonrelpath1 DEL1 DEL DEL_DIR1 DEL_DIR RM1 RM MKDIR SED SED_EXPR \
   CAT ECHO_LINE ECHO1 ECHO EXECIN NUL SUPPRESS_CP_OUTPUT CP TOUCH1 TOUCH DEL_ON_FAIL NO_RPATH)
