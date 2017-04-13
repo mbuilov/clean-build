@@ -55,7 +55,7 @@ define $1_
 $(value $1)
 endef
 define $1
-$$(info +++begin: $$$$($1) {)$$(dump_args)$$(call dump,$2,,$1: )$$(info ------$1 value---->)$$(info \
+$$(warning $$$$($1) {)$$(dump_args)$$(call dump,$2,,$1: )$$(info ------$1 value---->)$$(info \
   $$(value $1_))$$(info ------$1 result--->)$$(call infofn,$$(call \
   $1_,$$1,$$2,$$3,$$4,$$5,$$6,$$7,$$8,$$9,$$(10),$$(11),$$(12),$$(13),$$(14),$$(15),$$(16),$$(17),$$(18),$$(19),$$(20)))$$(call \
   dump,$3,,$1: )$$(info end: } $$$$($1))
