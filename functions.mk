@@ -76,7 +76,7 @@ unspaces = $(subst $(space),?,$1)
 # add quotes if argument has embedded space
 # if called like $(call ifaddq,a b) gives "a b"
 # if called like $(call ifaddq,ab) gives ab
-ifaddq = $(if $(word 2,$1),"$1",$1)
+ifaddq = $(if $(findstring $(space),$1),"$1",$1)
 
 # convert back ? to spaces in paths adding some prefix
 # if called like $(call qpath,a?b cd,-I) gives -I"a b" -Icd
