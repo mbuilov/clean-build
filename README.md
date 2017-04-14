@@ -1,5 +1,5 @@
 # clean-build
-Non-recursive [unharmful](#http://aegis.sourceforge.net/auug97.pdf) cross-platform build system based on GNU Make
+Non-recursive [unharmful](http://aegis.sourceforge.net/auug97.pdf) cross-platform build system based on GNU Make
 
 Copyright (C) 2015-2017 Michael M. Builov (mbuilov@gmail.com)
 
