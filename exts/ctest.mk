@@ -22,7 +22,7 @@ $r.out: TEST_AUX_PARAMS := $2
 $r.out: TEST_AUX_PATH   := $3
 $r.out: TEST_AUX_VARS   := $(subst $,$$$$,$4)
 $r.out: $r
-	$$(call SUP,TEST,$$@)$$(info ----$$(TEST_AUX_VARS))$$(call RUN_WITH_DLL_PATH,$$< $$(TEST_AUX_PARAMS) > $$@,$$(TEST_AUX_PATH),$$(TEST_AUX_VARS))
+	$$(call SUP,TEST,$$@)$$(call RUN_WITH_DLL_PATH,$$< $$(TEST_AUX_PARAMS) > $$@,$$(TEST_AUX_PATH),$$(TEST_AUX_VARS))
 $(TEST_EXE_SOFTLINKS)
 endef
 
