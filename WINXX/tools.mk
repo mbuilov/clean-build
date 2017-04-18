@@ -103,7 +103,13 @@ PATHSEP := ;
 DLL_PATH_VAR := PATH
 
 # if %PATH% environment variable was modified for calling a tool, print new %PATH% value in generated batch
-show_with_dll_path ?= $(info setlocal$(newline)set "PATH=$(PATH)"$(newline)$1)
+# $1 - command to run (with parameters)
+# $2 - additional paths to append to $(DLL_PATH_VAR)
+# $3 - environment variables to set to run executable, in form VAR=value
+show_with_dll_path ?= $(info setlocal$(if $2,$(newline)set "PATH=$(PATH)")$(foreach \
+  v,$3,$(foreach n,$(firstword $(subst =, ,$v)),$(newline)set "$n=$($n)"))$(newline)$1)
+
+# show after executing a command
 show_dll_path_end ?= $(newline)@echo endlocal
 
 # there is no support for embedding dll search path into executables or dlls

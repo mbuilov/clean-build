@@ -682,14 +682,19 @@ endif
 
 # show modified $(DLL_PATH_VAR) environment variable with running command
 # $1 - command to run (with parameters)
-show_with_dll_path ?= $(info $(DLL_PATH_VAR)="$($(DLL_PATH_VAR))" $1)
+# $2 - additional paths to append to $(DLL_PATH_VAR)
+# $3 - environment variables to set to run executable, in form VAR=value
+show_with_dll_path ?= $(info $(if $2,$(DLL_PATH_VAR)="$($(DLL_PATH_VAR))" )$(foreach \
+  v,$3,$(foreach n,$(firstword $(subst =, ,$v)),$n="$($n)")) $1)
 
 # run executable with modified $(DLL_PATH_VAR) environment variable
-# $1 - additional paths to append to $(DLL_PATH_VAR)
-# $2 - command to run (with parameters)
+# $1 - command to run (with parameters)
+# $2 - additional paths to append to $(DLL_PATH_VAR)
+# $3 - environment variables to set to run executable, in form VAR=value
 # note: this function should be used for rule body, where automatic variable $@ is defined
-RUN_WITH_DLL_PATH = $(if $1,$(eval $@: $(DLL_PATH_VAR) := $($(DLL_PATH_VAR))$(if $($(DLL_PATH_VAR)),$(PATHSEP))$1)$(if $(VERBOSE),$(call \
-  show_with_dll_path,$2)@))$2$(if $1,$(if $(VERBOSE),$(call show_dll_path_end)))
+RUN_WITH_DLL_PATH = $(if $2$3,$(if $2,$(eval $@:$(DLL_PATH_VAR):=$(addsuffix $(PATHSEP),$($(DLL_PATH_VAR)))$2))$(foreach \
+  v,$3,$(foreach g,$(firstword $(subst =, ,$v)),$(eval $@:$g:=$(patsubst $g=%,%,$v))))$(if $(VERBOSE),$(show_with_dll_path)@))$1$(if \
+  $2$3,$(if $(VERBOSE),$(show_dll_path_end)))
 
 # protect variables from modifications in target makefiles
 CLEAN_BUILD_PROTECTED_VARS += MTOP MAKEFLAGS NO_DEPS DEBUG PROJECT \

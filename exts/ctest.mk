@@ -11,23 +11,25 @@ ifndef DO_TEST_EXE_TEMPLATE
 # rule for running test executable for 'check' target
 
 # run $(EXE) and dump its stderr to $(EXE).out
-# $1 - $(call FORM_TRG,EXE,$v)
-# $2 - built shared libraries needed by executable, in form <library_name>.<major_number>
-# $3 - auxiliary parameters to pass to executable
-# $4 - dlls search paths: appended to PATH (for WINDOWS) or LD_LIBRARY_PATH (for UNIX-like OS) environment variable to run executable
+# $1 - built shared libraries needed by executable, in form <library_name>.<major_number>
+# $2 - auxiliary parameters to pass to executable
+# $3 - dlls search paths: appended to PATH (for WINDOWS) or LD_LIBRARY_PATH (for UNIX-like OS) environment variable to run executable
+# $4 - environment variables to set to run executable, in form VAR=value
+# $r - $(call FORM_TRG,EXE,$v)
 define DO_TEST_EXE_TEMPLATE
-$(call ADD_GENERATED,$1.out)
-$1.out: TEST_AUX_PATH := $4
-$1.out: TEST_AUX_PARAMS := $3
-$1.out: $1
-	$$(call SUP,TEST,$$@)$$(call RUN_WITH_DLL_PATH,$$(TEST_AUX_PATH),$$< $$(TEST_AUX_PARAMS) > $$@)
+$(call ADD_GENERATED,$r.out)
+$r.out: TEST_AUX_PARAMS := $2
+$r.out: TEST_AUX_PATH   := $3
+$r.out: TEST_AUX_VARS   := $(subst $,$$$$,$4)
+$r.out: $r
+	$$(call SUP,TEST,$$@)$$(info ----$$(TEST_AUX_VARS))$$(call RUN_WITH_DLL_PATH,$$< $$(TEST_AUX_PARAMS) > $$@,$$(TEST_AUX_PATH),$$(TEST_AUX_VARS))
 $(TEST_EXE_SOFTLINKS)
 endef
 
-# $1 - $(call FORM_TRG,EXE,$v)
-# $2 - built shared libraries needed by executable, in form <library_name>.<major_number>
+# $1 - built shared libraries needed by executable, in form <library_name>.<major_number>
+# $r - $(call FORM_TRG,EXE,$v)
 ifdef OSTYPE_UNIX
-TEST_EXE_SOFTLINKS ?= $(if $2,$1: | $(addprefix $(LIB_DIR)/$(DLL_PREFIX),$(subst .,$(DLL_SUFFIX).,$2))$(call TEST_NEED_SIMLINKS,$2))
+TEST_EXE_SOFTLINKS ?= $(if $1,$r: | $(addprefix $(LIB_DIR)/$(DLL_PREFIX),$(subst .,$(DLL_SUFFIX).,$1))$(TEST_NEED_SIMLINKS))
 endif
 
 # $1 - $(LIB_DIR)/$(DLL_PREFIX)$(subst .,$(DLL_SUFFIX).,$d)
@@ -53,7 +55,8 @@ ifneq ($(filter check clean,$(MAKECMDGOALS)),)
 # $1 - built shared libraries needed by executable, in form <library_name>.<major_number>
 # $2 - auxiliary parameters to pass to executable
 # $3 - dlls search paths: appended to PATH (for WINDOWS) or LD_LIBRARY_PATH (for UNIX-like OS) environment variable to run executable
-DO_TEST_EXE ?= $(eval $(foreach v,$(call GET_VARIANTS,EXE),$(newline)$(call DO_TEST_EXE_TEMPLATE,$(call FORM_TRG,EXE,$v),$1,$2,$3)))
+# $4 - environment variables to set to run executable, in form VAR=value
+DO_TEST_EXE ?= $(eval $(foreach v,$(call GET_VARIANTS,EXE),$(newline)$(foreach r,$(call FORM_TRG,EXE,$v),$(DO_TEST_EXE_TEMPLATE))))
 
 endif # check
 
