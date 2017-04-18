@@ -43,7 +43,7 @@ dump_args = $(if $1,$(info $$1=$1))$(if $2,$(info $$2=$2))$(if $3,$(info $$3=$3)
 # trace function call parameters - print function name and parameter values
 # - add $(trace_params) as the first statement of traced function body
 # example: fun = $(trace_params)fn_body
-trace_params = $(info params: $$($0) {)$(dump_args)$(info params: } $$($0))
+trace_params = $(warning params: $$($0) {)$(dump_args)$(info params: } $$($0))
 
 # helper template for $(trace_calls)
 # $1 - macro name, must accept no more than 20 arguments
