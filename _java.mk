@@ -12,9 +12,7 @@ endif
 
 # run via $(MAKE) L=1 to run java compiler with -Xlint
 ifeq ("$(origin L)","command line")
-JLINT := $L
-else
-JLINT:=
+JLINT := $(L:0=)
 endif
 
 # what we may build by including $(MTOP)/java.mk (for ex. JAR := my_jar)
