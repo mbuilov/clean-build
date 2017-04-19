@@ -105,7 +105,7 @@ SCALA_CC ?= $(if $1,$(if $(SCALAC),$(call SCALA_CC1,$1,$1 $2),$(error \
 # target-specific: JRFLAGS, MANIFEST, JOBJDIR, ALL_BUNDLES
 JAR_LD1 = $(call SUP,JAR,$1)$(if $2,$(call CREATE_JARGS_FILE,$(ALL_BUNDLES),$(JOBJDIR)/jar.txt)) \
   $(JARC) $(JRFLAGS) -cf$(if $(MANIFEST),m) $(jpath) $(call jpath,$(MANIFEST)) -C $(call jpath,$(JOBJDIR)/$(JCLS_DIR)) . $(if \
-  $2,@$(call jpath,$(JOBJDIR)/jar.txt),$(ALL_BUNDLES))$(DEL_ON_FAIL)
+  $2,@$(call jpath,$(JOBJDIR)/jar.txt),$(ALL_BUNDLES))
 
 # make jar, $1 - .jar target
 # note: always rebuild all sources if any of $(JARS), $(EXTJARS), $(JSRC), $(SCALA) or $(JSCALA) is newer than the target jar
