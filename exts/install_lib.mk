@@ -40,6 +40,7 @@ BUILT_LIB_VARIANTS := $(if $(LIB),$(call GET_VARIANTS,LIB))
 BUILT_DLL_VARIANTS := $(if $(DLL),$(call GET_VARIANTS,DLL))
 BUILT_LIBS         := $(foreach v,$(BUILT_LIB_VARIANTS),$(call FORM_TRG,LIB,$v))
 BUILT_DLLS         := $(foreach v,$(BUILT_DLL_VARIANTS),$(call FORM_TRG,DLL,$v))
+LIBRARY_HEADERS    := $(call FIXPATH,$(LIBRARY_HEADERS))
 
 # name of installed headers directory
 LIBRARY_HDIR := $(addprefix /,$(LIBRARY_HDIR))
@@ -132,33 +133,38 @@ install_$(LIBRARY_NAME) uninstall_$(LIBRARY_NAME): DEFINES := $(DEFINES)
 install_$(LIBRARY_NAME) uninstall_$(LIBRARY_NAME): BUILT_LIBS := $(BUILT_LIBS)
 install_$(LIBRARY_NAME) uninstall_$(LIBRARY_NAME): BUILT_DLLS := $(BUILT_DLLS)
 install_$(LIBRARY_NAME) uninstall_$(LIBRARY_NAME): ALL_BUILT_LIBS := $1
-install_$(LIBRARY_NAME)_headers uninstall_$(LIBRARY_NAME): HEADERS := $(call FIXPATH,$(LIBRARY_HEADERS))
+install_$(LIBRARY_NAME)_headers uninstall_$(LIBRARY_NAME)_headers: HEADERS := $(LIBRARY_HEADERS)
 
-install_$(LIBRARY_NAME)_headers:
-	$$(call SUP,MKDIR,'$$(DESTDIR)$$(INCLUDEDIR)$(LIBRARY_HDIR)',@,1)$$(INSTALL) -d '$$(DESTDIR)$$(INCLUDEDIR)$(LIBRARY_HDIR)'
-	$$(call SUP,INSTALL,$$(HEADERS:$(TOP)/%=%) -> '$$(DESTDIR)$$(INCLUDEDIR)$(LIBRARY_HDIR)',@,1)$$(INSTALL) -m 644\
- $$(HEADERS) '$$(DESTDIR)$$(INCLUDEDIR)$(LIBRARY_HDIR)'
+install_$(LIBRARY_NAME)_headers:$(if $(LIBRARY_HEADERS),$(newline)$(tab)$$(call \
+  SUP,MKDIR,'$$(DESTDIR)$$(INCLUDEDIR)$(LIBRARY_HDIR)',@,1)$$(INSTALL) -d\
+ '$$(DESTDIR)$$(INCLUDEDIR)$(LIBRARY_HDIR)'$(newline)$(tab)$$(call \
+  SUP,INSTALL,$$(HEADERS:$(TOP)/%=%) -> '$$(DESTDIR)$$(INCLUDEDIR)$(LIBRARY_HDIR)',@,1)$$(INSTALL) -m 644\
+ $$(HEADERS) '$$(DESTDIR)$$(INCLUDEDIR)$(LIBRARY_HDIR)')
 
-install_$(LIBRARY_NAME): $(if $(NO_INSTALL_HEADERS1),,install_$(LIBRARY_NAME)_headers)$(if \
+uninstall_$(LIBRARY_NAME)_headers:$(if $(LIBRARY_HEADERS),$(newline)$(tab)$$(call \
+  UNINSTALL_RM,$(if $(LIBRARY_HDIR),'$$(DESTDIR)$$(INCLUDEDIR)$(LIBRARY_HDIR)',$$(addprefix \
+ '$$(DESTDIR)$$(INCLUDEDIR)/,$$(addsuffix ',$$(notdir $$(HEADERS))))),r))
+
+install_$(LIBRARY_NAME):$(if $(NO_INSTALL_HEADERS1),,install_$(LIBRARY_NAME)_headers)$(if \
   $(BUILT_LIBS)$(BUILT_DLLS),$(newline)$(tab)$$(call \
- SUP,MKDIR,'$$(DESTDIR)$$(LIBDIR)',@,1)$$(INSTALL) -d '$$(DESTDIR)$$(LIBDIR)')
-	$$(foreach l,$$(BUILT_LIBS),$$(newline)$$(call \
- SUP,INSTALL,'$$(DESTDIR)$$(LIBDIR)/$$(notdir $$l)',@,1)$$(INSTALL) -m 644 $$l '$$(DESTDIR)$$(LIBDIR)')
-	$$(foreach d,$$(BUILT_DLLS),$$(newline)$$(call \
- SUP,INSTALL,'$$(DESTDIR)$$(LIBDIR)/$$(notdir $$d).$(MODVER)',@,1)$$(INSTALL) -m 755 $$d '$$(DESTDIR)$$(LIBDIR)/$$(notdir $$d).$(MODVER)')
-	$$(foreach d,$$(notdir $$(BUILT_DLLS)),$$(newline)$$(call INSTALL_LN,$$d.$(MODVER),$$(DESTDIR)$$(LIBDIR)/$$d))$(if \
+ SUP,MKDIR,'$$(DESTDIR)$$(LIBDIR)',@,1)$$(INSTALL) -d '$$(DESTDIR)$$(LIBDIR)'$(newline)$(tab)$$(foreach \
+  l,$$(BUILT_LIBS),$$(newline)$$(call \
+ SUP,INSTALL,'$$(DESTDIR)$$(LIBDIR)/$$(notdir $$l)',@,1)$$(INSTALL) -m 644 $$l '$$(DESTDIR)$$(LIBDIR)')$(newline)$(tab)$$(foreach \
+  d,$$(BUILT_DLLS),$$(newline)$$(call \
+ SUP,INSTALL,'$$(DESTDIR)$$(LIBDIR)/$$(notdir $$d).$(MODVER)',@,1)$$(INSTALL) -m 755 $$d '$$(DESTDIR)$$(LIBDIR)/$$(notdir \
+  $$d).$(MODVER)')$(newline)$(tab)$$(foreach \
+ d,$$(notdir $$(BUILT_DLLS)),$$(newline)$$(call INSTALL_LN,$$d.$(MODVER),$$(DESTDIR)$$(LIBDIR)/$$d))$(if \
   $(NO_INSTALL_LA1),,$(newline)$(tab)$$(call INSTALL_LIBTOOL_ARCHIVES,$$(ALL_BUILT_LIBS),$$(BUILT_LIBS),$$(BUILT_DLLS)))$(if \
-  $(NO_INSTALL_PC1),,$(if $(BUILT_LIBS)$(BUILT_DLLS),$(newline)$(tab)$$(call \
- SUP,MKDIR,'$$(DESTDIR)$$(PKG_CONFIG_DIR)',@,1)$$(INSTALL) -d '$$(DESTDIR)$$(PKG_CONFIG_DIR)'))$(if \
-  $(NO_INSTALL_PC1),,$(newline)$(tab)$$(call INSTALL_PKGCONFS,$$(ALL_BUILT_LIBS),$(LIBRARY_PC_GEN)))$(call LDCONFIG_TEMPLATE,inst)
+  $(NO_INSTALL_PC1),,$(newline)$(tab)$$(call \
+ SUP,MKDIR,'$$(DESTDIR)$$(PKG_CONFIG_DIR)',@,1)$$(INSTALL) -d '$$(DESTDIR)$$(PKG_CONFIG_DIR)')$(if \
+  $(NO_INSTALL_PC1),,$(newline)$(tab)$$(call INSTALL_PKGCONFS,$$(ALL_BUILT_LIBS),$(LIBRARY_PC_GEN)))$(call LDCONFIG_TEMPLATE,inst))
 
-uninstall_$(LIBRARY_NAME):
-	$$(call UNINSTALL_RM,$(if $(NO_INSTALL_HEADERS1),,$(if $(LIBRARY_HDIR),'$$(DESTDIR)$$(INCLUDEDIR)$(LIBRARY_HDIR)',$$(addprefix \
-  '$$(DESTDIR)$$(INCLUDEDIR)/,$$(addsuffix ',$$(notdir $$(HEADERS))))))$(space)$$(addprefix \
-  '$$(DESTDIR)$$(LIBDIR)/,$$(addsuffix ',$$(notdir $$(BUILT_LIBS))))$(space)$$(foreach \
+uninstall_$(LIBRARY_NAME):$(if $(NO_INSTALL_HEADERS1),,uninstall_$(LIBRARY_NAME)_headers)$(if \
+  $(BUILT_LIBS)$(BUILT_DLLS),$(newline)$(tab)$$(call UNINSTALL_RM,$$(addprefix \
+  '$$(DESTDIR)$$(LIBDIR)/,$$(addsuffix ',$$(notdir $$(BUILT_LIBS)))$(space)$$(foreach \
   d,$$(notdir $$(BUILT_DLLS)),'$$(DESTDIR)$$(LIBDIR)/$$d' '$$(DESTDIR)$$(LIBDIR)/$$d.$(MODVER)')$(space)$(if \
   $(NO_INSTALL_LA1),,$$(call INSTALLED_LIBTOOL_ARCHIVES,$$(ALL_BUILT_LIBS),$$(BUILT_LIBS),$$(BUILT_DLLS)))$(space)$(if \
-  $(NO_INSTALL_PC1),,$$(call INSTALLED_PKGCONFS,$$(ALL_BUILT_LIBS))),r)$(call LDCONFIG_TEMPLATE,uninst)
+  $(NO_INSTALL_PC1),,$$(call INSTALLED_PKGCONFS,$$(ALL_BUILT_LIBS)))))$(call LDCONFIG_TEMPLATE,uninst))
 
 endef
 
@@ -190,30 +196,31 @@ define INSTALL_LIB_TEMPLATE_WINDOWS
 install_$(LIBRARY_NAME) uninstall_$(LIBRARY_NAME): BUILT_LIBS := $(BUILT_LIBS)
 install_$(LIBRARY_NAME) uninstall_$(LIBRARY_NAME): BUILT_DLLS := $(BUILT_DLLS)
 install_$(LIBRARY_NAME) uninstall_$(LIBRARY_NAME): BUILT_IMPS := $1
-install_$(LIBRARY_NAME)_headers uninstall_$(LIBRARY_NAME): HEADERS := $(call FIXPATH,$(LIBRARY_HEADERS))
+install_$(LIBRARY_NAME)_headers uninstall_$(LIBRARY_NAME)_headers: HEADERS := $(LIBRARY_HEADERS)
 
-install_$(LIBRARY_NAME)_headers: | $(DST_INC_DIR)
-	$$(call SUP,COPY,$$(call ospath,$$(HEADERS:$(TOP)/%=%)) -> "$$(DESTDIR)$$(INCLUDEDIR)$(LIBRARY_HDIR)",@)$$(foreach \
-  f,$$(HEADERS),$$(newline)$(if $(VERBOSE),,@)$$(call CP,$$f,"$$(DESTDIR)$$(INCLUDEDIR)$(LIBRARY_HDIR)"))
+install_$(LIBRARY_NAME)_headers:$(if $(LIBRARY_HEADERS),| $(DST_INC_DIR)$(newline)$(tab)$$(call \
+  SUP,COPY,$$(call ospath,$$(HEADERS:$(TOP)/%=%)) -> "$$(DESTDIR)$$(INCLUDEDIR)$(LIBRARY_HDIR)",@)$$(foreach \
+  f,$$(HEADERS),$$(newline)$(if $(VERBOSE),,@)$$(call CP,$$f,"$$(DESTDIR)$$(INCLUDEDIR)$(LIBRARY_HDIR)")))
 
-install_$(LIBRARY_NAME): $(if $(NO_INSTALL_HEADERS1),,install_$(LIBRARY_NAME)_headers) $(if $(BUILT_LIBS)$(BUILT_DLLS), | $(DST_LIB_DIR))
-	$$(foreach l,$$(BUILT_LIBS),$$(newline)$$(call \
-  SUP,INSTALL,"$$(DESTDIR)$$(LIBDIR)\$$(notdir $$l)",@)$$(call CP,$$l,"$$(DESTDIR)$$(LIBDIR)"))
-	$$(foreach d,$$(BUILT_DLLS),$$(newline)$$(call \
-  SUP,INSTALL,"$$(DESTDIR)$$(LIBDIR)\$$(notdir $$d)",@)$$(call CP,$$d,"$$(DESTDIR)$$(LIBDIR)"))$(if \
-  $(NO_INSTALL_IMPS1),,$(newline)$(tab)$$(foreach i,$$(BUILT_IMPS),$$(newline)$$(call \
-  SUP,INSTALL,"$$(DESTDIR)$$(LIBDIR)\$$(notdir $$i)",@)$$(call CP,$$i,"$$(DESTDIR)$$(LIBDIR)")))
-
-uninstall_$(LIBRARY_NAME):$(if \
-  $(NO_INSTALL_HEADERS1),,$(newline)$(tab)$(if $(LIBRARY_HDIR),$$(call \
+uninstall_$(LIBRARY_NAME)_headers:$(if $(LIBRARY_HEADERS),$(newline)$(tab)$(if $(LIBRARY_HDIR),$$(call \
   SUP,RD,"$$(DESTDIR)$$(INCLUDEDIR)$(LIBRARY_HDIR)",@)$$(call DEL_DIR,"$$(DESTDIR)$$(INCLUDEDIR)$(LIBRARY_HDIR)"),$$(foreach \
   h,$$(notdir $$(HEADERS)),$$(newline)$$(call SUP,DEL,"$$(DESTDIR)$$(INCLUDEDIR)\$$h",@)$$(call DEL,"$$(DESTDIR)$$(INCLUDEDIR)/$$h"))))
-	$$(foreach l,$$(notdir $$(BUILT_LIBS)),$$(newline)$$(call \
-  SUP,DEL,"$$(DESTDIR)$$(LIBDIR)\$$l",@)$$(call DEL,"$$(DESTDIR)$$(LIBDIR)/$$l"))
-	$$(foreach d,$$(notdir $$(BUILT_DLLS)),$$(newline)$$(call \
-  SUP,DEL,"$$(DESTDIR)$$(LIBDIR)\$$d",@)$$(call DEL,"$$(DESTDIR)$$(LIBDIR)/$$d"))$(if \
+
+install_$(LIBRARY_NAME):$(if $(NO_INSTALL_HEADERS1),,install_$(LIBRARY_NAME)_headers)$(if \
+  $(BUILT_LIBS)$(BUILT_DLLS), | $(DST_LIB_DIR)$(newline)$(tab)$$(foreach l,$$(BUILT_LIBS),$$(newline)$$(call \
+ SUP,INSTALL,"$$(DESTDIR)$$(LIBDIR)\$$(notdir $$l)",@)$$(call CP,$$l,"$$(DESTDIR)$$(LIBDIR)"))$(newline)$(tab)$$(foreach \
+  d,$$(BUILT_DLLS),$$(newline)$$(call \
+ SUP,INSTALL,"$$(DESTDIR)$$(LIBDIR)\$$(notdir $$d)",@)$$(call CP,$$d,"$$(DESTDIR)$$(LIBDIR)"))$(if \
+  $(NO_INSTALL_IMPS1),,$(newline)$(tab)$$(foreach i,$$(BUILT_IMPS),$$(newline)$$(call \
+ SUP,INSTALL,"$$(DESTDIR)$$(LIBDIR)\$$(notdir $$i)",@)$$(call CP,$$i,"$$(DESTDIR)$$(LIBDIR)"))))
+
+uninstall_$(LIBRARY_NAME):$(if $(NO_INSTALL_HEADERS1),,uninstall_$(LIBRARY_NAME)_headers)$(if \
+  $(BUILT_LIBS)$(BUILT_DLLS),$(newline)$(tab)$$(foreach l,$$(notdir $$(BUILT_LIBS)),$$(newline)$$(call \
+ SUP,DEL,"$$(DESTDIR)$$(LIBDIR)\$$l",@)$$(call DEL,"$$(DESTDIR)$$(LIBDIR)/$$l"))$(newline)$(tab)$$(foreach \
+  d,$$(notdir $$(BUILT_DLLS)),$$(newline)$$(call \
+ SUP,DEL,"$$(DESTDIR)$$(LIBDIR)\$$d",@)$$(call DEL,"$$(DESTDIR)$$(LIBDIR)/$$d"))$(if \
   $(NO_INSTALL_IMPS1),,$(newline)$(tab)$$(foreach i,$$(notdir $$(BUILT_IMPS)),$$(newline)$$(call \
-  SUP,DEL,"$$(DESTDIR)$$(LIBDIR)\$$i",@)$$(call DEL,"$$(DESTDIR)$$(LIBDIR)/$$i")))
+ SUP,DEL,"$$(DESTDIR)$$(LIBDIR)\$$i",@)$$(call DEL,"$$(DESTDIR)$$(LIBDIR)/$$i"))))
 
 endef
 endif # INSTALL_LIB_TEMPLATE_WINDOWS
@@ -223,4 +230,4 @@ $(eval $(call INSTALL_LIB_TEMPLATE_WINDOWS,$(foreach v,$(BUILT_DLL_VARIANTS),$(c
 
 endif # OSTYPE_WINDOWS
 
-$(eval .PHONY: install_$(LIBRARY_NAME)_headers install_$(LIBRARY_NAME) uninstall_$(LIBRARY_NAME))
+$(eval .PHONY: install_$(LIBRARY_NAME)_headers uninstall_$(LIBRARY_NAME)_headers install_$(LIBRARY_NAME) uninstall_$(LIBRARY_NAME))
