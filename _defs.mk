@@ -236,8 +236,8 @@ SHOWN_REMAINDER:=
 # 3) current = 2, percents2 = percents1 + int((remainder1 + 100)/total), remainder2 = rem((remainder1 + 100)/total)
 # 4) current = 3, percents3 = percents2 + int((remainder2 + 100)/total), remainder3 = rem((remainder2 + 100)/total)
 # ...
-ADD_SHOWN_PERCENTS = $(if $(word $(TARGET_MAKEFILES_COUNT),$1),+ $(call ADD_SHOWN_PERCENTS,$(wordlist \
-  $(TARGET_MAKEFILES_COUNT1),999999,$1)),$(eval SHOWN_REMAINDER := $1))
+ADD_SHOWN_PERCENTS = $(eval ADD_SHOWN_PERCENTS=$$(if $$(word $(TARGET_MAKEFILES_COUNT),$$1),+ $$(call \
+  ADD_SHOWN_PERCENTS,$$(wordlist $(TARGET_MAKEFILES_COUNT1),999999,$$1)),$$(eval SHOWN_REMAINDER:=$$1)))$(ADD_SHOWN_PERCENTS)
 # remember shown makefile $(MF), try to increment total percents count
 define REM_SHOWN_MAKEFILE
 SHOWN_MAKEFILES += $(MF)
@@ -428,7 +428,7 @@ CLEAN_COMMANDS:=
 # TOCLEAN - function to add values to CLEAN variable
 # - don't add values to CLEAN variable if not cleaning up
 ifneq ($(filter clean,$(MAKECMDGOALS)),)
-TOCLEAN = $(eval CLEAN += $1)
+TOCLEAN = $(eval CLEAN+=$1)
 else
 TOCLEAN:=
 endif
