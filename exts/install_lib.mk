@@ -179,6 +179,11 @@ LIBRARY_HDIR := $(call ospath,$(LIBRARY_HDIR))
 DST_INC_DIR := $(subst $(space),\ ,$(DESTDIR)$(INCLUDEDIR)$(LIBRARY_HDIR))
 DST_LIB_DIR := $(subst $(space),\ ,$(DESTDIR)$(LIBDIR))
 
+# diresctories to install
+ifndef NEEDED_INSTALL_DIRS
+NEEDED_INSTALL_DIRS:=
+endif
+
 # $1 - "$(subst /,\,$(subst \ , ,$@))"
 # note: pass non-empty 3-d argument to SUP function to not update percents
 INSTALL_MKDIR ?= $(call SUP,MKDIR,$1,@)$(call MKDIR,$1)
