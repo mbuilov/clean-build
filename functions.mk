@@ -181,9 +181,19 @@ ver_major = $(firstword $(subst ., ,$1) 0)
 ver_minor = $(firstword $(word 2,$(subst ., ,$1)) 0)
 ver_patch = $(firstword $(word 3,$(subst ., ,$1)) 0)
 
+# get parent directory name of $1 without / at end
+# add optional prefix $2 before parent directory
+# returns empty directory name if no parent directory
+get_dir = $(patsubst %/,%,$(patsubst $2./,$2,$(addprefix $2,$(dir $1))))
+
+# split paths to list of intermediate directories: 1/2/3 -> 1 1/2 1/2/3
+split_dirs1 = $(if $1,$1 $(call split_dirs1,$(get_dir)))
+split_dirs = $(sort $(split_dirs1))
+
 # protect variables from modification in target makefiles
 CLEAN_BUILD_PROTECTED += empty space tab comma newline comment open_brace close_brace \
   infofn dump dump_args trace_params trace_calls_template trace_calls \
   unspaces ifaddq qpath tolower toupper repl09 repl09AZ padto \
   is_less1 is_less xargs1 xargs xcmd trim normp2 normp1 normp \
-  cmn_path1 cmn_path back_prefix relpath2 relpath1 relpath join_with ver_major ver_minor ver_patch
+  cmn_path1 cmn_path back_prefix relpath2 relpath1 relpath join_with \
+  ver_major ver_minor ver_patch get_dir split_dirs1 split_dirs
