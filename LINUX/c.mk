@@ -4,8 +4,6 @@
 # Licensed under GPL version 2 or any later version, see COPYING
 #----------------------------------------------------------------------------------
 
-OSTYPE := UNIX
-
 # INST_RPATH - location where external dependency libraries are installed: /opt/lib or $ORIGIN/../lib
 ifeq (undefined,$(origin INST_RPATH))
 INST_RPATH:=

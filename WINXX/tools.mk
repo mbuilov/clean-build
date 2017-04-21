@@ -6,6 +6,8 @@
 
 # this file included by $(MTOP)/defs.mk
 
+OSTYPE := WINDOWS
+
 # synchronize make output for parallel builds
 MAKEFLAGS += -O
 

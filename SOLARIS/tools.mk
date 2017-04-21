@@ -6,6 +6,8 @@
 
 # this file included by $(MTOP)/defs.mk
 
+OSTYPE := UNIX
+
 DEL   = rm -f $1
 RM    = $(if $(VERBOSE),,@)rm -rf $1
 MKDIR = mkdir -p $1

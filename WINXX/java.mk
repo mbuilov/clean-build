@@ -4,8 +4,6 @@
 # Licensed under GPL version 2 or any later version, see COPYING
 #----------------------------------------------------------------------------------
 
-OSTYPE := WINDOWS
-
 ifndef JAVA
 JAVA := java.exe
 endif

@@ -4,8 +4,6 @@
 # Licensed under GPL version 2 or any later version, see COPYING
 #----------------------------------------------------------------------------------
 
-OSTYPE := WINDOWS
-
 # reset additional variables
 # RES - resources to link to dll or exe
 # DEF - linker definitions file (used mostly to list exported symbols)
