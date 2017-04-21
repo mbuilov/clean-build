@@ -9,13 +9,10 @@
 # define rules to create needed directories
 # note: to avoid races when creating directories, create parent directories before child sub-directories,
 # for example, if needed to create a/b/c1 and a/b/c2 - create a/b before creating a/b/c1 and a/b/c2 in parallel
-
-GET_DIR = $(patsubst %/,%,$(patsubst ./%,%,$(filter %/,$(dir $1))))
-SPLIT_DIRS = $(if $1,$1 $(call SPLIT_DIRS,$(GET_DIR)))
-NEEDED_DIRS := $(sort $(call SPLIT_DIRS,$(NEEDED_DIRS:$(BUILD)/%=%)))
+NEEDED_DIRS := $(call split_dirs,$(NEEDED_DIRS:$(BUILD)/%=%))
 
 # define order-only dependencies for directories
-$(eval $(foreach x,$(NEEDED_DIRS),$(addprefix $(newline)$(BUILD)/$x:| $(BUILD)/,$(call GET_DIR,$x))))
+$(eval $(foreach x,$(NEEDED_DIRS),$(addprefix $(newline)$(BUILD)/$x:| $(BUILD)/,$(call get_dir,$x))))
 
 # define rules to create $(BUILD)-related needed directories
 $(addprefix $(BUILD)/,$(NEEDED_DIRS)):
