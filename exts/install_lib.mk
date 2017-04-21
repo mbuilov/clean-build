@@ -161,10 +161,10 @@ install_$(LIBRARY_NAME):$(if $(NO_INSTALL_HEADERS1),,install_$(LIBRARY_NAME)_hea
 
 uninstall_$(LIBRARY_NAME):$(if $(NO_INSTALL_HEADERS1),,uninstall_$(LIBRARY_NAME)_headers)$(if \
   $(BUILT_LIBS)$(BUILT_DLLS),$(newline)$(tab)$$(call UNINSTALL_RM,$$(addprefix \
-  '$$(DESTDIR)$$(LIBDIR)/,$$(addsuffix ',$$(notdir $$(BUILT_LIBS)))$(space)$$(foreach \
+  '$$(DESTDIR)$$(LIBDIR)/,$$(addsuffix ',$$(notdir $$(BUILT_LIBS))))$(space)$$(foreach \
   d,$$(notdir $$(BUILT_DLLS)),'$$(DESTDIR)$$(LIBDIR)/$$d' '$$(DESTDIR)$$(LIBDIR)/$$d.$(MODVER)')$(space)$(if \
   $(NO_INSTALL_LA1),,$$(call INSTALLED_LIBTOOL_ARCHIVES,$$(ALL_BUILT_LIBS),$$(BUILT_LIBS),$$(BUILT_DLLS)))$(space)$(if \
-  $(NO_INSTALL_PC1),,$$(call INSTALLED_PKGCONFS,$$(ALL_BUILT_LIBS)))))$(call LDCONFIG_TEMPLATE,uninst))
+  $(NO_INSTALL_PC1),,$$(call INSTALLED_PKGCONFS,$$(ALL_BUILT_LIBS))))$(call LDCONFIG_TEMPLATE,uninst))
 
 endef
 
