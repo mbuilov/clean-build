@@ -12,7 +12,7 @@
 NEEDED_DIRS := $(call split_dirs,$(NEEDED_DIRS:$(BUILD)/%=%))
 
 # define order-only dependencies for directories
-$(eval $(foreach x,$(NEEDED_DIRS),$(addprefix $(newline)$(BUILD)/$x:| $(BUILD)/,$(call get_dir,$x))))
+$(eval $(subst :|,:| $(BUILD)/,$(addprefix $(newline)$(BUILD)/,$(filter-out %:|,$(join $(NEEDED_DIRS),$(call get_dir,$(NEEDED_DIRS),:|))))))
 
 # define rules to create $(BUILD)-related needed directories
 $(addprefix $(BUILD)/,$(NEEDED_DIRS)):
