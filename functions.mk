@@ -184,7 +184,7 @@ ver_patch = $(firstword $(word 3,$(subst ., ,$1)) 0)
 # get parent directory name of $1 without / at end
 # add optional prefix $2 before parent directory
 # returns empty directory name if no parent directory
-get_dir = $(patsubst %/,%,$(patsubst $2./,$2,$(addprefix $2,$(dir $1))))
+get_dir = $(patsubst $2.,$2,$(patsubst %/,$2%,$(dir $1)))
 
 # split paths to list of intermediate directories: 1/2/3 -> 1 1/2 1/2/3
 split_dirs1 = $(if $1,$1 $(call split_dirs1,$(get_dir)))
