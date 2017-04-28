@@ -179,19 +179,40 @@ LIBRARY_HDIR := $(call ospath,$(LIBRARY_HDIR))
 DST_INC_DIR := $(subst $(space),\ ,$(DESTDIR)$(INCLUDEDIR)$(LIBRARY_HDIR))
 DST_LIB_DIR := $(subst $(space),\ ,$(DESTDIR)$(LIBDIR))
 
-# diresctories to install
-ifndef NEEDED_INSTALL_DIRS
-NEEDED_INSTALL_DIRS:=
-endif
-
 # $1 - "$(subst /,\,$(subst \ , ,$@))"
 # note: pass non-empty 3-d argument to SUP function to not update percents
 INSTALL_MKDIR ?= $(call SUP,MKDIR,$1,@)$(call MKDIR,$1)
 $(call CLEAN_BUILD_PROTECT_VARS,INSTALL_MKDIR)
 
-$(DST_LIB_DIR): | $(if $(NO_INSTALL_HEADERS1),,$(DST_INC_DIR))
-$(DST_INC_DIR) $(DST_LIB_DIR):
+# directories to install
+ifndef NEEDED_INSTALL_DIRS
+NEEDED_INSTALL_DIRS:=
+endif
+
+# $1 - result of $(call split_dirs,$1) on directories to install
+define ADD_INSTALL_DIRS1
+ifneq ($1,)
+$(call mk_dir_deps,$1)
+$1:
 	$(call INSTALL_MKDIR,"$(subst /,\,$(subst \ , ,$@))")
+NEEDED_INSTALL_DIRS += $1
+endif
+endef
+
+# add rules for creating directories
+# $1 - directories to install
+ADD_INSTALL_DIRS ?= $(eval $(call ADD_INSTALL_DIRS1,$(filter-out $(NEEDED_INSTALL_DIRS),$(call split_dirs,$1))))
+$(call CLEAN_BUILD_PROTECT_VARS,ADD_INSTALL_DIRS1 ADD_INSTALL_DIRS)
+
+ifneq (,$(BUILT_LIBS)$(BUILT_DLLS))
+$(call ADD_INSTALL_DIRS,$(DST_LIB_DIR))
+endif
+
+ifndef NO_INSTALL_HEADERS1
+ifdef LIBRARY_HEADERS
+$(call ADD_INSTALL_DIRS,$(DST_INC_DIR))
+endif
+endif
 
 # $1 - $(foreach v,$(BUILT_DLL_VARIANTS),$(call MAKE_IMP_PATH,$(call GET_TARGET_NAME,DLL),$v))
 # note: pass non-empty 3-d argument to SUP function to not update percents
