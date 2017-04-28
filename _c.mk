@@ -105,8 +105,8 @@ endef
 ifdef TOCLEAN
 OBJ_RULES1 = $(call TOCLEAN,$(addsuffix .d,$5) $(addsuffix $(OBJ_SUFFIX),$5))
 else
-OBJ_RULES1 = $(eval OBJ_RULES1=$$(call OBJ_RULES2,$$1,$$2,$$3,$$4,$$(addsuffix \
-  $(OBJ_SUFFIX),$$5))$(if $(NO_DEPS),,$$(newline)-include $$(addsuffix .d,$$5)))$(OBJ_RULES1)
+OBJ_RULES1 = $(eval OBJ_RULES1=$$(call OBJ_RULES2,$$1,$$2,$$3,$$4,$$(addsuffix $(OBJ_SUFFIX),$$5))$(if \
+  $(NO_DEPS),,$$(newline)-include $$(addsuffix .d,$$5))$(newline)$$(call CLEAN_BUILD_PROTECT_VARS,OBJ_RULES1))$(OBJ_RULES1)
 endif
 
 # rule that defines how to build objects from sources
