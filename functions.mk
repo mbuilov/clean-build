@@ -183,12 +183,27 @@ ver_patch = $(firstword $(word 3,$(subst ., ,$1)) 0)
 
 # get parent directory name of $1 without / at end
 # add optional prefix $2 before parent directory
-# returns empty directory name if no parent directory
+# returns empty directory name prefixed by $2 if no parent directory:
+# 1/2/3 -> 1/2
+# 1     -> $(empty)
 get_dir = $(patsubst $2.,$2,$(patsubst %/,$2%,$(dir $1)))
 
 # split paths to list of intermediate directories: 1/2/3 -> 1 1/2 1/2/3
 split_dirs1 = $(if $1,$1 $(call split_dirs1,$(get_dir)))
 split_dirs = $(sort $(split_dirs1))
+
+# make child-parent order dependencies for directories
+#
+# - for list:
+# 1 1/2 1/2/3
+#
+# - produce:
+# 1/2: |1
+# 1/2/3: |1/2
+#
+# $1 - list of directories - result of $(split_dirs)
+# $2 - prefix to add to all directories
+mk_dir_deps = $(subst :|,:| $2,$(addprefix $(newline)$2,$(filter-out %:|,$(join $1,$(call get_dir,$1,:|)))))
 
 # protect variables from modification in target makefiles
 CLEAN_BUILD_PROTECTED += empty space tab comma newline comment open_brace close_brace \
@@ -196,4 +211,4 @@ CLEAN_BUILD_PROTECTED += empty space tab comma newline comment open_brace close_
   unspaces ifaddq qpath tolower toupper repl09 repl09AZ padto \
   is_less1 is_less xargs1 xargs xcmd trim normp2 normp1 normp \
   cmn_path1 cmn_path back_prefix relpath2 relpath1 relpath join_with \
-  ver_major ver_minor ver_patch get_dir split_dirs1 split_dirs
+  ver_major ver_minor ver_patch get_dir split_dirs1 split_dirs mk_dir_deps
