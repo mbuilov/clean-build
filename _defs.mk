@@ -553,21 +553,16 @@ FORM_OBJ_DIR ?= $(OBJ_DIR)/$(GET_TARGET_NAME)$(if $(filter-out R,$2),_$2)_$1
 ifdef MCHECK
 
 # check that files $1 are generated in $(GEN_DIR), $(BIN_DIR), $(OBJ_DIR) or $(LIB_DIR)
-ifndef CHECK_GENERATED
-define CHECK_GENERATED
-ifneq ($(filter-out $(GEN_DIR)/% $(BIN_DIR)/% $(OBJ_DIR)/% $(LIB_DIR)/%,$1),)
-$$(error some files are generated not under $$(GEN_DIR), $$(BIN_DIR), $$(OBJ_DIR) or $$(LIB_DIR): $(filter-out \
-  $(GEN_DIR)/% $(BIN_DIR)/% $(OBJ_DIR)/% $(LIB_DIR)/%,$1))
-endif
-endef
-endif
+CHECK_GENERATED ?= $(if $(filter-out $(GEN_DIR)/% $(BIN_DIR)/% $(OBJ_DIR)/% $(LIB_DIR)/%,$1),$(error \
+  some files are generated not under $$(GEN_DIR), $$(BIN_DIR), $$(OBJ_DIR) or $$(LIB_DIR): $(filter-out \
+  $(GEN_DIR)/% $(BIN_DIR)/% $(OBJ_DIR)/% $(LIB_DIR)/%,$1)))
 
 endif # MCHECK
 
 # add generated files $1 to build sequence
 # note: files must be generated in $(GEN_DIR),$(BIN_DIR),$(OBJ_DIR) or $(LIB_DIR)
 # note: directories for generated files will be auto-created
-ADD_GENERATED = $(eval $(CHECK_GENERATED)$(newline)$(STD_TARGET_VARS))
+ADD_GENERATED ?= $(CHECK_GENERATED)$(eval $(STD_TARGET_VARS))
 
 # processed multi-target rules
 # note: MULTI_TARGETS is never cleared, only appended
@@ -584,38 +579,40 @@ MULTI_TARGET_NUM:=
 # $2 - prerequisites (either absolute or makefile-related)
 # $3 - rule
 # $4 - $(words $(MULTI_TARGET_NUM))
+ifndef MULTI_TARGET_RULE
 define MULTI_TARGET_RULE
 $(STD_TARGET_VARS)
 $1: $(call FIXPATH,$2)
 	$$(if $$(filter $4,$$(MULTI_TARGETS)),,$$(eval MULTI_TARGETS += $4)$$(call SUP,MGEN,$1)$3)
 MULTI_TARGET_NUM += 1
 endef
+endif
 
 ifdef MCHECK
 
-# NOTE: must not use $@ in rule because it may have different values (any target from multi-targets list),
-#       must not use $(lastword $^) - tail of list of prerequisites may have different values (because of different $@)
+# must not use $@ in multi-target rule because it may have different values (any target from multi-targets list)
+# must not use $| in multi-target rule because it may have different values (some targets from multi-targets list)
+# $1 - list of generated files (absolute paths)
 # $3 - rule
-MULTI_TARGET_CHECK ?= $(if \
-  $(filter-out $(words x$3x),$(words x$(subst $$@, ,$3)x)),$(warning \
-   do not use $$@ in rule:$(newline)$3))$(if \
-  $(filter-out $(words x$(strip $3)x),$(words x$(subst $$(lastword $$^), 1 ,$(strip $3))x)),$(warning \
-   do not use $$(lastword $$^) in rule:$(newline)$3))
+CHECK_MULTI_RULE ?= $(CHECK_GENERATED)$(if \
+  $(findstring $$@,$3),$(warning please do not use $$@ in multi-target rule:$(newline)$3))$(if \
+  $(findstring $$|,$3),$(warning please do not use $$| in multi-target rule:$(newline)$3))
 
 endif # MCHECK
 
 # make chain of dependencies of multi-targets on each other: 1 2 3 4 -> 2:| 1; 3:| 2; 4:| 3;
 # $1 - list of generated files (absolute paths without spaces)
-MULTI_TARGET_SEQ = $(subst ||,| ,$(subst $(space),$(newline),$(filter-out \
+MULTI_TARGET_SEQ ?= $(subst ||,| ,$(subst $(space),$(newline),$(filter-out \
   --%,$(join $(addsuffix :||,$(wordlist 2,999999,$1) --),$1))))$(newline)
 
-# when some tool generates many files, call the tool only once
-# $1 - list of generated files
+# if some tool generates multiple files at one call, it is needed to call
+#  the tool only once if any of generated files needs to be updated
+# $1 - list of generated files (absolute paths)
 # $2 - prerequisites
 # $3 - rule
 # note: directories for generated files will be auto-created
 # note: rule must update all targets
-MULTI_TARGET ?= $(MULTI_TARGET_CHECK)$(eval $(MULTI_TARGET_SEQ)$(call MULTI_TARGET_RULE,$1,$2,$3,$(words $(MULTI_TARGET_NUM))))
+MULTI_TARGET ?= $(CHECK_MULTI_RULE)$(eval $(MULTI_TARGET_SEQ)$(call MULTI_TARGET_RULE,$1,$2,$3,$(words $(MULTI_TARGET_NUM))))
 
 # $(DEFINE_TARGETS_EVAL_NAME) - contains name of macro that when expanded
 # evaluates code to define targets (at least, by evaluating $(DEF_TAIL_CODE))
@@ -700,17 +697,17 @@ RUN_WITH_DLL_PATH = $(if $2$3,$(if $2,$(eval $@:$(DLL_PATH_VAR):=$(addsuffix $(P
   $2$3,$(if $(VERBOSE),$(show_dll_path_end)))
 
 # protect variables from modifications in target makefiles
-CLEAN_BUILD_PROTECTED_VARS += MTOP MAKEFLAGS NO_DEPS DEBUG PROJECT \
+$(call CLEAN_BUILD_PROTECT_VARS,MTOP MAKEFLAGS NO_DEPS DEBUG PROJECT \
   SUPPORTED_OSES SUPPORTED_CPUS SUPPORTED_TARGETS OS CPU UCPU KCPU TCPU TARGET \
   OS_$(OS) OSTYPE OSTYPE_$(OSTYPE) VERBOSE INFOMF MDEBUG OSDIR CHECK_MAKEFILE_NOT_PROCESSED \
   TERM_NO_COLOR PRINT_PERCENTS SUP ADD_SHOWN_PERCENTS REM_SHOWN_MAKEFILE TRY_REM_MAKEFILE \
   GEN_COLOR MGEN_COLOR CP_COLOR LN_COLOR MKDIR_COLOR TOUCH_COLOR \
   COLORIZE SED_MULTI_EXPR ospath isrelpath nonrelpath PATHSEP \
-  TARGET_TRIPLET DEF_BIN_DIR DEF_OBJ_DIR DEF_LIB_DIR DEF_GEN_DIR SET_DEFAULT_DIRS BIN_DIR OBJ_DIR LIB_DIR GEN_DIR \
+  TARGET_TRIPLET DEF_BIN_DIR DEF_OBJ_DIR DEF_LIB_DIR DEF_GEN_DIR SET_DEFAULT_DIRS \
   TOOL_BASE MK_TOOLS_DIR GET_TOOLS TOOL_SUFFIX GET_TOOL TOOL_OVERRIDE_DIRS \
   FIX_ORDER_DEPS STD_TARGET_VARS1 STD_TARGET_VARS TOCLEAN GET_VPREFIX ADDVPREFIX FIXPATH MAKEFILE_DEBUG_INFO \
   DEF_TAIL_CODE_DEBUG DEF_HEAD_CODE DEF_HEAD_CODE_EVAL DEF_TAIL_CODE DEF_TAIL_CODE_EVAL \
   FILTER_VARIANTS_LIST GET_VARIANTS GET_TARGET_NAME DEBUG_TARGETS FORM_OBJ_DIR \
-  CHECK_GENERATED ADD_GENERATED MULTI_TARGET_RULE MULTI_TARGET_CHECK MULTI_TARGET_SEQ MULTI_TARGET \
+  CHECK_GENERATED ADD_GENERATED MULTI_TARGET_RULE CHECK_MULTI_RULE MULTI_TARGET_SEQ MULTI_TARGET \
   DEFINE_TARGETS SAVE_VARS RESTORE_VARS MAKE_CONTINUE_BODY_EVAL MAKE_CONTINUE FORM_SDEPS EXTRACT_SDEPS FIX_SDEPS \
-  DLL_PATH_VAR show_with_dll_path show_dll_path_end RUN_WITH_DLL_PATH
+  DLL_PATH_VAR show_with_dll_path show_dll_path_end RUN_WITH_DLL_PATH)
