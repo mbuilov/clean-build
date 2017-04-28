@@ -37,7 +37,7 @@ TO_MAKE:=$(call NORM_MAKEFILES,$(TO_MAKE))
 # note: $(CURRENT_MAKEFILE)- and other order-dependent makefile names - are .PHONY targets,
 # and built target files may depend on .PHONY targets only as order-only,
 # otherwise target files are will always be rebuilt - because .PHONY targets are always updated
-$(CURRENT_MAKEFILE)-: $(addsuffix -,$(TO_MAKE))
+$(CURRENT_MAKEFILE)-:| $(addsuffix -,$(TO_MAKE))
 
 # increase makefile include level, include and process makefiles, decrease makefile include level
 CB_INCLUDE_LEVEL+=1

@@ -28,6 +28,15 @@ TARGET_MAKEFILES_COUNT := $(wordlist $(words 1 $(INTERMEDIATE_MAKEFILES)),999999
 TARGET_MAKEFILES_COUNT1 := $(words 1 $(TARGET_MAKEFILES_COUNT))
 TARGET_MAKEFILES_COUNT := $(words $(TARGET_MAKEFILES_COUNT))
 endif
+
+ifdef MCHECK
+
+# check that target rules are defined and completed
+$(PROCESSED_MAKEFILES):
+	$(foreach f,$(filter-out $(wildcard $^),$^),$(info $(@:-=): cannot build $f))
+
+endif # MCHECK
+
 all: $(PROCESSED_MAKEFILES)
 	@:
 
