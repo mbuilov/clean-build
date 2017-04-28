@@ -60,7 +60,7 @@ $$(warning $$$$($1) {)$$(dump_args)$$(call dump,$2,,$1: )$$(info ------$1 value-
   $1_,$$1,$$2,$$3,$$4,$$5,$$6,$$7,$$8,$$9,$$(10),$$(11),$$(12),$$(13),$$(14),$$(15),$$(16),$$(17),$$(18),$$(19),$$(20)))$$(call \
   dump,$3,,$1: )$$(info end: } $$$$($1))
 endef
-$(call CLEAN_BUILD_PROTECT_VARS1,$1 $1_value_)
+$(call CLEAN_BUILD_PROTECT_VARS1,$1 $1_)
 endef
 
 # replace macros with their trace equivalents
