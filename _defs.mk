@@ -188,11 +188,8 @@ endif
 ifdef MCHECK
 
 # check that $(CURRENT_MAKEFILE) is not already processed
-define CHECK_MAKEFILE_NOT_PROCESSED
-ifneq ($(filter $(CURRENT_MAKEFILE)-,$(PROCESSED_MAKEFILES)),)
-$$(error makefile $(CURRENT_MAKEFILE) is already processed!)
-endif
-endef
+CHECK_MAKEFILE_NOT_PROCESSED ?= $(if $(filter \
+  $(CURRENT_MAKEFILE)-,$(PROCESSED_MAKEFILES)),$$(error makefile $(CURRENT_MAKEFILE) is already processed!))
 
 endif # MCHECK
 
