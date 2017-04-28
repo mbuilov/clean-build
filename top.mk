@@ -42,4 +42,4 @@ endif
 endif
 
 # protect variables from modification in target makefiles
-CLEAN_BUILD_PROTECTED_VARS += CHECK_TOP1 CHECK_TOP TOP BUILD
+$(call CLEAN_BUILD_PROTECT_VARS,CHECK_TOP1 CHECK_TOP TOP BUILD)
