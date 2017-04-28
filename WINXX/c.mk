@@ -29,6 +29,7 @@ endif
 # dependencies generation supported only for non-multisource (sequencial) builds
 ifeq ($(SEQ_BUILD),)
 NO_DEPS := 1
+$(call CLEAN_BUILD_PROTECT_VARS,NO_DEPS)
 endif
 
 include $(MTOP)/WINXX/auto_c.mk
@@ -51,10 +52,28 @@ endif
 # so undefine it
 LIB:=
 
+# strings to strip off from mc.exe output
+ifeq (undefined,$(origin MC_STRIP_STRINGS))
+MC_STRIP_STRINGS := MC:?Compiling
+endif
+
+# send mc output to stderr
+# wrap mc.exe call to strip-off diagnostic mc messages
+# $1 - mc command with arguments
+ifndef WRAP_MC
+ifndef MC_STRIP_STRINGS
+WRAP_MC = $1 >&2
+else
+WRAP_MC = (($1 2>&1 && echo TRG_MC_OK >&2) | findstr /V /B /R $(call \
+  qpath,$(MC_STRIP_STRINGS),/C:)) 3>&2 2>&1 1>&3 | findstr /B /L TRG_MC_OK >NUL
+endif
+endif
+
 # message compiler
 # $1 - generated .rc and .h
+# $2 - arguments for mc.exe
 # target-specific: TMD
-MC ?= $(call SUP,$(TMD)MC,$1)$($(TMD)MC1)$(if $(VERBOSE), -v)
+MC ?= $(call SUP,$(TMD)MC,$1)$(call WRAP_MC,$($(TMD)MC1)$(if $(VERBOSE), -v) $2)
 
 # SUPPRESS_RC_LOGO may be defined as /nologo -  not all versions of rc.exe support this switch
 SUPPRESS_RC_LOGO := $(SUPPRESS_RC_LOGO)
@@ -65,8 +84,17 @@ RC_LOGO_STRINGS := Microsoft?(R)?Windows?(R)?Resource?Compiler?Version Copyright
 endif
 
 # send resource compiler output to stderr
-WRAP_RC ?= $(if $(SUPPRESS_RC_LOGO),$1 >&2,(($1 2>&1 && echo RC_COMPILED_OK >&2) | findstr /B /V /R $(call \
-  qpath,$(RC_LOGO_STRINGS),/C:)) 3>&2 2>&1 1>&3 | findstr /B /L RC_COMPILED_OK >NUL)
+# $1 - rc command with arguments
+ifndef WRAP_RC
+ifndef RC_LOGO_STRINGS
+WRAP_RC = $1 >&2
+else ifdef SUPPRESS_RC_LOGO
+WRAP_RC = $1 >&2
+else
+WRAP_RC = (($1 2>&1 && echo RC_COMPILED_OK >&2) | findstr /B /V /R $(call \
+  qpath,$(RC_LOGO_STRINGS),/C:)) 3>&2 2>&1 1>&3 | findstr /B /L RC_COMPILED_OK >NUL
+endif
+endif
 
 # resource compiler
 # $1 - target .res
@@ -256,8 +284,8 @@ endif
 # note: because target variable (EXE or DLL) is not used in VARIANT_LIB_MAP and VARIANT_IMP_MAP,
 #  may pass any value as first parameter to MAKE_DEP_LIBS and MAKE_DEP_IMPS (macros from $(MTOP)/c.mk)
 # target-specific: TMD, MODVER, RES, LIBS, DLLS, LIB_DIR, SYSLIBPATH, SYSLIBS
-CMN_LIBS ?= /OUT:$$(ospath) /VERSION:$$(call MK_MAJ_MIN_VER,$$(MODVER)) $(CMN_LIBS_LDFLAGS) $$(call ospath,$$2 $$(RES)) $$(if $$(strip \
-  $$(LIBS)$$(DLLS)),/LIBPATH:$$(call ospath,$$(LIB_DIR))) $$(call MAKE_DEP_LIBS,XXX,$v,$$(LIBS)) $$(call \
+CMN_LIBS ?= /OUT:$$(ospath) /VERSION:$$(call MK_MAJ_MIN_VER,$$(MODVER)) $(CMN_LIBS_LDFLAGS) $$(call ospath,$$2 $$(RES)) $$(if \
+  $$(firstword $$(LIBS)$$(DLLS)),/LIBPATH:$$(call ospath,$$(LIB_DIR))) $$(call MAKE_DEP_LIBS,XXX,$v,$$(LIBS)) $$(call \
   MAKE_DEP_IMPS,XXX,$v,$$(DLLS)) $$(call qpath,$$(VS$$(TMD)LIB) $$(UM$$(TMD)LIB) $$(call \
   ospath,$$(SYSLIBPATH)),/LIBPATH:) $$(SYSLIBS)
 
@@ -279,8 +307,16 @@ endif
 # if not $(DEBUG), then send linker output to stderr
 # wrap linker call to strip-off diagnostic linker messages
 # $1 - linker command with arguments
-WRAP_LINKER ?= $(if $(DEBUG),$1,(($1 2>&1 && echo TRG_LINKED_OK >&2) | findstr /V /B /R $(call \
-  qpath,$(LINKER_STRIP_STRINGS),/C:)) 3>&2 2>&1 1>&3 | findstr /B /L TRG_LINKED_OK >NUL)
+ifndef WRAP_LINKER
+ifdef DEBUG
+WRAP_LINKER = $1
+else ifndef LINKER_STRIP_STRINGS
+WRAP_LINKER = $1 >&2
+else
+WRAP_LINKER = (($1 2>&1 && echo TRG_LINKED_OK >&2) | findstr /V /B /R $(call \
+  qpath,$(LINKER_STRIP_STRINGS),/C:)) 3>&2 2>&1 1>&3 | findstr /B /L TRG_LINKED_OK >NUL
+endif
+endif
 
 # Link.exe has a bug/feature:
 # - it may not delete target exe/dll if DEF was specified and were errors while building the exe/dll
@@ -314,7 +350,7 @@ WRAP_EXE_LINKER ?= $(if $(EXE_EXPORTS),$(call WRAP_EXE_EXPORTS_LINKER,$1,$2,$(ba
 define EXE_LD_TEMPLATE
 $(empty)
 EXE_$v_LD1 = $$(call SUP,$$(TMD)XLINK,$$1)$$(call WRAP_EXE_LINKER,$$1,$$(call WRAP_LINKER,$$(VS$$(TMD)LD) \
-  /nologo $$(if $$(DEF),/DEF:$$(call ospath,$$(DEF))) $(CMN_LIBS) $(if $(EXE_EXPORTS),/IMPLIB:$$(call \
+  /nologo $$(addprefix /DEF:,$$(call ospath,$$(DEF))) $(CMN_LIBS) $(if $(EXE_EXPORTS),/IMPLIB:$$(call \
   ospath,$$(IMP))) $(DEF_SUBSYSTEM) $(EMBED_MANIFEST_OPTION) $$(LDFLAGS)),$$(IMP))$$(call \
   DEL_DEF_MANIFEST_ON_FAIL,$$1,$$(EMBED_EXE_MANIFEST))
 endef
@@ -347,7 +383,7 @@ WRAP_DLL_LINKER ?= $(if $(DLL_NO_EXPORTS),$2$(if $(DEBUG), >&2),$(call WRAP_DLL_
 define DLL_LD_TEMPLATE
 $(empty)
 DLL_$v_LD1 = $$(call SUP,$$(TMD)LINK,$$1)$$(call WRAP_DLL_LINKER,$$1,$$(call WRAP_LINKER,$$(VS$$(TMD)LD) \
-  /nologo /DLL $$(if $$(DEF),/DEF:$$(call ospath,$$(DEF))) $(CMN_LIBS) $(if $(DLL_NO_EXPORTS),,/IMPLIB:$$(call \
+  /nologo /DLL $$(addprefix /DEF:,$$(call ospath,$$(DEF))) $(CMN_LIBS) $(if $(DLL_NO_EXPORTS),,/IMPLIB:$$(call \
   ospath,$$(IMP))) $(DEF_SUBSYSTEM) $(EMBED_MANIFEST_OPTION) $$(LDFLAGS)),$$(IMP))$$(call \
   DEL_DEF_MANIFEST_ON_FAIL,$$1,$$(EMBED_DLL_MANIFEST))
 endef
@@ -960,20 +996,21 @@ endif
 LIB_AUX_TEMPLATE ?= $(ARC_AUX_TEMPLATE)
 KLIB_AUX_TEMPLATE ?= $(ARC_AUX_TEMPLATE)
 
-# add rule to make auxiliary res for the target and generate header from .mc-file
+# $1 - $(GEN_DIR)/$(call GET_TARGET_NAME,$t)_$t_MC (for $t - EXE,DLL,...)
+# $2 - $(basename $(notdir $3))
+# $3 - NTServiceEventLogMsg.mc (either absolute or makefile-related)
+define ADD_MC_RULE1
+MC_H  := $1/$2.h
+MC_RC := $1/$2.rc
+$$(call MULTI_TARGET,$$(MC_H) $$(MC_RC),$3,$$$$(call MC,$$(MC_H) $$(MC_RC),-h $(ospath) -r $(ospath) $$$$(call ospath,$$$$<)))
+endef
+
+# add rule to make auxiliary resource for the target and generate header from .mc-file
 # note: defines MC_H and MC_RC variables - absolute pathnames to generated .h and .rc files
 # note: in target makefile may $(call ADD_RES_RULE,TRG,$(MC_RC)) to add .res-file compiled from $(MC_RC) to a target
 # $1 - EXE,DLL,...
 # $2 - NTServiceEventLogMsg.mc (either absolute or makefile-related)
-define ADD_MC_RULE1
-MC_DIR := $(GEN_DIR)/$(call GET_TARGET_NAME,$1)_$1_MC
-MC_H   := $$(MC_DIR)/$(basename $(notdir $2)).h
-MC_RC  := $$(MC_DIR)/$(basename $(notdir $2)).rc
-$$(call TOCLEAN,$$(MC_DIR))
-$$(call MULTI_TARGET,$$(MC_H) $$(MC_RC),$2,$$$$(call MC,$$(MC_H) $$(MC_RC)) -h $$(call \
-  ospath,$$(MC_DIR)) -r $$(call ospath,$$(MC_DIR)) $$$$(call ospath,$$$$<))
-endef
-ADD_MC_RULE ?= $(eval $(ADD_MC_RULE1))
+ADD_MC_RULE ?= $(eval $(call ADD_MC_RULE1,$(GEN_DIR)/$(call GET_TARGET_NAME,$1)_$1_MC,$(basename $(notdir $2)),$2))
 
 # rules to build auxiliary resources
 # note: must be recursive macro - to delay expansion of RC options,
@@ -1066,7 +1103,7 @@ endef
 endif
 
 # protect variables from modifications in target makefiles
-$(call CLEAN_BUILD_PROTECT_VARS,SEQ_BUILD YASMC FLEXC BISONC MC SUPPRESS_RC_LOGO RC_LOGO_STRINGS WRAP_RC RC \
+$(call CLEAN_BUILD_PROTECT_VARS,SEQ_BUILD YASMC FLEXC BISONC MC MC_STRIP_STRINGS WRAP_MC SUPPRESS_RC_LOGO RC_LOGO_STRINGS WRAP_RC RC \
   SUBSYSTEM_KVER EMBED_MANIFEST_OPTION EMBED_EXE_MANIFEST EMBED_DLL_MANIFEST \
   CHECK_LIB_UNI_NAME1 CHECK_LIB_UNI_NAME MK_MAJ_MIN_VER CMN_LIBS_LDFLAGS CMN_LIBS \
   DLL_EXPORTS_DEFINE DLL_IMPORTS_DEFINE \
