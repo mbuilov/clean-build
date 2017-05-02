@@ -38,7 +38,7 @@ MAKEFLAGS += --no-builtin-rules --no-builtin-variables
 # drop make's default legacy rules - we'll use custom ones
 .SUFFIXES:
 
-# delete target file if failed to execute any of rules to make it
+# delete target file if failed to execute any of commands to make it
 .DELETE_ON_ERROR:
 
 # fake target
@@ -143,7 +143,15 @@ ifeq ($(filter $(TARGET),$(SUPPORTED_TARGETS)),)
 $(error unknown TARGET=$(TARGET), please pick one of: $(SUPPORTED_TARGETS))
 endif
 
-endif # ifeq ($(filter distclean,$(MAKECMDGOALS)),)
+else ifndef NO_CLEAN_BUILD_DISTCLEAN
+
+# define distclean target
+# note: RM macro must be defined below in $(OSDIR)/$(OS)/tools.mk
+# note: $(BUILD) is defined in $(MTOP)/top.mk
+distclean:
+	$(call RM,$(BUILD))
+
+endif # distclean
 
 # $(PROJECT) configuration file may redefine TARGET value, re-set DEBUG value
 # $(DEBUG) is non-empty for DEBUG targets like "PROJECTD" or "DEBUG"
@@ -323,6 +331,9 @@ endif
 # make current makefile path relative to $(TOP)
 CURRENT_MAKEFILE := $(CURRENT_MAKEFILE:$(TOP)/%=%)
 
+# define target-specific variable $(MF) - name of makefile where targets are defined
+$(CURRENT_MAKEFILE)-:MF:=$(CURRENT_MAKEFILE)
+
 # to allow parallel builds for different combinations of
 #  $(OS)/$(KCPU)/$(UCPU)/$(TARGET) create unique directories for each combination
 TARGET_TRIPLET := $(OS)-$(KCPU)-$(UCPU)-$(TARGET)
@@ -405,8 +416,7 @@ FIX_ORDER_DEPS:=
 # NOTE: MCONT will be either empty or 2,3,4... - MCONT cannot be 1 - some rules may be defined before calling $(MAKE_CONTINUE)
 define STD_TARGET_VARS1
 $(FIX_ORDER_DEPS)
-$1:MF:=$(CURRENT_MAKEFILE)
-$1:MCONT:=$(filter-out +0,+$(words $(subst 2,,$(MAKE_CONT))))
+$1:MCONT:=$(subst +0,,+$(words $(subst 2,,$(MAKE_CONT))))
 $1:TMD:=$(CB_TOOL_MODE)
 $1:| $2 $$(ORDER_DEPS)
 $(CURRENT_MAKEFILE)-:$1
@@ -480,7 +490,7 @@ ifndef DEF_HEAD_CODE
 define DEF_HEAD_CODE
 $(empty)
 $(CLEAN_BUILD_CHECK_AT_HEAD)
-$(if $(filter 2,$(MAKE_CONT)),MAKE_CONT:=$(subst 2,1,$(MAKE_CONT)),MAKE_CONT:=\
+$(if $(findstring 2,$(MAKE_CONT)),MAKE_CONT:=$(subst 2,1,$(MAKE_CONT)),MAKE_CONT:=\
   $(newline)$(CHECK_MAKEFILE_NOT_PROCESSED)\
   $(newline)PROCESSED_MAKEFILES+=$(CURRENT_MAKEFILE)-)
 CB_TOOL_MODE:=$(if $(TOOL_MODE),T)
@@ -503,7 +513,7 @@ ifndef DEF_TAIL_CODE
 define DEF_TAIL_CODE
 $(CLEAN_BUILD_CHECK_AT_TAIL)
 $(DEF_TAIL_CODE_DEBUG)
-$(if $(CB_INCLUDE_LEVEL)$(filter 2,$(MAKE_CONT)),,include $(MTOP)/all.mk)
+$(if $(CB_INCLUDE_LEVEL)$(findstring 2,$(MAKE_CONT)),,include $(MTOP)/all.mk)
 DEF_HEAD_CODE_PROCESSED:=
 endef
 endif
