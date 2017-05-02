@@ -7,15 +7,13 @@
 # 3) to build everything and execute test, run:
 # $ make check
 
+# auto-determine $(TOP) value
+include $(dir $(lastword $(MAKEFILE_LIST)))top.mk
+
 # source clean-build definitions and functions
 include $(MTOP)/defs.mk
 
-ifneq ($(filter distclean,$(MAKECMDGOALS)),)
-
-distclean:
-	$(call RM,$(BUILD))
-
-else # !distclean
+ifeq ($(filter distclean,$(MAKECMDGOALS)),)
 
 TO_MAKE := hello.mk
 
