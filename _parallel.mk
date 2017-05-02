@@ -11,7 +11,7 @@ endif
 # make $(TOP)-related paths to makefiles $1 with suffix $2:
 # add $(VPREFIX) if makefile path is not absolute, add /Makefile if makefile path is a directory
 NORM_MAKEFILES = $(patsubst $(TOP)/%,%$2,$(abspath $(foreach \
-  x,$1,$(if $(call isrelpath,$x),$(VPREFIX))$x$(if $(filter-out %.mk %/Makefile Makefile,$x),/Makefile))))
+  x,$1,$(if $(call isabspath,$x),,$(VPREFIX))$x$(if $(filter-out %.mk %/Makefile Makefile,$x),/Makefile))))
 
 # add empty rules for $(MDEPS): don't complain if order deps are not resolved when build started in sub-directory
 # note: $(ORDER_DEPS) - names of dependency makefiles with '-' suffix
@@ -33,7 +33,6 @@ define CB_INCLUDE_TEMPLATE
 $(empty)
 VPREFIX:=$(call GET_VPREFIX,$m)
 CURRENT_MAKEFILE:=$m
-$m-:MF:=$m
 ORDER_DEPS:=$(ORDER_DEPS)
 TOOL_MODE:=$(TOOL_MODE)
 include $(TOP)/$m

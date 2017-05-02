@@ -209,9 +209,9 @@ endif
 # determine suffix for static LIB or for import library of DLL
 # $1 - target variant R,S,RU,SU,<empty>
 LIB_VAR_SUFFIX ?= $(if \
-                  $(filter S,$1),_mt,$(if \
-                  $(filter RU,$1),_u,$(if \
-                  $(filter SU,$1),_mtu)))
+                  $(findstring RU,$1),_u,$(if \
+                  $(findstring SU,$1),_mtu,$(if \
+                  $(findstring S,$1),_mt)))
 
 # for $(EXE_VAR_SUFFIX) from $(MTOP)/c.mk:
 # get target name suffix for EXE,DRV in case of multiple target variants
@@ -219,9 +219,9 @@ LIB_VAR_SUFFIX ?= $(if \
 # $2 - target variant S,RU,SU (not R or <empty>)
 # $3 - list of variants of target $1 to build (filtered by target platform specific $(VARIANTS_FILTER))
 EXE_SUFFIX_GEN ?= $(if $(word 2,$3),$(if \
-                  $(filter S,$2),_mt,$(if \
-                  $(filter RU,$2),_u,$(if \
-                  $(filter SU,$2),_mtu))))
+                  $(findstring RU,$2),_u,$(if \
+                  $(findstring SU,$2),_mtu,$(if \
+                  $(findstring S,$2),_mt))))
 
 # for $(DEP_LIB_SUFFIX) from $(MTOP)/c.mk:
 # $1 - target: EXE,DLL
@@ -830,7 +830,7 @@ PCH_TEMPLATE3 = $(PCH_TEMPLATE1)$(foreach v,$(call GET_VARIANTS,$t),$(call \
 # - DLL or LIB target may inherit WITH_PCH value from EXE,
 # - LIB target may inherit WITH_PCH value from DLL
 PCH_TEMPLATE ?= $(if $(word 2,$(PCH) $(WITH_PCH)),$(call \
-  PCH_TEMPLATE3,$(call GET_TARGET_NAME,$t),$$(basename $$(notdir $$(TRG_PCH))),$(if $(filter DRV,$t),K)),$(foreach \
+  PCH_TEMPLATE3,$(call GET_TARGET_NAME,$t),$$(basename $$(notdir $$(TRG_PCH))),$(if $(findstring DRV,$t),K)),$(foreach \
   v,$(call GET_VARIANTS,$t),$(call FORM_TRG,$t,$v): WITH_PCH:=$(newline)))
 
 endif # !SEQ_BUILD

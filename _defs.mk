@@ -307,8 +307,8 @@ SED_MULTI_EXPR = $(subst $$(space), ,$(foreach s,$(subst $(newline), ,$(subst $(
 ospath ?= $1
 
 # for UNIX: absolute paths are started with /
-# NOTE: WINXX/tools.mk defines own $(isrelpath)
-isrelpath ?= $(filter-out /%,$1)
+# NOTE: WINXX/tools.mk defines own $(isabspath)
+isabspath ?= $(filter /%,$1)
 
 # add $1 only to non-absolute paths in $2
 # note: $1 must end with /
@@ -330,9 +330,6 @@ endif
 
 # make current makefile path relative to $(TOP)
 CURRENT_MAKEFILE := $(CURRENT_MAKEFILE:$(TOP)/%=%)
-
-# define target-specific variable $(MF) - name of makefile where targets are defined
-$(CURRENT_MAKEFILE)-:MF:=$(CURRENT_MAKEFILE)
 
 # to allow parallel builds for different combinations of
 #  $(OS)/$(KCPU)/$(UCPU)/$(TARGET) create unique directories for each combination
@@ -416,6 +413,7 @@ FIX_ORDER_DEPS:=
 # NOTE: MCONT will be either empty or 2,3,4... - MCONT cannot be 1 - some rules may be defined before calling $(MAKE_CONTINUE)
 define STD_TARGET_VARS1
 $(FIX_ORDER_DEPS)
+$1:MF:=$(CURRENT_MAKEFILE)
 $1:MCONT:=$(subst +0,,+$(words $(subst 2,,$(MAKE_CONT))))
 $1:TMD:=$(CB_TOOL_MODE)
 $1:| $2 $$(ORDER_DEPS)
@@ -554,7 +552,7 @@ endif # MDEBUG
 # form name of target objects directory
 # $1 - target to build (EXE,LIB,DLL,...)
 # $2 - target variant (may be empty for default variant)
-# add target-specific suffix(_EXE,_LIB,_DLL,...) to distinguish objects for the targets with equal names
+# add target-specific suffix (_EXE,_LIB,_DLL,...) to distinguish objects for the targets with equal names
 FORM_OBJ_DIR ?= $(OBJ_DIR)/$(GET_TARGET_NAME)$(if $(filter-out R,$2),_$2)_$1
 
 ifdef MCHECK
@@ -709,7 +707,7 @@ $(call CLEAN_BUILD_PROTECT_VARS,MTOP MAKEFLAGS NO_DEPS DEBUG PROJECT \
   OS_$(OS) OSTYPE OSTYPE_$(OSTYPE) VERBOSE INFOMF MDEBUG OSDIR CHECK_MAKEFILE_NOT_PROCESSED \
   TERM_NO_COLOR PRINT_PERCENTS SUP ADD_SHOWN_PERCENTS REM_SHOWN_MAKEFILE TRY_REM_MAKEFILE \
   GEN_COLOR MGEN_COLOR CP_COLOR LN_COLOR MKDIR_COLOR TOUCH_COLOR \
-  COLORIZE SED_MULTI_EXPR ospath isrelpath nonrelpath PATHSEP \
+  COLORIZE SED_MULTI_EXPR ospath isabspath nonrelpath PATHSEP \
   TARGET_TRIPLET DEF_BIN_DIR DEF_OBJ_DIR DEF_LIB_DIR DEF_GEN_DIR SET_DEFAULT_DIRS \
   TOOL_BASE MK_TOOLS_DIR GET_TOOLS TOOL_SUFFIX GET_TOOL TOOL_OVERRIDE_DIRS \
   FIX_ORDER_DEPS STD_TARGET_VARS1 STD_TARGET_VARS TOCLEAN GET_VPREFIX ADDVPREFIX FIXPATH MAKEFILE_DEBUG_INFO \

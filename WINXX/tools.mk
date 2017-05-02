@@ -43,7 +43,7 @@ ospath = $(subst /,\,$1)
 
 # absolute paths contain ':', for example c:/agent
 # NOTE: assume there are no spaces and ':' in the path to sources
-isrelpath = $(if $(findstring :,$1),,1)
+isabspath = $(findstring :,$1)
 
 # $1 - prefix
 # $2 - list of disks (C: D:)
@@ -52,7 +52,8 @@ nonrelpath1 = $(if $2,$(call nonrelpath1,$1,$(wordlist 2,999999,$2),$(patsubst $
 
 # add $1 only to non-absolute paths in $2
 # note: $1 must end with /
-nonrelpath = $(call nonrelpath1,$1,$(sort $(filter %:,$(subst :,: ,$2))),$(addprefix $1,$2))
+# a/b c:/1 -> xxx/a/b xxx/c:/1 -> xxx/a/b c:/1
+nonrelpath = $(if $(findstring :,$2),$(call nonrelpath1,$1,$(sort $(filter %:,$(subst :,: ,$2))),$(addprefix $1,$2)),$(addprefix $1,$2))
 
 # delete one file
 DEL1 = if exist $1 del /F /Q $1
