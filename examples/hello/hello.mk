@@ -1,3 +1,6 @@
+# auto-determine $(TOP) value
+include $(dir $(lastword $(MAKEFILE_LIST)))top.mk
+
 # include templates for building C/C++ sources
 include $(MTOP)/c.mk
 
