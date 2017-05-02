@@ -1,3 +1,4 @@
+include $(dir $(lastword $(MAKEFILE_LIST)))../top.mk
 include $(MTOP)/defs.mk
 
 # generate product definitions header
