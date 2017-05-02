@@ -33,6 +33,7 @@ define CB_INCLUDE_TEMPLATE
 $(empty)
 VPREFIX:=$(call GET_VPREFIX,$m)
 CURRENT_MAKEFILE:=$m
+$m-:MF:=$m
 ORDER_DEPS:=$(ORDER_DEPS)
 TOOL_MODE:=$(TOOL_MODE)
 include $(TOP)/$m
