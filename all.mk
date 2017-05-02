@@ -47,6 +47,16 @@ clean:
 # build all to build or run tests
 check tests: all
 
+ifndef NO_CLEAN_BUILD_INSTALL_UNINSTALL
+
+install:
+	@$(call ECHO,Successfully installed to $(DESTDIR)$(PREFIX))
+
+uninstall:
+	@$(call ECHO,Uninstalled from $(DESTDIR)$(PREFIX))
+
+endif
+
 # note: don't try to update makefiles in $(MAKEFILE_LIST) - mark them as .PHONY targets
 # note: $(PROCESSED_MAKEFILES) - names of processed makefiles with '-' suffix
 .PHONY: all clean check tests install uninstall $(MAKEFILE_LIST) $(PROCESSED_MAKEFILES)
