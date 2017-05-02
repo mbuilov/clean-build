@@ -312,19 +312,23 @@ ifdef DDK
 $(error either DDK or WDK must be defined, but not both)
 endif
 
-ifndef WDK_TARGET
-$(error WDK_TARGET undefined, check contents of "$(WDK)\Lib", example: "win7, win8, winv6.3, 10.0.10240.0")
+ifndef WDK_KTARGET
+WDK_KTARGET := $(WDK_TARGET)
 endif
 
-ifneq ($(filter win%,$(WDK_TARGET)),)
+ifndef WDK_KTARGET
+$(error WDK_KTARGET undefined, check contents of "$(WDK)\Lib", example: "win7, win8, winv6.3, 10.0.10240.0")
+endif
+
+ifneq ($(filter win%,$(WDK_KTARGET)),)
 ifneq ($(call is_less,12,$(VS_VER)),)
 $(error too new Visual Studio version $(lastword \
-  $(subst \, ,$(VS))) to build with WDK_TARGET=$(WDK_TARGET), please select different WDK_TARGET)
+  $(subst \, ,$(VS))) to build with WDK_KTARGET=$(WDK_KTARGET), please select different WDK_KTARGET)
 endif
 endif
 
-KMLIB := $(WDKN)\Lib\$(WDK_TARGET)\km\$(KCPU:x86_64=x64)
-KMINC := $(WDKN)\Include$(if $(call is_less,$(GET_WDK_VER),10),,\$(WDK_TARGET))
+KMLIB := $(WDKN)\Lib\$(WDK_KTARGET)\km\$(KCPU:x86_64=x64)
+KMINC := $(WDKN)\Include$(if $(call is_less,$(GET_WDK_VER),10),,\$(WDK_KTARGET))
 KMINC := $(KMINC)\km $(KMINC)\km\crt $(KMINC)\shared
 
 ifeq ($(call is_less,1000,$(VS_VER)),)
