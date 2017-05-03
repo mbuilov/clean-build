@@ -326,21 +326,21 @@ endif
 # target-specific: DEF
 DEL_DEF_MANIFEST_ON_FAIL ?= $(if $(DEF)$2,$(call DEL_ON_FAIL,$(if $(DEF),$1) $(if $2,$1.manifest)))$2
 
-# call exe linker and strip-off message about generated .exp-file
+# call exe/drv linker and strip-off message about generated .exp-file
 # send linker output to stderr
-# $1 - target exe
+# $1 - target exe/drv
 # $2 - (wrapped) linker with options
 # $3 - $(basename $(notdir $(IMP))).exp
 WRAP_EXE_EXPORTS_LINKER ?= (($(if $(DEBUG),$2 2>&1,($2) 3>&2 2>&1 1>&3) && echo EXE_EXP_LINKED_OK >&2) | \
   findstr /V /L $3) 3>&2 2>&1 1>&3 | findstr /B /L EXE_EXP_LINKED_OK >NUL
 
-# wrap exe linker call to strip-off message about generated .exp-file
+# wrap exe/drv linker call to strip-off message about generated .exp-file
 # send linker output to stderr
-# $1 - target exe
-# $2 - (wrapped) linker with options
-# $3 - import library $(IMP)
-# target-specific: EXE_EXPORTS
-WRAP_EXE_LINKER ?= $(if $(EXE_EXPORTS),$(call WRAP_EXE_EXPORTS_LINKER,$1,$2,$(basename $(notdir $3)).exp),$2$(if $(DEBUG), >&2))
+# $1 - non-<empty> if exe/drv exports symbols, <empty> - otherwise
+# $2 - target exe/drv
+# $3 - (wrapped) linker with options
+# target-specific: IMP
+WRAP_EXE_LINKER ?= $(if $1,$(call WRAP_EXE_EXPORTS_LINKER,$2,$3,$(basename $(notdir $(IMP))).exp),$3$(if $(DEBUG), >&2))
 
 # define EXE linker for variant $v
 # $$1 - target exe
@@ -349,9 +349,9 @@ WRAP_EXE_LINKER ?= $(if $(EXE_EXPORTS),$(call WRAP_EXE_EXPORTS_LINKER,$1,$2,$(ba
 # target-specific: TMD, DEF, LDFLAGS, IMP, EXE_EXPORTS
 define EXE_LD_TEMPLATE
 $(empty)
-EXE_$v_LD1 = $$(call SUP,$$(TMD)XLINK,$$1)$$(call WRAP_EXE_LINKER,$$1,$$(call WRAP_LINKER,$$(VS$$(TMD)LD) \
-  /nologo $$(addprefix /DEF:,$$(call ospath,$$(DEF))) $(CMN_LIBS) $(if $(EXE_EXPORTS),/IMPLIB:$$(call \
-  ospath,$$(IMP))) $(DEF_SUBSYSTEM) $(EMBED_MANIFEST_OPTION) $$(LDFLAGS)),$$(IMP))$$(call \
+EXE_$v_LD1 = $$(call SUP,$$(TMD)XLINK,$$1)$$(call WRAP_EXE_LINKER,$$(EXE_EXPORTS),$$1,$$(call WRAP_LINKER,$$(VS$$(TMD)LD) \
+  /nologo $$(addprefix /DEF:,$$(call ospath,$$(DEF))) $(CMN_LIBS) $$(if $$(EXE_EXPORTS),/IMPLIB:$$(call \
+  ospath,$$(IMP))) $(DEF_SUBSYSTEM) $(EMBED_MANIFEST_OPTION) $$(LDFLAGS)))$$(call \
   DEL_DEF_MANIFEST_ON_FAIL,$$1,$$(EMBED_EXE_MANIFEST))
 endef
 $(eval $(foreach v,R $(VARIANTS_FILTER),$(EXE_LD_TEMPLATE)))
@@ -370,9 +370,8 @@ WRAP_DLL_EXPORTS_LINKER ?= (($(if $(DEBUG),$2 2>&1,($2) 3>&2 2>&1 1>&3) && (dir 
 # send linker output to stderr
 # $1 - target dll
 # $2 - (wrapped) linker with options
-# $3 - import library $(IMP)
-# target-specific: DLL_NO_EXPORTS
-WRAP_DLL_LINKER ?= $(if $(DLL_NO_EXPORTS),$2$(if $(DEBUG), >&2),$(call WRAP_DLL_EXPORTS_LINKER,$1,$2,$(basename $(notdir $3)).exp))
+# target-specific: IMP, DLL_NO_EXPORTS
+WRAP_DLL_LINKER ?= $(if $(DLL_NO_EXPORTS),$2$(if $(DEBUG), >&2),$(call WRAP_DLL_EXPORTS_LINKER,$1,$2,$(basename $(notdir $(IMP))).exp))
 
 # send linker output to stderr
 # define DLL linker for variant $v
@@ -383,8 +382,8 @@ WRAP_DLL_LINKER ?= $(if $(DLL_NO_EXPORTS),$2$(if $(DEBUG), >&2),$(call WRAP_DLL_
 define DLL_LD_TEMPLATE
 $(empty)
 DLL_$v_LD1 = $$(call SUP,$$(TMD)LINK,$$1)$$(call WRAP_DLL_LINKER,$$1,$$(call WRAP_LINKER,$$(VS$$(TMD)LD) \
-  /nologo /DLL $$(addprefix /DEF:,$$(call ospath,$$(DEF))) $(CMN_LIBS) $(if $(DLL_NO_EXPORTS),,/IMPLIB:$$(call \
-  ospath,$$(IMP))) $(DEF_SUBSYSTEM) $(EMBED_MANIFEST_OPTION) $$(LDFLAGS)),$$(IMP))$$(call \
+  /nologo /DLL $$(addprefix /DEF:,$$(call ospath,$$(DEF))) $(CMN_LIBS) $$(if $$(DLL_NO_EXPORTS),,/IMPLIB:$$(call \
+  ospath,$$(IMP))) $(DEF_SUBSYSTEM) $(EMBED_MANIFEST_OPTION) $$(LDFLAGS)))$$(call \
   DEL_DEF_MANIFEST_ON_FAIL,$$1,$$(EMBED_DLL_MANIFEST))
 endef
 $(eval $(foreach v,R $(VARIANTS_FILTER),$(DLL_LD_TEMPLATE)))
@@ -638,18 +637,19 @@ DEF_DRV_LDFLAGS ?= \
 # send linker output to stderr
 # $1 - target
 # $2 - objects
-# target-specific: MODVER, RES, KLIBS, SYSLIBPATH, SYSLIBS, LDFLAGS
-DRV_R_LD1 = $(call SUP,KLINK,$1)$(call WRAP_LINKER,$(WKLD) /nologo /VERSION:$(call MK_MAJ_MIN_VER,$(MODVER)) $(DEF_DRV_LDFLAGS) \
-  /OUT:$(call ospath,$1 $2 $(RES)) $(if $(KLIBS),/LIBPATH:$(call ospath,$(LIB_DIR))) $(addprefix $(KLIB_PREFIX),$(KLIBS:=$(KLIB_SUFFIX))) \
-  $(call qpath,$(call ospath,$(SYSLIBPATH)),/LIBPATH:) $(SYSLIBS) $(LDFLAGS))$(if $(DEBUG), >&2)
+# target-specific: MODVER, RES, KLIBS, SYSLIBPATH, SYSLIBS, LDFLAGS, DEF, IMP, DRV_EXPORTS
+DRV_R_LD1 = $(call SUP,KLINK,$1)$(call WRAP_EXE_LINKER,$(DRV_EXPORTS),$1,$(call WRAP_LINKER,$(WKLD) /nologo /VERSION:$(call \
+  MK_MAJ_MIN_VER,$(MODVER)) $(DEF_DRV_LDFLAGS) /OUT:$(call ospath,$1 $2 $(RES)) $(addprefix /DEF:,$(call ospath,$(DEF))) $(if \
+  $(DRV_EXPORTS),/IMPLIB:$(call ospath,$(IMP))) $(if $(KLIBS),/LIBPATH:$(call ospath,$(LIB_DIR))) $(addprefix \
+  $(KLIB_PREFIX),$(KLIBS:=$(KLIB_SUFFIX))) $(call qpath,$(call ospath,$(SYSLIBPATH)),/LIBPATH:) $(SYSLIBS) $(LDFLAGS)))
 
 # flags for kernel-level C-compiler
 ifeq (undefined,$(origin KRN_FLAGS))
-KRN_FLAGS := /X /GF /W3 /GR- /Gz /Zl /GS- /Oi /Z7
+KRN_FLAGS := /X /GF /W3 /GR- /Gz /Zl /Oi /Zi /Gm- /Zp8 /Gz
 ifdef DEBUG
-KRN_FLAGS := /Od
+KRN_FLAGS += /Od /Oy-
 else
-KRN_FLAGS := /Gy
+KRN_FLAGS += /Gy /GS- /Oy
 endif
 endif
 
@@ -878,8 +878,8 @@ endef
 
 # $1 - $(call FORM_TRG,$t,$v)
 # $2 - $(call FIXPATH,$(DEF))
-# $3 - 1 if target exports symbols, <empty> - otherwise
-# $t - DLL or EXE
+# $3 - non-<empty> if target exports symbols, <empty> - otherwise
+# $t - DLL, EXE or DRV
 # $n - $(call GET_TARGET_NAME,$t)
 # $v - R,S
 EXPORTS_TEMPLATE ?= $(if $3,$(call EXPORTS_TEMPLATE1,$1,$2,$(call MAKE_IMP_PATH,$n,$v)),$(NO_EXPORTS_TEMPLATE))
@@ -903,7 +903,7 @@ $4: $1 $3
 ifdef DEBUG
 $(call TOCLEAN,$5/vc*.pdb $(4:$(EXE_SUFFIX)=.pdb))
 endif
-$(call EXPORTS_TEMPLATE,$4,$6,$(if $(EXE_EXPORTS),1))
+$(call EXPORTS_TEMPLATE,$4,$6,$(EXE_EXPORTS))
 endef
 
 # $1 - $(TRG_SRC)
@@ -1063,20 +1063,20 @@ NEEDED_DIRS += $4
 $1: $(call OBJ_RULES,CC,$(filter %.c,$2),$3,$4)
 $1: $(call OBJ_RULES,CXX,$(filter %.cpp,$2),$3,$4)
 $1: $(call OBJ_RULES,ASM,$(filter %.asm,$2),$3,$4)
-$1: SRC        := $2
-$1: SDEPS      := $3
-$1: MODVER     := $(MODVER)
-$1: COMPILER   := $(if $(filter %.cpp,$2),CXX,CC)
-$1: LIB_DIR    := $(LIB_DIR)
-$1: KLIBS      := $(KLIBS)
-$1: INCLUDE    := $(TRG_INCLUDE)
-$1: DEFINES    := $(CMNDEFINES) $(KRNDEFS) $(DEFINES)
-$1: CFLAGS     := $(CFLAGS)
-$1: CXXFLAGS   := $(CXXFLAGS)
-$1: ASMFLAGS   := $(ASMFLAGS)
-$1: LDFLAGS    := $(LDFLAGS)
-$1: SYSLIBS    := $(SYSLIBS)
-$1: SYSLIBPATH := $(SYSLIBPATH)
+$1: SRC         := $2
+$1: SDEPS       := $3
+$1: MODVER      := $(MODVER)
+$1: COMPILER    := $(if $(filter %.cpp,$2),CXX,CC)
+$1: LIB_DIR     := $(LIB_DIR)
+$1: KLIBS       := $(KLIBS)
+$1: INCLUDE     := $(TRG_INCLUDE)
+$1: DEFINES     := $(CMNDEFINES) $(KRNDEFS) $(DEFINES)
+$1: CFLAGS      := $(CFLAGS)
+$1: CXXFLAGS    := $(CXXFLAGS)
+$1: ASMFLAGS    := $(ASMFLAGS)
+$1: LDFLAGS     := $(LDFLAGS)
+$1: SYSLIBS     := $(SYSLIBS)
+$1: SYSLIBPATH  := $(SYSLIBPATH)
 $1: $(addprefix $(LIB_DIR)/$(KLIB_PREFIX),$(KLIBS:=$(KLIB_SUFFIX))) $2 $(TRG_ALL_SDEPS)
 	$$(call $t_$v_LD,$$@,$$(filter %$(OBJ_SUFFIX),$$^))
 ifdef DEBUG
@@ -1085,20 +1085,42 @@ endif
 endef
 endif
 
+# $1 - $(call FORM_TRG,$t,$v)
+# $2 - $(call FIXPATH,$(DEF))
+# $t - DRV
+# $n - $(call GET_TARGET_NAME,$t)
+# $v - R
+define DRV_AUX_TEMPLATE2
+$(empty)
+$1: DRV_EXPORTS := $(DRV_EXPORTS)
+$(call EXPORTS_TEMPLATE,$1,$2,$(DRV_EXPORTS))
+endef
+
+# $1 - $(call FIXPATH,$(DEF))
+# $t - DRV
+DRV_AUX_TEMPLATE1 = $(foreach n,$(call GET_TARGET_NAME,$t),$(foreach v,$(call GET_VARIANTS,$t),$(call \
+  DRV_AUX_TEMPLATE2,$(call FORM_TRG,$t,$v),$1)))
+
+# called by OS_DEFINE_TARGETS
+# $t - DRV
+DRV_AUX_TEMPLATE ?= $(call DRV_AUX_TEMPLATE1,$(call FIXPATH,$(DEF)))
+
 # this code is evaluated from $(DEFINE_TARGETS)
 # NOTE: $(STD_RES_TEMPLATE) adds standard resource to RES, so postpone evaluation of $(RES) when adding it to CLEAN
 # NOTE: reset NO_STD_RES     - it may be temporary set to disable adding standard resource to the target
 # NOTE: reset DLL_NO_EXPORTS - it may be defined to pass check that DLL must export symbols
 # NOTE: reset EXE_EXPORTS    - it may be defined to strip-off diagnostic linker message about exe-exported symbols
+# NOTE: reset DRV_EXPORTS    - it may be defined to strip-off diagnostic linker message about drv-exported symbols
 ifndef OS_DEFINE_TARGETS
 define OS_DEFINE_TARGETS
 $(subst $$(newline),$(newline),$(value CB_WINXX_RES_RULES))
-$(foreach t,EXE DLL LIB KLIB,$(if $($t),$($t_AUX_TEMPLATE)))
+$(foreach t,EXE DLL LIB KLIB DRV,$(if $($t),$($t_AUX_TEMPLATE)))
 $$(call TOCLEAN,$$(RES))
 CB_WINXX_RES_RULES=
 NO_STD_RES:=
 DLL_NO_EXPORTS:=
 EXE_EXPORTS:=
+DRV_EXPORTS:=
 endef
 endif
 
@@ -1125,4 +1147,4 @@ $(call CLEAN_BUILD_PROTECT_VARS,SEQ_BUILD YASMC FLEXC BISONC MC MC_STRIP_STRINGS
   TRG_ALL_SDEPS MAKE_IMP_PATH EXPORTS_TEMPLATE1 NO_EXPORTS_TEMPLATE EXPORTS_TEMPLATE \
   EXE_AUX_TEMPLATE2 DLL_AUX_TEMPLATE2 EXP_AUX_TEMPLATE1 EXP_AUX_TEMPLATE EXE_AUX_TEMPLATE DLL_AUX_TEMPLATE \
   ARC_AUX_TEMPLATE2 ARC_AUX_TEMPLATE1 ARC_AUX_TEMPLATE LIB_AUX_TEMPLATE KLIB_AUX_TEMPLATE \
-  ADD_MC_RULE1 ADD_MC_RULE ADD_RES_RULE1 ADD_RES_RULE RC_DEFINE_PATH)
+  ADD_MC_RULE1 ADD_MC_RULE ADD_RES_RULE1 ADD_RES_RULE RC_DEFINE_PATH DRV_AUX_TEMPLATE2 DRV_AUX_TEMPLATE1 DRV_AUX_TEMPLATE)
