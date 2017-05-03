@@ -41,10 +41,6 @@ TERM_NO_COLOR := 1
 # NOTE: no spaces allowed in paths the $(MAKE) works with
 ospath = $(subst /,\,$1)
 
-# absolute paths contain ':', for example c:/agent
-# NOTE: assume there are no spaces and ':' in the path to sources
-isabspath = $(findstring :,$1)
-
 # $1 - prefix
 # $2 - list of disks (C: D:)
 # $3 - list of files prefixed with $1

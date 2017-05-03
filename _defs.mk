@@ -306,10 +306,6 @@ SED_MULTI_EXPR = $(subst $$(space), ,$(foreach s,$(subst $(newline), ,$(subst $(
 # NOTE: WINXX/tools.mk defines $(ospath)
 ospath ?= $1
 
-# for UNIX: absolute paths are started with /
-# NOTE: WINXX/tools.mk defines own $(isabspath)
-isabspath ?= $(filter /%,$1)
-
 # add $1 only to non-absolute paths in $2
 # note: $1 must end with /
 # NOTE: WINXX/tools.mk defines own $(nonrelpath)
@@ -394,7 +390,7 @@ $(call CLEAN_BUILD_PROTECT_VARS1,BIN_DIR OBJ_DIR LIB_DIR GEN_DIR)
 endef
 TOOL_OVERRIDE_DIRS := $(TOOL_OVERRIDE_DIRS)
 
-# order-only $(TOP)-related makefiles dependencies to add to all leaf prerequisites for the targets
+# order-only $(TOP)-relative makefiles dependencies to add to all leaf prerequisites for the targets
 # NOTE: $(FIX_ORDER_DEPS) may change $(ORDER_DEPS) list by appending $(MDEPS)
 ORDER_DEPS:=
 
@@ -441,19 +437,14 @@ else
 TOCLEAN:=
 endif
 
-# get VPREFIX - relative path from $(CURDIR) to directory of makefile $1 (which is related to $(TOP))
-GET_VPREFIX = $(call relpath,$(CURDIR),$(dir $(TOP)/$1))
-
-# $(VPREFIX) - relative path from $(CURDIR) to directory of currently processing makefile, either empty or dir/
+# $(VPREFIX) - absolute path to directory of currently processing makefile, ended with /
+# note: $(CURRENT_MAKEFILE) - relative to $(TOP)
 # note: VPREFIX value is changed by $(MTOP)/parallel.mk
-VPREFIX := $(call GET_VPREFIX,$(CURRENT_MAKEFILE))
+VPREFIX := $(TOP)/$(dir $(CURRENT_MAKEFILE))
 
-# add $(VPREFIX) (path to directory of currently executing makefile relative to $(CURDIR)) value to non-absolute paths
-ADDVPREFIX = $(call nonrelpath,$(VPREFIX),$1)
-
-# add $(VPREFIX) (path to directory of currently executing makefile relative to $(CURDIR)) value to non-absolute paths
-# then make absolute paths - we need absolute paths to sources to apply generated dependencies in .d files
-FIXPATH ?= $(abspath $(ADDVPREFIX))
+# add $(VPREFIX) (absolute path to directory of currently processing makefile) value to non-absolute paths
+# - we need absolute paths to sources to apply generated dependencies in .d files
+FIXPATH ?= $(abspath $(call nonrelpath,$(VPREFIX),$1))
 
 # list of all processed makefiles names
 # note: PROCESSED_MAKEFILES is never cleared, only appended
@@ -707,10 +698,10 @@ $(call CLEAN_BUILD_PROTECT_VARS,MTOP MAKEFLAGS NO_DEPS DEBUG PROJECT \
   OS_$(OS) OSTYPE OSTYPE_$(OSTYPE) VERBOSE INFOMF MDEBUG OSDIR CHECK_MAKEFILE_NOT_PROCESSED \
   TERM_NO_COLOR PRINT_PERCENTS SUP ADD_SHOWN_PERCENTS REM_SHOWN_MAKEFILE TRY_REM_MAKEFILE \
   GEN_COLOR MGEN_COLOR CP_COLOR LN_COLOR MKDIR_COLOR TOUCH_COLOR \
-  COLORIZE SED_MULTI_EXPR ospath isabspath nonrelpath PATHSEP \
+  COLORIZE SED_MULTI_EXPR ospath nonrelpath PATHSEP \
   TARGET_TRIPLET DEF_BIN_DIR DEF_OBJ_DIR DEF_LIB_DIR DEF_GEN_DIR SET_DEFAULT_DIRS \
   TOOL_BASE MK_TOOLS_DIR GET_TOOLS TOOL_SUFFIX GET_TOOL TOOL_OVERRIDE_DIRS \
-  FIX_ORDER_DEPS STD_TARGET_VARS1 STD_TARGET_VARS TOCLEAN GET_VPREFIX ADDVPREFIX FIXPATH MAKEFILE_DEBUG_INFO \
+  FIX_ORDER_DEPS STD_TARGET_VARS1 STD_TARGET_VARS TOCLEAN FIXPATH MAKEFILE_DEBUG_INFO \
   DEF_TAIL_CODE_DEBUG DEF_HEAD_CODE DEF_HEAD_CODE_EVAL DEF_TAIL_CODE DEF_TAIL_CODE_EVAL \
   FILTER_VARIANTS_LIST GET_VARIANTS GET_TARGET_NAME DEBUG_TARGETS FORM_OBJ_DIR \
   CHECK_GENERATED ADD_GENERATED MULTI_TARGET_RULE CHECK_MULTI_RULE MULTI_TARGET_SEQ MULTI_TARGET \
