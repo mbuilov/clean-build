@@ -196,7 +196,7 @@ endif
 ifdef MCHECK
 
 # check that $(CURRENT_MAKEFILE) is not already processed
-CHECK_MAKEFILE_NOT_PROCESSED ?= $(if $(filter \
+CHECK_MAKEFILE_NOT_PROCESSED = $(if $(filter \
   $(CURRENT_MAKEFILE)-,$(PROCESSED_MAKEFILES)),$$(error makefile $(CURRENT_MAKEFILE) is already processed!))
 
 endif # MCHECK
@@ -214,9 +214,9 @@ OSTYPE_$(OSTYPE) := 1
 
 # colorize percents
 ifdef TERM_NO_COLOR
-PRINT_PERCENTS ?= [$1]
+PRINT_PERCENTS = [$1]
 else
-PRINT_PERCENTS ?= [00;34m[[01;34m$1[00;34m][0m
+PRINT_PERCENTS = [00;34m[[01;34m$1[00;34m][0m
 endif
 
 # SUP: supress output of executed build tool, print some pretty message instead, like "CC  source.c"
@@ -225,7 +225,6 @@ endif
 # $2 - tool arguments
 # $3 - if non-empty, don't update percents
 ifeq ($(filter distclean clean,$(MAKECMDGOALS)),)
-ifndef SUP
 ifdef VERBOSE
 ifdef INFOMF
 SUP = $(info $(MF)$(MCONT):)
@@ -273,7 +272,6 @@ else
 SUP = $(info $(call PRINT_PERCENTS,$(TRY_REM_MAKEFILE))$(COLORIZE))@
 endif
 endif # !VERBOSE
-endif # !SUP
 endif # !distclean && !clean
 
 # tools colors
@@ -293,9 +291,9 @@ endif
 # $3 - ignored (used by TRY_REM_MAKEFILE)
 # $4 - if not empty, do not colorize argument
 ifdef TERM_NO_COLOR
-COLORIZE ?= $1$(padto)$2
+COLORIZE = $1$(padto)$2
 else
-COLORIZE ?= $(if $($1_COLOR),$($1_COLOR)$1[0m,$1)$(padto)$(if \
+COLORIZE = $(if $($1_COLOR),$($1_COLOR)$1[0m,$1)$(padto)$(if \
   $4,$2,$(if $($1_COLOR),$(join $(dir $2),$(addsuffix [0m,$(addprefix $($1_COLOR),$(notdir $2)))),$2))
 endif
 
@@ -303,7 +301,7 @@ endif
 SED_MULTI_EXPR = $(subst $$(space), ,$(foreach s,$(subst $(newline), ,$(subst $(space),$$(space),$1)),-e $(call SED_EXPR,$s)))
 
 # for UNIX: don't change paths when converting from make internal file path to path accepted by $(OS)
-# NOTE: WINXX/tools.mk defines $(ospath)
+# NOTE: WINXX/tools.mk defines own $(ospath)
 ospath ?= $1
 
 # add $1 only to non-absolute paths in $2
@@ -312,6 +310,7 @@ ospath ?= $1
 nonrelpath ?= $(patsubst $1/%,/%,$(addprefix $1,$2))
 
 # paths separator char
+# note: WINXX/tools.mk defines own PATHSEP
 ifndef PATHSEP
 PATHSEP := :
 endif
@@ -369,7 +368,7 @@ endif
 # where tools are built
 # $1 - TOOL_BASE
 # $2 - TCPU
-MK_TOOLS_DIR ?= $1/bin-TOOL-$2-$(TARGET)
+MK_TOOLS_DIR = $1/bin-TOOL-$2-$(TARGET)
 
 # call with
 # $1 - TOOL_BASE
@@ -420,7 +419,7 @@ endef
 
 # standard target-specific variables
 # $1 - generated file(s) (absolute paths)
-STD_TARGET_VARS ?= $(call STD_TARGET_VARS1,$1,$(patsubst %/,%,$(sort $(dir $1))))
+STD_TARGET_VARS = $(call STD_TARGET_VARS1,$1,$(patsubst %/,%,$(sort $(dir $1))))
 
 # compute values of next variables right after +=, not at call time:
 # CLEAN          - files/directories list to delete on $(MAKE) clean
@@ -444,7 +443,7 @@ VPREFIX := $(TOP)/$(dir $(CURRENT_MAKEFILE))
 
 # add $(VPREFIX) (absolute path to directory of currently processing makefile) value to non-absolute paths
 # - we need absolute paths to sources to apply generated dependencies in .d files
-FIXPATH ?= $(abspath $(call nonrelpath,$(VPREFIX),$1))
+FIXPATH = $(abspath $(call nonrelpath,$(VPREFIX),$1))
 
 # list of all processed makefiles names
 # note: PROCESSED_MAKEFILES is never cleared, only appended
@@ -454,10 +453,10 @@ PROCESSED_MAKEFILES:=
 ifdef MDEBUG
 
 # info about which makefile is expanded now and order dependencies for it
-MAKEFILE_DEBUG_INFO ?= $(subst $(space),,$(foreach x,$(CB_INCLUDE_LEVEL),.))$(CURRENT_MAKEFILE)$(if $(ORDER_DEPS), | $(ORDER_DEPS:-=))
+MAKEFILE_DEBUG_INFO = $(subst $(space),,$(foreach x,$(CB_INCLUDE_LEVEL),.))$(CURRENT_MAKEFILE)$(if $(ORDER_DEPS), | $(ORDER_DEPS:-=))
 
 # note: show debug info only if $1 does not contains @ (used by $(MTOP)/parallel.mk)
-DEF_TAIL_CODE_DEBUG ?= $(if $(filter @,$1),,$$(info $(MAKEFILE_DEBUG_INFO)))
+DEF_TAIL_CODE_DEBUG = $(if $(filter @,$1),,$$(info $(MAKEFILE_DEBUG_INFO)))
 
 endif # MDEBUG
 
@@ -475,7 +474,6 @@ CB_TOOL_MODE:=
 # NOTE: $(MTOP)/defs.mk may be included before $(MTOP)/parallel.mk,
 #  to not execute $(DEF_HEAD_CODE) second time in $(MTOP)/parallel.mk, define DEF_HEAD_CODE_PROCESSED variable
 # NOTE: add $(empty) as first line of $(DEF_HEAD_CODE) - to allow to join it and eval: $(eval $(MY_CODE)$(DEF_HEAD_CODE))
-ifndef DEF_HEAD_CODE
 define DEF_HEAD_CODE
 $(empty)
 $(CLEAN_BUILD_CHECK_AT_HEAD)
@@ -486,11 +484,10 @@ CB_TOOL_MODE:=$(if $(TOOL_MODE),T)
 $(if $(TOOL_MODE),$(if $(CB_TOOL_MODE),,$(TOOL_OVERRIDE_DIRS)),$(if $(CB_TOOL_MODE),$(SET_DEFAULT_DIRS)))
 DEF_HEAD_CODE_PROCESSED:=1
 endef
-endif
 
 # expand this macro to evaluate default head code
 # note: by default it expanded at start of next $(MAKE_CONTINUE) round
-DEF_HEAD_CODE_EVAL ?= $(eval $(DEF_HEAD_CODE))
+DEF_HEAD_CODE_EVAL = $(eval $(DEF_HEAD_CODE))
 
 # code to $(eval) at end of each makefile
 # include $(MTOP)/all.mk only if $(CB_INCLUDE_LEVEL) is empty and will not call $(MAKE_CONTINUE)
@@ -498,17 +495,15 @@ DEF_HEAD_CODE_EVAL ?= $(eval $(DEF_HEAD_CODE))
 # note: $(MAKE_CONTINUE) before expanding $(DEF_TAIL_CODE) adds 2 to $(MAKE_CONT) list
 # note: $(MTOP)/parallel.mk executes $(eval $(call DEF_TAIL_CODE,@)) to not show debug info second time in $(DEF_TAIL_CODE_DEBUG)
 # note: reset DEF_HEAD_CODE_PROCESSED value - to allow to evaluate $(DEF_HEAD_CODE_EVAL) in next included $(MTOP)/parallel.mk
-ifndef DEF_TAIL_CODE
 define DEF_TAIL_CODE
 $(CLEAN_BUILD_CHECK_AT_TAIL)
 $(DEF_TAIL_CODE_DEBUG)
 $(if $(CB_INCLUDE_LEVEL)$(findstring 2,$(MAKE_CONT)),,include $(MTOP)/all.mk)
 DEF_HEAD_CODE_PROCESSED:=
 endef
-endif
 
 # expand this macro to evaluate default tail code
-DEF_TAIL_CODE_EVAL ?= $(eval $(DEF_TAIL_CODE))
+DEF_TAIL_CODE_EVAL = $(eval $(DEF_TAIL_CODE))
 
 # get target variants list or default variant R
 # $1 - EXE,LIB,...
@@ -534,7 +529,7 @@ ifdef MDEBUG
 # $1 - targets to build (EXE,LIB,DLL,...)
 # $2 - function to form target file name (FORM_TRG), must be defined at time of $(eval)
 # $3 - variants filter function (VARIANTS_FILTER by default), must be defined at time of $(eval)
-DEBUG_TARGETS ?= $(foreach t,$1,$(if $($t),$(newline)$(foreach \
+DEBUG_TARGETS = $(foreach t,$1,$(if $($t),$(newline)$(foreach \
   v,$(call GET_VARIANTS,$t,$3),$(info $(if $(CB_TOOL_MODE),[TOOL]: )$t $(subst \
   R ,,$v )= $(call GET_TARGET_NAME,$t) '$(patsubst $(TOP)/%,%,$(call $2,$t,$v))'))))
 
@@ -544,12 +539,12 @@ endif # MDEBUG
 # $1 - target to build (EXE,LIB,DLL,...)
 # $2 - target variant (may be empty for default variant)
 # add target-specific suffix (_EXE,_LIB,_DLL,...) to distinguish objects for the targets with equal names
-FORM_OBJ_DIR ?= $(OBJ_DIR)/$(GET_TARGET_NAME)$(if $(filter-out R,$2),_$2)_$1
+FORM_OBJ_DIR = $(OBJ_DIR)/$(GET_TARGET_NAME)$(if $(filter-out R,$2),_$2)_$1
 
 ifdef MCHECK
 
 # check that files $1 are generated in $(GEN_DIR), $(BIN_DIR), $(OBJ_DIR) or $(LIB_DIR)
-CHECK_GENERATED ?= $(if $(filter-out $(GEN_DIR)/% $(BIN_DIR)/% $(OBJ_DIR)/% $(LIB_DIR)/%,$1),$(error \
+CHECK_GENERATED = $(if $(filter-out $(GEN_DIR)/% $(BIN_DIR)/% $(OBJ_DIR)/% $(LIB_DIR)/%,$1),$(error \
   some files are generated not under $$(GEN_DIR), $$(BIN_DIR), $$(OBJ_DIR) or $$(LIB_DIR): $(filter-out \
   $(GEN_DIR)/% $(BIN_DIR)/% $(OBJ_DIR)/% $(LIB_DIR)/%,$1)))
 
@@ -558,7 +553,7 @@ endif # MCHECK
 # add generated files $1 to build sequence
 # note: files must be generated in $(GEN_DIR),$(BIN_DIR),$(OBJ_DIR) or $(LIB_DIR)
 # note: directories for generated files will be auto-created
-ADD_GENERATED ?= $(CHECK_GENERATED)$(eval $(STD_TARGET_VARS))
+ADD_GENERATED = $(CHECK_GENERATED)$(eval $(STD_TARGET_VARS))
 
 # processed multi-target rules
 # note: MULTI_TARGETS is never cleared, only appended
@@ -575,14 +570,12 @@ MULTI_TARGET_NUM:=
 # $2 - prerequisites (either absolute or makefile-related)
 # $3 - rule
 # $4 - $(words $(MULTI_TARGET_NUM))
-ifndef MULTI_TARGET_RULE
 define MULTI_TARGET_RULE
 $(STD_TARGET_VARS)
 $1: $(call FIXPATH,$2)
 	$$(if $$(filter $4,$$(MULTI_TARGETS)),,$$(eval MULTI_TARGETS += $4)$$(call SUP,MGEN,$1)$3)
 MULTI_TARGET_NUM += 1
 endef
-endif
 
 ifdef MCHECK
 
@@ -590,7 +583,7 @@ ifdef MCHECK
 # must not use $| in multi-target rule because it may have different values (some targets from multi-targets list)
 # $1 - list of generated files (absolute paths)
 # $3 - rule
-CHECK_MULTI_RULE ?= $(CHECK_GENERATED)$(if \
+CHECK_MULTI_RULE = $(CHECK_GENERATED)$(if \
   $(findstring $$@,$3),$(warning please do not use $$@ in multi-target rule:$(newline)$3))$(if \
   $(findstring $$|,$3),$(warning please do not use $$| in multi-target rule:$(newline)$3))
 
@@ -598,7 +591,7 @@ endif # MCHECK
 
 # make chain of dependencies of multi-targets on each other: 1 2 3 4 -> 2:| 1; 3:| 2; 4:| 3;
 # $1 - list of generated files (absolute paths without spaces)
-MULTI_TARGET_SEQ ?= $(subst ||,| ,$(subst $(space),$(newline),$(filter-out \
+MULTI_TARGET_SEQ = $(subst ||,| ,$(subst $(space),$(newline),$(filter-out \
   --%,$(join $(addsuffix :||,$(wordlist 2,999999,$1) --),$1))))$(newline)
 
 # if some tool generates multiple files at one call, it is needed to call
@@ -608,7 +601,7 @@ MULTI_TARGET_SEQ ?= $(subst ||,| ,$(subst $(space),$(newline),$(filter-out \
 # $3 - rule
 # note: directories for generated files will be auto-created
 # note: rule must update all targets
-MULTI_TARGET ?= $(CHECK_MULTI_RULE)$(eval $(MULTI_TARGET_SEQ)$(call MULTI_TARGET_RULE,$1,$2,$3,$(words $(MULTI_TARGET_NUM))))
+MULTI_TARGET = $(CHECK_MULTI_RULE)$(eval $(MULTI_TARGET_SEQ)$(call MULTI_TARGET_RULE,$1,$2,$3,$(words $(MULTI_TARGET_NUM))))
 
 # $(DEFINE_TARGETS_EVAL_NAME) - contains name of macro that when expanded
 # evaluates code to define targets (at least, by evaluating $(DEF_TAIL_CODE))
@@ -618,11 +611,11 @@ DEFINE_TARGETS_EVAL_NAME := DEF_TAIL_CODE_EVAL
 # evaluate code in $($(DEFINE_TARGETS_EVAL_NAME)) only once, then reset DEFINE_TARGETS_EVAL to DEF_TAIL_CODE_EVAL
 # note: surround $($(DEFINE_TARGETS_EVAL_NAME)) with fake $(if ...) to suppress any text output
 # - $(DEFINE_TARGETS) must not expand to any text - to allow calling it via just $(DEFINE_TARGETS) in target makefile
-DEFINE_TARGETS ?= $(if $($(DEFINE_TARGETS_EVAL_NAME))$(eval DEFINE_TARGETS_EVAL_NAME:=DEF_TAIL_CODE_EVAL),)
+DEFINE_TARGETS = $(if $($(DEFINE_TARGETS_EVAL_NAME))$(eval DEFINE_TARGETS_EVAL_NAME:=DEF_TAIL_CODE_EVAL),)
 
 # may be used to save vars before $(MAKE_CONTINUE) and restore after
-SAVE_VARS ?= $(eval $(foreach v,$1,$v_=$(if $(filter simple,$(flavor $v)),:=$(subst $$,$$$$,$(value $v)),=$(value $v))$(newline)))
-RESTORE_VARS ?= $(eval $(foreach v,$1,$v$(value $v_)$(newline)))
+SAVE_VARS = $(eval $(foreach v,$1,$v_=$(if $(filter simple,$(flavor $v)),:=$(subst $$,$$$$,$(value $v)),=$(value $v))$(newline)))
+RESTORE_VARS = $(eval $(foreach v,$1,$v$(value $v_)$(newline)))
 
 # $(MAKE_CONTINUE_EVAL_NAME) - contains name of macro that when expanded evaluates code to prepare (at least, by evaluating $(DEF_HEAD_CODE))
 MAKE_CONTINUE_EVAL_NAME := DEF_HEAD_CODE_EVAL
@@ -655,23 +648,24 @@ endef
 
 # note: surround $(MAKE_CONTINUE) with fake $(if...) to suppress any text output
 # - to be able to call it with just $(MAKE_CONTINUE) in target makefile
-MAKE_CONTINUE ?= $(if $(if $1,$(SAVE_VARS))$(MAKE_CONTINUE_BODY_EVAL)$(if $1,$(RESTORE_VARS)),)
+MAKE_CONTINUE = $(if $(if $1,$(SAVE_VARS))$(MAKE_CONTINUE_BODY_EVAL)$(if $1,$(RESTORE_VARS)),)
 
 # helper macro: make SDEPS list
 # example: $(call FORM_SDEPS,src1 src2,dep1 dep2 dep3) -> src1|dep1|dep2|dep3 src2|dep1|dep2|dep3
-FORM_SDEPS ?= $(addsuffix |$(call join_with,$2,|),$1)
+FORM_SDEPS = $(addsuffix |$(call join_with,$2,|),$1)
 
 # get dependencies for source files
 # $1 - source files
 # $2 - sdeps list: <source file1>|<dependency1>|<dependency2>|... <source file2>|<dependency1>|<dependency2>|...
-EXTRACT_SDEPS ?= $(foreach d,$(filter $(addsuffix |%,$1),$2),$(wordlist 2,999999,$(subst |, ,$d)))
+EXTRACT_SDEPS = $(foreach d,$(filter $(addsuffix |%,$1),$2),$(wordlist 2,999999,$(subst |, ,$d)))
 
 # fix sdeps paths: add $(VPREFIX) value to non-absolute paths then make absolute paths
 # $1 - sdeps list: <source file1>|<dependency1>|<dependency2>|... <source file2>|<dependency1>|<dependency2>|...
-FIX_SDEPS ?= $(subst | ,|,$(call FIXPATH,$(subst |,| ,$1)))
+FIX_SDEPS = $(subst | ,|,$(call FIXPATH,$(subst |,| ,$1)))
 
 # name of environment variable to modify in $(RUN_WITH_DLL_PATH)
 # note: $(DLL_PATH_VAR) should be PATH (for WINDOWS) or LD_LIBRARY_PATH (for UNIX-like OS)
+# note: WINXX/tools.mk defines own DLL_PATH_VAR
 ifndef DLL_PATH_VAR
 DLL_PATH_VAR := LD_LIBRARY_PATH
 endif
@@ -680,6 +674,7 @@ endif
 # $1 - command to run (with parameters)
 # $2 - additional paths to append to $(DLL_PATH_VAR)
 # $3 - environment variables to set to run executable, in form VAR=value
+# note: WINXX/tools.mk defines own show_with_dll_path
 show_with_dll_path ?= $(info $(if $2,$(DLL_PATH_VAR)="$($(DLL_PATH_VAR))" )$(foreach \
   v,$3,$(foreach n,$(firstword $(subst =, ,$v)),$n="$($n)")) $1)
 
@@ -688,6 +683,7 @@ show_with_dll_path ?= $(info $(if $2,$(DLL_PATH_VAR)="$($(DLL_PATH_VAR))" )$(for
 # $2 - additional paths to append to $(DLL_PATH_VAR)
 # $3 - environment variables to set to run executable, in form VAR=value
 # note: this function should be used for rule body, where automatic variable $@ is defined
+# note: WINXX/tools.mk defines own show_dll_path_end
 RUN_WITH_DLL_PATH = $(if $2$3,$(if $2,$(eval $@:$(DLL_PATH_VAR):=$(addsuffix $(PATHSEP),$($(DLL_PATH_VAR)))$2))$(foreach \
   v,$3,$(foreach g,$(firstword $(subst =, ,$v)),$(eval $@:$g:=$(patsubst $g=%,%,$v))))$(if $(VERBOSE),$(show_with_dll_path)@))$1$(if \
   $2$3,$(if $(VERBOSE),$(show_dll_path_end)))
