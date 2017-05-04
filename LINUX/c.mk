@@ -141,9 +141,8 @@ DRV_SUFFIX := .ko
 endif
 
 # import library and dll - the same file
-# NOTE: DLL_DIR and IMP_DIR must be recursive because $(LIB_DIR) have different values in TOOL-mode and non-TOOL mode
+# NOTE: DLL_DIR must be recursive because $(LIB_DIR) have different values in TOOL-mode and non-TOOL mode
 DLL_DIR = $(LIB_DIR)
-IMP_DIR = $(LIB_DIR)
 
 # linux variant, such as DEBIAN,ARCH,GENTOO and so on
 # note: empty (generic variant) by default

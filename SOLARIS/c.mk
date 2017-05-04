@@ -145,9 +145,8 @@ DRV_SUFFIX:=
 endif
 
 # import library and dll - the same file
-# NOTE: DLL_DIR and IMP_DIR must be recursive because $(LIB_DIR) have different values in TOOL-mode and non-TOOL mode
+# NOTE: DLL_DIR must be recursive because $(LIB_DIR) have different values in TOOL-mode and non-TOOL mode
 DLL_DIR = $(LIB_DIR)
-IMP_DIR = $(LIB_DIR)
 
 # solaris OS variant, such as SOLARIS9,SOLARIS10,SOLARIS11 and so on
 # note: empty (generic variant) by default
