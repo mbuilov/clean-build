@@ -34,18 +34,12 @@ endif
 
 include $(MTOP)/WINXX/auto_c.mk
 
-ifndef YASMC
 # note: assume yasm used only for drivers
 YASMC := yasm.exe $(if $(KCPU:%64=),-f win32 -m x86,-f win64 -m amd64)
-endif
 
-ifndef FLEXC
+# flex/bison compilers
 FLEXC := flex.exe
-endif
-
-ifndef BISONC
 BISONC := bison.exe
-endif
 
 # environment variable LIB holds path to system libraries,
 # but we have our own meaning of variable LIB (static library target)
@@ -53,9 +47,7 @@ endif
 LIB:=
 
 # strings to strip off from mc.exe output
-ifeq (undefined,$(origin MC_STRIP_STRINGS))
 MC_STRIP_STRINGS := MC:?Compiling
-endif
 
 # wrap mc.exe call to strip-off diagnostic mc messages
 # $1 - mc command with arguments
@@ -77,9 +69,7 @@ MC = $(call SUP,$(TMD)MC,$1)$(call WRAP_MC,$($(TMD)MC1)$(if $(VERBOSE), -v) $2)
 SUPPRESS_RC_LOGO := $(SUPPRESS_RC_LOGO)
 
 # strings to strip off from rc.exe output if rc.exe does not support /nologo option
-ifeq (undefined,$(origin RC_LOGO_STRINGS))
 RC_LOGO_STRINGS := Microsoft?(R)?Windows?(R)?Resource?Compiler?Version Copyright?(C)?Microsoft?Corporation.??All?rights?reserved. ^$$
-endif
 
 # send resource compiler output to stderr
 # $1 - rc command with arguments
@@ -103,77 +93,38 @@ RC = $(call SUP,$(TMD)RC,$1)$(call WRAP_RC,$($(TMD)RC1) $(SUPPRESS_RC_LOGO)$(if 
 # prefixes/suffixes of build targets, may be already defined in $(TOP)/make/project.mk
 
 # exe file suffix
-ifeq (undefined,$(origin EXE_SUFFIX))
 EXE_SUFFIX := .exe
-endif
 
 # object file suffix
-ifeq (undefined,$(origin OBJ_SUFFIX))
 OBJ_SUFFIX := .obj
-endif
 
 # static library (archive) prefix/suffix
-ifeq (undefined,$(origin LIB_PREFIX))
 LIB_PREFIX:=
-endif
-
-ifeq (undefined,$(origin LIB_SUFFIX))
 LIB_SUFFIX := .a
-endif
 
 # dynamically loaded library (shared object) prefix/suffix
-ifeq (undefined,$(origin DLL_PREFIX))
 DLL_PREFIX:=
-endif
-
-ifeq (undefined,$(origin DLL_SUFFIX))
 DLL_SUFFIX := .dll
-endif
 
 # import library for dll prefix/suffix
-ifeq (undefined,$(origin IMP_PREFIX))
 IMP_PREFIX:=
-endif
-
-ifeq (undefined,$(origin IMP_SUFFIX))
 IMP_SUFFIX := .lib
-endif
 
 # kernel-mode static library prefix/suffix
-ifeq (undefined,$(origin KLIB_PREFIX))
 KLIB_PREFIX:=
-endif
-
-ifeq (undefined,$(origin KLIB_SUFFIX))
 KLIB_SUFFIX := .ka
-endif
 
 # dynamically loaded kernel shared library prefix/suffix
-ifeq (undefined,$(origin KDLL_PREFIX))
 KDLL_PREFIX:=
-endif
-
-ifeq (undefined,$(origin KDLL_SUFFIX))
 KDLL_SUFFIX := .sys
-endif
 
 # import library for kernel dll prefix/suffix
-ifeq (undefined,$(origin KIMP_PREFIX))
 KIMP_PREFIX:=
-endif
-
-ifeq (undefined,$(origin KIMP_SUFFIX))
 KIMP_SUFFIX := .lib
-endif
 
 # kernel module (driver) prefix/suffix
-ifeq (undefined,$(origin DRV_PREFIX))
 DRV_PREFIX := drv
-endif
-
-ifeq (undefined,$(origin DRV_SUFFIX))
 DRV_SUFFIX := .sys
-endif
 
 # dll and import file for dll - different files
 # place dll to $(BIN_DIR), import lib for dll - to $(LIB_DIR)
@@ -185,7 +136,7 @@ SUBSYSTEM_KVER = $(SUBSYSTEM_VER)
 
 # standard defines
 # for example, WINVER_DEFINES = WINVER=0x0501 _WIN32_WINNT=0x0501
-OS_PREDEFINES = WINXX $(OSVARIANT) $(WINVER_DEFINES)
+OS_PREDEFINES := WINXX $(OSVARIANT) $(WINVER_DEFINES)
 
 # how to embed manifest into executable or dll
 # Note: starting from Visual Studio 2012, linker supports /MANIFEST:EMBED option - linker will call mt.exe internally
@@ -202,12 +153,8 @@ endif
 # application-level and kernel-level defines
 # note: OS_APPDEFS and OS_KRNDEFS are may be defined as empty
 # note: some external sources want WIN32 to be defined
-ifeq (undefined,$(origin OS_APPDEFS))
 OS_APPDEFS := $(if $(UCPU:%64=),ILP32,LLP64) WIN32 CRT_SECURE_NO_DEPRECATE _CRT_SECURE_NO_WARNINGS
-endif
-ifeq (undefined,$(origin OS_KRNDEFS))
 OS_KRNDEFS := $(if $(KCPU:%64=),ILP32 _WIN32 _X86_,LLP64 _WIN64 _AMD64_) _KERNEL WIN32_LEAN_AND_MEAN
-endif
 
 # variants filter function - get possible variants for the target
 # $1 - LIB,EXE,DLL
@@ -215,9 +162,7 @@ endif
 # S  - statically linked multi-threaded libc
 # RU - same as R, but with unicode support (exe or dll may be linked with UNI_-prefixed static/dynamic library)
 # SU - same as S, but with unicode support (exe or dll may be linked with UNI_-prefixed static/dynamic library)
-ifeq (undefined,$(origin VARIANTS_FILTER))
 VARIANTS_FILTER := S RU SU
-endif
 
 # determine suffix for static LIB or for import library of DLL
 # $1 - target variant R,S,RU,SU,<empty>
@@ -273,7 +218,7 @@ DLL_EXPORTS_DEFINE := "__declspec(dllexport)"
 DLL_IMPORTS_DEFINE := "__declspec(dllimport)"
 
 # helper macro for target makefiles to pass string define value to C-compiler
-#STRING_DEFINE = "$(subst $(space),$$$$(space),$(subst ","",$1))"
+STRING_DEFINE = "$(subst $(space),$$$$(space),$(subst ","",$1))"
 
 # make version string: maj.min.patch -> maj.min
 MK_MAJ_MIN_VER = $(subst $(space),.,$(wordlist 1,2,$(subst ., ,$1) 0 0))
@@ -307,10 +252,8 @@ DEF_SUBSYSTEM = $$(if $$(filter /SUBSYSTEM:%,$$(LDFLAGS)),,/SUBSYSTEM:CONSOLE$(i
 
 # strings to strip off from link.exe output
 # cp1251 ".Ð¾Ð·Ð´Ð°Ð½Ð¸Ðµ?ÐºÐ¾Ð´Ð° .Ð¾Ð·Ð´Ð°Ð½Ð¸Ðµ?ÐºÐ¾Ð´Ð°?Ð·Ð°Ð²ÐµÑ€ÑˆÐµÐ½Ð¾" as cp866 converted to cp1251
-ifeq (undefined,$(origin LINKER_STRIP_STRINGS))
 #LINKER_STRIP_STRINGS := .þ÷ôðýøõ úþôð .þ÷ôðýøõ úþôð ÷ðòõ¨°õýþ
 LINKER_STRIP_STRINGS := Generating?code Finished?generating?code
-endif
 
 # wrap linker call to strip-off diagnostic linker messages
 # $1 - linker command with arguments
@@ -427,7 +370,6 @@ DEF_KLIB_LDFLAGS := $(if $(DEBUG),,/LTCG)
 KLIB_R_LD1 = $(call SUP,KLIB,$1)$(WKLD) /lib /nologo /OUT:$(call ospath,$1 $2) $(DEF_KLIB_LDFLAGS) $(LDFLAGS) >&2
 
 # flags for application level C-compiler
-ifeq (undefined,$(origin APP_FLAGS))
 APP_FLAGS := /X /GF /W3 /EHsc
 ifdef DEBUG
 APP_FLAGS += /Od /Zi /RTCc /RTCsu /GS
@@ -438,7 +380,6 @@ APP_FLAGS += /wd4251 # 'class' needs to have dll-interface to be used by clients
 APP_FLAGS += /wd4275 # non dll-interface class 'class' used as base for dll-interface class 'class'
 APP_FLAGS += /wd4996 # 'strdup': The POSIX name for this item is deprecated...
 APP_FLAGS += /wd4001 # nonstandard extension 'single line comment' was used
-endif
 
 # call C compiler
 # $1 - outdir
@@ -458,7 +399,6 @@ CMN_RUCL = $(CMN_RCL) /DUNICODE /D_UNICODE
 CMN_SUCL = $(CMN_SCL) /DUNICODE /D_UNICODE
 
 # $(SED) expression to match C compiler messages about included files
-ifeq (undefined,$(origin INCLUDING_FILE_PATTERN))
 # utf8 "ÐŸÑ€Ð¸Ð¼ÐµÑ‡Ð°Ð½Ð¸Ðµ: Ð²ÐºÐ»ÑŽÑ‡ÐµÐ½Ð¸Ðµ Ñ„Ð°Ð¹Ð»Ð°:"
 #INCLUDING_FILE_PATTERN := \xd0\x9f\xd1\x80\xd0\xb8\xd0\xbc\xd0\xb5\xd1\x87\xd0\xb0\xd0\xbd\xd0\xb8\xd0\xb5: \xd0\xb2\xd0\xba\xd0\xbb\xd1\x8e\xd1\x87\xd0\xb5\xd0\xbd\xd0\xb8\xd0\xb5 \xd1\x84\xd0\xb0\xd0\xb9\xd0\xbb\xd0\xb0:
 # cp1251 "ÐŸÑ€Ð¸Ð¼ÐµÑ‡Ð°Ð½Ð¸Ðµ: Ð²ÐºÐ»ÑŽÑ‡ÐµÐ½Ð¸Ðµ Ñ„Ð°Ð¹Ð»Ð°:"
@@ -466,13 +406,10 @@ ifeq (undefined,$(origin INCLUDING_FILE_PATTERN))
 # cp1251 "ÐŸÑ€Ð¸Ð¼ÐµÑ‡Ð°Ð½Ð¸Ðµ: Ð²ÐºÐ»ÑŽÑ‡ÐµÐ½Ð¸Ðµ Ñ„Ð°Ð¹Ð»Ð°:"
 #INCLUDING_FILE_PATTERN := Ïðèìå÷àíèå: âêëþ÷åíèå ôàéëà:
 INCLUDING_FILE_PATTERN := Note: including file:
-endif
 
 # $(SED) expression to filter-out system files while dependencies generation
-ifeq (undefined,$(origin UDEPS_INCLUDE_FILTER))
 # c:\\program?files?(x86)\\microsoft?visual?studio?10.0\\vc\\include\\
 UDEPS_INCLUDE_FILTER := $(subst \,\\,$(VSINC) $(UMINC))
-endif
 
 # $(SED) script to generate dependencies file from C compiler output
 # $2 - target object file
@@ -663,13 +600,11 @@ DRV_R_LD1 = $(call SUP,KLINK,$1)$(call WRAP_EXE_LINKER,$(DRV_EXPORTS),$1,$(call 
   WRAP_LINKER,$(WKLD) /nologo $(CMN_KLIBS) $(if $(DRV_EXPORTS),/IMPLIB:$(call ospath,$(IMP))) $(LDFLAGS)))
 
 # flags for kernel-level C-compiler
-ifeq (undefined,$(origin KRN_FLAGS))
 KRN_FLAGS := /X /GF /W3 /GR- /Gz /Zl /Oi /Zi /Gm- /Zp8 /Gz
 ifdef DEBUG
 KRN_FLAGS += /Od /Oy-
 else
 KRN_FLAGS += /Gy /GS- /Oy
-endif
 endif
 
 # $1 - outdir
@@ -686,10 +621,8 @@ ifdef SEQ_BUILD
 # note: precompiled headers are not supported in this mode
 
 # $(SED) expression to filter-out system files while dependencies generation
-ifeq (undefined,$(origin KDEPS_INCLUDE_FILTER))
 # c:\\winddk\\
 KDEPS_INCLUDE_FILTER := $(subst \,\\,$(KMINC))
-endif
 
 # common kernel C/C++ compiler
 # $1 - target

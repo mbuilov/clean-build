@@ -14,12 +14,12 @@ ifneq (3.80,$(word 1,$(sort $(MAKE_VERSION) 3.80)))
 $(error required GNU Make of version 3.81 or later)
 endif
 
-# make MTOP non-recursive (simple)
-MTOP := $(MTOP)
-
-ifndef MTOP
+ifeq ($(MTOP),)
 $(error MTOP is not defined, example: C:\clean-build,/usr/local/clean-build)
 endif
+
+# make MTOP non-recursive (simple)
+MTOP := $(MTOP)
 
 # legend for Makefile rules:
 # $< - name of the first prerequisite
@@ -55,33 +55,34 @@ include $(MTOP)/functions.mk
 include $(MTOP)/top.mk
 
 # what target type to build
-TARGET ?= RELEASE
+TARGET := RELEASE
 
 # define $(DEBUG) to use it in $(PROJECT) configuration file
 # $(DEBUG) is non-empty for DEBUG targets like "PROJECTD" or "DEBUG"
 DEBUG := $(filter DEBUG %D,$(TARGET))
 
-# $(TOP)/make/project.mk, if exists, should define something like:
-# SUPPORTED_OSES    := WINXX SOLARIS LINUX
-# SUPPORTED_CPUS    := x86 x86_64 sparc sparc64 armv5 mips24k ppc
-# SUPPORTED_TARGETS := PROJECT PROJECTD
-PROJECT ?= $(TOP)/make/project.mk
+# project definitions
+PROJECT := $(TOP)/make/project.mk
+
+# $(PROJECT), if exists, may override next variables:
+SUPPORTED_OSES := WINXX SOLARIS LINUX
+SUPPORTED_CPUS := x86 x86_64 sparc sparc64 armv5 mips24k ppc
+SUPPORTED_TARGETS := DEBUG RELEASE
 
 # include project defs, if file exists
 -include $(PROJECT)
 
-ifndef SUPPORTED_OSES
+ifeq ($(SUPPORTED_OSES),)
 $(error SUPPORTED_OSES not defined, it may be defined in $(PROJECT:$(TOP)/%=$$(TOP)/%))
 endif
-ifndef SUPPORTED_CPUS
+ifeq ($(SUPPORTED_CPUS),)
 $(error SUPPORTED_CPUS not defined, it may be defined in $(PROJECT:$(TOP)/%=$$(TOP)/%))
 endif
 
 # set standard targets, if $(PROJECT) do not defines some
-SUPPORTED_TARGETS ?= DEBUG RELEASE
 
 # OS - operating system we are building for (and we are building on)
-ifndef OS
+ifeq ($(OS),)
 $(error OS undefined, please pick one of build OS types: $(SUPPORTED_OSES))
 else ifeq ($(filter $(OS),$(SUPPORTED_OSES)),)
 $(error unknown OS=$(OS), please pick one of build OS types: $(SUPPORTED_OSES))
@@ -90,52 +91,45 @@ endif
 # don't need $(CPU) and $(TARGET) vars values for distclean
 ifeq ($(filter distclean,$(MAKECMDGOALS)),)
 
-# NOTE: don't use CPU variable in target makefiles, use UCPU or KCPU instead
+# note: don't use CPU,UCPU,KCPU,TCPU variables from environment
+CPU:=
+UCPU := $(CPU)
+KCPU := $(CPU)
+TCPU := $(CPU)
 
 # CPU variable contains default value for UCPU, KCPU, TCPU
-ifdef CPU
+# NOTE: please do not use CPU variable in target makefiles, use UCPU, KCPU or TCPU instead
+ifneq ($(CPU),)
 ifeq ($(filter $(CPU),$(SUPPORTED_CPUS)),)
 $(error unknown CPU=$(CPU), please pick one of target CPU types: $(SUPPORTED_CPUS))
 endif
 endif
 
 # CPU for user-level
-ifdef UCPU
+ifneq ($(UCPU),)
 ifeq ($(filter $(UCPU),$(SUPPORTED_CPUS)),)
 $(error unknown UCPU=$(UCPU), please pick one of target CPU types: $(SUPPORTED_CPUS))
 endif
-else
-ifndef CPU
-$(error UCPU or CPU undefined, please pick one of target CPU types: $(SUPPORTED_CPUS))
-else
-UCPU := $(CPU)
-endif
+else ifeq ($(CPU),)
+$(error UCPU or CPU is undefined, please pick one of target CPU types: $(SUPPORTED_CPUS))
 endif
 
 # CPU for kernel-level
-ifdef KCPU
+ifneq ($(KCPU),)
 ifeq ($(filter $(KCPU),$(SUPPORTED_CPUS)),)
 $(error unknown KCPU=$(KCPU), please pick one of target CPU types: $(SUPPORTED_CPUS))
 endif
-else
-ifndef CPU
+else ifeq ($(CPU),)
 $(error KCPU or CPU undefined, please pick one of target CPU types: $(SUPPORTED_CPUS))
-else
-KCPU := $(CPU)
-endif
 endif
 
 # CPU for build-tools
-ifdef TCPU
+ifneq ($(TCPU),)
 ifeq ($(filter $(TCPU),$(SUPPORTED_CPUS)),)
 $(error unknown TCPU=$(TCPU), please pick one of build CPU types: $(SUPPORTED_CPUS))
 endif
-else
-ifndef CPU
+else ifeq ($(CPU),)
 $(error TCPU or CPU undefined, please pick one of build CPU types: $(SUPPORTED_CPUS))
-else
-TCPU := $(CPU)
-endif
 endif
 
 # what to build
@@ -161,10 +155,6 @@ DEBUG := $(filter DEBUG %D,$(TARGET))
 # note: $(BIN_DIR)/$(OBJ_DIR)/$(LIB_DIR)/$(GEN_DIR) are use these variables and are will be also fixed
 TARGET := $(TARGET)
 OS     := $(OS)
-CPU    := $(CPU)
-UCPU   := $(UCPU)
-KCPU   := $(KCPU)
-TCPU   := $(TCPU)
 
 # for simple 'ifdef OS_WINXX' or 'ifdef OS_LINUX'
 OS_$(OS) := 1

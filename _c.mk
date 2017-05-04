@@ -124,6 +124,7 @@ OBJ_RULES = $(if $2,$(call OBJ_RULES1,$1,$2,$3,$4,$(addprefix $4/,$(basename $(n
 # $2 - target variant S,P,... but not R or <empty>
 # $3 - list of variants of target $1 to build (filtered by target platform specific $(VARIANTS_FILTER))
 # note: WINXX/c.mk defines own EXE_SUFFIX_GEN
+# note: LINUX/c.mk defines own EXE_SUFFIX_GEN
 EXE_SUFFIX_GEN ?= $(if $(word 2,$3),$(call tolower,$2))
 
 # determine target name suffix for EXE,DRV...
@@ -322,8 +323,6 @@ $1:
 endef
 
 # tools colors
-# if CC_COLOR is defined, other tools colors must also be defined
-ifndef CC_COLOR
 CC_COLOR   := [01;31m
 CXX_COLOR  := [01;36m
 AR_COLOR   := [01;32m
@@ -337,7 +336,6 @@ TCXX_COLOR := [00;32m
 TLD_COLOR  := [00;33m
 TXLD_COLOR := [01;37m
 TAR_COLOR  := [01;32m
-endif
 
 # check that LIBS specified only when building EXE or DLL,
 # check that KLIBS specified only when building DRV
@@ -351,9 +349,7 @@ CHECK_C_RULES = $(if \
 endif
 
 # project's subsystems directory, contains subsystems definitions that are evaluated while processing $(USE) list
-ifndef PROJECT_USE_DIR
 PROJECT_USE_DIR := $(TOP)/make/$(OS)/use
-endif
 
 # this code is normally evaluated at end of target makefile
 # 1) print what we will build
@@ -428,5 +424,5 @@ $(call CLEAN_BUILD_PROTECT_VARS,BLD_TARGETS OSVARIANT OSVARIANT_$(OSVARIANT) LIB
   VARIANT_LIB_MAP VARIANT_IMP_MAP MAKE_DEP_LIBS MAKE_DEP_IMPS DEP_LIBS DEP_IMPS \
   C_RULES2 C_RULES1 C_RULES EXE_TEMPLATE LIB_TEMPLATE DLL_TEMPLATE KLIB_TEMPLATE DRV_TEMPLATE \
   CC_COLOR CXX_COLOR AR_COLOR LD_COLOR XLD_COLOR ASM_COLOR \
-  KCC_COLOR KLD_COLOR TCC_COLOR TCXX_COLOR TLD_COLOR TAR_COLOR CHECK_C_RULES PROJECT_USE_DIR \
+  KCC_COLOR KLD_COLOR TCC_COLOR TCXX_COLOR TLD_COLOR TXLD_COLOR TAR_COLOR CHECK_C_RULES PROJECT_USE_DIR \
   OS_DEFINE_TARGETS DEFINE_C_TARGETS_EVAL BLD_TARGETS_RESET PREPARE_C_VARS RESET_OS_CVARS MAKE_C_EVAL)

@@ -29,10 +29,8 @@ PATH := $(subst ?, ,$(subst $(space),;,$(strip $(foreach p,$(subst \
 # for Windows 2000 and later  - 2047 chars;
 # for Windows XP and later    - 8191 chars (max 31 path arguments of 260 chars length each);
 # maximum number of args passed via command line
-ifndef DEL_ARGS_LIMIT
 # for Windows XP and later, assuming that maximum length of each arg is 80 chars
 DEL_ARGS_LIMIT := 100
-endif
 
 # don't colorize output
 TERM_NO_COLOR := 1
@@ -72,7 +70,7 @@ RM  = $(call xcmd,RM1,$1,$(DEL_ARGS_LIMIT))
 # assume MKDIR is called only if directory does not exist
 MKDIR = mkdir $(ospath)
 
-SED  ?= sed.exe
+SED  := sed.exe
 SED_EXPR = "$(subst %,%%,$1)"
 CAT   = type $(ospath)
 ECHO_LINE = echo$(if $1, $(subst $(open_brace),^$(open_brace),$(subst $(close_brace),^$(close_brace),$(subst \

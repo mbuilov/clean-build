@@ -12,14 +12,13 @@ endif
 # 0 -> $(empty)
 VAUTO := $(VAUTO:0=)
 
-OSVARIANTS ?= WINXP WINV WIN7 WIN8 WIN81 WIN10
+OSVARIANTS := WINXP WINV WIN7 WIN8 WIN81 WIN10
 
 ifeq ($(filter $(OSVARIANT),$(OSVARIANTS)),)
 $(error OSVARIANT undefined or has wrong value, pick on of: $(OSVARIANTS))
 endif
 
 # note: WINVER_DEFINES may be defined as empty
-ifeq (undefined,$(origin WINVER_DEFINES))
 ifeq ($(OSVARIANT),WIN10)
 WINVER_DEFINES := WINVER=0x0A00 _WIN32_WINNT=0x0A00
 else ifeq ($(OSVARIANT),WIN81)
@@ -35,9 +34,7 @@ WINVER_DEFINES := WINVER=0x0501 _WIN32_WINNT=0x0501
 else
 $(error unable to define WINVER for OSVARIANT = $(OSVARIANT))
 endif
-endif
 
-ifndef SUBSYSTEM_VER
 ifeq ($(OSVARIANT),WIN10)
 SUBSYSTEM_VER := 6.03
 else ifeq ($(OSVARIANT),WIN81)
@@ -52,7 +49,6 @@ else ifeq ($(OSVARIANT),WINXP)
 SUBSYSTEM_VER := $(if $(UCPU:%64=),5.01,5.02)
 else
 $(error unable to define SUBSYSTEM_VER for OSVARIANT = $(OSVARIANT))
-endif
 endif
 
 AUTOCONF_VARS :=
@@ -95,7 +91,6 @@ $(error VS undefined, example: VS="C:\Program Files (x86)\Microsoft Visual Studi
  VS="C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Tools\MSVC\14.10.25017")
 endif
 
-ifndef VS_VER
 ifneq ($(subst \Microsoft Visual Studio ,,$(VS)),$(VS))
 # 10.0 -> 10
 VS_VER := $(firstword $(subst ., ,$(lastword $(VS))))
@@ -103,17 +98,14 @@ else ifneq ($(subst \VC\Tools\MSVC\,,$(VS)),$(VS))
 # 14.10.25017 -> 1410
 VS_VER := $(subst $(space),,$(wordlist 1,2,$(subst ., ,$(word 2,$(subst \VC\Tools\MSVC\, ,$(subst $(space),?,$(VS)))))))
 endif
-endif
 
 ifndef VS_VER
 $(error VS_VER undefined (expecting 8,9,11,12,14,1410), \
   failed to auto-determine it, likely Visual Studio is installed to non-default location)
 endif
 
-ifndef WDK_VER
 ifneq ($(subst \Windows Kits\,,$(WDK)),$(WDK))
 WDK_VER := $(firstword $(subst ., ,$(lastword $(subst \, ,$(WDK)))))
-endif
 endif
 
 GET_WDK_VER = $(if $(WDK_VER),$(WDK_VER),$(error WDK_VER undefined (expecting 7,8,9,10), \
@@ -203,7 +195,7 @@ $(if $(VERBOSE),$(info setlocal$(newline)set "PATH=$(PATH)"))
 
 # option for parallel builds, starting from Visual Studio 2013
 ifneq ($(call is_less,11,$(VS_VER)),)
-FORCE_SYNC_PDB ?= /FS
+FORCE_SYNC_PDB := /FS
 endif
 
 ifeq ($(strip $(SDK)$(WDK)),)
@@ -312,9 +304,7 @@ ifdef DDK
 $(error either DDK or WDK must be defined, but not both)
 endif
 
-ifndef WDK_KTARGET
 WDK_KTARGET := $(WDK_TARGET)
-endif
 
 ifndef WDK_KTARGET
 $(error WDK_KTARGET undefined, check contents of "$(WDK)\Lib", example: "win7, win8, winv6.3, 10.0.10240.0")

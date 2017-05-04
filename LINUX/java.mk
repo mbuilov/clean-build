@@ -4,17 +4,9 @@
 # Licensed under GPL version 2 or any later version, see COPYING
 #----------------------------------------------------------------------------------
 
-ifndef JAVA
 JAVA := java
-endif
-
-ifndef JAVAC
 JAVAC := javac
-endif
-
-ifndef JARC
 JARC := jar
-endif
 
 # protect variables from modifications in target makefiles
 $(call CLEAN_BUILD_PROTECT_VARS,JAVA JAVAC JARC)
