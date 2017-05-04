@@ -57,23 +57,21 @@ ifeq (undefined,$(origin MC_STRIP_STRINGS))
 MC_STRIP_STRINGS := MC:?Compiling
 endif
 
-# send mc output to stderr
 # wrap mc.exe call to strip-off diagnostic mc messages
 # $1 - mc command with arguments
-ifndef WRAP_MC
+# note: send mc output to stderr
 ifndef MC_STRIP_STRINGS
 WRAP_MC = $1 >&2
 else
 WRAP_MC = (($1 2>&1 && echo TRG_MC_OK >&2) | findstr /V /B /R $(call \
   qpath,$(MC_STRIP_STRINGS),/C:)) 3>&2 2>&1 1>&3 | findstr /B /L TRG_MC_OK >NUL
 endif
-endif
 
 # message compiler
 # $1 - generated .rc and .h
 # $2 - arguments for mc.exe
 # target-specific: TMD
-MC ?= $(call SUP,$(TMD)MC,$1)$(call WRAP_MC,$($(TMD)MC1)$(if $(VERBOSE), -v) $2)
+MC = $(call SUP,$(TMD)MC,$1)$(call WRAP_MC,$($(TMD)MC1)$(if $(VERBOSE), -v) $2)
 
 # SUPPRESS_RC_LOGO may be defined as /nologo -  not all versions of rc.exe support this switch
 SUPPRESS_RC_LOGO := $(SUPPRESS_RC_LOGO)
@@ -85,7 +83,6 @@ endif
 
 # send resource compiler output to stderr
 # $1 - rc command with arguments
-ifndef WRAP_RC
 ifndef RC_LOGO_STRINGS
 WRAP_RC = $1 >&2
 else ifdef SUPPRESS_RC_LOGO
@@ -94,14 +91,13 @@ else
 WRAP_RC = (($1 2>&1 && echo RC_COMPILED_OK >&2) | findstr /B /V /R $(call \
   qpath,$(RC_LOGO_STRINGS),/C:)) 3>&2 2>&1 1>&3 | findstr /B /L RC_COMPILED_OK >NUL
 endif
-endif
 
 # resource compiler
 # $1 - target .res
 # $2 - source .rc
 # $3 - rc compiler options
 # target-specific: TMD
-RC ?= $(call SUP,$(TMD)RC,$1)$(call WRAP_RC,$($(TMD)RC1) $(SUPPRESS_RC_LOGO)$(if \
+RC = $(call SUP,$(TMD)RC,$1)$(call WRAP_RC,$($(TMD)RC1) $(SUPPRESS_RC_LOGO)$(if \
   $(VERBOSE), /v) $3 $(call qpath,$(VS$(TMD)INC) $(UM$(TMD)INC),/I) /fo$(call ospath,$1 $2))
 
 # prefixes/suffixes of build targets, may be already defined in $(TOP)/make/project.mk
@@ -152,6 +148,24 @@ ifeq (undefined,$(origin KLIB_SUFFIX))
 KLIB_SUFFIX := .ka
 endif
 
+# dynamically loaded kernel shared library prefix/suffix
+ifeq (undefined,$(origin KDLL_PREFIX))
+KDLL_PREFIX:=
+endif
+
+ifeq (undefined,$(origin KDLL_SUFFIX))
+KDLL_SUFFIX := .sys
+endif
+
+# import library for kernel dll prefix/suffix
+ifeq (undefined,$(origin KIMP_PREFIX))
+KIMP_PREFIX:=
+endif
+
+ifeq (undefined,$(origin KIMP_SUFFIX))
+KIMP_SUFFIX := .lib
+endif
+
 # kernel module (driver) prefix/suffix
 ifeq (undefined,$(origin DRV_PREFIX))
 DRV_PREFIX := drv
@@ -163,25 +177,24 @@ endif
 
 # dll and import file for dll - different files
 # place dll to $(BIN_DIR), import lib for dll - to $(LIB_DIR)
-# NOTE: DLL_DIR and IMP_DIR must be recursive because $(BIN_DIR) and $(LIB_DIR) have different values in TOOL-mode and non-TOOL mode
+# NOTE: DLL_DIR must be recursive because $(BIN_DIR) have different values in TOOL-mode and non-TOOL mode
 DLL_DIR = $(BIN_DIR)
-IMP_DIR = $(LIB_DIR)
 
 # SUBSYSTEM for kernel mode
-SUBSYSTEM_KVER ?= $(SUBSYSTEM_VER)
+SUBSYSTEM_KVER = $(SUBSYSTEM_VER)
 
 # standard defines
-# for example, WINVER_DEFINES ?= WINVER=0x0501 _WIN32_WINNT=0x0501
-OS_PREDEFINES ?= WINXX $(OSVARIANT) $(WINVER_DEFINES)
+# for example, WINVER_DEFINES = WINVER=0x0501 _WIN32_WINNT=0x0501
+OS_PREDEFINES = WINXX $(OSVARIANT) $(WINVER_DEFINES)
 
 # how to embed manifest into executable or dll
 # Note: starting from Visual Studio 2012, linker supports /MANIFEST:EMBED option - linker will call mt.exe internally
 ifndef EMBED_MANIFEST_OPTION
 # target-specific: TMD
-EMBED_EXE_MANIFEST ?= $(newline)$(if \
+EMBED_EXE_MANIFEST = $(newline)$(if \
   $(VERBOSE),,@)if exist $(ospath).manifest ($($(TMD)MT1) -nologo -manifest \
   $(ospath).manifest -outputresource:$(ospath);1 && del $(ospath).manifest)$(DEL_ON_FAIL)
-EMBED_DLL_MANIFEST ?= $(newline)$(if \
+EMBED_DLL_MANIFEST = $(newline)$(if \
   $(VERBOSE),,@)if exist $(ospath).manifest ($($(TMD)MT1) -nologo -manifest \
   $(ospath).manifest -outputresource:$(ospath);2 && del $(ospath).manifest)$(DEL_ON_FAIL)
 endif
@@ -208,20 +221,20 @@ endif
 
 # determine suffix for static LIB or for import library of DLL
 # $1 - target variant R,S,RU,SU,<empty>
-LIB_VAR_SUFFIX ?= $(if \
-                  $(findstring RU,$1),_u,$(if \
-                  $(findstring SU,$1),_mtu,$(if \
-                  $(findstring S,$1),_mt)))
+LIB_VAR_SUFFIX = $(if \
+                 $(findstring RU,$1),_u,$(if \
+                 $(findstring SU,$1),_mtu,$(if \
+                 $(findstring S,$1),_mt)))
 
 # for $(EXE_VAR_SUFFIX) from $(MTOP)/c.mk:
 # get target name suffix for EXE,DRV in case of multiple target variants
 # $1 - EXE,DRV
 # $2 - target variant S,RU,SU (not R or <empty>)
 # $3 - list of variants of target $1 to build (filtered by target platform specific $(VARIANTS_FILTER))
-EXE_SUFFIX_GEN ?= $(if $(word 2,$3),$(if \
-                  $(findstring RU,$2),_u,$(if \
-                  $(findstring SU,$2),_mtu,$(if \
-                  $(findstring S,$2),_mt))))
+EXE_SUFFIX_GEN = $(if $(word 2,$3),$(if \
+                 $(findstring RU,$2),_u,$(if \
+                 $(findstring SU,$2),_mtu,$(if \
+                 $(findstring S,$2),_mt))))
 
 # for $(DEP_LIB_SUFFIX) from $(MTOP)/c.mk:
 # $1 - target: EXE,DLL
@@ -230,7 +243,7 @@ EXE_SUFFIX_GEN ?= $(if $(word 2,$3),$(if \
 # use the same variant of dependent static library as target EXE or DLL (for example for S-EXE use S-LIB)
 # NOTE: for RU or SU variant of target EXE or DLL, if dependent library name do not starts with UNI_
 #  - dependent library do not have unicode variant, so convert needed variant to non-unicode one: RU->R or SU->S
-VARIANT_LIB_MAP ?= $(if $(3:UNI_%=),$(2:U=),$2)
+VARIANT_LIB_MAP = $(if $(3:UNI_%=),$(2:U=),$2)
 
 # for $(DEP_IMP_SUFFIX) from $(MTOP)/c.mk:
 # $1 - target: EXE,DLL
@@ -239,7 +252,7 @@ VARIANT_LIB_MAP ?= $(if $(3:UNI_%=),$(2:U=),$2)
 # use the same variant of dependent dynamic library as target EXE or DLL (for example for S-EXE use S-DLL)
 # NOTE: for RU or SU variant of target EXE or DLL, if dependent library name do not starts with UNI_
 #  - dependent library do not have unicode variant, so convert needed variant to non-unicode one: RU->R or SU->S
-VARIANT_IMP_MAP ?= $(if $(3:UNI_%=),$(2:U=),$2)
+VARIANT_IMP_MAP = $(if $(3:UNI_%=),$(2:U=),$2)
 
 # check that library name built as RU/SU variant is started with UNI_ prefix
 # $1 - library name
@@ -250,32 +263,26 @@ CHECK_LIB_UNI_NAME1 = $(if $(filter-out UNI_%,$1),$(error library '$1' name must
 # $1 - IMP or LIB
 # $v - variant name: R,S,RU,SU
 # note: $$1 - target library name
-CHECK_LIB_UNI_NAME ?= $(if $(filter %U,$v),$$(call CHECK_LIB_UNI_NAME1,$$(patsubst \
+CHECK_LIB_UNI_NAME = $(if $(filter %U,$v),$$(call CHECK_LIB_UNI_NAME1,$$(patsubst \
   %$(call VARIANT_$1_SUFFIX,$v)$($1_SUFFIX),%,$$(notdir $$1))))
 
 # how to mark exported symbols from a DLL
-ifeq (undefined,$(origin DLL_EXPORTS_DEFINE))
 DLL_EXPORTS_DEFINE := "__declspec(dllexport)"
-endif
 
 # how to mark imported symbols from a DLL
-ifeq (undefined,$(origin DLL_IMPORTS_DEFINE))
 DLL_IMPORTS_DEFINE := "__declspec(dllimport)"
-endif
 
 # helper macro for target makefiles to pass string define value to C-compiler
-STRING_DEFINE ?= "$(subst $(space),$$$$(space),$(subst ","",$1))"
+#STRING_DEFINE = "$(subst $(space),$$$$(space),$(subst ","",$1))"
 
 # make version string: maj.min.patch -> maj.min
-MK_MAJ_MIN_VER ?= $(subst $(space),.,$(wordlist 1,2,$(subst ., ,$1) 0 0))
+MK_MAJ_MIN_VER = $(subst $(space),.,$(wordlist 1,2,$(subst ., ,$1) 0 0))
 
 # common linker flags for EXE or DLL
 # $$1 - target file
 # $$2 - objects
 # $v - variant
-ifeq (undefined,$(origin CMN_LIBS_LDFLAGS))
 CMN_LIBS_LDFLAGS := /INCREMENTAL:NO $(if $(DEBUG),/DEBUG,/RELEASE /LTCG /OPT:REF)
-endif
 
 # common parts of linker options for built EXE or DLL
 # $$1 - target exe or dll
@@ -283,8 +290,9 @@ endif
 # $v - variant
 # note: because target variable (EXE or DLL) is not used in VARIANT_LIB_MAP and VARIANT_IMP_MAP,
 #  may pass any value as first parameter to MAKE_DEP_LIBS and MAKE_DEP_IMPS (macros from $(MTOP)/c.mk)
-# target-specific: TMD, MODVER, RES, LIBS, DLLS, LIB_DIR, SYSLIBPATH, SYSLIBS
-CMN_LIBS ?= /OUT:$$(ospath) /VERSION:$$(call MK_MAJ_MIN_VER,$$(MODVER)) $(CMN_LIBS_LDFLAGS) $$(call ospath,$$2 $$(RES)) $$(if \
+# target-specific: TMD, MODVER, DEF, RES, LIBS, DLLS, LIB_DIR, SYSLIBPATH, SYSLIBS
+CMN_LIBS = /OUT:$$(ospath) /VERSION:$$(call MK_MAJ_MIN_VER,$$(MODVER)) $$(addprefix \
+  /DEF:,$$(call ospath,$$(DEF))) $(CMN_LIBS_LDFLAGS) $$(call ospath,$$2 $$(RES)) $$(if \
   $$(firstword $$(LIBS)$$(DLLS)),/LIBPATH:$$(call ospath,$$(LIB_DIR))) $$(call MAKE_DEP_LIBS,XXX,$v,$$(LIBS)) $$(call \
   MAKE_DEP_IMPS,XXX,$v,$$(DLLS)) $$(call qpath,$$(VS$$(TMD)LIB) $$(UM$$(TMD)LIB) $$(call \
   ospath,$$(SYSLIBPATH)),/LIBPATH:) $$(SYSLIBS)
@@ -295,7 +303,7 @@ CMN_LIBS ?= /OUT:$$(ospath) /VERSION:$$(call MK_MAJ_MIN_VER,$$(MODVER)) $(CMN_LI
 # $v - variant
 # note: do not add /SUBSYSTEM option if $(LDFLAGS) have already specified one
 # target-specific: LDFLAGS
-DEF_SUBSYSTEM ?= $$(if $$(filter /SUBSYSTEM:%,$$(LDFLAGS)),,/SUBSYSTEM:CONSOLE$(if $$(TMD),,,$(SUBSYSTEM_VER)))
+DEF_SUBSYSTEM = $$(if $$(filter /SUBSYSTEM:%,$$(LDFLAGS)),,/SUBSYSTEM:CONSOLE$(if $$(TMD),,,$(SUBSYSTEM_VER)))
 
 # strings to strip off from link.exe output
 # cp1251 ".оздание?кода .оздание?кода?завершено" as cp866 converted to cp1251
@@ -304,10 +312,9 @@ ifeq (undefined,$(origin LINKER_STRIP_STRINGS))
 LINKER_STRIP_STRINGS := Generating?code Finished?generating?code
 endif
 
-# if not $(DEBUG), then send linker output to stderr
 # wrap linker call to strip-off diagnostic linker messages
 # $1 - linker command with arguments
-ifndef WRAP_LINKER
+# note: if not $(DEBUG), then send linker output to stderr
 ifdef DEBUG
 WRAP_LINKER = $1
 else ifndef LINKER_STRIP_STRINGS
@@ -316,7 +323,6 @@ else
 WRAP_LINKER = (($1 2>&1 && echo TRG_LINKED_OK >&2) | findstr /V /B /R $(call \
   qpath,$(LINKER_STRIP_STRINGS),/C:)) 3>&2 2>&1 1>&3 | findstr /B /L TRG_LINKED_OK >NUL
 endif
-endif
 
 # Link.exe has a bug/feature:
 # - it may not delete target exe/dll if DEF was specified and were errors while building the exe/dll
@@ -324,65 +330,66 @@ endif
 # $1 - target exe or dll
 # $2 - $(EMBED_EXE_MANIFEST) or $(EMBED_DLL_MANIFEST)
 # target-specific: DEF
-DEL_DEF_MANIFEST_ON_FAIL ?= $(if $(DEF)$2,$(call DEL_ON_FAIL,$(if $(DEF),$1) $(if $2,$1.manifest)))$2
+DEL_DEF_MANIFEST_ON_FAIL = $(if $(DEF)$2,$(call DEL_ON_FAIL,$(if $(DEF),$1) $(if $2,$1.manifest)))$2
 
 # call exe/drv linker and strip-off message about generated .exp-file
-# send linker output to stderr
 # $1 - target exe/drv
 # $2 - (wrapped) linker with options
 # $3 - $(basename $(notdir $(IMP))).exp
-WRAP_EXE_EXPORTS_LINKER ?= (($(if $(DEBUG),$2 2>&1,($2) 3>&2 2>&1 1>&3) && echo EXE_EXP_LINKED_OK >&2) | \
+# note: send linker output to stderr
+WRAP_EXE_EXPORTS_LINKER = (($(if $(DEBUG),$2 2>&1,($2) 3>&2 2>&1 1>&3) && echo EXE_EXP_LINKED_OK >&2) | \
   findstr /V /L $3) 3>&2 2>&1 1>&3 | findstr /B /L EXE_EXP_LINKED_OK >NUL
 
 # wrap exe/drv linker call to strip-off message about generated .exp-file
-# send linker output to stderr
 # $1 - non-<empty> if exe/drv exports symbols, <empty> - otherwise
 # $2 - target exe/drv
 # $3 - (wrapped) linker with options
 # target-specific: IMP
-WRAP_EXE_LINKER ?= $(if $1,$(call WRAP_EXE_EXPORTS_LINKER,$2,$3,$(basename $(notdir $(IMP))).exp),$3$(if $(DEBUG), >&2))
+# note: send linker output to stderr
+WRAP_EXE_LINKER = $(if $1,$(call WRAP_EXE_EXPORTS_LINKER,$2,$3,$(basename $(notdir $(IMP))).exp),$3$(if $(DEBUG), >&2))
 
 # define EXE linker for variant $v
 # $$1 - target exe
 # $$2 - objects
 # $v - variant
-# target-specific: TMD, DEF, LDFLAGS, IMP, EXE_EXPORTS
+# target-specific: TMD, LDFLAGS, IMP, EXE_EXPORTS
 define EXE_LD_TEMPLATE
 $(empty)
-EXE_$v_LD1 = $$(call SUP,$$(TMD)XLINK,$$1)$$(call WRAP_EXE_LINKER,$$(EXE_EXPORTS),$$1,$$(call WRAP_LINKER,$$(VS$$(TMD)LD) \
-  /nologo $$(addprefix /DEF:,$$(call ospath,$$(DEF))) $(CMN_LIBS) $$(if $$(EXE_EXPORTS),/IMPLIB:$$(call \
+EXE_$v_LD1 = $$(call SUP,$$(TMD)XLINK,$$1)$$(call WRAP_EXE_LINKER,$$(EXE_EXPORTS),$$1,$$(call \
+  WRAP_LINKER,$$(VS$$(TMD)LD) /nologo $(CMN_LIBS) $$(if $$(EXE_EXPORTS),/IMPLIB:$$(call \
   ospath,$$(IMP))) $(DEF_SUBSYSTEM) $(EMBED_MANIFEST_OPTION) $$(LDFLAGS)))$$(call \
   DEL_DEF_MANIFEST_ON_FAIL,$$1,$$(EMBED_EXE_MANIFEST))
 endef
 $(eval $(foreach v,R $(VARIANTS_FILTER),$(EXE_LD_TEMPLATE)))
 
 # call dll linker and check that dll exports symbols, then strip-off message about generated .exp-file
-# send linker output to stderr
-# $1 - target dll
+# $1 - target dll/kdll
 # $2 - (wrapped) linker with options
 # $3 - $(basename $(notdir $(IMP))).exp
 # target-specific: LIB_DIR
-WRAP_DLL_EXPORTS_LINKER ?= (($(if $(DEBUG),$2 2>&1,($2) 3>&2 2>&1 1>&3) && (dir $(call ospath,$(LIB_DIR)/$3) >NUL 2>&1 || \
+# note: send linker output to stderr
+WRAP_DLL_EXPORTS_LINKER = (($(if $(DEBUG),$2 2>&1,($2) 3>&2 2>&1 1>&3) && (dir $(call ospath,$(LIB_DIR)/$3) >NUL 2>&1 || \
   ((echo $(notdir $1) does not exports any symbols!) & del $(ospath) & exit /b 1)) && echo DLL_EXP_LINKED_OK >&2) | \
   findstr /V /L $3) 3>&2 2>&1 1>&3 | findstr /B /L DLL_EXP_LINKED_OK >NUL
 
 # wrap dll linker call to check that dll exports symbols, then strip-off message about .exp-file
-# send linker output to stderr
-# $1 - target dll
-# $2 - (wrapped) linker with options
-# target-specific: IMP, DLL_NO_EXPORTS
-WRAP_DLL_LINKER ?= $(if $(DLL_NO_EXPORTS),$2$(if $(DEBUG), >&2),$(call WRAP_DLL_EXPORTS_LINKER,$1,$2,$(basename $(notdir $(IMP))).exp))
+# $1 - non-<empty> if dll/kdll do not exports symbols, <empty> - otherwise
+# $2 - target dll/kdll
+# $3 - (wrapped) linker with options
+# target-specific: IMP
+# note: send linker output to stderr
+WRAP_DLL_LINKER = $(if $1,$3$(if $(DEBUG), >&2),$(call WRAP_DLL_EXPORTS_LINKER,$2,$3,$(basename $(notdir $(IMP))).exp))
 
-# send linker output to stderr
 # define DLL linker for variant $v
 # $$1 - target dll
 # $$2 - objects
 # $v - variant
-# target-specific: TMD, DEF, LDFLAGS, IMP, DLL_NO_EXPORTS
+# target-specific: TMD, LDFLAGS, IMP, DLL_NO_EXPORTS
+# note: send linker output to stderr
 define DLL_LD_TEMPLATE
 $(empty)
-DLL_$v_LD1 = $$(call SUP,$$(TMD)LINK,$$1)$$(call WRAP_DLL_LINKER,$$1,$$(call WRAP_LINKER,$$(VS$$(TMD)LD) \
-  /nologo /DLL $$(addprefix /DEF:,$$(call ospath,$$(DEF))) $(CMN_LIBS) $$(if $$(DLL_NO_EXPORTS),,/IMPLIB:$$(call \
+DLL_$v_LD1 = $$(call SUP,$$(TMD)LINK,$$1)$$(call WRAP_DLL_LINKER,$$(DLL_NO_EXPORTS),$$1,$$(call \
+  WRAP_LINKER,$$(VS$$(TMD)LD) /nologo /DLL $(CMN_LIBS) $$(if $$(DLL_NO_EXPORTS),,/IMPLIB:$$(call \
   ospath,$$(IMP))) $(DEF_SUBSYSTEM) $(EMBED_MANIFEST_OPTION) $$(LDFLAGS)))$$(call \
   DEL_DEF_MANIFEST_ON_FAIL,$$1,$$(EMBED_DLL_MANIFEST))
 endef
@@ -392,16 +399,14 @@ $(eval $(foreach v,R $(VARIANTS_FILTER),$(DLL_LD_TEMPLATE)))
 # $$1 - target lib
 # $$2 - objects
 # $v - variant
-ifeq (undefined,$(origin DEF_LIB_LDFLAGS))
 DEF_LIB_LDFLAGS := $(if $(DEBUG),,/LTCG)
-endif
 
-# send linker output to stderr
 # define LIB linker for variant $v
 # $$1 - target lib
 # $$2 - objects
 # $v - variant
 # target-specific: TMD, LDFLAGS
+# note: send linker output to stderr
 define LIB_LD_TEMPLATE
 $(empty)
 LIB_$v_LD1 = $(call CHECK_LIB_UNI_NAME,LIB)$$(call SUP,$$(TMD)LIB,$$1)$$(VS$$(TMD)LD) \
@@ -412,15 +417,13 @@ $(eval $(foreach v,R $(VARIANTS_FILTER),$(LIB_LD_TEMPLATE)))
 # default linker flags for KLIB
 # $1 - target klib
 # $2 - objects
-ifeq (undefined,$(origin DEF_KLIB_LDFLAGS))
 DEF_KLIB_LDFLAGS := $(if $(DEBUG),,/LTCG)
-endif
 
 # define KLIB linker
-# send linker stdout to stderr
 # $1 - target klib
 # $2 - objects
 # target-specific: LDFLAGS
+# note: send linker stdout to stderr
 KLIB_R_LD1 = $(call SUP,KLIB,$1)$(WKLD) /lib /nologo /OUT:$(call ospath,$1 $2) $(DEF_KLIB_LDFLAGS) $(LDFLAGS) >&2
 
 # flags for application level C-compiler
@@ -449,19 +452,19 @@ CMN_CL1 = $(VS$(TMD)CL) /nologo /c $(APP_FLAGS) $(call SUBST_DEFINES,$(addprefix
 # $1 - outdir
 # $2 - sources
 # $3 - flags
-CMN_RCL  ?= $(CMN_CL1) /MD$(if $(DEBUG),d)
-CMN_SCL  ?= $(CMN_CL1) /MT$(if $(DEBUG),d)
-CMN_RUCL ?= $(CMN_RCL) /DUNICODE /D_UNICODE
-CMN_SUCL ?= $(CMN_SCL) /DUNICODE /D_UNICODE
+CMN_RCL  = $(CMN_CL1) /MD$(if $(DEBUG),d)
+CMN_SCL  = $(CMN_CL1) /MT$(if $(DEBUG),d)
+CMN_RUCL = $(CMN_RCL) /DUNICODE /D_UNICODE
+CMN_SUCL = $(CMN_SCL) /DUNICODE /D_UNICODE
 
 # $(SED) expression to match C compiler messages about included files
 ifeq (undefined,$(origin INCLUDING_FILE_PATTERN))
 # utf8 "Примечание: включение файла:"
-#INCLUDING_FILE_PATTERN ?= \xd0\x9f\xd1\x80\xd0\xb8\xd0\xbc\xd0\xb5\xd1\x87\xd0\xb0\xd0\xbd\xd0\xb8\xd0\xb5: \xd0\xb2\xd0\xba\xd0\xbb\xd1\x8e\xd1\x87\xd0\xb5\xd0\xbd\xd0\xb8\xd0\xb5 \xd1\x84\xd0\xb0\xd0\xb9\xd0\xbb\xd0\xb0:
+#INCLUDING_FILE_PATTERN := \xd0\x9f\xd1\x80\xd0\xb8\xd0\xbc\xd0\xb5\xd1\x87\xd0\xb0\xd0\xbd\xd0\xb8\xd0\xb5: \xd0\xb2\xd0\xba\xd0\xbb\xd1\x8e\xd1\x87\xd0\xb5\xd0\xbd\xd0\xb8\xd0\xb5 \xd1\x84\xd0\xb0\xd0\xb9\xd0\xbb\xd0\xb0:
 # cp1251 "Примечание: включение файла:"
-#INCLUDING_FILE_PATTERN ?= \xcf\xf0\xe8\xec\xe5\xf7\xe0\xed\xe8\xe5: \xe2\xea\xeb\xfe\xf7\xe5\xed\xe8\xe5 \xf4\xe0\xe9\xeb\xe0:
+#INCLUDING_FILE_PATTERN := \xcf\xf0\xe8\xec\xe5\xf7\xe0\xed\xe8\xe5: \xe2\xea\xeb\xfe\xf7\xe5\xed\xe8\xe5 \xf4\xe0\xe9\xeb\xe0:
 # cp1251 "Примечание: включение файла:"
-#INCLUDING_FILE_PATTERN ?= ����������: ��������� �����:
+#INCLUDING_FILE_PATTERN := ����������: ��������� �����:
 INCLUDING_FILE_PATTERN := Note: including file:
 endif
 
@@ -485,29 +488,29 @@ endif
 # s/ /\\ /g;                               - escape spaces in included file path
 # s@.*@&:\n$2: &@;w $4                     - make dependencies, then write to generated dep-file
 
-SED_DEPS_SCRIPT ?= \
+SED_DEPS_SCRIPT = \
 -e "s/\x0d//;/^$(notdir $3)$$/d;/^$(INCLUDING_FILE_PATTERN) /!{p;d;}" \
 -e "s/^$(INCLUDING_FILE_PATTERN)  *//;$(subst ?, ,$(foreach x,$5,\@^$x.*@Id;))s/ /\\ /g;s@.*@&:\n$2: &@;w $4"
 
 # WRAP_COMPILER - call compiler and auto-generate dependencies
-# send compiler output to stderr
 # $1 - compiler with options
 # $2 - target object
 # $3 - source
 # $4 - $(basename $2).d
 # $5 - prefixes of system includes
+# note: send compiler output to stderr
 ifeq ($(NO_DEPS),)
 ifneq ($(SEQ_BUILD),)
-WRAP_COMPILER ?= (($1 /showIncludes 2>&1 && set /p ="COMPILATION_OK" >&2 <NUL) | \
+WRAP_COMPILER = (($1 /showIncludes 2>&1 && set /p ="COMPILATION_OK" >&2 <NUL) | \
   ($(SED) -n $(SED_DEPS_SCRIPT) 2>&1 && set /p ="_SED_OK" >&2 <NUL)) 3>&2 2>&1 1>&3 | findstr /B /L COMPILATION_OK_SED_OK >NUL
 endif
 endif
 
-# send compiler output to stderr
 # if not generating auto-dependencies, just stip-off names of compiled sources
 # $1 - compiler with options
 # $3 - sources
-WRAP_COMPILER ?= (($1 2>&1 && echo COMPILATION_OK >&2) | findstr /V /B /L "$(notdir \
+# note: send compiler output to stderr
+WRAP_COMPILER = (($1 2>&1 && echo COMPILATION_OK >&2) | findstr /V /B /L "$(notdir \
   $3)") 3>&2 2>&1 1>&3 | findstr /B /L COMPILATION_OK >NUL
 
 ifdef SEQ_BUILD
@@ -521,11 +524,10 @@ ifdef SEQ_BUILD
 # $2 - source
 # $3 - compiler
 # target-specific: TMD, CFLAGS, CXXFLAGS
-CMN_CC ?= $(call SUP,$(TMD)CC,$2)$(call WRAP_COMPILER,$(call $3,$(dir $1),$2,$(CFLAGS)),$1,$2,$(basename $1).d,$(UDEPS_INCLUDE_FILTER))
-CMN_CXX ?= $(call SUP,$(TMD)CXX,$2)$(call WRAP_COMPILER,$(call $3,$(dir $1),$2,$(CXXFLAGS)),$1,$2,$(basename $1).d,$(UDEPS_INCLUDE_FILTER))
+CMN_CC = $(call SUP,$(TMD)CC,$2)$(call WRAP_COMPILER,$(call $3,$(dir $1),$2,$(CFLAGS)),$1,$2,$(basename $1).d,$(UDEPS_INCLUDE_FILTER))
+CMN_CXX = $(call SUP,$(TMD)CXX,$2)$(call WRAP_COMPILER,$(call $3,$(dir $1),$2,$(CXXFLAGS)),$1,$2,$(basename $1).d,$(UDEPS_INCLUDE_FILTER))
 
 # define compilers for different target variants
-ifndef SEQ_COMPILERS_TEMPLATE
 define SEQ_COMPILERS_TEMPLATE
 $(empty)
 # $1 - target object, $2 - source
@@ -541,7 +543,6 @@ DLL_$v_LD = $$(DLL_$v_LD1)
 LIB_$v_LD = $$(LIB_$v_LD1)
 $(empty)
 endef
-endif
 $(eval $(foreach v,R $(VARIANTS_FILTER),$(SEQ_COMPILERS_TEMPLATE)))
 
 # option for parallel builds, starting from Visual Studio 2013
@@ -601,15 +602,14 @@ CMN_SUMCL = $(call CMN_SMCL,$1,$2,/DUNICODE /D_UNICODE )
 # also recompile sources that are dependent on changed sources
 # $1 - $(SDEPS) - list of sdeps: <source file>|<dependency1>|<dependency2>|...
 FILTER_SDEPS1 = $(if $(filter $(wordlist 2,999999,$1),$?),$(firstword $1))
-FILTER_SDEPS ?= $(foreach d,$1,$(call FILTER_SDEPS1,$(subst |, ,$d)))
+FILTER_SDEPS = $(foreach d,$1,$(call FILTER_SDEPS1,$(subst |, ,$d)))
 
 # $1 - target
 # $2 - objects
 # $3 - CMN_RMCL, CMN_SMCL, CMN_RUMCL, CMN_SUMCL
 # target-specific: SRC, SDEPS
-CMN_MCL ?= $(call $3,$(dir $(firstword $2)),$(sort $(filter $(SRC),$? $(call FILTER_SDEPS,$(SDEPS)))))
+CMN_MCL = $(call $3,$(dir $(firstword $2)),$(sort $(filter $(SRC),$? $(call FILTER_SDEPS,$(SDEPS)))))
 
-ifndef MULTI_COMPILERS_TEMPLATE
 define MULTI_COMPILERS_TEMPLATE
 # $$1 - target EXE,LIB,DLL,... $$2 - objects
 EXE_$v_LD  = $$(call CMN_MCL,$$1,$$2,CMN_$vMCL)$$(EXE_$v_LD1)
@@ -623,25 +623,44 @@ PCH_$v_CXX = $$(call SUP,$$(TMD)PCHCXX,$$2)$$(call WRAP_COMPILER,$$(call CMN_$vC
   $$(notdir $$2)) /Fp$$(dir $$1)$$(basename $$(notdir $$3))_cpp.pch $$(CXXFLAGS)),$$1,$$2,$$(basename $$1).d,$(UDEPS_INCLUDE_FILTER))
 $(empty)
 endef
-endif
 $(eval $(foreach v,R $(VARIANTS_FILTER),$(MULTI_COMPILERS_TEMPLATE)))
 
 endif # !SEQ_BUILD
 
-DEF_DRV_LDFLAGS ?= \
+DEF_DRV_LDFLAGS = \
   /INCREMENTAL:NO $(if $(DEBUG),/DEBUG,/RELEASE /LTCG /OPT:REF) /DRIVER /FULLBUILD \
   /NODEFAULTLIB /SAFESEH:NO /MANIFEST:NO /MERGE:_PAGE=PAGE /MERGE:_TEXT=.text /MERGE:.rdata=.text \
   /SECTION:INIT,d /ENTRY:DriverEntry /ALIGN:0x40 /BASE:0x10000 /STACK:0x40000,0x1000 \
   /MACHINE:$(if $(KCPU:%64=),x86,x64) /SUBSYSTEM:NATIVE,$(SUBSYSTEM_KVER)
 
-# send linker output to stderr
-# $1 - target
+# common parts of linker options for built DRV or KDLL
+# $1 - target exe or dll
 # $2 - objects
+# $v - variant: R
+# target-specific: MODVER, DEF, RES, LIBS, KDLLS, LIB_DIR, SYSLIBPATH, SYSLIBS
+CMN_KLIBS = /OUT:$(ospath) /VERSION:$(call MK_MAJ_MIN_VER,$(MODVER)) $(addprefix \
+  /DEF:,$(call ospath,$(DEF))) $(DEF_DRV_LDFLAGS) $(call ospath,$2 $(RES)) $(if \
+  $(firstword $(KLIBS)$(KDLLS)),/LIBPATH:$(call ospath,$(LIB_DIR))) $(addprefix \
+  $(KLIB_PREFIX),$(KLIBS:=$(KLIB_SUFFIX))) $(addprefix $(KIMP_PREFIX),$(KDLLS:=$(KIMP_SUFFIX))) $(call \
+  qpath,$(call ospath,$(SYSLIBPATH)),/LIBPATH:) $(SYSLIBS)
+
+# define KDLL linker
+# $1 - target kdll
+# $2 - objects
+# $v - variant: R
+# target-specific: DEF, LDFLAGS, IMP, KDLL_NO_EXPORTS
+# note: send linker output to stderr
+KDLL_R_LD1 = $(call SUP,KLINK,$1)$(call WRAP_DLL_LINKER,$(KDLL_NO_EXPORTS),$1,$(call \
+  WRAP_LINKER,$(WKLD) /nologo /DLL $(CMN_KLIBS) $(if $(KDLL_NO_EXPORTS),,/IMPLIB:$(call ospath,$(IMP))) $(LDFLAGS)))
+
+# define DRV linker
+# $1 - target drv
+# $2 - objects
+# $v - variant: R
 # target-specific: MODVER, RES, KLIBS, SYSLIBPATH, SYSLIBS, LDFLAGS, DEF, IMP, DRV_EXPORTS
-DRV_R_LD1 = $(call SUP,KLINK,$1)$(call WRAP_EXE_LINKER,$(DRV_EXPORTS),$1,$(call WRAP_LINKER,$(WKLD) /nologo /VERSION:$(call \
-  MK_MAJ_MIN_VER,$(MODVER)) $(DEF_DRV_LDFLAGS) /OUT:$(call ospath,$1 $2 $(RES)) $(addprefix /DEF:,$(call ospath,$(DEF))) $(if \
-  $(DRV_EXPORTS),/IMPLIB:$(call ospath,$(IMP))) $(if $(KLIBS),/LIBPATH:$(call ospath,$(LIB_DIR))) $(addprefix \
-  $(KLIB_PREFIX),$(KLIBS:=$(KLIB_SUFFIX))) $(call qpath,$(call ospath,$(SYSLIBPATH)),/LIBPATH:) $(SYSLIBS) $(LDFLAGS)))
+# note: send linker output to stderr
+DRV_R_LD1 = $(call SUP,KLINK,$1)$(call WRAP_EXE_LINKER,$(DRV_EXPORTS),$1,$(call \
+  WRAP_LINKER,$(WKLD) /nologo $(CMN_KLIBS) $(if $(DRV_EXPORTS),/IMPLIB:$(call ospath,$(IMP))) $(LDFLAGS)))
 
 # flags for kernel-level C-compiler
 ifeq (undefined,$(origin KRN_FLAGS))
@@ -657,7 +676,7 @@ endif
 # $2 - sources
 # $3 - flags
 # target-specific: DEFINES, INCLUDE
-CMN_KCL ?= $(WKCL) /nologo /c $(KRN_FLAGS) $(call SUBST_DEFINES,$(addprefix /D,$(DEFINES))) $(call \
+CMN_KCL = $(WKCL) /nologo /c $(KRN_FLAGS) $(call SUBST_DEFINES,$(addprefix /D,$(DEFINES))) $(call \
   qpath,$(call ospath,$(INCLUDE)) $(KMINC),/I) /Fo$(ospath) /Fd$(ospath) $3 $(call ospath,$2)
 
 ifdef SEQ_BUILD
@@ -676,19 +695,22 @@ endif
 # $1 - target
 # $2 - source
 # target-specific: CFLAGS, CXXFLAGS
-CMN_KCC ?= $(call SUP,KCC,$2)$(call WRAP_COMPILER,$(call CMN_KCL,$(dir $1),$2,$(CFLAGS)),$1,$2,$(basename $1).d,$(KDEPS_INCLUDE_FILTER))
-CMN_KCXX ?= $(call SUP,KCXX,$2)$(call WRAP_COMPILER,$(call CMN_KCL,$(dir $1),$2,$(CXXFLAGS)),$1,$2,$(basename $1).d,$(KDEPS_INCLUDE_FILTER))
+CMN_KCC = $(call SUP,KCC,$2)$(call WRAP_COMPILER,$(call CMN_KCL,$(dir $1),$2,$(CFLAGS)),$1,$2,$(basename $1).d,$(KDEPS_INCLUDE_FILTER))
+CMN_KCXX = $(call SUP,KCXX,$2)$(call WRAP_COMPILER,$(call CMN_KCL,$(dir $1),$2,$(CXXFLAGS)),$1,$2,$(basename $1).d,$(KDEPS_INCLUDE_FILTER))
 
 # $1 - target
 # $2 - source
 KLIB_R_CC  = $(CMN_KCC)
 DRV_R_CC   = $(CMN_KCC)
+KDLL_R_CC  = $(CMN_KCC)
 KLIB_R_CXX = $(CMN_KCXX)
 DRV_R_CXX  = $(CMN_KCXX)
+KDLL_R_CXX = $(CMN_KCXX)
 KLIB_R_LD  = $(KLIB_R_LD1)
 DRV_R_LD   = $(DRV_R_LD1)
+KDLL_R_LD  = $(KDLL_R_LD1)
 
-FORCE_SYNC_PDB_KERN ?= $(FORCE_SYNC_PDB)
+FORCE_SYNC_PDB_KERN = $(FORCE_SYNC_PDB)
 
 # option for parallel builds, starting from Visual Studio 2013
 KRN_FLAGS += $(FORCE_SYNC_PDB_KERN) #/FS
@@ -736,12 +758,13 @@ CMN_MKCL1 = $(call CMN_MKCL2,$1,$(filter %.c,$2),$(filter %.cpp,$2))
 # $1 - target
 # $2 - objects
 # target-specific: SRC, SDEPS
-CMN_MKCL ?= $(call CMN_MKCL1,$(dir $(firstword $2)),$(sort $(filter $(SRC),$? $(call FILTER_SDEPS,$(SDEPS)))))
+CMN_MKCL = $(call CMN_MKCL1,$(dir $(firstword $2)),$(sort $(filter $(SRC),$? $(call FILTER_SDEPS,$(SDEPS)))))
 
 # $1 - target
 # $2 - objects
 KLIB_R_LD = $(CMN_MKCL)$(KLIB_R_LD1)
 DRV_R_LD  = $(CMN_MKCL)$(DRV_R_LD1)
+KDLL_R_LD = $(CMN_MKCL)$(KDLL_R_LD1)
 
 # $1 - target
 # $2 - pch-source
@@ -758,13 +781,13 @@ endif # !SEQ_BUILD
 # $1 - target
 # $2 - asm-source
 # target-specific: ASMFLAGS
-KLIB_R_ASM ?= $(call SUP,ASM,$2)$(YASMC) -o $(call ospath,$1 $2) $(ASMFLAGS)
-DRV_R_ASM  ?= $(KLIB_R_ASM)
+KLIB_R_ASM = $(call SUP,ASM,$2)$(YASMC) -o $(call ospath,$1 $2) $(ASMFLAGS)
+DRV_R_ASM  = $(KLIB_R_ASM)
 
 # $1 - target
 # $2 - source
-BISON ?= $(call SUP,BISON,$2)$(BISONC) -o $(ospath) -d --fixed-output-files $(call ospath,$(call abspath,$2))
-FLEX  ?= $(call SUP,FLEX,$2)$(FLEXC) -o$(call ospath,$1 $2)
+BISON = $(call SUP,BISON,$2)$(BISONC) -o $(ospath) -d --fixed-output-files $(call ospath,$(call abspath,$2))
+FLEX  = $(call SUP,FLEX,$2)$(FLEXC) -o$(call ospath,$1 $2)
 
 ifndef SEQ_BUILD
 
@@ -829,7 +852,7 @@ PCH_TEMPLATE3 = $(PCH_TEMPLATE1)$(foreach v,$(call GET_VARIANTS,$t),$(call \
 # note: must reset target-specific WITH_PCH if not using precompiled header, otherwise:
 # - DLL or LIB target may inherit WITH_PCH value from EXE,
 # - LIB target may inherit WITH_PCH value from DLL
-PCH_TEMPLATE ?= $(if $(word 2,$(PCH) $(WITH_PCH)),$(call \
+PCH_TEMPLATE = $(if $(word 2,$(PCH) $(WITH_PCH)),$(call \
   PCH_TEMPLATE3,$(call GET_TARGET_NAME,$t),$$(basename $$(notdir $$(TRG_PCH))),$(if $(findstring DRV,$t),K)),$(foreach \
   v,$(call GET_VARIANTS,$t),$(call FORM_TRG,$t,$v): WITH_PCH:=$(newline)))
 
@@ -838,17 +861,17 @@ endif # !SEQ_BUILD
 # function to add (generated?) sources to $(WITH_PCH) list - to compile sources with pch header
 # $1 - EXE,LIB,DLL,...
 # $2 - sources
-ADD_WITH_PCH ?= $(eval WITH_PCH += $2)
+ADD_WITH_PCH = $(eval WITH_PCH += $2)
 
 # auxiliary dependencies
 
 # get dependencies of all sources
-TRG_ALL_SDEPS ?= $(call FIXPATH,$(sort $(foreach d,$(SDEPS),$(wordlist 2,999999,$(subst |, ,$d)))))
+TRG_ALL_SDEPS = $(call FIXPATH,$(sort $(foreach d,$(SDEPS),$(wordlist 2,999999,$(subst |, ,$d)))))
 
 # generate import library path
 # $1 - built dll name without optional variant suffix
 # $2 - built dll variant
-MAKE_IMP_PATH ?= $(IMP_DIR)/$(IMP_PREFIX)$1$(call LIB_VAR_SUFFIX,$2)$(IMP_SUFFIX)
+MAKE_IMP_PATH = $(LIB_DIR)/$(IMP_PREFIX)$1$(call LIB_VAR_SUFFIX,$2)$(IMP_SUFFIX)
 
 # for DLL or EXE that exports symbols
 # $1 - $(call FORM_TRG,$t,$v)
@@ -859,8 +882,8 @@ MAKE_IMP_PATH ?= $(IMP_DIR)/$(IMP_PREFIX)$1$(call LIB_VAR_SUFFIX,$2)$(IMP_SUFFIX
 define EXPORTS_TEMPLATE1
 $1: IMP := $3
 $1: DEF := $2
-$1: $2 | $(IMP_DIR)
-NEEDED_DIRS += $(IMP_DIR)
+$1: $2 | $(LIB_DIR)
+NEEDED_DIRS += $(LIB_DIR)
 $3: $1
 ifdef DEBUG
 $(call TOCLEAN,$3 $(3:$(IMP_SUFFIX)=.exp))
@@ -882,7 +905,7 @@ endef
 # $t - DLL, EXE or DRV
 # $n - $(call GET_TARGET_NAME,$t)
 # $v - R,S
-EXPORTS_TEMPLATE ?= $(if $3,$(call EXPORTS_TEMPLATE1,$1,$2,$(call MAKE_IMP_PATH,$n,$v)),$(NO_EXPORTS_TEMPLATE))
+EXPORTS_TEMPLATE = $(if $3,$(call EXPORTS_TEMPLATE1,$1,$2,$(call MAKE_IMP_PATH,$n,$v)),$(NO_EXPORTS_TEMPLATE))
 
 # $1 - $(TRG_SRC)
 # $2 - $(TRG_SDEPS)
@@ -941,17 +964,15 @@ EXP_AUX_TEMPLATE1 = $(foreach n,$(call GET_TARGET_NAME,$t),$(foreach v,$(call GE
 # - precompiled header
 # - target-specific SRC and SDEPS (for CMN_MCL) and IMP (for EXE_LD_TEMPLATE/DLL_LD_TEMPLATE)
 # $t - EXE or DLL
-ifndef EXP_AUX_TEMPLATE
 define EXP_AUX_TEMPLATE
 $(call STD_RES_TEMPLATE,$t)
 $(PCH_TEMPLATE)
 $(call EXP_AUX_TEMPLATE1,$(TRG_SRC),$(TRG_SDEPS),$(TRG_ALL_SDEPS),$(call FIXPATH,$(DEF)))
 endef
-endif
 
 # called by OS_DEFINE_TARGETS
-EXE_AUX_TEMPLATE ?= $(EXP_AUX_TEMPLATE)
-DLL_AUX_TEMPLATE ?= $(EXP_AUX_TEMPLATE)
+EXE_AUX_TEMPLATE = $(EXP_AUX_TEMPLATE)
+DLL_AUX_TEMPLATE = $(EXP_AUX_TEMPLATE)
 
 # $1 - $(TRG_SRC)
 # $2 - $(TRG_SDEPS)
@@ -981,7 +1002,6 @@ ARC_AUX_TEMPLATE1 = $(foreach v,$(call GET_VARIANTS,$t),$(call \
 # - precompiled header
 # - target-specific SRC and SDEPS (for CMN_MCL)
 # $t - LIB or KLIB
-ifndef ARC_AUX_TEMPLATE
 define ARC_AUX_TEMPLATE
 $(empty)
 ifneq ($(RES),)
@@ -990,11 +1010,10 @@ endif
 $(PCH_TEMPLATE)
 $(call ARC_AUX_TEMPLATE1,$(TRG_SRC),$(TRG_SDEPS),$(TRG_ALL_SDEPS))
 endef
-endif
 
 # called by OS_DEFINE_TARGETS
-LIB_AUX_TEMPLATE ?= $(ARC_AUX_TEMPLATE)
-KLIB_AUX_TEMPLATE ?= $(ARC_AUX_TEMPLATE)
+LIB_AUX_TEMPLATE = $(ARC_AUX_TEMPLATE)
+KLIB_AUX_TEMPLATE = $(ARC_AUX_TEMPLATE)
 
 # $1 - $(GEN_DIR)/$(call GET_TARGET_NAME,$t)_$t_MC (for $t - EXE,DLL,...)
 # $2 - $(basename $(notdir $3))
@@ -1010,7 +1029,7 @@ endef
 # note: in target makefile may $(call ADD_RES_RULE,TRG,$(MC_RC)) to add .res-file compiled from $(MC_RC) to a target
 # $1 - EXE,DLL,...
 # $2 - NTServiceEventLogMsg.mc (either absolute or makefile-related)
-ADD_MC_RULE ?= $(eval $(call ADD_MC_RULE1,$(GEN_DIR)/$(call GET_TARGET_NAME,$1)_$1_MC,$(basename $(notdir $2)),$2))
+ADD_MC_RULE = $(eval $(call ADD_MC_RULE1,$(GEN_DIR)/$(call GET_TARGET_NAME,$1)_$1_MC,$(basename $(notdir $2)),$2))
 
 # rules to build auxiliary resources
 # note: must be recursive macro - to delay expansion of RC options,
@@ -1042,20 +1061,18 @@ endef
 # $3 - options for RC
 # $4 - optional deps for .res
 # NOTE: $3 - options for RC are expanded in $(OS_DEFINE_TARGETS), after including USEs
-ADD_RES_RULE ?= $(eval CB_WINXX_RES_RULES += $(subst $(newline),$$(newline),$(call ADD_RES_RULE1,$1,$2,$3,$4,$(call FORM_OBJ_DIR,$1))))
+ADD_RES_RULE = $(eval CB_WINXX_RES_RULES += $(subst $(newline),$$(newline),$(call ADD_RES_RULE1,$1,$2,$3,$4,$(call FORM_OBJ_DIR,$1))))
 
 # used to specify path to some resource for rc.exe via /DMY_BMP=$(call RC_DEFINE_PATH,$(TOP)/xx/yy/tt.bmp)
-RC_DEFINE_PATH ?= "\"$(subst \,\\,$(ospath))\""
+RC_DEFINE_PATH = "\"$(subst \,\\,$(ospath))\""
 
-# how to build driver, used by $(C_RULES)
 # $1 - target file: $(call FORM_TRG,$t,$v)
 # $2 - sources:     $(TRG_SRC)
 # $3 - sdeps:       $(TRG_SDEPS)
 # $4 - objdir:      $(call FORM_OBJ_DIR,$t,$v)
-# $t - DRV
+# $t - DRV or KDLL
 # $v - non-empty variant: R
-ifndef DRV_TEMPLATE
-define DRV_TEMPLATE
+define DRV_TEMPLATE1
 $(call STD_RES_TEMPLATE,$t)
 $(PCH_TEMPLATE)
 $(STD_TARGET_VARS)
@@ -1069,6 +1086,7 @@ $1: MODVER      := $(MODVER)
 $1: COMPILER    := $(if $(filter %.cpp,$2),CXX,CC)
 $1: LIB_DIR     := $(LIB_DIR)
 $1: KLIBS       := $(KLIBS)
+$1: KDLLS       := $(KDLLS)
 $1: INCLUDE     := $(TRG_INCLUDE)
 $1: DEFINES     := $(CMNDEFINES) $(KRNDEFS) $(DEFINES)
 $1: CFLAGS      := $(CFLAGS)
@@ -1077,13 +1095,29 @@ $1: ASMFLAGS    := $(ASMFLAGS)
 $1: LDFLAGS     := $(LDFLAGS)
 $1: SYSLIBS     := $(SYSLIBS)
 $1: SYSLIBPATH  := $(SYSLIBPATH)
-$1: $(addprefix $(LIB_DIR)/$(KLIB_PREFIX),$(KLIBS:=$(KLIB_SUFFIX))) $2 $(TRG_ALL_SDEPS)
+$1: $(addprefix $(LIB_DIR)/,$(addprefix \
+  $(KLIB_PREFIX),$(KLIBS:=$(KLIB_SUFFIX))) $(addprefix \
+  $(KIMP_PREFIX),$(KDLLS:=$(KIMP_SUFFIX)))) $2 $(TRG_ALL_SDEPS)
 	$$(call $t_$v_LD,$$@,$$(filter %$(OBJ_SUFFIX),$$^))
-ifdef DEBUG
-$(call TOCLEAN,$4/vc*.pdb $(1:$(DRV_SUFFIX)=.pdb))
-endif
 endef
-endif
+
+# how to build driver, used by $(C_RULES)
+# $1 - target file: $(call FORM_TRG,$t,$v)
+# $2 - sources:     $(TRG_SRC)
+# $3 - sdeps:       $(TRG_SDEPS)
+# $4 - objdir:      $(call FORM_OBJ_DIR,$t,$v)
+# $t - DRV
+# $v - non-empty variant: R
+DRV_TEMPLATE = $(DRV_TEMPLATE1)$(call TOCLEAN,$4/vc*.pdb $(1:$(DRV_SUFFIX)=.pdb))
+
+# how to build kernel shared library, used by $(C_RULES)
+# $1 - target file: $(call FORM_TRG,$t,$v)
+# $2 - sources:     $(TRG_SRC)
+# $3 - sdeps:       $(TRG_SDEPS)
+# $4 - objdir:      $(call FORM_OBJ_DIR,$t,$v)
+# $t - KDLL
+# $v - non-empty variant: R
+KDLL_TEMPLATE = $(DRV_TEMPLATE1)$(call TOCLEAN,$4/vc*.pdb $(1:$(KDLL_SUFFIX)=.pdb))
 
 # $1 - $(call FORM_TRG,$t,$v)
 # $2 - $(call FIXPATH,$(DEF))
@@ -1096,37 +1130,52 @@ $1: DRV_EXPORTS := $(DRV_EXPORTS)
 $(call EXPORTS_TEMPLATE,$1,$2,$(DRV_EXPORTS))
 endef
 
+# $1 - $(call FORM_TRG,$t,$v)
+# $2 - $(call FIXPATH,$(DEF))
+# $t - KDLL
+# $n - $(call GET_TARGET_NAME,$t)
+# $v - R
+define KDLL_AUX_TEMPLATE2
+$(empty)
+$1: KDLL_NO_EXPORTS := $(KDLL_NO_EXPORTS)
+$(call EXPORTS_TEMPLATE,$1,$2,$(if $(KDLL_NO_EXPORTS),,1))
+endef
+
 # $1 - $(call FIXPATH,$(DEF))
-# $t - DRV
-DRV_AUX_TEMPLATE1 = $(foreach n,$(call GET_TARGET_NAME,$t),$(foreach v,$(call GET_VARIANTS,$t),$(call \
-  DRV_AUX_TEMPLATE2,$(call FORM_TRG,$t,$v),$1)))
+# $t - DRV or KDLL
+KEXP_AUX_TEMPLATE1 = $(foreach n,$(call GET_TARGET_NAME,$t),$(foreach v,$(call GET_VARIANTS,$t),$(call \
+  $t_AUX_TEMPLATE2,$(call FORM_TRG,$t,$v),$1)))
+
+# $t - DRV or KDLL
+KEXP_AUX_TEMPLATE = $(call KEXP_AUX_TEMPLATE1,$(call FIXPATH,$(DEF)))
 
 # called by OS_DEFINE_TARGETS
-# $t - DRV
-DRV_AUX_TEMPLATE ?= $(call DRV_AUX_TEMPLATE1,$(call FIXPATH,$(DEF)))
+# $t - DRV or KDLL
+DRV_AUX_TEMPLATE = $(KEXP_AUX_TEMPLATE)
+KDLL_AUX_TEMPLATE = $(KEXP_AUX_TEMPLATE)
 
 # this code is evaluated from $(DEFINE_TARGETS)
 # NOTE: $(STD_RES_TEMPLATE) adds standard resource to RES, so postpone evaluation of $(RES) when adding it to CLEAN
-# NOTE: reset NO_STD_RES     - it may be temporary set to disable adding standard resource to the target
-# NOTE: reset DLL_NO_EXPORTS - it may be defined to pass check that DLL must export symbols
-# NOTE: reset EXE_EXPORTS    - it may be defined to strip-off diagnostic linker message about exe-exported symbols
-# NOTE: reset DRV_EXPORTS    - it may be defined to strip-off diagnostic linker message about drv-exported symbols
-ifndef OS_DEFINE_TARGETS
+# NOTE: reset NO_STD_RES      - it may be temporary set to disable adding standard resource to the target
+# NOTE: reset DLL_NO_EXPORTS  - it may be defined to pass check that DLL must export symbols
+# NOTE: reset EXE_EXPORTS     - it may be defined to strip-off diagnostic linker message about exe-exported symbols
+# NOTE: reset DRV_EXPORTS     - it may be defined to strip-off diagnostic linker message about drv-exported symbols
+# NOTE: reset KDLL_NO_EXPORTS - it may be defined to pass check that KDLL must export symbols
 define OS_DEFINE_TARGETS
 $(subst $$(newline),$(newline),$(value CB_WINXX_RES_RULES))
-$(foreach t,EXE DLL LIB KLIB DRV,$(if $($t),$($t_AUX_TEMPLATE)))
+$(foreach t,EXE DLL LIB KLIB DRV KDLL,$(if $($t),$($t_AUX_TEMPLATE)))
 $$(call TOCLEAN,$$(RES))
 CB_WINXX_RES_RULES=
 NO_STD_RES:=
 DLL_NO_EXPORTS:=
 EXE_EXPORTS:=
 DRV_EXPORTS:=
+KDLL_NO_EXPORTS:=
 endef
-endif
 
 # protect variables from modifications in target makefiles
 $(call CLEAN_BUILD_PROTECT_VARS,SEQ_BUILD YASMC FLEXC BISONC MC MC_STRIP_STRINGS WRAP_MC SUPPRESS_RC_LOGO RC_LOGO_STRINGS WRAP_RC RC \
-  SUBSYSTEM_KVER EMBED_MANIFEST_OPTION EMBED_EXE_MANIFEST EMBED_DLL_MANIFEST \
+  KIMP_PREFIX KIMP_SUFFIX SUBSYSTEM_KVER EMBED_MANIFEST_OPTION EMBED_EXE_MANIFEST EMBED_DLL_MANIFEST \
   CHECK_LIB_UNI_NAME1 CHECK_LIB_UNI_NAME MK_MAJ_MIN_VER CMN_LIBS_LDFLAGS CMN_LIBS \
   DLL_EXPORTS_DEFINE DLL_IMPORTS_DEFINE \
   DEF_SUBSYSTEM LINKER_STRIP_STRINGS WRAP_LINKER DEL_DEF_MANIFEST_ON_FAIL \
@@ -1140,11 +1189,12 @@ $(call CLEAN_BUILD_PROTECT_VARS,SEQ_BUILD YASMC FLEXC BISONC MC MC_STRIP_STRINGS
   MCL_MAX_COUNT CALL_MCC CALL_MCXX CALL_MPCC CALL_MPCXX CMN_MCL2 CMN_MCL1 CMN_RMCL CMN_SMCL CMN_RUMCL CMN_SUMCL \
   FILTER_SDEPS1 FILTER_SDEPS CMN_MCL MULTI_COMPILERS_TEMPLATE \
   $(foreach v,R $(VARIANTS_FILTER),PCH_$v_CC PCH_$v_CXX) \
-  DEF_DRV_LDFLAGS DRV_R_LD1 KRN_FLAGS CMN_KCL KDEPS_INCLUDE_FILTER CMN_KCC CMN_KCXX \
-  KLIB_R_CC DRV_R_CC KLIB_R_CXX DRV_R_CXX KLIB_R_LD DRV_R_LD FORCE_SYNC_PDB_KERN \
+  DEF_DRV_LDFLAGS CMN_KLIBS KDLL_R_LD1 DRV_R_LD1 KRN_FLAGS CMN_KCL KDEPS_INCLUDE_FILTER CMN_KCC CMN_KCXX \
+  KLIB_R_CC DRV_R_CC KDLL_R_CC KLIB_R_CXX DRV_R_CXX KDLL_R_CXX KLIB_R_LD DRV_R_LD KDLL_R_LD FORCE_SYNC_PDB_KERN \
   CALL_MKCC CALL_MKCXX CALL_MPKCC CALL_MPKCXX CMN_MKCL3 CMN_MKCL2 CMN_MKCL1 CMN_MKCL PCH_K_CC PCH_K_CXX KLIB_R_ASM BISON FLEX \
   PCH_TEMPLATE1 PCH_TEMPLATE2 PCH_TEMPLATE3 PCH_TEMPLATE ADD_WITH_PCH \
   TRG_ALL_SDEPS MAKE_IMP_PATH EXPORTS_TEMPLATE1 NO_EXPORTS_TEMPLATE EXPORTS_TEMPLATE \
   EXE_AUX_TEMPLATE2 DLL_AUX_TEMPLATE2 EXP_AUX_TEMPLATE1 EXP_AUX_TEMPLATE EXE_AUX_TEMPLATE DLL_AUX_TEMPLATE \
   ARC_AUX_TEMPLATE2 ARC_AUX_TEMPLATE1 ARC_AUX_TEMPLATE LIB_AUX_TEMPLATE KLIB_AUX_TEMPLATE \
-  ADD_MC_RULE1 ADD_MC_RULE ADD_RES_RULE1 ADD_RES_RULE RC_DEFINE_PATH DRV_AUX_TEMPLATE2 DRV_AUX_TEMPLATE1 DRV_AUX_TEMPLATE)
+  ADD_MC_RULE1 ADD_MC_RULE ADD_RES_RULE1 ADD_RES_RULE RC_DEFINE_PATH \
+  DRV_TEMPLATE1 KDLL_TEMPLATE DRV_AUX_TEMPLATE2 KDLL_AUX_TEMPLATE2 KEXP_AUX_TEMPLATE1 KEXP_AUX_TEMPLATE DRV_AUX_TEMPLATE KDLL_AUX_TEMPLATE)
