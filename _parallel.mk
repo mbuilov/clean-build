@@ -16,7 +16,7 @@ NORM_MAKEFILES = $(patsubst %.mk/Makefile$2,%.mk$2,$(patsubst $(TOP)/%,%/Makefil
 # note: $(ORDER_DEPS) - names of dependency makefiles with '-' suffix
 # note: reset MDEPS to not update ORDER_DEPS on each evaluation of STD_TARGET_VARS in target makefile
 APPEND_MDEPS1 = $(if $1,$1:$(newline)ORDER_DEPS+=$1$(newline))
-APPEND_MDEPS ?= $(call APPEND_MDEPS1,$(filter-out $(ORDER_DEPS),$(call NORM_MAKEFILES,$(MDEPS),-)))MDEPS:=
+APPEND_MDEPS = $(call APPEND_MDEPS1,$(filter-out $(ORDER_DEPS),$(call NORM_MAKEFILES,$(MDEPS),-)))MDEPS:=
 
 # overwrite code for adding $(MDEPS) - list of makefiles that need to be built before target makefile - to $(ORDER_DEPS)
 FIX_ORDER_DEPS = $(APPEND_MDEPS)
