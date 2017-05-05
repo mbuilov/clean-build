@@ -22,9 +22,11 @@ ifndef TOP
 $(error TOP undefined, example: C:/opt/project,/home/oper/project)
 endif
 
-# make TOP non-recursive (simple)
-# note: TOP may be taken from environment
-TOP := $(TOP)
+# to allow building multiple projects in the same environment,
+# TOP should be defined in command line or project configuration file, rather than in environment
+ifeq ("environment","$(origin TOP)")
+$(error TOP should not be taken from environment)
+endif
 
 $(call CHECK_TOP,TOP)
 
@@ -33,9 +35,11 @@ ifndef BUILD
 BUILD := $(TOP)/build
 else
 
-# note: make BUILD non-recursive (simple)
-# note: BUILD may be taken from environment
-BUILD := $(BUILD)
+# to allow building multiple projects in the same environment,
+# BUILD should be defined in command line or project configuration file, rather than in environment
+ifeq ("environment","$(origin BUILD)")
+$(error BUILD should not be taken from environment)
+endif
 
 $(call CHECK_TOP,BUILD)
 

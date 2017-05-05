@@ -47,6 +47,9 @@ clean:
 # build all to build or run tests
 check tests: all
 
+# define install/uninstall targets by default
+NO_CLEAN_BUILD_INSTALL_UNINSTALL:=
+
 ifndef NO_CLEAN_BUILD_INSTALL_UNINSTALL
 
 install:

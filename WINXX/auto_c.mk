@@ -6,50 +6,55 @@
 
 # run via $(MAKE) A=1 to show autoconf results
 ifeq ("$(origin A)","command line")
-VAUTO := $A
+VAUTO := $(A:0=)
+else
+VAUTO:=
 endif
 
-# 0 -> $(empty)
-VAUTO := $(VAUTO:0=)
+# supported target windows variants
+WINVARIANTS := WINXP WINV WIN7 WIN8 WIN81 WIN10
 
-OSVARIANTS := WINXP WINV WIN7 WIN8 WIN81 WIN10
+# default target variant
+WINVARIANT := WINXP
 
-ifeq ($(filter $(OSVARIANT),$(OSVARIANTS)),)
-$(error OSVARIANT undefined or has wrong value, pick on of: $(OSVARIANTS))
+ifeq ($(filter $(WINVARIANT),$(WINVARIANTS)),)
+$(error WINVARIANT undefined or has wrong value, pick on of: $(WINVARIANTS))
 endif
 
-# note: WINVER_DEFINES may be defined as empty
-ifeq ($(OSVARIANT),WIN10)
+ifeq ($(WINVARIANT),WIN10)
 WINVER_DEFINES := WINVER=0x0A00 _WIN32_WINNT=0x0A00
-else ifeq ($(OSVARIANT),WIN81)
+else ifeq ($(WINVARIANT),WIN81)
 WINVER_DEFINES := WINVER=0x0603 _WIN32_WINNT=0x0603
-else ifeq ($(OSVARIANT),WIN8)
+else ifeq ($(WINVARIANT),WIN8)
 WINVER_DEFINES := WINVER=0x0602 _WIN32_WINNT=0x0602
-else ifeq ($(OSVARIANT),WIN7)
+else ifeq ($(WINVARIANT),WIN7)
 WINVER_DEFINES := WINVER=0x0601 _WIN32_WINNT=0x0601
-else ifeq ($(OSVARIANT),WINV)
+else ifeq ($(WINVARIANT),WINV)
 WINVER_DEFINES := WINVER=0x0600 _WIN32_WINNT=0x0600
-else ifeq ($(OSVARIANT),WINXP)
+else ifeq ($(WINVARIANT),WINXP)
 WINVER_DEFINES := WINVER=0x0501 _WIN32_WINNT=0x0501
 else
-$(error unable to define WINVER for OSVARIANT = $(OSVARIANT))
+$(error unable to define WINVER_DEFINES for WINVARIANT = $(WINVARIANT))
 endif
 
-ifeq ($(OSVARIANT),WIN10)
+ifeq ($(WINVARIANT),WIN10)
 SUBSYSTEM_VER := 6.03
-else ifeq ($(OSVARIANT),WIN81)
+else ifeq ($(WINVARIANT),WIN81)
 SUBSYSTEM_VER := 6.03
-else ifeq ($(OSVARIANT),WIN8)
+else ifeq ($(WINVARIANT),WIN8)
 SUBSYSTEM_VER := 6.02
-else ifeq ($(OSVARIANT),WIN7)
+else ifeq ($(WINVARIANT),WIN7)
 SUBSYSTEM_VER := 6.01
-else ifeq ($(OSVARIANT),WINV)
+else ifeq ($(WINVARIANT),WINV)
 SUBSYSTEM_VER := 6.00
-else ifeq ($(OSVARIANT),WINXP)
+else ifeq ($(WINVARIANT),WINXP)
 SUBSYSTEM_VER := $(if $(UCPU:%64=),5.01,5.02)
 else
-$(error unable to define SUBSYSTEM_VER for OSVARIANT = $(OSVARIANT))
+$(error unable to define SUBSYSTEM_VER for WINVARIANT = $(WINVARIANT))
 endif
+
+# for simple 'ifdef WIN7'
+$(WINVARIANT) := 1
 
 AUTOCONF_VARS :=
 AUTOCONF_VARS += VSLIB    # spaces must be replaced with ?
@@ -77,8 +82,11 @@ AUTOCONF_VARS += TMC1     # full path in quotes
 AUTOCONF_VARS += TRC1     # full path in quotes
 AUTOCONF_VARS += TMT1     # full path in quotes
 
+# autoconfigure by default
+NO_AUTOCONF:=
+
 # check that all needed vars are defined, if not - autoconfigure
-ifneq ($(words $(foreach x,$(AUTOCONF_VARS),$(if $($x),1))),$(words $(AUTOCONF_VARS)))
+ifndef NO_AUTOCONF
 
 # autoconfigure
 
@@ -285,7 +293,7 @@ ifneq ($(call is_less,12,$(VS_VER)),)
 $(error too new Visual Studio version $(lastword $(subst \, ,$(VS))) to build with DDK, please use WDK)
 endif
 
-DDK_TARGET := $(if $(filter WINXP,$(OSVARIANT)),wxp,win7)
+DDK_TARGET := $(if $(filter WINXP,$(WINVARIANT)),wxp,win7)
 
 KMLIB := $(DDKN)\Lib\$(DDK_TARGET)\$(if $(KCPU:x86_64=),$(KCPU:x86=i386),amd64)
 KMINC := $(DDKN)\inc\api $(DDKN)\inc\crt $(DDKN)\inc\ddk
@@ -346,5 +354,5 @@ $(foreach x,$(AUTOCONF_VARS),$(info $x=$($x)))
 endif
 
 # protect variables from modifications in target makefiles
-$(call CLEAN_BUILD_PROTECT_VARS,VAUTO OSVARIANTS WINVER_DEFINES SUBSYSTEM_VER AUTOCONF_VARS $(AUTOCONF_VARS) \
-  VS_VER WDK_VER GET_WDK_VER ONECORE FORCE_SYNC_PDB VS_TOOL_PREFIX VS VSN SDK SDKN DDK DDKN WDK WDKN)
+$(call CLEAN_BUILD_PROTECT_VARS,VAUTO WINVARIANTS WINVARIANT WINVER_DEFINES SUBSYSTEM_VER $(WINVARIANT) NO_AUTOCONF \
+  AUTOCONF_VARS $(AUTOCONF_VARS) VS_VER WDK_VER GET_WDK_VER ONECORE FORCE_SYNC_PDB VS_TOOL_PREFIX VS VSN SDK SDKN DDK DDKN WDK WDKN)

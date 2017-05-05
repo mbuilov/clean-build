@@ -4,9 +4,9 @@
 # Licensed under GPL version 2 or any later version, see COPYING
 #----------------------------------------------------------------------------------
 
-JAVA := java.exe
+JAVA  := java.exe
 JAVAC := javac.exe
-JARC := jar.exe
+JARC  := jar.exe
 
 # protect variables from modifications in target makefiles
 $(call CLEAN_BUILD_PROTECT_VARS,JAVA JAVAC JARC)

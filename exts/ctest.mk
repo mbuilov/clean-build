@@ -29,7 +29,7 @@ endef
 # $1 - built shared libraries needed by executable, in form <library_name>.<major_number>
 # $r - $(call FORM_TRG,EXE,$v)
 ifdef OSTYPE_UNIX
-TEST_EXE_SOFTLINKS ?= $(if $1,$r: | $(addprefix $(LIB_DIR)/$(DLL_PREFIX),$(subst .,$(DLL_SUFFIX).,$1))$(TEST_NEED_SIMLINKS))
+TEST_EXE_SOFTLINKS = $(if $1,$r: | $(addprefix $(LIB_DIR)/$(DLL_PREFIX),$(subst .,$(DLL_SUFFIX).,$1))$(TEST_NEED_SIMLINKS))
 endif
 
 # $1 - $(LIB_DIR)/$(DLL_PREFIX)$(subst .,$(DLL_SUFFIX).,$d)
@@ -45,7 +45,7 @@ endef
 # $1 - built shared libraries needed by executable, in form <library_name>.<major_number>
 ifdef OSTYPE_UNIX
 CB_GENERATED_SIMLINK_RULES:=
-TEST_NEED_SIMLINKS ?= $(foreach d,$1,$(if $(filter $d,$(CB_GENERATED_SIMLINK_RULES)),,$(eval $(call \
+TEST_NEED_SIMLINKS = $(foreach d,$1,$(if $(filter $d,$(CB_GENERATED_SIMLINK_RULES)),,$(eval $(call \
   SO_SOFTLINK_TEMPLATE,$(LIB_DIR)/$(DLL_PREFIX)$(subst .,$(DLL_SUFFIX).,$d),$(DLL_PREFIX)$(firstword $(subst ., ,$d))$(DLL_SUFFIX)))))
 endif
 
@@ -56,9 +56,9 @@ ifneq ($(filter check clean,$(MAKECMDGOALS)),)
 # $2 - auxiliary parameters to pass to executable
 # $3 - dlls search paths: appended to PATH (for WINDOWS) or LD_LIBRARY_PATH (for UNIX-like OS) environment variable to run executable
 # $4 - environment variables to set to run executable, in form VAR=value
-DO_TEST_EXE ?= $(eval $(foreach v,$(call GET_VARIANTS,EXE),$(newline)$(foreach r,$(call FORM_TRG,EXE,$v),$(DO_TEST_EXE_TEMPLATE))))
+DO_TEST_EXE = $(eval $(foreach v,$(call GET_VARIANTS,EXE),$(newline)$(foreach r,$(call FORM_TRG,EXE,$v),$(DO_TEST_EXE_TEMPLATE))))
 
-endif # check
+endif # check, clean
 
 # protect variables from modifications in target makefiles
 $(call CLEAN_BUILD_PROTECT_VARS,DO_TEST_EXE_TEMPLATE TEST_EXE_SOFTLINKS SO_SOFTLINK_TEMPLATE TEST_NEED_SIMLINKS DO_TEST_EXE)

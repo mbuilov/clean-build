@@ -13,12 +13,12 @@ endif
 # run via $(MAKE) L=1 to run java compiler with -Xlint
 ifeq ("$(origin L)","command line")
 JLINT := $(L:0=)
+else
+JLINT:=
 endif
 
 # what we may build by including $(MTOP)/java.mk (for ex. JAR := my_jar)
 BLD_JTARGETS := JAR
-
-include $(OSDIR)/$(OS)/java.mk
 
 # function to form paths passed to $(JAVAC),$(SCALAC) or $(JARC)
 jpath = $(ospath)
@@ -200,14 +200,14 @@ DEFINE_TARGETS_EVAL_NAME := DEFINE_JAVA_TARGETS_EVAL
 MAKE_CONTINUE_EVAL_NAME  := MAKE_JAVA_EVAL
 endef
 
-ifeq (simple,$(flavor BLD_JTARGETS))
 PREPARE_JAVA_VARS := $(PREPARE_JAVA_VARS)
-endif
 
 # reset build targets, target-specific variables and variables modifiable in target makefiles
 # then define bin/lib/obj/... dirs
 # NOTE: expanded by $(MTOP)/java.mk
 MAKE_JAVA_EVAL = $(eval $(PREPARE_JAVA_VARS)$(DEF_HEAD_CODE))
+
+include $(OSDIR)/$(OS)/java.mk
 
 # protect variables from modifications in target makefiles
 $(call CLEAN_BUILD_PROTECT_VARS,JLINT BLD_JTARGETS \

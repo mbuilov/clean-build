@@ -25,6 +25,9 @@ NO_INSTALL_PC1      := $(NO_INSTALL_PC)
 # do not install/uninstall dll import libraries (WINDOWS)
 NO_INSTALL_IMPS1    := $(NO_INSTALL_IMPS)
 
+# install development files and headers by default
+NO_DEV:=
+
 ifdef NO_DEV
 NO_INSTALL_HEADERS1 := 1
 NO_INSTALL_LA1      := 1
@@ -57,7 +60,7 @@ ifdef OSTYPE_UNIX
 # $2 - r or <empty>
 # note: pass non-empty 3-d argument to SUP function to not update percents
 # note: pass non-empty 4-d argument to SUP function to not colorize tool arguments
-UNINSTALL_RM ?= $(call SUP,RM,$1,@,1)rm -f$2$(if $(OS_LINUX),$(if $(VERBOSE),v)) $1
+UNINSTALL_RM = $(call SUP,RM,$1,@,1)rm -f$2$(if $(OS_LINUX),$(if $(VERBOSE),v)) $1
 $(call CLEAN_BUILD_PROTECT_VARS,UNINSTALL_RM)
 
 # create symbolic link while installing files
@@ -65,19 +68,15 @@ $(call CLEAN_BUILD_PROTECT_VARS,UNINSTALL_RM)
 # $2 - simlink
 # note: pass non-empty 3-d argument to SUP function to not update percents
 # note: pass non-empty 4-d argument to SUP function to not colorize tool arguments
-INSTALL_LN ?= $(call SUP,LN,'$2' -> $1,@,1)$(call LN,$1,'$2')
+INSTALL_LN = $(call SUP,LN,'$2' -> $1,@,1)$(call LN,$1,'$2')
 $(call CLEAN_BUILD_PROTECT_VARS,INSTALL_LN)
 
 # INSTALL tool color
-ifndef INSTALL_COLOR
 INSTALL_COLOR := [01;31m
-endif
 $(call CLEAN_BUILD_PROTECT_VARS,INSTALL_COLOR)
 
 # RM tool color
-ifndef RM_COLOR
 RM_COLOR := [01;31m
-endif
 $(call CLEAN_BUILD_PROTECT_VARS,RM_COLOR)
 
 # post-install/uninstall shared libraries
@@ -89,9 +88,7 @@ ifndef LDCONFIG_TEMPLATE
 ifdef LDCONFIG
 
 # LDCONFIG tool color
-ifndef LDCONF_COLOR
 LDCONF_COLOR := [01;33m
-endif
 $(call CLEAN_BUILD_PROTECT_VARS,LDCONF_COLOR)
 
 LDCONFIG_TEMPLATE = $(if $(BUILT_DLLS),$(newline)$(tab)$$(call \
@@ -106,8 +103,8 @@ LDCONFIG_TEMPLATE = $(foreach j,$(filter-out $(MODVER),$(firstword $(subst ., ,$
 
 endif
 
-endif # LDCONFIG_TEMPLATE
 $(call CLEAN_BUILD_PROTECT_VARS,LDCONFIG_TEMPLATE)
+endif # LDCONFIG_TEMPLATE
 
 ifndef INSTALL_LIB_TEMPLATE_UNIX
 
@@ -117,7 +114,7 @@ include $(MTOP)/exts/la.mk
 
 # this macro may be usable for $(LIBRARY_PC_GEN)
 # choose CFLAGS option for static library variant $1
-VARIANT_CFLAGS ?= $(if \
+VARIANT_CFLAGS = $(if \
   $(filter P,$1), $(PIE_OPTION),$(if \
   $(filter D,$1), $(PIC_OPTION)))
 $(call CLEAN_BUILD_PROTECT_VARS,VARIANT_CFLAGS)
@@ -168,8 +165,8 @@ uninstall_$(LIBRARY_NAME):$(if $(NO_INSTALL_HEADERS1),,uninstall_$(LIBRARY_NAME)
 
 endef
 
-endif # INSTALL_LIB_TEMPLATE_UNIX
 $(call CLEAN_BUILD_PROTECT_VARS,INSTALL_LIB_TEMPLATE_UNIX)
+endif # INSTALL_LIB_TEMPLATE_UNIX
 
 $(eval $(call INSTALL_LIB_TEMPLATE_UNIX,$(call GET_ALL_LIBS,$(BUILT_LIBS),$(BUILT_LIB_VARIANTS),$(BUILT_DLLS),$(BUILT_DLL_VARIANTS))))
 
@@ -181,13 +178,13 @@ DST_LIB_DIR := $(subst $(space),\ ,$(DESTDIR)$(LIBDIR))
 
 # $1 - "$(subst /,\,$(subst \ , ,$@))"
 # note: pass non-empty 3-d argument to SUP function to not update percents
-INSTALL_MKDIR ?= $(call SUP,MKDIR,$1,@)$(call MKDIR,$1)
+INSTALL_MKDIR = $(call SUP,MKDIR,$1,@)$(call MKDIR,$1)
 $(call CLEAN_BUILD_PROTECT_VARS,INSTALL_MKDIR)
 
+ifndef ADD_INSTALL_DIRS
+
 # directories to install
-ifndef NEEDED_INSTALL_DIRS
 NEEDED_INSTALL_DIRS:=
-endif
 
 # $1 - result of $(call split_dirs,$1) on directories to install
 define ADD_INSTALL_DIRS1
@@ -201,8 +198,10 @@ endef
 
 # add rules for creating directories
 # $1 - directories to install
-ADD_INSTALL_DIRS ?= $(eval $(call ADD_INSTALL_DIRS1,$(filter-out $(NEEDED_INSTALL_DIRS),$(call split_dirs,$1))))
+ADD_INSTALL_DIRS = $(eval $(call ADD_INSTALL_DIRS1,$(filter-out $(NEEDED_INSTALL_DIRS),$(call split_dirs,$1))))
+
 $(call CLEAN_BUILD_PROTECT_VARS,ADD_INSTALL_DIRS1 ADD_INSTALL_DIRS)
+endif # ADD_INSTALL_DIRS
 
 ifneq (,$(BUILT_LIBS)$(BUILT_DLLS))
 $(call ADD_INSTALL_DIRS,$(DST_LIB_DIR))
@@ -249,8 +248,8 @@ uninstall_$(LIBRARY_NAME):$(if $(NO_INSTALL_HEADERS1),,uninstall_$(LIBRARY_NAME)
  SUP,DEL,"$$(DESTDIR)$$(LIBDIR)\$$i",@)$$(call DEL,"$$(DESTDIR)$$(LIBDIR)/$$i"))))
 
 endef
-endif # INSTALL_LIB_TEMPLATE_WINDOWS
 $(call CLEAN_BUILD_PROTECT_VARS,INSTALL_LIB_TEMPLATE_WINDOWS)
+endif # INSTALL_LIB_TEMPLATE_WINDOWS
 
 $(eval $(call INSTALL_LIB_TEMPLATE_WINDOWS,$(foreach v,$(BUILT_DLL_VARIANTS),$(call MAKE_IMP_PATH,$(call GET_TARGET_NAME,DLL),$v))))
 

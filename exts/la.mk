@@ -72,7 +72,7 @@ endif
 # get path to installed .la-file
 # $1 - static library name (may be empty if $2 - non-empty)
 # $2 - dynamic library name (may be empty if $1 - non-empty)
-INSTALLED_LIBTOOL_ARCHIVE ?= '$(DESTDIR)$(LIBDIR)/$(LIBTOOL_ARCHIVE_NAME)'
+INSTALLED_LIBTOOL_ARCHIVE = '$(DESTDIR)$(LIBDIR)/$(LIBTOOL_ARCHIVE_NAME)'
 
 # $1 - all built libraries (result of $(GET_ALL_LIBS))
 # $2 - names of built static libraries, may be empty
@@ -84,19 +84,19 @@ INSTALLED_LIBTOOL_ARCHIVES1 = $(foreach r,$1,$(foreach l,$(firstword $(subst ?, 
 # $1 - all built libraries (result of $(GET_ALL_LIBS))
 # $2 - paths to built static libraries, may be empty
 # $3 - path to built dynamic library, may be empty
-INSTALLED_LIBTOOL_ARCHIVES ?= $(call INSTALLED_LIBTOOL_ARCHIVES1,$1,$(patsubst \
+INSTALLED_LIBTOOL_ARCHIVES = $(call INSTALLED_LIBTOOL_ARCHIVES1,$1,$(patsubst \
   $(LIB_PREFIX)%$(LIB_SUFFIX),%,$(notdir $2)),$(patsubst \
   $(DLL_PREFIX)%$(DLL_SUFFIX),%,$(notdir $3)))
 
 # generate contents of .la-file
 # $1 - static library name (may be empty if $2 is not empty)
 # $2 - dynamic library name (may be empty if $1 is not empty)
-LIBTOOL_ARCHIVE_GENERATOR ?= $(call LIBTOOL_ARCHIVE_TEMPLATE,$1,$2,$(MODVER))
+LIBTOOL_ARCHIVE_GENERATOR = $(call LIBTOOL_ARCHIVE_TEMPLATE,$1,$2,$(MODVER))
 
 # install .la-file
 # $1 - static library name (may be empty if $2 - non-empty)
 # $2 - dynamic library name (may be empty if $1 - non-empty)
-INSTALL_LIBTOOL_ARCHIVE ?= $(call ECHO_INSTALL,$(LIBTOOL_ARCHIVE_GENERATOR),$(INSTALLED_LIBTOOL_ARCHIVE),755)
+INSTALL_LIBTOOL_ARCHIVE = $(call ECHO_INSTALL,$(LIBTOOL_ARCHIVE_GENERATOR),$(INSTALLED_LIBTOOL_ARCHIVE),755)
 
 # $1 - all built libraries (result of $(GET_ALL_LIBS))
 # $2 - names of built static libraries, may be empty
@@ -108,7 +108,7 @@ INSTALL_LIBTOOL_ARCHIVES1 = $(foreach r,$1,$(foreach l,$(firstword $(subst ?, ,$
 # $1 - all built libraries (result of $(GET_ALL_LIBS))
 # $2 - paths to built static libraries, may be empty
 # $3 - path to built dynamic library, may be empty
-INSTALL_LIBTOOL_ARCHIVES ?= $(call INSTALL_LIBTOOL_ARCHIVES1,$1,$(patsubst \
+INSTALL_LIBTOOL_ARCHIVES = $(call INSTALL_LIBTOOL_ARCHIVES1,$1,$(patsubst \
   $(LIB_PREFIX)%$(LIB_SUFFIX),%,$(notdir $2)),$(patsubst \
   $(DLL_PREFIX)%$(DLL_SUFFIX),%,$(notdir $3)))
 

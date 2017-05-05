@@ -26,7 +26,6 @@ include $(MTOP)/exts/echo_inst.mk
 # $14  - ${exec_prefix}
 # $15  - ${prefix}
 # note: PKGCONF_TEMPLATE may be already defined in $(TOP)/make/project.mk
-ifndef PKGCONF_TEMPLATE
 define PKGCONF_TEMPLATE
 $(if $4,# $(subst $(newline),$(newline)# ,$4)$(newline))
 prefix=$(15)
@@ -45,7 +44,6 @@ $9,$(newline)Cflags: $9)$(if \
 $(10),$(newline)Libs: $(10))$(if \
 $(11),$(newline)Libs.private: $(11))
 endef
-endif
 
 # define standard pkg-config values
 # note: some of PKGCONF_... variables may be already defined in $(TOP)/make/project.mk
@@ -54,14 +52,14 @@ pc_unescape = $(subst $$(space), ,$(subst %%,%,$1))
 # $2 == $1 ? $3 : $2
 pc_nchoose  = $(firstword $(filter-out $(pc_escape),$(call pc_escape,$2) $3))
 
-PKGCONF_PREFIX      ?= $(if $(PREFIX),$(PREFIX),/usr/local)
-PKGCONF_EXEC_PREFIX ?= $(call pc_unescape,$(call pc_nchoose,$(PKGCONF_PREFIX),$(EXEC_PREFIX),$${prefix}))
-PKGCONF_INCLUDEDIR  ?= $(call pc_unescape,$(foreach d,$(firstword $(call pc_escape,$(notdir $(INCLUDEDIR))) include),$(call \
+PKGCONF_PREFIX      = $(if $(PREFIX),$(PREFIX),/usr/local)
+PKGCONF_EXEC_PREFIX = $(call pc_unescape,$(call pc_nchoose,$(PKGCONF_PREFIX),$(EXEC_PREFIX),$${prefix}))
+PKGCONF_INCLUDEDIR  = $(call pc_unescape,$(foreach d,$(firstword $(call pc_escape,$(notdir $(INCLUDEDIR))) include),$(call \
   pc_nchoose,$(PKGCONF_PREFIX)/$d,$(INCLUDEDIR),$${prefix}/$d)))
-PKGCONF_LIBDIR      ?= $(foreach d,$(firstword $(call pc_escape,$(notdir $(LIBDIR))) lib),$(call pc_unescape,$(call \
+PKGCONF_LIBDIR      = $(foreach d,$(firstword $(call pc_escape,$(notdir $(LIBDIR))) lib),$(call pc_unescape,$(call \
   pc_nchoose,$(PKGCONF_PREFIX)/$d,$(call pc_nchoose,$(EXEC_PREFIX)/$d,$(LIBDIR),$${exec_prefix}/$d),$${prefix}/$d)))
-PKGCONF_CFLAGS      ?= -I$${includedir}
-PKGCONF_LIBS        ?= -L$${libdir}
+PKGCONF_CFLAGS      = -I$${includedir}
+PKGCONF_LIBS        = -L$${libdir}
 
 # generate pkg-config file contents for dynamic or static library using $(PKGCONF_...) predefined values
 # $1    - library name
@@ -85,23 +83,23 @@ PKGCONF_DEF_TEMPLATE = $(call PKGCONF_TEMPLATE,$1,$2,$3,$4,$5,$6,$7,$8,$(PKGCONF
 
 # get path to installed .pc-file
 # $1 - static or dynamic library name
-INSTALLED_PKGCONF ?= '$(DESTDIR)$(PKG_CONFIG_DIR)/$1.pc'
+INSTALLED_PKGCONF = '$(DESTDIR)$(PKG_CONFIG_DIR)/$1.pc'
 
 # get paths to installed .pc-files
 # $1 - all built libraries (result of $(GET_ALL_LIBS))
-INSTALLED_PKGCONFS ?= $(foreach r,$1,$(call INSTALLED_PKGCONF,$(firstword $(subst ?, ,$r))))
+INSTALLED_PKGCONFS = $(foreach r,$1,$(call INSTALLED_PKGCONF,$(firstword $(subst ?, ,$r))))
 
 # install .pc-file
 # $1 - <lib> <variant>
 # $2 - .pc-file contents generator, called with parameters: <lib>,<variant>
 # Note: .pc-file contents generator generally expands $(PKGCONF_TEMPLATE) or $(PKGCONF_DEF_TEMPLATE)
-INSTALL_PKGCONF ?= $(foreach l,$(firstword $1),$(call ECHO_INSTALL,$(call $2,$l,$(word 2,$1)),$(call INSTALLED_PKGCONF,$l),644))
+INSTALL_PKGCONF = $(foreach l,$(firstword $1),$(call ECHO_INSTALL,$(call $2,$l,$(word 2,$1)),$(call INSTALLED_PKGCONF,$l),644))
 
 # install .pc-files
 # $1 - all built libraries (result of $(GET_ALL_LIBS))
 # $2 - .pc-file contents generator, called witch parameters: <lib>,<variant>
 # Note: .pc-file contents generator generally expands $(PKGCONF_TEMPLATE) or $(PKGCONF_DEF_TEMPLATE)
-INSTALL_PKGCONFS ?= $(foreach r,$1,$(newline)$(call INSTALL_PKGCONF,$(subst ?, ,$r),$2))
+INSTALL_PKGCONFS = $(foreach r,$1,$(newline)$(call INSTALL_PKGCONF,$(subst ?, ,$r),$2))
 
 # protect variables from modifications in target makefiles
 $(call CLEAN_BUILD_PROTECT_VARS,PKGCONF_TEMPLATE pc_escape pc_unescape pc_nchoose \

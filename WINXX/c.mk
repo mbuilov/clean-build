@@ -7,13 +7,7 @@
 # reset additional variables
 # RES - resources to link to dll or exe
 # DEF - linker definitions file (used mostly to list exported symbols)
-define RESET_OS_CVARS
-RES:=
-DEF:=
-endef
-
-# make RESET_OS_CVARS variable non-recursive (simple)
-RESET_OS_CVARS := $(RESET_OS_CVARS)
+$(eval define PREPARE_C_VARS$(newline)$(value PREPARE_C_VARS)$(newline)RES:=$(newline)DEF:=$(newline)endef)
 
 # max number of sources to compile with /MP compiler option
 # - with too many sources it's possible to exceed max command string length
@@ -24,6 +18,8 @@ include $(MTOP)/WINXX/cres.mk
 # run via $(MAKE) S=1 to compile each source individually (without /MP CL compiler option)
 ifeq ("$(origin S)","command line")
 SEQ_BUILD := $(S:0=)
+else
+SEQ_BUILD:=
 endif
 
 # dependencies generation supported only for non-multisource (sequencial) builds
@@ -34,19 +30,16 @@ endif
 
 include $(MTOP)/WINXX/auto_c.mk
 
-# note: assume yasm used only for drivers
-YASMC := yasm.exe $(if $(KCPU:%64=),-f win32 -m x86,-f win64 -m amd64)
-
-# flex/bison compilers
+# yasm/flex/bison compilers
+YASMC := yasm.exe
 FLEXC := flex.exe
 BISONC := bison.exe
 
-# environment variable LIB holds path to system libraries,
-# but we have our own meaning of variable LIB (static library target)
-# so undefine it
-LIB:=
+# note: assume yasm used only for drivers
+YASM_FLAGS := $(if $(KCPU:%64=),-f win32 -m x86,-f win64 -m amd64)
 
 # strings to strip off from mc.exe output
+# note: may be overriden either in $(PROJECT) configuration file or in command line
 MC_STRIP_STRINGS := MC:?Compiling
 
 # wrap mc.exe call to strip-off diagnostic mc messages
@@ -69,6 +62,7 @@ MC = $(call SUP,$(TMD)MC,$1)$(call WRAP_MC,$($(TMD)MC1)$(if $(VERBOSE), -v) $2)
 SUPPRESS_RC_LOGO := $(SUPPRESS_RC_LOGO)
 
 # strings to strip off from rc.exe output if rc.exe does not support /nologo option
+# note: may be overriden either in $(PROJECT) configuration file or in command line
 RC_LOGO_STRINGS := Microsoft?(R)?Windows?(R)?Resource?Compiler?Version Copyright?(C)?Microsoft?Corporation.??All?rights?reserved. ^$$
 
 # send resource compiler output to stderr
@@ -89,8 +83,6 @@ endif
 # target-specific: TMD
 RC = $(call SUP,$(TMD)RC,$1)$(call WRAP_RC,$($(TMD)RC1) $(SUPPRESS_RC_LOGO)$(if \
   $(VERBOSE), /v) $3 $(call qpath,$(VS$(TMD)INC) $(UM$(TMD)INC),/I) /fo$(call ospath,$1 $2))
-
-# prefixes/suffixes of build targets, may be already defined in $(TOP)/make/project.mk
 
 # exe file suffix
 EXE_SUFFIX := .exe
@@ -132,11 +124,11 @@ DRV_SUFFIX := .sys
 DLL_DIR = $(BIN_DIR)
 
 # SUBSYSTEM for kernel mode
-SUBSYSTEM_KVER = $(SUBSYSTEM_VER)
+SUBSYSTEM_KVER := $(SUBSYSTEM_VER)
 
 # standard defines
 # for example, WINVER_DEFINES = WINVER=0x0501 _WIN32_WINNT=0x0501
-OS_PREDEFINES := WINXX $(OSVARIANT) $(WINVER_DEFINES)
+OS_PREDEFINES := WINXX $(WINVARIANT) $(WINVER_DEFINES)
 
 # how to embed manifest into executable or dll
 # Note: starting from Visual Studio 2012, linker supports /MANIFEST:EMBED option - linker will call mt.exe internally
@@ -148,6 +140,10 @@ EMBED_EXE_MANIFEST = $(newline)$(if \
 EMBED_DLL_MANIFEST = $(newline)$(if \
   $(VERBOSE),,@)if exist $(ospath).manifest ($($(TMD)MT1) -nologo -manifest \
   $(ospath).manifest -outputresource:$(ospath);2 && del $(ospath).manifest)$(DEL_ON_FAIL)
+else
+# reset
+EMBED_EXE_MANIFEST:=
+EMBED_DLL_MANIFEST:=
 endif
 
 # application-level and kernel-level defines
@@ -156,7 +152,7 @@ endif
 OS_APPDEFS := $(if $(UCPU:%64=),ILP32,LLP64) WIN32 CRT_SECURE_NO_DEPRECATE _CRT_SECURE_NO_WARNINGS
 OS_KRNDEFS := $(if $(KCPU:%64=),ILP32 _WIN32 _X86_,LLP64 _WIN64 _AMD64_) _KERNEL WIN32_LEAN_AND_MEAN
 
-# variants filter function - get possible variants for the target
+# variants filter function - get possible variants for the target, needed by $(MTOP)/c.mk
 # $1 - LIB,EXE,DLL
 # R  - dynamically linked multi-threaded libc (regular, default variant)
 # S  - statically linked multi-threaded libc
@@ -166,6 +162,7 @@ VARIANTS_FILTER := S RU SU
 
 # determine suffix for static LIB or for import library of DLL
 # $1 - target variant R,S,RU,SU,<empty>
+# note: overrides value from $(MTOP)/c.mk
 LIB_VAR_SUFFIX = $(if \
                  $(findstring RU,$1),_u,$(if \
                  $(findstring SU,$1),_mtu,$(if \
@@ -176,6 +173,7 @@ LIB_VAR_SUFFIX = $(if \
 # $1 - EXE,DRV
 # $2 - target variant S,RU,SU (not R or <empty>)
 # $3 - list of variants of target $1 to build (filtered by target platform specific $(VARIANTS_FILTER))
+# note: overrides value from $(MTOP)/c.mk
 EXE_SUFFIX_GEN = $(if $(word 2,$3),$(if \
                  $(findstring RU,$2),_u,$(if \
                  $(findstring SU,$2),_mtu,$(if \
@@ -218,6 +216,7 @@ DLL_EXPORTS_DEFINE := "__declspec(dllexport)"
 DLL_IMPORTS_DEFINE := "__declspec(dllimport)"
 
 # helper macro for target makefiles to pass string define value to C-compiler
+# note: override value from $(MTOP)/c.mk
 STRING_DEFINE = "$(subst $(space),$$$$(space),$(subst ","",$1))"
 
 # make version string: maj.min.patch -> maj.min
@@ -251,6 +250,7 @@ CMN_LIBS = /OUT:$$(ospath) /VERSION:$$(call MK_MAJ_MIN_VER,$$(MODVER)) $$(addpre
 DEF_SUBSYSTEM = $$(if $$(filter /SUBSYSTEM:%,$$(LDFLAGS)),,/SUBSYSTEM:CONSOLE$(if $$(TMD),,,$(SUBSYSTEM_VER)))
 
 # strings to strip off from link.exe output
+# note: may be overriden either in $(PROJECT) configuration file or in command line
 # cp1251 ".оздание?кода .оздание?кода?завершено" as cp866 converted to cp1251
 #LINKER_STRIP_STRINGS := .������� ���� .������� ���� ���������
 LINKER_STRIP_STRINGS := Generating?code Finished?generating?code
@@ -399,6 +399,7 @@ CMN_RUCL = $(CMN_RCL) /DUNICODE /D_UNICODE
 CMN_SUCL = $(CMN_SCL) /DUNICODE /D_UNICODE
 
 # $(SED) expression to match C compiler messages about included files
+# note: may be overriden either in $(PROJECT) configuration file or in command line
 # utf8 "Примечание: включение файла:"
 #INCLUDING_FILE_PATTERN := \xd0\x9f\xd1\x80\xd0\xb8\xd0\xbc\xd0\xb5\xd1\x87\xd0\xb0\xd0\xbd\xd0\xb8\xd0\xb5: \xd0\xb2\xd0\xba\xd0\xbb\xd1\x8e\xd1\x87\xd0\xb5\xd0\xbd\xd0\xb8\xd0\xb5 \xd1\x84\xd0\xb0\xd0\xb9\xd0\xbb\xd0\xb0:
 # cp1251 "Примечание: включение файла:"
@@ -408,6 +409,7 @@ CMN_SUCL = $(CMN_SCL) /DUNICODE /D_UNICODE
 INCLUDING_FILE_PATTERN := Note: including file:
 
 # $(SED) expression to filter-out system files while dependencies generation
+# note: may be overriden either in $(PROJECT) configuration file or in command line
 # c:\\program?files?(x86)\\microsoft?visual?studio?10.0\\vc\\include\\
 UDEPS_INCLUDE_FILTER := $(subst \,\\,$(VSINC) $(UMINC))
 
@@ -430,6 +432,8 @@ SED_DEPS_SCRIPT = \
 -e "s/^$(INCLUDING_FILE_PATTERN)  *//;$(subst ?, ,$(foreach x,$5,\@^$x.*@Id;))s/ /\\ /g;s@.*@&:\n$2: &@;w $4"
 
 # WRAP_COMPILER - call compiler and auto-generate dependencies
+WRAP_COMPILER:=
+
 # $1 - compiler with options
 # $2 - target object
 # $3 - source
@@ -443,12 +447,14 @@ WRAP_COMPILER = (($1 /showIncludes 2>&1 && set /p ="COMPILATION_OK" >&2 <NUL) | 
 endif
 endif
 
+ifndef WRAP_COMPILER
 # if not generating auto-dependencies, just stip-off names of compiled sources
 # $1 - compiler with options
 # $3 - sources
 # note: send compiler output to stderr
 WRAP_COMPILER = (($1 2>&1 && echo COMPILATION_OK >&2) | findstr /V /B /L "$(notdir \
   $3)") 3>&2 2>&1 1>&3 | findstr /B /L COMPILATION_OK >NUL
+endif
 
 ifdef SEQ_BUILD
 
@@ -483,7 +489,11 @@ endef
 $(eval $(foreach v,R $(VARIANTS_FILTER),$(SEQ_COMPILERS_TEMPLATE)))
 
 # option for parallel builds, starting from Visual Studio 2013
+FORCE_SYNC_PDB := $(FORCE_SYNC_PDB)
+
+ifdef FORCE_SYNC_PDB
 APP_FLAGS += $(FORCE_SYNC_PDB) #/FS
+endif
 
 else # !SEQ_BUILD
 
@@ -621,6 +631,7 @@ ifdef SEQ_BUILD
 # note: precompiled headers are not supported in this mode
 
 # $(SED) expression to filter-out system files while dependencies generation
+# note: may be overriden either in $(PROJECT) configuration file or in command line
 # c:\\winddk\\
 KDEPS_INCLUDE_FILTER := $(subst \,\\,$(KMINC))
 
@@ -643,10 +654,12 @@ KLIB_R_LD  = $(KLIB_R_LD1)
 DRV_R_LD   = $(DRV_R_LD1)
 KDLL_R_LD  = $(KDLL_R_LD1)
 
-FORCE_SYNC_PDB_KERN = $(FORCE_SYNC_PDB)
-
 # option for parallel builds, starting from Visual Studio 2013
+FORCE_SYNC_PDB_KERN := $(FORCE_SYNC_PDB)
+
+ifdef FORCE_SYNC_PDB_KERN
 KRN_FLAGS += $(FORCE_SYNC_PDB_KERN) #/FS
+endif
 
 else # !SEQ_BUILD
 
@@ -714,8 +727,9 @@ endif # !SEQ_BUILD
 # $1 - target
 # $2 - asm-source
 # target-specific: ASMFLAGS
-KLIB_R_ASM = $(call SUP,ASM,$2)$(YASMC) -o $(call ospath,$1 $2) $(ASMFLAGS)
+KLIB_R_ASM = $(call SUP,ASM,$2)$(YASMC) $(YASM_FLAGS) -o $(call ospath,$1 $2) $(ASMFLAGS)
 DRV_R_ASM  = $(KLIB_R_ASM)
+KDLL_R_ASM = $(KLIB_R_ASM)
 
 # $1 - target
 # $2 - source
@@ -1107,8 +1121,8 @@ KDLL_NO_EXPORTS:=
 endef
 
 # protect variables from modifications in target makefiles
-$(call CLEAN_BUILD_PROTECT_VARS,SEQ_BUILD YASMC FLEXC BISONC MC MC_STRIP_STRINGS WRAP_MC SUPPRESS_RC_LOGO RC_LOGO_STRINGS WRAP_RC RC \
-  KIMP_PREFIX KIMP_SUFFIX SUBSYSTEM_KVER EMBED_MANIFEST_OPTION EMBED_EXE_MANIFEST EMBED_DLL_MANIFEST \
+$(call CLEAN_BUILD_PROTECT_VARS,SEQ_BUILD YASMC FLEXC BISONC MC YASM_FLAGS MC_STRIP_STRINGS WRAP_MC SUPPRESS_RC_LOGO RC_LOGO_STRINGS \
+  WRAP_RC RC KIMP_PREFIX KIMP_SUFFIX SUBSYSTEM_KVER EMBED_MANIFEST_OPTION EMBED_EXE_MANIFEST EMBED_DLL_MANIFEST \
   CHECK_LIB_UNI_NAME1 CHECK_LIB_UNI_NAME MK_MAJ_MIN_VER CMN_LIBS_LDFLAGS CMN_LIBS \
   DLL_EXPORTS_DEFINE DLL_IMPORTS_DEFINE \
   DEF_SUBSYSTEM LINKER_STRIP_STRINGS WRAP_LINKER DEL_DEF_MANIFEST_ON_FAIL \
@@ -1117,7 +1131,7 @@ $(call CLEAN_BUILD_PROTECT_VARS,SEQ_BUILD YASMC FLEXC BISONC MC MC_STRIP_STRINGS
   $(foreach v,R $(VARIANTS_FILTER),EXE_$v_LD1 DLL_$v_LD1 LIB_$v_LD1) KLIB_R_LD1 \
   APP_FLAGS CMN_CL1 CMN_RCL CMN_SCL CMN_RUCL CMN_SUCL \
   INCLUDING_FILE_PATTERN UDEPS_INCLUDE_FILTER SED_DEPS_SCRIPT \
-  WRAP_COMPILER CMN_CC CMN_CXX SEQ_COMPILERS_TEMPLATE \
+  WRAP_COMPILER CMN_CC CMN_CXX SEQ_COMPILERS_TEMPLATE FORCE_SYNC_PDB \
   $(foreach v,R $(VARIANTS_FILTER),LIB_$v_CC LIB_$v_CXX EXE_$v_CC EXE_$v_CXX DLL_$v_CC DLL_$v_CXX EXE_$v_LD DLL_$v_LD LIB_$v_LD) \
   MCL_MAX_COUNT CALL_MCC CALL_MCXX CALL_MPCC CALL_MPCXX CMN_MCL2 CMN_MCL1 CMN_RMCL CMN_SMCL CMN_RUMCL CMN_SUMCL \
   FILTER_SDEPS1 FILTER_SDEPS CMN_MCL MULTI_COMPILERS_TEMPLATE \

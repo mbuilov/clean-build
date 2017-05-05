@@ -30,9 +30,9 @@ ifneq ($(filter check clean,$(MAKECMDGOALS)),)
 # $2 - class paths/jars needed to run the test
 # $3 - auxiliary parameters to pass to executed jar
 # $4 - options to pass to $(JAVA) interpreter
-DO_TEST_JAR ?= $(eval $(call DO_TEST_JAR_TEMPLATE,$(call FORM_JTRG,JAR),$1,$(call FORM_BUILT_JARS,$(JARS)) $2,$3,$4))
+DO_TEST_JAR = $(eval $(call DO_TEST_JAR_TEMPLATE,$(call FORM_JTRG,JAR),$1,$(call FORM_BUILT_JARS,$(JARS)) $2,$3,$4))
 
-endif # check
+endif # check, clean
 
 # protect variables from modifications in target makefiles
 $(call CLEAN_BUILD_PROTECT_VARS,DO_TEST_JAR_TEMPLATE DO_TEST_JAR)

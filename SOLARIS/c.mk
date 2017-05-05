@@ -10,36 +10,15 @@ INST_RPATH:=
 # reset additional variables
 # RPATH - runtime path of external dependencies
 # MAP   - linker map file (used mostly to list exported symbols)
-define RESET_OS_CVARS
-RPATH := $(INST_RPATH)
-MAP:=
-endef
+$(eval define PREPARE_C_VARS$(newline)$(value PREPARE_C_VARS)$(newline)RPATH:=$(INST_RPATH)$(newline)MAP=$(newline)endef)
 
-# make RESET_OS_CVARS variable non-recursive (simple)
-ifeq (simple,$(flavor INST_RPATH))
-RESET_OS_CVARS := $(RESET_OS_CVARS)
-endif
-
-# 64-bit arch: CC="cc -m64"
-# 32-bit arch: CC="cc -m32"
-CC := cc -m$(if $(UCPU:%64=),32,64 -xport64)
-
-# 64-bit arch: CXX="CC -m64"
-# 32-bit arch: CXX="CC -m32"
-CXX := CC -m$(if $(UCPU:%64=),32,64 -xport64)
-
-# target-specific: COMPILER
-AR := $(if $(filter CXX,$(COMPILER)),CC,ar)
-
-# 64-bit arch: TCC="cc -m64"
-# 32-bit arch: TCC="cc -m32"
-TCC := cc -m$(if $(TCPU:%64=),32,64)
-
-# 64-bit arch: TCXX="CC -m64"
-# 32-bit arch: TCXX="CC -m32"
+CC   := cc -m$(if $(UCPU:%64=),32,64 -xport64)
+CXX  := CC -m$(if $(UCPU:%64=),32,64 -xport64)
+TCC  := cc -m$(if $(TCPU:%64=),32,64)
 TCXX := CC -m$(if $(TCPU:%64=),32,64)
 
 # target-specific: COMPILER
+AR  := $(if $(filter CXX,$(COMPILER)),CC,ar)
 TAR := $(if $(filter CXX,$(COMPILER)),CC,ar)
 
 # sparc64: KCC="cc -xregs=no%appl -m64 -xmodel=kernel
@@ -55,11 +34,13 @@ KLD := ld$(if $(filter %64,$(KCPU)), -64)
 # imtel32: YASM="yasm -f elf32 -m x86"
 YASM := yasm -f $(if $(KCPU:%64=),elf32,elf64)$(if $(filter x86%,$(KCPU)), -m $(if $(KCPU:%64=),x86,amd64))
 
-# flex/bison compilers
-FLEXC := flex
+# yasm/flex/bison compilers
+YASMC  := yasm
+FLEXC  := flex
 BISONC := bison
 
-# prefixes/suffixes of build targets, may be already defined in $(TOP)/make/project.mk
+# note: assume yasm used only for drivers
+YASM_FLAGS := -f $(if $(KCPU:%64=),elf32,elf64) $(if $(filter x86%,$(KCPU)),-m $(if $(KCPU:%64=),x86,amd64))
 
 # exe file suffix
 EXE_SUFFIX:=
@@ -92,25 +73,14 @@ DRV_SUFFIX:=
 # NOTE: DLL_DIR must be recursive because $(LIB_DIR) have different values in TOOL-mode and non-TOOL mode
 DLL_DIR = $(LIB_DIR)
 
-# solaris OS variant, such as SOLARIS9,SOLARIS10,SOLARIS11 and so on
-# note: empty (generic variant) by default
-ifndef
-OSVARIANT:=
-endif
-
 # standard defines
-ifeq (simple,$(flavor OSVARIANT))
-OS_PREDEFINES := $(OSVARIANT) SOLARIS UNIX
-else
-OS_PREDEFINES = $(OSVARIANT) SOLARIS UNIX
-endif
+OS_PREDEFINES := SOLARIS UNIX
 
 # application-level and kernel-level defines
-# note: OS_APPDEFS and OS_KRNDEFS are may be defined as empty
 OS_APPDEFS := $(if $(UCPU:%64=),ILP32,LP64) _REENTRANT
 OS_KRNDEFS := $(if $(KCPU:%64=),ILP32,LP64) _KERNEL
 
-# variants filter function - get possible variants for the target
+# variants filter function - get possible variants for the target, needed by $(MTOP)/c.mk
 # $1 - LIB,EXE,DLL
 # R - default variant (position-dependent code for EXE, position-independent code for DLL)
 # D - position-independent code in shared libraries (for LIB)
@@ -118,6 +88,7 @@ VARIANTS_FILTER = $(if $(filter LIB,$1),D)
 
 # determine suffix for static LIB or for import library of DLL
 # $1 - target variant R,D,<empty>
+# note: overrides value from $(MTOP)/c.mk
 LIB_VAR_SUFFIX = $(if \
                  $(filter D,$1),_pic)
 
@@ -229,8 +200,8 @@ SED_DEPS_SCRIPT = \
 ifdef NO_DEPS
 WRAP_COMPILER = $1
 else
-WRAP_COMPILER ?= (($1 -H 2>&1 && echo COMPILATION_OK 1>&2) | \
-sed -n $(SED_DEPS_SCRIPT) 2>&1) 3>&2 2>&1 1>&3 3>&- | grep COMPILATION_OK > /dev/null
+WRAP_COMPILER = (($1 -H 2>&1 && echo COMPILATION_OK 1>&2) |\
+  sed -n $(SED_DEPS_SCRIPT) 2>&1) 3>&2 2>&1 1>&3 3>&- | grep COMPILATION_OK > /dev/null
 endif
 
 # flags for application level C/C++-compiler
@@ -303,7 +274,7 @@ DRV_R_CC  = $(KLIB_R_CC)
 # $1 - target
 # $2 - source
 # target-specific: ASMFLAGS
-KLIB_R_ASM = $(call SUP,ASM,$2)$(YASMC) -o $1 $2 $(ASMFLAGS)
+KLIB_R_ASM = $(call SUP,ASM,$2)$(YASMC) $(YASM_FLAGS) -o $1 $2 $(ASMFLAGS)
 DRV_R_ASM  = $(KLIB_R_ASM)
 
 # $1 - target
@@ -371,7 +342,7 @@ $1: $(addprefix $(LIB_DIR)/$(KLIB_PREFIX),$(KLIBS:=$(KLIB_SUFFIX)))
 endef
 
 # protect variables from modifications in target makefiles
-$(call CLEAN_BUILD_PROTECT_VARS,CC CXX AR TCC TCXX TAR KCC KLD YASM FLEXC BISONC \
+$(call CLEAN_BUILD_PROTECT_VARS,CC CXX AR TCC TCXX TAR KCC KLD YASM FLEXC BISONC YASM_FLAGS \
   KLIB_NAME_PREFIX DEF_SHARED_FLAGS DEF_EXE_FLAGS DEF_SO_FLAGS DEF_KLD_FLAGS DEF_AR_FLAGS \
   DLL_EXPORTS_DEFINE DLL_IMPORTS_DEFINE \
   RPATH_OPTION DEF_C_LIBS DEF_CXX_LIBS CMN_LIBS VERSION_SCRIPT_OPTION SONAME_OPTION1 SONAME_OPTION \

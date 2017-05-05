@@ -22,9 +22,6 @@ ifeq ($(MTOP),)
 $(error MTOP is not defined, example: C:\clean-build,/usr/local/clean-build)
 endif
 
-# make MTOP non-recursive (simple)
-MTOP := $(MTOP)
-
 # legend for Makefile rules:
 # $< - name of the first prerequisite
 # $^ - names of all prerequisites
@@ -37,7 +34,7 @@ MTOP := $(MTOP)
 # $(TARGET)                         - one of $(SUPPORTED_TARGETS)
 
 # disable builtin rules and variables
-MAKEFLAGS += --no-builtin-rules --no-builtin-variables
+MAKEFLAGS += --no-builtin-rules --no-builtin-variables --warn-undefined-variables
 
 # drop make's default legacy rules - we'll use custom ones
 .SUFFIXES:
@@ -51,6 +48,8 @@ MAKEFLAGS += --no-builtin-rules --no-builtin-variables
 # don't generate dependencies when cleaning up
 ifneq ($(filter clean,$(MAKECMDGOALS)),)
 NO_DEPS := 1
+else
+NO_DEPS:=
 endif
 
 # check values of TOP (and, if defined, BUILD) variables, include functions library
@@ -59,10 +58,24 @@ include $(MTOP)/functions.mk
 include $(MTOP)/top.mk
 
 # what target type to build
-TARGET := RELEASE
+# note: TARGET may be taken from environment
+TARGET ?= RELEASE
+
+# make TARGET non-recursive (simple)
+TARGET := $(TARGET)
 
 # project configuration file
-PROJECT ?= $(TOP)/make/project.mk
+ifndef PROJECT
+PROJECT := $(TOP)/make/project.mk
+else
+
+# to allow building multiple projects in the same environment,
+# PROJECT should be defined in command line or project configuration file, rather than in environment
+ifeq ("environment","$(origin PROJECT)")
+$(error PROJECT should not be taken from environment)
+endif
+
+endif # PROJECT
 
 # define $(DEBUG) to use it in $(PROJECT) configuration file
 # $(DEBUG) is non-empty for DEBUG targets like "PROJECTD" or "DEBUG"
@@ -74,9 +87,14 @@ SUPPORTED_CPUS    := x86 x86_64 sparc sparc64 armv5 mips24k ppc
 SUPPORTED_TARGETS := DEBUG RELEASE
 
 # directory of $(OS)-specific definitions
+# note: OSDIR may be taken from environment
 OSDIR ?= $(MTOP)
 
+# make OSDIR non-recursive (simple)
+OSDIR := $(OSDIR)
+
 # include project defs, if file exists
+# note: $(PROJECT) may override SUPPORTED_OSES, SUPPORTED_CPUS, SUPPORTED_TARGETS and other variables
 -include $(PROJECT)
 
 ifeq ($(SUPPORTED_OSES),)
@@ -84,6 +102,7 @@ $(error SUPPORTED_OSES is empty, it may be defined in $(PROJECT:$(TOP)/%=$$(TOP)
 endif
 
 # OS - operating system we are building for (and we are building on)
+# note: OS may be taken from environment
 ifeq ($(OS),)
 $(error OS undefined, please pick one of build OS types: $(SUPPORTED_OSES))
 else ifeq ($(filter $(OS),$(SUPPORTED_OSES)),)
@@ -97,10 +116,10 @@ ifeq ($(SUPPORTED_CPUS),)
 $(error SUPPORTED_CPUS is empty, it may be defined in $(PROJECT:$(TOP)/%=$$(TOP)/%))
 endif
 
-# NOTE: don't use CPU variable in target makefiles, use UCPU or KCPU instead
+# NOTE: please do not use CPU variable in target makefiles, use UCPU, KCPU or TCPU instead
 
 # CPU variable contains default value for UCPU, KCPU, TCPU
-# NOTE: please do not use CPU variable in target makefiles, use UCPU, KCPU or TCPU instead
+# note: CPU may be taken from environment
 ifneq ($(CPU),)
 ifeq ($(filter $(CPU),$(SUPPORTED_CPUS)),)
 $(error unknown CPU=$(CPU), please pick one of target CPU types: $(SUPPORTED_CPUS))
@@ -108,36 +127,39 @@ endif
 endif
 
 # CPU for user-level
+# note: UCPU may be taken from environment
 ifneq ($(UCPU),)
 ifeq ($(filter $(UCPU),$(SUPPORTED_CPUS)),)
 $(error unknown UCPU=$(UCPU), please pick one of target CPU types: $(SUPPORTED_CPUS))
 endif
-else ifndef CPU
-$(error UCPU or CPU undefined, please pick one of target CPU types: $(SUPPORTED_CPUS))
-else
+else ifneq ($(CPU),)
 UCPU := $(CPU)
+else
+$(error UCPU or CPU undefined, please pick one of target CPU types: $(SUPPORTED_CPUS))
 endif
 
 # CPU for kernel-level
+# note: KCPU may be taken from environment
 ifneq ($(KCPU),)
 ifeq ($(filter $(KCPU),$(SUPPORTED_CPUS)),)
 $(error unknown KCPU=$(KCPU), please pick one of target CPU types: $(SUPPORTED_CPUS))
 endif
-else ifndef CPU
-$(error KCPU or CPU undefined, please pick one of target CPU types: $(SUPPORTED_CPUS))
-else
+else ifneq ($(CPU),)
 KCPU := $(CPU)
+else
+$(error KCPU or CPU undefined, please pick one of target CPU types: $(SUPPORTED_CPUS))
 endif
 
 # CPU for build-tools
+# note: TCPU may be taken from environment
 ifneq ($(TCPU),)
 ifeq ($(filter $(TCPU),$(SUPPORTED_CPUS)),)
 $(error unknown TCPU=$(TCPU), please pick one of build CPU types: $(SUPPORTED_CPUS))
 endif
-else ifndef CPU
-$(error TCPU or CPU undefined, please pick one of build CPU types: $(SUPPORTED_CPUS))
-else
+else ifneq ($(CPU),)
 TCPU := $(CPU)
+else
+$(error TCPU or CPU undefined, please pick one of build CPU types: $(SUPPORTED_CPUS))
 endif
 
 ifeq ($(SUPPORTED_TARGETS),)
@@ -149,13 +171,18 @@ ifeq ($(filter $(TARGET),$(SUPPORTED_TARGETS)),)
 $(error unknown TARGET=$(TARGET), please pick one of: $(SUPPORTED_TARGETS))
 endif
 
-else ifndef NO_CLEAN_BUILD_DISTCLEAN
+else # distclean
 
+# define distclean target by default
+NO_CLEAN_BUILD_DISTCLEAN:=
+
+ifndef NO_CLEAN_BUILD_DISTCLEAN
 # define distclean target
 # note: RM macro must be defined below in $(OSDIR)/$(OS)/tools.mk
 # note: $(BUILD) is defined in $(MTOP)/top.mk
 distclean:
 	$(call RM,$(BUILD))
+endif
 
 endif # distclean
 
@@ -166,13 +193,11 @@ DEBUG := $(filter DEBUG %D,$(TARGET))
 # fix variables - make them non-recursive
 # note: these variables may be taken from environment
 # note: $(BIN_DIR)/$(OBJ_DIR)/$(LIB_DIR)/$(GEN_DIR) use these variables and are will be also fixed
-TARGET := $(TARGET)
-OS     := $(OS)
-CPU    := $(CPU)
-UCPU   := $(UCPU)
-KCPU   := $(KCPU)
-TCPU   := $(TCPU)
-OSDIR  := $(OSDIR)
+OS   := $(OS)
+CPU  := $(CPU)
+UCPU := $(UCPU)
+KCPU := $(KCPU)
+TCPU := $(TCPU)
 
 # for simple 'ifdef OS_WINXX' or 'ifdef OS_LINUX'
 OS_$(OS) := 1
@@ -207,6 +232,11 @@ ifdef MCHECK
 # check that $(CURRENT_MAKEFILE) is not already processed
 CHECK_MAKEFILE_NOT_PROCESSED = $(if $(filter \
   $(CURRENT_MAKEFILE)-,$(PROCESSED_MAKEFILES)),$$(error makefile $(CURRENT_MAKEFILE) is already processed!))
+
+else # !MCHECK
+
+# reset
+CHECK_MAKEFILE_NOT_PROCESSED:=
 
 endif # MCHECK
 
@@ -267,14 +297,7 @@ endif
 # $2 - tool arguments
 # $3 - if non-empty, don't update percents
 ifeq ($(filter distclean clean,$(MAKECMDGOALS)),)
-ifndef QUIET
-ifdef INFOMF
-SUP = $(info $(MF)$(MCONT):)
-else
-SUP:=
-endif
-REM_SHOWN_MAKEFILE:=
-else # QUIET
+ifdef QUIET
 SHOWN_MAKEFILES:=
 SHOWN_PERCENTS:=
 SHOWN_REMAINDER:=
@@ -314,7 +337,14 @@ SUP = $(info $(call PRINT_PERCENTS,$(TRY_REM_MAKEFILE))$(MF)$(MCONT):$(COLORIZE)
 else
 SUP = $(info $(call PRINT_PERCENTS,$(TRY_REM_MAKEFILE))$(COLORIZE))@
 endif
-endif # QUIET
+else # !QUIET
+REM_SHOWN_MAKEFILE:=
+ifdef INFOMF
+SUP = $(info $(MF)$(MCONT):)
+else
+SUP:=
+endif
+endif # !QUIET
 endif # !distclean && !clean
 
 # tools colors
@@ -388,7 +418,17 @@ NEEDED_DIRS:=
 #  (this is true for TOOL_BASE = $(DEF_GEN_DIR))
 ifndef TOOL_BASE
 TOOL_BASE := $(DEF_GEN_DIR)
+else
+
+# TOOL_BASE should be non-recursive (simple)
+# - it is used in TOOL_OVERRIDE_DIRS 
+TOOL_BASE := $(TOOL_BASE)
+
+ifeq ($(filter $(BUILD)/%,$(TOOL_BASE)),)
+$(error TOOL_BASE=$(TOOL_BASE) is not a subdirectory of BUILD=$(BUILD))
 endif
+
+endif # TOOL_BASE
 
 # where tools are built
 # $1 - TOOL_BASE
@@ -483,7 +523,12 @@ MAKEFILE_DEBUG_INFO = $(subst $(space),,$(foreach x,$(CB_INCLUDE_LEVEL),.))$(CUR
 # note: show debug info only if $1 does not contains @ (used by $(MTOP)/parallel.mk)
 DEF_TAIL_CODE_DEBUG = $(if $(filter @,$1),,$$(info $(MAKEFILE_DEBUG_INFO)))
 
-endif # MDEBUG
+else # !MDEBUG
+
+# reset
+DEF_TAIL_CODE_DEBUG:=
+
+endif # !MDEBUG
 
 # reset
 CB_TOOL_MODE:=
@@ -510,7 +555,7 @@ $(if $(TOOL_MODE),$(if $(CB_TOOL_MODE),,$(TOOL_OVERRIDE_DIRS)),$(if $(CB_TOOL_MO
 DEF_HEAD_CODE_PROCESSED:=1
 endef
 
-# expand this macro to evaluate default head code
+# expand this macro to evaluate default head code (called from $(MTOP)/defs.mk)
 # note: by default it expanded at start of next $(MAKE_CONTINUE) round
 DEF_HEAD_CODE_EVAL = $(eval $(DEF_HEAD_CODE))
 
@@ -558,7 +603,12 @@ DEBUG_TARGETS = $(foreach t,$1,$(if $($t),$(newline)$(foreach \
   v,$(call GET_VARIANTS,$t,$3),$(info $(if $(CB_TOOL_MODE),[TOOL]: )$t $(subst \
   R ,,$v )= $(call GET_TARGET_NAME,$t) '$(patsubst $(TOP)/%,%,$(call $2,$t,$v))'))))
 
-endif # MDEBUG
+else # !MDEBUG
+
+# reset
+DEBUG_TARGETS:=
+
+endif # !MDEBUG
 
 # form name of target objects directory
 # $1 - target to build (EXE,LIB,DLL,...)
@@ -572,6 +622,11 @@ ifdef MCHECK
 CHECK_GENERATED = $(if $(filter-out $(GEN_DIR)/% $(BIN_DIR)/% $(OBJ_DIR)/% $(LIB_DIR)/%,$1),$(error \
   some files are generated not under $$(GEN_DIR), $$(BIN_DIR), $$(OBJ_DIR) or $$(LIB_DIR): $(filter-out \
   $(GEN_DIR)/% $(BIN_DIR)/% $(OBJ_DIR)/% $(LIB_DIR)/%,$1)))
+
+else # !MCHECK
+
+# reset
+CHECK_GENERATED:=
 
 endif # MCHECK
 
@@ -612,7 +667,12 @@ CHECK_MULTI_RULE = $(CHECK_GENERATED)$(if \
   $(findstring $$@,$3),$(warning please do not use $$@ in multi-target rule:$(newline)$3))$(if \
   $(findstring $$|,$3),$(warning please do not use $$| in multi-target rule:$(newline)$3))
 
-endif # MCHECK
+else # !MCHECK
+
+# reset
+CHECK_MULTI_RULE:=
+
+endif # !MCHECK
 
 # make chain of dependencies of multi-targets on each other: 1 2 3 4 -> 2:| 1; 3:| 2; 4:| 3;
 # $1 - list of generated files (absolute paths without spaces)
@@ -642,7 +702,8 @@ DEFINE_TARGETS = $(if $($(DEFINE_TARGETS_EVAL_NAME))$(eval DEFINE_TARGETS_EVAL_N
 SAVE_VARS = $(eval $(foreach v,$1,$v_=$(if $(filter simple,$(flavor $v)),:=$(subst $$,$$$$,$(value $v)),=$(value $v))$(newline)))
 RESTORE_VARS = $(eval $(foreach v,$1,$v$(value $v_)$(newline)))
 
-# $(MAKE_CONTINUE_EVAL_NAME) - contains name of macro that when expanded evaluates code to prepare (at least, by evaluating $(DEF_HEAD_CODE))
+# $(MAKE_CONTINUE_EVAL_NAME) - contains name of macro that when expanded
+# evaluates code to prepare to define more targets (at least, by evaluating $(DEF_HEAD_CODE))
 MAKE_CONTINUE_EVAL_NAME := DEF_HEAD_CODE_EVAL
 
 # reset

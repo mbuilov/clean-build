@@ -4,7 +4,7 @@
 # Licensed under GPL version 2 or any later version, see COPYING
 #----------------------------------------------------------------------------------
 
-# rules for building C/C++ libs, dlls, executables
+# rules for building C/C++ libs, dlls, executables, kernel-mode libraries
 
 ifndef DEF_HEAD_CODE
 include $(MTOP)/_defs.mk
@@ -28,51 +28,8 @@ endif
 
 # what we may build by including $(MTOP)/c.mk (for ex. LIB := my_lib)
 # note: DRV is $(OS)-specific, $(OSDIR)/$(OS)/c.mk should define DRV_TEMPLATE
-# note: $(OSDIR)/$(OS)/c.mk may append more target types to BLD_TARGETS, for example DDD
+# note: $(OSDIR)/$(OS)/c.mk may append more target types to BLD_TARGETS
 BLD_TARGETS := EXE LIB DLL KLIB KDLL DRV
-
-# $(TOP)/make/project.mk included by $(MTOP)/defs.mk, if exists, should define something like:
-#
-# 1) common include path for all targets, added at end of compiler's include paths list, for example:
-#  DEFINCLUDE = $(TOP)/include
-#  note: DEFINCLUDE may be recursive, it's value may be calculated based on $(TOP)-related path to $(CURRENT_MAKEFILE)
-#  note: target makefile may avoid using include paths from $(DEFINCLUDE) by resetting $(CMNINCLUDE) value
-#
-# 2) predefined macros for all targets, for example:
-#  PREDEFINES = $(if $(DEBUG),_DEBUG) TARGET_$(TARGET:D=) \
-#               $(if $(filter sparc% mips% ppc%,$(CPU)),B_ENDIAN,L_ENDIAN) \
-#               $(if $(filter arm% sparc% mips% ppc%,$(CPU)),ADDRESS_NEEDALIGN)
-#  note: $(PREDEFINES) may be recursive, it's value may be calculated based on $(TOP)-related path to $(CURRENT_MAKEFILE)
-#  note: target makefile may avoid using macros from $(PREDEFINES) by resetting $(CMNDEFINES) value
-#
-# 3) common defines for all application-level targets, for example:
-#  APPDEFS =
-#  note: it's not possible to reset value of $(APPDEFS) in target makefile,
-#   but APPDEFS may be recursive and so may produce dynamic results
-#
-# 4) common defines for all kernel-level targets, for example:
-#  KRNDEFS = _KERNEL
-#  note: it's not possible to reset value of $(KRNDEFS) in target makefile,
-#   but KRNDEFS may be recursive and so may produce dynamic results
-#
-# 5) product version in form major.minor or major.minor.patch
-#  this is also default version for any built module (exe, dll or driver)
-#  PRODUCT_VER := 1.0.0
-
-include $(OSDIR)/$(OS)/c.mk
-
-# for simple 'ifdef OSVARIANT_WIN7' or 'ifdef OSVARIANT_DEBIAN8'
-OSVARIANT_$(OSVARIANT) := 1
-
-# determine suffix for static LIB or for implementation-library of DLL
-# $1 - target variant R,P,D,S,<empty>
-# note: WINXX/c.mk defines own LIB_VAR_SUFFIX
-LIB_VAR_SUFFIX ?= $(if $(filter-out R,$1),_$1)
-
-# add defines from $(OSDIR)/$(OS)/c.mk
-PREDEFINES += $(OS_PREDEFINES)
-APPDEFS    += $(OS_APPDEFS)
-KRNDEFS    += $(OS_KRNDEFS)
 
 # $1 - objdir
 # $2 - source deps list
@@ -125,7 +82,7 @@ OBJ_RULES = $(if $2,$(call OBJ_RULES1,$1,$2,$3,$4,$(addprefix $4/,$(basename $(n
 # $3 - list of variants of target $1 to build (filtered by target platform specific $(VARIANTS_FILTER))
 # note: WINXX/c.mk defines own EXE_SUFFIX_GEN
 # note: LINUX/c.mk defines own EXE_SUFFIX_GEN
-EXE_SUFFIX_GEN ?= $(if $(word 2,$3),$(call tolower,$2))
+EXE_SUFFIX_GEN = $(if $(word 2,$3),$(call tolower,$2))
 
 # determine target name suffix for EXE,DRV...
 # $1 - EXE,DRV...
@@ -136,13 +93,20 @@ EXE_SUFFIX_GEN ?= $(if $(word 2,$3),$(call tolower,$2))
 EXE_VAR_SUFFIX = $(if $(filter-out R,$2),$(call \
   EXE_SUFFIX_GEN,$1,$2,$(filter R $(VARIANTS_FILTER),$(if $3,$3,$(wordlist 2,999999,$($1))))))
 
+# determine suffix for static LIB or for implementation-library of DLL
+# $1 - target variant R,P,D,S,<empty>
+# note: WINXX/c.mk defines own LIB_VAR_SUFFIX
+LIB_VAR_SUFFIX = $(if $(filter-out R,$1),_$1)
+
+# $(OS_FORM_TRG) - $(OS) may define more targets, for example, for DDD:
+#  $(if $(filter DDD,$1),$(addprefix $(BIN_DIR)/$(DDD_PREFIX),$(GET_TARGET_NAME:=$(EXE_VAR_SUFFIX)$(DDD_SUFFIX))))
+OS_FORM_TRG:=
+
 # make target filename
 # $1 - EXE,LIB,...
 # $2 - target variant R,P,D,S,<empty>
 # $3 - variants list, by default $(wordlist 2,999999,$($1))
 # note: gives empty result if $($1) is empty
-# $(OS_FORM_TRG) - $(OS) may define more targets, for example, for DDD:
-#  $(if $(filter DDD,$1),$(addprefix $(BIN_DIR)/$(DDD_PREFIX),$(GET_TARGET_NAME:=$(EXE_VAR_SUFFIX)$(DDD_SUFFIX))))
 FORM_TRG = $(if \
   $(filter EXE,$1),$(addprefix $(BIN_DIR)/,$(GET_TARGET_NAME:=$(EXE_VAR_SUFFIX)$(EXE_SUFFIX))),$(if \
   $(filter KDLL,$1),$(addprefix $(DLL_DIR)/$(KDLL_PREFIX),$(GET_TARGET_NAME:=$(call LIB_VAR_SUFFIX,$2)$(KDLL_SUFFIX))),$(if \
@@ -154,15 +118,6 @@ FORM_TRG = $(if \
 # example how to make target filenames for all variants specified for the target
 # $1 - EXE,LIB,DLL,...
 # $(foreach v,$(call GET_VARIANTS,$1),$(call FORM_TRG,$1,$v))
-
-# subst $(space) with space character in defines passed to C-compiler
-# called by macro that expands to C-complier call
-SUBST_DEFINES = $(subst $$(space),$(space),$1)
-
-# helper macro for target makefiles to pass string define value to C-compiler
-# may be already defined by $(OSDIR)/$(OS)/c.mk
-# note: WINXX/c.mk defines own STRING_DEFINE
-STRING_DEFINE ?= "$(subst $(space),$$$$(space),$(subst ",\",$1))"
 
 # make absolute paths to include directories - we need absolute paths to headers in generated .d dependency file
 # note: do not touch $(SYSINCLUDE) - it may contain paths with spaces,
@@ -218,6 +173,15 @@ DEP_LIBS = $(call MAKE_DEP_LIBS,$1,$2,$(LIBS))
 # $1 - target: EXE,DLL
 # $2 - variant of target EXE or DLL: R,P,S,<empty>
 DEP_IMPS = $(call MAKE_DEP_IMPS,$1,$2,$(DLLS))
+
+# subst $(space) with space character in defines passed to C-compiler
+# called by macro that expands to C-complier call
+SUBST_DEFINES = $(subst $$(space),$(space),$1)
+
+# helper macro for target makefiles to pass string define value to C-compiler
+# may be already defined by $(OSDIR)/$(OS)/c.mk
+# note: WINXX/c.mk defines own STRING_DEFINE
+STRING_DEFINE = "$(subst $(space),$$$$(space),$(subst ",\",$1))"
 
 # $1 - $(call FORM_TRG,$t,$v)
 # $2 - $(TRG_SRC)
@@ -346,10 +310,16 @@ CHECK_C_RULES = $(if \
   $(if $(EXE)$(DLL),,$(DLLS)),$(warning DLLS = $(DLLS) is used only when building EXE or DLL))$(if \
   $(if $(DRV)$(KDLL),,$(KLIBS)),$(warning KLIBS = $(KLIBS) is used only when building DRV or KDLL))$(if \
   $(if $(DRV)$(KDLL),,$(KDLLS)),$(warning KDLLS = $(KDLLS) is used only when building DRV or KDLL))
+else
+CHECK_C_RULES:=
 endif
 
 # project's subsystems directory, contains subsystems definitions that are evaluated while processing $(USE) list
+# note: PROJECT_USE_DIR may be overwritten in $(PROJECT) configuration file
 PROJECT_USE_DIR := $(TOP)/make/$(OS)/use
+
+# $(OS)-specific definitions
+OS_DEFINE_TARGETS:=
 
 # this code is normally evaluated at end of target makefile
 # 1) print what we will build
@@ -362,22 +332,50 @@ PROJECT_USE_DIR := $(TOP)/make/$(OS)/use
 define DEFINE_C_TARGETS_EVAL
 $(if $(MDEBUG),$(eval $(call DEBUG_TARGETS,$(BLD_TARGETS),FORM_TRG,VARIANTS_FILTER)))
 $(eval $(if $(MDEBUG),$(if $(USE),$(info using: $(USE))))$(newline)include $(addprefix $(PROJECT_USE_DIR)/,$(USE)))
-$(eval $(GENERATE_SRC_RULES))
 $(eval $(OS_DEFINE_TARGETS))
 $(eval $(CHECK_C_RULES)$(call C_RULES,$(BLD_TARGETS)))
 $(DEF_TAIL_CODE_EVAL)
 endef
 
+# $(PROJECT) configuration file included by $(MTOP)/defs.mk, if exists, may define:
+
+# common include path for all targets, added at end of compiler's include paths list, for example:
+#  override DEFINCLUDE = $(TOP)/include
+#  note: DEFINCLUDE may be recursive, it's value may be calculated based on $(TOP)-related path to $(CURRENT_MAKEFILE)
+#  note: target makefile may avoid using include paths from $(DEFINCLUDE) by resetting $(CMNINCLUDE) value
+DEFINCLUDE:=
+
+# predefined macros for all targets, for example:
+#  override PREDEFINES = $(if $(DEBUG),_DEBUG) TARGET_$(TARGET:D=) \
+#                        $(if $(filter sparc% mips% ppc%,$(CPU)),B_ENDIAN,L_ENDIAN) \
+#                        $(if $(filter arm% sparc% mips% ppc%,$(CPU)),ADDRESS_NEEDALIGN)
+#  note: $(PREDEFINES) may be recursive, it's value may be calculated based on $(TOP)-related path to $(CURRENT_MAKEFILE)
+#  note: target makefile may avoid using macros from $(PREDEFINES) by resetting $(CMNDEFINES) value
+PREDEFINES = $(OS_PREDEFINES)
+
+# common defines for all application-level targets, for example:
+#  override APPDEFS =
+#  note: it's not possible to reset value of $(APPDEFS) in target makefile,
+#   but APPDEFS may be recursive and so may produce dynamic results
+APPDEFS = $(OS_APPDEFS)
+
+# common defines for all kernel-level targets, for example:
+#  override KRNDEFS = _KERNEL
+#  note: it's not possible to reset value of $(KRNDEFS) in target makefile,
+#   but KRNDEFS may be recursive and so may produce dynamic results
+KRNDEFS = $(OS_KRNDEFS)
+
+# product version in form major.minor or major.minor.patch
+#  override PRODUCT_VER := 1.0.0
+#  note: this is also default version for any built module (exe, dll or driver)
+PRODUCT_VER := 0.0.1
+
 # reset variables in from $(BLD_TARGETS) list
-BLD_TARGETS_RESET = $(subst $(space),:=$(newline),$(BLD_TARGETS)):=
-ifeq (simple,$(flavor BLD_TARGETS))
-BLD_TARGETS_RESET := $(BLD_TARGETS_RESET)
-endif
+BLD_TARGETS_RESET := $(subst $(space),:=$(newline),$(BLD_TARGETS)):=
 
 # code to be called at beginning of target makefile
 # $(MODVER) - module version (for dll, exe or driver) in form major.minor.patch (for example 1.2.3)
 define PREPARE_C_VARS
-$(RESET_OS_CVARS)
 $(BLD_TARGETS_RESET)
 MODVER:=$(PRODUCT_VER)
 CMNDEFINES:=$(PREDEFINES)
@@ -403,15 +401,55 @@ KDLLS:=
 DEFINE_TARGETS_EVAL_NAME:=DEFINE_C_TARGETS_EVAL
 MAKE_CONTINUE_EVAL_NAME:=MAKE_C_EVAL
 endef
-ifeq (5,$(words $(filter \
-  simple,$(flavor RESET_OS_CVARS) $(flavor BLD_TARGETS) $(flavor PRODUCT_VER) $(flavor PREDEFINES) $(flavor DEFINCLUDE))))
-PREPARE_C_VARS := $(PREPARE_C_VARS)
-endif
 
 # reset build targets, target-specific variables and variables modifiable in target makefiles
 # then define bin/lib/obj/... dirs
 # NOTE: expanded by $(MTOP)/c.mk
 MAKE_C_EVAL = $(eval $(PREPARE_C_VARS)$(DEF_HEAD_CODE))
+
+# $(OSDIR)/$(OS)/c.mk must define VARIANTS_FILTER
+include $(OSDIR)/$(OS)/c.mk
+
+# check if no new variables introduced in PREPARE_C_VARS
+ifeq (,$(findstring $$,$(subst \
+  $$(BLD_TARGETS_RESET),,$(subst \
+  $$(PRODUCT_VER),,$(subst \
+  $$(PREDEFINES),,$(subst \
+  $$(DEFINCLUDE),,$(value PREPARE_C_VARS)))))))
+
+# check if BLD_TARGETS_RESET PRODUCT_VER, DEFINCLUDE are simple
+ifeq (3,$(words $(filter simple,$(flavor \
+  BLD_TARGETS_RESET) $(flavor \
+  PRODUCT_VER) $(flavor \
+  DEFINCLUDE))))
+
+# check if PREDEFINES is either simple or not redefined
+# if it recursive and not redefined, check if OS_PREDEFINES is simple
+ifneq (,$(if $(filter simple,$(flavor PREDEFINES)),1,$(if $(subst \
+  "$$(OS_PREDEFINES)",,"$(value PREDEFINES)"),,$(filter simple,$(flavor OS_PREDEFINES)))))
+
+# then make PREPARE_C_VARS non-recursive (simple)
+PREPARE_C_VARS := $(PREPARE_C_VARS)
+
+endif # simple
+endif # words
+endif # findstring
+
+# try to make APPDEFS simple
+ifneq (simple,$(flavor APPDEFS))
+ifneq (,$(if $(subst "$$(OS_APPDEFS)",,"$(value APPDEFS)"),,$(filter simple,$(flavor OS_APPDEFS))))
+APPDEFS := $(APPDEFS)
+endif
+endif
+
+# try to make KRNDEFS simple
+ifneq (simple,$(flavor KRNDEFS))
+ifneq (,$(if $(subst "$$(OS_KRNDEFS)",,"$(value KRNDEFS)"),,$(filter simple,$(flavor OS_KRNDEFS))))
+KRNDEFS := $(KRNDEFS)
+endif
+endif
+
+$(info ---------$(flavor PREPARE_C_VARS) $(flavor APPDEFS) $(flavor KRNDEFS))
 
 # protect variables from modifications in target makefiles
 $(call CLEAN_BUILD_PROTECT_VARS,BLD_TARGETS OSVARIANT OSVARIANT_$(OSVARIANT) LIB_VAR_SUFFIX \
@@ -425,4 +463,4 @@ $(call CLEAN_BUILD_PROTECT_VARS,BLD_TARGETS OSVARIANT OSVARIANT_$(OSVARIANT) LIB
   C_RULES2 C_RULES1 C_RULES EXE_TEMPLATE LIB_TEMPLATE DLL_TEMPLATE KLIB_TEMPLATE DRV_TEMPLATE \
   CC_COLOR CXX_COLOR AR_COLOR LD_COLOR XLD_COLOR ASM_COLOR \
   KCC_COLOR KLD_COLOR TCC_COLOR TCXX_COLOR TLD_COLOR TXLD_COLOR TAR_COLOR CHECK_C_RULES PROJECT_USE_DIR \
-  OS_DEFINE_TARGETS DEFINE_C_TARGETS_EVAL BLD_TARGETS_RESET PREPARE_C_VARS RESET_OS_CVARS MAKE_C_EVAL)
+  OS_DEFINE_TARGETS DEFINE_C_TARGETS_EVAL BLD_TARGETS_RESET PREPARE_C_VARS MAKE_C_EVAL)

@@ -10,39 +10,31 @@ INST_RPATH:=
 # reset additional variables
 # RPATH - runtime path of external dependencies
 # MAP   - linker map file (used mostly to list exported symbols)
-define RESET_OS_CVARS
-RPATH := $(INST_RPATH)
-MAP:=
-endef
+$(eval define PREPARE_C_VARS$(newline)$(value PREPARE_C_VARS)$(newline)RPATH:=$(INST_RPATH)$(newline)MAP=$(newline)endef)
 
-# make RESET_OS_CVARS variable non-recursive (simple)
-ifeq (simple,$(flavor INST_RPATH))
-RESET_OS_CVARS := $(RESET_OS_CVARS)
-endif
-
-CC := gcc -m$(if $(UCPU:%64=),32,64)
-CXX := g++ -m$(if $(UCPU:%64=),32,64)
-
-# to build kernel modules
-MODULES_PATH := /lib/modules/$(shell uname -r)/build
-
-LD := ld
-AR := ar
-TCC := $(CC)
-TCXX := $(CXX)
-TLD := $(LD)
-TAR := $(AR)
-KCC := $(CC)
-KLD := $(LD)
+# compilers/linkers
+CC    := gcc -m$(if $(UCPU:%64=),32,64)
+CXX   := g++ -m$(if $(UCPU:%64=),32,64)
+LD    := ld
+AR    := ar
+TCC   := gcc -m$(if $(TCPU:%64=),32,64)
+TCXX  := g++ -m$(if $(TCPU:%64=),32,64)
+TLD   := ld
+TAR   := ar
+KCC   := gcc -m$(if $(KCPU:%64=),32,64)
+KLD   := ld
 KMAKE := $(MAKE)
 
-YASMC := yasm -f $(if $(KCPU:%64=),elf32,elf64) $(if $(filter x86%,$(KCPU)),-m $(if $(KCPU:%64=),x86,amd64))
+# for building kernel modules
+MODULES_PATH := /lib/modules/$(shell uname -r)/build
 
-# flex/bison compilers
-FLEXC := flex
+# yasm/flex/bison compilers
+YASMC  := yasm
+FLEXC  := flex
 BISONC := bison
 
-# prefixes/suffixes of build targets, may be already defined in $(TOP)/make/project.mk
+# note: assume yasm used only for drivers
+YASM_FLAGS := -f $(if $(KCPU:%64=),elf32,elf64) $(if $(filter x86%,$(KCPU)),-m $(if $(KCPU:%64=),x86,amd64))
 
 # exe file suffix
 EXE_SUFFIX:=
@@ -74,31 +66,21 @@ DRV_SUFFIX := .ko
 # NOTE: DLL_DIR must be recursive because $(LIB_DIR) have different values in TOOL-mode and non-TOOL mode
 DLL_DIR = $(LIB_DIR)
 
-# linux variant, such as DEBIAN,ARCH,GENTOO and so on
-# note: empty (generic variant) by default
-ifndef OSVARIANT
-OSVARIANT:=
-endif
-
 # standard defines
-ifeq (simple,$(flavor OSVARIANT))
-OS_PREDEFINES := $(OSVARIANT) LINUX UNIX
-else
-OS_PREDEFINES = $(OSVARIANT) LINUX UNIX
-endif
+OS_PREDEFINES := LINUX UNIX
 
 # application-level and kernel-level defines
-# note: OS_APPDEFS and OS_KRNDEFS are may be defined as empty
 OS_APPDEFS := $(if $(UCPU:%64=),ILP32,LP64) _REENTRANT _GNU_SOURCE
 
-# note: recursive macro by default - to use $(KLIB) dynamic value
-OS_KRNDEFS ?= $(if $(KCPU:%64=),ILP32,LP64) _KERNEL \
-  KBUILD_STR\(s\)=\\\#s KBUILD_BASENAME=KBUILD_STR\($(KLIB)\) KBUILD_MODNAME=KBUILD_STR\($(KLIB)\)
+# note: recursive macro by default - to use $($t) dynamic value
+# $t - KLIB
+OS_KRNDEFS = $(if $(KCPU:%64=),ILP32,LP64) _KERNEL \
+  KBUILD_STR\(s\)=\\\#s KBUILD_BASENAME=KBUILD_STR\($($t)\) KBUILD_MODNAME=KBUILD_STR\($($t)\)
 
 # prefix to pass options to linker
 WLPREFIX := -Wl,
 
-# variants filter function - get possible variants for the target
+# variants filter function - get possible variants for the target, needed by $(MTOP)/c.mk
 # $1 - LIB,EXE,DLL
 # R - default variant (position-dependent code for EXE, position-independent code for DLL)
 # P - position-independent code in executables (for EXE and LIB)
@@ -109,6 +91,7 @@ VARIANTS_FILTER = $(if \
 
 # determine suffix for static LIB or for import library of DLL
 # $1 - target variant R,P,D,<empty>
+# note: overrides value from $(MTOP)/c.mk
 LIB_VAR_SUFFIX = $(if \
                  $(filter P,$1),_pie,$(if \
                  $(filter D,$1),_pic))
@@ -118,6 +101,7 @@ LIB_VAR_SUFFIX = $(if \
 # $1 - EXE,DRV
 # $2 - target variant P (not R or <empty>)
 # $3 - list of variants of target $1 to build (filtered by target platform specific $(VARIANTS_FILTER))
+# note: overrides value from $(MTOP)/c.mk
 EXE_SUFFIX_GEN = $(if $(word 2,$3),_pie)
 
 # for $(DEP_LIB_SUFFIX) from $(MTOP)/c.mk:
@@ -296,12 +280,15 @@ PCH_KLIB_R_CC = $(call SUP,PCHKLIB,$2)$(KCC) $(KLIB_PARAMS) -o $1 $2
 # $1 - target
 # $2 - source
 # target-specific: ASMFLAGS
-KLIB_R_ASM = $(call SUP,ASM,$2)$(YASMC) -o $1 $2 $(ASMFLAGS)
+KLIB_R_ASM = $(call SUP,ASM,$2)$(YASMC) $(YASM_FLAGS) -o $1 $2 $(ASMFLAGS)
 
 # $1 - target
 # $2 - source
 BISON = $(call SUP,BISON,$2)$(BISONC) -o $1 -d --fixed-output-files $(abspath $2)
 FLEX  = $(call SUP,FLEX,$2)$(FLEXC) -o$1 $2
+
+# compile with precompiled headers by default
+NO_PCH:=
 
 ifndef NO_PCH
 
@@ -391,7 +378,7 @@ endef
 # auxiliary defines for EXE or DLL
 # $t - EXE or DLL
 MOD_AUX_TEMPLATE1 = $(foreach v,$(call GET_VARIANTS,$t),$(call $t_AUX_TEMPLATE2,$(call FORM_TRG,$t,$v),$2))
-MOD_AUX_TEMPLATE = $(call MOD_AUX_TEMPLATE1,$(call FIXPATH,$(MAP)))
+MOD_AUX_TEMPLATE  = $(call MOD_AUX_TEMPLATE1,$(call FIXPATH,$(MAP)))
 
 # this code is evaluated from $(DEFINE_TARGETS)
 define OS_DEFINE_TARGETS
@@ -446,7 +433,7 @@ $(call TOCLEAN,$4)
 endef
 
 # protect variables from modifications in target makefiles
-$(call CLEAN_BUILD_PROTECT_VARS,CC CXX MODULES_PATH LD AR TCC TCXX TLD TAR KCC KLD KMAKE YASMC FLEXC BISONC \
+$(call CLEAN_BUILD_PROTECT_VARS,CC CXX MODULES_PATH LD AR TCC TCXX TLD TAR KCC KLD KMAKE YASMC FLEXC BISONC YASM_FLAGS \
   WLPREFIX DEF_SHARED_FLAGS DEF_EXE_FLAGS DEF_SO_FLAGS DEF_LD_FLAGS DEF_KLD_FLAGS DEF_AR_FLAGS DLL_EXPORTS_DEFINE DLL_IMPORTS_DEFINE \
   RPATH_OPTION RPATH_LINK_OPTION CMN_LIBS VERSION_SCRIPT_OPTION SONAME_OPTION1 SONAME_OPTION \
   EXE_R_LD EXE_P_LD DLL_R_LD LIB_R_LD LIB_P_LD LIB_D_LD KLIB_LD AUTO_DEPS_FLAGS APP_FLAGS KRN_FLAGS DEF_CXXFLAGS DEF_CFLAGS CC_PARAMS \
