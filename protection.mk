@@ -9,13 +9,16 @@
 
 # run via $(MAKE) C=1 to check makefiles
 ifeq ("$(origin C)","command line")
-MCHECK := $C
+MCHECK := $(C:0=)
+else
+MCHECK:=
 endif
 
-# 0 -> $(empty)
-MCHECK := $(MCHECK:0=)
-
 ifdef MCHECK
+
+# reset
+CLEAN_BUILD_SAVE_PROTECTED_VALUES:=
+CLEAN_BUILD_NEED_TAIL_CODE:=
 
 # convert value of variable $1 to string
 CLEAN_BUILD_GET_PROTECTED_VALUE = $1@$(subst $$,$$$$,$(subst $(newline),$$(newline),$(subst \

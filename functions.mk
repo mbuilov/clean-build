@@ -124,14 +124,16 @@ is_less = $(call is_less1,$1,$2,$(repl09),$(call repl09,$2))
 # $8 - auxiliary function argument 4
 # $9 - function calls first separator
 # $(10) - function calls separator
-xargs1 = $(if $2,$9$(call $1,$(wordlist 1,$3,$2),$5,$6,$7,$8)$(call xargs1,$1,$(wordlist $4,999999,$2),$3,$4,$5,$6,$7,$8,$(10),$(10)))
+xargs1 = $(if $2,$9$(call $1,$(wordlist 1,$3,$2),$5,$6,$7,$8,$9)$(call xargs1,$1,$(wordlist $4,999999,$2),$3,$4,$5,$6,$7,$8,$(10),$(10)))
 
 # call function $1 many times with arguments from list $2 grouped by $3 elements
-# and with auxiliary arguments $4,$5,$6,$7, separating function calls with $8
+# and with auxiliary arguments $4,$5,$6,$7,$8 separating function calls with $8
+# note: last 5-th argument of function $1 is <empty> on first call and $8 on next calls
 xargs = $(call xargs1,$1,$2,$3,$(words x $(wordlist 1,$3,$2)),$4,$5,$6,$7,,$8)
 
 # assuming that function $1($(sublist $2 by $3),$4,$5,$6,$7) will return shell command
 # generate many shell commands separated by $(newline) - each command will be executed in new subshell
+# note: last 5-th argument of function $1 is <empty> on first call and $(newline) on next calls
 xcmd = $(call xargs,$1,$2,$3,$4,$5,$6,$7,$(newline))
 
 # return list $1 without last element

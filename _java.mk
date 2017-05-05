@@ -54,21 +54,21 @@ JCLS_DIR := cls
 # note: $(JPATHSEP) - either ; (windows) or : (unix)
 FORM_CLASS_PATH = $(if $1,-classpath $(call qpath,$(subst $(space),$(JPATHSEP),$(strip $(jpath)))))
 
-# options for java compiler
+# java compiler options
 JAVAC_OPTIONS := $(if $(JLINT),-Xlint)$(if $(DEBUG), -g) -encoding utf8
 
-# options for scala compiler
+# scala compiler options
 SCALAC_OPTIONS := $(if $(DEBUG),-g:vars)
 
-# maximum number of files to echo to arguments file
+# maximum number of source file names to echo to arguments file at one call
 ARGS_FILE_SOURCES_PER_LINE := 40
 
 # create arguments file for java compiler
 # $1 - sources
 # $2 - args file name
-CREATE_JARGS_FILE1 = $(if $(VERBOSE),,@)$(call ECHO_LINE,$1) >> $(call ospath,$2)
-CREATE_JARGS_FILE  = $(call DEL,$2)$(newline)$(call \
-  xcmd,CREATE_JARGS_FILE1,$1,$(ARGS_FILE_SOURCES_PER_LINE),$2)$(newline)$(if $(VERBOSE),,@)
+# $5 - <empty> on first call and $(newline) on next calls
+CREATE_JARGS_FILE1 = $(QUIET)$(call ECHO_LINE,$1) $(if $5,>)> $(call ospath,$2)
+CREATE_JARGS_FILE = $(call xcmd,CREATE_JARGS_FILE1,$1,$(ARGS_FILE_SOURCES_PER_LINE),$2)$(newline)$(QUIET)
 
 # $1 - .java sources
 # $2 - $(word $(ARGS_FILE_SOURCES_PER_LINE),$1)
@@ -80,7 +80,7 @@ JAVA_CC2 = $(if $2,$(call CREATE_JARGS_FILE,$1,$(JOBJDIR)/java.txt)) \
 
 # compile $1 - .java sources
 JAVA_CC1 = $(call SUP,JAVAC,$1)$(call JAVA_CC2,$(jpath),$(word $(ARGS_FILE_SOURCES_PER_LINE),$1))
-JAVA_CC  = $(if $1,$(JAVA_CC1))
+JAVA_CC = $(if $1,$(JAVA_CC1))
 
 # $1 - .scala + .java sources
 # $2 - $(word $(ARGS_FILE_SOURCES_PER_LINE),$1)
@@ -92,8 +92,8 @@ SCALA_CC2 = $(if $2,$(call CREATE_JARGS_FILE,$1,$(JOBJDIR)/scala.txt)) \
 # compile $1 - .scala
 # note: $2 - .java sources only parsed by scala compiler - it does not compiles .java sources
 SCALA_CC1 = $(call SUP,SCALAC,$1)$(call SCALA_CC2,$(call jpath,$2),$(word $(ARGS_FILE_SOURCES_PER_LINE),$2))
-SCALA_CC  = $(if $1,$(if $(SCALAC),$(call SCALA_CC1,$1,$1 $2),$(error \
-  SCALAC not defined, example: $$(JAVA) $$(call FORM_CLASS_PATH,scala-compiler-2.11.6.jar) scala.tools.nsc.Main)))
+SCALA_CC = $(if $1,$(if $(SCALAC),$(call SCALA_CC1,$1,$1 $2),$(error \
+  SCALAC not defined, example: SCALAC="$$(JAVA) $$(call FORM_CLASS_PATH,scala-compiler-2.11.6.jar) scala.tools.nsc.Main")))
 
 # $1 - .jar target
 # $2 - $(word $(ARGS_FILE_SOURCES_PER_LINE),$(ALL_BUNDLES))
@@ -199,6 +199,7 @@ JAREXT := .jar
 DEFINE_TARGETS_EVAL_NAME := DEFINE_JAVA_TARGETS_EVAL
 MAKE_CONTINUE_EVAL_NAME  := MAKE_JAVA_EVAL
 endef
+
 ifeq (simple,$(flavor BLD_JTARGETS))
 PREPARE_JAVA_VARS := $(PREPARE_JAVA_VARS)
 endif

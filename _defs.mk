@@ -6,13 +6,17 @@
 
 # generic rules and definitions for building targets
 
-ifndef MAKE_VERSION
+ifeq ($(MAKE_VERSION),)
 $(error MAKE_VERSION not defined, ensure you are using GNU Make of version 3.81 or later)
 endif
 
 ifneq (3.80,$(word 1,$(sort $(MAKE_VERSION) 3.80)))
 $(error required GNU Make of version 3.81 or later)
 endif
+
+# make MTOP non-recursive (simple)
+# note: MTOP may be taken from environment
+MTOP := $(MTOP)
 
 ifeq ($(MTOP),)
 $(error MTOP is not defined, example: C:\clean-build,/usr/local/clean-build)
@@ -28,9 +32,9 @@ MTOP := $(MTOP)
 # $? - prerequisites newer than the target
 
 # standard defines that must be defined:
-# $(OS), $(SUPPORTED_OSES),
-# $(CPU) or $(UCPU),$(KCPU),$(TCPU), $(SUPPORTED_CPUS),
-# $(TARGET) (RELEASE by default) and $(SUPPORTED_TARGETS) (DEBUG,RELEASE by default)
+# $(OS)                             - one of $(SUPPORTED_OSES),
+# $(CPU) or $(UCPU),$(KCPU),$(TCPU) - one of $(SUPPORTED_CPUS),
+# $(TARGET)                         - one of $(SUPPORTED_TARGETS)
 
 # disable builtin rules and variables
 MAKEFLAGS += --no-builtin-rules --no-builtin-variables
@@ -57,29 +61,27 @@ include $(MTOP)/top.mk
 # what target type to build
 TARGET := RELEASE
 
+# project configuration file
+PROJECT ?= $(TOP)/make/project.mk
+
 # define $(DEBUG) to use it in $(PROJECT) configuration file
 # $(DEBUG) is non-empty for DEBUG targets like "PROJECTD" or "DEBUG"
 DEBUG := $(filter DEBUG %D,$(TARGET))
 
-# project definitions
-PROJECT := $(TOP)/make/project.mk
-
-# $(PROJECT), if exists, may override next variables:
-SUPPORTED_OSES := WINXX SOLARIS LINUX
-SUPPORTED_CPUS := x86 x86_64 sparc sparc64 armv5 mips24k ppc
+# $(PROJECT), if exists, may redefine next variables:
+SUPPORTED_OSES    := WINXX SOLARIS LINUX
+SUPPORTED_CPUS    := x86 x86_64 sparc sparc64 armv5 mips24k ppc
 SUPPORTED_TARGETS := DEBUG RELEASE
+
+# directory of $(OS)-specific definitions
+OSDIR ?= $(MTOP)
 
 # include project defs, if file exists
 -include $(PROJECT)
 
 ifeq ($(SUPPORTED_OSES),)
-$(error SUPPORTED_OSES not defined, it may be defined in $(PROJECT:$(TOP)/%=$$(TOP)/%))
+$(error SUPPORTED_OSES is empty, it may be defined in $(PROJECT:$(TOP)/%=$$(TOP)/%))
 endif
-ifeq ($(SUPPORTED_CPUS),)
-$(error SUPPORTED_CPUS not defined, it may be defined in $(PROJECT:$(TOP)/%=$$(TOP)/%))
-endif
-
-# set standard targets, if $(PROJECT) do not defines some
 
 # OS - operating system we are building for (and we are building on)
 ifeq ($(OS),)
@@ -91,11 +93,11 @@ endif
 # don't need $(CPU) and $(TARGET) vars values for distclean
 ifeq ($(filter distclean,$(MAKECMDGOALS)),)
 
-# note: don't use CPU,UCPU,KCPU,TCPU variables from environment
-CPU:=
-UCPU := $(CPU)
-KCPU := $(CPU)
-TCPU := $(CPU)
+ifeq ($(SUPPORTED_CPUS),)
+$(error SUPPORTED_CPUS is empty, it may be defined in $(PROJECT:$(TOP)/%=$$(TOP)/%))
+endif
+
+# NOTE: don't use CPU variable in target makefiles, use UCPU or KCPU instead
 
 # CPU variable contains default value for UCPU, KCPU, TCPU
 # NOTE: please do not use CPU variable in target makefiles, use UCPU, KCPU or TCPU instead
@@ -110,8 +112,10 @@ ifneq ($(UCPU),)
 ifeq ($(filter $(UCPU),$(SUPPORTED_CPUS)),)
 $(error unknown UCPU=$(UCPU), please pick one of target CPU types: $(SUPPORTED_CPUS))
 endif
-else ifeq ($(CPU),)
-$(error UCPU or CPU is undefined, please pick one of target CPU types: $(SUPPORTED_CPUS))
+else ifndef CPU
+$(error UCPU or CPU undefined, please pick one of target CPU types: $(SUPPORTED_CPUS))
+else
+UCPU := $(CPU)
 endif
 
 # CPU for kernel-level
@@ -119,8 +123,10 @@ ifneq ($(KCPU),)
 ifeq ($(filter $(KCPU),$(SUPPORTED_CPUS)),)
 $(error unknown KCPU=$(KCPU), please pick one of target CPU types: $(SUPPORTED_CPUS))
 endif
-else ifeq ($(CPU),)
+else ifndef CPU
 $(error KCPU or CPU undefined, please pick one of target CPU types: $(SUPPORTED_CPUS))
+else
+KCPU := $(CPU)
 endif
 
 # CPU for build-tools
@@ -128,8 +134,14 @@ ifneq ($(TCPU),)
 ifeq ($(filter $(TCPU),$(SUPPORTED_CPUS)),)
 $(error unknown TCPU=$(TCPU), please pick one of build CPU types: $(SUPPORTED_CPUS))
 endif
-else ifeq ($(CPU),)
+else ifndef CPU
 $(error TCPU or CPU undefined, please pick one of build CPU types: $(SUPPORTED_CPUS))
+else
+TCPU := $(CPU)
+endif
+
+ifeq ($(SUPPORTED_TARGETS),)
+$(error SUPPORTED_TARGETS is empty, it may be defined in $(PROJECT:$(TOP)/%=$$(TOP)/%))
 endif
 
 # what to build
@@ -152,31 +164,38 @@ endif # distclean
 DEBUG := $(filter DEBUG %D,$(TARGET))
 
 # fix variables - make them non-recursive
-# note: $(BIN_DIR)/$(OBJ_DIR)/$(LIB_DIR)/$(GEN_DIR) are use these variables and are will be also fixed
+# note: these variables may be taken from environment
+# note: $(BIN_DIR)/$(OBJ_DIR)/$(LIB_DIR)/$(GEN_DIR) use these variables and are will be also fixed
 TARGET := $(TARGET)
 OS     := $(OS)
+CPU    := $(CPU)
+UCPU   := $(UCPU)
+KCPU   := $(KCPU)
+TCPU   := $(TCPU)
+OSDIR  := $(OSDIR)
 
 # for simple 'ifdef OS_WINXX' or 'ifdef OS_LINUX'
 OS_$(OS) := 1
 
 # run via $(MAKE) V=1 for verbose output
 ifeq ("$(origin V)","command line")
-VERBOSE := $(V:0=)
+QUIET := $(if $(V:0=),,@)
+else
+QUIET := @
 endif
 
 # run via $(MAKE) M=1 to print makefile name the target comes from
 ifeq ("$(origin M)","command line")
 INFOMF := $(M:0=)
+else
+INFOMF:=
 endif
 
 # run via $(MAKE) D=1 to debug makefiles
 ifeq ("$(origin D)","command line")
 MDEBUG := $(D:0=)
-endif
-
-# directory of $(OS)-specific definitions
-ifndef OSDIR
-OSDIR := $(MTOP)
+else
+MDEBUG:=
 endif
 
 ifdef MDEBUG
@@ -190,6 +209,39 @@ CHECK_MAKEFILE_NOT_PROCESSED = $(if $(filter \
   $(CURRENT_MAKEFILE)-,$(PROCESSED_MAKEFILES)),$$(error makefile $(CURRENT_MAKEFILE) is already processed!))
 
 endif # MCHECK
+
+# for UNIX: don't change paths when converting from make internal file path to path accepted by $(OS)
+# NOTE: WINXX/tools.mk defines own ospath
+ospath = $1
+
+# add $1 only to non-absolute paths in $2
+# note: $1 must end with /
+# NOTE: WINXX/tools.mk defines own nonrelpath
+nonrelpath = $(patsubst $1/%,/%,$(addprefix $1,$2))
+
+# paths separator char
+# NOTE: WINXX/tools.mk defines own PATHSEP
+PATHSEP := :
+
+# assume terminal supports colour output
+# NOTE: WINXX/tools.mk defines own TERM_NO_COLOR
+TERM_NO_COLOR:=
+
+# name of environment variable to modify in $(RUN_WITH_DLL_PATH)
+# note: $(DLL_PATH_VAR) should be PATH (for WINDOWS) or LD_LIBRARY_PATH (for UNIX-like OS)
+# NOTE: WINXX/tools.mk defines own DLL_PATH_VAR
+DLL_PATH_VAR := LD_LIBRARY_PATH
+
+# show modified $(DLL_PATH_VAR) environment variable with running command
+# $1 - command to run (with parameters)
+# $2 - additional paths to append to $(DLL_PATH_VAR)
+# $3 - environment variables to set to run executable, in form VAR=value
+# NOTE: WINXX/tools.mk defines own show_with_dll_path
+show_with_dll_path = $(info $(if $2,$(DLL_PATH_VAR)="$($(DLL_PATH_VAR))" )$(foreach \
+  v,$3,$(foreach n,$(firstword $(subst =, ,$v)),$n="$($n)")) $1)
+
+# NOTE: WINXX/tools.mk defines own show_dll_path_end
+show_dll_path_end:=
 
 # check that $(OSDIR)/$(OS)/tools.mk exists
 ifeq ($(wildcard $(OSDIR)/$(OS)/tools.mk),)
@@ -215,13 +267,14 @@ endif
 # $2 - tool arguments
 # $3 - if non-empty, don't update percents
 ifeq ($(filter distclean clean,$(MAKECMDGOALS)),)
-ifdef VERBOSE
+ifndef QUIET
 ifdef INFOMF
 SUP = $(info $(MF)$(MCONT):)
 else
 SUP:=
 endif
-else # !VERBOSE
+REM_SHOWN_MAKEFILE:=
+else # QUIET
 SHOWN_MAKEFILES:=
 SHOWN_PERCENTS:=
 SHOWN_REMAINDER:=
@@ -261,19 +314,16 @@ SUP = $(info $(call PRINT_PERCENTS,$(TRY_REM_MAKEFILE))$(MF)$(MCONT):$(COLORIZE)
 else
 SUP = $(info $(call PRINT_PERCENTS,$(TRY_REM_MAKEFILE))$(COLORIZE))@
 endif
-endif # !VERBOSE
+endif # QUIET
 endif # !distclean && !clean
 
 # tools colors
-# if GEN_COLOR is defined, other tools colors must also be defined
-ifndef GEN_COLOR
 GEN_COLOR   := [01;32m
 MGEN_COLOR  := [01;32m
 CP_COLOR    := [00;36m
 LN_COLOR    := [00;36m
 MKDIR_COLOR := [00;36m
 TOUCH_COLOR := [00;36m
-endif
 
 # print in color short name of called tool $1 with argument $2
 # $1 - tool
@@ -289,21 +339,6 @@ endif
 
 # helper macro: convert multi-line sed script $1 to multiple sed expressions - one expression for each script line
 SED_MULTI_EXPR = $(subst $$(space), ,$(foreach s,$(subst $(newline), ,$(subst $(space),$$(space),$1)),-e $(call SED_EXPR,$s)))
-
-# for UNIX: don't change paths when converting from make internal file path to path accepted by $(OS)
-# NOTE: WINXX/tools.mk defines own $(ospath)
-ospath ?= $1
-
-# add $1 only to non-absolute paths in $2
-# note: $1 must end with /
-# NOTE: WINXX/tools.mk defines own $(nonrelpath)
-nonrelpath ?= $(patsubst $1/%,/%,$(addprefix $1,$2))
-
-# paths separator char
-# note: WINXX/tools.mk defines own PATHSEP
-ifndef PATHSEP
-PATHSEP := :
-endif
 
 # get absolute path to current makefile
 CURRENT_MAKEFILE := $(abspath $(subst \,/,$(firstword $(MAKEFILE_LIST))))
@@ -653,21 +688,6 @@ EXTRACT_SDEPS = $(foreach d,$(filter $(addsuffix |%,$1),$2),$(wordlist 2,999999,
 # $1 - sdeps list: <source file1>|<dependency1>|<dependency2>|... <source file2>|<dependency1>|<dependency2>|...
 FIX_SDEPS = $(subst | ,|,$(call FIXPATH,$(subst |,| ,$1)))
 
-# name of environment variable to modify in $(RUN_WITH_DLL_PATH)
-# note: $(DLL_PATH_VAR) should be PATH (for WINDOWS) or LD_LIBRARY_PATH (for UNIX-like OS)
-# note: WINXX/tools.mk defines own DLL_PATH_VAR
-ifndef DLL_PATH_VAR
-DLL_PATH_VAR := LD_LIBRARY_PATH
-endif
-
-# show modified $(DLL_PATH_VAR) environment variable with running command
-# $1 - command to run (with parameters)
-# $2 - additional paths to append to $(DLL_PATH_VAR)
-# $3 - environment variables to set to run executable, in form VAR=value
-# note: WINXX/tools.mk defines own show_with_dll_path
-show_with_dll_path ?= $(info $(if $2,$(DLL_PATH_VAR)="$($(DLL_PATH_VAR))" )$(foreach \
-  v,$3,$(foreach n,$(firstword $(subst =, ,$v)),$n="$($n)")) $1)
-
 # run executable with modified $(DLL_PATH_VAR) environment variable
 # $1 - command to run (with parameters)
 # $2 - additional paths to append to $(DLL_PATH_VAR)
@@ -675,13 +695,13 @@ show_with_dll_path ?= $(info $(if $2,$(DLL_PATH_VAR)="$($(DLL_PATH_VAR))" )$(for
 # note: this function should be used for rule body, where automatic variable $@ is defined
 # note: WINXX/tools.mk defines own show_dll_path_end
 RUN_WITH_DLL_PATH = $(if $2$3,$(if $2,$(eval $@:$(DLL_PATH_VAR):=$(addsuffix $(PATHSEP),$($(DLL_PATH_VAR)))$2))$(foreach \
-  v,$3,$(foreach g,$(firstword $(subst =, ,$v)),$(eval $@:$g:=$(patsubst $g=%,%,$v))))$(if $(VERBOSE),$(show_with_dll_path)@))$1$(if \
-  $2$3,$(if $(VERBOSE),$(show_dll_path_end)))
+  v,$3,$(foreach g,$(firstword $(subst =, ,$v)),$(eval $@:$g:=$(patsubst $g=%,%,$v))))$(if $(QUIET),,$(show_with_dll_path)@))$1$(if \
+  $2$3,$(if $(QUIET),,$(show_dll_path_end)))
 
 # protect variables from modifications in target makefiles
 $(call CLEAN_BUILD_PROTECT_VARS,MTOP MAKEFLAGS NO_DEPS DEBUG PROJECT \
   SUPPORTED_OSES SUPPORTED_CPUS SUPPORTED_TARGETS OS CPU UCPU KCPU TCPU TARGET \
-  OS_$(OS) OSTYPE OSTYPE_$(OSTYPE) VERBOSE INFOMF MDEBUG OSDIR CHECK_MAKEFILE_NOT_PROCESSED \
+  OS_$(OS) OSTYPE OSTYPE_$(OSTYPE) QUIET INFOMF MDEBUG OSDIR CHECK_MAKEFILE_NOT_PROCESSED \
   TERM_NO_COLOR PRINT_PERCENTS SUP ADD_SHOWN_PERCENTS REM_SHOWN_MAKEFILE TRY_REM_MAKEFILE \
   GEN_COLOR MGEN_COLOR CP_COLOR LN_COLOR MKDIR_COLOR TOUCH_COLOR \
   COLORIZE SED_MULTI_EXPR ospath nonrelpath PATHSEP \
