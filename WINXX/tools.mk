@@ -32,9 +32,6 @@ PATH := $(subst ?, ,$(subst $(space),;,$(strip $(foreach p,$(subst \
 # for Windows XP and later, assuming that maximum length of each arg is 80 chars
 DEL_ARGS_LIMIT := 100
 
-# don't colorize output
-TERM_NO_COLOR := 1
-
 # convert slashes
 # NOTE: no spaces allowed in paths the $(MAKE) works with
 ospath = $(subst /,\,$1)
@@ -58,8 +55,8 @@ DEL_DIR1 = if exist $1\* rd /S /Q $1
 DEL_DIR  = $(call DEL_DIR1,$(ospath))
 
 # delete files and directories
-RM1 = $(if $(VERBOSE),,@)for %%f in ($(ospath)) do if exist %%f\* (rd /S /Q %%f) else if exist %%f (del /F /Q %%f)
-RM  = $(call xcmd,RM1,$1,$(DEL_ARGS_LIMIT))
+RM1 = $(QUIET)for %%f in ($(ospath)) do if exist %%f\* (rd /S /Q %%f) else if exist %%f (del /F /Q %%f)
+RM  = $(call xcmd,RM1,$1,$(DEL_ARGS_LIMIT),,,,)
 
 # NOTE! there are races in MKDIR - if make spawns two parallel jobs:
 # if not exist aaa
