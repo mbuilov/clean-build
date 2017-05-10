@@ -158,8 +158,8 @@ endif
 
 # check WDK_VER only when needed
 GET_WDK_VER = $(if $(WDK_VER),$(WDK_VER),$(if $(WDK),$(error WDK_VER undefined (expecting 7,8,9,10), \
-  failed to auto-determine it, likely WDK is installed to non-default location),$(error WDK undefined, example:
-  C:\Program Files (x86)\Windows Kits\8.1)))
+  failed to auto-determine it, likely WDK is installed to non-default location),$(error \
+  WDK undefined, example: C:\Program Files (x86)\Windows Kits\8.1)))
 
 # normalize: x x -> x?x
 VSN  := $(call unspaces,$(VS))
