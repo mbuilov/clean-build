@@ -41,6 +41,7 @@ ADD_OBJ_SDEPS = $(if $2,$(newline)$1/$(basename $(notdir $x))$(OBJ_SUFFIX): $2)
 # $3 - sdeps
 # $4 - objdir
 # $5 - $(addsuffix $(OBJ_SUFFIX),$(addprefix $4/,$(basename $(notdir $2))))
+# $6 - $t_$v_$1
 # $v - non-empty variant: R,P,S,...
 # $t - EXE,LIB,...
 # note: $(NO_DEPS) - may be recursive and so have different values, for example depending on value of $(CURRENT_MAKEFILE)
@@ -49,8 +50,10 @@ define OBJ_RULES2
 $5
 $(subst $(space),$(newline),$(join $(addsuffix :,$5),$2))$(if \
   $3,$(foreach x,$2,$(call ADD_OBJ_SDEPS,$4,$(call EXTRACT_SDEPS,$x,$3))))
+ifdef $6
 $5:| $4 $$(ORDER_DEPS)
-	$$(call $t_$v_$1,$$@,$$<)
+	$$(call $6,$$@,$$<)
+endif
 endef
 
 # $1 - CXX,CC,ASM,...
@@ -63,7 +66,7 @@ endef
 ifdef TOCLEAN
 OBJ_RULES1 = $(call TOCLEAN,$(addsuffix .d,$5) $(addsuffix $(OBJ_SUFFIX),$5))
 else
-OBJ_RULES1 = $(eval OBJ_RULES1=$$(call OBJ_RULES2,$$1,$$2,$$3,$$4,$$(addsuffix $(OBJ_SUFFIX),$$5))$(if \
+OBJ_RULES1 = $(eval OBJ_RULES1=$$(call OBJ_RULES2,$$1,$$2,$$3,$$4,$$(addsuffix $(OBJ_SUFFIX),$$5),$$t_$$v_$$1)$(if \
   $(NO_DEPS),,$$(newline)-include $$(addsuffix .d,$$5))$(newline)$$(call CLEAN_BUILD_PROTECT_VARS,OBJ_RULES1))$(OBJ_RULES1)
 endif
 
@@ -328,7 +331,7 @@ define DEFINE_C_TARGETS_EVAL
 $(if $(MDEBUG),$(eval $(call DEBUG_TARGETS,$(BLD_TARGETS),FORM_TRG,VARIANTS_FILTER)))
 $(eval $(OS_DEFINE_TARGETS))
 $(eval $(CHECK_C_RULES)$(call C_RULES,$(BLD_TARGETS)))
-$(eval $(DEF_TAIL_CODE))
+$(DEF_TAIL_CODE_EVAL)
 endef
 
 # common include path for all targets, added at end of compiler's include paths list, for example:
@@ -446,8 +449,6 @@ PREPARE_C_VARS := $(PREPARE_C_VARS)
 
 endif # words
 endif # findstring
-
-$(info ---------$(flavor PREDEFINES) $(flavor APPDEFS) $(flavor KRNDEFS) $(flavor PREPARE_C_VARS))
 
 # protect variables from modifications in target makefiles
 $(call CLEAN_BUILD_PROTECT_VARS,BLD_TARGETS OSVARIANT OSVARIANT_$(OSVARIANT) LIB_VAR_SUFFIX \
