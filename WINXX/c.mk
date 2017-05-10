@@ -946,7 +946,7 @@ ARC_AUX_TEMPLATE1 = $(foreach v,$(call GET_VARIANTS,$t),$(call \
 # $t - LIB or KLIB
 define ARC_AUX_TEMPLATE
 $(empty)
-ifneq ($(RES),)
+ifneq (,$(RES))
 $$(error don't link resource(s) $(RES) into static library: linker will ignore resources in static library)
 endif
 $(PCH_TEMPLATE)
