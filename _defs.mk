@@ -30,8 +30,8 @@ MAKEFLAGS += --warn-undefined-variables
 # or in project configuration file before including this file, via:
 # override MTOP := /my_path/clean-build
 ifeq (environment,$(origin MTOP))
-$(error MTOP must not be inherited from environment,\
- define MTOP either in command line or in project configuration makefile via override directive)
+$(error MTOP must not be taken from environment,\
+ please define MTOP either in command line or in project configuration makefile before including this file via override directive)
 endif
 
 # do not inherit MTOP from environment
@@ -47,6 +47,12 @@ endif
 # TOP - path to project root directory - must be defined either in command line
 # or in project configuration file before including this file, via:
 # override TOP := /my_project
+ifeq (environment,$(origin TOP))
+$(error TOP must not be taken from environment,\
+ please define TOP either in command line or in project configuration makefile before including this file via override directive)
+endif
+
+# do not inherit TOP from environment
 TOP:=
 
 # ensure that TOP is non-recursive (simple)
@@ -287,6 +293,7 @@ CP_COLOR    := [00;36m
 LN_COLOR    := [00;36m
 MKDIR_COLOR := [00;36m
 TOUCH_COLOR := [00;36m
+CAT_COLOR   := [00;32m
 
 # colorize percents
 # NOTE: WINXX/tools.mk redefines: PRINT_PERCENTS = [$1]
@@ -303,8 +310,8 @@ COLORIZE = $($1_COLOR)$1[0m$(padto)$(if $3,$(join $(dir $2),$(addsuffix [0m,$(
 # target-specific: MF, MCONT
 # $1 - tool
 # $2 - tool arguments
-# $3 - if non-empty, then try to update percents of executed makefiles
-# $4 - if non-empty, then colorize argument of called tool
+# $3 - if non-empty, then colorize argument of called tool
+# $4 - if non-empty, then try to update percents of executed makefiles
 ifeq (,$(filter distclean clean,$(MAKECMDGOALS)))
 ifdef QUIET
 SHOWN_MAKEFILES:=
@@ -343,9 +350,9 @@ FORMAT_PERCENTS = $(subst |,,$(subst \
 # don't update percents if $(MF) was already shown
 TRY_REM_MAKEFILE = $(if $(filter $(MF),$(SHOWN_MAKEFILES)),,$(eval $(REM_SHOWN_MAKEFILE)))
 ifdef INFOMF
-SUP1 = $(info $(call PRINT_PERCENTS,$(if $3,$(TRY_REM_MAKEFILE))$(FORMAT_PERCENTS))$(MF)$(MCONT):$(call COLORIZE,$1,$2,$4))@
+SUP1 = $(info $(call PRINT_PERCENTS,$(if $4,$(TRY_REM_MAKEFILE))$(FORMAT_PERCENTS))$(MF)$(MCONT):$(COLORIZE))@
 else
-SUP1 = $(info $(call PRINT_PERCENTS,$(if $3,$(TRY_REM_MAKEFILE))$(FORMAT_PERCENTS))$(call COLORIZE,$1,$2,$4))@
+SUP1 = $(info $(call PRINT_PERCENTS,$(if $4,$(TRY_REM_MAKEFILE))$(FORMAT_PERCENTS))$(COLORIZE))@
 endif
 SUP = $(call SUP1,$1,$2,1,1)
 else # !QUIET
@@ -644,7 +651,7 @@ CB_TOOL_MODE:=
 
 # $(DEFINE_TARGETS_EVAL_NAME) - contains name of macro that is when expanded
 # evaluates code to define targets (at least, by evaluating $(DEF_TAIL_CODE))
-DEFINE_TARGETS_EVAL_NAME := DEF_TAIL_CODE_EVAL
+DEFINE_TARGETS_EVAL_NAME:=
 
 # expand this macro to evaluate default head code (called from $(MTOP)/defs.mk)
 # note: by default it expanded at start of next $(MAKE_CONTINUE) round
