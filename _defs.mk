@@ -15,7 +15,10 @@ $(error required GNU Make of version 3.81 or later)
 endif
 
 # disable builtin rules and variables
-MAKEFLAGS += --no-builtin-rules --no-builtin-variables --warn-undefined-variables
+MAKEFLAGS += --no-builtin-rules --no-builtin-variables
+
+# check use of undefined variables
+MAKEFLAGS += --warn-undefined-variables
 
 # drop make's default legacy rules - we'll use custom ones
 .SUFFIXES:
@@ -26,6 +29,12 @@ MAKEFLAGS += --no-builtin-rules --no-builtin-variables --warn-undefined-variable
 # MTOP - path to clean-build - must be defined either in command line
 # or in project configuration file before including this file, via:
 # override MTOP := /my_path/clean-build
+ifeq (environment,$(origin MTOP))
+$(error MTOP must not be inherited from environment,\
+ define MTOP either in command line or in project configuration makefile via override directive)
+endif
+
+# do not inherit MTOP from environment
 MTOP:=
 
 # ensure that MTOP is non-recursive (simple)
@@ -286,17 +295,16 @@ PRINT_PERCENTS = [00;34m[[01;34m$1[00;34m][0m
 # print in color short name of called tool $1 with argument $2
 # $1 - tool
 # $2 - argument
-# $3 - ignored (used by TRY_REM_MAKEFILE)
-# $4 - if not empty, do not colorize argument
+# $3 - if non-empty, then colorize argument
 # NOTE: WINXX/tools.mk redefines: COLORIZE = $1$(padto)$2
-COLORIZE = $(if $($1_COLOR),$($1_COLOR)$1[0m,$1)$(padto)$(if \
-  $4,$2,$(if $($1_COLOR),$(join $(dir $2),$(addsuffix [0m,$(addprefix $($1_COLOR),$(notdir $2)))),$2))
+COLORIZE = $($1_COLOR)$1[0m$(padto)$(if $3,$(join $(dir $2),$(addsuffix [0m,$(addprefix $($1_COLOR),$(notdir $2)))),$2)
 
-# SUP: suppress output of executed build tool, print some pretty message instead, like "CC  source.c"
+# SUP1: suppress output of executed build tool, print some pretty message instead, like "CC  source.c"
 # target-specific: MF, MCONT
 # $1 - tool
 # $2 - tool arguments
-# $3 - if non-empty, don't update percents
+# $3 - if non-empty, then try to update percents of executed makefiles
+# $4 - if non-empty, then colorize argument of called tool
 ifeq (,$(filter distclean clean,$(MAKECMDGOALS)))
 ifdef QUIET
 SHOWN_MAKEFILES:=
@@ -319,9 +327,8 @@ SHOWN_PERCENTS += $(call ADD_SHOWN_PERCENTS,$(SHOWN_REMAINDER) \
 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 \
 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1)
 endef
-# $3 - if non-empty, don't update percents
-# also don't update percents if $(MF) was already shown
-TRY_REM_MAKEFILE = $(if $3,,$(if $(filter $(MF),$(SHOWN_MAKEFILES)),,$(eval $(REM_SHOWN_MAKEFILE))))$(subst |,,$(subst \
+# prepare for printing percents of processed makefiles
+FORMAT_PERCENTS = $(subst |,,$(subst \
   |0%,00%,$(subst \
   |1%,01%,$(subst \
   |2%,02%,$(subst \
@@ -333,16 +340,21 @@ TRY_REM_MAKEFILE = $(if $3,,$(if $(filter $(MF),$(SHOWN_MAKEFILES)),,$(eval $(RE
   |8%,08%,$(subst \
   |9%,09%,$(subst \
   |100%,FIN,|$(words $(SHOWN_PERCENTS))%))))))))))))
+# don't update percents if $(MF) was already shown
+TRY_REM_MAKEFILE = $(if $(filter $(MF),$(SHOWN_MAKEFILES)),,$(eval $(REM_SHOWN_MAKEFILE)))
 ifdef INFOMF
-SUP = $(info $(call PRINT_PERCENTS,$(TRY_REM_MAKEFILE))$(MF)$(MCONT):$(COLORIZE))@
+SUP1 = $(info $(call PRINT_PERCENTS,$(if $3,$(TRY_REM_MAKEFILE))$(FORMAT_PERCENTS))$(MF)$(MCONT):$(call COLORIZE,$1,$2,$4))@
 else
-SUP = $(info $(call PRINT_PERCENTS,$(TRY_REM_MAKEFILE))$(COLORIZE))@
+SUP1 = $(info $(call PRINT_PERCENTS,$(if $3,$(TRY_REM_MAKEFILE))$(FORMAT_PERCENTS))$(call COLORIZE,$1,$2,$4))@
 endif
+SUP = $(call SUP1,$1,$2,1,1)
 else # !QUIET
 REM_SHOWN_MAKEFILE:=
 ifdef INFOMF
-SUP = $(info $(MF)$(MCONT):)
+SUP1 = $(info $(MF)$(MCONT):)
+SUP = $(SUP1)
 else
+SUP1:=
 SUP:=
 endif
 endif # !QUIET
@@ -639,7 +651,7 @@ DEFINE_TARGETS_EVAL_NAME := DEF_TAIL_CODE_EVAL
 DEF_HEAD_CODE_EVAL = $(eval $(DEF_HEAD_CODE))
 
 # expand this macro to evaluate default tail code
-DEF_TAIL_CODE_EVAL = $(eval $(DEF_TAIL_CODE))
+DEF_TAIL_CODE_EVAL = $(eval $(call DEF_TAIL_CODE,))
 
 # code to $(eval) at beginning of each makefile
 # 1) add $(CURRENT_MAKEFILE) to build
@@ -736,9 +748,9 @@ OSTYPE_$(OSTYPE) := 1
 $(call CLEAN_BUILD_PROTECT_VARS,MTOP MAKEFLAGS CHECK_TOP TOP BUILD NO_DEPS DEBUG \
   SUPPORTED_OSES SUPPORTED_CPUS SUPPORTED_TARGETS OS CPU UCPU KCPU TCPU TARGET \
   OS_$(OS) OSTYPE OSTYPE_$(OSTYPE) VERBOSE QUIET INFOMF MDEBUG OSDIR CHECK_MAKEFILE_NOT_PROCESSED \
-  PRINT_PERCENTS SUP ADD_SHOWN_PERCENTS REM_SHOWN_MAKEFILE TRY_REM_MAKEFILE \
+  PRINT_PERCENTS SUP SUP1 ADD_SHOWN_PERCENTS REM_SHOWN_MAKEFILE FORMAT_PERCENTS \
   GEN_COLOR MGEN_COLOR CP_COLOR LN_COLOR MKDIR_COLOR TOUCH_COLOR \
-  COLORIZE SED_MULTI_EXPR ospath nonrelpath PATHSEP \
+  COLORIZE TRY_REM_MAKEFILE SED_MULTI_EXPR ospath nonrelpath PATHSEP \
   TARGET_TRIPLET DEF_BIN_DIR DEF_OBJ_DIR DEF_LIB_DIR DEF_GEN_DIR SET_DEFAULT_DIRS \
   TOOL_BASE MK_TOOLS_DIR GET_TOOLS TOOL_SUFFIX GET_TOOL TOOL_OVERRIDE_DIRS \
   FIX_ORDER_DEPS STD_TARGET_VARS1 STD_TARGET_VARS TOCLEAN FIXPATH MAKEFILE_DEBUG_INFO \
