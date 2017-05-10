@@ -307,21 +307,21 @@ TRG_PCH := $(call FIXPATH,$(PCH))
 TRG_WITH_PCH := $(call FIXPATH,$(WITH_PCH))
 $2: PCH := $$(TRG_PCH)
 $2: WITH_PCH := $$(TRG_WITH_PCH)
-ifneq ($$(filter %.c,$$(TRG_WITH_PCH)),)
+ifneq (,$$(filter %.c,$$(TRG_WITH_PCH)))
 C_GCH := $1/$$(basename $$(notdir $$(TRG_PCH)))_pch_c.h
 $$(C_GCH).gch: $$(TRG_PCH) | $1 $$(ORDER_DEPS)
 	$$(call PCH_$t_$v_CC,$$@,$$(PCH))
-ifeq ($(NO_DEPS),)
+ifeq (,$(NO_DEPS))
 -include $$(C_GCH).d)
 endif
 $$(addprefix $1/,$$(addsuffix $(OBJ_SUFFIX),$$(basename $$(notdir $$(filter %.c,$$(TRG_WITH_PCH)))))): $$(C_GCH).gch
 $$(call TOCLEAN,$$(C_GCH).gch $$(C_GCH).d)
 endif
-ifneq ($$(filter %.cpp,$$(TRG_WITH_PCH)),)
+ifneq (,$$(filter %.cpp,$$(TRG_WITH_PCH)))
 CXX_GCH := $1/$$(basename $$(notdir $$(TRG_PCH)))_pch_cxx.h
 $$(CXX_GCH).gch: $$(TRG_PCH) | $1 $$(ORDER_DEPS)
 	$$(call PCH_$t_$v_CXX,$$@,$$(PCH))
-ifeq ($(NO_DEPS),)
+ifeq (,$(NO_DEPS))
 -include $$(CXX_GCH).d
 endif
 $$(addprefix $1/,$$(addsuffix $(OBJ_SUFFIX),$$(basename $$(notdir $$(filter %.cpp,$$(TRG_WITH_PCH)))))): $$(CXX_GCH).gch
