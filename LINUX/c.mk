@@ -153,6 +153,9 @@ DLL_IMPORTS_DEFINE:=
 # target-specific: RPATH
 RPATH_OPTION = $(addprefix $(WLPREFIX)-rpath=,$(strip $(RPATH)))
 
+# runtime path to search shared libraries
+RPATH_LINK:=
+
 # linktime-path option for EXE or DLL
 # target-specific: RPATH_LINK
 RPATH_LINK_OPTION = $(addprefix $(WLPREFIX)-rpath-link=,$(RPATH_LINK))
