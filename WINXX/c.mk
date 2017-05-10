@@ -196,15 +196,15 @@ VARIANT_IMP_MAP = $(if $(3:UNI_%=),$(2:U=),$2)
 
 # check that library name built as RU/SU variant is started with UNI_ prefix
 # $1 - library name
-# $v - variant name: RU,S
-CHECK_LIB_UNI_NAME1 = $(if $(filter-out UNI_%,$1),$(error library '$1' name must be started with UNI_ prefix to build it as $v variant))
+# $v - variant name: RU,SU
+CHECK_LIB_UNI_NAME1 = $(if $(filter-out UNI_%,$1),$(error library '$1' name must start with UNI_ prefix to build it as $v variant))
 
 # check that library name built as RU/SU variant is started with UNI_ prefix
 # $1 - IMP or LIB
 # $v - variant name: R,S,RU,SU
 # note: $$1 - target library name
 CHECK_LIB_UNI_NAME = $(if $(filter %U,$v),$$(call CHECK_LIB_UNI_NAME1,$$(patsubst \
-  %$(call VARIANT_$1_SUFFIX,$v)$($1_SUFFIX),%,$$(notdir $$1))))
+  %$(call LIB_VAR_SUFFIX,$v)$($1_SUFFIX),%,$$(notdir $$1))))
 
 # how to mark exported symbols from a DLL
 DLL_EXPORTS_DEFINE := "__declspec(dllexport)"
