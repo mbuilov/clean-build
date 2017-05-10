@@ -71,7 +71,7 @@ endif
 
 $(call CHECK_TOP,BUILD)
 
-ifneq ($(filter $(BUILD)/%,$(TOP)/),)
+ifneq (,$(filter $(BUILD)/%,$(TOP)/))
 $(error BUILD=$(BUILD) cannot be a base for TOP=$(TOP))
 endif
 
