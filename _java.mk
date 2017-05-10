@@ -185,7 +185,7 @@ SCALAC_COLOR := [01;36m
 define DEFINE_JAVA_TARGETS_EVAL
 $(if $(MDEBUG),$(eval $(call DEBUG_TARGETS,$(BLD_JTARGETS),FORM_JTRG)))
 $(eval $(JAR_RULES))
-$(eval $(DEF_TAIL_CODE))
+$(DEF_TAIL_CODE_EVAL)
 endef
 
 # code to be called at beginning of target makefile
