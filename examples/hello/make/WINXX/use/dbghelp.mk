@@ -1,2 +1,0 @@
-SYSLIBPATH += $(UMLIB)
-SYSLIBS    += DbgHelp.Lib

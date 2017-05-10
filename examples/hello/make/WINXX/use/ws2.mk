@@ -1,2 +1,0 @@
-SYSLIBPATH += $(UMLIB)
-SYSLIBS    += WS2_32.Lib

@@ -1,3 +1,0 @@
-X11_PATH    ?= /usr/X11R6
-X11_INCLUDE ?= $(X11_PATH)/include
-SYSINCLUDE  += $(X11_INCLUDE)

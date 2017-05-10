@@ -1,1 +1,0 @@
-SYSINCLUDE += $(UMINC)

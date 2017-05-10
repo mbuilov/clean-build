@@ -1,2 +1,0 @@
-SYSLIBPATH += $(UMLIB)
-SYSLIBS    += Shell32.Lib
