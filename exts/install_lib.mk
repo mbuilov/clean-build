@@ -5,6 +5,7 @@
 #----------------------------------------------------------------------------------
 
 # auxiliary templates to simplify library installation
+
 # this file should be included in target makefile after $(DEFINE_TARGETS)
 # which builds:
 # LIB - target static library name with variants
@@ -176,12 +177,11 @@ LIBRARY_HDIR := $(call ospath,$(LIBRARY_HDIR))
 DST_INC_DIR := $(subst $(space),\ ,$(DESTDIR)$(INCLUDEDIR)$(LIBRARY_HDIR))
 DST_LIB_DIR := $(subst $(space),\ ,$(DESTDIR)$(LIBDIR))
 
+ifndef ADD_INSTALL_DIRS
+
 # $1 - "$(subst /,\,$(subst \ , ,$@))"
 # note: pass non-empty 3-d argument to SUP function to not update percents
 INSTALL_MKDIR = $(call SUP,MKDIR,$1,@)$(call MKDIR,$1)
-$(call CLEAN_BUILD_PROTECT_VARS,INSTALL_MKDIR)
-
-ifndef ADD_INSTALL_DIRS
 
 # directories to install
 NEEDED_INSTALL_DIRS:=
@@ -200,7 +200,7 @@ endef
 # $1 - directories to install
 ADD_INSTALL_DIRS = $(eval $(call ADD_INSTALL_DIRS1,$(filter-out $(NEEDED_INSTALL_DIRS),$(call split_dirs,$1))))
 
-$(call CLEAN_BUILD_PROTECT_VARS,ADD_INSTALL_DIRS1 ADD_INSTALL_DIRS)
+$(call CLEAN_BUILD_PROTECT_VARS,INSTALL_MKDIR ADD_INSTALL_DIRS1 ADD_INSTALL_DIRS)
 endif # ADD_INSTALL_DIRS
 
 ifneq (,$(BUILT_LIBS)$(BUILT_DLLS))

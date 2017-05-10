@@ -23,7 +23,7 @@ SEQ_BUILD:=
 endif
 
 # dependencies generation supported only for non-multisource (sequencial) builds
-ifeq ($(SEQ_BUILD),)
+ifeq (,$(SEQ_BUILD))
 NO_DEPS := 1
 $(call CLEAN_BUILD_PROTECT_VARS,NO_DEPS)
 endif
@@ -31,8 +31,8 @@ endif
 include $(MTOP)/WINXX/auto_c.mk
 
 # yasm/flex/bison compilers
-YASMC := yasm.exe
-FLEXC := flex.exe
+YASMC  := yasm.exe
+FLEXC  := flex.exe
 BISONC := bison.exe
 
 # note: assume yasm used only for drivers
@@ -57,9 +57,6 @@ endif
 # $2 - arguments for mc.exe
 # target-specific: TMD
 MC = $(call SUP,$(TMD)MC,$1)$(call WRAP_MC,$($(TMD)MC1)$(if $(VERBOSE), -v) $2)
-
-# SUPPRESS_RC_LOGO may be defined as /nologo -  not all versions of rc.exe support this switch
-SUPPRESS_RC_LOGO := $(SUPPRESS_RC_LOGO)
 
 # strings to strip off from rc.exe output if rc.exe does not support /nologo option
 # note: may be overriden either in $(PROJECT) configuration file or in command line
@@ -132,13 +129,13 @@ OS_PREDEFINES := WINXX $(WINVARIANT) $(WINVER_DEFINES)
 
 # how to embed manifest into executable or dll
 # Note: starting from Visual Studio 2012, linker supports /MANIFEST:EMBED option - linker will call mt.exe internally
+EMBED_MANIFEST_OPTION:=
+
 ifndef EMBED_MANIFEST_OPTION
 # target-specific: TMD
-EMBED_EXE_MANIFEST = $(newline)$(if \
-  $(VERBOSE),,@)if exist $(ospath).manifest ($($(TMD)MT1) -nologo -manifest \
+EMBED_EXE_MANIFEST = $(newline)$(QUIET)if exist $(ospath).manifest ($($(TMD)MT1) -nologo -manifest \
   $(ospath).manifest -outputresource:$(ospath);1 && del $(ospath).manifest)$(DEL_ON_FAIL)
-EMBED_DLL_MANIFEST = $(newline)$(if \
-  $(VERBOSE),,@)if exist $(ospath).manifest ($($(TMD)MT1) -nologo -manifest \
+EMBED_DLL_MANIFEST = $(newline)$(QUIET)if exist $(ospath).manifest ($($(TMD)MT1) -nologo -manifest \
   $(ospath).manifest -outputresource:$(ospath);2 && del $(ospath).manifest)$(DEL_ON_FAIL)
 else
 # reset
@@ -440,8 +437,8 @@ WRAP_COMPILER:=
 # $4 - $(basename $2).d
 # $5 - prefixes of system includes
 # note: send compiler output to stderr
-ifeq ($(NO_DEPS),)
-ifneq ($(SEQ_BUILD),)
+ifeq (,$(NO_DEPS))
+ifneq (,$(SEQ_BUILD))
 WRAP_COMPILER = (($1 /showIncludes 2>&1 && set /p ="COMPILATION_OK" >&2 <NUL) | \
   ($(SED) -n $(SED_DEPS_SCRIPT) 2>&1 && set /p ="_SED_OK" >&2 <NUL)) 3>&2 2>&1 1>&3 | findstr /B /L COMPILATION_OK_SED_OK >NUL
 endif
@@ -489,8 +486,6 @@ endef
 $(eval $(foreach v,R $(VARIANTS_FILTER),$(SEQ_COMPILERS_TEMPLATE)))
 
 # option for parallel builds, starting from Visual Studio 2013
-FORCE_SYNC_PDB := $(FORCE_SYNC_PDB)
-
 ifdef FORCE_SYNC_PDB
 APP_FLAGS += $(FORCE_SYNC_PDB) #/FS
 endif
@@ -778,7 +773,7 @@ $$(PCH_CXX_OBJ): $$(PCH_CXX_SRC) $$(TRG_PCH) | $3 $$(ORDER_DEPS)
 	$$(call PCH_$v_$5CXX,$$@,$$<,$$(PCH))
 PCH_OBJS := $$(if $$(filter %.c,$$(TRG_WITH_PCH)),$$(PCH_C_OBJ)) $$(if $$(filter %.cpp,$$(TRG_WITH_PCH)),$$(PCH_CXX_OBJ))
 $4: $$(PCH_OBJS)
-ifeq ($(NO_DEPS),)
+ifeq (,$(NO_DEPS))
 -include $$(addprefix $3/,$$(if \
   $$(filter %.c,$$(TRG_WITH_PCH)),$$(basename $$(notdir $$(PCH_C_SRC))).d) $$(if \
   $$(filter %.cpp,$$(TRG_WITH_PCH)),$$(basename $$(notdir $$(PCH_CXX_SRC))).d))
@@ -1027,21 +1022,21 @@ NEEDED_DIRS += $4
 $1: $(call OBJ_RULES,CC,$(filter %.c,$2),$3,$4)
 $1: $(call OBJ_RULES,CXX,$(filter %.cpp,$2),$3,$4)
 $1: $(call OBJ_RULES,ASM,$(filter %.asm,$2),$3,$4)
-$1: SRC         := $2
-$1: SDEPS       := $3
-$1: MODVER      := $(MODVER)
-$1: COMPILER    := $(if $(filter %.cpp,$2),CXX,CC)
-$1: LIB_DIR     := $(LIB_DIR)
-$1: KLIBS       := $(KLIBS)
-$1: KDLLS       := $(KDLLS)
-$1: INCLUDE     := $(TRG_INCLUDE)
-$1: DEFINES     := $(CMNDEFINES) $(KRNDEFS) $(DEFINES)
-$1: CFLAGS      := $(CFLAGS)
-$1: CXXFLAGS    := $(CXXFLAGS)
-$1: ASMFLAGS    := $(ASMFLAGS)
-$1: LDFLAGS     := $(LDFLAGS)
-$1: SYSLIBS     := $(SYSLIBS)
-$1: SYSLIBPATH  := $(SYSLIBPATH)
+$1: SRC        := $2
+$1: SDEPS      := $3
+$1: MODVER     := $(MODVER)
+$1: COMPILER   := $(if $(filter %.cpp,$2),CXX,CC)
+$1: LIB_DIR    := $(LIB_DIR)
+$1: KLIBS      := $(KLIBS)
+$1: KDLLS      := $(KDLLS)
+$1: INCLUDE    := $(TRG_INCLUDE)
+$1: DEFINES    := $(CMNDEFINES) $(KRNDEFS) $(DEFINES)
+$1: CFLAGS     := $(CFLAGS)
+$1: CXXFLAGS   := $(CXXFLAGS)
+$1: ASMFLAGS   := $(ASMFLAGS)
+$1: LDFLAGS    := $(LDFLAGS)
+$1: SYSLIBS    := $(SYSLIBS)
+$1: SYSLIBPATH := $(SYSLIBPATH)
 $1: $(addprefix $(LIB_DIR)/,$(addprefix \
   $(KLIB_PREFIX),$(KLIBS:=$(KLIB_SUFFIX))) $(addprefix \
   $(KIMP_PREFIX),$(KDLLS:=$(KIMP_SUFFIX)))) $2 $(TRG_ALL_SDEPS)
@@ -1121,7 +1116,7 @@ KDLL_NO_EXPORTS:=
 endef
 
 # protect variables from modifications in target makefiles
-$(call CLEAN_BUILD_PROTECT_VARS,SEQ_BUILD YASMC FLEXC BISONC MC YASM_FLAGS MC_STRIP_STRINGS WRAP_MC SUPPRESS_RC_LOGO RC_LOGO_STRINGS \
+$(call CLEAN_BUILD_PROTECT_VARS,SEQ_BUILD YASMC FLEXC BISONC MC YASM_FLAGS MC_STRIP_STRINGS WRAP_MC RC_LOGO_STRINGS \
   WRAP_RC RC KIMP_PREFIX KIMP_SUFFIX SUBSYSTEM_KVER EMBED_MANIFEST_OPTION EMBED_EXE_MANIFEST EMBED_DLL_MANIFEST \
   CHECK_LIB_UNI_NAME1 CHECK_LIB_UNI_NAME MK_MAJ_MIN_VER CMN_LIBS_LDFLAGS CMN_LIBS \
   DLL_EXPORTS_DEFINE DLL_IMPORTS_DEFINE \
@@ -1131,7 +1126,7 @@ $(call CLEAN_BUILD_PROTECT_VARS,SEQ_BUILD YASMC FLEXC BISONC MC YASM_FLAGS MC_ST
   $(foreach v,R $(VARIANTS_FILTER),EXE_$v_LD1 DLL_$v_LD1 LIB_$v_LD1) KLIB_R_LD1 \
   APP_FLAGS CMN_CL1 CMN_RCL CMN_SCL CMN_RUCL CMN_SUCL \
   INCLUDING_FILE_PATTERN UDEPS_INCLUDE_FILTER SED_DEPS_SCRIPT \
-  WRAP_COMPILER CMN_CC CMN_CXX SEQ_COMPILERS_TEMPLATE FORCE_SYNC_PDB \
+  WRAP_COMPILER CMN_CC CMN_CXX SEQ_COMPILERS_TEMPLATE \
   $(foreach v,R $(VARIANTS_FILTER),LIB_$v_CC LIB_$v_CXX EXE_$v_CC EXE_$v_CXX DLL_$v_CC DLL_$v_CXX EXE_$v_LD DLL_$v_LD LIB_$v_LD) \
   MCL_MAX_COUNT CALL_MCC CALL_MCXX CALL_MPCC CALL_MPCXX CMN_MCL2 CMN_MCL1 CMN_RMCL CMN_SMCL CMN_RUMCL CMN_SUMCL \
   FILTER_SDEPS1 FILTER_SDEPS CMN_MCL MULTI_COMPILERS_TEMPLATE \

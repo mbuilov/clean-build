@@ -4,18 +4,18 @@
 # Licensed under GPL version 2 or any later version, see COPYING
 #----------------------------------------------------------------------------------
 
-ifndef CB_INCLUDE
+ifndef CLEAN_BUILD_INCLUDE
 include $(MTOP)/_parallel.mk
 endif
 
 # if $(MTOP)/defs.mk was included and processed before including this $(MTOP)/parallel.mk
-# then DEF_HEAD_CODE_PROCESSED will be defined
-ifndef DEF_HEAD_CODE_PROCESSED
-$(DEF_HEAD_CODE_EVAL)
+# then DEFINE_TARGETS_EVAL_NAME will be defined
+ifndef DEFINE_TARGETS_EVAL_NAME
+$(eval $(DEF_HEAD_CODE))
 endif
 
-# allow to evaluate $(DEF_HEAD_CODE_EVAL) in next included $(MTOP)/parallel.mk
-DEF_HEAD_CODE_PROCESSED:=
+# allow to evaluate $(DEF_HEAD_CODE) in next included $(MTOP)/parallel.mk
+DEFINE_TARGETS_EVAL_NAME:=
 
 # add $(TOP)-related list of makefiles that need to be built before current makefile to $(ORDER_DEPS)
 # - list of order-only dependencies of targets of current makefile
@@ -41,7 +41,7 @@ $(CURRENT_MAKEFILE)-:| $(addsuffix -,$(TO_MAKE))
 
 # increase makefile include level, include and process makefiles, decrease makefile include level
 CB_INCLUDE_LEVEL+=1
-$(eval $(CB_INCLUDE))
+$(eval $(CLEAN_BUILD_INCLUDE))
 CB_INCLUDE_LEVEL:=$(wordlist 2,999999,$(CB_INCLUDE_LEVEL))
 
 # check if need to include $(MTOP)/all.mk

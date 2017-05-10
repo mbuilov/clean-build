@@ -8,7 +8,7 @@
 # $ make check
 
 # auto-determine $(TOP) value
-include $(dir $(lastword $(MAKEFILE_LIST)))top.mk
+include $(dir $(lastword $(MAKEFILE_LIST)))conf.mk
 
 # source clean-build definitions and functions
 include $(MTOP)/defs.mk

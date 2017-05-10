@@ -1,4 +1,4 @@
-include $(dir $(lastword $(MAKEFILE_LIST)))../top.mk
+include $(dir $(lastword $(MAKEFILE_LIST)))../conf.mk
 include $(MTOP)/defs.mk
 
 # generate product definitions header
@@ -27,14 +27,12 @@ define PRODUCT_NAMES_TEMPLATE
 endef
 
 # PRODUCT_BUILDNUMBERS may be defined as: 17160 2017/02/16 10:43:09
-ifndef PRODUCT_BUILDNUMBERS
-$(GENERATED): $(call GET_TOOL,buildnumber)
-endif
+PRODUCT_BUILDNUMBERS:=
 
 $(GENERATED): TEMPL := $(PRODUCT_NAMES_TEMPLATE)
 $(GENERATED): BUILDNUMBERS := $(PRODUCT_BUILDNUMBERS)
-$(GENERATED):
-	$(if $(BUILDNUMBERS),,$(eval $@: BUILDNUMBERS := $(shell $(call ospath,$(call GET_TOOL,buildnumber)))))
+$(GENERATED): $(if $(PRODUCT_BUILDNUMBERS),,| $(call GET_TOOL,buildnumber))
+	$(if $(BUILDNUMBERS),,$(eval $@: BUILDNUMBERS := $(shell $(call ospath,$(firstword $|)))))
 	$(if $(BUILDNUMBERS),,$(error PRODUCT_BUILDNUMBERS not defined))
 	$(call SUP,GEN,$@)$(call ECHO,$(subst <build_date>,$(subst /,-,$(word 2,$(BUILDNUMBERS))) $(word \
   3,$(BUILDNUMBERS)),$(subst <build_num>,$(firstword $(BUILDNUMBERS)),$(TEMPL)))) > $@

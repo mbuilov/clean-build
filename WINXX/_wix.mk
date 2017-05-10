@@ -6,7 +6,12 @@
 
 # rules for building WIX (Windows Installer Xml) installer
 
-ifndef WIX
+# WIX - path to Windows Installer Xml - must be defined either in command line
+# or in project configuration file before including this file, via:
+# override WIX:=C:\Program Files (x86)\WiX Toolset v3.10\
+WIX:=
+
+ifeq (,$(WIX))
 $(error WIX is not defined, example: C:\Program Files (x86)\WiX Toolset v3.10\)
 endif
 
@@ -105,7 +110,7 @@ INSTALLER_RULES = $(if $(INSTALLER),$(call WIX_RULES,INSTALLER))
 define DEFINE_WIX_TARGETS_EVAL
 $(if $(MDEBUG),$(eval $(call DEBUG_TARGETS,$(BLD_WIX_TARGETS),FORM_WIX_TRG)))
 $(eval $(MSI_RULES)$(INSTALLER_RULES))
-$(DEF_TAIL_CODE_EVAL)
+$(eval $(DEF_TAIL_CODE))
 endef
 
 # code to be called at beginning of target makefile
@@ -122,7 +127,7 @@ PREPARE_WIX_VARS := $(PREPARE_WIX_VARS)
 
 # reset build targets, target-specific variables and variables modifiable in target makefiles
 # then define bin/lib/obj/... dirs
-MAKE_WIX_EVAL = $(eval $(PREPARE_WIX_VARS)$(DEF_HEAD_CODE))
+MAKE_WIX_EVAL = $(eval $(DEF_HEAD_CODE)$(PREPARE_WIX_VARS))
 
 # protect variables from modifications in target makefiles
 $(call CLEAN_BUILD_PROTECT_VARS,WIX_MK_INCLUDED WIX WIXN BLD_WIX_TARGETS WIX_CANDLE WIX_LIGHT WIX_EXTS_DIR \

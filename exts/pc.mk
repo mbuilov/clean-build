@@ -25,7 +25,7 @@ include $(MTOP)/exts/echo_inst.mk
 # $13  - ${libdir}
 # $14  - ${exec_prefix}
 # $15  - ${prefix}
-# note: PKGCONF_TEMPLATE may be already defined in $(TOP)/make/project.mk
+# note: PKGCONF_TEMPLATE may be defined via override directive in project configuration file before including this file
 define PKGCONF_TEMPLATE
 $(if $4,# $(subst $(newline),$(newline)# ,$4)$(newline))
 prefix=$(15)
@@ -45,13 +45,13 @@ $(10),$(newline)Libs: $(10))$(if \
 $(11),$(newline)Libs.private: $(11))
 endef
 
-# define standard pkg-config values
-# note: some of PKGCONF_... variables may be already defined in $(TOP)/make/project.mk
 pc_escape   = $(subst %,%%,$(subst $(space),$$(space),$1))
 pc_unescape = $(subst $$(space), ,$(subst %%,%,$1))
 # $2 == $1 ? $3 : $2
 pc_nchoose  = $(firstword $(filter-out $(pc_escape),$(call pc_escape,$2) $3))
 
+# define standard pkg-config values
+# note: some of PKGCONF_... variables may be defined via override directive in project configuration file before including this file
 PKGCONF_PREFIX      = $(if $(PREFIX),$(PREFIX),/usr/local)
 PKGCONF_EXEC_PREFIX = $(call pc_unescape,$(call pc_nchoose,$(PKGCONF_PREFIX),$(EXEC_PREFIX),$${prefix}))
 PKGCONF_INCLUDEDIR  = $(call pc_unescape,$(foreach d,$(firstword $(call pc_escape,$(notdir $(INCLUDEDIR))) include),$(call \

@@ -15,48 +15,65 @@ endif
 WINVARIANTS := WINXP WINV WIN7 WIN8 WIN81 WIN10
 
 # default target variant
-WINVARIANT := WINXP
+WINVARIANT := WIN7
 
-ifeq ($(filter $(WINVARIANT),$(WINVARIANTS)),)
-$(error WINVARIANT undefined or has wrong value, pick on of: $(WINVARIANTS))
+# WINVARIANT should be non-recursive (simple)
+override WINVARIANT := $(WINVARIANT)
+
+ifeq (,$(filter $(WINVARIANT),$(WINVARIANTS)))
+$(error unknown WINVARIANT=$(WINVARIANT), please pick on of: $(WINVARIANTS))
 endif
 
-ifeq ($(WINVARIANT),WIN10)
+ifeq (WIN10,$(WINVARIANT))
 WINVER_DEFINES := WINVER=0x0A00 _WIN32_WINNT=0x0A00
-else ifeq ($(WINVARIANT),WIN81)
+else ifeq (WIN81,$(WINVARIANT))
 WINVER_DEFINES := WINVER=0x0603 _WIN32_WINNT=0x0603
-else ifeq ($(WINVARIANT),WIN8)
+else ifeq (WIN8,$(WINVARIANT))
 WINVER_DEFINES := WINVER=0x0602 _WIN32_WINNT=0x0602
-else ifeq ($(WINVARIANT),WIN7)
+else ifeq (WIN7,$(WINVARIANT))
 WINVER_DEFINES := WINVER=0x0601 _WIN32_WINNT=0x0601
-else ifeq ($(WINVARIANT),WINV)
+else ifeq (WINV,$(WINVARIANT))
 WINVER_DEFINES := WINVER=0x0600 _WIN32_WINNT=0x0600
-else ifeq ($(WINVARIANT),WINXP)
+else ifeq (WINXP,$(WINVARIANT))
 WINVER_DEFINES := WINVER=0x0501 _WIN32_WINNT=0x0501
 else
+WINVER_DEFINES:=
+ifndef WINVER_DEFINES
 $(error unable to define WINVER_DEFINES for WINVARIANT = $(WINVARIANT))
 endif
-
-ifeq ($(WINVARIANT),WIN10)
-SUBSYSTEM_VER := 6.03
-else ifeq ($(WINVARIANT),WIN81)
-SUBSYSTEM_VER := 6.03
-else ifeq ($(WINVARIANT),WIN8)
-SUBSYSTEM_VER := 6.02
-else ifeq ($(WINVARIANT),WIN7)
-SUBSYSTEM_VER := 6.01
-else ifeq ($(WINVARIANT),WINV)
-SUBSYSTEM_VER := 6.00
-else ifeq ($(WINVARIANT),WINXP)
-SUBSYSTEM_VER := $(if $(UCPU:%64=),5.01,5.02)
-else
-$(error unable to define SUBSYSTEM_VER for WINVARIANT = $(WINVARIANT))
 endif
 
-# for simple 'ifdef WIN7'
+ifeq (WIN10,$(WINVARIANT))
+SUBSYSTEM_VER := 6.03
+else ifeq (WIN81,$(WINVARIANT))
+SUBSYSTEM_VER := 6.03
+else ifeq (WIN8,$(WINVARIANT))
+SUBSYSTEM_VER := 6.02
+else ifeq (WIN7,$(WINVARIANT))
+SUBSYSTEM_VER := 6.01
+else ifeq (WINV,$(WINVARIANT))
+SUBSYSTEM_VER := 6.00
+else ifeq (WINXP,$(WINVARIANT))
+SUBSYSTEM_VER := $(if $(UCPU:%64=),5.01,5.02)
+else
+SUBSYSTEM_VER:=
+ifndef SUBSYSTEM_VER
+$(error unable to define SUBSYSTEM_VER for WINVARIANT = $(WINVARIANT))
+endif
+endif
+
+# option for parallel builds, starting from Visual Studio 2013
+# empty by default
+FORCE_SYNC_PDB:=
+
+# SUPPRESS_RC_LOGO may be defined as /nologo, but not all versions of rc.exe support this switch
+SUPPRESS_RC_LOGO:=
+
+# for simple use as 'ifdef WINXP'
 $(WINVARIANT) := 1
 
-AUTOCONF_VARS :=
+# variables that must be defined:
+AUTOCONF_VARS:=
 AUTOCONF_VARS += VSLIB    # spaces must be replaced with ?
 AUTOCONF_VARS += VSINC    # spaces must be replaced with ?
 AUTOCONF_VARS += VSLD     # full path in quotes
@@ -86,7 +103,7 @@ AUTOCONF_VARS += TMT1     # full path in quotes
 NO_AUTOCONF:=
 
 # check that all needed vars are defined, if not - autoconfigure
-ifndef NO_AUTOCONF
+ifeq (,$(NO_AUTOCONF))
 
 # autoconfigure
 
@@ -94,40 +111,68 @@ ifdef VAUTO
 $(info try to autoconfigure...)
 endif
 
-ifndef VS
-$(error VS undefined, example: VS="C:\Program Files (x86)\Microsoft Visual Studio 10.0" or\
- VS="C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Tools\MSVC\14.10.25017")
+# VS - path to Visual Studio - must be defined either in command line
+# or in project configuration file before including this file, via:
+# override VS:=C:\Program Files (x86)\Microsoft Visual Studio 10.0
+VS:=
+
+ifeq (,$(VS))
+$(error VS undefined, example: C:\Program Files (x86)\Microsoft Visual Studio 10.0 or\
+ C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Tools\MSVC\14.10.25017)
 endif
 
-ifneq ($(subst \Microsoft Visual Studio ,,$(VS)),$(VS))
+# Visual Studio version
+ifneq ($(VS),$(subst \Microsoft Visual Studio ,,$(VS)))
 # 10.0 -> 10
 VS_VER := $(firstword $(subst ., ,$(lastword $(VS))))
-else ifneq ($(subst \VC\Tools\MSVC\,,$(VS)),$(VS))
+else ifneq ($(VS),$(subst \VC\Tools\MSVC\,,$(VS)))
 # 14.10.25017 -> 1410
 VS_VER := $(subst $(space),,$(wordlist 1,2,$(subst ., ,$(word 2,$(subst \VC\Tools\MSVC\, ,$(subst $(space),?,$(VS)))))))
+else
+VS_VER:=
 endif
 
-ifndef VS_VER
+ifeq (,$(VS_VER))
 $(error VS_VER undefined (expecting 8,9,11,12,14,1410), \
   failed to auto-determine it, likely Visual Studio is installed to non-default location)
 endif
 
-ifneq ($(subst \Windows Kits\,,$(WDK)),$(WDK))
+# WDK - path to Windows Development Kit
+# DDK - path to Driver Development Kit
+# SDK - path to Software Development Kit
+# - if any of these variables is needed, it may be defined either in command line
+# or in project configuration file before including this file, via:
+# override WDK:=C:\Program Files (x86)\Windows Kits\8.1
+# override DDK:=C:\WinDDK\7600.16385.1
+# override SDK:=C:\Program Files (x86)\Microsoft SDKs\Windows\v7.1A
+WDK:=
+DDK:=
+SDK:=
+
+# Windows Kit version
+ifneq ($(WDK),$(subst \Windows Kits\,,$(WDK)))
 WDK_VER := $(firstword $(subst ., ,$(lastword $(subst \, ,$(WDK)))))
+else
+WDK_VER:=
 endif
 
-GET_WDK_VER = $(if $(WDK_VER),$(WDK_VER),$(error WDK_VER undefined (expecting 7,8,9,10), \
-  failed to auto-determine it, likely WDK is installed to non-default location))
+# check WDK_VER only when needed
+GET_WDK_VER = $(if $(WDK_VER),$(WDK_VER),$(if $(WDK),$(error WDK_VER undefined (expecting 7,8,9,10), \
+  failed to auto-determine it, likely WDK is installed to non-default location),$(error WDK undefined, example:
+  C:\Program Files (x86)\Windows Kits\8.1)))
 
 # normalize: x x -> x?x
 VSN  := $(call unspaces,$(VS))
-SDKN := $(call unspaces,$(SDK))
-DDKN := $(call unspaces,$(DDK))
 WDKN := $(call unspaces,$(WDK))
+DDKN := $(call unspaces,$(DDK))
+SDKN := $(call unspaces,$(SDK))
+
+# empty by default
+ONECORE:=
 
 # APP LEVEL
 
-ifeq ($(call is_less,1000,$(VS_VER)),)
+ifeq (,$(call is_less,1000,$(VS_VER)))
 
 VSLIB  := $(VSN)\VC\lib$(ONECORE)$(addprefix \,$(filter-out x86,$(UCPU:x86_64=amd64)))
 VSINC  := $(VSN)\VC\include
@@ -149,14 +194,14 @@ VSTLD  := $(call qpath,$(VSN)\VC\bin$(call VS_TOOL_PREFIX,$(TCPU))\link.exe)
 VSTCL  := $(call qpath,$(VSN)\VC\bin$(call VS_TOOL_PREFIX,$(TCPU))\cl.exe)
 
 # set path to dlls needed by cl.exe and link.exe to work
-ifneq ($(call is_less,$(VS_VER),10),)
+ifneq (,$(call is_less,$(VS_VER),10))
 
-ifneq ($(call VS_TOOL_PREFIX,$(UCPU)),\amd64)
+ifneq (\amd64,$(call VS_TOOL_PREFIX,$(UCPU)))
 # not for \amd64
 PATH := $(PATH);$(VS)\VC\bin;$(VS)\Common7\IDE
 endif
 
-else ifneq ($(call is_less,$(VS_VER),13),)
+else ifneq (,$(call is_less,$(VS_VER),13))
 
 ifneq ($(UCPU),$(TCPU))
 # for \x86_amd64
@@ -199,25 +244,25 @@ endif
 endif
 
 # PATH variable may have changed, print it to generated batch file
-$(if $(VERBOSE),$(info setlocal$(newline)set "PATH=$(PATH)"))
+$(if $(QUIET),,$(info setlocal$(newline)set "PATH=$(PATH)"))
 
 # option for parallel builds, starting from Visual Studio 2013
-ifneq ($(call is_less,11,$(VS_VER)),)
+ifneq (,$(call is_less,11,$(VS_VER)))
 FORCE_SYNC_PDB := /FS
 endif
 
-ifeq ($(strip $(SDK)$(WDK)),)
+ifeq (,$(strip $(SDK)$(WDK)))
 $(error no SDK nor WDK defined, example:\
- SDK="C:\Program Files (x86)\Microsoft SDKs\Windows\v7.1A" or WDK="C:\Program Files (x86)\Windows Kits\8.1")
+ SDK:=C:\Program Files (x86)\Microsoft SDKs\Windows\v7.1A or WDK:=C:\Program Files (x86)\Windows Kits\8.1)
 endif
 
-ifdef SDK
+ifneq (,$(SDK))
 
-ifdef WDK
+ifneq (,$(WDK))
 $(error either SDK or WDK must be defined, but not both)
 endif
 
-ifneq ($(call is_less,12,$(VS_VER)),)
+ifneq (,$(call is_less,12,$(VS_VER)))
 $(error too new Visual Studio version $(lastword $(subst \, ,$(VS))) to build with SDK, please use WDK)
 endif
 
@@ -235,21 +280,24 @@ MT1  := $(TMT1)
 
 endif # SDK
 
-ifdef WDK
+ifneq (,$(WDK))
 
-ifdef SDK
+ifneq (,$(SDK))
 $(error either SDK or WDK must be defined, but not both)
 endif
 
-ifndef WDK_TARGET
-$(error WDK_TARGET undefined, check contents of "$(WDK)\Lib", example: "win7, win8, winv6.3, 10.0.10240.0")
+# WDK target OS version
+WDK_TARGET := win7
+
+ifeq (,$(WDK_TARGET))
+$(error WDK_TARGET undefined, check contents of "$(WDK)\Lib", example: win7, win8, winv6.3, 10.0.10240.0)
 endif
 
-ifneq ($(call is_less,$(GET_WDK_VER),8),)
+ifneq (,$(call is_less,$(GET_WDK_VER),8))
 
 $(error unsuitable WDK version $(GET_WDK_VER) for building APP-level, use SDK instead)
 
-else ifneq ($(call is_less,$(WDK_VER),10),)
+else ifneq (,$(call is_less,$(WDK_VER),10))
 
 UMLIB  := $(WDKN)\Lib\$(WDK_TARGET)\um\$(UCPU:x86_64=x64)
 UMINC  := $(WDKN)\Include
@@ -279,20 +327,21 @@ endif # WDK
 
 # KERNEL LEVEL
 
-ifeq ($(strip $(DDK)$(WDK)),)
-$(error no DDK nor WDK defined, example: DDK=C:\WinDDK\7600.16385.1 or WDK="C:\Program Files (x86)\Windows Kits\8.1")
+ifeq (,$(strip $(DDK)$(WDK)))
+$(error no DDK nor WDK defined, example: DDK:=C:\WinDDK\7600.16385.1 or WDK:=C:\Program Files (x86)\Windows Kits\8.1)
 endif
 
-ifdef DDK
+ifneq (,$(DDK))
 
-ifdef WDK
+ifneq (,$(WDK))
 $(error either DDK or WDK must be defined, but not both)
 endif
 
-ifneq ($(call is_less,12,$(VS_VER)),)
+ifneq (,$(call is_less,12,$(VS_VER)))
 $(error too new Visual Studio version $(lastword $(subst \, ,$(VS))) to build with DDK, please use WDK)
 endif
 
+# target OS version
 DDK_TARGET := $(if $(filter WINXP,$(WINVARIANT)),wxp,win7)
 
 KMLIB := $(DDKN)\Lib\$(DDK_TARGET)\$(if $(KCPU:x86_64=),$(KCPU:x86=i386),amd64)
@@ -306,20 +355,21 @@ SIGNTOOL := $(call qpath,$(DDKN)\bin\$(KCPU:x86_64=amd64)\SignTool.exe)
 
 endif # DDK
 
-ifdef WDK
+ifneq (,$(WDK))
 
-ifdef DDK
+ifneq (,$(DDK))
 $(error either DDK or WDK must be defined, but not both)
 endif
 
+# target kernel version
 WDK_KTARGET := $(WDK_TARGET)
 
-ifndef WDK_KTARGET
-$(error WDK_KTARGET undefined, check contents of "$(WDK)\Lib", example: "win7, win8, winv6.3, 10.0.10240.0")
+ifeq (,$(WDK_KTARGET))
+$(error WDK_KTARGET undefined, check contents of "$(WDK)\Lib", example: win7, win8, winv6.3, 10.0.10240.0)
 endif
 
-ifneq ($(filter win%,$(WDK_KTARGET)),)
-ifneq ($(call is_less,12,$(VS_VER)),)
+ifneq (,$(filter win%,$(WDK_KTARGET)))
+ifneq (,$(call is_less,12,$(VS_VER)))
 $(error too new Visual Studio version $(lastword \
   $(subst \, ,$(VS))) to build with WDK_KTARGET=$(WDK_KTARGET), please select different WDK_KTARGET)
 endif
@@ -329,7 +379,7 @@ KMLIB := $(WDKN)\Lib\$(WDK_KTARGET)\km\$(KCPU:x86_64=x64)
 KMINC := $(WDKN)\Include$(if $(call is_less,$(GET_WDK_VER),10),,\$(WDK_KTARGET))
 KMINC := $(KMINC)\km $(KMINC)\km\crt $(KMINC)\shared
 
-ifeq ($(call is_less,1000,$(VS_VER)),)
+ifeq (,$(call is_less,1000,$(VS_VER)))
 
 WKLD  := $(call qpath,$(VSN)\VC\bin$(call VS_TOOL_PREFIX,$(KCPU))\link.exe)
 WKCL  := $(call qpath,$(VSN)\VC\bin$(call VS_TOOL_PREFIX,$(KCPU))\cl.exe)
@@ -339,7 +389,7 @@ else # Visual Studio 2017
 WKLD  := $(call qpath,$(VSN)\bin\Host$(patsubst x%,X%,$(TCPU:x86_64=x64))\$(KCPU:x86_64=x64)\link.exe)
 WKCL  := $(call qpath,$(VSN)\bin\Host$(patsubst x%,X%,$(TCPU:x86_64=x64))\$(KCPU:x86_64=x64)\cl.exe)
 
-endif
+endif # Visual Studio 2017
 
 INF2CAT  := $(call qpath,$(WDKN)\bin\x86\Inf2Cat.exe)
 SIGNTOOL := $(call qpath,$(WDKN)\bin\$(TCPU:x86_64=x64)\SignTool.exe)
@@ -350,9 +400,10 @@ endif # autoconf
 
 # print autoconfigured vars
 ifdef VAUTO
-$(foreach x,$(AUTOCONF_VARS),$(info $x=$($x)))
+$(foreach x,$(AUTOCONF_VARS),$(info $x $(if $(filter simple,$(flavor $x)),:)= $(value $x)))
 endif
 
 # protect variables from modifications in target makefiles
-$(call CLEAN_BUILD_PROTECT_VARS,VAUTO WINVARIANTS WINVARIANT WINVER_DEFINES SUBSYSTEM_VER $(WINVARIANT) NO_AUTOCONF \
-  AUTOCONF_VARS $(AUTOCONF_VARS) VS_VER WDK_VER GET_WDK_VER ONECORE FORCE_SYNC_PDB VS_TOOL_PREFIX VS VSN SDK SDKN DDK DDKN WDK WDKN)
+$(call CLEAN_BUILD_PROTECT_VARS,VAUTO WINVARIANTS WINVARIANT WINVER_DEFINES \
+  SUBSYSTEM_VER $(WINVARIANT) AUTOCONF_VARS $(AUTOCONF_VARS) NO_AUTOCONF VS_TOOL_PREFIX WDK_TARGET DDK_TARGET WDK_KTARGET \
+  VS_VER WDK_VER GET_WDK_VER FORCE_SYNC_PDB SUPPRESS_RC_LOGO VS WDK DDK SDK VSN WDKN DDKN SDKN ONECORE)

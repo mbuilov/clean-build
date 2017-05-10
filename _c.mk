@@ -251,13 +251,13 @@ NEEDED_DIRS+=$4
 $1:$(call OBJ_RULES,CC,$(filter %.c,$2),$3,$4)
 $1:$(call OBJ_RULES,CXX,$(filter %.cpp,$2),$3,$4)
 $1:$(call OBJ_RULES,ASM,$(filter %.asm,$2),$3,$4)
-$1:COMPILER   := $(if $(filter %.cpp,$2),CXX,CC)
-$1:INCLUDE    := $(TRG_INCLUDE)
-$1:DEFINES    := $(CMNDEFINES) $(APPDEFS) $(DEFINES)
-$1:CFLAGS     := $(CFLAGS)
-$1:CXXFLAGS   := $(CXXFLAGS)
-$1:ASMFLAGS   := $(ASMFLAGS)
-$1:LDFLAGS    := $(LDFLAGS)
+$1:COMPILER := $(if $(filter %.cpp,$2),CXX,CC)
+$1:INCLUDE  := $(TRG_INCLUDE)
+$1:DEFINES  := $(CMNDEFINES) $(APPDEFS) $(DEFINES)
+$1:CFLAGS   := $(CFLAGS)
+$1:CXXFLAGS := $(CXXFLAGS)
+$1:ASMFLAGS := $(ASMFLAGS)
+$1:LDFLAGS  := $(LDFLAGS)
 $1:
 	$$(call $t_$v_LD,$$@,$$(filter %$(OBJ_SUFFIX),$$^))
 endef
@@ -275,13 +275,13 @@ NEEDED_DIRS+=$4
 $1:$(call OBJ_RULES,CC,$(filter %.c,$2),$3,$4)
 $1:$(call OBJ_RULES,CXX,$(filter %.cpp,$2),$3,$4)
 $1:$(call OBJ_RULES,ASM,$(filter %.asm,$2),$3,$4)
-$1:COMPILER   := $(if $(filter %.cpp,$2),CXX,CC)
-$1:INCLUDE    := $(TRG_INCLUDE)
-$1:DEFINES    := $(CMNDEFINES) $(KRNDEFS) $(DEFINES)
-$1:CFLAGS     := $(CFLAGS)
-$1:CXXFLAGS   := $(CXXFLAGS)
-$1:ASMFLAGS   := $(ASMFLAGS)
-$1:LDFLAGS    := $(LDFLAGS)
+$1:COMPILER := $(if $(filter %.cpp,$2),CXX,CC)
+$1:INCLUDE  := $(TRG_INCLUDE)
+$1:DEFINES  := $(CMNDEFINES) $(KRNDEFS) $(DEFINES)
+$1:CFLAGS   := $(CFLAGS)
+$1:CXXFLAGS := $(CXXFLAGS)
+$1:ASMFLAGS := $(ASMFLAGS)
+$1:LDFLAGS  := $(LDFLAGS)
 $1:
 	$$(call $t_$v_LD,$$@,$$(filter %$(OBJ_SUFFIX),$$^))
 endef
@@ -314,35 +314,27 @@ else
 CHECK_C_RULES:=
 endif
 
-# project's subsystems directory, contains subsystems definitions that are evaluated while processing $(USE) list
-# note: PROJECT_USE_DIR may be overwritten in $(PROJECT) configuration file
-PROJECT_USE_DIR := $(TOP)/make/$(OS)/use
-
 # $(OS)-specific definitions
 OS_DEFINE_TARGETS:=
 
 # this code is normally evaluated at end of target makefile
 # 1) print what we will build
-# 2) include USE-references
-# 3) if there are rules to generate sources - eval them before defining objects for the target
-# 4) evaluate $(OS)-specific default targets before defining common default targets
+# 2) if there are rules to generate sources - eval them before defining objects for the target
+# 3) evaluate $(OS)-specific default targets before defining common default targets
 #   to allow additional $(OS)-specific dependencies on targets
-# 5) check and evaluate rules
-# 6) evaluate $(DEF_TAIL_CODE)
+# 4) check and evaluate rules
+# 5) evaluate $(DEF_TAIL_CODE)
 define DEFINE_C_TARGETS_EVAL
 $(if $(MDEBUG),$(eval $(call DEBUG_TARGETS,$(BLD_TARGETS),FORM_TRG,VARIANTS_FILTER)))
-$(eval $(if $(MDEBUG),$(if $(USE),$(info using: $(USE))))$(newline)include $(addprefix $(PROJECT_USE_DIR)/,$(USE)))
 $(eval $(OS_DEFINE_TARGETS))
 $(eval $(CHECK_C_RULES)$(call C_RULES,$(BLD_TARGETS)))
-$(DEF_TAIL_CODE_EVAL)
+$(eval $(DEF_TAIL_CODE))
 endef
-
-# $(PROJECT) configuration file included by $(MTOP)/defs.mk, if exists, may define:
 
 # common include path for all targets, added at end of compiler's include paths list, for example:
 #  override DEFINCLUDE = $(TOP)/include
 #  note: DEFINCLUDE may be recursive, it's value may be calculated based on $(TOP)-related path to $(CURRENT_MAKEFILE)
-#  note: target makefile may avoid using include paths from $(DEFINCLUDE) by resetting $(CMNINCLUDE) value
+#  note: target makefiles may avoid using include paths from $(DEFINCLUDE) by resetting $(CMNINCLUDE) value
 DEFINCLUDE:=
 
 # predefined macros for all targets, for example:
@@ -382,7 +374,6 @@ CMNDEFINES:=$(PREDEFINES)
 CMNINCLUDE:=$(DEFINCLUDE)
 PCH:=
 WITH_PCH:=
-USE:=
 SRC:=
 SDEPS:=
 DEFINES:=
@@ -403,12 +394,38 @@ MAKE_CONTINUE_EVAL_NAME:=MAKE_C_EVAL
 endef
 
 # reset build targets, target-specific variables and variables modifiable in target makefiles
-# then define bin/lib/obj/... dirs
 # NOTE: expanded by $(MTOP)/c.mk
-MAKE_C_EVAL = $(eval $(PREPARE_C_VARS)$(DEF_HEAD_CODE))
+MAKE_C_EVAL = $(eval $(DEF_HEAD_CODE)$(PREPARE_C_VARS))
 
-# $(OSDIR)/$(OS)/c.mk must define VARIANTS_FILTER
+# note: $(OSDIR)/$(OS)/c.mk must define VARIANTS_FILTER
 include $(OSDIR)/$(OS)/c.mk
+
+# try to make PREDEFINES non-recursive (simple)
+ifneq (simple,$(flavor PREDEFINES))
+ifeq (simple,$(flavor OS_PREDEFINES))
+ifeq (,$(findstring $$,$(subst $$(OS_PREDEFINES),,$(value PREDEFINES))))
+override PREDEFINES := $(PREDEFINES)
+endif
+endif
+endif
+
+# try to make APPDEFS non-recursive (simple)
+ifneq (simple,$(flavor APPDEFS))
+ifeq (simple,$(flavor OS_APPDEFS))
+ifeq (,$(findstring $$,$(subst $$(OS_APPDEFS),,$(value APPDEFS))))
+override APPDEFS := $(APPDEFS)
+endif
+endif
+endif
+
+# try to make KRNDEFS non-recursive (simple)
+ifneq (simple,$(flavor KRNDEFS))
+ifeq (simple,$(flavor OS_KRNDEFS))
+ifeq (,$(findstring $$,$(subst $$(OS_KRNDEFS),,$(value KRNDEFS))))
+override KRNDEFS := $(KRNDEFS)
+endif
+endif
+endif
 
 # check if no new variables introduced in PREPARE_C_VARS
 ifeq (,$(findstring $$,$(subst \
@@ -417,39 +434,20 @@ ifeq (,$(findstring $$,$(subst \
   $$(PREDEFINES),,$(subst \
   $$(DEFINCLUDE),,$(value PREPARE_C_VARS)))))))
 
-# check if BLD_TARGETS_RESET PRODUCT_VER, DEFINCLUDE are simple
-ifeq (3,$(words $(filter simple,$(flavor \
+# check if BLD_TARGETS_RESET, PRODUCT_VER, PREDEFINES, DEFINCLUDE are simple
+ifeq (4,$(words $(filter simple,$(flavor \
   BLD_TARGETS_RESET) $(flavor \
   PRODUCT_VER) $(flavor \
+  PREDEFINES) $(flavor \
   DEFINCLUDE))))
-
-# check if PREDEFINES is either simple or not redefined
-# if it recursive and not redefined, check if OS_PREDEFINES is simple
-ifneq (,$(if $(filter simple,$(flavor PREDEFINES)),1,$(if $(subst \
-  "$$(OS_PREDEFINES)",,"$(value PREDEFINES)"),,$(filter simple,$(flavor OS_PREDEFINES)))))
 
 # then make PREPARE_C_VARS non-recursive (simple)
 PREPARE_C_VARS := $(PREPARE_C_VARS)
 
-endif # simple
 endif # words
 endif # findstring
 
-# try to make APPDEFS simple
-ifneq (simple,$(flavor APPDEFS))
-ifneq (,$(if $(subst "$$(OS_APPDEFS)",,"$(value APPDEFS)"),,$(filter simple,$(flavor OS_APPDEFS))))
-APPDEFS := $(APPDEFS)
-endif
-endif
-
-# try to make KRNDEFS simple
-ifneq (simple,$(flavor KRNDEFS))
-ifneq (,$(if $(subst "$$(OS_KRNDEFS)",,"$(value KRNDEFS)"),,$(filter simple,$(flavor OS_KRNDEFS))))
-KRNDEFS := $(KRNDEFS)
-endif
-endif
-
-$(info ---------$(flavor PREPARE_C_VARS) $(flavor APPDEFS) $(flavor KRNDEFS))
+$(info ---------$(flavor PREDEFINES) $(flavor APPDEFS) $(flavor KRNDEFS) $(flavor PREPARE_C_VARS))
 
 # protect variables from modifications in target makefiles
 $(call CLEAN_BUILD_PROTECT_VARS,BLD_TARGETS OSVARIANT OSVARIANT_$(OSVARIANT) LIB_VAR_SUFFIX \
@@ -462,5 +460,5 @@ $(call CLEAN_BUILD_PROTECT_VARS,BLD_TARGETS OSVARIANT OSVARIANT_$(OSVARIANT) LIB
   VARIANT_LIB_MAP VARIANT_IMP_MAP MAKE_DEP_LIBS MAKE_DEP_IMPS DEP_LIBS DEP_IMPS \
   C_RULES2 C_RULES1 C_RULES EXE_TEMPLATE LIB_TEMPLATE DLL_TEMPLATE KLIB_TEMPLATE DRV_TEMPLATE \
   CC_COLOR CXX_COLOR AR_COLOR LD_COLOR XLD_COLOR ASM_COLOR \
-  KCC_COLOR KLD_COLOR TCC_COLOR TCXX_COLOR TLD_COLOR TXLD_COLOR TAR_COLOR CHECK_C_RULES PROJECT_USE_DIR \
+  KCC_COLOR KLD_COLOR TCC_COLOR TCXX_COLOR TLD_COLOR TXLD_COLOR TAR_COLOR CHECK_C_RULES \
   OS_DEFINE_TARGETS DEFINE_C_TARGETS_EVAL BLD_TARGETS_RESET PREPARE_C_VARS MAKE_C_EVAL)

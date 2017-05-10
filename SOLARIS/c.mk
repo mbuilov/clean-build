@@ -10,8 +10,10 @@ INST_RPATH:=
 # reset additional variables
 # RPATH - runtime path of external dependencies
 # MAP   - linker map file (used mostly to list exported symbols)
-$(eval define PREPARE_C_VARS$(newline)$(value PREPARE_C_VARS)$(newline)RPATH:=$(INST_RPATH)$(newline)MAP=$(newline)endef)
+$(eval define PREPARE_C_VARS$(newline)$(value PREPARE_C_VARS)$(newline)RPATH:=$(if \
+  $(filter simple,$(flavor INST_RPATH)),$(INST_RPATH),$$(INST_RPATH))$(newline)MAP:=$(newline)endef)
 
+# compilers/linkers
 CC   := cc -m$(if $(UCPU:%64=),32,64 -xport64)
 CXX  := CC -m$(if $(UCPU:%64=),32,64 -xport64)
 TCC  := cc -m$(if $(TCPU:%64=),32,64)
@@ -30,17 +32,13 @@ KCC := cc -m$(if $(KCPU:%64=),32,64 -xmodel=kernel)$(if $(filter sparc%,$(KCPU))
 # 64-bit arch: KLD="ld -64"
 KLD := ld$(if $(filter %64,$(KCPU)), -64)
 
-# intel64: YASM="yasm -f elf64 -m amd64"
-# imtel32: YASM="yasm -f elf32 -m x86"
-YASM := yasm -f $(if $(KCPU:%64=),elf32,elf64)$(if $(filter x86%,$(KCPU)), -m $(if $(KCPU:%64=),x86,amd64))
-
 # yasm/flex/bison compilers
 YASMC  := yasm
 FLEXC  := flex
 BISONC := bison
 
 # note: assume yasm used only for drivers
-YASM_FLAGS := -f $(if $(KCPU:%64=),elf32,elf64) $(if $(filter x86%,$(KCPU)),-m $(if $(KCPU:%64=),x86,amd64))
+YASM_FLAGS := -f $(if $(KCPU:%64=),elf32,elf64)$(if $(filter x86%,$(KCPU)), -m $(if $(KCPU:%64=),x86,amd64))
 
 # exe file suffix
 EXE_SUFFIX:=

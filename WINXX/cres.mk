@@ -38,7 +38,7 @@ WIN_RC_PRODUCT_DEFS_HEADER = $(GEN_DIR)/$(PRODUCT_NAMES_H)
 #define PRODUCT_BUILD_NUM     12345
 #define PRODUCT_BUILD_DATE    "01/01/2017:09.30"
 
-# note: some of WIN_RC_... variables may be already defined in $(TOP)/make/project.mk
+# note: some of WIN_RC_... variables may be defined via override directive in project configuration file before including this file
 WIN_RC_PRODUCT_VERSION_MAJOR = PRODUCT_VERSION_MAJOR
 WIN_RC_PRODUCT_VERSION_MINOR = PRODUCT_VERSION_MINOR
 WIN_RC_PRODUCT_VERSION_PATCH = PRODUCT_VERSION_PATCH
@@ -91,7 +91,7 @@ WIN_RC_CHARSET               = 04b0
 # $(21) - $(WIN_RC_SPECIAL_BUILD)
 # $(22) - $(WIN_RC_LANG)
 # $(23) - $(WIN_RC_CHARSET)
-# note: STD_VERSION_RC_TEMPLATE may be already defined in $(TOP)/make/project.mk
+# note: STD_VERSION_RC_TEMPLATE may be defined via override directive in project configuration file before including this file
 define STD_VERSION_RC_TEMPLATE
 #include <winver.h>
 #include "$3"

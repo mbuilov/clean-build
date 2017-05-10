@@ -6,32 +6,13 @@
 
 # generic rules and definitions for building targets
 
-ifeq ($(MAKE_VERSION),)
+ifeq (,$(MAKE_VERSION))
 $(error MAKE_VERSION not defined, ensure you are using GNU Make of version 3.81 or later)
 endif
 
 ifneq (3.80,$(word 1,$(sort $(MAKE_VERSION) 3.80)))
 $(error required GNU Make of version 3.81 or later)
 endif
-
-# make MTOP non-recursive (simple)
-# note: MTOP may be taken from environment
-MTOP := $(MTOP)
-
-ifeq ($(MTOP),)
-$(error MTOP is not defined, example: C:\clean-build,/usr/local/clean-build)
-endif
-
-# legend for Makefile rules:
-# $< - name of the first prerequisite
-# $^ - names of all prerequisites
-# $@ - file name of the target
-# $? - prerequisites newer than the target
-
-# standard defines that must be defined:
-# $(OS)                             - one of $(SUPPORTED_OSES),
-# $(CPU) or $(UCPU),$(KCPU),$(TCPU) - one of $(SUPPORTED_CPUS),
-# $(TARGET)                         - one of $(SUPPORTED_TARGETS)
 
 # disable builtin rules and variables
 MAKEFLAGS += --no-builtin-rules --no-builtin-variables --warn-undefined-variables
@@ -42,132 +23,136 @@ MAKEFLAGS += --no-builtin-rules --no-builtin-variables --warn-undefined-variable
 # delete target file if failed to execute any of commands to make it
 .DELETE_ON_ERROR:
 
-# fake target
-.PHONY: distclean
+# MTOP - path to clean-build - must be defined either in command line
+# or in project configuration file before including this file, via:
+# override MTOP := /my_path/clean-build
+MTOP:=
 
-# don't generate dependencies when cleaning up
-ifneq ($(filter clean,$(MAKECMDGOALS)),)
-NO_DEPS := 1
-else
-NO_DEPS:=
+# ensure that MTOP is non-recursive (simple)
+override MTOP := $(MTOP)
+
+ifndef MTOP
+$(error MTOP is not defined, example: C:\clean-build or /usr/local/clean-build)
 endif
 
-# check values of TOP (and, if defined, BUILD) variables, include functions library
-include $(MTOP)/protection.mk
-include $(MTOP)/functions.mk
-include $(MTOP)/top.mk
+# TOP - path to project root directory - must be defined either in command line
+# or in project configuration file before including this file, via:
+# override TOP := /my_project
+TOP:=
+
+# ensure that TOP is non-recursive (simple)
+override TOP := $(TOP)
+
+ifndef TOP
+$(error TOP undefined, example: C:/opt/project or /home/oper/project)
+endif
+
+# check values of TOP and BUILD variables
+# $1 (TOP or BUILD) must contain unix-style path to directory without spaces, like C:/opt/project or /home/oper/project
+CHECK_TOP = $(if \
+  $(word 2,x$($1)x),$(error \
+ $1=$($1), path with spaces is not allowed))$(if \
+  $(word 2,$(subst \, ,x$($1)x)),$(error \
+ $1=$($1), path must use unix-style slashes: /))$(if \
+  $(word 2,$(subst //, ,x$($1)/x)),$(error \
+ $1=$($1), path must not end with slash: / or contain double-slash: //))
+
+$(call CHECK_TOP,TOP)
+
+# directory for built files
+BUILD := $(TOP)/build
+
+# ensure that BUILD is non-recursive (simple)
+override BUILD := $(BUILD)
+
+ifndef BUILD
+$(error BUILD undefined, example: $$(TOP)/build)
+endif
+
+$(call CHECK_TOP,BUILD)
+
+ifneq ($(filter $(BUILD)/%,$(TOP)/),)
+$(error BUILD=$(BUILD) cannot be a base for TOP=$(TOP))
+endif
+
+# legend for Makefile rules:
+# $< - name of the first prerequisite
+# $^ - names of all prerequisites
+# $@ - file name of the target
+# $? - prerequisites newer than the target
+
+# standard variables that may be overridden:
+# TARGET                - one of $(SUPPORTED_TARGETS)
+# OS                    - one of $(SUPPORTED_OSES),
+# CPU or UCPU,KCPU,TCPU - one of $(SUPPORTED_CPUS),
 
 # what target type to build
-# note: TARGET may be taken from environment
-TARGET ?= RELEASE
+TARGET := RELEASE
 
-# make TARGET non-recursive (simple)
-TARGET := $(TARGET)
+# operating system we are building for (and we are building on)
+OS := LINUX
 
-# project configuration file
-ifndef PROJECT
-PROJECT := $(TOP)/make/project.mk
-else
+# CPU processor architecture we are building for 
+CPU := x86
 
-# to allow building multiple projects in the same environment,
-# PROJECT should be defined in command line or project configuration file, rather than in environment
-ifeq ("environment","$(origin PROJECT)")
-$(error PROJECT should not be taken from environment)
-endif
+# UCPU - processor architecture for user-level applications
+# KCPU - processor architecture for kernel modules
+# TCPU - processor architecture for build tools (may be different from $(UCPU) if cross-compiling)
+UCPU := $(CPU)
+KCPU := $(CPU)
+TCPU := $(UCPU)
 
-endif # PROJECT
-
-# define $(DEBUG) to use it in $(PROJECT) configuration file
-# $(DEBUG) is non-empty for DEBUG targets like "PROJECTD" or "DEBUG"
-DEBUG := $(filter DEBUG %D,$(TARGET))
-
-# $(PROJECT), if exists, may redefine next variables:
+SUPPORTED_TARGETS := DEBUG RELEASE
 SUPPORTED_OSES    := WINXX SOLARIS LINUX
 SUPPORTED_CPUS    := x86 x86_64 sparc sparc64 armv5 mips24k ppc
-SUPPORTED_TARGETS := DEBUG RELEASE
 
-# directory of $(OS)-specific definitions
-# note: OSDIR may be taken from environment
-OSDIR ?= $(MTOP)
+# directory of $(OS)-specific definitions, such as FREEBSD/{tools.mk,c.mk,java.mk} and so on
+OSDIR := $(MTOP)
 
-# make OSDIR non-recursive (simple)
-OSDIR := $(OSDIR)
+# CPU variable must not be used in target makefiles
+override CPU = $(error please use UCPU,KCPU or TCPU instead)
 
-# include project defs, if file exists
-# note: $(PROJECT) may override SUPPORTED_OSES, SUPPORTED_CPUS, SUPPORTED_TARGETS and other variables
--include $(PROJECT)
+# fix variables - make them non-recursive (simple)
+# note: these variables are used to create simple variables
+override TARGET := $(TARGET)
+override OS     := $(OS)
+override UCPU   := $(UCPU)
+override KCPU   := $(KCPU)
+override TCPU   := $(TCPU)
+override OSDIR  := $(OSDIR)
 
-ifeq ($(SUPPORTED_OSES),)
-$(error SUPPORTED_OSES is empty, it may be defined in $(PROJECT:$(TOP)/%=$$(TOP)/%))
-endif
+# include functions library
+include $(MTOP)/protection.mk
+include $(MTOP)/functions.mk
 
 # OS - operating system we are building for (and we are building on)
-# note: OS may be taken from environment
-ifeq ($(OS),)
-$(error OS undefined, please pick one of build OS types: $(SUPPORTED_OSES))
-else ifeq ($(filter $(OS),$(SUPPORTED_OSES)),)
+ifeq (,$(filter $(OS),$(SUPPORTED_OSES)))
 $(error unknown OS=$(OS), please pick one of build OS types: $(SUPPORTED_OSES))
 endif
 
-# don't need $(CPU) and $(TARGET) vars values for distclean
-ifeq ($(filter distclean,$(MAKECMDGOALS)),)
+# check $(CPU) and $(TARGET) only if not distclean
+ifeq (,$(filter distclean,$(MAKECMDGOALS)))
 
-ifeq ($(SUPPORTED_CPUS),)
-$(error SUPPORTED_CPUS is empty, it may be defined in $(PROJECT:$(TOP)/%=$$(TOP)/%))
-endif
-
-# NOTE: please do not use CPU variable in target makefiles, use UCPU, KCPU or TCPU instead
-
-# CPU variable contains default value for UCPU, KCPU, TCPU
-# note: CPU may be taken from environment
-ifneq ($(CPU),)
-ifeq ($(filter $(CPU),$(SUPPORTED_CPUS)),)
-$(error unknown CPU=$(CPU), please pick one of target CPU types: $(SUPPORTED_CPUS))
-endif
-endif
+# don't generate dependencies when cleaning up
+NO_DEPS := $(filter clean,$(MAKECMDGOALS))
 
 # CPU for user-level
-# note: UCPU may be taken from environment
-ifneq ($(UCPU),)
-ifeq ($(filter $(UCPU),$(SUPPORTED_CPUS)),)
+ifeq (,$(filter $(UCPU),$(SUPPORTED_CPUS)))
 $(error unknown UCPU=$(UCPU), please pick one of target CPU types: $(SUPPORTED_CPUS))
-endif
-else ifneq ($(CPU),)
-UCPU := $(CPU)
-else
-$(error UCPU or CPU undefined, please pick one of target CPU types: $(SUPPORTED_CPUS))
 endif
 
 # CPU for kernel-level
-# note: KCPU may be taken from environment
-ifneq ($(KCPU),)
-ifeq ($(filter $(KCPU),$(SUPPORTED_CPUS)),)
+ifeq (,$(filter $(KCPU),$(SUPPORTED_CPUS)))
 $(error unknown KCPU=$(KCPU), please pick one of target CPU types: $(SUPPORTED_CPUS))
-endif
-else ifneq ($(CPU),)
-KCPU := $(CPU)
-else
-$(error KCPU or CPU undefined, please pick one of target CPU types: $(SUPPORTED_CPUS))
 endif
 
 # CPU for build-tools
-# note: TCPU may be taken from environment
-ifneq ($(TCPU),)
-ifeq ($(filter $(TCPU),$(SUPPORTED_CPUS)),)
+ifeq (,$(filter $(TCPU),$(SUPPORTED_CPUS)))
 $(error unknown TCPU=$(TCPU), please pick one of build CPU types: $(SUPPORTED_CPUS))
-endif
-else ifneq ($(CPU),)
-TCPU := $(CPU)
-else
-$(error TCPU or CPU undefined, please pick one of build CPU types: $(SUPPORTED_CPUS))
-endif
-
-ifeq ($(SUPPORTED_TARGETS),)
-$(error SUPPORTED_TARGETS is empty, it may be defined in $(PROJECT:$(TOP)/%=$$(TOP)/%))
 endif
 
 # what to build
-ifeq ($(filter $(TARGET),$(SUPPORTED_TARGETS)),)
+ifeq (,$(filter $(TARGET),$(SUPPORTED_TARGETS)))
 $(error unknown TARGET=$(TARGET), please pick one of: $(SUPPORTED_TARGETS))
 endif
 
@@ -177,42 +162,42 @@ else # distclean
 NO_CLEAN_BUILD_DISTCLEAN:=
 
 ifndef NO_CLEAN_BUILD_DISTCLEAN
+
 # define distclean target
 # note: RM macro must be defined below in $(OSDIR)/$(OS)/tools.mk
 # note: $(BUILD) is defined in $(MTOP)/top.mk
 distclean:
 	$(call RM,$(BUILD))
-endif
+
+# fake target - delete all built artifacts, including directories and configuration files
+.PHONY: distclean
+
+endif # !NO_CLEAN_BUILD_DISTCLEAN
 
 endif # distclean
 
-# $(PROJECT) configuration file may redefine TARGET value, re-set DEBUG value
 # $(DEBUG) is non-empty for DEBUG targets like "PROJECTD" or "DEBUG"
 DEBUG := $(filter DEBUG %D,$(TARGET))
-
-# fix variables - make them non-recursive
-# note: these variables may be taken from environment
-# note: $(BIN_DIR)/$(OBJ_DIR)/$(LIB_DIR)/$(GEN_DIR) use these variables and are will be also fixed
-OS   := $(OS)
-CPU  := $(CPU)
-UCPU := $(UCPU)
-KCPU := $(KCPU)
-TCPU := $(TCPU)
 
 # for simple 'ifdef OS_WINXX' or 'ifdef OS_LINUX'
 OS_$(OS) := 1
 
 # run via $(MAKE) V=1 for verbose output
 ifeq ("$(origin V)","command line")
-QUIET := $(if $(V:0=),,@)
+VERBOSE := $(V:0=)
 else
-QUIET := @
+# don't print executing commands by default
+VERBOSE:=
 endif
+
+# @ in non-verbose build
+QUIET := $(if $(VERBOSE),,@)
 
 # run via $(MAKE) M=1 to print makefile name the target comes from
 ifeq ("$(origin M)","command line")
 INFOMF := $(M:0=)
 else
+# don't print makefile names by default
 INFOMF:=
 endif
 
@@ -220,12 +205,29 @@ endif
 ifeq ("$(origin D)","command line")
 MDEBUG := $(D:0=)
 else
+# don't debug makefiles by default
 MDEBUG:=
 endif
 
 ifdef MDEBUG
-$(call dump,MTOP OSDIR TOP BUILD TARGET OS CPU UCPU KCPU TCPU)
+$(call dump,MTOP OSDIR TOP BUILD TARGET OS UCPU KCPU TCPU)
 endif
+
+# get absolute path to current makefile
+CURRENT_MAKEFILE := $(abspath $(subst \,/,$(firstword $(MAKEFILE_LIST))))
+
+# check that we are building right sources - $(CURRENT_MAKEFILE) must be under the $(TOP)
+ifeq ($(filter $(TOP)/%,$(CURRENT_MAKEFILE)),)
+$(error TOP=$(TOP) is not the root directory of current makefile $(CURRENT_MAKEFILE))
+endif
+
+# make current makefile path relative to $(TOP)
+CURRENT_MAKEFILE := $(CURRENT_MAKEFILE:$(TOP)/%=%)
+
+# list of all processed makefiles names
+# note: PROCESSED_MAKEFILES is never cleared, only appended
+# note: default target 'all' depends only on $(PROCESSED_MAKEFILES) list
+PROCESSED_MAKEFILES:=
 
 ifdef MCHECK
 
@@ -253,10 +255,6 @@ nonrelpath = $(patsubst $1/%,/%,$(addprefix $1,$2))
 # NOTE: WINXX/tools.mk defines own PATHSEP
 PATHSEP := :
 
-# assume terminal supports colour output
-# NOTE: WINXX/tools.mk defines own TERM_NO_COLOR
-TERM_NO_COLOR:=
-
 # name of environment variable to modify in $(RUN_WITH_DLL_PATH)
 # note: $(DLL_PATH_VAR) should be PATH (for WINDOWS) or LD_LIBRARY_PATH (for UNIX-like OS)
 # NOTE: WINXX/tools.mk defines own DLL_PATH_VAR
@@ -273,30 +271,33 @@ show_with_dll_path = $(info $(if $2,$(DLL_PATH_VAR)="$($(DLL_PATH_VAR))" )$(fore
 # NOTE: WINXX/tools.mk defines own show_dll_path_end
 show_dll_path_end:=
 
-# check that $(OSDIR)/$(OS)/tools.mk exists
-ifeq ($(wildcard $(OSDIR)/$(OS)/tools.mk),)
-$(error file $(OSDIR)/$(OS)/tools.mk does not exists)
-endif
-
-# define utilities of the OS we are building on
-include $(OSDIR)/$(OS)/tools.mk
-
-# for simple 'ifdef OSTYPE_WINDOWS' or 'ifdef OSTYPE_UNIX'
-OSTYPE_$(OSTYPE) := 1
+# tools colors
+GEN_COLOR   := [01;32m
+MGEN_COLOR  := [01;32m
+CP_COLOR    := [00;36m
+LN_COLOR    := [00;36m
+MKDIR_COLOR := [00;36m
+TOUCH_COLOR := [00;36m
 
 # colorize percents
-ifdef TERM_NO_COLOR
-PRINT_PERCENTS = [$1]
-else
+# NOTE: WINXX/tools.mk redefines: PRINT_PERCENTS = [$1]
 PRINT_PERCENTS = [00;34m[[01;34m$1[00;34m][0m
-endif
 
-# SUP: supress output of executed build tool, print some pretty message instead, like "CC  source.c"
+# print in color short name of called tool $1 with argument $2
+# $1 - tool
+# $2 - argument
+# $3 - ignored (used by TRY_REM_MAKEFILE)
+# $4 - if not empty, do not colorize argument
+# NOTE: WINXX/tools.mk redefines: COLORIZE = $1$(padto)$2
+COLORIZE = $(if $($1_COLOR),$($1_COLOR)$1[0m,$1)$(padto)$(if \
+  $4,$2,$(if $($1_COLOR),$(join $(dir $2),$(addsuffix [0m,$(addprefix $($1_COLOR),$(notdir $2)))),$2))
+
+# SUP: suppress output of executed build tool, print some pretty message instead, like "CC  source.c"
 # target-specific: MF, MCONT
 # $1 - tool
 # $2 - tool arguments
 # $3 - if non-empty, don't update percents
-ifeq ($(filter distclean clean,$(MAKECMDGOALS)),)
+ifeq (,$(filter distclean clean,$(MAKECMDGOALS)))
 ifdef QUIET
 SHOWN_MAKEFILES:=
 SHOWN_PERCENTS:=
@@ -347,42 +348,12 @@ endif
 endif # !QUIET
 endif # !distclean && !clean
 
-# tools colors
-GEN_COLOR   := [01;32m
-MGEN_COLOR  := [01;32m
-CP_COLOR    := [00;36m
-LN_COLOR    := [00;36m
-MKDIR_COLOR := [00;36m
-TOUCH_COLOR := [00;36m
-
-# print in color short name of called tool $1 with argument $2
-# $1 - tool
-# $2 - argument
-# $3 - ignored (used by TRY_REM_MAKEFILE)
-# $4 - if not empty, do not colorize argument
-ifdef TERM_NO_COLOR
-COLORIZE = $1$(padto)$2
-else
-COLORIZE = $(if $($1_COLOR),$($1_COLOR)$1[0m,$1)$(padto)$(if \
-  $4,$2,$(if $($1_COLOR),$(join $(dir $2),$(addsuffix [0m,$(addprefix $($1_COLOR),$(notdir $2)))),$2))
-endif
-
+# SED - stream editor executable - should be defined in $(OSDIR)/$(OS)/tools.mk
 # helper macro: convert multi-line sed script $1 to multiple sed expressions - one expression for each script line
 SED_MULTI_EXPR = $(subst $$(space), ,$(foreach s,$(subst $(newline), ,$(subst $(space),$$(space),$1)),-e $(call SED_EXPR,$s)))
 
-# get absolute path to current makefile
-CURRENT_MAKEFILE := $(abspath $(subst \,/,$(firstword $(MAKEFILE_LIST))))
-
-# check that we are building right sources - $(CURRENT_MAKEFILE) must be under the $(TOP)
-ifeq ($(filter $(TOP)/%,$(CURRENT_MAKEFILE)),)
-$(error TOP=$(TOP) is not the root directory of current makefile $(CURRENT_MAKEFILE))
-endif
-
-# make current makefile path relative to $(TOP)
-CURRENT_MAKEFILE := $(CURRENT_MAKEFILE:$(TOP)/%=%)
-
-# to allow parallel builds for different combinations of
-#  $(OS)/$(KCPU)/$(UCPU)/$(TARGET) create unique directories for each combination
+# to allow parallel builds for different combinations
+# of $(OS)/$(KCPU)/$(UCPU)/$(TARGET) - create unique directories for each combination
 TARGET_TRIPLET := $(OS)-$(KCPU)-$(UCPU)-$(TARGET)
 
 # output directories:
@@ -405,30 +376,24 @@ $(call CLEAN_BUILD_PROTECT_VARS1,BIN_DIR OBJ_DIR LIB_DIR GEN_DIR)
 endef
 SET_DEFAULT_DIRS := $(SET_DEFAULT_DIRS)
 
-# $(PROJECT) makefile may forward-reference some of default dirs,
-# ensure they are defined when we will use defs from $(PROJECT)
+# define BIN_DIR/OBJ_DIR/LIB_DIR/GEN_DIR
 $(eval $(SET_DEFAULT_DIRS))
 
 # needed directories - we will create them in $(MTOP)/all.mk
 # note: NEEDED_DIRS is never cleared, only appended
 NEEDED_DIRS:=
 
-# NOTE: to allow parallel builds for different combinations of
-#  $(OS)/$(KCPU)/$(UCPU)/$(TARGET) tool dir must be unique for each such combination
-#  (this is true for TOOL_BASE = $(DEF_GEN_DIR))
-ifndef TOOL_BASE
+# to allow parallel builds for different combinations
+# of $(OS)/$(KCPU)/$(UCPU)/$(TARGET) - tool dir must be unique for each such combination
+# (this is true for TOOL_BASE = $(DEF_GEN_DIR))
 TOOL_BASE := $(DEF_GEN_DIR)
-else
 
-# TOOL_BASE should be non-recursive (simple)
-# - it is used in TOOL_OVERRIDE_DIRS 
-TOOL_BASE := $(TOOL_BASE)
+# TOOL_BASE should be non-recursive (simple) - it is used in TOOL_OVERRIDE_DIRS 
+override TOOL_BASE := $(TOOL_BASE)
 
-ifeq ($(filter $(BUILD)/%,$(TOOL_BASE)),)
+ifeq (,$(filter $(BUILD)/%,$(TOOL_BASE)))
 $(error TOOL_BASE=$(TOOL_BASE) is not a subdirectory of BUILD=$(BUILD))
 endif
-
-endif # TOOL_BASE
 
 # where tools are built
 # $1 - TOOL_BASE
@@ -453,6 +418,21 @@ GEN_DIR := $(TOOL_BASE)/gen-TOOL-$(TCPU)-$(TARGET)
 $(call CLEAN_BUILD_PROTECT_VARS1,BIN_DIR OBJ_DIR LIB_DIR GEN_DIR)
 endef
 TOOL_OVERRIDE_DIRS := $(TOOL_OVERRIDE_DIRS)
+
+# compute values of next variables right after +=, not at call time:
+# CLEAN          - files/directories list to delete on $(MAKE) clean
+# CLEAN_COMMANDS - code to $(eval) to get clean commands to execute on $(MAKE) clean - see $(MTOP)/all.mk
+# note: CLEAN is never cleared, only appended
+CLEAN:=
+CLEAN_COMMANDS:=
+
+# TOCLEAN - function to add values to CLEAN variable
+# - don't add values to CLEAN variable if not cleaning up
+ifneq (,$(filter clean,$(MAKECMDGOALS)))
+TOCLEAN = $(eval CLEAN+=$1)
+else
+TOCLEAN:=
+endif
 
 # order-only $(TOP)-relative makefiles dependencies to add to all leaf prerequisites for the targets
 # NOTE: $(FIX_ORDER_DEPS) may change $(ORDER_DEPS) list by appending $(MDEPS)
@@ -486,94 +466,30 @@ endef
 # $1 - generated file(s) (absolute paths)
 STD_TARGET_VARS = $(call STD_TARGET_VARS1,$1,$(patsubst %/,%,$(sort $(dir $1))))
 
-# compute values of next variables right after +=, not at call time:
-# CLEAN          - files/directories list to delete on $(MAKE) clean
-# CLEAN_COMMANDS - code to $(eval) to get clean commands to execute on $(MAKE) clean - see $(MTOP)/all.mk
-# note: CLEAN is never cleared, only appended
-CLEAN:=
-CLEAN_COMMANDS:=
-
-# TOCLEAN - function to add values to CLEAN variable
-# - don't add values to CLEAN variable if not cleaning up
-ifneq ($(filter clean,$(MAKECMDGOALS)),)
-TOCLEAN = $(eval CLEAN+=$1)
-else
-TOCLEAN:=
-endif
-
 # $(VPREFIX) - absolute path to directory of currently processing makefile, ended with /
 # note: $(CURRENT_MAKEFILE) - relative to $(TOP)
 # note: VPREFIX value is changed by $(MTOP)/parallel.mk
 VPREFIX := $(TOP)/$(dir $(CURRENT_MAKEFILE))
 
-# add $(VPREFIX) (absolute path to directory of currently processing makefile) value to non-absolute paths
+# add $(VPREFIX) (absolute path to directory of currently processing makefile) to non-absolute paths
 # - we need absolute paths to sources to apply generated dependencies in .d files
 FIXPATH = $(abspath $(call nonrelpath,$(VPREFIX),$1))
-
-# list of all processed makefiles names
-# note: PROCESSED_MAKEFILES is never cleared, only appended
-# note: default target 'all' depends only on $(PROCESSED_MAKEFILES) list
-PROCESSED_MAKEFILES:=
 
 ifdef MDEBUG
 
 # info about which makefile is expanded now and order dependencies for it
 MAKEFILE_DEBUG_INFO = $(subst $(space),,$(foreach x,$(CB_INCLUDE_LEVEL),.))$(CURRENT_MAKEFILE)$(if $(ORDER_DEPS), | $(ORDER_DEPS:-=))
 
-# note: show debug info only if $1 does not contains @ (used by $(MTOP)/parallel.mk)
+# note: show debug info only if $1 does not contain @ (used by $(MTOP)/parallel.mk)
 DEF_TAIL_CODE_DEBUG = $(if $(filter @,$1),,$$(info $(MAKEFILE_DEBUG_INFO)))
 
 else # !MDEBUG
 
 # reset
+MAKEFILE_DEBUG_INFO:=
 DEF_TAIL_CODE_DEBUG:=
 
 endif # !MDEBUG
-
-# reset
-CB_TOOL_MODE:=
-
-# code to $(eval) at beginning of each makefile
-# 1) add $(CURRENT_MAKEFILE) to build
-# 2) change bin,lib,obj,gen dirs in TOOL_MODE or restore them to default values in non-TOOL_MODE
-# NOTE:
-#  $(MAKE_CONTINUE) before expanding $(DEF_HEAD_CODE) adds 2 to $(MAKE_CONT) list (which is normally empty or contains 1 1...)
-#  - so we know if $(DEF_HEAD_CODE) was expanded from $(MAKE_CONTINUE) - remove 2 from $(MAKE_CONT) in this case
-#  - if $(DEF_HEAD_CODE) was expanded not from $(MAKE_CONTINUE) - no 2 in $(MAKE_CONT) - reset $(MAKE_CONT)
-# NOTE: set CB_TOOL_MODE to remember if we are in tool mode - TOOL_MODE variable may be changed before calling $(MAKE_CONTINUE)
-# NOTE: $(MTOP)/defs.mk may be included before $(MTOP)/parallel.mk,
-#  to not execute $(DEF_HEAD_CODE) second time in $(MTOP)/parallel.mk, define DEF_HEAD_CODE_PROCESSED variable
-# NOTE: add $(empty) as first line of $(DEF_HEAD_CODE) - to allow to join it and eval: $(eval $(MY_CODE)$(DEF_HEAD_CODE))
-define DEF_HEAD_CODE
-$(empty)
-$(CLEAN_BUILD_CHECK_AT_HEAD)
-$(if $(findstring 2,$(MAKE_CONT)),MAKE_CONT:=$(subst 2,1,$(MAKE_CONT)),MAKE_CONT:=\
-  $(newline)$(CHECK_MAKEFILE_NOT_PROCESSED)\
-  $(newline)PROCESSED_MAKEFILES+=$(CURRENT_MAKEFILE)-)
-CB_TOOL_MODE:=$(if $(TOOL_MODE),T)
-$(if $(TOOL_MODE),$(if $(CB_TOOL_MODE),,$(TOOL_OVERRIDE_DIRS)),$(if $(CB_TOOL_MODE),$(SET_DEFAULT_DIRS)))
-DEF_HEAD_CODE_PROCESSED:=1
-endef
-
-# expand this macro to evaluate default head code (called from $(MTOP)/defs.mk)
-# note: by default it expanded at start of next $(MAKE_CONTINUE) round
-DEF_HEAD_CODE_EVAL = $(eval $(DEF_HEAD_CODE))
-
-# code to $(eval) at end of each makefile
-# include $(MTOP)/all.mk only if $(CB_INCLUDE_LEVEL) is empty and will not call $(MAKE_CONTINUE)
-# if called from $(MAKE_CONTINUE), $1 - list of vars to save (may be empty)
-# note: $(MAKE_CONTINUE) before expanding $(DEF_TAIL_CODE) adds 2 to $(MAKE_CONT) list
-# note: $(MTOP)/parallel.mk executes $(eval $(call DEF_TAIL_CODE,@)) to not show debug info second time in $(DEF_TAIL_CODE_DEBUG)
-# note: reset DEF_HEAD_CODE_PROCESSED value - to allow to evaluate $(DEF_HEAD_CODE_EVAL) in next included $(MTOP)/parallel.mk
-define DEF_TAIL_CODE
-$(CLEAN_BUILD_CHECK_AT_TAIL)
-$(DEF_TAIL_CODE_DEBUG)
-$(if $(CB_INCLUDE_LEVEL)$(findstring 2,$(MAKE_CONT)),,include $(MTOP)/all.mk)
-DEF_HEAD_CODE_PROCESSED:=
-endef
-
-# expand this macro to evaluate default tail code
-DEF_TAIL_CODE_EVAL = $(eval $(DEF_TAIL_CODE))
 
 # get target variants list or default variant R
 # $1 - EXE,LIB,...
@@ -688,15 +604,84 @@ MULTI_TARGET_SEQ = $(subst ||,| ,$(subst $(space),$(newline),$(filter-out \
 # note: rule must update all targets
 MULTI_TARGET = $(CHECK_MULTI_RULE)$(eval $(MULTI_TARGET_SEQ)$(call MULTI_TARGET_RULE,$1,$2,$3,$(words $(MULTI_TARGET_NUM))))
 
-# $(DEFINE_TARGETS_EVAL_NAME) - contains name of macro that when expanded
+# helper macro: make SDEPS list
+# example: $(call FORM_SDEPS,src1 src2,dep1 dep2 dep3) -> src1|dep1|dep2|dep3 src2|dep1|dep2|dep3
+FORM_SDEPS = $(addsuffix |$(call join_with,$2,|),$1)
+
+# get dependencies for source files
+# $1 - source files
+# $2 - sdeps list: <source file1>|<dependency1>|<dependency2>|... <source file2>|<dependency1>|<dependency2>|...
+EXTRACT_SDEPS = $(foreach d,$(filter $(addsuffix |%,$1),$2),$(wordlist 2,999999,$(subst |, ,$d)))
+
+# fix sdeps paths: add $(VPREFIX) value to non-absolute paths then make absolute paths
+# $1 - sdeps list: <source file1>|<dependency1>|<dependency2>|... <source file2>|<dependency1>|<dependency2>|...
+FIX_SDEPS = $(subst | ,|,$(call FIXPATH,$(subst |,| ,$1)))
+
+# run executable with modified $(DLL_PATH_VAR) environment variable
+# $1 - command to run (with parameters)
+# $2 - additional paths to append to $(DLL_PATH_VAR)
+# $3 - environment variables to set to run executable, in form VAR=value
+# note: this function should be used for rule body, where automatic variable $@ is defined
+# note: WINXX/tools.mk defines own show_dll_path_end
+RUN_WITH_DLL_PATH = $(if $2$3,$(if $2,$(eval $@:$(DLL_PATH_VAR):=$(addsuffix $(PATHSEP),$($(DLL_PATH_VAR)))$2))$(foreach \
+  v,$3,$(foreach g,$(firstword $(subst =, ,$v)),$(eval $@:$g:=$(patsubst $g=%,%,$v))))$(if $(VERBOSE),$(show_with_dll_path)@))$1$(if \
+  $2$3,$(if $(VERBOSE),$(show_dll_path_end)))
+
+# reset
+CB_TOOL_MODE:=
+
+# $(DEFINE_TARGETS_EVAL_NAME) - contains name of macro that is when expanded
 # evaluates code to define targets (at least, by evaluating $(DEF_TAIL_CODE))
 DEFINE_TARGETS_EVAL_NAME := DEF_TAIL_CODE_EVAL
 
+# expand this macro to evaluate default head code (called from $(MTOP)/defs.mk)
+# note: by default it expanded at start of next $(MAKE_CONTINUE) round
+DEF_HEAD_CODE_EVAL = $(eval $(DEF_HEAD_CODE))
+
+# expand this macro to evaluate default tail code
+DEF_TAIL_CODE_EVAL = $(eval $(DEF_TAIL_CODE))
+
+# code to $(eval) at beginning of each makefile
+# 1) add $(CURRENT_MAKEFILE) to build
+# 2) change bin,lib,obj,gen dirs in TOOL_MODE or restore them to default values in non-TOOL_MODE
+# 3) reset DEFINE_TARGETS_EVAL_NAME to DEF_TAIL_CODE_EVAL - so $(DEFINE_TARGETS) will eval $(DEF_TAIL_CODE) by default
+# NOTE:
+#  $(MAKE_CONTINUE) before expanding $(DEF_HEAD_CODE) adds 2 to $(MAKE_CONT) list (which is normally empty or contains 1 1...)
+#  - so we know if $(DEF_HEAD_CODE) was expanded from $(MAKE_CONTINUE) - remove 2 from $(MAKE_CONT) in this case
+#  - if $(DEF_HEAD_CODE) was expanded not from $(MAKE_CONTINUE) - no 2 in $(MAKE_CONT) - reset $(MAKE_CONT)
+# NOTE: set CB_TOOL_MODE to remember if we are in tool mode - TOOL_MODE variable may be changed before calling $(MAKE_CONTINUE)
+# NOTE: $(MTOP)/defs.mk may be included before $(MTOP)/parallel.mk,
+#  to not execute $(DEF_HEAD_CODE) second time in $(MTOP)/parallel.mk, define DEFINE_TARGETS_EVAL_NAME variable
+# NOTE: add $(empty) as first line of $(DEF_HEAD_CODE) - to allow to join it and eval: $(eval $(MY_CODE)$(DEF_HEAD_CODE))
+define DEF_HEAD_CODE
+$(empty)
+$(CLEAN_BUILD_CHECK_AT_HEAD)
+$(if $(findstring 2,$(MAKE_CONT)),MAKE_CONT:=$(subst 2,1,$(MAKE_CONT)),MAKE_CONT:=\
+  $(newline)$(CHECK_MAKEFILE_NOT_PROCESSED)\
+  $(newline)PROCESSED_MAKEFILES+=$(CURRENT_MAKEFILE)-)
+CB_TOOL_MODE:=$(if $(TOOL_MODE),T)
+$(if $(TOOL_MODE),$(if $(CB_TOOL_MODE),,$(TOOL_OVERRIDE_DIRS)),$(if $(CB_TOOL_MODE),$(SET_DEFAULT_DIRS)))
+DEFINE_TARGETS_EVAL_NAME:=DEF_TAIL_CODE_EVAL
+endef
+
+# code to $(eval) at end of each makefile
+# include $(MTOP)/all.mk only if $(CB_INCLUDE_LEVEL) is empty and will not call $(MAKE_CONTINUE)
+# if called from $(MAKE_CONTINUE), $1 - list of vars to save (may be empty)
+# note: $(MAKE_CONTINUE) before expanding $(DEF_TAIL_CODE) adds 2 to $(MAKE_CONT) list
+# note: $(MTOP)/parallel.mk executes $(eval $(call DEF_TAIL_CODE,@)) to not show debug info second time in $(DEF_TAIL_CODE_DEBUG)
+# note: reset DEFINE_TARGETS_EVAL_NAME value - to allow to evaluate $(DEF_HEAD_CODE) in next included $(MTOP)/parallel.mk
+define DEF_TAIL_CODE
+$(CLEAN_BUILD_CHECK_AT_TAIL)
+$(DEF_TAIL_CODE_DEBUG)
+$(if $(CB_INCLUDE_LEVEL)$(findstring 2,$(MAKE_CONT)),,include $(MTOP)/all.mk)
+DEFINE_TARGETS_EVAL_NAME:=
+endef
+
 # define targets at end of makefile
-# evaluate code in $($(DEFINE_TARGETS_EVAL_NAME)) only once, then reset DEFINE_TARGETS_EVAL to DEF_TAIL_CODE_EVAL
+# evaluate code in $($(DEFINE_TARGETS_EVAL_NAME)) only once, then reset DEFINE_TARGETS_EVAL_NAME
 # note: surround $($(DEFINE_TARGETS_EVAL_NAME)) with fake $(if ...) to suppress any text output
 # - $(DEFINE_TARGETS) must not expand to any text - to allow calling it via just $(DEFINE_TARGETS) in target makefile
-DEFINE_TARGETS = $(if $($(DEFINE_TARGETS_EVAL_NAME))$(eval DEFINE_TARGETS_EVAL_NAME:=DEF_TAIL_CODE_EVAL),)
+DEFINE_TARGETS = $(if $($(DEFINE_TARGETS_EVAL_NAME)),)
 
 # may be used to save vars before $(MAKE_CONTINUE) and restore after
 SAVE_VARS = $(eval $(foreach v,$1,$v_=$(if $(filter simple,$(flavor $v)),:=$(subst $$,$$$$,$(value $v)),=$(value $v))$(newline)))
@@ -736,34 +721,22 @@ endef
 # - to be able to call it with just $(MAKE_CONTINUE) in target makefile
 MAKE_CONTINUE = $(if $(if $1,$(SAVE_VARS))$(MAKE_CONTINUE_BODY_EVAL)$(if $1,$(RESTORE_VARS)),)
 
-# helper macro: make SDEPS list
-# example: $(call FORM_SDEPS,src1 src2,dep1 dep2 dep3) -> src1|dep1|dep2|dep3 src2|dep1|dep2|dep3
-FORM_SDEPS = $(addsuffix |$(call join_with,$2,|),$1)
+# check that $(OSDIR)/$(OS)/tools.mk exists
+ifeq (,$(wildcard $(OSDIR)/$(OS)/tools.mk))
+$(error file $(OSDIR)/$(OS)/tools.mk does not exists)
+endif
 
-# get dependencies for source files
-# $1 - source files
-# $2 - sdeps list: <source file1>|<dependency1>|<dependency2>|... <source file2>|<dependency1>|<dependency2>|...
-EXTRACT_SDEPS = $(foreach d,$(filter $(addsuffix |%,$1),$2),$(wordlist 2,999999,$(subst |, ,$d)))
+# define utilities of the OS we are building on
+include $(OSDIR)/$(OS)/tools.mk
 
-# fix sdeps paths: add $(VPREFIX) value to non-absolute paths then make absolute paths
-# $1 - sdeps list: <source file1>|<dependency1>|<dependency2>|... <source file2>|<dependency1>|<dependency2>|...
-FIX_SDEPS = $(subst | ,|,$(call FIXPATH,$(subst |,| ,$1)))
-
-# run executable with modified $(DLL_PATH_VAR) environment variable
-# $1 - command to run (with parameters)
-# $2 - additional paths to append to $(DLL_PATH_VAR)
-# $3 - environment variables to set to run executable, in form VAR=value
-# note: this function should be used for rule body, where automatic variable $@ is defined
-# note: WINXX/tools.mk defines own show_dll_path_end
-RUN_WITH_DLL_PATH = $(if $2$3,$(if $2,$(eval $@:$(DLL_PATH_VAR):=$(addsuffix $(PATHSEP),$($(DLL_PATH_VAR)))$2))$(foreach \
-  v,$3,$(foreach g,$(firstword $(subst =, ,$v)),$(eval $@:$g:=$(patsubst $g=%,%,$v))))$(if $(QUIET),,$(show_with_dll_path)@))$1$(if \
-  $2$3,$(if $(QUIET),,$(show_dll_path_end)))
+# for simple 'ifdef OSTYPE_WINDOWS' or 'ifdef OSTYPE_UNIX'
+OSTYPE_$(OSTYPE) := 1
 
 # protect variables from modifications in target makefiles
-$(call CLEAN_BUILD_PROTECT_VARS,MTOP MAKEFLAGS NO_DEPS DEBUG PROJECT \
+$(call CLEAN_BUILD_PROTECT_VARS,MTOP MAKEFLAGS CHECK_TOP TOP BUILD NO_DEPS DEBUG \
   SUPPORTED_OSES SUPPORTED_CPUS SUPPORTED_TARGETS OS CPU UCPU KCPU TCPU TARGET \
-  OS_$(OS) OSTYPE OSTYPE_$(OSTYPE) QUIET INFOMF MDEBUG OSDIR CHECK_MAKEFILE_NOT_PROCESSED \
-  TERM_NO_COLOR PRINT_PERCENTS SUP ADD_SHOWN_PERCENTS REM_SHOWN_MAKEFILE TRY_REM_MAKEFILE \
+  OS_$(OS) OSTYPE OSTYPE_$(OSTYPE) VERBOSE QUIET INFOMF MDEBUG OSDIR CHECK_MAKEFILE_NOT_PROCESSED \
+  PRINT_PERCENTS SUP ADD_SHOWN_PERCENTS REM_SHOWN_MAKEFILE TRY_REM_MAKEFILE \
   GEN_COLOR MGEN_COLOR CP_COLOR LN_COLOR MKDIR_COLOR TOUCH_COLOR \
   COLORIZE SED_MULTI_EXPR ospath nonrelpath PATHSEP \
   TARGET_TRIPLET DEF_BIN_DIR DEF_OBJ_DIR DEF_LIB_DIR DEF_GEN_DIR SET_DEFAULT_DIRS \

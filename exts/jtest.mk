@@ -8,9 +8,9 @@
 
 ifndef DO_TEST_JAR_TEMPLATE
 
-# rule for running test java archive for 'check' target
+# rule for running test java archive, for 'check' target
 
-# run $(JAR) and dump its stderr to $(JAR).out
+# run $(JAR) and send its stderr to $(JAR).out
 # $1 - $(call FORM_JTRG,JAR)
 # $2 - main class name, for example com.mycomp.myproj.MyMainClass
 # $3 - $(call FORM_BUILT_JARS,$(JARS)) + class paths/jars needed to run the test

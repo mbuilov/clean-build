@@ -13,9 +13,6 @@ ifndef LIBTOOL_ARCHIVE_NAME
 # $2 - dynamic library name (may be empty if $1 is not empty)
 LIBTOOL_ARCHIVE_NAME = $(if $1,$(LIB_PREFIX)$1,$(DLL_PREFIX)$2).la
 
-# note: LIBTOOL_ARCHIVE_TEMPLATE may be already defined in $(TOP)/make/project.mk
-ifndef LIBTOOL_ARCHIVE_TEMPLATE
-
 # $1 - static library name (may be empty if $2 is not empty)
 # $2 - dynamic library name (may be empty if $1 is not empty)
 # $3 - library version (major.minor.patch)
@@ -66,8 +63,6 @@ dlpreopen=''
 # Directory that this library needs to be installed in:
 libdir='$(if $6,$6,$(if $(LIBDIR),$(LIBDIR),/usr/local/lib))'
 endef
-
-endif
 
 # get path to installed .la-file
 # $1 - static library name (may be empty if $2 - non-empty)

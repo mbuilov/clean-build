@@ -4,7 +4,7 @@
 # Licensed under GPL version 2 or any later version, see COPYING
 #----------------------------------------------------------------------------------
 
-# must be included after $(MTOP)/c.mk
+# should be included after $(MTOP)/c.mk
 
 ifndef DO_TEST_EXE_TEMPLATE
 
@@ -49,7 +49,7 @@ TEST_NEED_SIMLINKS = $(foreach d,$1,$(if $(filter $d,$(CB_GENERATED_SIMLINK_RULE
   SO_SOFTLINK_TEMPLATE,$(LIB_DIR)/$(DLL_PREFIX)$(subst .,$(DLL_SUFFIX).,$d),$(DLL_PREFIX)$(firstword $(subst ., ,$d))$(DLL_SUFFIX)))))
 endif
 
-ifneq ($(filter check clean,$(MAKECMDGOALS)),)
+ifneq (,$(filter check clean,$(MAKECMDGOALS)))
 
 # for 'check' target, run built executable(s)
 # $1 - built shared libraries needed by executable, in form <library_name>.<major_number>

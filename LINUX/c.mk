@@ -10,19 +10,22 @@ INST_RPATH:=
 # reset additional variables
 # RPATH - runtime path of external dependencies
 # MAP   - linker map file (used mostly to list exported symbols)
-$(eval define PREPARE_C_VARS$(newline)$(value PREPARE_C_VARS)$(newline)RPATH:=$(INST_RPATH)$(newline)MAP=$(newline)endef)
+$(eval define PREPARE_C_VARS$(newline)$(value PREPARE_C_VARS)$(newline)RPATH:=$(if \
+  $(filter simple,$(flavor INST_RPATH)),$(INST_RPATH),$$(INST_RPATH))$(newline)MAP:=$(newline)endef)
 
 # compilers/linkers
-CC    := gcc -m$(if $(UCPU:%64=),32,64)
-CXX   := g++ -m$(if $(UCPU:%64=),32,64)
-LD    := ld
-AR    := ar
-TCC   := gcc -m$(if $(TCPU:%64=),32,64)
-TCXX  := g++ -m$(if $(TCPU:%64=),32,64)
-TLD   := ld
-TAR   := ar
-KCC   := gcc -m$(if $(KCPU:%64=),32,64)
-KLD   := ld
+CC   := gcc -m$(if $(UCPU:%64=),32,64)
+CXX  := g++ -m$(if $(UCPU:%64=),32,64)
+LD   := ld
+AR   := ar
+TCC  := gcc -m$(if $(TCPU:%64=),32,64)
+TCXX := g++ -m$(if $(TCPU:%64=),32,64)
+TLD  := ld
+TAR  := ar
+KCC  := gcc -m$(if $(KCPU:%64=),32,64)
+KLD  := ld
+
+# make used by kbuild
 KMAKE := $(MAKE)
 
 # for building kernel modules
@@ -34,7 +37,7 @@ FLEXC  := flex
 BISONC := bison
 
 # note: assume yasm used only for drivers
-YASM_FLAGS := -f $(if $(KCPU:%64=),elf32,elf64) $(if $(filter x86%,$(KCPU)),-m $(if $(KCPU:%64=),x86,amd64))
+YASM_FLAGS := -f $(if $(KCPU:%64=),elf32,elf64)$(if $(filter x86%,$(KCPU)), -m $(if $(KCPU:%64=),x86,amd64))
 
 # exe file suffix
 EXE_SUFFIX:=
@@ -409,8 +412,8 @@ $(foreach x,$2,$(call COPY_FILE_RULE,$4,$x,$(call EXTRACT_SDEPS,$x,$3)))
 $(foreach x,$5,$(call COPY_FILE_RULE,$4,$(LIB_DIR)/$x))
 $4/Makefile: | $4
 	$$(call SUP,GEN,$$@)echo "obj-m += $(DRV_PREFIX)$(DRV).o" > $$@
-	$(if $(VERBOSE),,@)echo "$(DRV_PREFIX)$(DRV)-objs := $(notdir $(2:.c=.o)) $5" >> $$@
-	$(if $(VERBOSE),,@)echo "EXTRA_CFLAGS += $(addprefix -D,$(EXTRA_DRV_DEFINES)) $(addprefix -I,$(TRG_INCLUDE))" >> $$@
+	$(QUIET)echo "$(DRV_PREFIX)$(DRV)-objs := $(notdir $(2:.c=.o)) $5" >> $$@
+	$(QUIET)echo "EXTRA_CFLAGS += $(addprefix -D,$(EXTRA_DRV_DEFINES)) $(addprefix -I,$(TRG_INCLUDE))" >> $$@
 $4/$(DRV_PREFIX)$(DRV)$(DRV_SUFFIX): $(addprefix $4/,$(notdir $2) $5) | $4/Makefile $$(ORDER_DEPS)
 	+$$(call SUP,KBUILD,$$@)$(KMAKE) V=$(if $(VERBOSE),1,0) CC="$(KCC)" LD="$(KLD)" AR="$(AR)" $(addprefix \
   KBUILD_EXTRA_SYMBOLS=,$(KBUILD_EXTRA_SYMBOLS)) -C $(MODULES_PATH) M=$$(patsubst %/,%,$$(dir $$@)) $(addprefix ARCH=,$(ARCH))
@@ -433,7 +436,7 @@ $(call TOCLEAN,$4)
 endef
 
 # protect variables from modifications in target makefiles
-$(call CLEAN_BUILD_PROTECT_VARS,CC CXX MODULES_PATH LD AR TCC TCXX TLD TAR KCC KLD KMAKE YASMC FLEXC BISONC YASM_FLAGS \
+$(call CLEAN_BUILD_PROTECT_VARS,INST_RPATH CC CXX MODULES_PATH LD AR TCC TCXX TLD TAR KCC KLD KMAKE YASMC FLEXC BISONC YASM_FLAGS \
   WLPREFIX DEF_SHARED_FLAGS DEF_EXE_FLAGS DEF_SO_FLAGS DEF_LD_FLAGS DEF_KLD_FLAGS DEF_AR_FLAGS DLL_EXPORTS_DEFINE DLL_IMPORTS_DEFINE \
   RPATH_OPTION RPATH_LINK_OPTION CMN_LIBS VERSION_SCRIPT_OPTION SONAME_OPTION1 SONAME_OPTION \
   EXE_R_LD EXE_P_LD DLL_R_LD LIB_R_LD LIB_P_LD LIB_D_LD KLIB_LD AUTO_DEPS_FLAGS APP_FLAGS KRN_FLAGS DEF_CXXFLAGS DEF_CFLAGS CC_PARAMS \

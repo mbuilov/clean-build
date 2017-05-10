@@ -112,6 +112,14 @@ show_dll_path_end = $(newline)@echo endlocal
 # there is no support for embedding dll search path into executables or dlls
 NO_RPATH := 1
 
+# windows terminal do not supports changing output colors
+# note: override PRINT_PERCENTS from $(MTOP)/defs.mk
+PRINT_PERCENTS = [$1]
+
+# windows terminal do not supports changing output colors
+# note: override COLORIZE from $(MTOP)/defs.mk
+COLORIZE = $1$(padto)$2
+
 # protect variables from modifications in target makefiles
 $(call CLEAN_BUILD_PROTECT_VARS,DEL_ARGS_LIMIT nonrelpath1 DEL1 DEL DEL_DIR1 DEL_DIR RM1 RM MKDIR SED SED_EXPR \
   CAT ECHO_LINE ECHO1 ECHO EXECIN NUL SUPPRESS_CP_OUTPUT CP TOUCH1 TOUCH DEL_ON_FAIL NO_RPATH)

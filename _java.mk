@@ -26,6 +26,19 @@ jpath = $(ospath)
 # path separator for $(FORM_CLASS_PATH)
 JPATHSEP = $(PATHSEP)
 
+# SCALAC, if needed, may be defined either in command line or in project configuration file as:
+# override SCALAC = $(JAVA) $(call FORM_CLASS_PATH,scala-compiler-2.11.6.jar)
+SCALAC = $(error SCALAC not defined, example: SCALAC=$$(JAVA) $$(call FORM_CLASS_PATH,scala-compiler-2.11.6.jar) scala.tools.nsc.Main)
+
+# JAVA may be redefined in $(OSDIR)/$(OS)/java.mk
+JAVA = java
+
+# JAVAC may be redefined in $(OSDIR)/$(OS)/java.mk
+JAVAC = javac
+
+# JARC may be redefined in $(OSDIR)/$(OS)/java.mk
+JARC = jar
+
 # make target filename, $1 - JAR
 # note: $(JAREXT) - either .jar or .war
 FORM_JTRG = $(BIN_DIR)/$($1)$(JAREXT)
@@ -92,8 +105,7 @@ SCALA_CC2 = $(if $2,$(call CREATE_JARGS_FILE,$1,$(JOBJDIR)/scala.txt)) \
 # compile $1 - .scala
 # note: $2 - .java sources only parsed by scala compiler - it does not compiles .java sources
 SCALA_CC1 = $(call SUP,SCALAC,$1)$(call SCALA_CC2,$(call jpath,$2),$(word $(ARGS_FILE_SOURCES_PER_LINE),$2))
-SCALA_CC = $(if $1,$(if $(SCALAC),$(call SCALA_CC1,$1,$1 $2),$(error \
-  SCALAC not defined, example: SCALAC="$$(JAVA) $$(call FORM_CLASS_PATH,scala-compiler-2.11.6.jar) scala.tools.nsc.Main")))
+SCALA_CC = $(if $1,$(call SCALA_CC1,$1,$1 $2))
 
 # $1 - .jar target
 # $2 - $(word $(ARGS_FILE_SOURCES_PER_LINE),$(ALL_BUNDLES))
@@ -123,20 +135,19 @@ FORM_BUILT_JARS = $(addprefix $(BIN_DIR)/,$(addsuffix .jar,$1))
 define JAR_TEMPLATE
 $(STD_TARGET_VARS)
 NEEDED_DIRS += $6/$(JCLS_DIR)
-$1: JSRC         := $2
-$1: SCALA        := $3
-$1: JSCALA       := $4
-$1: MANIFEST     := $5
-$1: JOBJDIR      := $6
-$1: JARS         := $7
-$1: EXTJARS      := $(EXTJARS)
-$1: CLASSPATH    := $(CLASSPATH)
-$1: ALL_BUNDLES  := $(call JAR_BUNDLES_OPTIONS,$(BUNDLES) $(BUNDLE_FILES))
-$1: SCALAC       := $(SCALAC)
-$1: JAVAC_FLAGS  := $(JAVAC_FLAGS)
-$1: SCALAC_FLAGS := $(SCALAC_FLAGS)
-$1: JRFLAGS      := $(JRFLAGS)
-$1: $(EXTJARS) $7 $2 $3 $4 $5 $(call MAKE_BUNDLE_DEPS,$(BUNDLE_FILES)) | $6/$(JCLS_DIR)
+$1:JSRC         := $2
+$1:SCALA        := $3
+$1:JSCALA       := $4
+$1:MANIFEST     := $5
+$1:JOBJDIR      := $6
+$1:JARS         := $7
+$1:EXTJARS      := $(EXTJARS)
+$1:CLASSPATH    := $(CLASSPATH)
+$1:ALL_BUNDLES  := $(call JAR_BUNDLES_OPTIONS,$(BUNDLES) $(BUNDLE_FILES))
+$1:JAVAC_FLAGS  := $(JAVAC_FLAGS)
+$1:SCALAC_FLAGS := $(SCALAC_FLAGS)
+$1:JRFLAGS      := $(JRFLAGS)
+$1:$(EXTJARS) $7 $2 $3 $4 $5 $(call MAKE_BUNDLE_DEPS,$(BUNDLE_FILES)) | $6/$(JCLS_DIR)
 	$$(eval $1: COMMANDS := $(subst $$,$$$$,$(JARACTIONS)))$$(COMMANDS)$$(call JAR_LD,$$@)
 $(call TOCLEAN,$6)
 endef
@@ -174,7 +185,7 @@ SCALAC_COLOR := [01;36m
 define DEFINE_JAVA_TARGETS_EVAL
 $(if $(MDEBUG),$(eval $(call DEBUG_TARGETS,$(BLD_JTARGETS),FORM_JTRG)))
 $(eval $(JAR_RULES))
-$(DEF_TAIL_CODE_EVAL)
+$(eval $(DEF_TAIL_CODE))
 endef
 
 # code to be called at beginning of target makefile
@@ -190,7 +201,6 @@ CLASSPATH:=
 BUNDLES:=
 BUNDLE_FILES:=
 MANIFEST:=
-SCALAC:=
 JAVAC_FLAGS:=
 SCALAC_FLAGS:=
 JRFLAGS:=
@@ -200,18 +210,19 @@ DEFINE_TARGETS_EVAL_NAME := DEFINE_JAVA_TARGETS_EVAL
 MAKE_CONTINUE_EVAL_NAME  := MAKE_JAVA_EVAL
 endef
 
+# make PREPARE_JAVA_VARS non-recursive (simple)
 PREPARE_JAVA_VARS := $(PREPARE_JAVA_VARS)
 
 # reset build targets, target-specific variables and variables modifiable in target makefiles
-# then define bin/lib/obj/... dirs
 # NOTE: expanded by $(MTOP)/java.mk
-MAKE_JAVA_EVAL = $(eval $(PREPARE_JAVA_VARS)$(DEF_HEAD_CODE))
+MAKE_JAVA_EVAL = $(eval $(DEF_HEAD_CODE)$(PREPARE_JAVA_VARS))
 
-include $(OSDIR)/$(OS)/java.mk
+# include if exists
+-include $(OSDIR)/$(OS)/java.mk
 
 # protect variables from modifications in target makefiles
 $(call CLEAN_BUILD_PROTECT_VARS,JLINT BLD_JTARGETS \
-  jpath JPATHSEP FORM_JTRG JAR_BUNDLES_OPTIONS1 JAR_BUNDLES_OPTIONS MAKE_BUNDLE_DEPS1 MAKE_BUNDLE_DEPS \
+  jpath JPATHSEP SCALAC JAVA JAVAC JARC FORM_JTRG JAR_BUNDLES_OPTIONS1 JAR_BUNDLES_OPTIONS MAKE_BUNDLE_DEPS1 MAKE_BUNDLE_DEPS \
   JCLS_DIR FORM_CLASS_PATH JAVAC_OPTIONS SCALAC_OPTIONS \
   ARGS_FILE_SOURCES_PER_LINE CREATE_JARGS_FILE1 CREATE_JARGS_FILE \
   JAVA_CC2 JAVA_CC1 JAVA_CC SCALA_CC2 SCALA_CC1 SCALA_CC JAR_LD1 JAR_LD FORM_BUILT_JARS JAR_TEMPLATE JAR_RULES \
