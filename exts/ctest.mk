@@ -10,6 +10,8 @@ ifndef DO_TEST_EXE_TEMPLATE
 
 # rule for running test executable for 'check' target
 
+TEST_COLOR := [00;36m
+
 # run $(EXE) and dump its stderr to $(EXE).out
 # $1 - built shared libraries needed by executable, in form <library_name>.<major_number>
 # $2 - auxiliary parameters to pass to executable
@@ -61,6 +63,6 @@ DO_TEST_EXE = $(eval $(foreach v,$(call GET_VARIANTS,EXE),$(newline)$(foreach r,
 endif # check, clean
 
 # protect variables from modifications in target makefiles
-$(call CLEAN_BUILD_PROTECT_VARS,DO_TEST_EXE_TEMPLATE TEST_EXE_SOFTLINKS SO_SOFTLINK_TEMPLATE TEST_NEED_SIMLINKS DO_TEST_EXE)
+$(call CLEAN_BUILD_PROTECT_VARS,TEST_COLOR DO_TEST_EXE_TEMPLATE TEST_EXE_SOFTLINKS SO_SOFTLINK_TEMPLATE TEST_NEED_SIMLINKS DO_TEST_EXE)
 
 endif # DO_TEST_EXE_TEMPLATE
