@@ -9,7 +9,7 @@
 OSTYPE := UNIX
 
 DEL   = rm -f$(if $(VERBOSE),v) $1 >&2
-RM    = $(if $(VERBOSE),,@)rm -rf$(if $(VERBOSE),v) $1 >&2
+RM    = $(QUIET)rm -rf$(if $(VERBOSE),v) $1 >&2
 MKDIR = mkdir -p$(if $(VERBOSE),v) $1 >&2
 SED  := sed
 SED_EXPR = '$1'
