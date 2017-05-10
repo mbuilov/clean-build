@@ -16,7 +16,7 @@ $(eval $(call mk_dir_deps,$(NEEDED_DIRS),$(BUILD)/))
 
 # define rules to create $(BUILD)-related needed directories
 $(addprefix $(BUILD)/,$(NEEDED_DIRS)):
-	$(call SUP,MKDIR,$@,1)$(call MKDIR,$@)
+	$(call SUP1,MKDIR,$@,,1)$(call MKDIR,$@)
 
 # default target
 # note: $(PROCESSED_MAKEFILES) - $(TOP)-related names of all processed target makefiles with '-' suffix
