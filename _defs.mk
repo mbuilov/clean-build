@@ -41,7 +41,8 @@ MTOP:=
 override MTOP := $(MTOP)
 
 ifndef MTOP
-$(error MTOP is not defined, example: C:\clean-build or /usr/local/clean-build)
+$(error MTOP - path to clean-build (https://github.com/mbuilov/clean-build)is not defined,\
+  example: C:\clean-build or /usr/local/clean-build)
 endif
 
 # TOP - path to project root directory - must be defined either in command line
@@ -240,7 +241,7 @@ MDEBUG:=
 endif
 
 ifdef MDEBUG
-$(call dump,MTOP OSDIR TOP BUILD TARGET OS UCPU KCPU TCPU)
+$(call dump,MTOP OSDIR TOP BUILD TARGET OS UCPU KCPU TCPU,,)
 endif
 
 # get absolute path to current makefile
@@ -481,18 +482,12 @@ ORDER_DEPS:=
 FIX_ORDER_DEPS:=
 
 # standard target-specific variables
-# $1       - target file(s) to build (absolute path)
-# $2       - directories of target file(s) (absolute path)
-# $(MF)    - name of makefile which specifies how to build the target (path relative to $(TOP))
-# $(MCONT) - number of section in makefile after a call of $(MAKE_CONTINUE)
-# $(TMD)   - T if target is built in TOOL_MODE
-# NOTE: $(MAKE_CONT) list is empty or 1 1 1 .. 1 2 (inside MAKE_CONTINUE) or 1 1 1 1... (before MAKE_CONTINUE)
+# $1     - target file(s) to build (absolute path)
+# $2     - directories of target file(s) (absolute path)
+# $(TMD) - T if target is built in TOOL_MODE
 # NOTE: postpone expansion of ORDER_DEPS - $(FIX_ORDER_DEPS) changes $(ORDER_DEPS) value
-# NOTE: MCONT will be either empty or 2,3,4... - MCONT cannot be 1 - some rules may be defined before calling $(MAKE_CONTINUE)
 define STD_TARGET_VARS1
 $(FIX_ORDER_DEPS)
-$1:MF:=$(CURRENT_MAKEFILE)
-$1:MCONT:=$(subst +0,,+$(words $(subst 2,,$(MAKE_CONT))))
 $1:TMD:=$(CB_TOOL_MODE)
 $1:| $2 $$(ORDER_DEPS)
 $(CURRENT_MAKEFILE)-:$1
@@ -503,6 +498,23 @@ endef
 # standard target-specific variables
 # $1 - generated file(s) (absolute paths)
 STD_TARGET_VARS = $(call STD_TARGET_VARS1,$1,$(patsubst %/,%,$(sort $(dir $1))))
+
+# for given target $1
+# define target-specific variables for printing makefile info
+# $(MF)    - name of makefile which specifies how to build the target (path relative to $(TOP))
+# $(MCONT) - number of section in makefile after a call of $(MAKE_CONTINUE)
+# NOTE: $(MAKE_CONT) list is empty or 1 1 1 .. 1 2 (inside MAKE_CONTINUE) or 1 1 1 1... (before MAKE_CONTINUE)
+# NOTE: MCONT will be either empty or 2,3,4... - MCONT cannot be 1 - some rules may be defined before calling $(MAKE_CONTINUE)
+ifdef INFOMF
+define MAKEFILE_INFO_TEMPL
+$1:MF:=$(CURRENT_MAKEFILE)
+$1:MCONT:=$(subst +0,,+$(words $(subst 2,,$(MAKE_CONT))))
+endef
+$(eval define STD_TARGET_VARS1$(newline)$(value MAKEFILE_INFO_TEMPL)$(newline)$(value STD_TARGET_VARS1)$(newline)endef)
+MAKEFILE_INFO = $(eval $(MAKEFILE_INFO_TEMPL))
+else
+MAKEFILE_INFO:=
+endif
 
 # $(VPREFIX) - absolute path to directory of currently processing makefile, ended with /
 # note: $(CURRENT_MAKEFILE) - relative to $(TOP)
@@ -779,7 +791,7 @@ $(call CLEAN_BUILD_PROTECT_VARS,MTOP MAKEFLAGS CHECK_TOP TOP BUILD DRIVERS_SUPPO
   COLORIZE TRY_REM_MAKEFILE SED_MULTI_EXPR ospath nonrelpath PATHSEP \
   TARGET_TRIPLET DEF_BIN_DIR DEF_OBJ_DIR DEF_LIB_DIR DEF_GEN_DIR SET_DEFAULT_DIRS \
   TOOL_BASE MK_TOOLS_DIR GET_TOOLS TOOL_SUFFIX GET_TOOL TOOL_OVERRIDE_DIRS \
-  FIX_ORDER_DEPS STD_TARGET_VARS1 STD_TARGET_VARS TOCLEAN FIXPATH MAKEFILE_DEBUG_INFO \
+  FIX_ORDER_DEPS STD_TARGET_VARS1 STD_TARGET_VARS MAKEFILE_INFO_TEMPL MAKEFILE_INFO TOCLEAN FIXPATH MAKEFILE_DEBUG_INFO \
   DEF_TAIL_CODE_DEBUG DEF_HEAD_CODE DEF_HEAD_CODE_EVAL DEF_TAIL_CODE DEF_TAIL_CODE_EVAL \
   FILTER_VARIANTS_LIST GET_VARIANTS GET_TARGET_NAME DEBUG_TARGETS FORM_OBJ_DIR \
   CHECK_GENERATED ADD_GENERATED MULTI_TARGET_RULE CHECK_MULTI_RULE MULTI_TARGET_SEQ MULTI_TARGET \
