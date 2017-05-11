@@ -49,21 +49,21 @@ WIN_RC_PRODUCT_BUILD_NUM     = PRODUCT_BUILD_NUM
 WIN_RC_COMMENTS              = PRODUCT_TARGET "/" PRODUCT_OS "/" $(if $(filter DRV,$1),PRODUCT_KCPU,PRODUCT_UCPU) "/" PRODUCT_BUILD_DATE
 WIN_RC_COMPANY_NAME          = VENDOR_NAME
 WIN_RC_FILE_DESCRIPTION      = "$(GET_TARGET_NAME)"
-WIN_RC_FILE_VERSION          = VERSION_TO_STR($(\
-                               )$(WIN_RC_MODULE_VERSION_MAJOR),$(\
-                               )$(WIN_RC_MODULE_VERSION_MINOR),$(\
-                               )$(WIN_RC_MODULE_VERSION_PATCH),$(\
-                               )$(WIN_RC_PRODUCT_BUILD_NUM))
+WIN_RC_FILE_VERSION          = VERSION_TO_STR($(if \
+                               ,)$(WIN_RC_MODULE_VERSION_MAJOR),$(if \
+                               ,)$(WIN_RC_MODULE_VERSION_MINOR),$(if \
+                               ,)$(WIN_RC_MODULE_VERSION_PATCH),$(if \
+                               ,)$(WIN_RC_PRODUCT_BUILD_NUM))
 WIN_RC_INTERNAL_NAME         = "$(GET_TARGET_NAME)"
 WIN_RC_LEGAL_COPYRIGHT       = VENDOR_COPYRIGHT
 WIN_RC_LEGAL_TRADEMARKS      =
 WIN_RC_PRIVATE_BUILD         =
 WIN_RC_PRODUCT_NAME          = PRODUCT_NAME
-WIN_RC_PRODUCT_VERSION       = VERSION_TO_STR($(\
-                               )$(WIN_RC_PRODUCT_VERSION_MAJOR),$(\
-                               )$(WIN_RC_PRODUCT_VERSION_MINOR),$(\
-                               )$(WIN_RC_PRODUCT_VERSION_PATCH),$(\
-                               )$(WIN_RC_PRODUCT_BUILD_NUM))
+WIN_RC_PRODUCT_VERSION       = VERSION_TO_STR($(if \
+                               ,)$(WIN_RC_PRODUCT_VERSION_MAJOR),$(if \
+                               ,)$(WIN_RC_PRODUCT_VERSION_MINOR),$(if \
+                               ,)$(WIN_RC_PRODUCT_VERSION_PATCH),$(if \
+                               ,)$(WIN_RC_PRODUCT_BUILD_NUM))
 WIN_RC_SPECIAL_BUILD         =
 WIN_RC_LANG                  = 0409
 WIN_RC_CHARSET               = 04b0
@@ -146,28 +146,28 @@ endef
 define STD_RES_TEMPLATE1
 TRG_RC := $(GEN_DIR)/stdres/$2_$1.rc
 $$(TRG_RC): | $(GEN_DIR)/stdres
-	$$(call SUP,GEN,$$@)$$(call ECHO,$$(call STD_VERSION_RC_TEMPLATE,$1,$2,$(\
-)$(WIN_RC_PRODUCT_DEFS_HEADER),$(\
-)$(WIN_RC_PRODUCT_VERSION_MAJOR),$(\
-)$(WIN_RC_PRODUCT_VERSION_MINOR),$(\
-)$(WIN_RC_PRODUCT_VERSION_PATCH),$(\
-)$(WIN_RC_MODULE_VERSION_MAJOR),$(\
-)$(WIN_RC_MODULE_VERSION_MINOR),$(\
-)$(WIN_RC_MODULE_VERSION_PATCH),$(\
-)$(WIN_RC_PRODUCT_BUILD_NUM),$(\
-)$(WIN_RC_COMMENTS),$(\
-)$(WIN_RC_COMPANY_NAME),$(\
-)$(WIN_RC_FILE_DESCRIPTION),$(\
-)$(WIN_RC_FILE_VERSION),$(\
-)$(WIN_RC_INTERNAL_NAME),$(\
-)$(WIN_RC_LEGAL_COPYRIGHT),$(\
-)$(WIN_RC_LEGAL_TRADEMARKS),$(\
-)$(WIN_RC_PRIVATE_BUILD),$(\
-)$(WIN_RC_PRODUCT_NAME),$(\
-)$(WIN_RC_PRODUCT_VERSION),$(\
-)$(WIN_RC_SPECIAL_BUILD),$(\
-)$(WIN_RC_LANG),$(\
-)$(WIN_RC_CHARSET))) > $$@
+	$$(call SUP,GEN,$$@)$$(call ECHO,$$(call STD_VERSION_RC_TEMPLATE,$1,$2,$(if \
+,)$(WIN_RC_PRODUCT_DEFS_HEADER),$(if \
+,)$(WIN_RC_PRODUCT_VERSION_MAJOR),$(if \
+,)$(WIN_RC_PRODUCT_VERSION_MINOR),$(if \
+,)$(WIN_RC_PRODUCT_VERSION_PATCH),$(if \
+,)$(WIN_RC_MODULE_VERSION_MAJOR),$(if \
+,)$(WIN_RC_MODULE_VERSION_MINOR),$(if \
+,)$(WIN_RC_MODULE_VERSION_PATCH),$(if \
+,)$(WIN_RC_PRODUCT_BUILD_NUM),$(if \
+,)$(WIN_RC_COMMENTS),$(if \
+,)$(WIN_RC_COMPANY_NAME),$(if \
+,)$(WIN_RC_FILE_DESCRIPTION),$(if \
+,)$(WIN_RC_FILE_VERSION),$(if \
+,)$(WIN_RC_INTERNAL_NAME),$(if \
+,)$(WIN_RC_LEGAL_COPYRIGHT),$(if \
+,)$(WIN_RC_LEGAL_TRADEMARKS),$(if \
+,)$(WIN_RC_PRIVATE_BUILD),$(if \
+,)$(WIN_RC_PRODUCT_NAME),$(if \
+,)$(WIN_RC_PRODUCT_VERSION),$(if \
+,)$(WIN_RC_SPECIAL_BUILD),$(if \
+,)$(WIN_RC_LANG),$(if \
+,)$(WIN_RC_CHARSET))) > $$@
 TRG_RES := $3/$2_$1.res
 $$(TRG_RES): $$(TRG_RC) $(WIN_RC_PRODUCT_DEFS_HEADER) | $3
 	$$(call RC,$$@,$$<,)
