@@ -915,6 +915,7 @@ EXP_AUX_TEMPLATE1 = $(foreach n,$(call GET_TARGET_NAME,$t),$(foreach v,$(call GE
 # - target-specific SRC and SDEPS (for CMN_MCL) and IMP (for EXE_LD_TEMPLATE/DLL_LD_TEMPLATE)
 # $t - EXE or DLL
 define EXP_AUX_TEMPLATE
+$(empty)
 $(call STD_RES_TEMPLATE,$t)
 $(PCH_TEMPLATE)
 $(call EXP_AUX_TEMPLATE1,$(TRG_SRC),$(TRG_SDEPS),$(TRG_ALL_SDEPS),$(call FIXPATH,$(DEF)))
