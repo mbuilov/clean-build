@@ -29,7 +29,11 @@ endif
 # what we may build by including $(MTOP)/c.mk (for ex. LIB := my_lib)
 # note: DRV is $(OS)-specific, $(OSDIR)/$(OS)/c.mk should define DRV_TEMPLATE
 # note: $(OSDIR)/$(OS)/c.mk may append more target types to BLD_TARGETS
-BLD_TARGETS := EXE LIB DLL KLIB KDLL DRV
+BLD_TARGETS := EXE LIB DLL
+
+ifdef DRIVERS_SUPPORT
+BLD_TARGETS += KLIB KDLL DRV
+endif
 
 # $1 - objdir
 # $2 - source deps list
