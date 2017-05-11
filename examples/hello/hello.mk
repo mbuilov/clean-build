@@ -16,7 +16,7 @@ $(DO_TEST_EXE)
 
 # add makefile info for phony target 'hello'
 # this info is used by SUP1 function
-$(call MAKEFILE_INFO,hello)
+$(call SET_MAKEFILE_INFO,hello)
 
 # if executable output exist - print it
 # note: $| - automatic variable - first order-dependency
