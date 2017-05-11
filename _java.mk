@@ -31,13 +31,13 @@ JPATHSEP = $(PATHSEP)
 SCALAC = $(error SCALAC not defined, example: SCALAC=$$(JAVA) $$(call FORM_CLASS_PATH,scala-compiler-2.11.6.jar) scala.tools.nsc.Main)
 
 # JAVA may be redefined in $(OSDIR)/$(OS)/java.mk
-JAVA = java
+JAVA := java
 
 # JAVAC may be redefined in $(OSDIR)/$(OS)/java.mk
-JAVAC = javac
+JAVAC := javac
 
 # JARC may be redefined in $(OSDIR)/$(OS)/java.mk
-JARC = jar
+JARC := jar
 
 # make target filename, $1 - JAR
 # note: $(JAREXT) - either .jar or .war
