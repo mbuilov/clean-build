@@ -11,7 +11,7 @@ override MTOP := $(abspath $(dir $(lastword $(MAKEFILE_LIST)))../../)
 # major.minor.patch
 override PRODUCT_VER := 1.0.0
 
-# next variables are needed for generating resurce file under Windows
+# next variables are needed for generating resource file under Windows
 PRODUCT_NAMES_H  := product_names.h
 VENDOR_NAME      := Michael M. Builov
 PRODUCT_NAME     := Sample app
