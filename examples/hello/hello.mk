@@ -11,10 +11,15 @@ include $(MTOP)/exts/ctest.mk
 EXE := hello S
 SRC := hello.c
 
-# will run built executable
+# will run built executable and create .out file
 $(DO_TEST_EXE)
 
+# add makefile info for phony target 'hello'
+# this info is used by SUP1 function
+$(call MAKEFILE_INFO,hello)
+
 # if executable output exist - print it
+# note: $| - automatic variable - first order-dependency
 hello: | $(call FORM_TRG,EXE,S).out
 	$(call SUP1,CAT,$|,1,)$(call CAT,$|) >&2
 
