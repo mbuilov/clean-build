@@ -170,7 +170,7 @@ $$(TRG_RC): | $(GEN_DIR)/stdres
 )$(WIN_RC_CHARSET))) > $$@
 TRG_RES := $3/$2_$1.res
 $$(TRG_RES): $$(TRG_RC) $(WIN_RC_PRODUCT_DEFS_HEADER) | $3
-	$$(call RC,$$@,$$<)
+	$$(call RC,$$@,$$<,)
 NEEDED_DIRS += $(GEN_DIR)/stdres $3
 $$(call TOCLEAN,$$(TRG_RC))
 RES += $$(TRG_RES)
