@@ -808,7 +808,11 @@ ADD_WITH_PCH = $(eval WITH_PCH += $2)
 # auxiliary dependencies
 
 # get dependencies of all sources
+ifdef SEQ_BUILD
+TRG_ALL_SDEPS:=
+else
 TRG_ALL_SDEPS = $(call FIXPATH,$(sort $(foreach d,$(SDEPS),$(wordlist 2,999999,$(subst |, ,$d)))))
+endif
 
 # generate import library path
 # $1 - built dll name without optional variant suffix
@@ -864,7 +868,9 @@ $4: SRC := $1
 $4: SDEPS := $2
 $4: MODVER := $(MODVER)
 $4: EXE_EXPORTS := $(EXE_EXPORTS)
-$4: $1 $3
+ifndef SEQ_BUILD
+$4: $1 $3 | $5
+endif
 ifdef DEBUG
 $(call TOCLEAN,$5/vc*.pdb $(4:$(EXE_SUFFIX)=.pdb))
 endif
@@ -886,7 +892,9 @@ $4: SRC := $1
 $4: SDEPS := $2
 $4: MODVER := $(MODVER)
 $4: DLL_NO_EXPORTS := $(DLL_NO_EXPORTS)
-$4: $1 $3
+ifndef SEQ_BUILD
+$4: $1 $3 | $5
+endif
 ifdef DEBUG
 $(call TOCLEAN,$5/vc*.pdb $(4:$(DLL_SUFFIX)=.pdb))
 endif
@@ -927,7 +935,9 @@ define ARC_AUX_TEMPLATE2
 $(empty)
 $4: SRC := $1
 $4: SDEPS := $2
-$4: $1 $3
+ifndef SEQ_BUILD
+$4: $1 $3 | $5
+endif
 ifdef DEBUG
 $(call TOCLEAN,$5/vc*.pdb)
 endif
@@ -1037,9 +1047,12 @@ $1: ASMFLAGS   := $(ASMFLAGS)
 $1: LDFLAGS    := $(LDFLAGS)
 $1: SYSLIBS    := $(SYSLIBS)
 $1: SYSLIBPATH := $(SYSLIBPATH)
+ifndef SEQ_BUILD
+$1: $2 $(TRG_ALL_SDEPS) | $4
+endif
 $1: $(addprefix $(LIB_DIR)/,$(addprefix \
   $(KLIB_PREFIX),$(KLIBS:=$(KLIB_SUFFIX))) $(addprefix \
-  $(KIMP_PREFIX),$(KDLLS:=$(KIMP_SUFFIX)))) $2 $(TRG_ALL_SDEPS)
+  $(KIMP_PREFIX),$(KDLLS:=$(KIMP_SUFFIX))))
 	$$(call $t_$v_LD,$$@,$$(filter %$(OBJ_SUFFIX),$$^))
 endef
 
@@ -1105,7 +1118,7 @@ KDLL_AUX_TEMPLATE = $(KEXP_AUX_TEMPLATE)
 # NOTE: reset KDLL_NO_EXPORTS - it may be defined to pass check that KDLL must export symbols
 define OS_DEFINE_TARGETS
 $(subst $$(newline),$(newline),$(value CB_WINXX_RES_RULES))
-$(foreach t,EXE DLL LIB KLIB DRV KDLL,$(if $($t),$($t_AUX_TEMPLATE)))
+$(foreach t,$(BLD_TARGETS),$(if $($t),$($t_AUX_TEMPLATE)))
 $$(call TOCLEAN,$$(RES))
 CB_WINXX_RES_RULES=
 NO_STD_RES:=
