@@ -90,6 +90,15 @@ ifneq (,$(filter $(BUILD)/%,$(TOP)/))
 $(error BUILD=$(BUILD) cannot be a base for TOP=$(TOP))
 endif
 
+# by default, do not build kernel modules and drivers
+# note: DRIVERS_SUPPORT may be overridden either in command line
+# or in project configuration file before including this file, via:
+# override DRIVERS_SUPPORT := 1
+DRIVERS_SUPPORT:=
+
+# ensure DRIVERS_SUPPORT is non-recursive (simple)
+override DRIVERS_SUPPORT := $(DRIVERS_SUPPORT)
+
 # legend for Makefile rules:
 # $< - name of the first prerequisite
 # $^ - names of all prerequisites
@@ -105,7 +114,7 @@ endif
 TARGET := RELEASE
 
 # operating system we are building for (and we are building on)
-OS := LINUX
+OS:=
 
 # CPU processor architecture we are building for 
 CPU := x86
@@ -125,7 +134,7 @@ SUPPORTED_CPUS    := x86 x86_64 sparc sparc64 armv5 mips24k ppc
 OSDIR := $(MTOP)
 
 # CPU variable must not be used in target makefiles
-override CPU = $(error please use UCPU,KCPU or TCPU instead)
+override CPU = $(error please use UCPU, KCPU or TCPU instead)
 
 # fix variables - make them non-recursive (simple)
 # note: these variables are used to create simple variables
@@ -141,6 +150,10 @@ include $(MTOP)/protection.mk
 include $(MTOP)/functions.mk
 
 # OS - operating system we are building for (and we are building on)
+ifeq (,$(OS))
+$(error OS undefined, please pick one of build OS types: $(SUPPORTED_OSES))
+endif
+
 ifeq (,$(filter $(OS),$(SUPPORTED_OSES)))
 $(error unknown OS=$(OS), please pick one of build OS types: $(SUPPORTED_OSES))
 endif
@@ -156,9 +169,11 @@ ifeq (,$(filter $(UCPU),$(SUPPORTED_CPUS)))
 $(error unknown UCPU=$(UCPU), please pick one of target CPU types: $(SUPPORTED_CPUS))
 endif
 
+ifdef DRIVERS_SUPPORT
 # CPU for kernel-level
 ifeq (,$(filter $(KCPU),$(SUPPORTED_CPUS)))
 $(error unknown KCPU=$(KCPU), please pick one of target CPU types: $(SUPPORTED_CPUS))
+endif
 endif
 
 # CPU for build-tools
@@ -373,7 +388,11 @@ SED_MULTI_EXPR = $(subst $$(space), ,$(foreach s,$(subst $(newline), ,$(subst $(
 
 # to allow parallel builds for different combinations
 # of $(OS)/$(KCPU)/$(UCPU)/$(TARGET) - create unique directories for each combination
+ifdef DRIVERS_SUPPORT
 TARGET_TRIPLET := $(OS)-$(KCPU)-$(UCPU)-$(TARGET)
+else
+TARGET_TRIPLET := $(OS)-$(UCPU)-$(TARGET)
+endif
 
 # output directories:
 # bin - for executables, dlls, res
@@ -752,7 +771,7 @@ include $(OSDIR)/$(OS)/tools.mk
 OSTYPE_$(OSTYPE) := 1
 
 # protect variables from modifications in target makefiles
-$(call CLEAN_BUILD_PROTECT_VARS,MTOP MAKEFLAGS CHECK_TOP TOP BUILD NO_DEPS DEBUG \
+$(call CLEAN_BUILD_PROTECT_VARS,MTOP MAKEFLAGS CHECK_TOP TOP BUILD DRIVERS_SUPPORT NO_DEPS DEBUG \
   SUPPORTED_OSES SUPPORTED_CPUS SUPPORTED_TARGETS OS CPU UCPU KCPU TCPU TARGET \
   OS_$(OS) OSTYPE OSTYPE_$(OSTYPE) VERBOSE QUIET INFOMF MDEBUG OSDIR CHECK_MAKEFILE_NOT_PROCESSED \
   PRINT_PERCENTS SUP SUP1 ADD_SHOWN_PERCENTS REM_SHOWN_MAKEFILE FORMAT_PERCENTS \
