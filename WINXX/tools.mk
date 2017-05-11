@@ -63,7 +63,6 @@ RM  = $(call xcmd,RM1,$1,$(DEL_ARGS_LIMIT),,,,)
 #                        if not exist aaa/bbb
 #                        mkdir aaa/bbb
 # mkdir aaa - fail
-#MKDIR1 = if not exist $1 mkdir $1
 # assume MKDIR is called only if directory does not exist
 MKDIR = mkdir $(ospath)
 
