@@ -704,7 +704,6 @@ DEF_TAIL_CODE_EVAL = $(eval $(call DEF_TAIL_CODE,))
 #  to not execute $(DEF_HEAD_CODE) second time in $(MTOP)/parallel.mk, define DEFINE_TARGETS_EVAL_NAME variable
 # NOTE: add $(empty) as first line of $(DEF_HEAD_CODE) - to allow to join it and eval: $(eval $(MY_CODE)$(DEF_HEAD_CODE))
 define DEF_HEAD_CODE
-$(empty)
 $(CLEAN_BUILD_CHECK_AT_HEAD)
 $(if $(findstring 2,$(MAKE_CONT)),MAKE_CONT:=$(subst 2,1,$(MAKE_CONT)),MAKE_CONT:=\
   $(newline)$(CHECK_MAKEFILE_NOT_PROCESSED)\
@@ -712,6 +711,7 @@ $(if $(findstring 2,$(MAKE_CONT)),MAKE_CONT:=$(subst 2,1,$(MAKE_CONT)),MAKE_CONT
 CB_TOOL_MODE:=$(if $(TOOL_MODE),T)
 $(if $(TOOL_MODE),$(if $(CB_TOOL_MODE),,$(TOOL_OVERRIDE_DIRS)),$(if $(CB_TOOL_MODE),$(SET_DEFAULT_DIRS)))
 DEFINE_TARGETS_EVAL_NAME:=DEF_TAIL_CODE_EVAL
+$(empty)
 endef
 
 # code to $(eval) at end of each makefile
