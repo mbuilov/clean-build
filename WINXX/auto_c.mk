@@ -14,11 +14,17 @@ endif
 # supported target windows variants
 WINVARIANTS := WINXP WINV WIN7 WIN8 WIN81 WIN10
 
-# default target variant
-WINVARIANT := WIN7
+# default target variant - must be defined either in command line
+# or in project configuration file before including this file, via:
+# override WINVARIANT := WIN7
+WINVARIANT:=
 
 # WINVARIANT should be non-recursive (simple)
 override WINVARIANT := $(WINVARIANT)
+
+ifndef WINVARIANT
+$(error WINVARIANT undefined, please pick on of: $(WINVARIANTS))
+endif
 
 ifeq (,$(filter $(WINVARIANT),$(WINVARIANTS)))
 $(error unknown WINVARIANT=$(WINVARIANT), please pick on of: $(WINVARIANTS))
@@ -117,8 +123,8 @@ endif
 VS:=
 
 ifeq (,$(VS))
-$(error VS undefined, example: C:\Program Files (x86)\Microsoft Visual Studio 10.0 or\
- C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Tools\MSVC\14.10.25017)
+$(error VS undefined, example: VS:="C:\Program Files (x86)\Microsoft Visual Studio 10.0" or\
+ VS:="C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Tools\MSVC\14.10.25017")
 endif
 
 # Visual Studio version
@@ -159,7 +165,7 @@ endif
 # check WDK_VER only when needed
 GET_WDK_VER = $(if $(WDK_VER),$(WDK_VER),$(if $(WDK),$(error WDK_VER undefined (expecting 7,8,9,10), \
   failed to auto-determine it, likely WDK is installed to non-default location),$(error \
-  WDK undefined, example: C:\Program Files (x86)\Windows Kits\8.1)))
+  WDK undefined, example: WDK:="C:\Program Files (x86)\Windows Kits\8.1")))
 
 # normalize: x x -> x?x
 VSN  := $(call unspaces,$(VS))
@@ -253,7 +259,7 @@ endif
 
 ifeq (,$(strip $(SDK)$(WDK)))
 $(error no SDK nor WDK defined, example:\
- SDK:=C:\Program Files (x86)\Microsoft SDKs\Windows\v7.1A or WDK:=C:\Program Files (x86)\Windows Kits\8.1)
+ SDK:="C:\Program Files (x86)\Microsoft SDKs\Windows\v7.1A" or WDK:="C:\Program Files (x86)\Windows Kits\8.1")
 endif
 
 ifneq (,$(SDK))
@@ -286,8 +292,10 @@ ifneq (,$(SDK))
 $(error either SDK or WDK must be defined, but not both)
 endif
 
-# WDK target OS version
-WDK_TARGET := win7
+# WDK target OS version - must be defined either in command line
+# or in project configuration file before including this file, via:
+# override WDK_TARGET := win7
+WDK_TARGET:=
 
 ifeq (,$(WDK_TARGET))
 $(error WDK_TARGET undefined, check contents of "$(WDK)\Lib", example: win7, win8, winv6.3, 10.0.10240.0)
@@ -325,10 +333,12 @@ SUPPRESS_RC_LOGO := /nologo
 
 endif # WDK
 
+ifdef DRIVERS_SUPPORT
+
 # KERNEL LEVEL
 
 ifeq (,$(strip $(DDK)$(WDK)))
-$(error no DDK nor WDK defined, example: DDK:=C:\WinDDK\7600.16385.1 or WDK:=C:\Program Files (x86)\Windows Kits\8.1)
+$(error no DDK nor WDK defined, example: DDK:="C:\WinDDK\7600.16385.1" or WDK:="C:\Program Files (x86)\Windows Kits\8.1")
 endif
 
 ifneq (,$(DDK))
@@ -361,8 +371,10 @@ ifneq (,$(DDK))
 $(error either DDK or WDK must be defined, but not both)
 endif
 
-# target kernel version
-WDK_KTARGET := $(WDK_TARGET)
+# target kernel version - must be defined either in command line
+# or in project configuration file before including this file, via:
+# override WDK_KTARGET := 10.0.10240.0
+WDK_KTARGET:=
 
 ifeq (,$(WDK_KTARGET))
 $(error WDK_KTARGET undefined, check contents of "$(WDK)\Lib", example: win7, win8, winv6.3, 10.0.10240.0)
@@ -395,6 +407,8 @@ INF2CAT  := $(call qpath,$(WDKN)\bin\x86\Inf2Cat.exe)
 SIGNTOOL := $(call qpath,$(WDKN)\bin\$(TCPU:x86_64=x64)\SignTool.exe)
 
 endif # WDK
+
+endif # DRIVERS_SUPPORT
 
 endif # autoconf
 
