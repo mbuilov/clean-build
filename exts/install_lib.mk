@@ -49,7 +49,7 @@ uninstall: uninstall_$1
 endef
 
 #=========================================================
-ifdef OSTYPE_UNIX
+ifeq (UNIX,$(OSTYPE))
 #=========================================================
 
 # defaults, may be overridden in project configuration makefile before including this makefile via override directive
@@ -66,7 +66,7 @@ LDCONFIG       := $(if $(filter LINUX,$(OS)),/sbin/ldconfig)
 # $2 - r or <empty>
 # note: pass non-empty 3-d argument to SUP function to not update percents
 # note: pass non-empty 4-d argument to SUP function to not colorize tool arguments
-UNINSTALL_RM = $(call SUP,RM,$1,@,1)rm -f$2$(if $(OS_LINUX),$(if $(VERBOSE),v)) $1
+UNINSTALL_RM = $(call SUP,RM,$1,@,1)rm -f$2$(if $(filter LINUX,$(OS)),$(if $(VERBOSE),v)) $1
 
 # create symbolic link while installing files
 # $1 - target
@@ -169,7 +169,7 @@ endef
 INSTALL_LIBS_TEMPLATE = $(eval $(DEFINE_INSTALL_VARIABLES))$(eval $(INSTALL_LIBS_TEMPLATE_UNIX))
 
 #=========================================================
-else ifdef OSTYPE_WINDOWS
+else ifeq (WINDOWS,$(OSTYPE))
 #=========================================================
 
 # defaults, may be overridden in project configuration makefile before including this makefile via override directive
@@ -261,7 +261,7 @@ endef
 INSTALL_LIBS_TEMPLATE = $(eval $(DEFINE_INSTALL_VARIABLES))$(eval $(DEFINE_INSTALL_VARIABLES_WIN))$(eval $(INSTALL_LIBS_TEMPLATE_WINDOWS))
 
 #=========================================================
-endif # OSTYPE_WINDOWS
+endif # WINDOWS
 #=========================================================
 
 $(call CLEAN_BUILD_PROTECT_VARS,INSTALL_LIBS_TEMPLATE DESTDIR \
