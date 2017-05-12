@@ -32,7 +32,11 @@ ifneq (,$(filter check clean,$(MAKECMDGOALS)))
 # $4 - options to pass to $(JAVA) interpreter
 DO_TEST_JAR = $(eval $(call DO_TEST_JAR_TEMPLATE,$(call FORM_JTRG,JAR),$1,$(call FORM_BUILT_JARS,$(JARS)) $2,$3,$4))
 
-endif # check, clean
+else # not check or clean
+
+DO_TEST_JAR:=
+
+endif # not check or clean
 
 # protect variables from modifications in target makefiles
 $(call CLEAN_BUILD_PROTECT_VARS,DO_TEST_JAR_TEMPLATE DO_TEST_JAR)
