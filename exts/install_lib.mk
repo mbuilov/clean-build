@@ -8,9 +8,11 @@
 
 ifndef INSTALL_LIBS_TEMPLATE
 
-# this file should be included in target makefile which builds:
+# this file is likely included in target makefile after $(DEFINE_TARGETS) which builds:
 # LIB - static library name with variants and/or
 # DLL - dynamic library name with variants
+
+# anyway, LIB and DLL variables _must_ be defined before expanding INSTALL_LIBS_TEMPLATE
 
 # set defaults
 # note: next DEF_NO_... variables may be defined in project configuration makefile before including this file via override directive
