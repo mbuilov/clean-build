@@ -13,7 +13,7 @@ include $(dir $(lastword $(MAKEFILE_LIST)))conf.mk
 # source clean-build definitions and functions
 include $(MTOP)/defs.mk
 
-ifeq ($(filter distclean,$(MAKECMDGOALS)),)
+ifeq (,$(filter distclean,$(MAKECMDGOALS)))
 
 TO_MAKE := hello.mk
 
