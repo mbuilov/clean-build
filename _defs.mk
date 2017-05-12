@@ -156,6 +156,11 @@ ifeq (,$(filter $(OS),$(SUPPORTED_OSES)))
 $(error unknown OS=$(OS), please pick one of build OS types: $(SUPPORTED_OSES))
 endif
 
+# reset if not defined
+ifndef MAKECMDGOALS
+MAKECMDGOALS:=
+endif
+
 # check $(CPU) and $(TARGET) only if not distclean
 ifeq (,$(filter distclean,$(MAKECMDGOALS)))
 
