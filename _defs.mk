@@ -17,8 +17,28 @@ endif
 # disable builtin rules and variables
 MAKEFLAGS += --no-builtin-rules --no-builtin-variables
 
-# check use of undefined variables
-MAKEFLAGS += --warn-undefined-variables
+# set default values for unspecified functions parameters
+1:=
+2:=
+3:=
+3:=
+4:=
+5:=
+6:=
+7:=
+8:=
+9:=
+10:=
+11:=
+12:=
+13:=
+13:=
+14:=
+15:=
+16:=
+17:=
+18:=
+19:=
 
 # drop make's default legacy rules - we'll use custom ones
 .SUFFIXES:
@@ -248,7 +268,7 @@ endif
 CURRENT_MAKEFILE := $(abspath $(subst \,/,$(firstword $(MAKEFILE_LIST))))
 
 # check that we are building right sources - $(CURRENT_MAKEFILE) must be under the $(TOP)
-ifeq ($(filter $(TOP)/%,$(CURRENT_MAKEFILE)),)
+ifeq (,$(filter $(TOP)/%,$(CURRENT_MAKEFILE)))
 $(error TOP=$(TOP) is not the root directory of current makefile $(CURRENT_MAKEFILE))
 endif
 
@@ -685,6 +705,7 @@ RUN_WITH_DLL_PATH = $(if $2$3,$(if $2,$(eval $@:$(DLL_PATH_VAR):=$(addsuffix $(P
 
 # reset
 CB_TOOL_MODE:=
+TOOL_MODE:=
 
 # $(DEFINE_TARGETS_EVAL_NAME) - contains name of macro that is when expanded
 # evaluates code to define targets (at least, by evaluating $(DEF_TAIL_CODE))
