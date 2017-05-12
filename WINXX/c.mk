@@ -1110,6 +1110,13 @@ KEXP_AUX_TEMPLATE = $(call KEXP_AUX_TEMPLATE1,$(call FIXPATH,$(DEF)))
 DRV_AUX_TEMPLATE = $(KEXP_AUX_TEMPLATE)
 KDLL_AUX_TEMPLATE = $(KEXP_AUX_TEMPLATE)
 
+# initial reset
+NO_STD_RES:=
+DLL_NO_EXPORTS:=
+EXE_EXPORTS:=
+DRV_EXPORTS:=
+KDLL_NO_EXPORTS:=
+
 # this code is evaluated from $(DEFINE_TARGETS)
 # NOTE: $(STD_RES_TEMPLATE) adds standard resource to RES, so postpone evaluation of $(RES) when adding it to CLEAN
 # NOTE: reset NO_STD_RES      - it may be temporary set to disable adding standard resource to the target
