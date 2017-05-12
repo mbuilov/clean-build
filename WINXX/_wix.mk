@@ -32,12 +32,19 @@ WIX_LIGHT := $(call qpath,$(WIXN)bin\light.exe)
 # path to Wix extensions directroy
 WIX_EXTS_DIR := $(WIXN)bin
 
+# stip-off name of compiled source
+# $1 - compiler with options
+# $2 - source
+# note: send compiler output to stderr
+WRAP_WIX = (($1 2>&1 && echo WIX_COMPILATION_OK >&2) | findstr /V /B /E /L "$(notdir \
+  $2)") 3>&2 2>&1 1>&3 | findstr /B /L WIX_COMPILATION_OK >NUL
+
 # compile .wxs file
 # $1 - .wixobj
 # $2 - .wxs
 # target-specific: WINCLUDE
-WIXOBJ_CL = $(call SUP,CANDLE,$2)$(WIX_CANDLE) -nologo$(if $(VERBOSE), -v) $(call \
-  qpath,$(WEXTS),-ext ) $(call ospath,$2) $(call qpath,$(call ospath,$(WINCLUDE)),-I) -out $(ospath) >&2
+WIXOBJ_CL = $(call SUP,CANDLE,$2)$(call WRAP_WIX,$(WIX_CANDLE) -nologo$(if $(VERBOSE), -v) $(call \
+  qpath,$(WEXTS),-ext ) $(call ospath,$2) $(call qpath,$(call ospath,$(WINCLUDE)),-I) -out $(ospath),$2)
 
 # build installer .msi file
 # $1 - target .msi
@@ -131,5 +138,5 @@ MAKE_WIX_EVAL = $(eval $(DEF_HEAD_CODE)$(PREPARE_WIX_VARS))
 
 # protect variables from modifications in target makefiles
 $(call CLEAN_BUILD_PROTECT_VARS,WIX_MK_INCLUDED WIX WIXN BLD_WIX_TARGETS WIX_CANDLE WIX_LIGHT WIX_EXTS_DIR \
-  WIXOBJ_CL MSI_LD INSTALLER_LD FORM_WIX_TRG WIX_ADD_OBJ_SDEPS WIX_OBJ_RULES1 WIX_OBJ_RULES WIX_TEMPLATE \
+  WRAP_WIX WIXOBJ_CL MSI_LD INSTALLER_LD FORM_WIX_TRG WIX_ADD_OBJ_SDEPS WIX_OBJ_RULES1 WIX_OBJ_RULES WIX_TEMPLATE \
   WIX_RULES MSI_RULES INSTALLER_RULES DEFINE_WIX_TARGETS_EVAL PREPARE_WIX_VARS MAKE_WIX_EVAL)
