@@ -449,7 +449,7 @@ ifndef WRAP_COMPILER
 # $1 - compiler with options
 # $3 - sources
 # note: send compiler output to stderr
-WRAP_COMPILER = (($1 2>&1 && echo COMPILATION_OK >&2) | findstr /V /B /L "$(notdir \
+WRAP_COMPILER = (($1 2>&1 && echo COMPILATION_OK >&2) | findstr /V /B /E /L "$(notdir \
   $3)") 3>&2 2>&1 1>&3 | findstr /B /L COMPILATION_OK >NUL
 endif
 
