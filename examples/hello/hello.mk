@@ -21,7 +21,7 @@ $(call SET_MAKEFILE_INFO,hello)
 # if executable output exist - print it
 # note: $| - automatic variable - first order-dependency
 hello: | $(call FORM_TRG,EXE,S).out
-	$(call SUP1,CAT,$|,1,)$(call CAT,$|) >&2
+	$(call SUP1,CAT,$|,1)$(call CAT,$|) >&2
 
 # to complete 'check' target, need to update 'hello' target
 check: hello
