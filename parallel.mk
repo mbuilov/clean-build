@@ -31,7 +31,7 @@ $(info $(MAKEFILE_DEBUG_INFO))
 endif
 
 # make $(TOP)-related list of makefiles to include
-TO_MAKE:=$(call NORM_MAKEFILES,$(TO_MAKE))
+TO_MAKE:=$(call NORM_MAKEFILES,$(TO_MAKE),)
 
 # $(CURRENT_MAKEFILE) is built if all $(TO_MAKE) makefiles are built
 # note: $(CURRENT_MAKEFILE)- and other order-dependent makefile names - are .PHONY targets,
