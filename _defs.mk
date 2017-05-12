@@ -161,8 +161,11 @@ ifndef MAKECMDGOALS
 MAKECMDGOALS:=
 endif
 
+# for simple "ifdef DISTCLEAN"
+DISTCLEAN := $(filter distclean,$(MAKECMDGOALS))
+
 # check $(CPU) and $(TARGET) only if not distclean
-ifeq (,$(filter distclean,$(MAKECMDGOALS)))
+ifndef DISTCLEAN
 
 # don't generate dependencies when cleaning up
 NO_DEPS := $(filter clean,$(MAKECMDGOALS))
@@ -189,12 +192,12 @@ ifeq (,$(filter $(TARGET),$(SUPPORTED_TARGETS)))
 $(error unknown TARGET=$(TARGET), please pick one of: $(SUPPORTED_TARGETS))
 endif
 
-else # distclean
+else # DISTCLEAN
 
 # define distclean target by default
-NO_CLEAN_BUILD_DISTCLEAN:=
+NO_CLEAN_BUILD_DISTCLEAN_TARGET:=
 
-ifndef NO_CLEAN_BUILD_DISTCLEAN
+ifndef NO_CLEAN_BUILD_DISTCLEAN_TARGET
 
 # define distclean target
 # note: RM macro must be defined below in $(OSDIR)/$(OS)/tools.mk
@@ -205,9 +208,9 @@ distclean:
 # fake target - delete all built artifacts, including directories and configuration files
 .PHONY: distclean
 
-endif # !NO_CLEAN_BUILD_DISTCLEAN
+endif # !NO_CLEAN_BUILD_DISTCLEAN_TARGET
 
-endif # distclean
+endif # DISTCLEAN
 
 # $(DEBUG) is non-empty for DEBUG targets like "PROJECTD" or "DEBUG"
 DEBUG := $(filter DEBUG %D,$(TARGET))
@@ -797,7 +800,7 @@ include $(OSDIR)/$(OS)/tools.mk
 OSTYPE_$(OSTYPE) := 1
 
 # protect variables from modifications in target makefiles
-$(call CLEAN_BUILD_PROTECT_VARS,MTOP MAKEFLAGS CHECK_TOP TOP BUILD DRIVERS_SUPPORT NO_DEPS DEBUG \
+$(call CLEAN_BUILD_PROTECT_VARS,MTOP MAKEFLAGS CHECK_TOP TOP BUILD DRIVERS_SUPPORT DISTCLEAN NO_DEPS DEBUG \
   SUPPORTED_OSES SUPPORTED_CPUS SUPPORTED_TARGETS OS CPU UCPU KCPU TCPU TARGET \
   OS_$(OS) OSTYPE OSTYPE_$(OSTYPE) VERBOSE QUIET INFOMF MDEBUG OSDIR CHECK_MAKEFILE_NOT_PROCESSED \
   PRINT_PERCENTS SUP SUP1 ADD_SHOWN_PERCENTS REM_SHOWN_MAKEFILE FORMAT_PERCENTS \
