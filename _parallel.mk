@@ -8,6 +8,9 @@ ifndef DEF_HEAD_CODE_EVAL
 include $(MTOP)/_defs.mk
 endif
 
+# reset
+MDEPS:=
+
 # make $(TOP)-related paths to makefiles $1 with suffix $2:
 # add $(VPREFIX) if makefile path is not absolute, add /Makefile if makefile path is a directory
 NORM_MAKEFILES = $(patsubst %.mk/Makefile$2,%.mk$2,$(patsubst $(TOP)/%,%/Makefile$2,$(patsubst %/Makefile,%,$(call FIXPATH,$1))))
