@@ -56,11 +56,5 @@ CLEAN_BUILD_INCLUDE = $(foreach m,$(TO_MAKE),$(CB_INCLUDE_TEMPLATE))
 
 endif # !REM_SHOWN_MAKEFILE
 
-# used to remember makefiles include level
-CB_INCLUDE_LEVEL:=
-
-# used to remember number of intermediate makefiles which include other makefiles
-INTERMEDIATE_MAKEFILES:=
-
 # protect variables from modifications in target makefiles
 $(call CLEAN_BUILD_PROTECT_VARS,NORM_MAKEFILES APPEND_MDEPS1 APPEND_MDEPS CB_INCLUDE_TEMPLATE CLEAN_BUILD_INCLUDE)

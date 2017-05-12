@@ -373,6 +373,8 @@ else
 SUP1 = $(info $(call PRINT_PERCENTS,$(if $4,$(TRY_REM_MAKEFILE))$(FORMAT_PERCENTS))$(COLORIZE))@
 endif
 SUP = $(call SUP1,$1,$2,1,1)
+# used to remember number of intermediate makefiles which include other makefiles
+INTERMEDIATE_MAKEFILES:=
 else # !QUIET
 REM_SHOWN_MAKEFILE:=
 ifdef INFOMF
@@ -688,6 +690,9 @@ RUN_WITH_DLL_PATH = $(if $2$3,$(if $2,$(eval $@:$(DLL_PATH_VAR):=$(addsuffix $(P
 # reset
 CB_TOOL_MODE:=
 TOOL_MODE:=
+
+# used to remember makefiles include level
+CB_INCLUDE_LEVEL:=
 
 # $(DEFINE_TARGETS_EVAL_NAME) - contains name of macro that is when expanded
 # evaluates code to define targets (at least, by evaluating $(DEF_TAIL_CODE))
