@@ -12,9 +12,11 @@ OSTYPE := WINDOWS
 MAKEFLAGS += -O
 
 # shell must be cmd.exe, not /bin/sh if building under cygwin
+ifdef COMSPEC
 SHELL := $(COMSPEC)
+endif
 
-ifneq ($(filter /cygdrive/%,$(TOP)),)
+ifneq (,$(filter /cygdrive/%,$(TOP)))
 $(error building with cygwin tools is not supported, please use native tools,\
  for example: /cygdrive/c/tools/gnumake-4.2.1.exe SED=C:/tools/sed.exe <args>)
 endif
