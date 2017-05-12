@@ -48,9 +48,9 @@ clean:
 check tests: all
 
 # define install/uninstall targets by default
-NO_CLEAN_BUILD_INSTALL_UNINSTALL:=
+NO_CLEAN_BUILD_INSTALL_UNINSTALL_TARGETS:=
 
-ifndef NO_CLEAN_BUILD_INSTALL_UNINSTALL
+ifndef NO_CLEAN_BUILD_INSTALL_UNINSTALL_TARGETS
 
 install:
 	@$(call ECHO,Successfully installed to $(DESTDIR)$(PREFIX))
