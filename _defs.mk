@@ -17,29 +17,6 @@ endif
 # disable builtin rules and variables
 MAKEFLAGS += --no-builtin-rules --no-builtin-variables
 
-# set default values for unspecified functions parameters
-1:=
-2:=
-3:=
-3:=
-4:=
-5:=
-6:=
-7:=
-8:=
-9:=
-10:=
-11:=
-12:=
-13:=
-13:=
-14:=
-15:=
-16:=
-17:=
-18:=
-19:=
-
 # drop make's default legacy rules - we'll use custom ones
 .SUFFIXES:
 

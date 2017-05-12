@@ -32,13 +32,15 @@ infofn = $(info $1)$1
 # $(call dump,VAR1,prefix,Q) -> print 'Qdump: prefix: VAR1=xxx'
 dump = $(foreach v,$1,$(info $3dump: $(2:=: )$v$(if $(filter recursive,$(flavor $v)),,:)=$(value $v)))
 
-# dump function arguments (max 20)
-dump_args = $(if $1,$(info $$1=$1))$(if $2,$(info $$2=$2))$(if $3,$(info $$3=$3))$(if \
-  $4,$(info $$4=$4))$(if $5,$(info $$5=$5))$(if $6,$(info $$6=$6))$(if $7,$(info $$7=$7))$(if \
-  $8,$(info $$8=$8))$(if $9,$(info $$9=$9))$(if $(10),$(info $$10=$(10)))$(if $(11),$(info $$11=$(11)))$(if \
-  $(12),$(info $$12=$(12)))$(if $(13),$(info $$13=$(13)))$(if $(14),$(info $$14=$(14)))$(if \
-  $(15),$(info $$15=$(15)))$(if $(16),$(info $$16=$(16)))$(if $(17),$(info $$17=$(17)))$(if \
-  $(18),$(info $$18=$(18)))$(if $(19),$(info $$19=$(19)))$(if $(20),$(info $$20=$(20)))
+# maximum number of arguments of any macro
+dump_max := 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30
+
+# set default values for unspecified functions parameters
+$(eval override $(subst $(space),:=$(newline)override ,$(dump_max)):=)
+
+# dump function arguments
+dump_args := $(foreach i,$(dump_max),:$$(if $$($i),$$(info $$$$$i=$$($i))))
+$(eval dump_args = $(subst $(space):,, $(dump_args)))
 
 # trace function call parameters - print function name and parameter values
 # - add $(trace_params) as the first statement of traced function body
@@ -46,7 +48,7 @@ dump_args = $(if $1,$(info $$1=$1))$(if $2,$(info $$2=$2))$(if $3,$(info $$3=$3)
 trace_params = $(warning params: $$($0) {)$(dump_args)$(info params: } $$($0))
 
 # helper template for $(trace_calls)
-# $1 - macro name, must accept no more than 20 arguments
+# $1 - macro name, must accept no more than $(dump_max) arguments
 # $2 - names of variables to dump before traced call
 # $3 - names of variables to dump after traced call
 define trace_calls_template
@@ -56,12 +58,14 @@ $(value $1)
 endef
 define $1
 $$(warning $$$$($1) {)$$(dump_args)$$(call dump,$2,,$1: )$$(info ------$1 value---->)$$(info \
-  $$(value $1_))$$(info ------$1 result--->)$$(call infofn,$$(call \
-  $1_,$$1,$$2,$$3,$$4,$$5,$$6,$$7,$$8,$$9,$$(10),$$(11),$$(12),$$(13),$$(14),$$(15),$$(16),$$(17),$$(18),$$(19),$$(20)))$$(call \
-  dump,$3,,$1: )$$(info end: } $$$$($1))
+  $$(value $1_))$$(info ------$1 result--->)$$(call infofn,$$(call $1_,$(dump_params)))$$(call dump,$3,,$1: )$$(info end: } $$$$($1))
 endef
 $(call CLEAN_BUILD_PROTECT_VARS1,$1 $1_)
 endef
+
+# expand $(dump_params)
+$(eval define trace_calls_template$(newline)$(subst $$(dump_params),$$$$$(open_brace)$(subst \
+  $(space),$(close_brace)$(comma)$$$$$(open_brace),$(dump_max))$(close_brace),$(value trace_calls_template))$(newline)endef)
 
 # replace macros with their trace equivalents
 # $1 - traced macro names
@@ -209,7 +213,7 @@ mk_dir_deps = $(subst :|,:| $2,$(addprefix $(newline)$2,$(filter-out %:|,$(join 
 
 # protect variables from modification in target makefiles
 $(call CLEAN_BUILD_PROTECT_VARS,empty space tab comma newline comment open_brace close_brace \
-  infofn dump dump_args trace_params trace_calls_template trace_calls \
+  infofn dump dump_max dump_args trace_params trace_calls_template trace_calls \
   unspaces ifaddq qpath tolower toupper repl09 repl09AZ padto \
   is_less1 is_less xargs1 xargs xcmd trim normp2 normp1 normp \
   cmn_path1 cmn_path back_prefix relpath2 relpath1 relpath join_with \
