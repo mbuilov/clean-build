@@ -18,7 +18,7 @@ ifndef DISTCLEAN
 TO_MAKE := hello.mk
 
 # we need version info under Windows
-ifdef OS_WINXX
+ifeq (WINXX,$(OS))
 TO_MAKE += version
 endif
 
