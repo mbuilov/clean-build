@@ -32,6 +32,8 @@ endef
 # $r - $(call FORM_TRG,EXE,$v)
 ifdef OSTYPE_UNIX
 TEST_EXE_SOFTLINKS = $(if $1,$r: | $(addprefix $(LIB_DIR)/$(DLL_PREFIX),$(subst .,$(DLL_SUFFIX).,$1))$(TEST_NEED_SIMLINKS))
+else
+TEST_EXE_SOFTLINKS:=
 endif
 
 # $1 - $(LIB_DIR)/$(DLL_PREFIX)$(subst .,$(DLL_SUFFIX).,$d)
