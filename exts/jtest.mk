@@ -23,7 +23,7 @@ $1.out: $1
 	$$(call SUP,TEST,$$@)$(JAVA) $5 $$(call FORM_CLASS_PATH,$3 $$<) $2 $4 > $$@
 endef
 
-ifneq ($(filter check clean,$(MAKECMDGOALS)),)
+ifneq (,$(filter check clean,$(MAKECMDGOALS)))
 
 # for 'check' target, run built jar(s)
 # $1 - main class name, for example com.mycomp.myproj.MyMainClass
