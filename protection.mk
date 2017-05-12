@@ -18,6 +18,7 @@ ifdef MCHECK
 
 # reset
 CLEAN_BUILD_SAVE_PROTECTED_VALUES:=
+CLEAN_BUILD_OVERRIDEN_VARS:=
 CLEAN_BUILD_NEED_TAIL_CODE:=
 
 # convert value of variable $1 to string
@@ -53,7 +54,7 @@ CLEAN_BUILD_PROTECT_VARS = $(eval $(CLEAN_BUILD_PROTECT_VARS1))
 # macro to check if clean-build protected $x variable value was changed in target makefile
 define CLEAN_BUILD_CHECK_PROTECTED_VAR
 ifneq ($$(filter $x@%,$$(CLEAN_BUILD_SAVE_PROTECTED_VALUES)),$$(call CLEAN_BUILD_GET_PROTECTED_VALUE,$x))
-ifeq ($(filter $x,$(CLEAN_BUILD_OVERRIDEN_VARS)),)
+ifeq (,$(filter $x,$(CLEAN_BUILD_OVERRIDEN_VARS)))
 $$(error $$$$($x) value was changed:$$(newline)old value:$$(newline)$$(filter \
   $x@%,$$(CLEAN_BUILD_SAVE_PROTECTED_VALUES))$$(newline)new value:$$(newline)$$(call CLEAN_BUILD_GET_PROTECTED_VALUE,$x)$$(newline))
 endif
