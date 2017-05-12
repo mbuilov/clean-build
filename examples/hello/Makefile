@@ -8,7 +8,7 @@
 # $ make check
 
 # setup project variables
-include $(dir $(lastword $(MAKEFILE_LIST)))conf.mk
+include $(dir $(lastword $(MAKEFILE_LIST)))project.mk
 
 # source clean-build definitions and functions
 include $(MTOP)/defs.mk

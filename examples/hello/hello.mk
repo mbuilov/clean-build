@@ -1,5 +1,5 @@
 # setup project variables
-include $(dir $(lastword $(MAKEFILE_LIST)))conf.mk
+include $(dir $(lastword $(MAKEFILE_LIST)))project.mk
 
 # include templates for building C/C++ sources
 include $(MTOP)/c.mk

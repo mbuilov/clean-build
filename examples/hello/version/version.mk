@@ -1,4 +1,4 @@
-include $(dir $(lastword $(MAKEFILE_LIST)))../conf.mk
+include $(dir $(lastword $(MAKEFILE_LIST)))../project.mk
 include $(MTOP)/defs.mk
 
 # generate product definitions header
