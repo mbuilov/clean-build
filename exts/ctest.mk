@@ -62,7 +62,11 @@ ifneq (,$(filter check clean,$(MAKECMDGOALS)))
 # $4 - environment variables to set to run executable, in form VAR=value
 DO_TEST_EXE = $(eval $(foreach v,$(call GET_VARIANTS,EXE),$(newline)$(foreach r,$(call FORM_TRG,EXE,$v),$(DO_TEST_EXE_TEMPLATE))))
 
-endif # check, clean
+else # not check or clean
+
+DO_TEST_EXE:=
+
+endif # not check or clean
 
 # protect variables from modifications in target makefiles
 $(call CLEAN_BUILD_PROTECT_VARS,TEST_COLOR DO_TEST_EXE_TEMPLATE TEST_EXE_SOFTLINKS SO_SOFTLINK_TEMPLATE TEST_NEED_SIMLINKS DO_TEST_EXE)
