@@ -215,9 +215,6 @@ endif # DISTCLEAN
 # $(DEBUG) is non-empty for DEBUG targets like "PROJECTD" or "DEBUG"
 DEBUG := $(filter DEBUG %D,$(TARGET))
 
-# for simple 'ifdef OS_WINXX' or 'ifdef OS_LINUX'
-OS_$(OS) := 1
-
 # run via $(MAKE) V=1 for verbose output
 ifeq ("$(origin V)","command line")
 VERBOSE := $(V:0=)
@@ -794,15 +791,13 @@ $(error file $(OSDIR)/$(OS)/tools.mk does not exists)
 endif
 
 # define utilities of the OS we are building on
+# define OSTYPE variable
 include $(OSDIR)/$(OS)/tools.mk
-
-# for simple 'ifdef OSTYPE_WINDOWS' or 'ifdef OSTYPE_UNIX'
-OSTYPE_$(OSTYPE) := 1
 
 # protect variables from modifications in target makefiles
 $(call CLEAN_BUILD_PROTECT_VARS,MTOP MAKEFLAGS CHECK_TOP TOP BUILD DRIVERS_SUPPORT DISTCLEAN NO_DEPS DEBUG \
   SUPPORTED_OSES SUPPORTED_CPUS SUPPORTED_TARGETS OS CPU UCPU KCPU TCPU TARGET \
-  OS_$(OS) OSTYPE OSTYPE_$(OSTYPE) VERBOSE QUIET INFOMF MDEBUG OSDIR CHECK_MAKEFILE_NOT_PROCESSED \
+  OSTYPE VERBOSE QUIET INFOMF MDEBUG OSDIR CHECK_MAKEFILE_NOT_PROCESSED \
   PRINT_PERCENTS SUP SUP1 ADD_SHOWN_PERCENTS REM_SHOWN_MAKEFILE FORMAT_PERCENTS \
   GEN_COLOR MGEN_COLOR CP_COLOR LN_COLOR MKDIR_COLOR TOUCH_COLOR \
   COLORIZE TRY_REM_MAKEFILE SED_MULTI_EXPR ospath nonrelpath PATHSEP \
