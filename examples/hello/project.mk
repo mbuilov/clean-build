@@ -3,10 +3,13 @@ ifneq (override,$(origin TOP))
 
 # project configuration file
 
-# project root directory
+# TOP - project root directory
 override TOP := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
 
-# clean-build path
+# MTOP - clean-build path
+# note: MTOP should normally be defined either in command line or
+# in generated config.mk (included from this file), but
+# for this example MTOP may be defined automatically
 override MTOP := $(abspath $(dir $(lastword $(MAKEFILE_LIST)))../../)
 
 # major.minor.patch
