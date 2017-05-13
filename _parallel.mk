@@ -11,12 +11,12 @@ endif
 # reset
 MDEPS:=
 
-# make $(TOP)-related paths to makefiles $1 with suffix $2:
-# add $(VPREFIX) if makefile path is not absolute, add /Makefile if makefile path is a directory
-NORM_MAKEFILES = $(patsubst %.mk/Makefile$2,%.mk$2,$(patsubst $(TOP)/%,%/Makefile$2,$(patsubst %/Makefile,%,$(call FIXPATH,$1))))
+# make absolute paths to makefiles $1 with suffix $2:
+# add path to directory of $(CURRENT_MAKEFILE) if makefile path is not absolute, add /Makefile if makefile path is a directory
+NORM_MAKEFILES = $(patsubst %.mk/Makefile$2,%.mk$2,$(addsuffix /Makefile$2,$(patsubst %/Makefile,%,$(call FIXPATH,$1))))
 
 # add empty rules for $(MDEPS): don't complain if order deps are not resolved when build started in sub-directory
-# note: $(ORDER_DEPS) - names of dependency makefiles with '-' suffix
+# note: $(ORDER_DEPS) - absolute paths of dependency makefiles with '-' suffix
 # note: reset MDEPS to not update ORDER_DEPS on each evaluation of STD_TARGET_VARS in target makefile
 APPEND_MDEPS1 = $(if $1,$1:$(newline)ORDER_DEPS+=$1$(newline))
 APPEND_MDEPS = $(call APPEND_MDEPS1,$(filter-out $(ORDER_DEPS),$(call NORM_MAKEFILES,$(MDEPS),-)))MDEPS:=
@@ -28,19 +28,18 @@ FIX_ORDER_DEPS = $(APPEND_MDEPS)
 # - replace old FIX_ORDER_DEPS value defined in $(MTOP)/defs.mk with a new one
 $(call CLEAN_BUILD_PROTECT_VARS,FIX_ORDER_DEPS)
 
-# $m - next $(TOP)-related makefile to include
-# NOTE: $(ORDER_DEPS) value may be changed in included makefile, so restore ORDER_DEPS before including next makefile
-# NOTE: $(TOOL_MODE) value may be changed (set) in included makefile, so restore TOOL_MODE before including next makefile
+# $m - absolute path to makefile to include
+# note: $(ORDER_DEPS) value may be changed in included makefile, so restore ORDER_DEPS before including next makefile
+# note: $(TOOL_MODE) value may be changed (set) in included makefile, so restore TOOL_MODE before including next makefile
 define CB_INCLUDE_TEMPLATE
 $(empty)
-VPREFIX:=$(TOP)/$(dir $m)
 CURRENT_MAKEFILE:=$m
 ORDER_DEPS:=$(ORDER_DEPS)
 TOOL_MODE:=$(TOOL_MODE)
-include $(TOP)/$m
+include $m
 endef
 
-# note: $(TO_MAKE) - list of $(TOP)-related makefiles to include
+# note: $(TO_MAKE) - list of absolute paths to makefiles to include
 ifdef REM_SHOWN_MAKEFILE
 
 # non-verbose build

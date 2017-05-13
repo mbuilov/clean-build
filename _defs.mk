@@ -243,14 +243,6 @@ endif
 # get absolute path to current makefile
 CURRENT_MAKEFILE := $(abspath $(subst \,/,$(firstword $(MAKEFILE_LIST))))
 
-# check that we are building right sources - $(CURRENT_MAKEFILE) must be under the $(TOP)
-ifeq (,$(filter $(TOP)/%,$(CURRENT_MAKEFILE)))
-$(error TOP=$(TOP) is not the root directory of current makefile $(CURRENT_MAKEFILE))
-endif
-
-# make current makefile path relative to $(TOP)
-CURRENT_MAKEFILE := $(CURRENT_MAKEFILE:$(TOP)/%=%)
-
 # list of all processed makefiles names
 # note: PROCESSED_MAKEFILES is never cleared, only appended
 # note: default target 'all' depends only on $(PROCESSED_MAKEFILES) list
@@ -277,6 +269,10 @@ ospath = $1
 # note: $1 must end with /
 # NOTE: WINXX/tools.mk defines own nonrelpath
 nonrelpath = $(patsubst $1/%,/%,$(addprefix $1,$2))
+
+# suffix of built tool executables
+# NOTE: WINXX/tools.mk defines own TOOL_SUFFIX
+TOOL_SUFFIX:=
 
 # paths separator char
 # NOTE: WINXX/tools.mk defines own PATHSEP
@@ -471,7 +467,7 @@ else
 TOCLEAN:=
 endif
 
-# order-only $(TOP)-relative makefiles dependencies to add to all leaf prerequisites for the targets
+# order-only makefiles dependencies (absolute paths) to add to all leaf prerequisites for the targets
 # NOTE: $(FIX_ORDER_DEPS) may change $(ORDER_DEPS) list by appending $(MDEPS)
 ORDER_DEPS:=
 
@@ -499,7 +495,7 @@ STD_TARGET_VARS = $(call STD_TARGET_VARS1,$1,$(patsubst %/,%,$(sort $(dir $1))))
 
 # for given target $1
 # define target-specific variables for printing makefile info
-# $(MF)    - name of makefile which specifies how to build the target (path relative to $(TOP))
+# $(MF)    - makefile which specifies how to build the target
 # $(MCONT) - number of section in makefile after a call of $(MAKE_CONTINUE)
 # NOTE: $(MAKE_CONT) list is empty or 1 1 1 .. 1 2 (inside MAKE_CONTINUE) or 1 1 1 1... (before MAKE_CONTINUE)
 # NOTE: MCONT will be either empty or 2,3,4... - MCONT cannot be 1 - some rules may be defined before calling $(MAKE_CONTINUE)
@@ -520,14 +516,9 @@ ifdef SET_MAKEFILE_INFO
 $(eval define STD_TARGET_VARS1$(newline)$(value MAKEFILE_INFO_TEMPL)$(newline)$(value STD_TARGET_VARS1)$(newline)endef)
 endif
 
-# $(VPREFIX) - absolute path to directory of currently processing makefile, ended with /
-# note: $(CURRENT_MAKEFILE) - relative to $(TOP)
-# note: VPREFIX value is changed by $(MTOP)/parallel.mk
-VPREFIX := $(TOP)/$(dir $(CURRENT_MAKEFILE))
-
-# add $(VPREFIX) (absolute path to directory of currently processing makefile) to non-absolute paths
+# add absolute path to directory of currently processing makefile to non-absolute paths
 # - we need absolute paths to sources to apply generated dependencies in .d files
-FIXPATH = $(abspath $(call nonrelpath,$(VPREFIX),$1))
+FIXPATH = $(abspath $(call nonrelpath,$(dir $(CURRENT_MAKEFILE)),$1))
 
 ifdef MDEBUG
 
@@ -667,7 +658,7 @@ FORM_SDEPS = $(addsuffix |$(call join_with,$2,|),$1)
 # $2 - sdeps list: <source file1>|<dependency1>|<dependency2>|... <source file2>|<dependency1>|<dependency2>|...
 EXTRACT_SDEPS = $(foreach d,$(filter $(addsuffix |%,$1),$2),$(wordlist 2,999999,$(subst |, ,$d)))
 
-# fix sdeps paths: add $(VPREFIX) value to non-absolute paths then make absolute paths
+# fix sdeps paths: add absolute path to directory of currently processing makefile to non-absolute paths
 # $1 - sdeps list: <source file1>|<dependency1>|<dependency2>|... <source file2>|<dependency1>|<dependency2>|...
 FIX_SDEPS = $(subst | ,|,$(call FIXPATH,$(subst |,| ,$1)))
 
@@ -794,9 +785,9 @@ $(call CLEAN_BUILD_PROTECT_VARS,MTOP MAKEFLAGS CHECK_TOP TOP BUILD DRIVERS_SUPPO
   OSTYPE VERBOSE QUIET INFOMF MDEBUG OSDIR CHECK_MAKEFILE_NOT_PROCESSED \
   PRINT_PERCENTS SUP SUP1 ADD_SHOWN_PERCENTS REM_SHOWN_MAKEFILE FORMAT_PERCENTS \
   GEN_COLOR MGEN_COLOR CP_COLOR LN_COLOR MKDIR_COLOR TOUCH_COLOR \
-  COLORIZE TRY_REM_MAKEFILE SED_MULTI_EXPR ospath nonrelpath PATHSEP \
+  COLORIZE TRY_REM_MAKEFILE SED_MULTI_EXPR ospath nonrelpath TOOL_SUFFIX PATHSEP \
   TARGET_TRIPLET DEF_BIN_DIR DEF_OBJ_DIR DEF_LIB_DIR DEF_GEN_DIR SET_DEFAULT_DIRS \
-  TOOL_BASE MK_TOOLS_DIR GET_TOOLS TOOL_SUFFIX GET_TOOL TOOL_OVERRIDE_DIRS FIX_ORDER_DEPS \
+  TOOL_BASE MK_TOOLS_DIR GET_TOOLS GET_TOOL TOOL_OVERRIDE_DIRS FIX_ORDER_DEPS \
   STD_TARGET_VARS1 STD_TARGET_VARS MAKEFILE_INFO_TEMPL SET_MAKEFILE_INFO TOCLEAN FIXPATH MAKEFILE_DEBUG_INFO \
   DEF_TAIL_CODE_DEBUG DEF_HEAD_CODE DEF_HEAD_CODE_EVAL DEF_TAIL_CODE DEF_TAIL_CODE_EVAL \
   FILTER_VARIANTS_LIST GET_VARIANTS GET_TARGET_NAME DEBUG_TARGETS FORM_OBJ_DIR \
