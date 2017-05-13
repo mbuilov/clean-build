@@ -4,7 +4,7 @@
 # Licensed under GPL version 2 or any later version, see COPYING
 #----------------------------------------------------------------------------------
 
-# this file included by $(MTOP)/defs.mk after including $(MTOP)/protection.mk
+# this file included by $(CLEAN_BUILD_DIR)/defs.mk after including $(CLEAN_BUILD_DIR)/protection.mk
 
 empty:=
 space := $(empty) #
@@ -187,6 +187,31 @@ ver_major = $(firstword $(subst ., ,$1) 0)
 ver_minor = $(firstword $(word 2,$(subst ., ,$1)) 0)
 ver_patch = $(firstword $(word 3,$(subst ., ,$1)) 0)
 
+# if $1 == $2 {
+#   if $3 < 4
+#     <empty>
+#   else if $3 == $4 {
+#     if $5 < $6
+#       <empty>
+#     else
+#       1
+#   }
+#   else
+#     1
+# }
+# else
+#   <empty>
+ver_compatible1 = $(if $(filter $1,$2),$(if $(call \
+  is_less,$3,$4),,$(if $(filter $3,$4),$(if $(call \
+  is_less,$5,$6),,1),1)))
+
+# compare versions $1 and $2:
+# - major versions must match
+# - minor and patch versions of $1 must not be less than of $2
+# returns non-empty string if versions are compatible
+ver_compatible = $(call ver_compatible1,$(ver_major),$(call \
+  ver_major,$2),$(ver_minor),$(call ver_minor,$2),$(ver_patch),$(call ver_patch,$2))
+
 # get parent directory name of $1 without / at end
 # add optional prefix $2 before parent directory
 # returns empty directory name prefixed by $2 if no parent directory:
@@ -217,4 +242,5 @@ $(call CLEAN_BUILD_PROTECT_VARS,empty space tab comma newline comment open_brace
   unspaces ifaddq qpath tolower toupper repl09 repl09AZ padto \
   is_less1 is_less xargs1 xargs xcmd trim normp2 normp1 normp \
   cmn_path1 cmn_path back_prefix relpath2 relpath1 relpath join_with \
-  ver_major ver_minor ver_patch get_dir split_dirs1 split_dirs mk_dir_deps)
+  ver_major ver_minor ver_patch ver_compatible1 ver_compatible \
+  get_dir split_dirs1 split_dirs mk_dir_deps)
