@@ -310,16 +310,16 @@ PRINT_PERCENTS = [00;34m[[01;34m$1[00;34m][0m
 # print in color short name of called tool $1 with argument $2
 # $1 - tool
 # $2 - argument
-# $3 - if non-empty, then colorize argument
+# $3 - non-empty, then colorize argument
 # NOTE: WINXX/tools.mk redefines: COLORIZE = $1$(padto)$2
-COLORIZE = $($1_COLOR)$1[0m$(padto)$(if $3,$(join $(dir $2),$(addsuffix [0m,$(addprefix $($1_COLOR),$(notdir $2)))),$2)
+COLORIZE = $($1_COLOR)$1[0m$(padto)$(if $3,$2,$(join $(dir $2),$(addsuffix [0m,$(addprefix $($1_COLOR),$(notdir $2)))))
 
-# SUP1: suppress output of executed build tool, print some pretty message instead, like "CC  source.c"
+# SUP: suppress output of executed build tool, print some pretty message instead, like "CC  source.c"
 # target-specific: MF, MCONT
 # $1 - tool
 # $2 - tool arguments
-# $3 - if non-empty, then colorize argument of called tool
-# $4 - if non-empty, then try to update percents of executed makefiles
+# $3 - if empty, then colorize argument of called tool
+# $4 - if empty, then try to update percents of executed makefiles
 ifeq (,$(filter distclean clean,$(MAKECMDGOALS)))
 ifdef QUIET
 SHOWN_MAKEFILES:=
@@ -358,20 +358,17 @@ FORMAT_PERCENTS = $(subst |,,$(subst \
 # don't update percents if $(MF) was already shown
 TRY_REM_MAKEFILE = $(if $(filter $(MF),$(SHOWN_MAKEFILES)),,$(eval $(REM_SHOWN_MAKEFILE)))
 ifdef INFOMF
-SUP1 = $(info $(call PRINT_PERCENTS,$(if $4,$(TRY_REM_MAKEFILE))$(FORMAT_PERCENTS))$(MF)$(MCONT):$(COLORIZE))@
+SUP = $(info $(call PRINT_PERCENTS,$(if $4,,$(TRY_REM_MAKEFILE))$(FORMAT_PERCENTS))$(MF)$(MCONT):$(COLORIZE))@
 else
-SUP1 = $(info $(call PRINT_PERCENTS,$(if $4,$(TRY_REM_MAKEFILE))$(FORMAT_PERCENTS))$(COLORIZE))@
+SUP = $(info $(call PRINT_PERCENTS,$(if $4,,$(TRY_REM_MAKEFILE))$(FORMAT_PERCENTS))$(COLORIZE))@
 endif
-SUP = $(call SUP1,$1,$2,1,1)
 # used to remember number of intermediate makefiles which include other makefiles
 INTERMEDIATE_MAKEFILES:=
 else # !QUIET
 REM_SHOWN_MAKEFILE:=
 ifdef INFOMF
-SUP1 = $(info $(MF)$(MCONT):)
-SUP = $(SUP1)
+SUP = $(info $(MF)$(MCONT):)
 else
-SUP1:=
 SUP:=
 endif
 endif # !QUIET
@@ -783,7 +780,7 @@ include $(OSDIR)/$(OS)/tools.mk
 $(call CLEAN_BUILD_PROTECT_VARS,MTOP MAKEFLAGS CHECK_TOP TOP BUILD DRIVERS_SUPPORT DEBUG \
   SUPPORTED_OSES SUPPORTED_CPUS SUPPORTED_TARGETS OS CPU UCPU KCPU TCPU TARGET \
   OSTYPE VERBOSE QUIET INFOMF MDEBUG OSDIR CHECK_MAKEFILE_NOT_PROCESSED \
-  PRINT_PERCENTS SUP SUP1 ADD_SHOWN_PERCENTS REM_SHOWN_MAKEFILE FORMAT_PERCENTS \
+  PRINT_PERCENTS SUP ADD_SHOWN_PERCENTS REM_SHOWN_MAKEFILE FORMAT_PERCENTS \
   GEN_COLOR MGEN_COLOR CP_COLOR LN_COLOR MKDIR_COLOR TOUCH_COLOR \
   COLORIZE TRY_REM_MAKEFILE SED_MULTI_EXPR ospath nonrelpath TOOL_SUFFIX PATHSEP \
   TARGET_TRIPLET DEF_BIN_DIR DEF_OBJ_DIR DEF_LIB_DIR DEF_GEN_DIR SET_DEFAULT_DIRS \

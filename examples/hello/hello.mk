@@ -14,14 +14,14 @@ SRC := hello.c
 # will run built executable and create .out file
 $(DO_TEST_EXE)
 
-# add makefile info for phony target 'hello'
-# this info is used by SUP1 function
+# add makefile info for phony target 'hello' (this info is used by SUP function)
 $(call SET_MAKEFILE_INFO,hello)
 
 # if executable output exist - print it
 # note: $| - automatic variable - first order-dependency
+# note: pass 1 as third argument to SUP function to not update percents of executed makefiles
 hello: | $(call FORM_TRG,EXE,S).out
-	$(call SUP1,CAT,$|,1)$(call CAT,$|) >&2
+	$(call SUP,CAT,$|,1)$(call CAT,$|) >&2
 
 # to complete 'check' target, need to update 'hello' target
 check: hello
