@@ -4,7 +4,7 @@
 # Licensed under GPL version 2 or any later version, see COPYING
 #----------------------------------------------------------------------------------
 
-# this file included by $(MTOP)/defs.mk
+# this file included by $(CLEAN_BUILD_DIR)/defs.mk
 
 OSTYPE := WINDOWS
 
@@ -111,11 +111,11 @@ show_dll_path_end = $(newline)@echo endlocal
 NO_RPATH := 1
 
 # windows terminal do not supports changing output colors
-# note: override PRINT_PERCENTS from $(MTOP)/defs.mk
+# note: override PRINT_PERCENTS from $(CLEAN_BUILD_DIR)/defs.mk
 PRINT_PERCENTS = [$1]
 
 # windows terminal do not supports changing output colors
-# note: override COLORIZE from $(MTOP)/defs.mk
+# note: override COLORIZE from $(CLEAN_BUILD_DIR)/defs.mk
 COLORIZE = $1$(padto)$2
 
 # protect variables from modifications in target makefiles
