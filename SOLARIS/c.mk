@@ -78,7 +78,7 @@ OS_PREDEFINES := SOLARIS UNIX
 OS_APPDEFS := $(if $(UCPU:%64=),ILP32,LP64) _REENTRANT
 OS_KRNDEFS := $(if $(KCPU:%64=),ILP32,LP64) _KERNEL
 
-# variants filter function - get possible variants for the target, needed by $(MTOP)/c.mk
+# variants filter function - get possible variants for the target, needed by $(CLEAN_BUILD_DIR)/c.mk
 # $1 - LIB,EXE,DLL
 # R - default variant (position-dependent code for EXE, position-independent code for DLL)
 # D - position-independent code in shared libraries (for LIB)
@@ -86,11 +86,11 @@ VARIANTS_FILTER = $(if $(filter LIB,$1),D)
 
 # determine suffix for static LIB or for import library of DLL
 # $1 - target variant R,D,<empty>
-# note: overrides value from $(MTOP)/c.mk
+# note: overrides value from $(CLEAN_BUILD_DIR)/c.mk
 LIB_VAR_SUFFIX = $(if \
                  $(filter D,$1),_pic)
 
-# for $(DEP_LIB_SUFFIX) from $(MTOP)/c.mk:
+# for $(DEP_LIB_SUFFIX) from $(CLEAN_BUILD_DIR)/c.mk:
 # $1 - target: EXE,DLL
 # $2 - variant of target EXE or DLL: R,<empty>
 # $3 - dependent static library name
@@ -98,7 +98,7 @@ LIB_VAR_SUFFIX = $(if \
 # always use D-variant of static library for DLL
 VARIANT_LIB_MAP = $(if $(filter DLL,$1),D,$2)
 
-# for $(DEP_IMP_SUFFIX) from $(MTOP)/c.mk:
+# for $(DEP_IMP_SUFFIX) from $(CLEAN_BUILD_DIR)/c.mk:
 # $1 - target: EXE,DLL
 # $2 - variant of target EXE or DLL: R,<empty>
 # $3 - dependent dynamic library name
