@@ -4,7 +4,7 @@
 # Licensed under GPL version 2 or any later version, see COPYING
 #----------------------------------------------------------------------------------
 
-# should be included after $(MTOP)/c.mk
+# should be included after $(CLEAN_BUILD_DIR)/c.mk
 
 ifndef DO_TEST_EXE_TEMPLATE
 
