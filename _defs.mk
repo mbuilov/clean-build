@@ -38,7 +38,7 @@ include $(CLEAN_BUILD_DIR)/functions.mk
 # override CLEAN_BUILD_REQUIRED_VERSION := 0.3
 CLEAN_BUILD_REQUIRED_VERSION := 0.0.0
 
-ifneq (,$(call ver_compatible,$(CLEAN_BUILD_VERSION),$(CLEAN_BUILD_REQUIRED_VERSION)))
+ifeq (,$(call ver_compatible,$(CLEAN_BUILD_VERSION),$(CLEAN_BUILD_REQUIRED_VERSION)))
 $(error incompatible clean-build version: $(CLEAN_BUILD_VERSION), project needs: $(CLEAN_BUILD_REQUIRED_VERSION))
 endif
 
