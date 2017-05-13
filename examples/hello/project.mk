@@ -1,4 +1,5 @@
-ifndef TOP
+# the only case when TOP is defined - after completing project configuration
+ifneq (override,$(origin TOP))
 
 # project configuration file
 
