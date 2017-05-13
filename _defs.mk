@@ -164,9 +164,6 @@ endif
 # check $(CPU) and $(TARGET) only if goal is not distclean
 ifeq (,$(filter distclean,$(MAKECMDGOALS)))
 
-# do not process generated dependencies when cleaning up
-NO_DEPS := $(filter clean,$(MAKECMDGOALS))
-
 # CPU for user-level
 ifeq (,$(filter $(UCPU),$(SUPPORTED_CPUS)))
 $(error unknown UCPU=$(UCPU), please pick one of target CPU types: $(SUPPORTED_CPUS))
@@ -792,7 +789,7 @@ endif
 include $(OSDIR)/$(OS)/tools.mk
 
 # protect variables from modifications in target makefiles
-$(call CLEAN_BUILD_PROTECT_VARS,MTOP MAKEFLAGS CHECK_TOP TOP BUILD DRIVERS_SUPPORT NO_DEPS DEBUG \
+$(call CLEAN_BUILD_PROTECT_VARS,MTOP MAKEFLAGS CHECK_TOP TOP BUILD DRIVERS_SUPPORT DEBUG \
   SUPPORTED_OSES SUPPORTED_CPUS SUPPORTED_TARGETS OS CPU UCPU KCPU TCPU TARGET \
   OSTYPE VERBOSE QUIET INFOMF MDEBUG OSDIR CHECK_MAKEFILE_NOT_PROCESSED \
   PRINT_PERCENTS SUP SUP1 ADD_SHOWN_PERCENTS REM_SHOWN_MAKEFILE FORMAT_PERCENTS \

@@ -40,6 +40,9 @@ KDLL:=
 DRV:=
 endif
 
+# do not process generated dependencies when cleaning up
+NO_DEPS := $(filter clean,$(MAKECMDGOALS))
+
 # $1 - objdir
 # $2 - source deps list
 # $x - source
@@ -53,7 +56,6 @@ ADD_OBJ_SDEPS = $(if $2,$(newline)$1/$(basename $(notdir $x))$(OBJ_SUFFIX): $2)
 # $6 - $t_$v_$1
 # $v - non-empty variant: R,P,S,...
 # $t - EXE,LIB,...
-# note: $(NO_DEPS) - may be recursive and so have different values, for example depending on value of $(CURRENT_MAKEFILE)
 # note: postpone expansion of ORDER_DEPS - $(FIX_ORDER_DEPS) from $(STD_TARGET_VARS) changes $(ORDER_DEPS) value
 define OBJ_RULES2
 $5
@@ -462,7 +464,7 @@ endif # findstring
 # protect variables from modifications in target makefiles
 $(call CLEAN_BUILD_PROTECT_VARS,BLD_TARGETS LIB_VAR_SUFFIX \
   DEFINCLUDE PREDEFINES OS_PREDEFINES APPDEFS OS_APPDEFS KRNDEFS OS_KRNDEFS PRODUCT_VER VARIANTS_FILTER \
-  ADD_OBJ_SDEPS OBJ_RULES2 OBJ_RULES1 OBJ_RULES \
+  NO_DEPS ADD_OBJ_SDEPS OBJ_RULES2 OBJ_RULES1 OBJ_RULES \
   EXE_SUFFIX_GEN EXE_VAR_SUFFIX FORM_TRG OS_FORM_TRG DLL_DIR \
   EXE_SUFFIX OBJ_SUFFIX LIB_PREFIX LIB_SUFFIX IMP_PREFIX IMP_SUFFIX DLL_PREFIX DLL_SUFFIX \
   KLIB_PREFIX KLIB_SUFFIX DRV_PREFIX DRV_SUFFIX KDLL_PREFIX KDLL_SUFFIX \

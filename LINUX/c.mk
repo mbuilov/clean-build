@@ -304,7 +304,6 @@ ifndef NO_PCH
 # $2 - $(call FORM_TRG,$1,$v)
 # $t - EXE,LIB,DLL,KLIB
 # $v - R,P,
-# note: $(NO_DEPS) - may be recursive and so have different values, for example depending on value of $(CURRENT_MAKEFILE)
 define PCH_TEMPLATE1
 TRG_PCH := $(call FIXPATH,$(PCH))
 TRG_WITH_PCH := $(call FIXPATH,$(WITH_PCH))
@@ -314,7 +313,7 @@ ifneq (,$$(filter %.c,$$(TRG_WITH_PCH)))
 C_GCH := $1/$$(basename $$(notdir $$(TRG_PCH)))_pch_c.h
 $$(C_GCH).gch: $$(TRG_PCH) | $1 $$(ORDER_DEPS)
 	$$(call PCH_$t_$v_CC,$$@,$$(PCH))
-ifeq (,$(NO_DEPS))
+ifndef NO_DEPS
 -include $$(C_GCH).d)
 endif
 $$(addprefix $1/,$$(addsuffix $(OBJ_SUFFIX),$$(basename $$(notdir $$(filter %.c,$$(TRG_WITH_PCH)))))): $$(C_GCH).gch
@@ -324,7 +323,7 @@ ifneq (,$$(filter %.cpp,$$(TRG_WITH_PCH)))
 CXX_GCH := $1/$$(basename $$(notdir $$(TRG_PCH)))_pch_cxx.h
 $$(CXX_GCH).gch: $$(TRG_PCH) | $1 $$(ORDER_DEPS)
 	$$(call PCH_$t_$v_CXX,$$@,$$(PCH))
-ifeq (,$(NO_DEPS))
+ifndef NO_DEPS
 -include $$(CXX_GCH).d
 endif
 $$(addprefix $1/,$$(addsuffix $(OBJ_SUFFIX),$$(basename $$(notdir $$(filter %.cpp,$$(TRG_WITH_PCH)))))): $$(CXX_GCH).gch

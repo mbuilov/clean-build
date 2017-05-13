@@ -15,7 +15,7 @@ MCL_MAX_COUNT := 50
 
 include $(MTOP)/WINXX/cres.mk
 
-# run via $(MAKE) S=1 to compile each source individually (without /MP CL compiler option)
+# run via $(MAKE) S=1 to compile each source individually (without /MP compiler option)
 ifeq ("$(origin S)","command line")
 SEQ_BUILD := $(S:0=)
 else
@@ -23,7 +23,7 @@ SEQ_BUILD:=
 endif
 
 # dependencies generation supported only for non-multisource (sequencial) builds
-ifeq (,$(SEQ_BUILD))
+ifndef SEQ_BUILD
 NO_DEPS := 1
 $(call CLEAN_BUILD_PROTECT_VARS,NO_DEPS)
 endif
@@ -437,8 +437,8 @@ WRAP_COMPILER:=
 # $4 - $(basename $2).d
 # $5 - prefixes of system includes
 # note: send compiler output to stderr
-ifeq (,$(NO_DEPS))
-ifneq (,$(SEQ_BUILD))
+ifndef NO_DEPS
+ifdef SEQ_BUILD
 WRAP_COMPILER = (($1 /showIncludes 2>&1 && set /p ="COMPILATION_OK" >&2 <NUL) | \
   ($(SED) -n $(SED_DEPS_SCRIPT) 2>&1 && set /p ="_SED_OK" >&2 <NUL)) 3>&2 2>&1 1>&3 | findstr /B /L COMPILATION_OK_SED_OK >NUL
 endif
@@ -759,7 +759,6 @@ endef
 # $5 - K or <empty>
 # $t - EXE,LIB,DLL,KLIB,DRV
 # $v - R,S,RU,SU
-# note: $(NO_DEPS) - may be recursive and so have different values, for example depending on value of $(CURRENT_MAKEFILE)
 # note: $$(PCH_OBJS) will be built before link phase - before sources are compiled with MCL
 define PCH_TEMPLATE2
 $(empty)
@@ -773,7 +772,7 @@ $$(PCH_CXX_OBJ): $$(PCH_CXX_SRC) $$(TRG_PCH) | $3 $$(ORDER_DEPS)
 	$$(call PCH_$v_$5CXX,$$@,$$<,$$(PCH))
 PCH_OBJS := $$(if $$(filter %.c,$$(TRG_WITH_PCH)),$$(PCH_C_OBJ)) $$(if $$(filter %.cpp,$$(TRG_WITH_PCH)),$$(PCH_CXX_OBJ))
 $4: $$(PCH_OBJS)
-ifeq (,$(NO_DEPS))
+ifndef NO_DEPS
 -include $$(addprefix $3/,$$(if \
   $$(filter %.c,$$(TRG_WITH_PCH)),$$(basename $$(notdir $$(PCH_C_SRC))).d) $$(if \
   $$(filter %.cpp,$$(TRG_WITH_PCH)),$$(basename $$(notdir $$(PCH_CXX_SRC))).d))
