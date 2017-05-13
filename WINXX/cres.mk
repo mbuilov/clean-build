@@ -6,17 +6,17 @@
 
 # this file included by $(MTOP)/WINXX/c.mk
 
-# FILEOS in $(STD_VERSION_RC_TEMPLATE), $1 - EXE,DLL,DRV
+# FILEOS in $(STD_VERSION_RC_TEMPLATE), $1 - EXE,DLL,DRV,KDLL
 RC_OS := VOS_NT_WINDOWS32
 
-# FILETYPE in $(STD_VERSION_RC_TEMPLATE), $1 - EXE,DLL,DRV
+# FILETYPE in $(STD_VERSION_RC_TEMPLATE), $1 - EXE,DLL,DRV,KDLL
 RC_FT = $(if \
   $(filter EXE,$1),VFT_APP,$(if \
   $(filter DLL,$1),VFT_DLL,$(if \
-  $(filter DRV,$1),VFT_DRV)))
+  $(filter DRV KDLL,$1),VFT_DRV)))
 
-# FILESUBTYPE in $(STD_VERSION_RC_TEMPLATE), $1 - EXE,DLL,DRV
-RC_FST = $(if $(filter DRV,$1),VFT2_DRV_SYSTEM,0L)
+# FILESUBTYPE in $(STD_VERSION_RC_TEMPLATE), $1 - EXE,DLL,DRV,KDLL
+RC_FST = $(if $(filter DRV KDLL,$1),VFT2_DRV_SYSTEM,0L)
 
 # C-header file which defines constants for standard resource template
 # note: $(PRODUCT_NAMES_H) may be recursive macro,
@@ -46,7 +46,8 @@ WIN_RC_MODULE_VERSION_MAJOR  = $(call ver_major,$(MODVER))
 WIN_RC_MODULE_VERSION_MINOR  = $(call ver_minor,$(MODVER))
 WIN_RC_MODULE_VERSION_PATCH  = $(call ver_patch,$(MODVER))
 WIN_RC_PRODUCT_BUILD_NUM     = PRODUCT_BUILD_NUM
-WIN_RC_COMMENTS              = PRODUCT_TARGET "/" PRODUCT_OS "/" $(if $(filter DRV,$1),PRODUCT_KCPU,PRODUCT_UCPU) "/" PRODUCT_BUILD_DATE
+WIN_RC_COMMENTS              = PRODUCT_TARGET "/" PRODUCT_OS "/" $(if \
+                                $(filter DRV KDLL,$1),PRODUCT_KCPU,PRODUCT_UCPU) "/" PRODUCT_BUILD_DATE
 WIN_RC_COMPANY_NAME          = VENDOR_NAME
 WIN_RC_FILE_DESCRIPTION      = "$(GET_TARGET_NAME)"
 WIN_RC_FILE_VERSION          = VERSION_TO_STR($(if \
@@ -68,7 +69,7 @@ WIN_RC_SPECIAL_BUILD         =
 WIN_RC_LANG                  = 0409
 WIN_RC_CHARSET               = 04b0
 
-# $1    - EXE,DLL,DRV
+# $1    - EXE,DLL,DRV,KDLL
 # $2    - $(GET_TARGET_NAME)
 # $3    - $(WIN_RC_PRODUCT_DEFS_HEADER)
 # $4    - $(WIN_RC_PRODUCT_VERSION_MAJOR)
@@ -138,10 +139,10 @@ $(21),$(newline)            VALUE "SpecialBuild"$(comma) $(21) "\0")
 END
 endef
 
-# $1 - EXE,DLL,DRV
+# $1 - EXE,DLL,DRV,KDLL
 # $2 - $(GET_TARGET_NAME)
 # $3 - $(FORM_OBJ_DIR)
-# note: don't use $(STD_TARGET_VARS) - inherit MF,MCONT,TMD from target EXE,DLL,DRV
+# note: don't use $(STD_TARGET_VARS) - inherit MF,MCONT,TMD from target EXE,DLL,DRV,KDLL
 # note: $$(TRG_RES) file will be cleaned up together with $(RES)
 define STD_RES_TEMPLATE1
 TRG_RC := $(GEN_DIR)/stdres/$2_$1.rc
@@ -184,7 +185,7 @@ $1: $$(RES)
 $1: RES := $$(RES)
 endef
 
-# $1 - EXE,DLL,DRV
+# $1 - EXE,DLL,DRV,KDLL
 # 1) generate invariant rule to make standard resource
 # 2) for each target variant add standard resource to the target
 # note: don't add standard resource to the tool or if adding such resource is explicitly disabled in makefile via NO_STD_RES variable
