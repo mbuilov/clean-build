@@ -4,7 +4,7 @@
 # Licensed under GPL version 2 or any later version, see COPYING
 #----------------------------------------------------------------------------------
 
-# this file included by $(MTOP)/WINXX/c.mk
+# this file included by $(CLEAN_BUILD_DIR)/WINXX/c.mk
 
 # FILEOS in $(STD_VERSION_RC_TEMPLATE), $1 - EXE,DLL,DRV,KDLL
 RC_OS := VOS_NT_WINDOWS32
