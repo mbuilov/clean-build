@@ -145,7 +145,7 @@ GET_SOURCES = $(SRC) $(WITH_PCH)
 # make absolute paths to sources - we need absolute path to source in generated .d dependency file
 TRG_SRC = $(call FIXPATH,$(GET_SOURCES))
 
-# make absolute paths for $(TRG_SDEPS) - add $(VPREFIX) to relative paths, then normalize paths
+# make absolute paths for $(TRG_SDEPS)
 TRG_SDEPS = $(call FIX_SDEPS,$(SDEPS))
 
 # objects to build for the target
@@ -347,7 +347,7 @@ endef
 
 # common include path for all targets, added at end of compiler's include paths list, for example:
 #  override DEFINCLUDE = $(TOP)/include
-#  note: DEFINCLUDE may be recursive, it's value may be calculated based on $(TOP)-related path to $(CURRENT_MAKEFILE)
+#  note: DEFINCLUDE may be recursive, it's value may be calculated based on $(CURRENT_MAKEFILE)
 #  note: target makefiles may avoid using include paths from $(DEFINCLUDE) by resetting $(CMNINCLUDE) value
 DEFINCLUDE:=
 
@@ -355,7 +355,7 @@ DEFINCLUDE:=
 #  override PREDEFINES = $(if $(DEBUG),_DEBUG) TARGET_$(TARGET:D=) \
 #                        $(if $(filter sparc% mips% ppc%,$(CPU)),B_ENDIAN,L_ENDIAN) \
 #                        $(if $(filter arm% sparc% mips% ppc%,$(CPU)),ADDRESS_NEEDALIGN)
-#  note: $(PREDEFINES) may be recursive, it's value may be calculated based on $(TOP)-related path to $(CURRENT_MAKEFILE)
+#  note: $(PREDEFINES) may be recursive, it's value may be calculated based on $(CURRENT_MAKEFILE)
 #  note: target makefile may avoid using macros from $(PREDEFINES) by resetting $(CMNDEFINES) value
 PREDEFINES = $(OS_PREDEFINES)
 
