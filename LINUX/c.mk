@@ -16,14 +16,14 @@ $(eval define PREPARE_C_VARS$(newline)$(value PREPARE_C_VARS)$(newline)RPATH:=$(
 # compilers/linkers
 CC   := gcc -m$(if $(UCPU:%64=),32,64)
 CXX  := g++ -m$(if $(UCPU:%64=),32,64)
-LD   := ld
+LD   := ld$(if $(filter x86%,$(UCPU)), -m$(if $(UCPU:%64=),elf_i386,elf_x86_64))
 AR   := ar
 TCC  := gcc -m$(if $(TCPU:%64=),32,64)
 TCXX := g++ -m$(if $(TCPU:%64=),32,64)
-TLD  := ld
+TLD  := ld$(if $(filter x86%,$(TCPU)), -m$(if $(TCPU:%64=),elf_i386,elf_x86_64))
 TAR  := ar
 KCC  := gcc -m$(if $(KCPU:%64=),32,64)
-KLD  := ld
+KLD  := ld$(if $(filter x86%,$(KCPU)), -m$(if $(KCPU:%64=),elf_i386,elf_x86_64))
 
 # make used by kbuild
 KMAKE := $(MAKE)
@@ -134,7 +134,7 @@ DEF_EXE_FLAGS:=
 # default flags for SO-target linker
 DEF_SO_FLAGS := -shared -Wl,--no-undefined
 
-# default flags for static library (-fpie or -fpic) linker
+# default flags for static library position-independent code linker (with -fpie or -fpic options)
 DEF_LD_FLAGS := -r --warn-common
 
 # default flags for kernel library linker
@@ -229,7 +229,7 @@ CMN_CC  = $(if $(filter $2,$(WITH_PCH)),$(call SUP,P$(TMD)CC,$2)$($(TMD)CC) -I$(
 PCH_CXX = $(call SUP,$(TMD)PCHCXX,$2)$($(TMD)CXX) $(CC_PARAMS) $(DEF_CXXFLAGS) $(CXXFLAGS)
 PCH_CC  = $(call SUP,$(TMD)PCHCC,$2)$($(TMD)CC) $(CC_PARAMS) $(DEF_CFLAGS) $(CFLAGS)
 
-# position-independent code for executables/shared objects (synamic libraries)
+# position-independent code for executables/shared objects (dynamic libraries)
 PIE_OPTION := -fpie
 PIC_OPTION := -fpic
 
