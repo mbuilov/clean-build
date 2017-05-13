@@ -14,11 +14,11 @@ ifndef INSTALL_LIBS_TEMPLATE
 
 # anyway, LIB and DLL variables _must_ be defined before expanding INSTALL_LIBS_TEMPLATE
 
+# DESTDIR must be defined as empty in all clean-build makefiles where DESTDIR is used
+DESTDIR:=
+
 # set defaults
 # note: next DEF_NO_... variables may be defined in project configuration makefile before including this file via override directive
-
-# DESTDIR must be defined as empty in all clean-build makefiles where DESTDIR is needed
-DESTDIR:=
 
 # non-empty if do not install development files and headers
 DEF_NO_DEVEL:=
@@ -45,6 +45,7 @@ LIBRARY_HDIR       := $(addprefix /,$(LIBRARY_HDIR))
 install_$1: $$(BUILT_LIBS) $$(BUILT_DLLS)
 install: install_$1
 uninstall: uninstall_$1
+$(call SET_MAKEFILE_INFO,install_$1_headers uninstall_$1_headers install_$1 uninstall_$1)
 .PHONY: install_$1_headers uninstall_$1_headers install_$1 uninstall_$1
 endef
 
@@ -64,16 +65,16 @@ LDCONFIG       := $(if $(filter LINUX,$(OS)),/sbin/ldconfig)
 # uninstall files
 # $1 - files to delete
 # $2 - r or <empty>
-# note: pass non-empty 3-d argument to SUP function to not update percents
+# note: pass non-empty 3-d argument to SUP function to not update percents of executed makefiles
 # note: pass non-empty 4-d argument to SUP function to not colorize tool arguments
-UNINSTALL_RM = $(call SUP,RM,$1,@,1)rm -f$2$(if $(filter LINUX,$(OS)),$(if $(VERBOSE),v)) $1
+UNINSTALL_RM = $(call SUP,RM,$1,1,1)rm -f$2$(if $(filter LINUX,$(OS)),$(if $(VERBOSE),v)) $1
 
 # create symbolic link while installing files
 # $1 - target
 # $2 - simlink
-# note: pass non-empty 3-d argument to SUP function to not update percents
+# note: pass non-empty 3-d argument to SUP function to not update percents of executed makefiles
 # note: pass non-empty 4-d argument to SUP function to not colorize tool arguments
-INSTALL_LN = $(call SUP,LN,'$2' -> $1,@,1)$(call LN,$1,'$2')
+INSTALL_LN = $(call SUP,LN,'$2' -> $1,1,1)$(call LN,$1,'$2')
 
 # INSTALL tool color
 INSTALL_COLOR := [01;31m
@@ -83,7 +84,7 @@ RM_COLOR := [01;31m
 
 # post-install/uninstall shared libraries
 # $1 - inst/uninst
-# note: pass non-empty 3-d argument to SUP function to not update percents
+# note: pass non-empty 3-d argument to SUP function to not update percents of executed makefiles
 # note: pass non-empty 4-d argument to SUP function to not colorize tool arguments
 ifdef LDCONFIG
 
@@ -93,7 +94,7 @@ LDCONF_COLOR := [01;33m
 # $1 - inst/uninst
 # $2 - full paths to built dlls
 LDCONFIG_TEMPLATE = $(if $2,$(newline)$(tab)$$(call \
-  SUP,LDCONF,'$$(DESTDIR)$$(LIBDIR)',@,1)$$(LDCONFIG) -n$(if $(VERBOSE),v) '$$(DESTDIR)$$(LIBDIR)')
+  SUP,LDCONF,'$$(DESTDIR)$$(LIBDIR)',1,1)$$(LDCONFIG) -n$(if $(VERBOSE),v) '$$(DESTDIR)$$(LIBDIR)')
 
 else # !LDCONFIG
 
@@ -118,7 +119,7 @@ VARIANT_CFLAGS = $(if \
   $(filter D,$1), $(PIC_OPTION)))
 
 # $1 - library name (mylib for libmylib.a)
-# note: pass non-empty 3-d argument to SUP function to not update percents
+# note: pass non-empty 3-d argument to SUP function to not update percents of executed makefiles
 # note: pass non-empty 4-d argument to SUP function to not colorize tool arguments
 # note: define some variables as target-specific to be able to use them in .pc-file contents generator macro $(LIBRARY_PC_GEN)
 # note: $(DEFINE_INSTALL_VARIABLES) must be evaluated before expanding this macro
@@ -132,9 +133,9 @@ install_$1 uninstall_$1: ALL_BUILT_LIBS := $(call GET_ALL_LIBS,$(BUILT_LIBS),$(B
 install_$1_headers uninstall_$1_headers: HEADERS := $(LIBRARY_HEADERS)
 
 install_$1_headers:$(if $(LIBRARY_HEADERS),$(newline)$(tab)$$(call \
-  SUP,MKDIR,'$$(DESTDIR)$$(INCLUDEDIR)$(LIBRARY_HDIR)',@,1)$$(INSTALL) -d\
+  SUP,MKDIR,'$$(DESTDIR)$$(INCLUDEDIR)$(LIBRARY_HDIR)',1,1)$$(INSTALL) -d\
  '$$(DESTDIR)$$(INCLUDEDIR)$(LIBRARY_HDIR)'$(newline)$(tab)$$(call \
-  SUP,INSTALL,$$(HEADERS:$(TOP)/%=%) -> '$$(DESTDIR)$$(INCLUDEDIR)$(LIBRARY_HDIR)',@,1)$$(INSTALL) -m 644\
+  SUP,INSTALL,$$(HEADERS:$(TOP)/%=%) -> '$$(DESTDIR)$$(INCLUDEDIR)$(LIBRARY_HDIR)',1,1)$$(INSTALL) -m 644\
  $$(HEADERS) '$$(DESTDIR)$$(INCLUDEDIR)$(LIBRARY_HDIR)')
 
 uninstall_$1_headers:$(if $(LIBRARY_HEADERS),$(newline)$(tab)$$(call \
@@ -143,16 +144,16 @@ uninstall_$1_headers:$(if $(LIBRARY_HEADERS),$(newline)$(tab)$$(call \
 
 install_$1:$(if $(NO_INSTALL_HEADERS),,install_$1_headers)$(if \
   $(BUILT_LIBS)$(BUILT_DLLS),$(newline)$(tab)$$(call \
- SUP,MKDIR,'$$(DESTDIR)$$(LIBDIR)',@,1)$$(INSTALL) -d '$$(DESTDIR)$$(LIBDIR)'$(newline)$(tab)$$(foreach \
+ SUP,MKDIR,'$$(DESTDIR)$$(LIBDIR)',1,1)$$(INSTALL) -d '$$(DESTDIR)$$(LIBDIR)'$(newline)$(tab)$$(foreach \
   l,$$(BUILT_LIBS),$$(newline)$$(call \
- SUP,INSTALL,'$$(DESTDIR)$$(LIBDIR)/$$(notdir $$l)',@,1)$$(INSTALL) -m 644 $$l '$$(DESTDIR)$$(LIBDIR)')$(newline)$(tab)$$(foreach \
+ SUP,INSTALL,'$$(DESTDIR)$$(LIBDIR)/$$(notdir $$l)',1,1)$$(INSTALL) -m 644 $$l '$$(DESTDIR)$$(LIBDIR)')$(newline)$(tab)$$(foreach \
   d,$$(BUILT_DLLS),$$(newline)$$(call \
- SUP,INSTALL,'$$(DESTDIR)$$(LIBDIR)/$$(notdir $$d).$(MODVER)',@,1)$$(INSTALL) -m 755 $$d '$$(DESTDIR)$$(LIBDIR)/$$(notdir \
+ SUP,INSTALL,'$$(DESTDIR)$$(LIBDIR)/$$(notdir $$d).$(MODVER)',1,1)$$(INSTALL) -m 755 $$d '$$(DESTDIR)$$(LIBDIR)/$$(notdir \
   $$d).$(MODVER)')$(newline)$(tab)$$(foreach \
  d,$$(notdir $$(BUILT_DLLS)),$$(newline)$$(call INSTALL_LN,$$d.$(MODVER),$$(DESTDIR)$$(LIBDIR)/$$d))$(if \
   $(NO_INSTALL_LA),,$(newline)$(tab)$$(call INSTALL_LIBTOOL_ARCHIVES,$$(ALL_BUILT_LIBS),$$(BUILT_LIBS),$$(BUILT_DLLS)))$(if \
   $(NO_INSTALL_PC),,$(newline)$(tab)$$(call \
- SUP,MKDIR,'$$(DESTDIR)$$(PKG_CONFIG_DIR)',@,1)$$(INSTALL) -d '$$(DESTDIR)$$(PKG_CONFIG_DIR)')$(if \
+ SUP,MKDIR,'$$(DESTDIR)$$(PKG_CONFIG_DIR)',1,1)$$(INSTALL) -d '$$(DESTDIR)$$(PKG_CONFIG_DIR)')$(if \
   $(NO_INSTALL_PC),,$(newline)$(tab)$$(call INSTALL_PKGCONFS,$$(ALL_BUILT_LIBS),$(LIBRARY_PC_GEN)))$(call LDCONFIG_TEMPLATE,inst))
 
 uninstall_$1:$(if $(NO_INSTALL_HEADERS),,uninstall_$1_headers)$(if \
@@ -187,8 +188,8 @@ DST_LIB_DIR := $(subst $(space),\ ,$(DESTDIR)$(LIBDIR))
 endef
 
 # $1 - "$(subst \ , ,$@)"
-# note: pass non-empty 3-d argument to SUP function to not update percents
-INSTALL_MKDIR = $(call SUP,MKDIR,$(ospath),@)$(MKDIR)
+# note: pass non-empty 3-d argument to SUP function to not update percents of executed makefiles
+INSTALL_MKDIR = $(call SUP,MKDIR,$(ospath),1)$(MKDIR)
 
 # directories to install
 NEEDED_INSTALL_DIRS:=
@@ -208,7 +209,7 @@ endef
 ADD_INSTALL_DIR = $(eval $(call ADD_INSTALL_DIRS,$(filter-out $(NEEDED_INSTALL_DIRS),$(call split_dirs,$(subst $(space),?,$1)))))
 
 # $1 - library name (mylib for libmylib.a)
-# note: pass non-empty 3-d argument to SUP function to not update percents
+# note: pass non-empty 3-d argument to SUP function to not update percents of executed makefiles
 # note: pass non-empty 4-d argument to SUP function to not colorize tool arguments
 # note: define some variables as target-specific
 # note: $(DEFINE_INSTALL_VARIABLES) and then $(DEFINE_INSTALL_VARIABLES_WIN) must be evaluated before expanding this macro
@@ -230,29 +231,29 @@ install_$1 uninstall_$1: BUILT_IMPS := $(foreach v,$(BUILT_DLL_VARIANTS),$(call 
 install_$1_headers uninstall_$1_headers: HEADERS := $(LIBRARY_HEADERS)
 
 install_$1_headers:$(if $(LIBRARY_HEADERS),| $(DST_INC_DIR)$(newline)$(tab)$$(call \
-  SUP,COPY,$$(call ospath,$$(HEADERS:$(TOP)/%=%)) -> "$$(call ospath,$$(DESTDIR)$$(INCLUDEDIR)$(LIBRARY_HDIR))",@)$$(foreach \
+  SUP,COPY,$$(call ospath,$$(HEADERS:$(TOP)/%=%)) -> "$$(call ospath,$$(DESTDIR)$$(INCLUDEDIR)$(LIBRARY_HDIR))",1)$$(foreach \
   h,$$(HEADERS),$$(newline)$(QUIET)$$(call CP,$$h,"$$(DESTDIR)$$(INCLUDEDIR)$(LIBRARY_HDIR)")))
 
 uninstall_$1_headers:$(if $(LIBRARY_HEADERS),$(newline)$(tab)$(if $(LIBRARY_HDIR),$$(call \
-  SUP,RD,"$$(call ospath,$$(DESTDIR)$$(INCLUDEDIR)$(LIBRARY_HDIR))",@)$$(call \
+  SUP,RD,"$$(call ospath,$$(DESTDIR)$$(INCLUDEDIR)$(LIBRARY_HDIR))",1)$$(call \
   DEL_DIR,"$$(DESTDIR)$$(INCLUDEDIR)$(LIBRARY_HDIR)"),$$(foreach h,$$(notdir $$(HEADERS)),$$(newline)$$(call \
-  SUP,DEL,"$$(call ospath,$$(DESTDIR)$$(INCLUDEDIR)/$$h)",@)$$(call DEL,"$$(DESTDIR)$$(INCLUDEDIR)/$$h"))))
+  SUP,DEL,"$$(call ospath,$$(DESTDIR)$$(INCLUDEDIR)/$$h)",1)$$(call DEL,"$$(DESTDIR)$$(INCLUDEDIR)/$$h"))))
 
 install_$1:$(if $(NO_INSTALL_HEADERS),,install_$1_headers)$(if \
   $(BUILT_LIBS)$(BUILT_DLLS), | $(DST_LIB_DIR)$(newline)$(tab)$$(foreach l,$$(BUILT_LIBS),$$(newline)$$(call \
- SUP,INSTALL,"$$(call ospath,$$(DESTDIR)$$(LIBDIR)/$$(notdir $$l))",@)$$(call CP,$$l,"$$(DESTDIR)$$(LIBDIR)"))$(newline)$(tab)$$(foreach \
+ SUP,INSTALL,"$$(call ospath,$$(DESTDIR)$$(LIBDIR)/$$(notdir $$l))",1)$$(call CP,$$l,"$$(DESTDIR)$$(LIBDIR)"))$(newline)$(tab)$$(foreach \
   d,$$(BUILT_DLLS),$$(newline)$$(call \
- SUP,INSTALL,"$$(call ospath,$$(DESTDIR)$$(LIBDIR)/$$(notdir $$d))",@)$$(call CP,$$d,"$$(DESTDIR)$$(LIBDIR)"))$(if \
+ SUP,INSTALL,"$$(call ospath,$$(DESTDIR)$$(LIBDIR)/$$(notdir $$d))",1)$$(call CP,$$d,"$$(DESTDIR)$$(LIBDIR)"))$(if \
   $(NO_INSTALL_IMPS),,$(newline)$(tab)$$(foreach i,$$(BUILT_IMPS),$$(newline)$$(call \
- SUP,INSTALL,"$$(call ospath,$$(DESTDIR)$$(LIBDIR)/$$(notdir $$i))",@)$$(call CP,$$i,"$$(DESTDIR)$$(LIBDIR)"))))
+ SUP,INSTALL,"$$(call ospath,$$(DESTDIR)$$(LIBDIR)/$$(notdir $$i))",1)$$(call CP,$$i,"$$(DESTDIR)$$(LIBDIR)"))))
 
 uninstall_$1:$(if $(NO_INSTALL_HEADERS),,uninstall_$1_headers)$(if \
   $(BUILT_LIBS)$(BUILT_DLLS),$(newline)$(tab)$$(foreach l,$$(notdir $$(BUILT_LIBS)),$$(newline)$$(call \
- SUP,DEL,"$$(call ospath,$$(DESTDIR)$$(LIBDIR)/$$l)",@)$$(call DEL,"$$(DESTDIR)$$(LIBDIR)/$$l"))$(newline)$(tab)$$(foreach \
+ SUP,DEL,"$$(call ospath,$$(DESTDIR)$$(LIBDIR)/$$l)",1)$$(call DEL,"$$(DESTDIR)$$(LIBDIR)/$$l"))$(newline)$(tab)$$(foreach \
   d,$$(notdir $$(BUILT_DLLS)),$$(newline)$$(call \
- SUP,DEL,"$$(call ospath,$$(DESTDIR)$$(LIBDIR)/$$d)",@)$$(call DEL,"$$(DESTDIR)$$(LIBDIR)/$$d"))$(if \
+ SUP,DEL,"$$(call ospath,$$(DESTDIR)$$(LIBDIR)/$$d)",1)$$(call DEL,"$$(DESTDIR)$$(LIBDIR)/$$d"))$(if \
   $(NO_INSTALL_IMPS),,$(newline)$(tab)$$(foreach i,$$(notdir $$(BUILT_IMPS)),$$(newline)$$(call \
- SUP,DEL,"$$(call ospath,$$(DESTDIR)$$(LIBDIR)/$$i)",@)$$(call DEL,"$$(DESTDIR)$$(LIBDIR)/$$i"))))
+ SUP,DEL,"$$(call ospath,$$(DESTDIR)$$(LIBDIR)/$$i)",1)$$(call DEL,"$$(DESTDIR)$$(LIBDIR)/$$i"))))
 
 endef
 
@@ -285,5 +286,5 @@ LIBRARY_HEADERS:=
 # name of installed headers directory, may be empty
 LIBRARY_HDIR:=
 
-# name of pkg-config file generator macro, must be defined if $(NO_INSTALL_PC) is empty
+# name pkg-config file generator macro, must be defined if $(NO_INSTALL_PC) is empty
 LIBRARY_PC_GEN:=
