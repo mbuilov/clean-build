@@ -4,7 +4,7 @@
 # Licensed under GPL version 2 or any later version, see COPYING
 #----------------------------------------------------------------------------------
 
-# this file included by $(MTOP)/defs.mk before including $(MTOP)/functions.mk
+# this file included by $(CLEAN_BUILD_DIR)/defs.mk before including $(CLEAN_BUILD_DIR)/functions.mk
 # variables protection from accidental changes in target makefiles
 
 # run via $(MAKE) C=1 to check makefiles
@@ -66,9 +66,9 @@ endef
 # note: error suppressed if variable name is specified in $(CLEAN_BUILD_OVERRIDEN_VARS) list
 # note: $(CLEAN_BUILD_OVERRIDEN_VARS) list is cleared after checks
 # note: $(CLEAN_BUILD_NEED_TAIL_CODE) value is cleared after checks to mark that $(DEF_TAIL_CODE) was evaluated
-# note: normally, $(CLEAN_BUILD_NEED_TAIL_CODE) is checked at head of next included by $(MTOP)/parallel.mk target makefile,
+# note: normally, $(CLEAN_BUILD_NEED_TAIL_CODE) is checked at head of next included by $(CLEAN_BUILD_DIR)/parallel.mk target makefile,
 # but for the last included target makefile - need to check $(CLEAN_BUILD_NEED_TAIL_CODE) here
-# - $(MTOP)/parallel.mk calls $(DEF_TAIL_CODE) with $1=@
+# - $(CLEAN_BUILD_DIR)/parallel.mk calls $(DEF_TAIL_CODE) with $1=@
 define CLEAN_BUILD_CHECK_AT_TAIL
 $(if $(filter @,$1),ifdef CLEAN_BUILD_NEED_TAIL_CODE$(newline)$$(error \
   $$$$(DEFINE_TARGETS) was not evaluated at end of $$(CLEAN_BUILD_NEED_TAIL_CODE)!)$(newline)endif)
