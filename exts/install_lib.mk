@@ -107,11 +107,12 @@ LDCONFIG_TEMPLATE = $(foreach j,$(filter-out $(MODVER),$(firstword $(subst ., ,$
 
 endif # !LDCONFIG
 
-include $(MTOP)/exts/all_libs.mk
-include $(MTOP)/exts/pc.mk
-include $(MTOP)/exts/la.mk
+include $(CLEAN_BUILD_DIR)/exts/all_libs.mk
+include $(CLEAN_BUILD_DIR)/exts/pc.mk
+include $(CLEAN_BUILD_DIR)/exts/la.mk
 
-# this macro may be usable for .pc-file contents generator macro, which name is passed to INSTALL_PKGCONFS from $(MTOP)/exts/pc.mk
+# this macro may be usable for .pc-file contents generator macro,
+# which name is passed to INSTALL_PKGCONFS from $(CLEAN_BUILD_DIR)/exts/pc.mk
 # choose CFLAGS option for static library variant $1
 # note: PIE_OPTION/PIC_OPTION - should be defined in $(OSDIR)/$(OS)/c.mk
 VARIANT_CFLAGS = $(if \

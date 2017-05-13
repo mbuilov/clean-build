@@ -4,7 +4,7 @@
 # Licensed under GPL version 2 or any later version, see COPYING
 #----------------------------------------------------------------------------------
 
-ifndef MAKE_JAVA_EVAL
-include $(MTOP)/_java.mk
+ifndef CLEAN_BUILD_JAVA_EVAL
+include $(dir $(lastword $(MAKEFILE_LIST)))_java.mk
 endif
-$(MAKE_JAVA_EVAL)
+$(CLEAN_BUILD_JAVA_EVAL)

@@ -5,16 +5,16 @@
 #----------------------------------------------------------------------------------
 
 ifndef CLEAN_BUILD_INCLUDE
-include $(MTOP)/_parallel.mk
+include $(dir $(lastword $(MAKEFILE_LIST)))_parallel.mk
 endif
 
-# if $(MTOP)/defs.mk was included and processed before including this $(MTOP)/parallel.mk
+# if $(CLEAN_BUILD_DIR)/defs.mk was included and processed before including this $(CLEAN_BUILD_DIR)/parallel.mk
 # then DEFINE_TARGETS_EVAL_NAME will be defined
 ifndef DEFINE_TARGETS_EVAL_NAME
 $(eval $(DEF_HEAD_CODE))
 endif
 
-# allow to evaluate $(DEF_HEAD_CODE) in next included $(MTOP)/parallel.mk
+# allow to evaluate $(DEF_HEAD_CODE) in next included $(CLEAN_BUILD_DIR)/parallel.mk
 DEFINE_TARGETS_EVAL_NAME:=
 
 # add list of makefiles (absolute paths) that need to be built before current makefile to $(ORDER_DEPS)
@@ -44,6 +44,6 @@ CB_INCLUDE_LEVEL+=1
 $(eval $(CLEAN_BUILD_INCLUDE))
 CB_INCLUDE_LEVEL:=$(wordlist 2,999999,$(CB_INCLUDE_LEVEL))
 
-# check if need to include $(MTOP)/all.mk
+# check if need to include $(CLEAN_BUILD_DIR)/all.mk
 # NOTE: call DEF_TAIL_CODE with @ - to not show debug info that was already shown above
 $(eval $(call DEF_TAIL_CODE,@))

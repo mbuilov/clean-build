@@ -7,7 +7,7 @@
 # rules for building C/C++ libs, dlls, executables, kernel-mode libraries
 
 ifndef DEF_HEAD_CODE
-include $(MTOP)/_defs.mk
+include $(dir $(lastword $(MAKEFILE_LIST)))_defs.mk
 endif
 
 # build targets and variants:
@@ -26,7 +26,7 @@ endif
 # D - position-independent code in shared libraries (only for LIB)    (only UNIX)
 # S - statically linked multithreaded libc          (for all targets) (only WINDOWS)
 
-# what we may build by including $(MTOP)/c.mk (for ex. LIB := my_lib)
+# what we may build by including $(CLEAN_BUILD_DIR)/c.mk (for ex. LIB := my_lib)
 # note: DRV is $(OS)-specific, $(OSDIR)/$(OS)/c.mk should define DRV_TEMPLATE
 # note: $(OSDIR)/$(OS)/c.mk may append more target types to BLD_TARGETS
 BLD_TARGETS := EXE LIB DLL
@@ -404,12 +404,12 @@ LIBS:=
 KLIBS:=
 KDLLS:=
 DEFINE_TARGETS_EVAL_NAME:=DEFINE_C_TARGETS_EVAL
-MAKE_CONTINUE_EVAL_NAME:=MAKE_C_EVAL
+MAKE_CONTINUE_EVAL_NAME:=CLEAN_BUILD_C_EVAL
 endef
 
 # reset build targets, target-specific variables and variables modifiable in target makefiles
-# NOTE: expanded by $(MTOP)/c.mk
-MAKE_C_EVAL = $(eval $(DEF_HEAD_CODE)$(PREPARE_C_VARS))
+# NOTE: expanded by $(CLEAN_BUILD_DIR)/c.mk
+CLEAN_BUILD_C_EVAL = $(eval $(DEF_HEAD_CODE)$(PREPARE_C_VARS))
 
 # note: $(OSDIR)/$(OS)/c.mk must define VARIANTS_FILTER
 include $(OSDIR)/$(OS)/c.mk
@@ -473,4 +473,4 @@ $(call CLEAN_BUILD_PROTECT_VARS,BLD_TARGETS LIB_VAR_SUFFIX \
   C_RULES2 C_RULES1 C_RULES EXE_TEMPLATE LIB_TEMPLATE DLL_TEMPLATE KLIB_TEMPLATE DRV_TEMPLATE \
   CC_COLOR CXX_COLOR AR_COLOR LD_COLOR XLD_COLOR ASM_COLOR \
   KCC_COLOR KLD_COLOR TCC_COLOR TCXX_COLOR TLD_COLOR TXLD_COLOR TAR_COLOR CHECK_C_RULES \
-  OS_DEFINE_TARGETS DEFINE_C_TARGETS_EVAL BLD_TARGETS_RESET PREPARE_C_VARS MAKE_C_EVAL)
+  OS_DEFINE_TARGETS DEFINE_C_TARGETS_EVAL BLD_TARGETS_RESET PREPARE_C_VARS CLEAN_BUILD_C_EVAL)

@@ -5,6 +5,6 @@
 #----------------------------------------------------------------------------------
 
 ifndef DEF_HEAD_CODE_EVAL
-include $(MTOP)/_defs.mk
+include $(dir $(lastword $(MAKEFILE_LIST)))_defs.mk
 endif
 $(DEF_HEAD_CODE_EVAL)

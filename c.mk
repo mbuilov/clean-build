@@ -4,7 +4,7 @@
 # Licensed under GPL version 2 or any later version, see COPYING
 #-----------------------------------------------------------------------------------------
 
-ifndef MAKE_C_EVAL
-include $(MTOP)/_c.mk
+ifndef CLEAN_BUILD_C_EVAL
+include $(dir $(lastword $(MAKEFILE_LIST)))_c.mk
 endif
-$(MAKE_C_EVAL)
+$(CLEAN_BUILD_C_EVAL)

@@ -7,7 +7,7 @@
 # rules for building java sources
 
 ifndef DEF_HEAD_CODE
-include $(MTOP)/_defs.mk
+include $(dir $(lastword $(MAKEFILE_LIST)))_defs.mk
 endif
 
 # run via $(MAKE) L=1 to run java compiler with -Xlint
@@ -17,7 +17,7 @@ else
 JLINT:=
 endif
 
-# what we may build by including $(MTOP)/java.mk (for ex. JAR := my_jar)
+# what we may build by including $(CLEAN_BUILD_DIR)/java.mk (for ex. JAR := my_jar)
 BLD_JTARGETS := JAR
 
 # function to form paths passed to $(JAVAC),$(SCALAC) or $(JARC)
@@ -205,17 +205,17 @@ JAVAC_FLAGS:=
 SCALAC_FLAGS:=
 JRFLAGS:=
 JARACTIONS:=
-JAREXT := .jar
-DEFINE_TARGETS_EVAL_NAME := DEFINE_JAVA_TARGETS_EVAL
-MAKE_CONTINUE_EVAL_NAME  := MAKE_JAVA_EVAL
+JAREXT:=.jar
+DEFINE_TARGETS_EVAL_NAME:=DEFINE_JAVA_TARGETS_EVAL
+MAKE_CONTINUE_EVAL_NAME:=CLEAN_BUILD_JAVA_EVAL
 endef
 
 # make PREPARE_JAVA_VARS non-recursive (simple)
 PREPARE_JAVA_VARS := $(PREPARE_JAVA_VARS)
 
 # reset build targets, target-specific variables and variables modifiable in target makefiles
-# NOTE: expanded by $(MTOP)/java.mk
-MAKE_JAVA_EVAL = $(eval $(DEF_HEAD_CODE)$(PREPARE_JAVA_VARS))
+# NOTE: expanded by $(CLEAN_BUILD_DIR)/java.mk
+CLEAN_BUILD_JAVA_EVAL = $(eval $(DEF_HEAD_CODE)$(PREPARE_JAVA_VARS))
 
 # include if exists
 -include $(OSDIR)/$(OS)/java.mk
@@ -226,4 +226,4 @@ $(call CLEAN_BUILD_PROTECT_VARS,JLINT BLD_JTARGETS \
   JCLS_DIR FORM_CLASS_PATH JAVAC_OPTIONS SCALAC_OPTIONS \
   ARGS_FILE_SOURCES_PER_LINE CREATE_JARGS_FILE1 CREATE_JARGS_FILE \
   JAVA_CC2 JAVA_CC1 JAVA_CC SCALA_CC2 SCALA_CC1 SCALA_CC JAR_LD1 JAR_LD FORM_BUILT_JARS JAR_TEMPLATE JAR_RULES \
-  JAR_VERSION_MANIFEST JAR_COLOR JAVAC_COLOR SCALAC_COLOR DEFINE_JAVA_TARGETS_EVAL PREPARE_JAVA_VARS MAKE_JAVA_EVAL)
+  JAR_VERSION_MANIFEST JAR_COLOR JAVAC_COLOR SCALAC_COLOR DEFINE_JAVA_TARGETS_EVAL PREPARE_JAVA_VARS CLEAN_BUILD_JAVA_EVAL)

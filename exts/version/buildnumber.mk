@@ -9,7 +9,7 @@
 # make --eval 'include my_project.mk' -f <this makefile>
 
 TOOL_MODE := 1
-include $(MTOP)/c.mk
+include $(dir $(lastword $(MAKEFILE_LIST)))../../c.mk
 EXE        := buildnumber S
 SRC        := buildnumber.c
 CMNDEFINES :=

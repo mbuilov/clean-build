@@ -4,8 +4,8 @@
 # Licensed under GPL version 2 or any later version, see COPYING
 #----------------------------------------------------------------------------------
 
-ifndef DEF_HEAD_CODE_EVAL
-include $(MTOP)/_defs.mk
+ifndef DEF_HEAD_CODE
+include $(dir $(lastword $(MAKEFILE_LIST)))_defs.mk
 endif
 
 # reset
@@ -25,7 +25,7 @@ APPEND_MDEPS = $(call APPEND_MDEPS1,$(filter-out $(ORDER_DEPS),$(call NORM_MAKEF
 FIX_ORDER_DEPS = $(APPEND_MDEPS)
 
 # don't complain about new FIX_ORDER_DEPS value
-# - replace old FIX_ORDER_DEPS value defined in $(MTOP)/defs.mk with a new one
+# - replace old FIX_ORDER_DEPS value defined in $(CLEAN_BUILD_DIR)/defs.mk with a new one
 $(call CLEAN_BUILD_PROTECT_VARS,FIX_ORDER_DEPS)
 
 # $m - absolute path to makefile to include

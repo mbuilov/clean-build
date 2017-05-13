@@ -23,23 +23,23 @@ MAKEFLAGS += --no-builtin-rules --no-builtin-variables
 # delete target file if failed to execute any of commands to make it
 .DELETE_ON_ERROR:
 
-# MTOP - path to clean-build - must be defined either in command line
-# or in project configuration file before including this file, via:
-# override MTOP := /my_path/clean-build
-ifeq (environment,$(origin MTOP))
-$(error MTOP must not be taken from environment,\
- please define MTOP either in command line or in project configuration makefile before including this file via override directive)
-endif
+# clean-build version: major.minor.patch
+override CLEAN_BUILD_VERSION := 0.3.2
 
-# do not inherit MTOP from environment
-MTOP:=
+# clean-build root directory
+CLEAN_BUILD_DIR := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
 
-# ensure that MTOP is non-recursive (simple)
-override MTOP := $(MTOP)
+# include functions library
+include $(CLEAN_BUILD_DIR)/protection.mk
+include $(CLEAN_BUILD_DIR)/functions.mk
 
-ifndef MTOP
-$(error MTOP - path to clean-build (https://github.com/mbuilov/clean-build)is not defined,\
-  example: C:\clean-build or /usr/local/clean-build)
+# CLEAN_BUILD_REQUIRED_VERSION - clean-build version required by project makefiles
+# it is normally defined in project configuration makefile like:
+# override CLEAN_BUILD_REQUIRED_VERSION := 0.3
+CLEAN_BUILD_REQUIRED_VERSION := 0.0.0
+
+ifneq (,$(call ver_compatible,$(CLEAN_BUILD_VERSION),$(CLEAN_BUILD_REQUIRED_VERSION)))
+$(error incompatible clean-build version: $(CLEAN_BUILD_VERSION), project needs: $(CLEAN_BUILD_REQUIRED_VERSION))
 endif
 
 # TOP - path to project root directory - must be defined either in command line
@@ -47,7 +47,8 @@ endif
 # override TOP := /my_project
 ifeq (environment,$(origin TOP))
 $(error TOP must not be taken from environment,\
- please define TOP either in command line or in project configuration makefile before including this file via override directive)
+ please define TOP either in command line or in project configuration\
+ makefile (via override directive) before including this file)
 endif
 
 # do not inherit TOP from environment
@@ -129,7 +130,7 @@ SUPPORTED_OSES    := WINXX SOLARIS LINUX
 SUPPORTED_CPUS    := x86 x86_64 sparc sparc64 armv5 mips24k ppc
 
 # directory of $(OS)-specific definitions, such as FREEBSD/{tools.mk,c.mk,java.mk} and so on
-OSDIR := $(MTOP)
+OSDIR := $(CLEAN_BUILD_DIR)
 
 # CPU variable must not be used in target makefiles
 override CPU = $(error please use UCPU, KCPU or TCPU instead)
@@ -142,10 +143,6 @@ override UCPU   := $(UCPU)
 override KCPU   := $(KCPU)
 override TCPU   := $(TCPU)
 override OSDIR  := $(OSDIR)
-
-# include functions library
-include $(MTOP)/protection.mk
-include $(MTOP)/functions.mk
 
 # OS - operating system we are building for (and we are building on)
 ifeq (,$(OS))
@@ -195,7 +192,6 @@ ifndef NO_CLEAN_BUILD_DISTCLEAN_TARGET
 
 # define distclean target
 # note: RM macro must be defined below in $(OSDIR)/$(OS)/tools.mk
-# note: $(BUILD) is defined in $(MTOP)/top.mk
 distclean:
 	$(call RM,$(BUILD))
 
@@ -237,7 +233,7 @@ MDEBUG:=
 endif
 
 ifdef MDEBUG
-$(call dump,MTOP OSDIR TOP BUILD TARGET OS UCPU KCPU TCPU,,)
+$(call dump,CLEAN_BUILD_DIR OSDIR TOP BUILD TARGET OS UCPU KCPU TCPU,,)
 endif
 
 # get absolute path to current makefile
@@ -409,7 +405,7 @@ SET_DEFAULT_DIRS := $(SET_DEFAULT_DIRS)
 # define BIN_DIR/OBJ_DIR/LIB_DIR/GEN_DIR
 $(eval $(SET_DEFAULT_DIRS))
 
-# needed directories - we will create them in $(MTOP)/all.mk
+# needed directories - we will create them in $(CLEAN_BUILD_DIR)/all.mk
 # note: NEEDED_DIRS is never cleared, only appended
 NEEDED_DIRS:=
 
@@ -451,7 +447,7 @@ TOOL_OVERRIDE_DIRS := $(TOOL_OVERRIDE_DIRS)
 
 # compute values of next variables right after +=, not at call time:
 # CLEAN          - files/directories list to delete on $(MAKE) clean
-# CLEAN_COMMANDS - code to $(eval) to get clean commands to execute on $(MAKE) clean - see $(MTOP)/all.mk
+# CLEAN_COMMANDS - code to $(eval) to get clean commands to execute on $(MAKE) clean - see $(CLEAN_BUILD_DIR)/all.mk
 # note: CLEAN is never cleared, only appended
 CLEAN:=
 CLEAN_COMMANDS:=
@@ -469,7 +465,7 @@ endif
 ORDER_DEPS:=
 
 # code for adding $(MDEPS) - list of makefiles that need to be maked before target makefile to $(ORDER_DEPS),
-# overwritten in $(MTOP)/parallel.mk
+# overwritten in $(CLEAN_BUILD_DIR)/parallel.mk
 FIX_ORDER_DEPS:=
 
 # standard target-specific variables
@@ -522,7 +518,7 @@ ifdef MDEBUG
 # info about which makefile is expanded now and order dependencies for it
 MAKEFILE_DEBUG_INFO = $(subst $(space),,$(foreach x,$(CB_INCLUDE_LEVEL),.))$(CURRENT_MAKEFILE)$(if $(ORDER_DEPS), | $(ORDER_DEPS:-=))
 
-# note: show debug info only if $1 does not contain @ (used by $(MTOP)/parallel.mk)
+# note: show debug info only if $1 does not contain @ (used by $(CLEAN_BUILD_DIR)/parallel.mk)
 DEF_TAIL_CODE_DEBUG = $(if $(filter @,$1),,$$(info $(MAKEFILE_DEBUG_INFO)))
 
 else # !MDEBUG
@@ -553,7 +549,7 @@ GET_TARGET_NAME = $(firstword $($1))
 
 ifdef MDEBUG
 
-# code to print makefile targets, used by $(MTOP)/c.mk and may be in other places in the future
+# code to print makefile targets, used by $(CLEAN_BUILD_DIR)/c.mk and may be in other places in the future
 # $1 - targets to build (EXE,LIB,DLL,...)
 # $2 - function to form target file name (FORM_TRG), must be defined at time of $(eval)
 # $3 - variants filter function (VARIANTS_FILTER by default), must be defined at time of $(eval)
@@ -680,7 +676,7 @@ CB_INCLUDE_LEVEL:=
 # evaluates code to define targets (at least, by evaluating $(DEF_TAIL_CODE))
 DEFINE_TARGETS_EVAL_NAME:=
 
-# expand this macro to evaluate default head code (called from $(MTOP)/defs.mk)
+# expand this macro to evaluate default head code (called from $(CLEAN_BUILD_DIR)/defs.mk)
 # note: by default it expanded at start of next $(MAKE_CONTINUE) round
 DEF_HEAD_CODE_EVAL = $(eval $(DEF_HEAD_CODE))
 
@@ -696,8 +692,8 @@ DEF_TAIL_CODE_EVAL = $(eval $(call DEF_TAIL_CODE,))
 #  - so we know if $(DEF_HEAD_CODE) was expanded from $(MAKE_CONTINUE) - remove 2 from $(MAKE_CONT) in this case
 #  - if $(DEF_HEAD_CODE) was expanded not from $(MAKE_CONTINUE) - no 2 in $(MAKE_CONT) - reset $(MAKE_CONT)
 # NOTE: set CB_TOOL_MODE to remember if we are in tool mode - TOOL_MODE variable may be changed before calling $(MAKE_CONTINUE)
-# NOTE: $(MTOP)/defs.mk may be included before $(MTOP)/parallel.mk,
-#  to not execute $(DEF_HEAD_CODE) second time in $(MTOP)/parallel.mk, define DEFINE_TARGETS_EVAL_NAME variable
+# NOTE: $(CLEAN_BUILD_DIR)/defs.mk may be included before $(CLEAN_BUILD_DIR)/parallel.mk,
+#  to not execute $(DEF_HEAD_CODE) second time in $(CLEAN_BUILD_DIR)/parallel.mk, define DEFINE_TARGETS_EVAL_NAME variable
 # NOTE: add $(empty) as first line of $(DEF_HEAD_CODE) - to allow to join it and eval: $(eval $(MY_CODE)$(DEF_HEAD_CODE))
 define DEF_HEAD_CODE
 $(CLEAN_BUILD_CHECK_AT_HEAD)
@@ -711,15 +707,15 @@ $(empty)
 endef
 
 # code to $(eval) at end of each makefile
-# include $(MTOP)/all.mk only if $(CB_INCLUDE_LEVEL) is empty and will not call $(MAKE_CONTINUE)
+# include $(CLEAN_BUILD_DIR)/all.mk only if $(CB_INCLUDE_LEVEL) is empty and will not call $(MAKE_CONTINUE)
 # if called from $(MAKE_CONTINUE), $1 - list of vars to save (may be empty)
 # note: $(MAKE_CONTINUE) before expanding $(DEF_TAIL_CODE) adds 2 to $(MAKE_CONT) list
-# note: $(MTOP)/parallel.mk executes $(eval $(call DEF_TAIL_CODE,@)) to not show debug info second time in $(DEF_TAIL_CODE_DEBUG)
-# note: reset DEFINE_TARGETS_EVAL_NAME value - to allow to evaluate $(DEF_HEAD_CODE) in next included $(MTOP)/parallel.mk
+# note: $(CLEAN_BUILD_DIR)/parallel.mk executes $(eval $(call DEF_TAIL_CODE,@)) to not show debug info second time in $(DEF_TAIL_CODE_DEBUG)
+# note: reset DEFINE_TARGETS_EVAL_NAME value - to allow to evaluate $(DEF_HEAD_CODE) in next included $(CLEAN_BUILD_DIR)/parallel.mk
 define DEF_TAIL_CODE
 $(CLEAN_BUILD_CHECK_AT_TAIL)
 $(DEF_TAIL_CODE_DEBUG)
-$(if $(CB_INCLUDE_LEVEL)$(findstring 2,$(MAKE_CONT)),,include $(MTOP)/all.mk)
+$(if $(CB_INCLUDE_LEVEL)$(findstring 2,$(MAKE_CONT)),,include $(CLEAN_BUILD_DIR)/all.mk)
 DEFINE_TARGETS_EVAL_NAME:=
 endef
 
@@ -741,8 +737,9 @@ MAKE_CONTINUE_EVAL_NAME := DEF_HEAD_CODE_EVAL
 MAKE_CONT:=
 
 # increment MAKE_CONT, eval tail code with $(DEFINE_TARGETS)
-# and start next circle - simulate including of appropriate $(MTOP)/c.mk or $(MTOP)/java.mk
-# by evaluating head-code $($(MAKE_CONTINUE_EVAL_NAME)) - which must be initially set in $(MTOP)/c.mk or $(MTOP)/java.mk
+# and start next circle - simulate including of appropriate $(CLEAN_BUILD_DIR)/c.mk or $(CLEAN_BUILD_DIR)/java.mk
+# by evaluating head-code $($(MAKE_CONTINUE_EVAL_NAME)) - which must be
+# initially set in $(CLEAN_BUILD_DIR)/c.mk or $(CLEAN_BUILD_DIR)/java.mk
 # NOTE: evaluated code in $($(MAKE_CONTINUE_EVAL_NAME)) must re-define MAKE_CONTINUE_EVAL_NAME,
 # because $(MAKE_CONTINUE) resets it to DEF_HEAD_CODE_EVAL
 # NOTE: TOOL_MODE value may be changed in target makefile before $(MAKE_CONTINUE)
@@ -754,7 +751,7 @@ $($(MAKE_CONTINUE_EVAL))
 endef
 
 # how to join two or more makefiles in one makefile:
-# include $(MTOP)/c.mk
+# include $(CLEAN_BUILD_DIR)/c.mk
 # LIB = xxx1
 # SRC = xxx.c
 # $(MAKE_CONTINUE)
@@ -777,7 +774,8 @@ endif
 include $(OSDIR)/$(OS)/tools.mk
 
 # protect variables from modifications in target makefiles
-$(call CLEAN_BUILD_PROTECT_VARS,MTOP MAKEFLAGS CHECK_TOP TOP BUILD DRIVERS_SUPPORT DEBUG \
+$(call CLEAN_BUILD_PROTECT_VARS,CLEAN_BUILD_VERSION CLEAN_BUILD_REQUIRED_VERSION CLEAN_BUILD_DIR MAKEFLAGS \
+  CHECK_TOP TOP BUILD DRIVERS_SUPPORT DEBUG \
   SUPPORTED_OSES SUPPORTED_CPUS SUPPORTED_TARGETS OS CPU UCPU KCPU TCPU TARGET \
   OSTYPE VERBOSE QUIET INFOMF MDEBUG OSDIR CHECK_MAKEFILE_NOT_PROCESSED \
   PRINT_PERCENTS SUP ADD_SHOWN_PERCENTS REM_SHOWN_MAKEFILE FORMAT_PERCENTS \

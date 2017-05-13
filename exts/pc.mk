@@ -8,7 +8,7 @@
 
 ifndef PKGCONF_DEF_TEMPLATE
 
-include $(MTOP)/exts/echo_inst.mk
+include $(CLEAN_BUILD_DIR)/exts/echo_inst.mk
 
 # $1   - Library name (human-readable)
 # $2   - Version

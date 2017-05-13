@@ -4,7 +4,7 @@
 # Licensed under GPL version 2 or any later version, see COPYING
 #----------------------------------------------------------------------------------
 
-ifndef MAKE_WIX_EVAL
-include $(MTOP)/WINXX/_wix.mk
+ifndef CLEAN_BUILD_WIX_EVAL
+include $(dir $(lastword $(MAKEFILE_LIST)))_wix.mk
 endif
-$(MAKE_WIX_EVAL)
+$(CLEAN_BUILD_WIX_EVAL)

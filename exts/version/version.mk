@@ -8,7 +8,7 @@
 # tip: this file may be built individually via:
 # make --eval 'include my_project.mk' -f <this makefile>
 
-include $(MTOP)/defs.mk
+include $(dir $(lastword $(MAKEFILE_LIST)))../../defs.mk
 
 # next variables must be defined for this makefile (for example, in $(PROJECT)):
 
@@ -18,7 +18,7 @@ include $(MTOP)/defs.mk
 # VENDOR_COPYRIGHT - for example, Copyright (C) Acme Corp
 
 # generate product definitions header
-# (this header may be used by $(MTOP)/WINXX/cres.mk)
+# (this header may be used by $(CLEAN_BUILD_DIR)/WINXX/cres.mk)
 GENERATED := $(GEN_DIR)/$(PRODUCT_NAMES_H)
 $(call ADD_GENERATED,$(GENERATED))
 

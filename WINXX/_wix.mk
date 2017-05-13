@@ -16,10 +16,10 @@ $(error WIX is not defined, example: C:\Program Files (x86)\WiX Toolset v3.10\)
 endif
 
 ifndef DEF_HEAD_CODE
-include $(MTOP)/_defs.mk
+include $(dir $(lastword $(MAKEFILE_LIST)))../_defs.mk
 endif
 
-# what we may build by including $(MTOP)/wix.mk (for ex. INSTALLER := my_installer)
+# what we may build by including $(CLEAN_BUILD_DIR)/wix.mk (for ex. INSTALLER := my_installer)
 BLD_WIX_TARGETS := MSI INSTALLER
 
 # remove unneeded quotes, replace spaces with ?, add trailing slash
@@ -127,16 +127,16 @@ WXS:=
 WEXTS:=
 WDEPS:=
 WINCLUDE:=
-DEFINE_TARGETS_EVAL_NAME := DEFINE_WIX_TARGETS_EVAL
-MAKE_CONTINUE_EVAL_NAME  := MAKE_WIX_EVAL
+DEFINE_TARGETS_EVAL_NAME:=DEFINE_WIX_TARGETS_EVAL
+MAKE_CONTINUE_EVAL_NAME:=CLEAN_BUILD_WIX_EVAL
 endef
 PREPARE_WIX_VARS := $(PREPARE_WIX_VARS)
 
 # reset build targets, target-specific variables and variables modifiable in target makefiles
 # then define bin/lib/obj/... dirs
-MAKE_WIX_EVAL = $(eval $(DEF_HEAD_CODE)$(PREPARE_WIX_VARS))
+CLEAN_BUILD_WIX_EVAL = $(eval $(DEF_HEAD_CODE)$(PREPARE_WIX_VARS))
 
 # protect variables from modifications in target makefiles
 $(call CLEAN_BUILD_PROTECT_VARS,WIX_MK_INCLUDED WIX WIXN BLD_WIX_TARGETS WIX_CANDLE WIX_LIGHT WIX_EXTS_DIR \
   WRAP_WIX WIXOBJ_CL MSI_LD INSTALLER_LD FORM_WIX_TRG WIX_ADD_OBJ_SDEPS WIX_OBJ_RULES1 WIX_OBJ_RULES WIX_TEMPLATE \
-  WIX_RULES MSI_RULES INSTALLER_RULES DEFINE_WIX_TARGETS_EVAL PREPARE_WIX_VARS MAKE_WIX_EVAL)
+  WIX_RULES MSI_RULES INSTALLER_RULES DEFINE_WIX_TARGETS_EVAL PREPARE_WIX_VARS CLEAN_BUILD_WIX_EVAL)

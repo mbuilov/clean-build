@@ -10,4 +10,4 @@
 
 TO_MAKE := $(addprefix $(dir $(abspath $(lastword $(MAKEFILE_LIST)))),buildnumber.mk version.mk)
 
-include $(MTOP)/parallel.mk
+include $(dir $(lastword $(MAKEFILE_LIST)))../../parallel.mk

@@ -13,7 +13,7 @@ $(eval define PREPARE_C_VARS$(newline)$(value PREPARE_C_VARS)$(newline)RES:=$(ne
 # - with too many sources it's possible to exceed max command string length
 MCL_MAX_COUNT := 50
 
-include $(MTOP)/WINXX/cres.mk
+include $(CLEAN_BUILD_DIR)/WINXX/cres.mk
 
 # run via $(MAKE) S=1 to compile each source individually (without /MP compiler option)
 ifeq ("$(origin S)","command line")
@@ -28,7 +28,7 @@ NO_DEPS := 1
 $(call CLEAN_BUILD_PROTECT_VARS,NO_DEPS)
 endif
 
-include $(MTOP)/WINXX/auto_c.mk
+include $(CLEAN_BUILD_DIR)/WINXX/auto_c.mk
 
 # yasm/flex/bison compilers
 YASMC  := yasm.exe
@@ -149,7 +149,7 @@ endif
 OS_APPDEFS := $(if $(UCPU:%64=),ILP32,LLP64) WIN32 CRT_SECURE_NO_DEPRECATE _CRT_SECURE_NO_WARNINGS
 OS_KRNDEFS := $(if $(KCPU:%64=),ILP32 _WIN32 _X86_,LLP64 _WIN64 _AMD64_) _KERNEL WIN32_LEAN_AND_MEAN
 
-# variants filter function - get possible variants for the target, needed by $(MTOP)/c.mk
+# variants filter function - get possible variants for the target, needed by $(CLEAN_BUILD_DIR)/c.mk
 # $1 - LIB,EXE,DLL
 # R  - dynamically linked multi-threaded libc (regular, default variant)
 # S  - statically linked multi-threaded libc
@@ -159,24 +159,24 @@ VARIANTS_FILTER := S RU SU
 
 # determine suffix for static LIB or for import library of DLL
 # $1 - target variant R,S,RU,SU,<empty>
-# note: overrides value from $(MTOP)/c.mk
+# note: overrides value from $(CLEAN_BUILD_DIR)/c.mk
 LIB_VAR_SUFFIX = $(if \
                  $(findstring RU,$1),_u,$(if \
                  $(findstring SU,$1),_mtu,$(if \
                  $(findstring S,$1),_mt)))
 
-# for $(EXE_VAR_SUFFIX) from $(MTOP)/c.mk:
+# for $(EXE_VAR_SUFFIX) from $(CLEAN_BUILD_DIR)/c.mk:
 # get target name suffix for EXE,DRV in case of multiple target variants
 # $1 - EXE,DRV
 # $2 - target variant S,RU,SU (not R or <empty>)
 # $3 - list of variants of target $1 to build (filtered by target platform specific $(VARIANTS_FILTER))
-# note: overrides value from $(MTOP)/c.mk
+# note: overrides value from $(CLEAN_BUILD_DIR)/c.mk
 EXE_SUFFIX_GEN = $(if $(word 2,$3),$(if \
                  $(findstring RU,$2),_u,$(if \
                  $(findstring SU,$2),_mtu,$(if \
                  $(findstring S,$2),_mt))))
 
-# for $(DEP_LIB_SUFFIX) from $(MTOP)/c.mk:
+# for $(DEP_LIB_SUFFIX) from $(CLEAN_BUILD_DIR)/c.mk:
 # $1 - target: EXE,DLL
 # $2 - variant of target EXE or DLL: R,S,RU,SU,<empty>
 # $3 - dependent static library name
@@ -185,7 +185,7 @@ EXE_SUFFIX_GEN = $(if $(word 2,$3),$(if \
 #  - dependent library do not have unicode variant, so convert needed variant to non-unicode one: RU->R or SU->S
 VARIANT_LIB_MAP = $(if $(3:UNI_%=),$(2:U=),$2)
 
-# for $(DEP_IMP_SUFFIX) from $(MTOP)/c.mk:
+# for $(DEP_IMP_SUFFIX) from $(CLEAN_BUILD_DIR)/c.mk:
 # $1 - target: EXE,DLL
 # $2 - variant of target EXE or DLL: R,S,RU,SU,<empty>
 # $3 - dependent dynamic library name
@@ -213,7 +213,7 @@ DLL_EXPORTS_DEFINE := "__declspec(dllexport)"
 DLL_IMPORTS_DEFINE := "__declspec(dllimport)"
 
 # helper macro for target makefiles to pass string define value to C-compiler
-# note: override value from $(MTOP)/c.mk
+# note: override value from $(CLEAN_BUILD_DIR)/c.mk
 STRING_DEFINE = "$(subst $(space),$$$$(space),$(subst ","",$1))"
 
 # make version string: maj.min.patch -> maj.min
@@ -230,7 +230,7 @@ CMN_LIBS_LDFLAGS := /INCREMENTAL:NO $(if $(DEBUG),/DEBUG,/RELEASE /LTCG /OPT:REF
 # $$2 - objects
 # $v - variant
 # note: because target variable (EXE or DLL) is not used in VARIANT_LIB_MAP and VARIANT_IMP_MAP,
-#  may pass any value as first parameter to MAKE_DEP_LIBS and MAKE_DEP_IMPS (macros from $(MTOP)/c.mk)
+#  may pass any value as first parameter to MAKE_DEP_LIBS and MAKE_DEP_IMPS (macros from $(CLEAN_BUILD_DIR)/c.mk)
 # target-specific: TMD, MODVER, DEF, RES, LIBS, DLLS, LIB_DIR, SYSLIBPATH, SYSLIBS
 CMN_LIBS = /OUT:$$(ospath) /VERSION:$$(call MK_MAJ_MIN_VER,$$(MODVER)) $$(addprefix \
   /DEF:,$$(call ospath,$$(DEF))) $(CMN_LIBS_LDFLAGS) $$(call ospath,$$2 $$(RES)) $$(if \
