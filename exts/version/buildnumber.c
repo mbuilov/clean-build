@@ -1,7 +1,8 @@
-/*******************************************************************
+/**********************************************************************************
 * simple tool for generating build number from current date and time
-* Copyright (C) 2010-2017 Michael M. Builov
-*******************************************************************/
+* Copyright (C) 2010-2017 Michael M. Builov, https://github.com/mbuilov/clean-build
+* Licensed under GPL version 2 or any later version, see COPYING
+**********************************************************************************/
 
 /* buildnumber.c */
 

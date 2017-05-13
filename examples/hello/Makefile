@@ -20,7 +20,7 @@ TO_MAKE := hello.mk
 
 # we need version info under Windows
 ifeq (WINXX,$(OS))
-TO_MAKE += version
+TO_MAKE += $(MTOP)/exts/version
 endif
 
 # process makefiles and directories specified in TO_MAKE variable
