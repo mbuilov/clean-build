@@ -14,13 +14,13 @@ NEEDED_DIRS := $(call split_dirs,$(NEEDED_DIRS:$(BUILD)/%=%))
 # define order-only dependencies for directories
 $(eval $(call mk_dir_deps,$(NEEDED_DIRS),$(BUILD)/))
 
-# define rules to create $(BUILD)-related needed directories
+# define rules to create $(BUILD)-relative needed directories
 $(addprefix $(BUILD)/,$(NEEDED_DIRS)):
 	$(call SUP1,MKDIR,$@,1,)$(call MKDIR,$@)
 
 # default target
-# note: $(PROCESSED_MAKEFILES) - $(TOP)-related names of all processed target makefiles with '-' suffix
-# (otherwise, if real makefile names are used - make always wants to recreate makefiles, even before clean target)
+# note: $(PROCESSED_MAKEFILES) - absolute paths of all processed target makefiles with '-' suffix
+# (without suffix, if real makefile names are used - make always wants to recreate makefiles, even before clean target)
 ifdef REM_SHOWN_MAKEFILE
 # TARGET_MAKEFILES_COUNT - number of target makefiles - used to compute percents of executed makefiles
 # substract $(INTERMEDIATE_MAKEFILES) from $(PROCESSED_MAKEFILES)
