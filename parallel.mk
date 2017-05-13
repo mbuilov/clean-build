@@ -17,7 +17,7 @@ endif
 # allow to evaluate $(DEF_HEAD_CODE) in next included $(MTOP)/parallel.mk
 DEFINE_TARGETS_EVAL_NAME:=
 
-# add $(TOP)-related list of makefiles that need to be built before current makefile to $(ORDER_DEPS)
+# add list of makefiles (absolute paths) that need to be built before current makefile to $(ORDER_DEPS)
 # - list of order-only dependencies of targets of current makefile
 # reset $(MDEPS) - next included makefile may have it's own dependencies
 $(eval $(APPEND_MDEPS))
@@ -30,7 +30,7 @@ ifdef MDEBUG
 $(info $(MAKEFILE_DEBUG_INFO))
 endif
 
-# make $(TOP)-related list of makefiles to include
+# make absolute paths to makefiles to include
 TO_MAKE:=$(call NORM_MAKEFILES,$(TO_MAKE),)
 
 # $(CURRENT_MAKEFILE) is built if all $(TO_MAKE) makefiles are built
