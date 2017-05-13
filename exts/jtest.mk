@@ -4,7 +4,7 @@
 # Licensed under GPL version 2 or any later version, see COPYING
 #----------------------------------------------------------------------------------
 
-# must be included after $(MTOP)/java.mk
+# must be included after $(CLEAN_BUILD_DIR)/java.mk
 
 ifndef DO_TEST_JAR_TEMPLATE
 
