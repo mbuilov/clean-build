@@ -83,7 +83,7 @@ OS_KRNDEFS = $(if $(KCPU:%64=),ILP32,LP64) _KERNEL \
 # prefix to pass options to linker
 WLPREFIX := -Wl,
 
-# variants filter function - get possible variants for the target, needed by $(MTOP)/c.mk
+# variants filter function - get possible variants for the target, needed by $(CLEAN_BUILD_DIR)/c.mk
 # $1 - LIB,EXE,DLL
 # R - default variant (position-dependent code for EXE, position-independent code for DLL)
 # P - position-independent code in executables (for EXE and LIB)
@@ -94,20 +94,20 @@ VARIANTS_FILTER = $(if \
 
 # determine suffix for static LIB or for import library of DLL
 # $1 - target variant R,P,D,<empty>
-# note: overrides value from $(MTOP)/c.mk
+# note: overrides value from $(CLEAN_BUILD_DIR)/c.mk
 LIB_VAR_SUFFIX = $(if \
                  $(filter P,$1),_pie,$(if \
                  $(filter D,$1),_pic))
 
-# for $(EXE_VAR_SUFFIX) from $(MTOP)/c.mk:
+# for $(EXE_VAR_SUFFIX) from $(CLEAN_BUILD_DIR)/c.mk:
 # get target name suffix for EXE,DRV in case of multiple target variants
 # $1 - EXE,DRV
 # $2 - target variant P (not R or <empty>)
 # $3 - list of variants of target $1 to build (filtered by target platform specific $(VARIANTS_FILTER))
-# note: overrides value from $(MTOP)/c.mk
+# note: overrides value from $(CLEAN_BUILD_DIR)/c.mk
 EXE_SUFFIX_GEN = $(if $(word 2,$3),_pie)
 
-# for $(DEP_LIB_SUFFIX) from $(MTOP)/c.mk:
+# for $(DEP_LIB_SUFFIX) from $(CLEAN_BUILD_DIR)/c.mk:
 # $1 - target: EXE,DLL
 # $2 - variant of target EXE or DLL: R,P,<empty>
 # $3 - dependent static library name
@@ -115,7 +115,7 @@ EXE_SUFFIX_GEN = $(if $(word 2,$3),_pie)
 # always use D-variant of static library for DLL
 VARIANT_LIB_MAP = $(if $(filter DLL,$1),D,$2)
 
-# for $(DEP_IMP_SUFFIX) from $(MTOP)/c.mk:
+# for $(DEP_IMP_SUFFIX) from $(CLEAN_BUILD_DIR)/c.mk:
 # $1 - target: EXE,DLL
 # $2 - variant of target EXE or DLL: R,P,<empty>
 # $3 - dependent dynamic library name
