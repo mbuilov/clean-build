@@ -4,7 +4,7 @@
 # Licensed under GPL version 2 or any later version, see COPYING
 #----------------------------------------------------------------------------------
 
-# this file included by $(MTOP)/defs.mk
+# this file included by $(CLEAN_BUILD_DIR)/defs.mk
 
 OSTYPE := UNIX
 
