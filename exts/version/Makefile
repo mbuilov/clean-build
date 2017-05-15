@@ -8,6 +8,6 @@
 # tip: this file may be built individually via:
 # make --eval 'include my_project.mk' -f <this makefile>
 
-TO_MAKE := $(addprefix $(dir $(abspath $(lastword $(MAKEFILE_LIST)))),buildnumber.mk version.mk)
-
 include $(dir $(lastword $(MAKEFILE_LIST)))../../parallel.mk
+
+$(call PROCESS_SUBMAKES,buildnumber.mk version.mk)
