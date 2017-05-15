@@ -24,7 +24,7 @@ MAKEFLAGS += --no-builtin-rules --no-builtin-variables
 .DELETE_ON_ERROR:
 
 # clean-build version: major.minor.patch
-override CLEAN_BUILD_VERSION := 0.3.2
+override CLEAN_BUILD_VERSION := 0.4.0
 
 # clean-build root directory
 CLEAN_BUILD_DIR := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
@@ -184,6 +184,10 @@ $(error unknown TARGET=$(TARGET), please pick one of: $(SUPPORTED_TARGETS))
 endif
 
 else # distclean
+
+ifneq (,$(word 2,$(MAKECMDGOALS)))
+$(error distclean goal must be specified alone, goals: $(MAKECMDGOALS))
+endif
 
 # define distclean target by default
 NO_CLEAN_BUILD_DISTCLEAN_TARGET:=
@@ -454,10 +458,12 @@ CLEAN_COMMANDS:=
 
 # TOCLEAN - function to add values to CLEAN variable
 # - don't add values to CLEAN variable if not cleaning up
-ifneq (,$(filter clean,$(MAKECMDGOALS)))
-TOCLEAN = $(eval CLEAN+=$1)
-else
+ifeq (,$(filter clean,$(MAKECMDGOALS)))
 TOCLEAN:=
+else ifneq (,$(word 2,$(MAKECMDGOALS)))
+$(error clean goal must be specified alone, goals: $(MAKECMDGOALS))
+else
+TOCLEAN = $(eval CLEAN+=$1)
 endif
 
 # order-only makefiles dependencies (absolute paths) to add to all leaf prerequisites for the targets
@@ -468,9 +474,16 @@ ORDER_DEPS:=
 # overwritten in $(CLEAN_BUILD_DIR)/parallel.mk
 FIX_ORDER_DEPS:=
 
+ifdef TOCLEAN
+
+# just cleanup target file(s) $1 (absolute paths)
+$(eval STD_TARGET_VARS = $(value TOCLEAN))
+
+else # !clean
+
 # standard target-specific variables
-# $1     - target file(s) to build (absolute path)
-# $2     - directories of target file(s) (absolute path)
+# $1     - target file(s) to build (absolute paths)
+# $2     - directories of target file(s) (absolute paths)
 # $(TMD) - T if target is built in TOOL_MODE
 # NOTE: postpone expansion of ORDER_DEPS - $(FIX_ORDER_DEPS) changes $(ORDER_DEPS) value
 define STD_TARGET_VARS1
@@ -479,12 +492,13 @@ $1:TMD:=$(CB_TOOL_MODE)
 $1:| $2 $$(ORDER_DEPS)
 $(CURRENT_MAKEFILE)-:$1
 NEEDED_DIRS+=$2
-$(TOCLEAN)
 endef
 
 # standard target-specific variables
 # $1 - generated file(s) (absolute paths)
 STD_TARGET_VARS = $(call STD_TARGET_VARS1,$1,$(patsubst %/,%,$(sort $(dir $1))))
+
+endif # !clean
 
 # for given target $1
 # define target-specific variables for printing makefile info
@@ -499,14 +513,18 @@ $1:MCONT:=$(subst +0,,+$(words $(subst 2,,$(MAKE_CONT))))
 endef
 SET_MAKEFILE_INFO = $(eval $(MAKEFILE_INFO_TEMPL))
 else ifdef QUIET
+# remember $(CURRENT_MAKEFILE) to properly update percents
 MAKEFILE_INFO_TEMPL = $1:MF:=$(CURRENT_MAKEFILE)
 SET_MAKEFILE_INFO = $(eval $(MAKEFILE_INFO_TEMPL))
 else
 SET_MAKEFILE_INFO:=
 endif
 
+# define target-specific variables MF and MCONT for the target(s) $1
+ifndef TOCLEAN
 ifdef SET_MAKEFILE_INFO
 $(eval define STD_TARGET_VARS1$(newline)$(value MAKEFILE_INFO_TEMPL)$(newline)$(value STD_TARGET_VARS1)$(newline)endef)
+endif
 endif
 
 # add absolute path to directory of currently processing makefile to non-absolute paths
@@ -516,7 +534,7 @@ FIXPATH = $(abspath $(call nonrelpath,$(dir $(CURRENT_MAKEFILE)),$1))
 ifdef MDEBUG
 
 # info about which makefile is expanded now and order dependencies for it
-MAKEFILE_DEBUG_INFO = $(subst $(space),,$(foreach x,$(CB_INCLUDE_LEVEL),.))$(CURRENT_MAKEFILE)$(if $(ORDER_DEPS), | $(ORDER_DEPS:-=))
+MAKEFILE_DEBUG_INFO = $(subst $(space),,$(CB_INCLUDE_LEVEL))$(CURRENT_MAKEFILE)$(if $(ORDER_DEPS), | $(ORDER_DEPS:-=))
 
 # note: show debug info only if $1 does not contain @ (used by $(CLEAN_BUILD_DIR)/parallel.mk)
 DEF_TAIL_CODE_DEBUG = $(if $(filter @,$1),,$$(info $(MAKEFILE_DEBUG_INFO)))
@@ -555,7 +573,7 @@ ifdef MDEBUG
 # $3 - variants filter function (VARIANTS_FILTER by default), must be defined at time of $(eval)
 DEBUG_TARGETS = $(foreach t,$1,$(if $($t),$(newline)$(foreach \
   v,$(call GET_VARIANTS,$t,$3),$(info $(if $(CB_TOOL_MODE),[TOOL]: )$t $(subst \
-  R ,,$v )= $(call GET_TARGET_NAME,$t) '$(patsubst $(TOP)/%,%,$(call $2,$t,$v))'))))
+  R ,,$v )= $(call GET_TARGET_NAME,$t) '$(patsubst $(BUILD)/%,%,$(call $2,$t,$v))'))))
 
 else # !MDEBUG
 
@@ -570,6 +588,11 @@ endif # !MDEBUG
 # add target-specific suffix (_EXE,_LIB,_DLL,...) to distinguish objects for the targets with equal names
 FORM_OBJ_DIR = $(OBJ_DIR)/$(GET_TARGET_NAME)$(if $(filter-out R,$2),_$2)_$1
 
+# add generated files $1 to build sequence
+# note: files must be generated in $(GEN_DIR),$(BIN_DIR),$(OBJ_DIR) or $(LIB_DIR)
+# note: directories for generated files will be auto-created
+ADD_GENERATED = $(eval $(STD_TARGET_VARS))
+
 ifdef MCHECK
 
 # check that files $1 are generated in $(GEN_DIR), $(BIN_DIR), $(OBJ_DIR) or $(LIB_DIR)
@@ -577,17 +600,9 @@ CHECK_GENERATED = $(if $(filter-out $(GEN_DIR)/% $(BIN_DIR)/% $(OBJ_DIR)/% $(LIB
   some files are generated not under $$(GEN_DIR), $$(BIN_DIR), $$(OBJ_DIR) or $$(LIB_DIR): $(filter-out \
   $(GEN_DIR)/% $(BIN_DIR)/% $(OBJ_DIR)/% $(LIB_DIR)/%,$1)))
 
-else # !MCHECK
-
-# reset
-CHECK_GENERATED:=
+$(eval ADD_GENERATED = $$(CHECK_GENERATED)$(value ADD_GENERATED))
 
 endif # MCHECK
-
-# add generated files $1 to build sequence
-# note: files must be generated in $(GEN_DIR),$(BIN_DIR),$(OBJ_DIR) or $(LIB_DIR)
-# note: directories for generated files will be auto-created
-ADD_GENERATED = $(CHECK_GENERATED)$(eval $(STD_TARGET_VARS))
 
 # processed multi-target rules
 # note: MULTI_TARGETS is never cleared, only appended
@@ -608,25 +623,8 @@ define MULTI_TARGET_RULE
 $(STD_TARGET_VARS)
 $1: $(call FIXPATH,$2)
 	$$(if $$(filter $4,$$(MULTI_TARGETS)),,$$(eval MULTI_TARGETS += $4)$$(call SUP,MGEN,$1)$3)
-MULTI_TARGET_NUM += 1
+MULTI_TARGET_NUM+=1
 endef
-
-ifdef MCHECK
-
-# must not use $@ in multi-target rule because it may have different values (any target from multi-targets list)
-# must not use $| in multi-target rule because it may have different values (some targets from multi-targets list)
-# $1 - list of generated files (absolute paths)
-# $3 - rule
-CHECK_MULTI_RULE = $(CHECK_GENERATED)$(if \
-  $(findstring $$@,$3),$(warning please do not use $$@ in multi-target rule:$(newline)$3))$(if \
-  $(findstring $$|,$3),$(warning please do not use $$| in multi-target rule:$(newline)$3))
-
-else # !MCHECK
-
-# reset
-CHECK_MULTI_RULE:=
-
-endif # !MCHECK
 
 # make chain of dependencies of multi-targets on each other: 1 2 3 4 -> 2:| 1; 3:| 2; 4:| 3;
 # $1 - list of generated files (absolute paths without spaces)
@@ -640,7 +638,21 @@ MULTI_TARGET_SEQ = $(subst ||,| ,$(subst $(space),$(newline),$(filter-out \
 # $3 - rule
 # note: directories for generated files will be auto-created
 # note: rule must update all targets
-MULTI_TARGET = $(CHECK_MULTI_RULE)$(eval $(MULTI_TARGET_SEQ)$(call MULTI_TARGET_RULE,$1,$2,$3,$(words $(MULTI_TARGET_NUM))))
+MULTI_TARGET = $(eval $(MULTI_TARGET_SEQ)$(call MULTI_TARGET_RULE,$1,$2,$3,$(words $(MULTI_TARGET_NUM))))
+
+ifdef MCHECK
+
+# must not use $@ in multi-target rule because it may have different values (any target from multi-targets list)
+# must not use $| in multi-target rule because it may have different values (some targets from multi-targets list)
+# $1 - list of generated files (absolute paths)
+# $3 - rule
+CHECK_MULTI_RULE = $(CHECK_GENERATED)$(if \
+  $(findstring $$@,$3),$(warning please do not use $$@ in multi-target rule:$(newline)$3))$(if \
+  $(findstring $$|,$3),$(warning please do not use $$| in multi-target rule:$(newline)$3))
+
+$(eval MULTI_TARGET = $$(CHECK_MULTI_RULE)$(value MULTI_TARGET))
+
+endif # MCHECK
 
 # helper macro: make SDEPS list
 # example: $(call FORM_SDEPS,src1 src2,dep1 dep2 dep3) -> src1|dep1|dep2|dep3 src2|dep1|dep2|dep3
@@ -672,10 +684,6 @@ TOOL_MODE:=
 # used to remember makefiles include level
 CB_INCLUDE_LEVEL:=
 
-# $(DEFINE_TARGETS_EVAL_NAME) - contains name of macro that is when expanded
-# evaluates code to define targets (at least, by evaluating $(DEF_TAIL_CODE))
-DEFINE_TARGETS_EVAL_NAME:=
-
 # expand this macro to evaluate default head code (called from $(CLEAN_BUILD_DIR)/defs.mk)
 # note: by default it expanded at start of next $(MAKE_CONTINUE) round
 DEF_HEAD_CODE_EVAL = $(eval $(DEF_HEAD_CODE))
@@ -692,11 +700,8 @@ DEF_TAIL_CODE_EVAL = $(eval $(call DEF_TAIL_CODE,))
 #  - so we know if $(DEF_HEAD_CODE) was expanded from $(MAKE_CONTINUE) - remove 2 from $(MAKE_CONT) in this case
 #  - if $(DEF_HEAD_CODE) was expanded not from $(MAKE_CONTINUE) - no 2 in $(MAKE_CONT) - reset $(MAKE_CONT)
 # NOTE: set CB_TOOL_MODE to remember if we are in tool mode - TOOL_MODE variable may be changed before calling $(MAKE_CONTINUE)
-# NOTE: $(CLEAN_BUILD_DIR)/defs.mk may be included before $(CLEAN_BUILD_DIR)/parallel.mk,
-#  to not execute $(DEF_HEAD_CODE) second time in $(CLEAN_BUILD_DIR)/parallel.mk, define DEFINE_TARGETS_EVAL_NAME variable
-# NOTE: add $(empty) as first line of $(DEF_HEAD_CODE) - to allow to join it and eval: $(eval $(MY_CODE)$(DEF_HEAD_CODE))
+# NOTE: append $(empty) at end of $(DEF_HEAD_CODE) - to allow to join it and eval: $(eval $(DEF_HEAD_CODE)$(MY_PREPARE_CODE))
 define DEF_HEAD_CODE
-$(CLEAN_BUILD_CHECK_AT_HEAD)
 $(if $(findstring 2,$(MAKE_CONT)),MAKE_CONT:=$(subst 2,1,$(MAKE_CONT)),MAKE_CONT:=\
   $(newline)$(CHECK_MAKEFILE_NOT_PROCESSED)\
   $(newline)PROCESSED_MAKEFILES+=$(CURRENT_MAKEFILE)-)
@@ -706,18 +711,29 @@ DEFINE_TARGETS_EVAL_NAME:=DEF_TAIL_CODE_EVAL
 $(empty)
 endef
 
+# prepend DEF_HEAD_CODE with $(CLEAN_BUILD_CHECK_AT_HEAD), if it's defined in $(CLEAN_BUILD_DIR)/protection.mk
+ifdef CLEAN_BUILD_CHECK_AT_HEAD
+$(eval define DEF_HEAD_CODE$(newline)$$(CLEAN_BUILD_CHECK_AT_HEAD)$(newline)$(value DEF_HEAD_CODE)$(newline)endef)
+endif
+
 # code to $(eval) at end of each makefile
 # include $(CLEAN_BUILD_DIR)/all.mk only if $(CB_INCLUDE_LEVEL) is empty and will not call $(MAKE_CONTINUE)
 # if called from $(MAKE_CONTINUE), $1 - list of vars to save (may be empty)
 # note: $(MAKE_CONTINUE) before expanding $(DEF_TAIL_CODE) adds 2 to $(MAKE_CONT) list
 # note: $(CLEAN_BUILD_DIR)/parallel.mk executes $(eval $(call DEF_TAIL_CODE,@)) to not show debug info second time in $(DEF_TAIL_CODE_DEBUG)
-# note: reset DEFINE_TARGETS_EVAL_NAME value - to allow to evaluate $(DEF_HEAD_CODE) in next included $(CLEAN_BUILD_DIR)/parallel.mk
 define DEF_TAIL_CODE
-$(CLEAN_BUILD_CHECK_AT_TAIL)
-$(DEF_TAIL_CODE_DEBUG)
 $(if $(CB_INCLUDE_LEVEL)$(findstring 2,$(MAKE_CONT)),,include $(CLEAN_BUILD_DIR)/all.mk)
-DEFINE_TARGETS_EVAL_NAME:=
 endef
+
+# prepend DEF_TAIL_CODE with $(DEF_TAIL_CODE_DEBUG), if it's defined above
+ifdef DEF_TAIL_CODE_DEBUG
+$(eval define DEF_TAIL_CODE$(newline)$$(DEF_TAIL_CODE_DEBUG)$(newline)$(value DEF_TAIL_CODE)$(newline)endef)
+endif
+
+# prepend DEF_TAIL_CODE with $(CLEAN_BUILD_CHECK_AT_TAIL), if it's defined in $(CLEAN_BUILD_DIR)/protection.mk
+ifdef CLEAN_BUILD_CHECK_AT_TAIL
+$(eval define DEF_TAIL_CODE$(newline)$$(CLEAN_BUILD_CHECK_AT_TAIL)$(newline)$(value DEF_TAIL_CODE)$(newline)endef)
+endif
 
 # define targets at end of makefile
 # evaluate code in $($(DEFINE_TARGETS_EVAL_NAME)) only once, then reset DEFINE_TARGETS_EVAL_NAME
@@ -736,19 +752,8 @@ MAKE_CONTINUE_EVAL_NAME := DEF_HEAD_CODE_EVAL
 # reset
 MAKE_CONT:=
 
-# increment MAKE_CONT, eval tail code with $(DEFINE_TARGETS)
-# and start next circle - simulate including of appropriate $(CLEAN_BUILD_DIR)/c.mk or $(CLEAN_BUILD_DIR)/java.mk
-# by evaluating head-code $($(MAKE_CONTINUE_EVAL_NAME)) - which must be
-# initially set in $(CLEAN_BUILD_DIR)/c.mk or $(CLEAN_BUILD_DIR)/java.mk
-# NOTE: evaluated code in $($(MAKE_CONTINUE_EVAL_NAME)) must re-define MAKE_CONTINUE_EVAL_NAME,
-# because $(MAKE_CONTINUE) resets it to DEF_HEAD_CODE_EVAL
-# NOTE: TOOL_MODE value may be changed in target makefile before $(MAKE_CONTINUE)
-define MAKE_CONTINUE_BODY_EVAL
-$(eval MAKE_CONT+=2)
-$(DEFINE_TARGETS)
-$(eval MAKE_CONTINUE_EVAL:=$(MAKE_CONTINUE_EVAL_NAME)$(newline)MAKE_CONTINUE_EVAL_NAME:=DEF_HEAD_CODE_EVAL)
-$($(MAKE_CONTINUE_EVAL))
-endef
+# reset MAKE_CONTINUE_EVAL_NAME to DEF_HEAD_CODE_EVAL and evaluate code in $1
+MAKE_CONTINUE_BODY_EVAL = $(eval MAKE_CONTINUE_EVAL_NAME:=DEF_HEAD_CODE_EVAL)$($1)
 
 # how to join two or more makefiles in one makefile:
 # include $(CLEAN_BUILD_DIR)/c.mk
@@ -760,9 +765,17 @@ endef
 # ...
 # $(DEFINE_TARGETS)
 
+# increment MAKE_CONT, evaluate tail code with $(DEFINE_TARGETS)
+# and start next circle - simulate including of appropriate $(CLEAN_BUILD_DIR)/c.mk or $(CLEAN_BUILD_DIR)/java.mk
+# by evaluating head-code $($(MAKE_CONTINUE_EVAL_NAME)) - which must be
+# initially set in $(CLEAN_BUILD_DIR)/c.mk or $(CLEAN_BUILD_DIR)/java.mk
+# NOTE: evaluated code in $($(MAKE_CONTINUE_EVAL_NAME)) must re-define MAKE_CONTINUE_EVAL_NAME,
+# because $(MAKE_CONTINUE) resets it to DEF_HEAD_CODE_EVAL
+# NOTE: TOOL_MODE value may be changed in target makefile before $(MAKE_CONTINUE)
 # note: surround $(MAKE_CONTINUE) with fake $(if...) to suppress any text output
 # - to be able to call it with just $(MAKE_CONTINUE) in target makefile
-MAKE_CONTINUE = $(if $(if $1,$(SAVE_VARS))$(MAKE_CONTINUE_BODY_EVAL)$(if $1,$(RESTORE_VARS)),)
+MAKE_CONTINUE = $(if $(if $1,$(SAVE_VARS))$(eval MAKE_CONT+=2)$(DEFINE_TARGETS)$(call \
+  MAKE_CONTINUE_BODY_EVAL,$(MAKE_CONTINUE_EVAL_NAME))$(if $1,$(RESTORE_VARS)),)
 
 # check that $(OSDIR)/$(OS)/tools.mk exists
 ifeq (,$(wildcard $(OSDIR)/$(OS)/tools.mk))
