@@ -13,7 +13,7 @@ include $(dir $(lastword $(MAKEFILE_LIST)))project.mk
 # source clean-build definitions and function for processing sub-makefiles
 include $(MTOP)/parallel.mk
 
-# clean-build provides default rule for distclean target
+# clean-build provides default rule for distclean goal
 ifeq (,$(filter distclean,$(MAKECMDGOALS)))
 
 # list of sub-makefiles
