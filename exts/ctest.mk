@@ -25,33 +25,38 @@ $r.out: TEST_AUX_PATH   := $3
 $r.out: TEST_AUX_VARS   := $(subst $,$$$$,$4)
 $r.out: $r
 	$$(call SUP,TEST,$$@)$$(call RUN_WITH_DLL_PATH,$$< $$(TEST_AUX_PARAMS) > $$@,$$(TEST_AUX_PATH),$$(TEST_AUX_VARS))
-$(TEST_EXE_SOFTLINKS)
 endef
+
+ifeq (UNIX,$(OSTYPE))
 
 # $1 - built shared libraries needed by executable, in form <library_name>.<major_number>
 # $r - $(call FORM_TRG,EXE,$v)
-ifeq (UNIX,$(OSTYPE))
 TEST_EXE_SOFTLINKS = $(if $1,$r: | $(addprefix $(LIB_DIR)/$(DLL_PREFIX),$(subst .,$(DLL_SUFFIX).,$1))$(TEST_NEED_SIMLINKS))
-else
-TEST_EXE_SOFTLINKS:=
-endif
+$(eval define DO_TEST_EXE_TEMPLATE$(newline)$(value DO_TEST_EXE_TEMPLATE)$(newline)$$(TEST_EXE_SOFTLINKS)$(newline)endef)
+
+# initial reset
+CB_GENERATED_SIMLINK_RULES:=
 
 # $1 - $(LIB_DIR)/$(DLL_PREFIX)$(subst .,$(DLL_SUFFIX).,$d)
 # $2 - $(DLL_PREFIX)<library_name>$(DLL_SUFFIX)
 # $d - built shared library in form <library_name>.<major_number>
+ifdef TOCLEAN
+
 define SO_SOFTLINK_TEMPLATE
 $1: | $(LIB_DIR)/$2
 	$$(call SUP,LN,$$@)$$(call LN,$2,$$@)
-$(TOCLEAN)
 CB_GENERATED_SIMLINK_RULES += $d
 endef
 
+else # TOCLEAN
+$(eval SO_SOFTLINK_TEMPLATE = $(value TOCLEAN))
+endif # TOCLEAN
+
 # $1 - built shared libraries needed by executable, in form <library_name>.<major_number>
-ifeq (UNIX,$(OSTYPE))
-CB_GENERATED_SIMLINK_RULES:=
 TEST_NEED_SIMLINKS = $(foreach d,$1,$(if $(filter $d,$(CB_GENERATED_SIMLINK_RULES)),,$(eval $(call \
   SO_SOFTLINK_TEMPLATE,$(LIB_DIR)/$(DLL_PREFIX)$(subst .,$(DLL_SUFFIX).,$d),$(DLL_PREFIX)$(firstword $(subst ., ,$d))$(DLL_SUFFIX)))))
-endif
+
+endif # UNIX
 
 ifneq (,$(filter check clean,$(MAKECMDGOALS)))
 
