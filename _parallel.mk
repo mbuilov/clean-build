@@ -8,7 +8,7 @@ ifndef DEF_HEAD_CODE
 include $(dir $(lastword $(MAKEFILE_LIST)))_defs.mk
 endif
 
-# reset
+# initial reset
 MDEPS:=
 
 # make absolute paths to makefiles $1 with suffix $2:
@@ -22,7 +22,7 @@ APPEND_MDEPS1 = $(if $1,$1:$(newline)ORDER_DEPS+=$1$(newline))
 APPEND_MDEPS = $(call APPEND_MDEPS1,$(filter-out $(ORDER_DEPS),$(call NORM_MAKEFILES,$(MDEPS),-)))MDEPS:=
 
 # overwrite code for adding $(MDEPS) - list of makefiles that need to be built before target makefile - to $(ORDER_DEPS)
-FIX_ORDER_DEPS = $(APPEND_MDEPS)
+$(eval FIX_ORDER_DEPS = $(value APPEND_MDEPS))
 
 # don't complain about new FIX_ORDER_DEPS value
 # - replace old FIX_ORDER_DEPS value defined in $(CLEAN_BUILD_DIR)/defs.mk with a new one
@@ -39,21 +39,49 @@ TOOL_MODE:=$(TOOL_MODE)
 include $m
 endef
 
-# note: $(TO_MAKE) - list of absolute paths to makefiles to include
+# remember number of intermediate non-target makefiles if build is non-verbose
 ifdef REM_SHOWN_MAKEFILE
+$(eval define CLEAN_BUILD_INCLUDE$(newline)INTERMEDIATE_MAKEFILES+=1$(newline)$(value CLEAN_BUILD_INCLUDE)$(newline)endef)
+endif
 
-# non-verbose build
-define CLEAN_BUILD_INCLUDE
-INTERMEDIATE_MAKEFILES+=1
-$(foreach m,$(TO_MAKE),$(CB_INCLUDE_TEMPLATE))
-endef
+# build CLEAN_BUILD_PARALLEL macro
 
-else # !REM_SHOWN_MAKEFILE
+# add list of makefiles (absolute paths) that need to be built before current makefile to
+# $(ORDER_DEPS) - list of order-only dependencies of targets of current makefile,
+# then reset $(MDEPS) - next included makefile may have it's own dependencies
+CLEAN_BUILD_PARALLEL = $(eval $(APPEND_MDEPS))
 
-# verbose build
-CLEAN_BUILD_INCLUDE = $(foreach m,$(TO_MAKE),$(CB_INCLUDE_TEMPLATE))
+# show debug info now - later, after processing all included makefiles,
+# DEF_TAIL_CODE will be called with @ - to suppress showing debug info.
+# note: debug info shows $(ORDER_DEPS), so ORDER_DEPS must be set before showing the info
+ifdef MDEBUG
+$(eval CLEAN_BUILD_PARALLEL = $(value CLEAN_BUILD_PARALLEL)$$(info $$(MAKEFILE_DEBUG_INFO)))
+endif
 
-endif # !REM_SHOWN_MAKEFILE
+# $(CURRENT_MAKEFILE) is built if all $1 makefiles are built
+# note: $(CURRENT_MAKEFILE)- and other order-dependent makefile names - are .PHONY targets,
+# and built target files may depend on .PHONY targets only as order-only,
+# otherwise target files are will always be rebuilt - because .PHONY targets are always updated
+ifndef TOCLEAN
+$(eval CLEAN_BUILD_PARALLEL = $(value CLEAN_BUILD_PARALLEL)$$(CURRENT_MAKEFILE)-:| $$(addsuffix -,$$1))
+endif
+
+# increase makefile include level,
+# include and process makefiles $(TO_MAKE),
+# decrease makefile include level
+$(eval define CLEAN_BUILD_PARALLEL$(newline)$(value \
+  CLEAN_BUILD_PARALLEL)$(newline)CB_INCLUDE_LEVEL+=.$$(foreach \
+  m,$$(call NORM_MAKEFILES,$$(TO_MAKE),),$$(CB_INCLUDE_TEMPLATE))$(if \
+  ,)$(newline)CB_INCLUDE_LEVEL:=$$(CB_INCLUDE_LEVEL)$(newline)endef)
+
+# at last, check if need to include $(CLEAN_BUILD_DIR)/all.mk
+# NOTE: call DEF_TAIL_CODE with @ - to not show debug info that was already shown above
+# and for the checks in $(CLEAN_BUILD_CHECK_AT_TAIL) at $(CLEAN_BUILD_DIR)/protection.mk
+$(eval define CLEAN_BUILD_PARALLEL$(newline)$(value \
+  CLEAN_BUILD_PARALLEL)$(newline)$$$$(eval $$$$(call DEF_TAIL_CODE,@))$(newline)endef)
+
+# note: make absolute paths to makefiles to include $(TO_MAKE)
+PROCESS_SUBMAKES = $(eval $(CLEAN_BUILD_PARALLEL))
 
 # protect variables from modifications in target makefiles
-$(call CLEAN_BUILD_PROTECT_VARS,NORM_MAKEFILES APPEND_MDEPS1 APPEND_MDEPS CB_INCLUDE_TEMPLATE CLEAN_BUILD_INCLUDE)
+$(call CLEAN_BUILD_PROTECT_VARS,NORM_MAKEFILES APPEND_MDEPS1 APPEND_MDEPS CB_INCLUDE_TEMPLATE CLEAN_BUILD_PARALLEL PROCESS_SUBMAKES)
