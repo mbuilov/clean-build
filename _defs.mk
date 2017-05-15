@@ -186,7 +186,7 @@ endif
 else # distclean
 
 ifneq (,$(word 2,$(MAKECMDGOALS)))
-$(error distclean goal must be specified alone, goals: $(MAKECMDGOALS))
+$(error distclean goal must be specified alone, current goals: $(MAKECMDGOALS))
 endif
 
 # define distclean target by default
@@ -310,7 +310,7 @@ PRINT_PERCENTS = [00;34m[[01;34m$1[00;34m][0m
 # print in color short name of called tool $1 with argument $2
 # $1 - tool
 # $2 - argument
-# $3 - non-empty, then colorize argument
+# $3 - empty, then colorize argument
 # NOTE: WINXX/tools.mk redefines: COLORIZE = $1$(padto)$2
 COLORIZE = $($1_COLOR)$1[0m$(padto)$(if $3,$2,$(join $(dir $2),$(addsuffix [0m,$(addprefix $($1_COLOR),$(notdir $2)))))
 
@@ -461,7 +461,7 @@ CLEAN_COMMANDS:=
 ifeq (,$(filter clean,$(MAKECMDGOALS)))
 TOCLEAN:=
 else ifneq (,$(word 2,$(MAKECMDGOALS)))
-$(error clean goal must be specified alone, goals: $(MAKECMDGOALS))
+$(error clean goal must be specified alone, current goals: $(MAKECMDGOALS))
 else
 TOCLEAN = $(eval CLEAN+=$1)
 endif
