@@ -7,8 +7,8 @@
 # this file included by $(CLEAN_BUILD_DIR)/defs.mk after including $(CLEAN_BUILD_DIR)/protection.mk
 
 empty:=
-space := $(empty) #
-tab   := $(empty)	#
+space := $(empty) $(empty)
+tab   := $(empty)	$(empty)
 comma := ,
 define newline
 $(empty)
@@ -236,6 +236,12 @@ split_dirs = $(sort $(split_dirs1))
 # $2 - prefix to add to all directories
 mk_dir_deps = $(subst :|,:| $2,$(addprefix $(newline)$2,$(filter-out %:|,$(join $1,$(call get_dir,$1,:|)))))
 
+# $1 - recursive macro, on first call becomes simple
+# $2 - macro value
+# for example, if MY_VALUE is not defined yet, but will be defined at time of MY_MACRO call:
+# override MY_MACRO = $(call lazy_simple,override MY_MACRO,$(MY_VALUE))
+lazy_simple = $(eval $1:=$$2)$($(lastword $1))
+
 # protect variables from modification in target makefiles
 $(call CLEAN_BUILD_PROTECT_VARS,empty space tab comma newline comment open_brace close_brace \
   infofn dump dump_max dump_args trace_params trace_calls_template trace_calls \
@@ -243,4 +249,4 @@ $(call CLEAN_BUILD_PROTECT_VARS,empty space tab comma newline comment open_brace
   is_less1 is_less xargs1 xargs xcmd trim normp2 normp1 normp \
   cmn_path1 cmn_path back_prefix relpath2 relpath1 relpath join_with \
   ver_major ver_minor ver_patch ver_compatible1 ver_compatible \
-  get_dir split_dirs1 split_dirs mk_dir_deps)
+  get_dir split_dirs1 split_dirs mk_dir_deps lazy_simple)
