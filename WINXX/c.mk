@@ -39,7 +39,7 @@ BISONC := bison.exe
 YASM_FLAGS := $(if $(KCPU:%64=),-f win32 -m x86,-f win64 -m amd64)
 
 # strings to strip off from mc.exe output
-# note: may be overriden either in $(PROJECT) configuration file or in command line
+# note: may be overriden either in project configuration file or in command line
 MC_STRIP_STRINGS := MC:?Compiling
 
 # wrap mc.exe call to strip-off diagnostic mc messages
@@ -59,7 +59,7 @@ endif
 MC = $(call SUP,$(TMD)MC,$1)$(call WRAP_MC,$($(TMD)MC1)$(if $(VERBOSE), -v) $2)
 
 # strings to strip off from rc.exe output if rc.exe does not support /nologo option
-# note: may be overriden either in $(PROJECT) configuration file or in command line
+# note: may be overriden either in project configuration file or in command line
 RC_LOGO_STRINGS := Microsoft?(R)?Windows?(R)?Resource?Compiler?Version Copyright?(C)?Microsoft?Corporation.??All?rights?reserved. ^$$
 
 # send resource compiler output to stderr
@@ -247,7 +247,7 @@ CMN_LIBS = /OUT:$$(ospath) /VERSION:$$(call MK_MAJ_MIN_VER,$$(MODVER)) $$(addpre
 DEF_SUBSYSTEM = $$(if $$(filter /SUBSYSTEM:%,$$(LDFLAGS)),,/SUBSYSTEM:CONSOLE$(if $$(TMD),,,$(SUBSYSTEM_VER)))
 
 # strings to strip off from link.exe output
-# note: may be overriden either in $(PROJECT) configuration file or in command line
+# note: may be overriden either in project configuration file or in command line
 # cp1251 ".оздание?кода .оздание?кода?завершено" as cp866 converted to cp1251
 #LINKER_STRIP_STRINGS := .������� ���� .������� ���� ���������
 LINKER_STRIP_STRINGS := Generating?code Finished?generating?code
@@ -396,7 +396,7 @@ CMN_RUCL = $(CMN_RCL) /DUNICODE /D_UNICODE
 CMN_SUCL = $(CMN_SCL) /DUNICODE /D_UNICODE
 
 # $(SED) expression to match C compiler messages about included files
-# note: may be overriden either in $(PROJECT) configuration file or in command line
+# note: may be overriden either in project configuration file or in command line
 # utf8 "Примечание: включение файла:"
 #INCLUDING_FILE_PATTERN := \xd0\x9f\xd1\x80\xd0\xb8\xd0\xbc\xd0\xb5\xd1\x87\xd0\xb0\xd0\xbd\xd0\xb8\xd0\xb5: \xd0\xb2\xd0\xba\xd0\xbb\xd1\x8e\xd1\x87\xd0\xb5\xd0\xbd\xd0\xb8\xd0\xb5 \xd1\x84\xd0\xb0\xd0\xb9\xd0\xbb\xd0\xb0:
 # cp1251 "Примечание: включение файла:"
@@ -406,7 +406,7 @@ CMN_SUCL = $(CMN_SCL) /DUNICODE /D_UNICODE
 INCLUDING_FILE_PATTERN := Note: including file:
 
 # $(SED) expression to filter-out system files while dependencies generation
-# note: may be overriden either in $(PROJECT) configuration file or in command line
+# note: may be overriden either in project configuration file or in command line
 # c:\\program?files?(x86)\\microsoft?visual?studio?10.0\\vc\\include\\
 UDEPS_INCLUDE_FILTER := $(subst \,\\,$(VSINC) $(UMINC))
 
@@ -449,7 +449,7 @@ ifndef WRAP_COMPILER
 # $1 - compiler with options
 # $3 - sources
 # note: send compiler output to stderr
-WRAP_COMPILER = (($1 2>&1 && echo COMPILATION_OK >&2) | findstr /V /B /E /L "$(notdir \
+WRAP_COMPILER = (($1 2>&1 && echo COMPILATION_OK >&2) | findstr /V /X /L "$(notdir \
   $3)") 3>&2 2>&1 1>&3 | findstr /B /L COMPILATION_OK >NUL
 endif
 
@@ -626,7 +626,7 @@ ifdef SEQ_BUILD
 # note: precompiled headers are not supported in this mode
 
 # $(SED) expression to filter-out system files while dependencies generation
-# note: may be overriden either in $(PROJECT) configuration file or in command line
+# note: may be overriden either in project configuration file or in command line
 # c:\\winddk\\
 KDEPS_INCLUDE_FILTER := $(subst \,\\,$(KMINC))
 
