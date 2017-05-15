@@ -40,7 +40,7 @@ CB_GENERATED_SIMLINK_RULES:=
 # $1 - $(LIB_DIR)/$(DLL_PREFIX)$(subst .,$(DLL_SUFFIX).,$d)
 # $2 - $(DLL_PREFIX)<library_name>$(DLL_SUFFIX)
 # $d - built shared library in form <library_name>.<major_number>
-ifdef TOCLEAN
+ifndef TOCLEAN
 
 define SO_SOFTLINK_TEMPLATE
 $1: | $(LIB_DIR)/$2
