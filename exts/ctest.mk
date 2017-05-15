@@ -49,7 +49,9 @@ CB_GENERATED_SIMLINK_RULES += $d
 endef
 
 else # TOCLEAN
+
 $(eval SO_SOFTLINK_TEMPLATE = $(value TOCLEAN))
+
 endif # TOCLEAN
 
 # $1 - built shared libraries needed by executable, in form <library_name>.<major_number>
