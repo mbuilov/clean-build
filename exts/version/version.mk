@@ -10,7 +10,7 @@
 
 include $(dir $(lastword $(MAKEFILE_LIST)))../../defs.mk
 
-# next variables must be defined for this makefile (for example, in $(PROJECT)):
+# next variables must be defined for this makefile (for example, in my_project.mk):
 
 # PRODUCT_NAMES_H  - for example, vers.h
 # VENDOR_NAME      - for example, Acme Corp
