@@ -79,9 +79,13 @@ ECHO  = $(call ECHO1,$(subst $(newline),$$(newline) ,$(subst $(space),$$(space),
 NUL  := NUL
 SUPPRESS_CP_OUTPUT := | findstr /v /b /c:"        1 " & if errorlevel 1 (cmd /c exit 0) else (cmd /c exit 1)
 TOUCH = for %%f in ($(ospath)) do if exist %%f (copy /Y /B %%f+,, %%f$(SUPPRESS_CP_OUTPUT)) else (rem. > %%f)
-# copy file $1 to file $2
-CP    = for %%f in ($(call ospath,$2)) do copy /Y /B $(ospath) %%f \
-  | findstr /v /b /c:"        1 " & if errorlevel 1 (copy /Y /B %%f+,, %%f$(SUPPRESS_CP_OUTPUT)) else (cmd /c exit 1)
+# copy _one_ file $1 to directory or file $2, then touch destination file
+CP    = for %%f in ($(call ospath,$2)) do copy /Y /B $(ospath) %%f| findstr /v /b /c:"        1 " & if errorlevel 1 (\
+ (if exist %%f\* (\
+  copy /Y /B %%f\$(notdir $1)+,, %%f\$(notdir $1)| findstr /v /b /c:"        1 ") else (\
+  copy /Y /B %%f+,, %%f| findstr /v /b /c:"        1 ")\
+ ) & if errorlevel 1 (cmd /c exit 0) else (cmd /c exit 1)\
+) else (cmd /c exit 1)
 
 # execute command $2 in directory $1
 EXECIN = pushd $(ospath) && ($2 && popd || (popd & cmd /c exit 1))
