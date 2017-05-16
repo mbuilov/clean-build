@@ -51,7 +51,7 @@ FORM_BUNDLES = $(call FIXPATH,$1)|$(subst $(space),|,$2)
 # form options for $(JARC)
 # $1 - list of bundles to add to the .jar formed by FORM_BUNDLES
 # dir1|name11|name12 dir2|name21|name22|... -> -C dir1 name11 -C dir1 name12 -C dir2 name21 -C dir2 name22...
-JAR_BUNDLES_OPTIONS1 = $(addprefix $(call qpath,$(firstword $1),-C ) ,$(wordlist 2,999999,$1))
+JAR_BUNDLES_OPTIONS1 = $(addprefix $(subst $(space),?,$(call qpath,$(firstword $1),-C ))$$(space),$(wordlist 2,999999,$1))
 JAR_BUNDLES_OPTIONS = $(foreach x,$1,$(call JAR_BUNDLES_OPTIONS1,$(call jpath,$(subst |, ,$x))))
 
 # make jar dependencies from bundle files
@@ -79,8 +79,9 @@ ARGS_FILE_SOURCES_PER_LINE := 40
 # create arguments file for java compiler
 # $1 - sources
 # $2 - args file name
-# $5 - <empty> on first call and $(newline) on next calls
-CREATE_JARGS_FILE1 = $(QUIET)$(call ECHO_LINE,$1) $(if $5,>)> $(call ospath,$2)
+# $6 - <empty> on first call and $(newline) on next calls
+# note: this function is also used for bundles, so replace ? with spaces in options list created by JAR_BUNDLES_OPTIONS
+CREATE_JARGS_FILE1 = $(QUIET)$(call ECHO,$(subst ?, ,$1)) $(if $6,>)> $(call ospath,$2)
 CREATE_JARGS_FILE = $(call xcmd,CREATE_JARGS_FILE1,$1,$(ARGS_FILE_SOURCES_PER_LINE),$2)$(newline)$(QUIET)
 
 # $1 - .java sources
@@ -111,8 +112,9 @@ SCALA_CC = $(if $1,$(call SCALA_CC1,$1,$1 $2))
 # $2 - $(word $(ARGS_FILE_SOURCES_PER_LINE),$(ALL_BUNDLES))
 # target-specific: JRFLAGS, MANIFEST, JOBJDIR, ALL_BUNDLES
 JAR_LD1 = $(call SUP,JAR,$1)$(if $2,$(call CREATE_JARGS_FILE,$(ALL_BUNDLES),$(JOBJDIR)/jar.txt)) \
-  $(JARC) $(JRFLAGS) -cf$(if $(MANIFEST),m) $(jpath) $(call jpath,$(MANIFEST)) -C $(call jpath,$(JOBJDIR)/$(JCLS_DIR)) . $(if \
-  $2,@$(call jpath,$(JOBJDIR)/jar.txt),$(ALL_BUNDLES))
+  $(JARC) $(JRFLAGS) -cf$(if $(MANIFEST),m) $(jpath) $(call jpath,$(MANIFEST)) $(if \
+  $(JSRC)$(SCALA),-C $(call jpath,$(JOBJDIR)/$(JCLS_DIR)) .) $(if \
+  $2,@$(call jpath,$(JOBJDIR)/jar.txt),$(subst ?, ,$(ALL_BUNDLES)))
 
 # make jar, $1 - .jar target
 # note: always rebuild all sources if any of $(JARS), $(EXTJARS), $(JSRC), $(SCALA) or $(JSCALA) is newer than the target jar
@@ -134,7 +136,7 @@ FORM_BUILT_JARS = $(addprefix $(BIN_DIR)/,$(addsuffix .jar,$1))
 # $7 - jars:                    $(addprefix $(BIN_DIR)/,$(addsuffix .jar,$(JARS)))
 define JAR_TEMPLATE
 $(STD_TARGET_VARS)
-NEEDED_DIRS += $6/$(JCLS_DIR)
+$(if $2$3,NEEDED_DIRS += $6/$(JCLS_DIR))
 $1:JSRC         := $2
 $1:SCALA        := $3
 $1:JSCALA       := $4
@@ -147,8 +149,8 @@ $1:ALL_BUNDLES  := $(call JAR_BUNDLES_OPTIONS,$(BUNDLES) $(BUNDLE_FILES))
 $1:JAVAC_FLAGS  := $(JAVAC_FLAGS)
 $1:SCALAC_FLAGS := $(SCALAC_FLAGS)
 $1:JRFLAGS      := $(JRFLAGS)
-$1:$(EXTJARS) $7 $2 $3 $4 $5 $(call MAKE_BUNDLE_DEPS,$(BUNDLE_FILES)) | $6/$(JCLS_DIR)
-	$$(eval $1: COMMANDS := $(subst $$,$$$$,$(JARACTIONS)))$$(COMMANDS)$$(call JAR_LD,$$@)
+$1:$(EXTJARS) $7 $2 $3 $4 $5 $(call MAKE_BUNDLE_DEPS,$(BUNDLE_FILES))$(if $2$3,| $6/$(JCLS_DIR))
+	$$(call JAR_LD,$$@)
 $(call TOCLEAN,$6)
 endef
 
@@ -204,7 +206,6 @@ MANIFEST:=
 JAVAC_FLAGS:=
 SCALAC_FLAGS:=
 JRFLAGS:=
-JARACTIONS:=
 JAREXT:=.jar
 DEFINE_TARGETS_EVAL_NAME:=DEFINE_JAVA_TARGETS_EVAL
 MAKE_CONTINUE_EVAL_NAME:=CLEAN_BUILD_JAVA_EVAL
