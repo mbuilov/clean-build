@@ -77,10 +77,11 @@ ECHO1 = $(if $(word 2,$1),($(foreach x,$1,($(call ECHO_LINE,$(subst $$(newline),
          $$(tab),$(tab),$x))))) &&) rem.),$(call ECHO_LINE,$(subst $$(space), ,$(subst $$(tab),$(tab),$1))))
 ECHO  = $(call ECHO1,$(subst $(newline),$$(newline) ,$(subst $(space),$$(space),$(subst $(tab),$$(tab),$1))))
 NUL  := NUL
-SUPPRESS_CP_OUTPUT := | findstr /v /c:"        1" & if errorlevel 1 (cmd /c exit 0) else (cmd /c exit 1)
-CP    = copy /Y /B $(ospath) $(call ospath,$2)$(SUPPRESS_CP_OUTPUT)
-TOUCH1 = if not exist $1 (rem. > $1) else (copy /B $1+,, $1$(SUPPRESS_CP_OUTPUT))
-TOUCH = $(call TOUCH1,$(ospath))
+SUPPRESS_CP_OUTPUT := | findstr /v /b /c:"        1 " & if errorlevel 1 (cmd /c exit 0) else (cmd /c exit 1)
+TOUCH = for %%f in ($(ospath)) do if exist %%f (copy /Y /B %%f+,, %%f$(SUPPRESS_CP_OUTPUT)) else (rem. > %%f)
+# copy file $1 to file $2
+CP    = for %%f in ($(call ospath,$2)) do copy /Y /B $(ospath) %%f \
+  | findstr /v /b /c:"        1 " & if errorlevel 1 (copy /Y /B %%f+,, %%f$(SUPPRESS_CP_OUTPUT)) else (cmd /c exit 1)
 
 # execute command $2 in directory $1
 EXECIN = pushd $(ospath) && ($2 && popd || (popd & cmd /c exit 1))
