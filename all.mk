@@ -41,9 +41,8 @@ endif # MCHECK
 all: $(PROCESSED_MAKEFILES)
 	@:
 
-# note: also evaluate and execute $(CLEAN_COMMANDS) to cleanup things
 clean:
-	$(call RM,$(CLEAN))$(eval CLEAN_CODE := $(CLEAN_COMMANDS))$(CLEAN_CODE)
+	$(QUIET)$(call RM,$(CLEAN))
 
 # build all to build or run tests
 check tests: all
