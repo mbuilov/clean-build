@@ -24,4 +24,11 @@ VENDOR_COPYRIGHT := Copyright (C) 2015-2017 Michael M. Builov, https://github.co
 # for this example MTOP may be defined automatically
 MTOP := $(abspath $(dir $(lastword $(MAKEFILE_LIST)))../../)
 
+# clean-build generated config file
+# note: distclean goal, defined by clean-build will also delete $(CONFIG_FILE)
+override CONFIG_FILE := $(TOP)/conf.mk
+
+# source definitions, if $(CONFIG_FILE) exist
+-include $(CONFIG_FILE)
+
 endif
