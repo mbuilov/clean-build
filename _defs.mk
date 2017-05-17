@@ -101,7 +101,7 @@ CONFIG_FILE:=
 DRIVERS_SUPPORT:=
 
 # ensure DRIVERS_SUPPORT is non-recursive (simple)
-override DRIVERS_SUPPORT := $(DRIVERS_SUPPORT)
+override DRIVERS_SUPPORT := $(DRIVERS_SUPPORT:0=)
 
 # legend for Makefile rules:
 # $< - name of the first prerequisite
