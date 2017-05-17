@@ -822,7 +822,7 @@ conf: override CF := $(CONFIG_FILE)
 conf:
 	$(if $(CF),,$(error CONFIG_FILE not set))$(call SUP,DEL,$(CF),,1)$(call DEL,$(CF))$(foreach v,$(filter-out \
   GNUMAKEFLAGS CONFIG_FILE CLEAN_BUILD_VERSION $(dump_max),$(.VARIABLES)),$(if $(filter command-line override,$(subst \
-  $(space),-,$(origin $v))),$(newline)$(call SUP,CONF,$v,,1)$(call ECHO,$(OVERRIDE_VAR_TEMPLATE)) >> $(CF)))
+  $(space),-,$(origin $v))),$(newline)$(call SUP,CONF,$v,1,1)$(call ECHO,$(OVERRIDE_VAR_TEMPLATE)) >> $(CF)))
 
 # conf target - not a file
 .PHONY: conf
