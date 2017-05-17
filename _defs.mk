@@ -89,6 +89,11 @@ ifneq (,$(filter $(BUILD)/%,$(TOP)/))
 $(error BUILD=$(BUILD) cannot be a base for TOP=$(TOP))
 endif
 
+# CONFIG_FILE - path to generated config file
+# it is normally defined in project configuration makefile like:
+# override CONFIG_FILE := $(TOP)/conf.mk
+CONFIG_FILE:=
+
 # by default, do not build kernel modules and drivers
 # note: DRIVERS_SUPPORT may be overridden either in command line
 # or in project configuration file before including this file, via:
@@ -197,7 +202,7 @@ ifndef NO_CLEAN_BUILD_DISTCLEAN_TARGET
 # define distclean target
 # note: RM macro must be defined below in $(OSDIR)/$(OS)/tools.mk
 distclean:
-	$(call RM,$(BUILD))
+	$(QUIET)$(call RM,$(BUILD) $(CONFIG_FILE))
 
 # fake target - delete all built artifacts, including directories and configuration files
 .PHONY: distclean
@@ -237,7 +242,7 @@ MDEBUG:=
 endif
 
 ifdef MDEBUG
-$(call dump,CLEAN_BUILD_DIR OSDIR TOP BUILD TARGET OS UCPU KCPU TCPU,,)
+$(call dump,CLEAN_BUILD_DIR OSDIR TOP BUILD CONFIG_FILE TARGET OS UCPU KCPU TCPU,,)
 endif
 
 # get absolute path to current makefile
@@ -298,6 +303,8 @@ show_dll_path_end:=
 GEN_COLOR   := [01;32m
 MGEN_COLOR  := [01;32m
 CP_COLOR    := [00;36m
+RM_COLOR    := [01;31m
+DEL_COLOR   := [01;31m
 LN_COLOR    := [00;36m
 MKDIR_COLOR := [00;36m
 TOUCH_COLOR := [00;36m
@@ -449,12 +456,9 @@ $(call CLEAN_BUILD_PROTECT_VARS1,BIN_DIR OBJ_DIR LIB_DIR GEN_DIR)
 endef
 TOOL_OVERRIDE_DIRS := $(TOOL_OVERRIDE_DIRS)
 
-# compute values of next variables right after +=, not at call time:
-# CLEAN          - files/directories list to delete on $(MAKE) clean
-# CLEAN_COMMANDS - code to $(eval) to get clean commands to execute on $(MAKE) clean - see $(CLEAN_BUILD_DIR)/all.mk
+# CLEAN - files/directories list to delete on $(MAKE) clean
 # note: CLEAN is never cleared, only appended
 CLEAN:=
-CLEAN_COMMANDS:=
 
 # TOCLEAN - function to add values to CLEAN variable
 # - don't add values to CLEAN variable if not cleaning up
@@ -679,7 +683,12 @@ RUN_WITH_DLL_PATH = $(if $2$3,$(if $2,$(eval $@:$(DLL_PATH_VAR):=$(addsuffix $(P
 
 # reset
 CB_TOOL_MODE:=
+
+# TOOL_MODE should be specified in target makefile before including this file
+# reset TOOL_MODE if it's not set in target makefile
+ifneq (file,$(origin TOOL_MODE))
 TOOL_MODE:=
+endif
 
 # used to remember makefiles include level
 CB_INCLUDE_LEVEL:=
@@ -786,13 +795,47 @@ endif
 # define OSTYPE variable
 include $(OSDIR)/$(OS)/tools.mk
 
+# use of environment variables is discouraged,
+# override variable only if it's not specified in command-line
+# $v - variable name
+define OVERRIDE_VAR_TEMPLATE
+ifneq ("command line","$$(origin $v)")
+override define $v
+$(value $v)
+endef$(if $(filter simple,$(flavor $v)),$(newline)override $v:=$$(value $v))
+endif
+endef
+
+# define conf goal by default
+NO_CLEAN_BUILD_CONF_TARGET:=
+
+ifndef NO_CLEAN_BUILD_CONF_TARGET
+
+CONF_COLOR := [01;32m
+
+# generated $(CONFIG_FILE) may be already sourced,
+# 1) override variables in $(CONFIG_FILE) with values specified in command line,
+# 2) save new variables specified in command line to $(CONFIG_FILE)
+# note: ECHO, DEL - are must be defined in $(OSDIR)/$(OS)/tools.mk
+# note: don't override GNUMAKEFLAGS, CONFIG_FILE, CLEAN_BUILD_VERSION and $(dump_max) variables
+conf: override CF := $(CONFIG_FILE)
+conf:
+	$(if $(CF),,$(error CONFIG_FILE not set))$(call SUP,DEL,$(CF),,1)$(call DEL,$(CF))$(foreach v,$(filter-out \
+  GNUMAKEFLAGS CONFIG_FILE CLEAN_BUILD_VERSION $(dump_max),$(.VARIABLES)),$(if $(filter command-line override,$(subst \
+  $(space),-,$(origin $v))),$(newline)$(call SUP,CONF,$v,,1)$(call ECHO,$(OVERRIDE_VAR_TEMPLATE)) >> $(CF)))
+
+# conf target - not a file
+.PHONY: conf
+
+endif # !NO_CLEAN_BUILD_CONF_TARGET
+
 # protect variables from modifications in target makefiles
 $(call CLEAN_BUILD_PROTECT_VARS,CLEAN_BUILD_VERSION CLEAN_BUILD_REQUIRED_VERSION CLEAN_BUILD_DIR MAKEFLAGS \
-  CHECK_TOP TOP BUILD DRIVERS_SUPPORT DEBUG \
+  CHECK_TOP TOP BUILD CONFIG_FILE DRIVERS_SUPPORT DEBUG NO_CLEAN_BUILD_DISTCLEAN_TARGET \
   SUPPORTED_OSES SUPPORTED_CPUS SUPPORTED_TARGETS OS CPU UCPU KCPU TCPU TARGET \
   OSTYPE VERBOSE QUIET INFOMF MDEBUG OSDIR CHECK_MAKEFILE_NOT_PROCESSED \
   PRINT_PERCENTS SUP ADD_SHOWN_PERCENTS REM_SHOWN_MAKEFILE FORMAT_PERCENTS \
-  GEN_COLOR MGEN_COLOR CP_COLOR LN_COLOR MKDIR_COLOR TOUCH_COLOR \
+  GEN_COLOR MGEN_COLOR CP_COLOR RM_COLOR DEL_COLOR LN_COLOR MKDIR_COLOR TOUCH_COLOR \
   COLORIZE TRY_REM_MAKEFILE SED_MULTI_EXPR ospath nonrelpath TOOL_SUFFIX PATHSEP \
   TARGET_TRIPLET DEF_BIN_DIR DEF_OBJ_DIR DEF_LIB_DIR DEF_GEN_DIR SET_DEFAULT_DIRS \
   TOOL_BASE MK_TOOLS_DIR GET_TOOLS GET_TOOL TOOL_OVERRIDE_DIRS FIX_ORDER_DEPS \
@@ -801,4 +844,5 @@ $(call CLEAN_BUILD_PROTECT_VARS,CLEAN_BUILD_VERSION CLEAN_BUILD_REQUIRED_VERSION
   FILTER_VARIANTS_LIST GET_VARIANTS GET_TARGET_NAME DEBUG_TARGETS FORM_OBJ_DIR \
   CHECK_GENERATED ADD_GENERATED MULTI_TARGET_RULE CHECK_MULTI_RULE MULTI_TARGET_SEQ MULTI_TARGET \
   DEFINE_TARGETS SAVE_VARS RESTORE_VARS MAKE_CONTINUE_BODY_EVAL MAKE_CONTINUE FORM_SDEPS EXTRACT_SDEPS FIX_SDEPS \
-  DLL_PATH_VAR show_with_dll_path show_dll_path_end RUN_WITH_DLL_PATH)
+  DLL_PATH_VAR show_with_dll_path show_dll_path_end RUN_WITH_DLL_PATH \
+  OVERRIDE_VAR_TEMPLATE VAR_COLOR NO_CLEAN_BUILD_CONF_TARGET)
