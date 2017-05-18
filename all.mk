@@ -42,7 +42,7 @@ all: $(PROCESSED_MAKEFILES)
 	@:
 
 clean:
-	$(QUIET)$(call RM,$(CLEAN))
+	$(call RM,$(CLEAN))
 
 # build all to build or run tests
 check tests: all
