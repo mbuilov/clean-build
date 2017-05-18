@@ -48,51 +48,73 @@ nonrelpath1 = $(if $2,$(call nonrelpath1,$1,$(wordlist 2,999999,$2),$(patsubst $
 # a/b c:/1 -> xxx/a/b xxx/c:/1 -> xxx/a/b c:/1
 nonrelpath = $(if $(findstring :,$2),$(call nonrelpath1,$1,$(sort $(filter %:,$(subst :,: ,$2))),$(addprefix $1,$2)),$(addprefix $1,$2))
 
-# delete one file
-DEL1 = if exist $1 del /F /Q $1
-DEL  = $(call DEL1,$(ospath))
+# delete files $1
+DEL = for %%f in ($(ospath)) do if exist %%f del /F /Q %%f
 
-# delete directory
-DEL_DIR1 = if exist $1\* rd /S /Q $1
-DEL_DIR  = $(call DEL_DIR1,$(ospath))
+# delete directories $1
+# note: DEL_DIR may be not defined for other OSes, use RM in platform-independent code
+DEL_DIR = for %%f in ($(ospath)) do if exist %%f rd /S /Q %%f
 
 # delete files and directories
+# note: do not need to add $(QUIET) before $(RM)
 RM1 = $(QUIET)for %%f in ($(ospath)) do if exist %%f\* (rd /S /Q %%f) else if exist %%f (del /F /Q %%f)
 RM  = $(call xcmd,RM1,$1,$(DEL_ARGS_LIMIT),,,,)
 
 # NOTE! there are races in MKDIR - if make spawns two parallel jobs:
+#
 # if not exist aaa
 #                        if not exist aaa/bbb
 #                        mkdir aaa/bbb
 # mkdir aaa - fail
-# assume MKDIR is called only if directory does not exist
+#
+# MKDIR must be called only if destination directory does not exist
+# note: MKDIR should create intermediate parent directories of destination directory
 MKDIR = mkdir $(ospath)
 
-SED  := sed.exe
+# stream-editor executable
+# note: SED value may be overridden either in command line or in project configuration file, like:
+# override SED := C:\tools\gnused.exe
+SED := sed.exe
+
+# escape command line argument to pass it to $(SED)
 SED_EXPR = "$(subst %,%%,$1)"
-CAT   = type $(ospath)
-# note: ECHO_LINE may be not defined for other OSes
-ECHO_LINE = echo$(if $1, $(subst $(open_brace),^$(open_brace),$(subst $(close_brace),^$(close_brace),$(subst \
-             %,%%,$(subst <,^<,$(subst >,^>,$(subst |,^|,$(subst &,^&,$(subst ",^",$(subst ^,^^,$1))))))))),.)
-ECHO1 = $(if $(word 2,$1),($(foreach x,$1,($(call ECHO_LINE,$(subst $$(newline),,$(subst $$(space), ,$(subst \
-         $$(tab),$(tab),$x))))) &&) rem.),$(call ECHO_LINE,$(subst $$(space), ,$(subst $$(tab),$(tab),$1))))
-ECHO  = $(call ECHO1,$(subst $(newline),$$(newline) ,$(subst $(space),$$(space),$(subst $(tab),$$(tab),$1))))
-NUL  := NUL
-SUPPRESS_CP_OUTPUT := | findstr /v /b /c:"        1 " & if errorlevel 1 (cmd /c exit 0) else (cmd /c exit 1)
+
+# print contents of given file (to stdout, for redirecting it to output file)
+CAT = type $(ospath)
+
+# print one line of text (to stdout, for redirecting it to output file)
+# note: line will be ended with CRLF
+# note: ECHO_LINE may be not defined for other OSes, use ECHO in platform-independent code
+ECHO_LINE = echo.$(subst $(open_brace),^$(open_brace),$(subst $(close_brace),^$(close_brace),$(subst \
+  %,%%,$(subst <,^<,$(subst >,^>,$(subst |,^|,$(subst &,^&,$(subst ",^",$(subst ^,^^,$1)))))))))
+
+# print lines of text (to stdout, for redirecting it to output file)
+# note: each line will be ended with CRLF
+ECHO = $(if $(findstring $(newline),$1),($(foreach x,$(subst \
+  $(newline), ,$(subst $(space),$$(space),$(subst $(tab),$$(tab),$1))),($(call \
+  ECHO_LINE,$(subst $$(space), ,$(subst $$(tab),$(tab),$x)))) &&) rem.),$(ECHO_LINE))
+
+# null device for redirecting output into
+NUL := NUL
+
+# code for suppressing output of copy command, like
+# "        1 file(s) copied."
+# "Скопировано файлов:         1."
+SUPPRESS_CP_OUTPUT := | findstr /v /c:"        1" & if errorlevel 1 (cmd /c exit 0) else (cmd /c exit 1)
+
+# update modification date of given file(s) or create file(s) if they do not exist
 TOUCH = for %%f in ($(ospath)) do if exist %%f (copy /Y /B %%f+,, %%f$(SUPPRESS_CP_OUTPUT)) else (rem. > %%f)
-# copy _one_ file $1 to directory or overwrite file $2, then touch destination file
-CP    = for %%f in ($(call ospath,$2)) do copy /Y /B $(ospath) %%f| findstr /v /b /c:"        1 " & if errorlevel 1 (\
- (if exist %%f\* (\
-  copy /Y /B %%f\$(notdir $1)+,, %%f\$(notdir $1)| findstr /v /b /c:"        1 ") else (\
-  copy /Y /B %%f+,, %%f| findstr /v /b /c:"        1 ")\
- ) & if errorlevel 1 (cmd /c exit 0) else (cmd /c exit 1)\
-) else (cmd /c exit 1)
+
+# copy preserving modification date:
+# - file(s) $1 to directory $2 or
+# - file $1 to file $2
+CP = for %%f in ($(ospath)) do copy /Y /B %%f $(call ospath,$2)$(SUPPRESS_CP_OUTPUT)
 
 # execute command $2 in directory $1
 EXECIN = pushd $(ospath) && ($2 && popd || (popd & cmd /c exit 1))
 
-# delete target if failed to build it and exit shell with error code 1
-DEL_ON_FAIL = || ($(foreach x,$1,($(call DEL,$x)) &) cmd /c exit 1)
+# delete target file(s) if failed to build them and exit shell with error code 1
+DEL_ON_FAIL = || (($(DEL)) & cmd /c exit 1)
 
 # suffix of built tool executables
 TOOL_SUFFIX := .exe
@@ -125,5 +147,5 @@ PRINT_PERCENTS = [$1]
 COLORIZE = $1$(padto)$2
 
 # protect variables from modifications in target makefiles
-$(call CLEAN_BUILD_PROTECT_VARS,DEL_ARGS_LIMIT nonrelpath1 DEL1 DEL DEL_DIR1 DEL_DIR RM1 RM MKDIR SED SED_EXPR \
-  CAT ECHO_LINE ECHO1 ECHO EXECIN NUL SUPPRESS_CP_OUTPUT CP TOUCH1 TOUCH DEL_ON_FAIL NO_RPATH)
+$(call CLEAN_BUILD_PROTECT_VARS,DEL_ARGS_LIMIT nonrelpath1 DEL DEL_DIR RM1 RM MKDIR SED SED_EXPR \
+  CAT ECHO_LINE ECHO EXECIN NUL SUPPRESS_CP_OUTPUT CP TOUCH DEL_ON_FAIL NO_RPATH)
