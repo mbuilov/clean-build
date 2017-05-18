@@ -39,6 +39,8 @@ endef
 # - to be safe if CONFIG_FILE get overridden
 conf unconf: override CF := $(CONFIG_FILE)
 
+ifneq (,$(filter conf,$(MAKECMDGOALS)))
+
 # generated $(CONFIG_FILE) may be already sourced,
 # 1) override variables in $(CONFIG_FILE) with values specified in command line,
 # 2) save new variables specified in command line to $(CONFIG_FILE)
@@ -54,8 +56,10 @@ conf: override CONFIG_FILE_TEXT := $(foreach v,$(filter-out GNUMAKEFLAGS CLEAN_B
 conf:
 	$(call SUP,GEN,$(CF),,1)$(call ECHO,$(CONFIG_FILE_TEXT)) > $(CF)
 
+endif # conf
+
 # delete configuration file
-# note: RM - defined in $(OSDIR)/$(OS)/tools.mk
+# note: DEL - defined in $(OSDIR)/$(OS)/tools.mk
 # note: pass 1 as 4-th argument of SUP function to not update percents of executed target makefiles
 unconf:
 	$(call SUP,RM,$(CF),,1)$(call DEL,$(CF))
