@@ -108,7 +108,7 @@ TOUCH = for %%f in ($(ospath)) do if exist %%f (copy /Y /B %%f+,, %%f$(SUPPRESS_
 # copy preserving modification date:
 # - file(s) $1 to directory $2 or
 # - file $1 to file $2
-CP = for %%f in ($(ospath)) do copy /Y /B %%f $(call ospath,$2)$(SUPPRESS_CP_OUTPUT)
+CP = $(if $(word 2,$1),for %%f in ($(ospath)) do copy /Y /B %%f,copy /Y /B $(ospath)) $(call ospath,$2)$(SUPPRESS_CP_OUTPUT)
 
 # execute command $2 in directory $1
 EXECIN = pushd $(ospath) && ($2 && popd || (popd & cmd /c exit 1))
