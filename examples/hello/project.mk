@@ -17,7 +17,7 @@ VENDOR_COPYRIGHT := Copyright (C) 2015-2017 Michael M. Builov, https://github.co
 
 # define variable - for referencing clean-build files in project makefiles
 # note: following general rules for working with variables,
-# this variable should not be defined in environment,
+# this variable SHOULD NOT be defined in environment,
 # instead, it should be defined either in command line or
 # in generated config.mk (for example, included from project.mk)
 
@@ -27,8 +27,5 @@ MTOP := $(abspath $(dir $(lastword $(MAKEFILE_LIST)))../../)
 # clean-build generated config file
 # note: distclean goal, defined by clean-build will also delete $(CONFIG_FILE)
 override CONFIG_FILE := $(TOP)/conf.mk
-
-# source definitions, if $(CONFIG_FILE) exist
--include $(CONFIG_FILE)
 
 endif
