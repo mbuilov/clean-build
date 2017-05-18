@@ -67,7 +67,8 @@ LDCONFIG       := $(if $(filter LINUX,$(OS)),/sbin/ldconfig)
 # $2 - r or <empty>
 # note: pass non-empty 3-d argument to SUP function to not colorize tool arguments
 # note: pass non-empty 4-th argument to SUP function to not update percents of executed makefiles
-UNINSTALL_RM = $(call SUP,RM,$1,1,1)rm -f$2$(if $(filter LINUX,$(OS)),$(if $(VERBOSE),v)) $1
+UNINSTALL_RM = $(call SUP,RM,$1,1,1)rm -f$2$(if $(filter LINUX,$(OS)),$(if \
+  $(VERBOSE),v)) $1$(if $(filter LINUX,$(OS)),$(if $(VERBOSE), >&2))
 
 # create symbolic link while installing files
 # $1 - target
@@ -91,7 +92,7 @@ LDCONF_COLOR := [01;33m
 # note: pass non-empty 3-d argument to SUP function to not colorize tool arguments
 # note: pass non-empty 4-th argument to SUP function to not update percents of executed makefiles
 LDCONFIG_TEMPLATE = $(if $2,$(newline)$(tab)$$(call \
-  SUP,LDCONF,'$$(DESTDIR)$$(LIBDIR)',1,1)$$(LDCONFIG) -n$(if $(VERBOSE),v) '$$(DESTDIR)$$(LIBDIR)')
+  SUP,LDCONF,'$$(DESTDIR)$$(LIBDIR)',1,1)$$(LDCONFIG) -n$(if $(VERBOSE),v) '$$(DESTDIR)$$(LIBDIR)'$(if $(VERBOSE), >&2))
 
 else # !LDCONFIG
 
