@@ -24,12 +24,13 @@ MAKEFLAGS += --no-builtin-rules --no-builtin-variables
 .DELETE_ON_ERROR:
 
 # clean-build version: major.minor.patch
-override CLEAN_BUILD_VERSION := 0.4.0
+override CLEAN_BUILD_VERSION := 0.5.0
 
-# clean-build root directory
+# clean-build root directory (absolute path)
 CLEAN_BUILD_DIR := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
 
 # include functions library
+include $(CLEAN_BUILD_DIR)/confsup.mk
 include $(CLEAN_BUILD_DIR)/protection.mk
 include $(CLEAN_BUILD_DIR)/functions.mk
 
@@ -88,11 +89,6 @@ $(call CHECK_TOP,BUILD)
 ifneq (,$(filter $(BUILD)/%,$(TOP)/))
 $(error BUILD=$(BUILD) cannot be a base for TOP=$(TOP))
 endif
-
-# CONFIG_FILE - path to generated config file
-# it is normally defined in project configuration makefile like:
-# override CONFIG_FILE := $(TOP)/conf.mk
-CONFIG_FILE:=
 
 # by default, do not build kernel modules and drivers
 # note: DRIVERS_SUPPORT may be overridden either in command line
@@ -199,10 +195,16 @@ NO_CLEAN_BUILD_DISTCLEAN_TARGET:=
 
 ifndef NO_CLEAN_BUILD_DISTCLEAN_TARGET
 
+# will delete generated configuration file on distclean,
+# save value of $(CONFIG_FILE) in target-specific variable CF
+# note: $(CONFIG_FILE) may be empty if configuration file is not used for the project
+distclean: override CF := $(CONFIG_FILE)
+
 # define distclean target
+# note: delete generated configuration file $(CF)
 # note: RM macro must be defined below in $(OSDIR)/$(OS)/tools.mk
 distclean:
-	$(call RM,$(BUILD) $(CONFIG_FILE))
+	$(call RM,$(BUILD) $(CF))
 
 # fake target - delete all built artifacts, including directories and configuration files
 .PHONY: distclean
@@ -795,43 +797,9 @@ endif
 # define OSTYPE variable
 include $(OSDIR)/$(OS)/tools.mk
 
-# use of environment variables is discouraged,
-# override variable only if it's not specified in command-line
-# $v - variable name
-define OVERRIDE_VAR_TEMPLATE
-ifneq ("command line","$$(origin $v)")
-override define $v
-$(value $v)
-endef$(if $(filter simple,$(flavor $v)),$(newline)override $v:=$$(value $v))
-endif
-endef
-
-# define conf goal by default
-NO_CLEAN_BUILD_CONF_TARGET:=
-
-ifndef NO_CLEAN_BUILD_CONF_TARGET
-
-CONF_COLOR := [01;32m
-
-# generated $(CONFIG_FILE) may be already sourced,
-# 1) override variables in $(CONFIG_FILE) with values specified in command line,
-# 2) save new variables specified in command line to $(CONFIG_FILE)
-# note: ECHO, DEL - are must be defined in $(OSDIR)/$(OS)/tools.mk
-# note: don't override GNUMAKEFLAGS, CONFIG_FILE, CLEAN_BUILD_VERSION and $(dump_max) variables
-conf: override CF := $(CONFIG_FILE)
-conf:
-	$(if $(CF),,$(error CONFIG_FILE not set))$(call SUP,DEL,$(CF),,1)$(call DEL,$(CF))$(foreach v,$(filter-out \
-  GNUMAKEFLAGS CONFIG_FILE CLEAN_BUILD_VERSION $(dump_max),$(.VARIABLES)),$(if $(filter command-line override,$(subst \
-  $(space),-,$(origin $v))),$(newline)$(call SUP,CONF,$v,1,1)$(call ECHO,$(OVERRIDE_VAR_TEMPLATE)) >> $(CF)))
-
-# conf target - not a file
-.PHONY: conf
-
-endif # !NO_CLEAN_BUILD_CONF_TARGET
-
 # protect variables from modifications in target makefiles
-$(call CLEAN_BUILD_PROTECT_VARS,CLEAN_BUILD_VERSION CLEAN_BUILD_REQUIRED_VERSION CLEAN_BUILD_DIR MAKEFLAGS \
-  CHECK_TOP TOP BUILD CONFIG_FILE DRIVERS_SUPPORT DEBUG NO_CLEAN_BUILD_DISTCLEAN_TARGET \
+$(call CLEAN_BUILD_PROTECT_VARS,MAKEFLAGS CLEAN_BUILD_VERSION CLEAN_BUILD_REQUIRED_VERSION CLEAN_BUILD_DIR \
+  CONFIG_FILE CHECK_TOP TOP BUILD DRIVERS_SUPPORT DEBUG NO_CLEAN_BUILD_DISTCLEAN_TARGET \
   SUPPORTED_OSES SUPPORTED_CPUS SUPPORTED_TARGETS OS CPU UCPU KCPU TCPU TARGET \
   OSTYPE VERBOSE QUIET INFOMF MDEBUG OSDIR CHECK_MAKEFILE_NOT_PROCESSED \
   PRINT_PERCENTS SUP ADD_SHOWN_PERCENTS REM_SHOWN_MAKEFILE FORMAT_PERCENTS \
@@ -844,5 +812,4 @@ $(call CLEAN_BUILD_PROTECT_VARS,CLEAN_BUILD_VERSION CLEAN_BUILD_REQUIRED_VERSION
   FILTER_VARIANTS_LIST GET_VARIANTS GET_TARGET_NAME DEBUG_TARGETS FORM_OBJ_DIR \
   CHECK_GENERATED ADD_GENERATED MULTI_TARGET_RULE CHECK_MULTI_RULE MULTI_TARGET_SEQ MULTI_TARGET \
   DEFINE_TARGETS SAVE_VARS RESTORE_VARS MAKE_CONTINUE_BODY_EVAL MAKE_CONTINUE FORM_SDEPS EXTRACT_SDEPS FIX_SDEPS \
-  DLL_PATH_VAR show_with_dll_path show_dll_path_end RUN_WITH_DLL_PATH \
-  OVERRIDE_VAR_TEMPLATE VAR_COLOR NO_CLEAN_BUILD_CONF_TARGET)
+  DLL_PATH_VAR show_with_dll_path show_dll_path_end RUN_WITH_DLL_PATH)
