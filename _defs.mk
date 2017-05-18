@@ -202,7 +202,7 @@ ifndef NO_CLEAN_BUILD_DISTCLEAN_TARGET
 # define distclean target
 # note: RM macro must be defined below in $(OSDIR)/$(OS)/tools.mk
 distclean:
-	$(QUIET)$(call RM,$(BUILD) $(CONFIG_FILE))
+	$(call RM,$(BUILD) $(CONFIG_FILE))
 
 # fake target - delete all built artifacts, including directories and configuration files
 .PHONY: distclean
