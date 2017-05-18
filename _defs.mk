@@ -17,6 +17,11 @@ endif
 # disable builtin rules and variables
 MAKEFLAGS += --no-builtin-rules --no-builtin-variables
 
+# reset if not defined
+ifndef MAKECMDGOALS
+MAKECMDGOALS:=
+endif
+
 # drop make's default legacy rules - we'll use custom ones
 .SUFFIXES:
 
@@ -152,11 +157,6 @@ endif
 
 ifeq (,$(filter $(OS),$(SUPPORTED_OSES)))
 $(error unknown OS=$(OS), please pick one of build OS types: $(SUPPORTED_OSES))
-endif
-
-# reset if not defined
-ifndef MAKECMDGOALS
-MAKECMDGOALS:=
 endif
 
 # check $(CPU) and $(TARGET) only if goal is not distclean
