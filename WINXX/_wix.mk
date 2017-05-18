@@ -8,7 +8,7 @@
 
 # WIX - path to Windows Installer Xml - must be defined either in command line
 # or in project configuration file before including this file, via:
-# override WIX:=C:\Program Files (x86)\WiX Toolset v3.10\
+# override WIX:=C:\Program Files (x86)\WiX Toolset v3.10
 WIX:=
 
 ifeq (,$(WIX))
