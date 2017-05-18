@@ -71,6 +71,7 @@ MKDIR = mkdir $(ospath)
 SED  := sed.exe
 SED_EXPR = "$(subst %,%%,$1)"
 CAT   = type $(ospath)
+# note: ECHO_LINE may be not defined for other OSes
 ECHO_LINE = echo$(if $1, $(subst $(open_brace),^$(open_brace),$(subst $(close_brace),^$(close_brace),$(subst \
              %,%%,$(subst <,^<,$(subst >,^>,$(subst |,^|,$(subst &,^&,$(subst ",^",$(subst ^,^^,$1))))))))),.)
 ECHO1 = $(if $(word 2,$1),($(foreach x,$1,($(call ECHO_LINE,$(subst $$(newline),,$(subst $$(space), ,$(subst \
@@ -79,7 +80,7 @@ ECHO  = $(call ECHO1,$(subst $(newline),$$(newline) ,$(subst $(space),$$(space),
 NUL  := NUL
 SUPPRESS_CP_OUTPUT := | findstr /v /b /c:"        1 " & if errorlevel 1 (cmd /c exit 0) else (cmd /c exit 1)
 TOUCH = for %%f in ($(ospath)) do if exist %%f (copy /Y /B %%f+,, %%f$(SUPPRESS_CP_OUTPUT)) else (rem. > %%f)
-# copy _one_ file $1 to directory or file $2, then touch destination file
+# copy _one_ file $1 to directory or overwrite file $2, then touch destination file
 CP    = for %%f in ($(call ospath,$2)) do copy /Y /B $(ospath) %%f| findstr /v /b /c:"        1 " & if errorlevel 1 (\
  (if exist %%f\* (\
   copy /Y /B %%f\$(notdir $1)+,, %%f\$(notdir $1)| findstr /v /b /c:"        1 ") else (\
