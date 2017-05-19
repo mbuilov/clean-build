@@ -9,7 +9,7 @@
 
 # do not inherit CONFIG_FILE from environment - if needed,
 # CONFIG_FILE may be specified before including this file via:
-# override CONFIG_FILE := $(TOP)/conf.mk
+# override CONFIG_FILE = $(BUILD)/conf.mk
 CONFIG_FILE:=
 
 ifdef CONFIG_FILE
@@ -19,6 +19,12 @@ override CONFIG_FILE := $(CONFIG_FILE)
 
 # source old definitions, if $(CONFIG_FILE) does exist
 -include $(CONFIG_FILE)
+
+# save $(CONFIG_FILE) in target-specific variable CF
+# - to be safe if CONFIG_FILE get overridden
+conf unconf: override CF := $(CONFIG_FILE)
+
+ifneq (,$(filter conf,$(MAKECMDGOALS)))
 
 # use of environment variables is discouraged,
 # override variable only if it's not specified in command-line
@@ -34,12 +40,6 @@ endif
 $(if $(filter simple,$(flavor $v)),override $v:=$$(value $v))
 
 endef
-
-# save $(CONFIG_FILE) in target-specific variable CF
-# - to be safe if CONFIG_FILE get overridden
-conf unconf: override CF := $(CONFIG_FILE)
-
-ifneq (,$(filter conf,$(MAKECMDGOALS)))
 
 # generated $(CONFIG_FILE) may be already sourced,
 # 1) override variables in $(CONFIG_FILE) with values specified in command line,
@@ -68,3 +68,6 @@ unconf:
 .PHONY: conf unconf
 
 endif
+
+# protect variables from modification in target makefiles
+$(call CLEAN_BUILD_PROTECT_VARS,CONFIG_FILE)
