@@ -42,16 +42,16 @@ WRAP_WIX = (($1 2>&1 && echo WIX_COMPILATION_OK >&2) | findstr /V /X /L "$(notdi
 # compile .wxs file
 # $1 - .wixobj
 # $2 - .wxs
-# target-specific: WINCLUDE
-WIXOBJ_CL = $(call SUP,CANDLE,$2)$(call WRAP_WIX,$(WIX_CANDLE) -nologo$(if $(VERBOSE), -v) $(call \
-  qpath,$(WEXTS),-ext ) $(call ospath,$2) $(call qpath,$(call ospath,$(WINCLUDE)),-I) -out $(ospath),$2)
+# target-specific: WEXTS, WINCLUDE, WCFLAGS
+WIXOBJ_CL = $(call SUP,CANDLE,$2)$(call WRAP_WIX,$(WIX_CANDLE) -nologo$(if $(VERBOSE), -v) -out $(ospath) $(call \
+  qpath,$(WEXTS),-ext ) $(call qpath,$(call ospath,$(WINCLUDE)),-I) $(WCFLAGS) $(call ospath,$2),$2)
 
 # build installer .msi file
 # $1 - target .msi
 # $2 - objects .wxsobj
-# target-specific: WEXTS
-MSI_LD = $(call SUP,LIGHT,$1)$(WIX_LIGHT) -nologo$(if $(VERBOSE), -v) $(call \
-  qpath,$(WEXTS),-ext ) $(call ospath,$2) -out $(ospath) >&2
+# target-specific: WEXTS, WLFLAGS
+MSI_LD = $(call SUP,LIGHT,$1)$(WIX_LIGHT) -nologo$(if $(VERBOSE), -v) -out $(ospath) $(call \
+  qpath,$(WEXTS),-ext ) $(WLFLAGS) $(call ospath,$2) >&2
 
 # build installer .exe file
 INSTALLER_LD = $(MSI_LD)
@@ -99,8 +99,10 @@ define WIX_TEMPLATE
 $(call STD_TARGET_VARS,$2)
 NEEDED_DIRS+=$5
 $2:$(call WIX_OBJ_RULES,$3,$4,$5)
-$2:WEXTS := $(WEXTS)
+$2:WEXTS    := $(WEXTS)
 $2:WINCLUDE := $(WINCLUDE)
+$2:WCFLAGS  := $(WCFLAGS)
+$2:WLFLAGS  := $(WLFLAGS)
 $2:
 	$$(call $1_LD,$$@,$$(filter %.wixobj,$$^))
 $(call TOCLEAN,$(basename $2).wixpdb)
@@ -127,6 +129,8 @@ WXS:=
 WEXTS:=
 WDEPS:=
 WINCLUDE:=
+WCFLAGS:=
+WLFLAGS:=
 DEFINE_TARGETS_EVAL_NAME:=DEFINE_WIX_TARGETS_EVAL
 MAKE_CONTINUE_EVAL_NAME:=CLEAN_BUILD_WIX_EVAL
 endef
