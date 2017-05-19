@@ -134,7 +134,7 @@ install_$1_headers uninstall_$1_headers: HEADERS := $(LIBRARY_HEADERS)
 install_$1_headers:$(if $(LIBRARY_HEADERS),$(newline)$(tab)$$(call \
   SUP,MKDIR,'$$(DESTDIR)$$(INCLUDEDIR)$(LIBRARY_HDIR)',1,1)$$(INSTALL) -d\
  '$$(DESTDIR)$$(INCLUDEDIR)$(LIBRARY_HDIR)'$(newline)$(tab)$$(call \
-  SUP,INSTALL,$$(HEADERS:$(TOP)/%=%) -> '$$(DESTDIR)$$(INCLUDEDIR)$(LIBRARY_HDIR)',1,1)$$(INSTALL) -m 644\
+  SUP,INSTALL,$$(HEADERS) -> '$$(DESTDIR)$$(INCLUDEDIR)$(LIBRARY_HDIR)',1,1)$$(INSTALL) -m 644\
  $$(HEADERS) '$$(DESTDIR)$$(INCLUDEDIR)$(LIBRARY_HDIR)')
 
 uninstall_$1_headers:$(if $(LIBRARY_HEADERS),$(newline)$(tab)$$(call \
@@ -230,7 +230,7 @@ install_$1 uninstall_$1: BUILT_IMPS := $(foreach v,$(BUILT_DLL_VARIANTS),$(call 
 install_$1_headers uninstall_$1_headers: HEADERS := $(LIBRARY_HEADERS)
 
 install_$1_headers:$(if $(LIBRARY_HEADERS),| $(DST_INC_DIR)$(newline)$(tab)$$(call \
-  SUP,COPY,$$(call ospath,$$(HEADERS:$(TOP)/%=%)) -> "$$(call ospath,$$(DESTDIR)$$(INCLUDEDIR)$(LIBRARY_HDIR))",1,1)$$(foreach \
+  SUP,COPY,$$(call ospath,$$(HEADERS)) -> "$$(call ospath,$$(DESTDIR)$$(INCLUDEDIR)$(LIBRARY_HDIR))",1,1)$$(foreach \
   h,$$(HEADERS),$$(newline)$(QUIET)$$(call CP,$$h,"$$(DESTDIR)$$(INCLUDEDIR)$(LIBRARY_HDIR)")))
 
 uninstall_$1_headers:$(if $(LIBRARY_HEADERS),$(newline)$(tab)$(if $(LIBRARY_HDIR),$$(call \
