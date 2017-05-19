@@ -29,70 +29,52 @@ endif
 .DELETE_ON_ERROR:
 
 # clean-build version: major.minor.patch
-override CLEAN_BUILD_VERSION := 0.5.0
+override CLEAN_BUILD_VERSION := 0.6.0
 
 # clean-build root directory (absolute path)
 CLEAN_BUILD_DIR := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
 
 # include functions library
-include $(CLEAN_BUILD_DIR)/confsup.mk
-include $(CLEAN_BUILD_DIR)/protection.mk
 include $(CLEAN_BUILD_DIR)/functions.mk
+include $(CLEAN_BUILD_DIR)/protection.mk
 
 # CLEAN_BUILD_REQUIRED_VERSION - clean-build version required by project makefiles
 # it is normally defined in project configuration makefile like:
 # override CLEAN_BUILD_REQUIRED_VERSION := 0.3
 CLEAN_BUILD_REQUIRED_VERSION := 0.0.0
 
+# check required clean-build version
 ifeq (,$(call ver_compatible,$(CLEAN_BUILD_VERSION),$(CLEAN_BUILD_REQUIRED_VERSION)))
 $(error incompatible clean-build version: $(CLEAN_BUILD_VERSION), project needs: $(CLEAN_BUILD_REQUIRED_VERSION))
 endif
 
-# TOP - path to project root directory - must be defined either in command line
+# save configuration, if $(CONFIG_FILE) is defined
+# note: CONFIG_FILE may be defined in project configuration makefile as:
+# override CONFIG_FILE := $(BUILD)/conf.mk
+# then it will be deleted on 'distclean'
+include $(CLEAN_BUILD_DIR)/confsup.mk
+
+# BUILD - directory for built files - must be defined either in command line
 # or in project configuration file before including this file, via:
-# override TOP := /my_project
-ifeq (environment,$(origin TOP))
-$(error TOP must not be taken from environment,\
- please define TOP either in command line or in project configuration\
+# override BUILD := /my_project/build
+ifeq (environment,$(origin BUILD))
+$(error BUILD must not be taken from environment,\
+ please define BUILD either in command line or in project configuration\
  makefile (via override directive) before including this file)
 endif
 
-# do not inherit TOP from environment
-TOP:=
-
-# ensure that TOP is non-recursive (simple)
-override TOP := $(TOP)
-
-ifndef TOP
-$(error TOP undefined, example: C:/opt/project or /home/oper/project)
-endif
-
-# check values of TOP and BUILD variables
-# $1 (TOP or BUILD) must contain unix-style path to directory without spaces, like C:/opt/project or /home/oper/project
-CHECK_TOP = $(if \
-  $(word 2,x$($1)x),$(error \
- $1=$($1), path with spaces is not allowed))$(if \
-  $(word 2,$(subst \, ,x$($1)x)),$(error \
- $1=$($1), path must use unix-style slashes: /))$(if \
-  $(word 2,$(subst //, ,x$($1)/x)),$(error \
- $1=$($1), path must not end with slash: / or contain double-slash: //))
-
-$(call CHECK_TOP,TOP)
-
-# directory for built files
-BUILD := $(TOP)/build
+# do not inherit BUILD from environment
+BUILD:=
 
 # ensure that BUILD is non-recursive (simple)
-override BUILD := $(BUILD)
+override BUILD := $(abspath $(BUILD))
 
 ifndef BUILD
-$(error BUILD undefined, example: $$(TOP)/build)
+$(error BUILD undefined, example: C:/opt/project/build or /home/oper/project/build)
 endif
 
-$(call CHECK_TOP,BUILD)
-
-ifneq (,$(filter $(BUILD)/%,$(TOP)/))
-$(error BUILD=$(BUILD) cannot be a base for TOP=$(TOP))
+ifneq (,$(findstring $(space),$(BUILD)))
+$(error BUILD=$(BUILD), path to generated files must not contain spaces)
 endif
 
 # by default, do not build kernel modules and drivers
@@ -195,18 +177,12 @@ NO_CLEAN_BUILD_DISTCLEAN_TARGET:=
 
 ifndef NO_CLEAN_BUILD_DISTCLEAN_TARGET
 
-# will delete generated configuration file on distclean,
-# save value of $(CONFIG_FILE) in target-specific variable CF
-# note: $(CONFIG_FILE) may be empty if configuration file is not used for the project
-distclean: override CF := $(CONFIG_FILE)
-
 # define distclean target
-# note: delete generated configuration file $(CF)
 # note: RM macro must be defined below in $(OSDIR)/$(OS)/tools.mk
 distclean:
-	$(call RM,$(BUILD) $(CF))
+	$(call RM,$(BUILD))
 
-# fake target - delete all built artifacts, including directories and configuration files
+# fake target - delete all built artifacts, including directories
 .PHONY: distclean
 
 endif # !NO_CLEAN_BUILD_DISTCLEAN_TARGET
@@ -244,7 +220,7 @@ MDEBUG:=
 endif
 
 ifdef MDEBUG
-$(call dump,CLEAN_BUILD_DIR OSDIR TOP BUILD CONFIG_FILE TARGET OS UCPU KCPU TCPU,,)
+$(call dump,CLEAN_BUILD_DIR OSDIR BUILD CONFIG_FILE TARGET OS UCPU KCPU TCPU,,)
 endif
 
 # get absolute path to current makefile
@@ -798,8 +774,8 @@ endif
 include $(OSDIR)/$(OS)/tools.mk
 
 # protect variables from modifications in target makefiles
-$(call CLEAN_BUILD_PROTECT_VARS,MAKEFLAGS CLEAN_BUILD_VERSION CLEAN_BUILD_REQUIRED_VERSION CLEAN_BUILD_DIR \
-  CONFIG_FILE CHECK_TOP TOP BUILD DRIVERS_SUPPORT DEBUG NO_CLEAN_BUILD_DISTCLEAN_TARGET \
+$(call CLEAN_BUILD_PROTECT_VARS,MAKEFLAGS CLEAN_BUILD_VERSION CLEAN_BUILD_DIR CLEAN_BUILD_REQUIRED_VERSION \
+  BUILD DRIVERS_SUPPORT DEBUG NO_CLEAN_BUILD_DISTCLEAN_TARGET \
   SUPPORTED_OSES SUPPORTED_CPUS SUPPORTED_TARGETS OS CPU UCPU KCPU TCPU TARGET \
   OSTYPE VERBOSE QUIET INFOMF MDEBUG OSDIR CHECK_MAKEFILE_NOT_PROCESSED \
   PRINT_PERCENTS SUP ADD_SHOWN_PERCENTS REM_SHOWN_MAKEFILE FORMAT_PERCENTS \
