@@ -35,8 +35,8 @@ override CLEAN_BUILD_VERSION := 0.6.0
 CLEAN_BUILD_DIR := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
 
 # include functions library
-include $(CLEAN_BUILD_DIR)/functions.mk
 include $(CLEAN_BUILD_DIR)/protection.mk
+include $(CLEAN_BUILD_DIR)/functions.mk
 
 # CLEAN_BUILD_REQUIRED_VERSION - clean-build version required by project makefiles
 # it is normally defined in project configuration makefile like:
