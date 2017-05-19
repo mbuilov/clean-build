@@ -16,9 +16,9 @@ ifdef COMSPEC
 SHELL := $(COMSPEC)
 endif
 
-ifneq (,$(filter /cygdrive/%,$(TOP)))
+ifneq (,$(filter /cygdrive/%,$(abspath .)))
 $(error cygwin gnu make is used for build - this is not supported, please use native tools,\
- for example, start build with: /cygdrive/c/tools/gnumake-4.2.1.exe SED=C:/tools/sed.exe <args>)
+ for example, under cygwin start build with: /cygdrive/c/tools/gnumake-4.2.1.exe SED=C:/tools/sed.exe <args>)
 endif
 
 # stip off cygwin paths - to use only native windows tools
