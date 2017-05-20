@@ -58,13 +58,13 @@ $(value $1)
 endef
 define $1
 $$(warning $$$$($1) {)$$(dump_args)$$(call dump,$2,,$1: )$$(info ------$1 value---->)$$(info \
-  $$(value $1_))$$(info ------$1 result--->)$$(call infofn,$$(call $1_,$(dump_params)))$$(call dump,$3,,$1: )$$(info end: } $$$$($1))
+  $$(value $1_))$$(info ------$1 result--->)$$(call infofn,$$(call $1_,_dump_params_))$$(call dump,$3,,$1: )$$(info end: } $$$$($1))
 endef
 $(call CLEAN_BUILD_PROTECT_VARS1,$1 $1_)
 endef
 
-# expand $(dump_params)
-$(eval define trace_calls_template$(newline)$(subst $$(dump_params),$$$$$(open_brace)$(subst \
+# replace _dump_params_
+$(eval define trace_calls_template$(newline)$(subst _dump_params_,$$$$$(open_brace)$(subst \
   $(space),$(close_brace)$(comma)$$$$$(open_brace),$(dump_max))$(close_brace),$(value trace_calls_template))$(newline)endef)
 
 # replace macros with their trace equivalents
