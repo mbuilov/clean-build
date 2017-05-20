@@ -52,16 +52,6 @@ ifndef CONFIG_FILE
 override CONFIG_FILE = $(BUILD)/conf.mk
 endif
 
-# define variable - for referencing clean-build files (defs.mk, parallel.mk, ...) in project makefiles
-#
-# Note: because use of environment variables in makefiles is discouraged,
-#  this variable SHOULD NOT be taken from environment, instead,
-#  it should be defined either in command line or in generated $(CONFIG_FILE)
-#
-# for this example MTOP may be defined automatically
-# note: MTOP variable is not used by clean-build
-MTOP := $(abspath $(dir $(lastword $(MAKEFILE_LIST)))../../)
-
 # major.minor.patch
 # note: PRODUCT_VER must be overridden,
 # because clean-build defines it as PRODUCT_VER := 0.0.1
@@ -72,5 +62,15 @@ PRODUCT_NAMES_H  := product_names.h
 VENDOR_NAME      := Michael M. Builov
 PRODUCT_NAME     := Sample app
 VENDOR_COPYRIGHT := Copyright (C) 2015-2017 Michael M. Builov, https://github.com/mbuilov/clean-build
+
+# define variable - for referencing clean-build files (defs.mk, parallel.mk, ...) in project makefiles
+#
+# Note: because use of environment variables in makefiles is discouraged,
+#  this variable SHOULD NOT be taken from environment, instead,
+#  it should be defined either in command line or in generated $(CONFIG_FILE)
+#
+# for this example MTOP may be defined automatically
+# note: MTOP variable is not used by clean-build
+MTOP := $(abspath $(dir $(lastword $(MAKEFILE_LIST)))../../)
 
 endif
