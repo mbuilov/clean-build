@@ -15,14 +15,41 @@ CONFIG_FILE:=
 ifdef CONFIG_FILE
 
 # CONFIG_FILE variable should be simple
-override CONFIG_FILE := $(CONFIG_FILE)
-
-# source old definitions, if $(CONFIG_FILE) does exist
--include $(CONFIG_FILE)
+override CONFIG_FILE := $(abspath $(CONFIG_FILE))
 
 # save $(CONFIG_FILE) in target-specific variable CF
 # - to be safe if CONFIG_FILE get overridden
 conf unconf: override CF := $(CONFIG_FILE)
+
+ifneq (,$(filter conf,$(MAKECMDGOALS)))
+
+# generate configuration file
+# note: SUP - defined in $(CLEAN_BUILD_DIR)/defs.mk
+# note: ECHO - defined in $(OSDIR)/$(OS)/tools.mk
+# note: pass 1 as 4-th argument of SUP function to not update percents of executed target makefiles
+# note: CONFIG_FILE_TEXT is defined below
+conf:| $(patsubst %/,%,$(dir $(CONFIG_FILE)))
+	$(call SUP,GEN,$(CF),,1)$(call ECHO,$(CONFIG_FILE_TEXT)) > $(CF)
+
+# if $(CONFIG_FILE) is under $(BUILD), create config directory automatically
+# else - $(CONFIG_FILE) is outside of $(BUILD), config directory must be created manually
+ifneq (,$(filter $(abspath $(BUILD))/%,$(CONFIG_FILE)))
+NEEDED_DIRS += $(patsubst %/,%,$(dir $(CONFIG_FILE)))
+else
+$(patsubst %/,%,$(dir $(CONFIG_FILE))):
+	$(error config file directory $@ does not exist, it should be created manually)
+endif
+
+endif # conf
+
+# source old definitions, if $(CONFIG_FILE) does exist
+# else reset CONFIG_FILE variable to mark that $(CONFIG_FILE) was not sourced
+ifeq (,$(wildcard $(CONFIG_FILE)))
+$(info warning: config file $(CONFIG_FILE) does not exist)
+override CONFIG_FILE:=
+else
+include $(CONFIG_FILE)
+endif
 
 ifneq (,$(filter conf,$(MAKECMDGOALS)))
 
@@ -46,15 +73,9 @@ endef
 # 2) save new variables specified in command line to $(CONFIG_FILE)
 # note: save variables current values in target-specific variable CONFIG_FILE_TEXT - variables may be overridden later
 # note: don't override GNUMAKEFLAGS, CLEAN_BUILD_VERSION and CONFIG_FILE variables by including $(CONFIG_FILE)
-conf: override CONFIG_FILE_TEXT := $(foreach v,$(filter-out GNUMAKEFLAGS CLEAN_BUILD_VERSION CONFIG_FILE,$(.VARIABLES)),$(if \
+conf: override CONFIG_FILE_TEXT := $(foreach v,$(filter-out \
+  GNUMAKEFLAGS CLEAN_BUILD_VERSION CONFIG_FILE $(dump_max),$(.VARIABLES)),$(if \
   $(findstring "command line","$(origin $v)")$(findstring "override","$(origin $v)"),$(OVERRIDE_VAR_TEMPLATE)))
-
-# generate configuration file
-# note: SUP - defined in $(CLEAN_BUILD_DIR)/defs.mk
-# note: ECHO - defined in $(OSDIR)/$(OS)/tools.mk
-# note: pass 1 as 4-th argument of SUP function to not update percents of executed target makefiles
-conf:
-	$(call SUP,GEN,$(CF),,1)$(call ECHO,$(CONFIG_FILE_TEXT)) > $(CF)
 
 endif # conf
 

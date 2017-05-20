@@ -48,10 +48,14 @@ ifeq (,$(call ver_compatible,$(CLEAN_BUILD_VERSION),$(CLEAN_BUILD_REQUIRED_VERSI
 $(error incompatible clean-build version: $(CLEAN_BUILD_VERSION), project needs: $(CLEAN_BUILD_REQUIRED_VERSION))
 endif
 
+# needed directories - we will create them in $(CLEAN_BUILD_DIR)/all.mk
+# note: NEEDED_DIRS is never cleared, only appended
+NEEDED_DIRS:=
+
 # save configuration, if $(CONFIG_FILE) is defined
 # note: CONFIG_FILE may be defined in project configuration makefile as:
 # override CONFIG_FILE := $(BUILD)/conf.mk
-# then it will be deleted on 'distclean'
+# then it will be deleted in clean-build implementation of 'distclean' goal
 include $(CLEAN_BUILD_DIR)/confsup.mk
 
 # BUILD - directory for built files - must be defined either in command line
@@ -85,12 +89,6 @@ DRIVERS_SUPPORT:=
 
 # ensure DRIVERS_SUPPORT is non-recursive (simple)
 override DRIVERS_SUPPORT := $(DRIVERS_SUPPORT:0=)
-
-# legend for Makefile rules:
-# $< - name of the first prerequisite
-# $^ - names of all prerequisites
-# $@ - file name of the target
-# $? - prerequisites newer than the target
 
 # standard variables that may be overridden:
 # TARGET                - one of $(SUPPORTED_TARGETS)
@@ -394,10 +392,6 @@ SET_DEFAULT_DIRS := $(SET_DEFAULT_DIRS)
 # define BIN_DIR/OBJ_DIR/LIB_DIR/GEN_DIR
 $(eval $(SET_DEFAULT_DIRS))
 
-# needed directories - we will create them in $(CLEAN_BUILD_DIR)/all.mk
-# note: NEEDED_DIRS is never cleared, only appended
-NEEDED_DIRS:=
-
 # to allow parallel builds for different combinations
 # of $(OS)/$(KCPU)/$(UCPU)/$(TARGET) - tool dir must be unique for each such combination
 # (this is true for TOOL_BASE = $(DEF_GEN_DIR))
@@ -510,7 +504,7 @@ endif
 endif
 
 # add absolute path to directory of currently processing makefile to non-absolute paths
-# - we need absolute paths to sources to apply generated dependencies in .d files
+# - we need absolute paths to sources to work with generated dependencies in .d files
 FIXPATH = $(abspath $(call nonrelpath,$(dir $(CURRENT_MAKEFILE)),$1))
 
 ifdef MDEBUG
@@ -773,6 +767,14 @@ endif
 # define OSTYPE variable
 include $(OSDIR)/$(OS)/tools.mk
 
+# if $(CONFIG_FILE) was included, show it
+ifdef CONFIG_FILE
+ifndef VERBOSE
+CONF_COLOR := [01;32m
+$(info $(call PRINT_PERCENTS,use)$(call COLORIZE,CONF,$(CONFIG_FILE)))
+endif
+endif
+
 # protect variables from modifications in target makefiles
 $(call CLEAN_BUILD_PROTECT_VARS,MAKEFLAGS CLEAN_BUILD_VERSION CLEAN_BUILD_DIR CLEAN_BUILD_REQUIRED_VERSION \
   BUILD DRIVERS_SUPPORT DEBUG NO_CLEAN_BUILD_DISTCLEAN_TARGET \
@@ -788,4 +790,4 @@ $(call CLEAN_BUILD_PROTECT_VARS,MAKEFLAGS CLEAN_BUILD_VERSION CLEAN_BUILD_DIR CL
   FILTER_VARIANTS_LIST GET_VARIANTS GET_TARGET_NAME DEBUG_TARGETS FORM_OBJ_DIR \
   CHECK_GENERATED ADD_GENERATED MULTI_TARGET_RULE CHECK_MULTI_RULE MULTI_TARGET_SEQ MULTI_TARGET \
   DEFINE_TARGETS SAVE_VARS RESTORE_VARS MAKE_CONTINUE_BODY_EVAL MAKE_CONTINUE FORM_SDEPS EXTRACT_SDEPS FIX_SDEPS \
-  DLL_PATH_VAR show_with_dll_path show_dll_path_end RUN_WITH_DLL_PATH)
+  DLL_PATH_VAR show_with_dll_path show_dll_path_end RUN_WITH_DLL_PATH CONF_COLOR)
