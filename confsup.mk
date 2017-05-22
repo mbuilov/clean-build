@@ -27,23 +27,6 @@ ifneq (,$(filter unconf,$(MAKECMDGOALS)))
 $(error conf and unconf goals cannot be specified at the same time)
 endif
 
-# generate configuration file
-# note: SUP - defined in $(CLEAN_BUILD_DIR)/defs.mk
-# note: ECHO - defined in $(OSDIR)/$(OS)/tools.mk
-# note: pass 1 as 4-th argument of SUP function to not update percents of executed target makefiles
-# note: CONFIG_FILE_TEXT is defined below
-conf:| $(patsubst %/,%,$(dir $(CONFIG_FILE)))
-	$(call SUP,GEN,$(CF),,1)$(call ECHO,$(CONFIG_FILE_TEXT)) > $(CF)
-
-# if $(CONFIG_FILE) is under $(BUILD), create config directory automatically
-# else - $(CONFIG_FILE) is outside of $(BUILD), config directory must be created manually
-ifneq (,$(filter $(abspath $(BUILD))/%,$(CONFIG_FILE)))
-NEEDED_DIRS += $(patsubst %/,%,$(dir $(CONFIG_FILE)))
-else
-$(patsubst %/,%,$(dir $(CONFIG_FILE))):
-	$(error config file directory '$@' does not exist, it is not under '$(BUILD)', so should be created manually)
-endif
-
 # use of environment variables is discouraged,
 # override variable only if it's not specified in command-line
 # $v - variable name
@@ -55,7 +38,6 @@ $(value $v)
 $(endef)
 $(if $(filter simple,$(flavor $v)),override $v:=$$(value $v))
 endif
-
 endef
 
 # generated $(CONFIG_FILE) is likely already sourced,
@@ -66,6 +48,23 @@ endef
 conf: override CONFIG_FILE_TEXT := $(foreach v,$(filter-out \
   GNUMAKEFLAGS CLEAN_BUILD_VERSION CONFIG_FILE $(dump_max),$(.VARIABLES)),$(if \
   $(findstring "command line","$(origin $v)")$(findstring "override","$(origin $v)"),$(OVERRIDE_VAR_TEMPLATE)))
+
+# generate configuration file
+# note: SUP - defined in $(CLEAN_BUILD_DIR)/defs.mk
+# note: WRITE - defined in $(OSDIR)/$(OS)/tools.mk
+# note: pass 1 as 4-th argument of SUP function to not update percents of executed target makefiles
+# note: CONFIG_FILE_TEXT is defined below
+conf:| $(patsubst %/,%,$(dir $(CONFIG_FILE)))
+	$(call SUP,GEN,$(CF),,1)$(call WRITE,$(CONFIG_FILE_TEXT),$(CF),10)
+
+# if $(CONFIG_FILE) is under $(BUILD), create config directory automatically
+# else - $(CONFIG_FILE) is outside of $(BUILD), config directory must be created manually
+ifneq (,$(filter $(abspath $(BUILD))/%,$(CONFIG_FILE)))
+NEEDED_DIRS += $(patsubst %/,%,$(dir $(CONFIG_FILE)))
+else
+$(patsubst %/,%,$(dir $(CONFIG_FILE))):
+	$(error config file directory '$@' does not exist, it is not under '$(BUILD)', so should be created manually)
+endif
 
 else ifneq (,$(filter unconf,$(MAKECMDGOALS)))
 
