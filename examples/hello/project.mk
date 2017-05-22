@@ -14,7 +14,7 @@ CLEAN_BUILD_REQUIRED_VERSION := 0.6.3
 # BUILD - variable required by clean-build - path to built artifacts
 BUILD := $(TOP)/build
 
-# clean-build generated config file (optional)
+# optional, clean-build generated config file (while completing 'conf' goal)
 #
 # Note: generated config file will remember values of command-line or overridden variables, including BUILD variable.
 #  But, if config file is referenced via $(BUILD), then to use non-default BUILD value,
@@ -45,7 +45,7 @@ VENDOR_COPYRIGHT := Copyright (C) 2015-2017 Michael M. Builov, https://github.co
 #
 # Only for this example MTOP may be defined automatically
 # note: MTOP variable is not used by clean-build
-MTOP := $(abspath $(dir $(lastword $(MAKEFILE_LIST)))../../)
+MTOP := $(abspath $(TOP)/../..)
 
 # source variables overrides from previously generated config file, if it exist
 -include $(CONFIG_FILE)
