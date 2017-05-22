@@ -73,11 +73,10 @@ $(eval $(foreach v,$(PROJECT_VARS_NAMES),$(OVERRIDE_VAR_TEMPLATE)))
 # note: NEEDED_DIRS is never cleared, only appended
 NEEDED_DIRS:=
 
-# save configuration, if $(CONFIG_FILE) is defined
-# note: if CONFIG_FILE is defined in project configuration makefile as:
+# save configuration as result of 'conf' goal, if $(CONFIG_FILE) is defined
+# note: if CONFIG_FILE is defined in project configuration makefile under $(BUILD) directory as:
 # override CONFIG_FILE := $(BUILD)/conf.mk
-# then it will be deleted together with $(BUILD) directory
-# in clean-build implementation of 'distclean' goal
+# then it will be deleted together with $(BUILD) directory in clean-build implementation of 'distclean' goal
 include $(CLEAN_BUILD_DIR)/confsup.mk
 
 # BUILD - directory for built files - must be defined either in command line
