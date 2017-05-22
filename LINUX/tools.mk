@@ -34,6 +34,9 @@ CAT = cat $1
 # note: each line will be ended with LF
 ECHO = printf '$(subst ','"'"',$(subst $(newline),\n,$(subst \,\\,$(subst %,%%,$1))))\n'
 
+# write lines of text $1 to file $2 by $3 lines at one time
+WRITE = $(ECHO) > $2
+
 # null device for redirecting output into
 NUL := /dev/null
 
@@ -60,4 +63,4 @@ EXECIN = pushd $1 >/dev/null && { $2 && popd >/dev/null || { popd >/dev/null; fa
 DEL_ON_FAIL = || { $(DEL); false; }
 
 # protect variables from modifications in target makefiles
-$(call CLEAN_BUILD_PROTECT_VARS,DEL RM MKDIR SED SED_EXPR CAT ECHO EXECIN NUL CP LN TOUCH CHMOD DEL_ON_FAIL)
+$(call CLEAN_BUILD_PROTECT_VARS,DEL RM MKDIR SED SED_EXPR CAT ECHO WRITE NUL CP LN TOUCH CHMOD EXECIN DEL_ON_FAIL)
