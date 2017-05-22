@@ -21,6 +21,7 @@ endef
 comment := $(comment)
 open_brace  := (
 close_brace := )
+endef := endef
 
 # print result $1 and return $1
 infofn = $(info $1)$1
