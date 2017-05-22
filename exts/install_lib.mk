@@ -40,7 +40,7 @@ BUILT_LIB_VARIANTS := $(if $(LIB),$(call GET_VARIANTS,LIB))
 BUILT_DLL_VARIANTS := $(if $(DLL),$(call GET_VARIANTS,DLL))
 BUILT_LIBS         := $$(foreach v,$$(BUILT_LIB_VARIANTS),$$(call FORM_TRG,LIB,$$v))
 BUILT_DLLS         := $$(foreach v,$$(BUILT_DLL_VARIANTS),$$(call FORM_TRG,DLL,$$v))
-LIBRARY_HEADERS    := $(call FIXPATH,$(LIBRARY_HEADERS))
+LIBRARY_HEADERS    := $(call fixpath,$(LIBRARY_HEADERS))
 LIBRARY_HDIR       := $(addprefix /,$(LIBRARY_HDIR))
 install_$1: $$(BUILT_LIBS) $$(BUILT_DLLS)
 install: install_$1

@@ -91,7 +91,7 @@ endif
 
 # $1 - what to build: MSI, INSTALLER
 # $2 - target file: $(call FORM_WIX_TRG,$1)
-# $3 - sources:     $(call FIXPATH,$(WXS))
+# $3 - sources:     $(call fixpath,$(WXS))
 # $4 - sdeps:       $(call FIX_SDEPS,$(WDEPS))
 # $5 - objdir:      $(call FORM_OBJ_DIR,$1)
 # note: calls either MSI_LD or INSTALLER_LD
@@ -110,7 +110,7 @@ endef
 
 # how to build installer msi or exe
 # $1 - MSI, INSTALLER
-WIX_RULES = $(call WIX_TEMPLATE,$1,$(call FORM_WIX_TRG,$1),$(call FIXPATH,$(WXS)),$(call FIX_SDEPS,$(WDEPS)),$(call FORM_OBJ_DIR,$1))
+WIX_RULES = $(call WIX_TEMPLATE,$1,$(call FORM_WIX_TRG,$1),$(call fixpath,$(WXS)),$(call FIX_SDEPS,$(WDEPS)),$(call FORM_OBJ_DIR,$1))
 
 MSI_RULES = $(if $(MSI),$(call WIX_RULES,MSI))
 INSTALLER_RULES = $(if $(INSTALLER),$(call WIX_RULES,INSTALLER))

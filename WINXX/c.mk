@@ -742,8 +742,8 @@ ifndef SEQ_BUILD
 # $t - EXE,LIB,DLL,KLIB,DRV
 # target-specific: $$(PCH)
 define PCH_TEMPLATE1
-TRG_PCH      := $(call FIXPATH,$(PCH))
-TRG_WITH_PCH := $(call FIXPATH,$(WITH_PCH))
+TRG_PCH      := $(call fixpath,$(PCH))
+TRG_WITH_PCH := $(call fixpath,$(WITH_PCH))
 PCH_C_SRC    := $(GEN_DIR)/pch/$1_$t_$2_c.c
 PCH_CXX_SRC  := $(GEN_DIR)/pch/$1_$t_$2_cpp.cpp
 NEEDED_DIRS  += $(GEN_DIR)/pch
@@ -810,7 +810,7 @@ ADD_WITH_PCH = $(eval WITH_PCH += $2)
 ifdef SEQ_BUILD
 TRG_ALL_SDEPS:=
 else
-TRG_ALL_SDEPS = $(call FIXPATH,$(sort $(foreach d,$(SDEPS),$(wordlist 2,999999,$(subst |, ,$d)))))
+TRG_ALL_SDEPS = $(call fixpath,$(sort $(foreach d,$(SDEPS),$(wordlist 2,999999,$(subst |, ,$d)))))
 endif
 
 # generate import library path
@@ -820,7 +820,7 @@ MAKE_IMP_PATH = $(LIB_DIR)/$(IMP_PREFIX)$1$(call LIB_VAR_SUFFIX,$2)$(IMP_SUFFIX)
 
 # for DLL or EXE that exports symbols
 # $1 - $(call FORM_TRG,$t,$v)
-# $2 - $(call FIXPATH,$(DEF))
+# $2 - $(call fixpath,$(DEF))
 # $3 - $(call MAKE_IMP_PATH,$n,$v)
 # $t - DLL or EXE
 # $n - $(call GET_TARGET_NAME,$t)
@@ -845,7 +845,7 @@ $1: DEF:=
 endef
 
 # $1 - $(call FORM_TRG,$t,$v)
-# $2 - $(call FIXPATH,$(DEF))
+# $2 - $(call fixpath,$(DEF))
 # $3 - non-<empty> if target exports symbols, <empty> - otherwise
 # $t - DLL, EXE or DRV
 # $n - $(call GET_TARGET_NAME,$t)
@@ -857,7 +857,7 @@ EXPORTS_TEMPLATE = $(if $3,$(call EXPORTS_TEMPLATE1,$1,$2,$(call MAKE_IMP_PATH,$
 # $3 - $(TRG_ALL_SDEPS)
 # $4 - $(call FORM_TRG,$t,$v)
 # $5 - $(call FORM_OBJ_DIR,$t,$v)
-# $6 - $(call FIXPATH,$(DEF))
+# $6 - $(call fixpath,$(DEF))
 # $t - EXE
 # $n - $(call GET_TARGET_NAME,$t)
 # $v - R,S
@@ -881,7 +881,7 @@ endef
 # $3 - $(TRG_ALL_SDEPS)
 # $4 - $(call FORM_TRG,$t,$v)
 # $5 - $(call FORM_OBJ_DIR,$t,$v)
-# $6 - $(call FIXPATH,$(DEF))
+# $6 - $(call fixpath,$(DEF))
 # $t - DLL
 # $n - $(call GET_TARGET_NAME,$t)
 # $v - R,S
@@ -903,7 +903,7 @@ endef
 # $1 - $(TRG_SRC)
 # $2 - $(TRG_SDEPS)
 # $3 - $(TRG_ALL_SDEPS)
-# $4 - $(call FIXPATH,$(DEF))
+# $4 - $(call fixpath,$(DEF))
 # $t - EXE or DLL
 EXP_AUX_TEMPLATE1 = $(foreach n,$(call GET_TARGET_NAME,$t),$(foreach v,$(call GET_VARIANTS,$t),$(call \
   $t_AUX_TEMPLATE2,$1,$2,$3,$(call FORM_TRG,$t,$v),$(call FORM_OBJ_DIR,$t,$v),$4)))
@@ -917,7 +917,7 @@ define EXP_AUX_TEMPLATE
 $(empty)
 $(call STD_RES_TEMPLATE,$t)
 $(PCH_TEMPLATE)
-$(call EXP_AUX_TEMPLATE1,$(TRG_SRC),$(TRG_SDEPS),$(TRG_ALL_SDEPS),$(call FIXPATH,$(DEF)))
+$(call EXP_AUX_TEMPLATE1,$(TRG_SRC),$(TRG_SDEPS),$(TRG_ALL_SDEPS),$(call fixpath,$(DEF)))
 endef
 
 # called by OS_DEFINE_TARGETS
@@ -1002,7 +1002,7 @@ $(FIX_ORDER_DEPS)
 AUX_RES := $5/$(basename $(notdir $2)).res
 NEEDED_DIRS += $5
 $$(AUX_RES): RES_OPTS := $3
-$$(AUX_RES): $(call FIXPATH,$2 $4) | $5 $$(ORDER_DEPS)
+$$(AUX_RES): $(call fixpath,$2 $4) | $5 $$(ORDER_DEPS)
 	$$(call RC,$$@,$$<,$$(RES_OPTS))
 RES += $$(AUX_RES)
 endef
@@ -1075,7 +1075,7 @@ DRV_TEMPLATE = $(DRV_TEMPLATE1)$(call TOCLEAN,$4/vc*.pdb $(1:$(DRV_SUFFIX)=.pdb)
 KDLL_TEMPLATE = $(DRV_TEMPLATE1)$(call TOCLEAN,$4/vc*.pdb $(1:$(KDLL_SUFFIX)=.pdb))
 
 # $1 - $(call FORM_TRG,$t,$v)
-# $2 - $(call FIXPATH,$(DEF))
+# $2 - $(call fixpath,$(DEF))
 # $t - DRV
 # $n - $(call GET_TARGET_NAME,$t)
 # $v - R
@@ -1086,7 +1086,7 @@ $(call EXPORTS_TEMPLATE,$1,$2,$(DRV_EXPORTS))
 endef
 
 # $1 - $(call FORM_TRG,$t,$v)
-# $2 - $(call FIXPATH,$(DEF))
+# $2 - $(call fixpath,$(DEF))
 # $t - KDLL
 # $n - $(call GET_TARGET_NAME,$t)
 # $v - R
@@ -1096,13 +1096,13 @@ $1: KDLL_NO_EXPORTS := $(KDLL_NO_EXPORTS)
 $(call EXPORTS_TEMPLATE,$1,$2,$(if $(KDLL_NO_EXPORTS),,1))
 endef
 
-# $1 - $(call FIXPATH,$(DEF))
+# $1 - $(call fixpath,$(DEF))
 # $t - DRV or KDLL
 KEXP_AUX_TEMPLATE1 = $(foreach n,$(call GET_TARGET_NAME,$t),$(foreach v,$(call GET_VARIANTS,$t),$(call \
   $t_AUX_TEMPLATE2,$(call FORM_TRG,$t,$v),$1)))
 
 # $t - DRV or KDLL
-KEXP_AUX_TEMPLATE = $(call KEXP_AUX_TEMPLATE1,$(call FIXPATH,$(DEF)))
+KEXP_AUX_TEMPLATE = $(call KEXP_AUX_TEMPLATE1,$(call fixpath,$(DEF)))
 
 # called by OS_DEFINE_TARGETS
 # $t - DRV or KDLL

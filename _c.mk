@@ -136,14 +136,14 @@ FORM_TRG = $(if \
 # make absolute paths to include directories - we need absolute paths to headers in generated .d dependency file
 # note: do not touch $(SYSINCLUDE) - it may contain paths with spaces,
 # note: $(SYSINCLUDE) paths are generally filtered-out while .d dependency file generation
-TRG_INCLUDE = $(call FIXPATH,$(INCLUDE) $(CMNINCLUDE)) $(SYSINCLUDE)
+TRG_INCLUDE = $(call fixpath,$(INCLUDE) $(CMNINCLUDE)) $(SYSINCLUDE)
 
 # make list of sources for the target
 # NOTE: this list does not include generated sources
 GET_SOURCES = $(SRC) $(WITH_PCH)
 
 # make absolute paths to sources - we need absolute path to source in generated .d dependency file
-TRG_SRC = $(call FIXPATH,$(GET_SOURCES))
+TRG_SRC = $(call fixpath,$(GET_SOURCES))
 
 # make absolute paths for $(TRG_SDEPS)
 TRG_SDEPS = $(call FIX_SDEPS,$(SDEPS))

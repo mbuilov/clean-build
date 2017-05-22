@@ -13,7 +13,7 @@ MDEPS:=
 
 # make absolute paths to makefiles $1 with suffix $2:
 # add path to directory of $(CURRENT_MAKEFILE) if makefile path is not absolute, add /Makefile if makefile path is a directory
-NORM_MAKEFILES = $(patsubst %.mk/Makefile$2,%.mk$2,$(addsuffix /Makefile$2,$(patsubst %/Makefile,%,$(call FIXPATH,$1))))
+NORM_MAKEFILES = $(patsubst %.mk/Makefile$2,%.mk$2,$(addsuffix /Makefile$2,$(patsubst %/Makefile,%,$(call fixpath,$1))))
 
 # add empty rules for $(MDEPS): don't complain if order deps are not resolved when build started in sub-directory
 # note: $(ORDER_DEPS) - absolute paths of dependency makefiles with '-' suffix

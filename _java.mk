@@ -46,7 +46,7 @@ FORM_JTRG = $(BIN_DIR)/$($1)$(JAREXT)
 # form $(BUNDLES) or $(BUNDLE_FILES) list
 # $1 - root directory
 # $2 - files in root directory
-FORM_BUNDLES = $(call FIXPATH,$1)|$(subst $(space),|,$2)
+FORM_BUNDLES = $(call fixpath,$1)|$(subst $(space),|,$2)
 
 # form options for $(JARC)
 # $1 - list of bundles to add to the .jar formed by FORM_BUNDLES
@@ -128,10 +128,10 @@ JAR_LD = $(if $(filter $(JARS) $(EXTJARS) $(JSRC) $(SCALA) $(JSCALA),$?),$(call 
 FORM_BUILT_JARS = $(addprefix $(BIN_DIR)/,$(addsuffix .jar,$1))
 
 # $1 - target jar:              $(call FORM_JTRG,JAR)
-# $2 - .java sources:           $(call FIXPATH,$(JSRC))
-# $3 - .scala sources:          $(call FIXPATH,$(SCALA))
-# $4 - .java sources for scala: $(call FIXPATH,$(JSCALA))
-# $5 - manifest:                $(call FIXPATH,$(MANIFEST))
+# $2 - .java sources:           $(call fixpath,$(JSRC))
+# $3 - .scala sources:          $(call fixpath,$(SCALA))
+# $4 - .java sources for scala: $(call fixpath,$(JSCALA))
+# $5 - manifest:                $(call fixpath,$(MANIFEST))
 # $6 - objdir:                  $(call FORM_OBJ_DIR,JAR)
 # $7 - jars:                    $(addprefix $(BIN_DIR)/,$(addsuffix .jar,$(JARS)))
 define JAR_TEMPLATE
@@ -157,8 +157,8 @@ endef
 # how to build .jar library template
 # NOTE: if $(JSCALA) value is empty then it defaults to $(JSRC), to assign nothing to JSCALA use JSCALA = $(empty)
 JAR_RULES = $(if $(JAR),$(call JAR_TEMPLATE,$(call FORM_JTRG,JAR),$(call \
-  FIXPATH,$(JSRC)),$(call FIXPATH,$(SCALA)),$(call FIXPATH,$(if $(value JSCALA),$(JSCALA),$(JSRC))),$(call \
-  FIXPATH,$(MANIFEST)),$(call FORM_OBJ_DIR,JAR),$(call FORM_BUILT_JARS,$(JARS))))
+  fixpath,$(JSRC)),$(call fixpath,$(SCALA)),$(call fixpath,$(if $(value JSCALA),$(JSCALA),$(JSRC))),$(call \
+  fixpath,$(MANIFEST)),$(call FORM_OBJ_DIR,JAR),$(call FORM_BUILT_JARS,$(JARS))))
 
 # Jar package version manifest template
 # $1 - javay/server/

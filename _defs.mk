@@ -118,21 +118,31 @@ override DRIVERS_SUPPORT := $(DRIVERS_SUPPORT:0=)
 # CPU or UCPU,KCPU,TCPU - one of $(SUPPORTED_CPUS),
 
 # what target type to build
+# note: do not take TARGET value from environment
+# note: TARGET may be overridden either in command line or in project configuration makefile
 TARGET := RELEASE
 
 # operating system we are building for (and we are building on)
+# note: do not take OS value from environment
+# note: OS must be overridden either in command line or in project configuration makefile
 OS:=
 
 # CPU processor architecture we are building for 
+# note: do not take CPU value from environment
+# note: CPU may be overridden either in command line or in project configuration makefile
 CPU := x86
 
 # UCPU - processor architecture for user-level applications
 # KCPU - processor architecture for kernel modules
 # TCPU - processor architecture for build tools (may be different from $(UCPU) if cross-compiling)
+# note: do not take UCPU, KCPU and TCPU values from environment
+# note: UCPU, KCPU and TCPU may be overridden either in command line or in project configuration makefile
 UCPU := $(CPU)
 KCPU := $(CPU)
 TCPU := $(UCPU)
 
+# set defaults
+# note: these defaults may be overridden either in command line or in project configuration makefile
 SUPPORTED_TARGETS := DEBUG RELEASE
 SUPPORTED_OSES    := WINXX SOLARIS LINUX
 SUPPORTED_CPUS    := x86 x86_64 sparc sparc64 armv5 mips24k ppc
@@ -527,7 +537,7 @@ endif
 
 # add absolute path to directory of currently processing makefile to non-absolute paths
 # - we need absolute paths to sources to work with generated dependencies in .d files
-FIXPATH = $(abspath $(call nonrelpath,$(dir $(CURRENT_MAKEFILE)),$1))
+fixpath = $(abspath $(call nonrelpath,$(dir $(CURRENT_MAKEFILE)),$1))
 
 ifdef MDEBUG
 
@@ -619,7 +629,7 @@ MULTI_TARGET_NUM:=
 # $4 - $(words $(MULTI_TARGET_NUM))
 define MULTI_TARGET_RULE
 $(STD_TARGET_VARS)
-$1: $(call FIXPATH,$2)
+$1: $(call fixpath,$2)
 	$$(if $$(filter $4,$$(MULTI_TARGETS)),,$$(eval MULTI_TARGETS += $4)$$(call SUP,MGEN,$1)$3)
 MULTI_TARGET_NUM+=1
 endef
@@ -663,7 +673,7 @@ EXTRACT_SDEPS = $(foreach d,$(filter $(addsuffix |%,$1),$2),$(wordlist 2,999999,
 
 # fix sdeps paths: add absolute path to directory of currently processing makefile to non-absolute paths
 # $1 - sdeps list: <source file1>|<dependency1>|<dependency2>|... <source file2>|<dependency1>|<dependency2>|...
-FIX_SDEPS = $(subst | ,|,$(call FIXPATH,$(subst |,| ,$1)))
+FIX_SDEPS = $(subst | ,|,$(call fixpath,$(subst |,| ,$1)))
 
 # run executable with modified $(DLL_PATH_VAR) environment variable
 # $1 - command to run (with parameters)
@@ -807,7 +817,7 @@ $(call CLEAN_BUILD_PROTECT_VARS,MAKEFLAGS CLEAN_BUILD_VERSION CLEAN_BUILD_DIR CL
   COLORIZE TRY_REM_MAKEFILE SED_MULTI_EXPR ospath nonrelpath TOOL_SUFFIX PATHSEP \
   TARGET_TRIPLET DEF_BIN_DIR DEF_OBJ_DIR DEF_LIB_DIR DEF_GEN_DIR SET_DEFAULT_DIRS \
   TOOL_BASE MK_TOOLS_DIR GET_TOOLS GET_TOOL TOOL_OVERRIDE_DIRS FIX_ORDER_DEPS \
-  STD_TARGET_VARS1 STD_TARGET_VARS MAKEFILE_INFO_TEMPL SET_MAKEFILE_INFO TOCLEAN FIXPATH MAKEFILE_DEBUG_INFO \
+  STD_TARGET_VARS1 STD_TARGET_VARS MAKEFILE_INFO_TEMPL SET_MAKEFILE_INFO TOCLEAN fixpath MAKEFILE_DEBUG_INFO \
   DEF_TAIL_CODE_DEBUG DEF_HEAD_CODE DEF_HEAD_CODE_EVAL DEF_TAIL_CODE DEF_TAIL_CODE_EVAL \
   FILTER_VARIANTS_LIST GET_VARIANTS GET_TARGET_NAME DEBUG_TARGETS FORM_OBJ_DIR \
   CHECK_GENERATED ADD_GENERATED MULTI_TARGET_RULE CHECK_MULTI_RULE MULTI_TARGET_SEQ MULTI_TARGET \

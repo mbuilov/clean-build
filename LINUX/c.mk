@@ -305,8 +305,8 @@ ifndef NO_PCH
 # $t - EXE,LIB,DLL,KLIB
 # $v - R,P,
 define PCH_TEMPLATE1
-TRG_PCH := $(call FIXPATH,$(PCH))
-TRG_WITH_PCH := $(call FIXPATH,$(WITH_PCH))
+TRG_PCH := $(call fixpath,$(PCH))
+TRG_WITH_PCH := $(call fixpath,$(WITH_PCH))
 $2: PCH := $$(TRG_PCH)
 $2: WITH_PCH := $$(TRG_WITH_PCH)
 ifneq (,$$(filter %.c,$$(TRG_WITH_PCH)))
@@ -361,7 +361,7 @@ endif # NO_PCH
 
 # auxiliary defines for EXE
 # $1 - $(call FORM_TRG,$t,$v)
-# $2 - $(call FIXPATH,$(MAP))
+# $2 - $(call fixpath,$(MAP))
 # $t - EXE
 define EXE_AUX_TEMPLATE2
 $1: RPATH := $(subst $$,$$$$,$(RPATH))
@@ -371,7 +371,7 @@ endef
 
 # auxiliary defines for DLL
 # $1 - $(call FORM_TRG,$t,$v)
-# $2 - $(call FIXPATH,$(MAP))
+# $2 - $(call fixpath,$(MAP))
 # $t - DLL
 define DLL_AUX_TEMPLATE2
 $1: MODVER := $(MODVER)
@@ -383,7 +383,7 @@ endef
 # auxiliary defines for EXE or DLL
 # $t - EXE or DLL
 MOD_AUX_TEMPLATE1 = $(foreach v,$(call GET_VARIANTS,$t),$(call $t_AUX_TEMPLATE2,$(call FORM_TRG,$t,$v),$2))
-MOD_AUX_TEMPLATE  = $(call MOD_AUX_TEMPLATE1,$(call FIXPATH,$(MAP)))
+MOD_AUX_TEMPLATE  = $(call MOD_AUX_TEMPLATE1,$(call fixpath,$(MAP)))
 
 # this code is evaluated from $(DEFINE_TARGETS)
 define OS_DEFINE_TARGETS
