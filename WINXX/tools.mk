@@ -23,16 +23,16 @@ endif
 
 # stip off cygwin paths - to use only native windows tools
 # for example, sed.exe from cygwin handles format string differently than C:/GnuWin32/bin/sed.exe
-PATH := $(subst ?, ,$(subst $(space),;,$(strip $(foreach p,$(subst \
+override PATH := $(subst ?, ,$(subst $(space),;,$(strip $(foreach p,$(subst \
   ;, ,$(subst $(space),?,$(PATH))),$(if $(word 2,$(subst cygwin, ,$p)),,$p)))))
 
-# max command line length
-# for Windows 95 and later    - 127 chars;
-# for Windows 2000 and later  - 2047 chars;
-# for Windows XP and later    - 8191 chars (max 31 path arguments of 260 chars length each);
-# maximum number of args passed via command line
-# for Windows XP and later, assuming that maximum length of each arg is 80 chars
-DEL_ARGS_LIMIT := 100
+# maximum command line length
+# for Windows 95 and later   - 127 chars;
+# for Windows 2000 and later - 2047 chars;
+# for Windows XP and later   - 8191 chars (max 31 path arguments of 260 chars length each);
+# determine maximum number of arguments passed via command line:
+# for Windows XP and later, assuming that maximum length of each argument is 115 chars
+DEL_ARGS_LIMIT := 70
 
 # convert slashes
 # NOTE: no spaces allowed in paths the $(MAKE) works with
@@ -88,11 +88,25 @@ CAT = type $(ospath)
 ECHO_LINE = echo.$(subst $(open_brace),^$(open_brace),$(subst $(close_brace),^$(close_brace),$(subst \
   %,%%,$(subst <,^<,$(subst >,^>,$(subst |,^|,$(subst &,^&,$(subst ",^",$(subst ^,^^,$1)))))))))
 
+# print lines of text to output file or to stdout
+# $1 - lines list, where $(tab) replaced with $$(tab) and $(space) replaced with $$(space)
+# $2 - if empty, then echo to stdout
+# $3 - text to prepend before command when $6 is non-empty
+# $4 - text to prepend before command when $6 is empty
+# $6 - empty if overwrite file $2, non-empty if append text to it
+# note: ECHO_LINES may be not defined for other OSes, use ECHO in platform-independent code
+ECHO_LINES = $(if $6,$3,$4)($(foreach x,$1,($(call \
+  ECHO_LINE,$(subst $$(space), ,$(subst $$(tab),$(tab),$x)))) &&) rem.)$(if $2, >$(if $6,>) $2)
+
 # print lines of text (to stdout, for redirecting it to output file)
 # note: each line will be ended with CRLF
-ECHO = $(if $(findstring $(newline),$1),($(foreach x,$(subst \
-  $(newline), ,$(subst $(space),$$(space),$(subst $(tab),$$(tab),$1))),($(call \
-  ECHO_LINE,$(subst $$(space), ,$(subst $$(tab),$(tab),$x)))) &&) rem.),$(ECHO_LINE))
+ECHO = $(if $(findstring $(newline),$1),$(call \
+  ECHO_LINES,$(subst $(newline), ,$(subst $(space),$$(space),$(subst $(tab),$$(tab),$1)))),$(ECHO_LINE))
+
+# write lines of text $1 to file $2 by $3 lines at one time
+# NOTE: maximum line length cannot exceed command line length (8191 characters)
+WRITE = $(call xargs,ECHO_LINES,$(subst $(newline), ,$(subst \
+  $(space),$$(space),$(subst $(tab),$$(tab),$1))),$3,$2,$(QUIET),,,$(newline))
 
 # null device for redirecting output into
 NUL := NUL
@@ -148,4 +162,4 @@ COLORIZE = $1$(padto)$2
 
 # protect variables from modifications in target makefiles
 $(call CLEAN_BUILD_PROTECT_VARS,DEL_ARGS_LIMIT nonrelpath1 DEL DEL_DIR RM1 RM MKDIR SED SED_EXPR \
-  CAT ECHO_LINE ECHO EXECIN NUL SUPPRESS_CP_OUTPUT CP TOUCH DEL_ON_FAIL NO_RPATH)
+  CAT ECHO_LINE ECHO_LINES ECHO WRITE NUL SUPPRESS_CP_OUTPUT TOUCH CP EXECIN DEL_ON_FAIL NO_RPATH)
