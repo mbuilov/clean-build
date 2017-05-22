@@ -29,7 +29,7 @@ endif
 .DELETE_ON_ERROR:
 
 # clean-build version: major.minor.patch
-override CLEAN_BUILD_VERSION := 0.6.0
+override CLEAN_BUILD_VERSION := 0.6.1
 
 # clean-build root directory (absolute path)
 CLEAN_BUILD_DIR := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
@@ -53,9 +53,10 @@ endif
 NEEDED_DIRS:=
 
 # save configuration, if $(CONFIG_FILE) is defined
-# note: CONFIG_FILE may be defined in project configuration makefile as:
+# note: if CONFIG_FILE is defined in project configuration makefile as:
 # override CONFIG_FILE := $(BUILD)/conf.mk
-# then it will be deleted in clean-build implementation of 'distclean' goal
+# then it will be deleted together with $(BUILD) directory
+# in clean-build implementation of 'distclean' goal
 include $(CLEAN_BUILD_DIR)/confsup.mk
 
 # BUILD - directory for built files - must be defined either in command line
@@ -222,7 +223,7 @@ $(call dump,CLEAN_BUILD_DIR OSDIR BUILD CONFIG_FILE TARGET OS UCPU KCPU TCPU,,)
 endif
 
 # get absolute path to current makefile
-CURRENT_MAKEFILE := $(abspath $(subst \,/,$(firstword $(MAKEFILE_LIST))))
+CURRENT_MAKEFILE := $(abspath $(firstword $(MAKEFILE_LIST)))
 
 # list of all processed makefiles names
 # note: PROCESSED_MAKEFILES is never cleared, only appended
@@ -768,8 +769,8 @@ endif
 include $(OSDIR)/$(OS)/tools.mk
 
 # if $(CONFIG_FILE) was included, show it
-ifdef CONFIG_FILE
 ifndef VERBOSE
+ifneq (,$(filter $(CONFIG_FILE),$(abspath $(MAKEFILE_LIST))))
 CONF_COLOR := [01;32m
 $(info $(call PRINT_PERCENTS,use)$(call COLORIZE,CONF,$(CONFIG_FILE)))
 endif
