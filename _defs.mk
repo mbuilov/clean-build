@@ -14,6 +14,15 @@ ifneq (3.80,$(word 1,$(sort $(MAKE_VERSION) 3.80)))
 $(error required GNU Make of version 3.81 or later)
 endif
 
+# assume project makefile, which has included this makefile,
+# defines some variables - save list of those variables
+PROJECT_VARS_NAMES := $(filter-out \
+  MAKEFLAGS CURDIR SHELL MAKEFILE_LIST .DEFAULT_GOAL,$(foreach \
+  v,$(.VARIABLES),$(if $(filter file,$(origin $v)),$v)))
+
+# clean-build version: major.minor.patch
+override CLEAN_BUILD_VERSION := 0.6.3
+
 # disable builtin rules and variables
 MAKEFLAGS += --no-builtin-rules --no-builtin-variables
 
@@ -28,9 +37,6 @@ endif
 # delete target file if failed to execute any of commands to make it
 .DELETE_ON_ERROR:
 
-# clean-build version: major.minor.patch
-override CLEAN_BUILD_VERSION := 0.6.1
-
 # clean-build root directory (absolute path)
 CLEAN_BUILD_DIR := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
 
@@ -40,13 +46,28 @@ include $(CLEAN_BUILD_DIR)/functions.mk
 
 # CLEAN_BUILD_REQUIRED_VERSION - clean-build version required by project makefiles
 # it is normally defined in project configuration makefile like:
-# override CLEAN_BUILD_REQUIRED_VERSION := 0.3
+# CLEAN_BUILD_REQUIRED_VERSION := 0.3
+# note: dot not take CLEAN_BUILD_REQUIRED_VERSION value from environment
+ifeq (environment,$(origin CLEAN_BUILD_REQUIRED_VERSION))
 CLEAN_BUILD_REQUIRED_VERSION := 0.0.0
+endif
 
 # check required clean-build version
 ifeq (,$(call ver_compatible,$(CLEAN_BUILD_VERSION),$(CLEAN_BUILD_REQUIRED_VERSION)))
 $(error incompatible clean-build version: $(CLEAN_BUILD_VERSION), project needs: $(CLEAN_BUILD_REQUIRED_VERSION))
 endif
+
+# clean-build always sets default values for variables - to not inherit them from environment
+# to override these defaults by project-defined ones, use override directive
+define OVERRIDE_VAR_TEMPLATE
+
+override define $v
+$(value $v)
+$(endef)
+$(if $(filter simple,$(flavor $v)),override $v:=$$(value $v))
+
+endef
+$(eval $(foreach v,$(PROJECT_VARS_NAMES),$(OVERRIDE_VAR_TEMPLATE)))
 
 # needed directories - we will create them in $(CLEAN_BUILD_DIR)/all.mk
 # note: NEEDED_DIRS is never cleared, only appended
