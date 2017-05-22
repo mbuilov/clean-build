@@ -49,6 +49,7 @@ CONFIG_FILE:=
 # because clean-build defines it as CONFIG_FILE:=
 ifndef CONFIG_FILE
 # note: define CONFIG_FILE as recursive variable - in case if BUILD is also recursive
+# note: clean-build will override CONFIG_FILE to make it non-recursive (simple)
 override CONFIG_FILE = $(BUILD)/conf.mk
 endif
 
@@ -69,8 +70,11 @@ VENDOR_COPYRIGHT := Copyright (C) 2015-2017 Michael M. Builov, https://github.co
 #  this variable SHOULD NOT be taken from environment, instead,
 #  it should be defined either in command line or in generated $(CONFIG_FILE)
 #
-# for this example MTOP may be defined automatically
+# Only for this example MTOP may be defined automatically
 # note: MTOP variable is not used by clean-build
 MTOP := $(abspath $(dir $(lastword $(MAKEFILE_LIST)))../../)
+
+# source variables overrides from previously generated config file, if it exist
+-include $(CONFIG_FILE)
 
 endif
