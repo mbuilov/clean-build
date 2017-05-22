@@ -47,15 +47,14 @@ endif
 # use of environment variables is discouraged,
 # override variable only if it's not specified in command-line
 # $v - variable name
-keyword_endef := endef
 define OVERRIDE_VAR_TEMPLATE
 
 ifneq ("command line","$$(origin $v)")
 override define $v
 $(value $v)
-$(keyword_endef)
-endif
+$(endef)
 $(if $(filter simple,$(flavor $v)),override $v:=$$(value $v))
+endif
 
 endef
 
