@@ -204,14 +204,14 @@ ifneq (,$(call is_less,$(VS_VER),10))
 
 ifneq (\amd64,$(call VS_TOOL_PREFIX,$(UCPU)))
 # not for \amd64
-PATH := $(PATH);$(VS)\VC\bin;$(VS)\Common7\IDE
+override PATH := $(VS)\Common7\IDE;$(VS)\VC\bin;$(PATH)
 endif
 
 else ifneq (,$(call is_less,$(VS_VER),13))
 
 ifneq ($(UCPU),$(TCPU))
 # for \x86_amd64
-PATH := $(PATH);$(VS)\VC\bin
+override PATH := $(VS)\VC\bin;$(PATH)
 endif
 
 else # Visual Studio 2015
@@ -221,7 +221,7 @@ ifneq ($(UCPU),$(TCPU))
 # for \amd64_x86
 # for \x86_amd64
 # for \x86_arm
-PATH := $(PATH);$(VS)\VC\bin$(addprefix \,$(filter-out x86,$(TCPU:x86_64=amd64)))
+override PATH := $(VS)\VC\bin$(addprefix \,$(filter-out x86,$(TCPU:x86_64=amd64)));$(PATH)
 endif
 
 endif
@@ -244,7 +244,7 @@ VSTCL  := $(call qpath,$(VSN)\bin\Host$(patsubst x%,X%,$(TCPU:x86_64=x64))\$(TCP
 ifneq ($(UCPU),$(TCPU))
 # for HostX64/x86
 # for HostX86/x64
-PATH := $(PATH);$(VS)\bin\Host$(patsubst x%,X%,$(TCPU:x86_64=x64))\$(TCPU:x86_64=x64)
+override PATH := $(VS)\bin\Host$(patsubst x%,X%,$(TCPU:x86_64=x64))\$(TCPU:x86_64=x64);$(PATH)
 endif
 
 endif
