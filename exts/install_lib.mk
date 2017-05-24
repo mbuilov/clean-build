@@ -198,7 +198,7 @@ define ADD_INSTALL_DIRS
 ifneq (,$1)
 $(subst ?, ,$(call mk_dir_deps,$1))
 $(subst ?, ,$1):
-	$(call INSTALL_MKDIR,"$(subst \ , ,$@)")
+	$$(call INSTALL_MKDIR,"$$(subst \ , ,$$@)")
 NEEDED_INSTALL_DIRS += $1
 endif
 endef
@@ -215,12 +215,12 @@ ADD_INSTALL_DIR = $(eval $(call ADD_INSTALL_DIRS,$(filter-out $(NEEDED_INSTALL_D
 define INSTALL_LIBS_TEMPLATE_WINDOWS
 
 ifneq (,$(BUILT_LIBS)$(BUILT_DLLS))
-$(call ADD_INSTALL_DIRS,$(DST_LIB_DIR))
+$(call ADD_INSTALL_DIR,$(DST_LIB_DIR))
 endif
 
 ifndef NO_INSTALL_HEADERS
 ifdef LIBRARY_HEADERS
-$(call ADD_INSTALL_DIRS,$(DST_INC_DIR))
+$(call ADD_INSTALL_DIR,$(DST_INC_DIR))
 endif
 endif
 
