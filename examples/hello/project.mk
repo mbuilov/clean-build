@@ -47,7 +47,15 @@ VENDOR_COPYRIGHT := Copyright (C) 2015-2017 Michael M. Builov, https://github.co
 # note: MTOP variable is not used by clean-build
 MTOP := $(abspath $(TOP)/../..)
 
+# adjust project defaults, add missing definitions
+ifeq ("command line","$(origin PROJECT_OVERRIDES)")
+ifeq (,$(wildcard $(PROJECT_OVERRIDES)))
+$(error cannot include $(PROJECT_OVERRIDES))
+endif
+include $(PROJECT_OVERRIDES)
+endif
+
 # source variables overrides from previously generated config file, if it exist
 -include $(CONFIG_FILE)
 
-endif
+endif # TOP
