@@ -147,7 +147,10 @@ endif
 # note: OS_APPDEFS and OS_KRNDEFS are may be defined as empty
 # note: some external sources want WIN32 to be defined
 OS_APPDEFS := $(if $(UCPU:%64=),ILP32,LLP64) WIN32 CRT_SECURE_NO_DEPRECATE _CRT_SECURE_NO_WARNINGS
-OS_KRNDEFS := $(if $(KCPU:%64=),ILP32 _WIN32 _X86_,LLP64 _WIN64 _AMD64_) _KERNEL WIN32_LEAN_AND_MEAN
+OS_KRNDEFS := WINNT=1 $(if $(DEBUG),DBG=1 MSC_NOOPT DEPRECATE_DDK_FUNCTIONS=1) $(if $(KCPU:%64=), \
+  ILP32 _WIN32 _X86_=1 i386=1 STD_CALL, \
+  LLP64 _WIN64 _AMD64_ AMD64 \
+) _KERNEL WIN32_LEAN_AND_MEAN
 
 # variants filter function - get possible variants for the target, needed by $(CLEAN_BUILD_DIR)/c.mk
 # $1 - LIB,EXE,DLL
@@ -570,9 +573,9 @@ $(eval $(foreach v,R $(VARIANTS_FILTER),$(MULTI_COMPILERS_TEMPLATE)))
 endif # !SEQ_BUILD
 
 DEF_DRV_LDFLAGS = \
-  /INCREMENTAL:NO $(if $(DEBUG),/DEBUG,/RELEASE /LTCG /OPT:REF) /DRIVER /FULLBUILD \
+  /kernel /INCREMENTAL:NO $(if $(DEBUG),/DEBUG,/RELEASE /LTCG /OPT:REF) /DRIVER /FULLBUILD \
   /NODEFAULTLIB /SAFESEH:NO /MANIFEST:NO /MERGE:_PAGE=PAGE /MERGE:_TEXT=.text /MERGE:.rdata=.text \
-  /SECTION:INIT,d /ENTRY:DriverEntry /ALIGN:0x40 /BASE:0x10000 /STACK:0x40000,0x1000 \
+  /SECTION:INIT,d /ENTRY:DriverEntry$(if $(KCPU:%64=),@8) /ALIGN:0x40 /BASE:0x10000 /STACK:0x40000,0x1000 \
   /MACHINE:$(if $(KCPU:%64=),x86,x64) /SUBSYSTEM:NATIVE,$(SUBSYSTEM_KVER)
 
 # common parts of linker options for built DRV or KDLL
@@ -605,11 +608,11 @@ DRV_R_LD1 = $(call SUP,KLINK,$1)$(call WRAP_EXE_LINKER,$(DRV_EXPORTS),$1,$(call 
   WRAP_LINKER,$(WKLD) /nologo $(CMN_KLIBS) $(if $(DRV_EXPORTS),/IMPLIB:$(call ospath,$(IMP))) $(LDFLAGS)))
 
 # flags for kernel-level C-compiler
-KRN_FLAGS := /X /GF /W3 /GR- /Gz /Zl /Oi /Zi /Gm- /Zp8 /Gz
+KRN_FLAGS := /kernel -cbstring /X /GF /W4 /GR- /Gz /Zl /Oi /Zi /Gm- /Zp8 /Gy /fp:precise /Zc:wchar_t- /Zc:forScope /Zc:inline
 ifdef DEBUG
-KRN_FLAGS += /Od /Oy-
+KRN_FLAGS += /GS /Oy- /Od $(if $(KCPU:%64=),,-d2epilogunwind) /d1import_no_registry /d2Zi+
 else
-KRN_FLAGS += /Gy /GS- /Oy
+KRN_FLAGS += /GS- /Oy /d1nodatetime
 endif
 
 # $1 - outdir
