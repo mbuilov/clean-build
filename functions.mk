@@ -239,9 +239,9 @@ mk_dir_deps = $(subst :|,:| $2,$(addprefix $(newline)$2,$(filter-out %:|,$(join 
 
 # $1 - recursive macro, on first call becomes simple
 # $2 - macro value
-# for example, if MY_VALUE is not defined yet, but will be defined at time of MY_MACRO call:
-# override MY_MACRO = $(call lazy_simple,override MY_MACRO,$(MY_VALUE))
-lazy_simple = $(eval $1:=$$2)$($(lastword $1))
+# for example, if MY_VALUE is not defined yet, but it will be defined at time of MY_MACRO call, then:
+# MY_MACRO = $(call lazy_simple,MY_MACRO,$(MY_VALUE))
+lazy_simple = $(eval $(filter override,$(origin $1)) $1:=$$2)$($1)
 
 # protect variables from modification in target makefiles
 $(call CLEAN_BUILD_PROTECT_VARS,empty space tab comma newline comment open_brace close_brace \
