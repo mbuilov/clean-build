@@ -124,7 +124,13 @@ TARGET := RELEASE
 # operating system we are building for (and we are building on)
 # note: do not take OS value from environment
 # note: OS must be overridden either in command line or in project configuration makefile
+ifndef OS
 OS:=
+else ifeq (Windows_NT,$(OS))
+OS := WINXX
+else
+OS:=
+endif
 
 # CPU processor architecture we are building for 
 # note: do not take CPU value from environment
