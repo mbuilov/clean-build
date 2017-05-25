@@ -5,7 +5,7 @@ ifneq (override,$(origin TOP))
 
 # TOP - project root directory
 # define this variable for referencing project files: sources, makefiles, include paths, etc.
-# note: TOP variable is not used by clean-build
+# Note: TOP variable is not used by clean-build
 override TOP := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
 
 # specify version of clean-build build system required by this project
@@ -14,24 +14,13 @@ CLEAN_BUILD_REQUIRED_VERSION := 0.6.3
 # BUILD - variable required by clean-build - path to built artifacts
 BUILD := $(TOP)/build
 
-# optional, clean-build generated config file (while completing 'conf' goal)
-#
-# Note: generated config file will remember values of command-line or overridden variables, including BUILD variable.
-#  But, if config file is referenced via $(BUILD), then to use non-default BUILD value,
-#  it must be specified in command line every time, for example:
-#  $ make BUILD=~/build
-#
-# Note: by completing 'distclean' goal, defined by clean-build, $(BUILD) directory will be deleted
-#  - together with $(CONFIG_FILE), if it was generated under $(BUILD)
-#
-# note: define CONFIG_FILE as recursive variable - for the case when BUILD is defined in command line as recursive
-# note: clean-build will override CONFIG_FILE to make it non-recursive (simple)
-CONFIG_FILE = $(BUILD)/conf.mk
-
-# major.minor.patch
+# global product version
+# Note: this is default value of MODVER - per-module version number
+# format: major.minor.patch
 PRODUCT_VER := 1.0.0
 
 # next variables are needed for generating resource file under Windows
+# and for generating pkg-config files for libraries
 PRODUCT_NAMES_H  := product_names.h
 VENDOR_NAME      := Michael M. Builov
 PRODUCT_NAME     := Sample app
@@ -41,21 +30,37 @@ VENDOR_COPYRIGHT := Copyright (C) 2015-2017 Michael M. Builov, https://github.co
 #
 # Note: because use of environment variables in makefiles is discouraged,
 #  this variable SHOULD NOT be taken from environment, instead, it should be defined
-#  in command line (and later it may be taken from generated $(CONFIG_FILE))
+#  in command line (and later it may be taken from generated $(CONFIG))
 #
-# Only for this example MTOP may be defined automatically
-# note: MTOP variable is not used by clean-build
+# But, only for this example MTOP may be determined automatically
+# Note: MTOP variable is not used by clean-build
 MTOP := $(abspath $(TOP)/../..)
 
-# adjust project defaults, add missing definitions
-ifeq ("command line","$(origin PROJECT_OVERRIDES)")
-ifeq (,$(wildcard $(PROJECT_OVERRIDES)))
-$(error cannot include $(PROJECT_OVERRIDES))
-endif
-include $(PROJECT_OVERRIDES)
-endif
+# optional, clean-build generated config file (while completing 'conf' goal)
+#
+# Note: generated $(CONFIG) file will remember values of command-line or overridden variables;
+#  by sourcing $(CONFIG) file, these variables are will be restored
+#  and only new command-line values may override restored variables
+#
+# Note: by completing 'distclean' goal, defined by clean-build, $(BUILD) directory will be deleted
+#  - together with $(CONFIG) file, if it was generated under $(BUILD)
+#
+# Note: define CONFIG as recursive variable
+#  - for the case when BUILD is defined in command line also as recursive variable
+CONFIG = $(BUILD)/conf.mk
 
-# source variables overrides from previously generated config file, if it exist
--include $(CONFIG_FILE)
+# adjust project defaults, add missing definitions
+# CONFIG - may be either user-defined one (specified in command line) or previously clean-build generated config file
+# Note: if CONFIG is user-defined one, it also may try to source clean-build generated config file
+# Note: if CONFIG is user-defined and non-empty, it must exist
+# Note: if CONFIG is clean-build generated one, it may not exist
+ifneq (,$(CONFIG))
+ifeq ("command line","$(origin CONFIG)")
+ifeq (,$(wildcard $(CONFIG)))
+$(error cannot include $(CONFIG))
+endif
+endif
+-include $(CONFIG)
+endif
 
 endif # TOP
