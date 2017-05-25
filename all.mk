@@ -54,10 +54,10 @@ NO_CLEAN_BUILD_INSTALL_UNINSTALL_TARGETS:=
 ifndef NO_CLEAN_BUILD_INSTALL_UNINSTALL_TARGETS
 
 install:
-	@$(info Successfully installed to $(DESTDIR)$(PREFIX))
+	@$(info Successfully installed to '$(DESTDIR)$(PREFIX)')
 
 uninstall:
-	@$(info Uninstalled from $(DESTDIR)$(PREFIX))
+	@$(info Uninstalled from '$(DESTDIR)$(PREFIX)')
 
 endif
 
