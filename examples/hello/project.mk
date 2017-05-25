@@ -49,18 +49,17 @@ MTOP := $(abspath $(TOP)/../..)
 #  - for the case when BUILD is defined in command line also as recursive variable
 CONFIG = $(BUILD)/conf.mk
 
-# adjust project defaults, add missing definitions
-# CONFIG - may be either user-defined one (specified in command line) or previously clean-build generated config file
-# Note: if CONFIG is user-defined one, it also may try to source clean-build generated config file
-# Note: if CONFIG is user-defined and non-empty, it must exist
-# Note: if CONFIG is clean-build generated one, it may not exist
-ifneq (,$(CONFIG))
-ifeq ("command line","$(origin CONFIG)")
-ifeq (,$(wildcard $(CONFIG)))
-$(error cannot include $(CONFIG))
+# adjust project defaults
+# OVERRIDES may be specified in command line, which overrides next definition
+OVERRIDES:=
+ifdef OVERRIDES
+ifeq (,$(wildcard $(OVERRIDES)))
+$(error cannot include $(OVERRIDES))
 endif
+include $(OVERRIDES)
 endif
+
+# source clean-build generated config file, if it exist
 -include $(CONFIG)
-endif
 
 endif # TOP
