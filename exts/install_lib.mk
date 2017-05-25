@@ -18,7 +18,7 @@ ifndef INSTALL_LIBS_TEMPLATE
 DESTDIR:=
 
 # set defaults
-# note: next DEF_NO_... variables may be defined in project configuration makefile before including this file via override directive
+# note: next NO_... variables may be defined in project configuration makefile before including this file via override directive
 
 # non-empty if do not install development files and headers
 NO_DEVEL:=
