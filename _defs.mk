@@ -73,9 +73,9 @@ $(eval $(foreach v,$(PROJECT_VARS_NAMES),$(OVERRIDE_VAR_TEMPLATE)))
 # note: NEEDED_DIRS is never cleared, only appended
 NEEDED_DIRS:=
 
-# save configuration as result of 'conf' goal, if $(CONFIG_FILE) is defined
-# note: if CONFIG_FILE is defined in project configuration makefile under $(BUILD) directory as:
-# override CONFIG_FILE := $(BUILD)/conf.mk
+# save configuration to $(CONFIG) file as result of 'conf' goal
+# note: if $(CONFIG) file is generated under $(BUILD) directory,
+# (for example, CONFIG may be defined in project makefile as 'override CONFIG := $(BUILD)/conf.mk'),
 # then it will be deleted together with $(BUILD) directory in clean-build implementation of 'distclean' goal
 include $(CLEAN_BUILD_DIR)/confsup.mk
 
@@ -255,7 +255,7 @@ MDEBUG:=
 endif
 
 ifdef MDEBUG
-$(call dump,CLEAN_BUILD_DIR OSDIR BUILD CONFIG_FILE TARGET OS UCPU KCPU TCPU,,)
+$(call dump,CLEAN_BUILD_DIR OSDIR BUILD CONFIG TARGET OS UCPU KCPU TCPU,,)
 endif
 
 # get absolute path to current makefile
@@ -804,11 +804,11 @@ endif
 # define OSTYPE variable
 include $(OSDIR)/$(OS)/tools.mk
 
-# if $(CONFIG_FILE) was included, show it
+# if $(CONFIG) was included, show it
 ifndef VERBOSE
-ifneq (,$(filter $(CONFIG_FILE),$(abspath $(MAKEFILE_LIST))))
+ifneq (,$(filter $(CONFIG),$(abspath $(MAKEFILE_LIST))))
 CONF_COLOR := [01;32m
-$(info $(call PRINT_PERCENTS,use)$(call COLORIZE,CONF,$(CONFIG_FILE)))
+$(info $(call PRINT_PERCENTS,use)$(call COLORIZE,CONF,$(CONFIG)))
 endif
 endif
 
