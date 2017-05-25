@@ -180,7 +180,6 @@ INCLUDEDIR := $(PREFIX)/include
 
 # make full paths to installed include/library directories
 # this macro must be expanded after evaluating $(DEFINE_INSTALL_VARIABLES)
-# $(LIBRARY_HDIR) - name of installed header files subdirectory of $(INCLUDEDIR), may be empty, must not contain spaces
 define DEFINE_INSTALL_VARIABLES_WIN
 DST_INC_DIR := $(subst $(space),\ ,$(DESTDIR)$(INCLUDEDIR))$(LIBRARY_HDIR)
 DST_LIB_DIR := $(subst $(space),\ ,$(DESTDIR)$(LIBDIR))
@@ -193,19 +192,19 @@ INSTALL_MKDIR = $(call SUP,MKDIR,$(ospath),,1)$(MKDIR)
 # directories to install
 NEEDED_INSTALL_DIRS:=
 
-# $1 - result of $(call split_dirs,$1) on directories to install (spaces are prefixed with \ and are replaced with ?)
+# $1 - result of $(call split_dirs,$1) on directories to install (spaces are replaced with ?)
 define ADD_INSTALL_DIRS
 ifneq (,$1)
-$(subst ?, ,$(call mk_dir_deps,$1))
-$(subst ?, ,$1):
+$(subst ?,\ ,$(call mk_dir_deps,$1))
+$(subst ?,\ ,$1):
 	$$(call INSTALL_MKDIR,"$$(subst \ , ,$$@)")
 NEEDED_INSTALL_DIRS += $1
 endif
 endef
 
 # add rule for creating directories
-# $1 - directory to install
-ADD_INSTALL_DIR = $(eval $(call ADD_INSTALL_DIRS,$(filter-out $(NEEDED_INSTALL_DIRS),$(call split_dirs,$(subst $(space),?,$1)))))
+# $1 - directory to install, spaces in path are prefixed with backslash
+ADD_INSTALL_DIR = $(eval $(call ADD_INSTALL_DIRS,$(filter-out $(NEEDED_INSTALL_DIRS),$(call split_dirs,$(subst \ ,?,$1)))))
 
 # $1 - library name (mylib for libmylib.a)
 # note: pass non-empty 3-d argument to SUP function to not colorize tool arguments
