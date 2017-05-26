@@ -22,7 +22,7 @@ else
 SEQ_BUILD:=
 endif
 
-# dependencies generation supported only for non-multisource (sequencial) builds
+# dependencies generation supported only for non-multisource (sequential) builds
 ifndef SEQ_BUILD
 NO_DEPS := 1
 $(call CLEAN_BUILD_PROTECT_VARS,NO_DEPS)
@@ -39,7 +39,7 @@ BISONC := bison.exe
 YASM_FLAGS := $(if $(KCPU:%64=),-f win32 -m x86,-f win64 -m amd64)
 
 # strings to strip off from mc.exe output
-# note: may be overriden either in project configuration file or in command line
+# note: may be overridden either in project configuration file or in command line
 MC_STRIP_STRINGS := MC:?Compiling
 
 # wrap mc.exe call to strip-off diagnostic mc messages
@@ -59,7 +59,7 @@ endif
 MC = $(call SUP,$(TMD)MC,$1)$(call WRAP_MC,$($(TMD)MC1)$(if $(VERBOSE), -v) $2)
 
 # strings to strip off from rc.exe output if rc.exe does not support /nologo option
-# note: may be overriden either in project configuration file or in command line
+# note: may be overridden either in project configuration file or in command line
 RC_LOGO_STRINGS := Microsoft?(R)?Windows?(R)?Resource?Compiler?Version Copyright?(C)?Microsoft?Corporation.??All?rights?reserved. ^$$
 
 # send resource compiler output to stderr
@@ -250,7 +250,7 @@ CMN_LIBS = /OUT:$$(ospath) /VERSION:$$(call MK_MAJ_MIN_VER,$$(MODVER)) $$(addpre
 DEF_SUBSYSTEM = $$(if $$(filter /SUBSYSTEM:%,$$(LDFLAGS)),,/SUBSYSTEM:CONSOLE$(if $$(TMD),,,$(SUBSYSTEM_VER)))
 
 # strings to strip off from link.exe output
-# note: may be overriden either in project configuration file or in command line
+# note: may be overridden either in project configuration file or in command line
 # cp1251 ".оздание?кода .оздание?кода?завершено" as cp866 converted to cp1251
 #LINKER_STRIP_STRINGS := .������� ���� .������� ���� ���������
 LINKER_STRIP_STRINGS := Generating?code Finished?generating?code
@@ -399,7 +399,7 @@ CMN_RUCL = $(CMN_RCL) /DUNICODE /D_UNICODE
 CMN_SUCL = $(CMN_SCL) /DUNICODE /D_UNICODE
 
 # $(SED) expression to match C compiler messages about included files
-# note: may be overriden either in project configuration file or in command line
+# note: may be overridden either in project configuration file or in command line
 # utf8 "Примечание: включение файла:"
 #INCLUDING_FILE_PATTERN := \xd0\x9f\xd1\x80\xd0\xb8\xd0\xbc\xd0\xb5\xd1\x87\xd0\xb0\xd0\xbd\xd0\xb8\xd0\xb5: \xd0\xb2\xd0\xba\xd0\xbb\xd1\x8e\xd1\x87\xd0\xb5\xd0\xbd\xd0\xb8\xd0\xb5 \xd1\x84\xd0\xb0\xd0\xb9\xd0\xbb\xd0\xb0:
 # cp1251 "Примечание: включение файла:"
@@ -409,7 +409,7 @@ CMN_SUCL = $(CMN_SCL) /DUNICODE /D_UNICODE
 INCLUDING_FILE_PATTERN := Note: including file:
 
 # $(SED) expression to filter-out system files while dependencies generation
-# note: may be overriden either in project configuration file or in command line
+# note: may be overridden either in project configuration file or in command line
 # c:\\program?files?(x86)\\microsoft?visual?studio?10.0\\vc\\include\\
 UDEPS_INCLUDE_FILTER := $(subst \,\\,$(VSINC) $(UMINC))
 
@@ -572,6 +572,8 @@ $(eval $(foreach v,R $(VARIANTS_FILTER),$(MULTI_COMPILERS_TEMPLATE)))
 
 endif # !SEQ_BUILD
 
+ifdef DRIVERS_SUPPORT
+
 DEF_DRV_LDFLAGS = \
   /kernel /INCREMENTAL:NO $(if $(DEBUG),/DEBUG,/RELEASE /LTCG /OPT:REF) /DRIVER /FULLBUILD \
   /NODEFAULTLIB /SAFESEH:NO /MANIFEST:NO /MERGE:_PAGE=PAGE /MERGE:_TEXT=.text /MERGE:.rdata=.text \
@@ -629,7 +631,7 @@ ifdef SEQ_BUILD
 # note: precompiled headers are not supported in this mode
 
 # $(SED) expression to filter-out system files while dependencies generation
-# note: may be overriden either in project configuration file or in command line
+# note: may be overridden either in project configuration file or in command line
 # c:\\winddk\\
 KDEPS_INCLUDE_FILTER := $(subst \,\\,$(KMINC))
 
@@ -729,12 +731,19 @@ KLIB_R_ASM = $(call SUP,ASM,$2)$(YASMC) $(YASM_FLAGS) -o $(call ospath,$1 $2) $(
 DRV_R_ASM  = $(KLIB_R_ASM)
 KDLL_R_ASM = $(KLIB_R_ASM)
 
+endif # DRIVERS_SUPPORT
+
 # $1 - target
 # $2 - source
 BISON = $(call SUP,BISON,$2)$(BISONC) -o $(ospath) -d --fixed-output-files $(call ospath,$(call abspath,$2))
 FLEX  = $(call SUP,FLEX,$2)$(FLEXC) -o$(call ospath,$1 $2)
 
-ifndef SEQ_BUILD
+ifdef SEQ_BUILD
+
+# no precompiled headers support in sequential build
+PCH_TEMPLATE:=
+
+else # !SEQ_BUILD
 
 # templates to create precompiled header
 # note: for now implemented only for multi-source build
@@ -1021,6 +1030,8 @@ ADD_RES_RULE = $(eval CB_WINXX_RES_RULES += $(subst $(newline),$$(newline),$(cal
 # used to specify path to some resource for rc.exe via /DMY_BMP=$(call RC_DEFINE_PATH,$(TOP)/xx/yy/tt.bmp)
 RC_DEFINE_PATH = "\"$(subst \,\\,$(ospath))\""
 
+ifdef DRIVERS_SUPPORT
+
 # $1 - target file: $(call FORM_TRG,$t,$v)
 # $2 - sources:     $(TRG_SRC)
 # $3 - sdeps:       $(TRG_SDEPS)
@@ -1111,6 +1122,8 @@ KEXP_AUX_TEMPLATE = $(call KEXP_AUX_TEMPLATE1,$(call fixpath,$(DEF)))
 # $t - DRV or KDLL
 DRV_AUX_TEMPLATE = $(KEXP_AUX_TEMPLATE)
 KDLL_AUX_TEMPLATE = $(KEXP_AUX_TEMPLATE)
+
+endif # DRIVERS_SUPPORT
 
 # initial reset
 NO_STD_RES:=

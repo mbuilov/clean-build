@@ -391,6 +391,8 @@ $(foreach t,EXE LIB DLL KLIB,$(if $($t),$(PCH_TEMPLATE)))
 $(foreach t,EXE DLL,$(if $($t),$(MOD_AUX_TEMPLATE)))
 endef
 
+ifdef DRIVERS_SUPPORT
+
 # $1 - destination directory
 # $2 - file
 # $3 - aux dep
@@ -436,6 +438,8 @@ NEEDED_DIRS += $4
 $(call DRV_TEMPLATE1,$1,$2,$3,$4,$(addprefix $(KLIB_PREFIX),$(KLIBS:=$(KLIB_SUFFIX))))
 $(call TOCLEAN,$4)
 endef
+
+endif # DRIVERS_SUPPORT
 
 # protect variables from modifications in target makefiles
 $(call CLEAN_BUILD_PROTECT_VARS,INST_RPATH CC CXX MODULES_PATH LD AR TCC TCXX TLD TAR KCC KLD KMAKE YASMC FLEXC BISONC YASM_FLAGS \

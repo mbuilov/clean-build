@@ -311,6 +311,8 @@ define OS_DEFINE_TARGETS
 $(foreach t,EXE DLL,$(if $($t),$(MOD_AUX_TEMPLATE)))
 endif
 
+ifdef DRIVERS_SUPPORT
+
 # how to build driver, used by $(C_RULES)
 # $1 - target file: $(call FORM_TRG,$t,$v)
 # $2 - sources:     $(TRG_SRC)
@@ -338,6 +340,8 @@ $1: SYSLIBPATH := $(SYSLIBPATH)
 $1: $(addprefix $(LIB_DIR)/$(KLIB_PREFIX),$(KLIBS:=$(KLIB_SUFFIX)))
 	$$(call $t_$v_LD,$$@,$$(filter %$(OBJ_SUFFIX),$$^))
 endef
+
+endif # DRIVERS_SUPPORT
 
 # protect variables from modifications in target makefiles
 $(call CLEAN_BUILD_PROTECT_VARS,CC CXX AR TCC TCXX TAR KCC KLD YASM FLEXC BISONC YASM_FLAGS \
