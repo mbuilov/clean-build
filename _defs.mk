@@ -23,8 +23,13 @@ PROJECT_VARS_NAMES := $(filter-out \
 # clean-build version: major.minor.patch
 override CLEAN_BUILD_VERSION := 0.6.3
 
-# disable builtin rules and variables
-MAKEFLAGS += --no-builtin-rules --no-builtin-variables
+# disable builtin rules and variables, warn about use of undefined variables
+# NOTE: Gnu Make will consider changed $(MAKEFLAGS) only after all makefiles are parsed,
+#  so it will first define builtin rules/variables, then undefine them,
+#  also, it will warn about undefined variables only while executing rules
+# - it's better to specify these flags in command line, e.g.:
+# $ make -rR --warn-undefined-variables
+MAKEFLAGS += --no-builtin-rules --no-builtin-variables --warn-undefined-variables
 
 # reset if not defined
 ifndef MAKECMDGOALS
