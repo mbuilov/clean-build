@@ -370,16 +370,28 @@ DEF_KLIB_LDFLAGS := $(if $(DEBUG),,/LTCG)
 KLIB_R_LD1 = $(call SUP,KLIB,$1)$(WKLD) /lib /nologo /OUT:$(call ospath,$1 $2) $(DEF_KLIB_LDFLAGS) $(LDFLAGS) >&2
 
 # flags for application level C-compiler
-APP_FLAGS := /X /GF /W3 /EHsc
+OS_APP_FLAGS := /X /GF /W3 /EHsc
 ifdef DEBUG
-APP_FLAGS += /Od /Zi /RTCc /RTCsu /GS
+OS_APP_FLAGS += /Od /Zi /RTCc /RTCsu /GS
 else
-APP_FLAGS += /Ox /GL /Gy
+OS_APP_FLAGS += /Ox /GL /Gy
 endif
-APP_FLAGS += /wd4251 # 'class' needs to have dll-interface to be used by clients of class...
-APP_FLAGS += /wd4275 # non dll-interface class 'class' used as base for dll-interface class 'class'
-APP_FLAGS += /wd4996 # 'strdup': The POSIX name for this item is deprecated...
-APP_FLAGS += /wd4001 # nonstandard extension 'single line comment' was used
+OS_APP_FLAGS += /wd4251 # 'class' needs to have dll-interface to be used by clients of class...
+OS_APP_FLAGS += /wd4275 # non dll-interface class 'class' used as base for dll-interface class 'class'
+OS_APP_FLAGS += /wd4996 # 'strdup': The POSIX name for this item is deprecated...
+OS_APP_FLAGS += /wd4001 # nonstandard extension 'single line comment' was used
+
+ifdef SEQ_BUILD
+
+# option for parallel builds, starting from Visual Studio 2013
+ifdef FORCE_SYNC_PDB
+OS_APP_FLAGS += $(FORCE_SYNC_PDB) #/FS
+endif
+
+endif # SEQ_BUILD
+
+# APP_FLAGS may be overridden in project makefile
+APP_FLAGS := $(OS_APP_FLAGS)
 
 # call C compiler
 # $1 - outdir
@@ -487,11 +499,6 @@ LIB_$v_LD = $$(LIB_$v_LD1)
 $(empty)
 endef
 $(eval $(foreach v,R $(VARIANTS_FILTER),$(SEQ_COMPILERS_TEMPLATE)))
-
-# option for parallel builds, starting from Visual Studio 2013
-ifdef FORCE_SYNC_PDB
-APP_FLAGS += $(FORCE_SYNC_PDB) #/FS
-endif
 
 else # !SEQ_BUILD
 
@@ -610,13 +617,28 @@ DRV_R_LD1 = $(call SUP,KLINK,$1)$(call WRAP_EXE_LINKER,$(DRV_EXPORTS),$1,$(call 
   WRAP_LINKER,$(WKLD) /nologo $(CMN_KLIBS) $(if $(DRV_EXPORTS),/IMPLIB:$(call ospath,$(IMP))) $(LDFLAGS)))
 
 # flags for kernel-level C-compiler
-KRN_FLAGS := /kernel -cbstring /X /GF /W4 /GR- /Gz /Zl /Oi /Zi /Gm- /Zp8 /Gy /fp:precise /Zc:wchar_t- /Zc:forScope /Zc:inline
+OS_KRN_FLAGS := /kernel -cbstring /X /GF /W4 /GR- /Gz /Zl /Oi /Zi /Gm- /Zp8 /Gy /fp:precise /Zc:wchar_t- /Zc:forScope /Zc:inline
 ifdef DEBUG
-KRN_FLAGS += /GS /Oy- /Od $(if $(KCPU:%64=),,-d2epilogunwind) /d1import_no_registry /d2Zi+
+OS_KRN_FLAGS += /GS /Oy- /Od $(if $(KCPU:%64=),,-d2epilogunwind) /d1import_no_registry /d2Zi+
 else
-KRN_FLAGS += /GS- /Oy /d1nodatetime
+OS_KRN_FLAGS += /GS- /Oy /d1nodatetime
 endif
 
+ifdef SEQ_BUILD
+
+# option for parallel builds, starting from Visual Studio 2013
+FORCE_SYNC_PDB_KERN := $(FORCE_SYNC_PDB)
+
+ifdef FORCE_SYNC_PDB_KERN
+OS_KRN_FLAGS += $(FORCE_SYNC_PDB_KERN) #/FS
+endif
+
+endif # SEQ_BUILD
+
+# KRN_FLAGS may be overridden in project makefile
+KRN_FLAGS := $(OS_KRN_FLAGS)
+
+# call C compiler
 # $1 - outdir
 # $2 - sources
 # $3 - flags
@@ -653,13 +675,6 @@ KDLL_R_CXX = $(CMN_KCXX)
 KLIB_R_LD  = $(KLIB_R_LD1)
 DRV_R_LD   = $(DRV_R_LD1)
 KDLL_R_LD  = $(KDLL_R_LD1)
-
-# option for parallel builds, starting from Visual Studio 2013
-FORCE_SYNC_PDB_KERN := $(FORCE_SYNC_PDB)
-
-ifdef FORCE_SYNC_PDB_KERN
-KRN_FLAGS += $(FORCE_SYNC_PDB_KERN) #/FS
-endif
 
 else # !SEQ_BUILD
 
@@ -1160,14 +1175,14 @@ $(call CLEAN_BUILD_PROTECT_VARS,SEQ_BUILD YASMC FLEXC BISONC MC YASM_FLAGS MC_ST
   WRAP_EXE_EXPORTS_LINKER WRAP_EXE_LINKER EXE_LD_TEMPLATE WRAP_DLL_EXPORTS_LINKER WRAP_DLL_LINKER \
   DLL_LD_TEMPLATE DEF_LIB_LDFLAGS LIB_LD_TEMPLATE DEF_KLIB_LDFLAGS \
   $(foreach v,R $(VARIANTS_FILTER),EXE_$v_LD1 DLL_$v_LD1 LIB_$v_LD1) KLIB_R_LD1 \
-  APP_FLAGS CMN_CL1 CMN_RCL CMN_SCL CMN_RUCL CMN_SUCL \
+  OS_APP_FLAGS APP_FLAGS CMN_CL1 CMN_RCL CMN_SCL CMN_RUCL CMN_SUCL \
   INCLUDING_FILE_PATTERN UDEPS_INCLUDE_FILTER SED_DEPS_SCRIPT \
   WRAP_COMPILER CMN_CC CMN_CXX SEQ_COMPILERS_TEMPLATE \
   $(foreach v,R $(VARIANTS_FILTER),LIB_$v_CC LIB_$v_CXX EXE_$v_CC EXE_$v_CXX DLL_$v_CC DLL_$v_CXX EXE_$v_LD DLL_$v_LD LIB_$v_LD) \
   MCL_MAX_COUNT CALL_MCC CALL_MCXX CALL_MPCC CALL_MPCXX CMN_MCL2 CMN_MCL1 CMN_RMCL CMN_SMCL CMN_RUMCL CMN_SUMCL \
   FILTER_SDEPS1 FILTER_SDEPS CMN_MCL MULTI_COMPILERS_TEMPLATE \
   $(foreach v,R $(VARIANTS_FILTER),PCH_$v_CC PCH_$v_CXX) \
-  DEF_DRV_LDFLAGS CMN_KLIBS KDLL_R_LD1 DRV_R_LD1 KRN_FLAGS CMN_KCL KDEPS_INCLUDE_FILTER CMN_KCC CMN_KCXX \
+  DEF_DRV_LDFLAGS CMN_KLIBS KDLL_R_LD1 DRV_R_LD1 OS_KRN_FLAGS KRN_FLAGS CMN_KCL KDEPS_INCLUDE_FILTER CMN_KCC CMN_KCXX \
   KLIB_R_CC DRV_R_CC KDLL_R_CC KLIB_R_CXX DRV_R_CXX KDLL_R_CXX KLIB_R_LD DRV_R_LD KDLL_R_LD FORCE_SYNC_PDB_KERN \
   CALL_MKCC CALL_MKCXX CALL_MPKCC CALL_MPKCXX CMN_MKCL3 CMN_MKCL2 CMN_MKCL1 CMN_MKCL PCH_K_CC PCH_K_CXX KLIB_R_ASM BISON FLEX \
   PCH_TEMPLATE1 PCH_TEMPLATE2 PCH_TEMPLATE3 PCH_TEMPLATE ADD_WITH_PCH \
