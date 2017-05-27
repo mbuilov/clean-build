@@ -32,7 +32,7 @@ override CLEAN_BUILD_VERSION := 0.6.3
 MAKEFLAGS += --no-builtin-rules --no-builtin-variables --warn-undefined-variables
 
 # reset if not defined
-ifndef MAKECMDGOALS
+ifeq (undefined,$(origin MAKECMDGOALS))
 MAKECMDGOALS:=
 endif
 
