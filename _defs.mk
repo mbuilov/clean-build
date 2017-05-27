@@ -397,6 +397,8 @@ else
 SUP:=
 endif
 endif # !QUIET
+else
+REM_SHOWN_MAKEFILE:=
 endif # !distclean && !clean
 
 # SED - stream editor executable - should be defined in $(OSDIR)/$(OS)/tools.mk
