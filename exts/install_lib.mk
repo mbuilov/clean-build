@@ -6,7 +6,7 @@
 
 # auxiliary templates to simplify library installation
 
-ifndef INSTALL_LIBS_TEMPLATE
+ifeq (,$(filter-out undefined environment,$(origin INSTALL_LIBS_TEMPLATE)))
 
 # this file is likely included in target makefile after $(DEFINE_TARGETS) which builds:
 # LIB - static library name with variants and/or
