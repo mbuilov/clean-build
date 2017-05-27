@@ -4,7 +4,7 @@
 # Licensed under GPL version 2 or any later version, see COPYING
 #----------------------------------------------------------------------------------
 
-ifndef ECHO_INSTALL
+ifeq (,$(filter-out undefined environment,$(origin ECHO_INSTALL)))
 
 # CHMOD tool color
 CHMOD_COLOR := [01;35m
