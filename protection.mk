@@ -23,7 +23,7 @@ CLEAN_BUILD_NEED_TAIL_CODE:=
 
 # convert value of variable $1 to string
 CLEAN_BUILD_GET_PROTECTED_VALUE = $1@$(subst $$,$$$$,$(subst $(newline),$$(newline),$(subst \
-  $(tab),$$(tab),$(subst $(space),$$(space),$(origin $1):$(value $1)))))
+  $(tab),$$(tab),$(subst $(space),$$(space),$(origin $1):$(if $(filter-out undefined,$(origin $1)),$(value $1))))))
 
 # store values of clean-build protected variables which must not be changed in target makefiles
 # check and set CLEAN_BUILD_NEED_TAIL_CODE - $(DEF_TAIL_CODE) must be evaluated after $(DEF_HEAD_CODE)
