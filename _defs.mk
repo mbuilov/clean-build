@@ -14,13 +14,33 @@ ifneq (3.80,$(word 1,$(sort $(MAKE_VERSION) 3.80)))
 $(error required GNU Make of version 3.81 or later)
 endif
 
+# For consistent builds, build result should not depend on environment.
+# 
+
+# By default, all environment variables are visible as makefile variables.
+# Any variable, that was defined in environment and then redefined in makefile
+#  is passed having new value to environment of commands executed in rules.
+# This may lead to unexpected build results, depending on environment, so
+#  unexport all environment variables, except PATH, SHELL and variables named in $(ENV_VARS).
+# Note: ENV_VARS may be set either in project makefile or in command line.
+unexport $(filter-out PATH SHELL $(if $(filter-out undefined environment,$(origin \
+  ENV_VARS)),$(ENV_VARS)),$(foreach v,$(.VARIABLES),$(if \
+  $(findstring "command line","$(origin $v)")$(findstring "environment","$(origin $v)"),$v)))
+
+# Also, because any variable may be already initialized from environment
+# 1) always redefine variables before using them
+# 2) never use ?= operator
+# 3) 'ifdef/ifndef' should only be used for previously initialized variables
+#  (ifdef gives 'false' for variable with empty value - and value does not evaluated for the check)
+
 # assume project makefile, which has included this makefile,
-# defines some variables - save list of those variables
+# defines some variables - save list of those variables to override them below
 PROJECT_VARS_NAMES := $(filter-out \
   MAKEFLAGS CURDIR SHELL MAKEFILE_LIST .DEFAULT_GOAL,$(foreach \
   v,$(.VARIABLES),$(if $(filter file,$(origin $v)),$v)))
 
 # clean-build version: major.minor.patch
+# note: override value, if it was accidentally set in project makefile
 override CLEAN_BUILD_VERSION := 0.6.3
 
 # disable builtin rules and variables, warn about use of undefined variables
@@ -161,7 +181,7 @@ SUPPORTED_CPUS    := x86 x86_64 sparc sparc64 armv5 mips24k ppc
 OSDIR := $(CLEAN_BUILD_DIR)
 
 # CPU variable must not be used in target makefiles
-override CPU = $(error please use UCPU, KCPU or TCPU instead)
+override CPU = $(error please do not use CPU, use UCPU, KCPU or TCPU instead)
 
 # fix variables - make them non-recursive (simple)
 # note: these variables are used to create simple variables
@@ -233,7 +253,7 @@ endif # distclean
 DEBUG := $(filter DEBUG %D,$(TARGET))
 
 # run via $(MAKE) V=1 for verbose output
-ifeq ("$(origin V)","command line")
+ifeq (command line,$(origin V))
 VERBOSE := $(V:0=)
 else
 # don't print executing commands by default
@@ -244,7 +264,7 @@ endif
 QUIET := $(if $(VERBOSE),,@)
 
 # run via $(MAKE) M=1 to print makefile name the target comes from
-ifeq ("$(origin M)","command line")
+ifeq (command line,$(origin M))
 INFOMF := $(M:0=)
 else
 # don't print makefile names by default
@@ -252,7 +272,7 @@ INFOMF:=
 endif
 
 # run via $(MAKE) D=1 to debug makefiles
-ifeq ("$(origin D)","command line")
+ifeq (command line,$(origin D))
 MDEBUG := $(D:0=)
 else
 # don't debug makefiles by default
