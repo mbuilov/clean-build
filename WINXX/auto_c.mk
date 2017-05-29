@@ -5,7 +5,7 @@
 #----------------------------------------------------------------------------------
 
 # run via $(MAKE) A=1 to show autoconf results
-ifeq ("$(origin A)","command line")
+ifeq (command line,$(origin A))
 VAUTO := $(A:0=)
 else
 VAUTO:=
