@@ -4,7 +4,7 @@
 # Licensed under GPL version 2 or any later version, see COPYING
 #----------------------------------------------------------------------------------
 
-ifndef GET_ALL_LIBS
+ifeq (,$(filter-out undefined environment,$(origin GET_ALL_LIBS)))
 
 # get all built variants of static and dynamic libraries in form <lib>?<variant>
 # $1 - built static libraries

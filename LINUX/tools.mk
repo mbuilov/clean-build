@@ -8,6 +8,18 @@
 
 OSTYPE := UNIX
 
+# print prepared environment in verbose mode
+# note: cannot unset some variables under cygwin, such as "CommonProgramFiles(x86)", so filter them out
+# note: cannot unset variables like BASH_FUNC_AAA1%%, !::
+ifdef VERBOSE
+$(info $(subst $$(newline),$(newline),$(subst $$(space), ,$(addprefix \
+  unset$$(space),$(subst $(space),$$(newline)unset$$(space),$(strip \
+  $(foreach v,$(CLEANED_ENV_VARS),$(if \
+  $(findstring $(open_brace),$v),,$(if \
+  $(findstring %,$v),,$(if \
+  $(findstring !,$v),,$v))))))))))
+endif
+
 # delete files $1
 DEL = rm -f$(if $(VERBOSE),v) $1$(if $(VERBOSE), >&2)
 

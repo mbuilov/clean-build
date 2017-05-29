@@ -6,7 +6,7 @@
 
 # libtool-archive description file generation
 
-ifndef LIBTOOL_ARCHIVE_NAME
+ifeq (,$(filter-out undefined environment,$(origin LIBTOOL_ARCHIVE_NAME)))
 
 # make name of generated .la file
 # $1 - static library name (may be empty if $2 is not empty)

@@ -5,7 +5,7 @@
 #----------------------------------------------------------------------------------
 
 # run via $(MAKE) A=1 to show autoconf results
-ifeq ("$(origin A)","command line")
+ifeq (command line,$(origin A))
 VAUTO := $(A:0=)
 else
 VAUTO:=
@@ -250,7 +250,7 @@ endif
 endif
 
 # PATH variable may have changed, print it to generated batch file
-$(if $(VERBOSE),$(info setlocal$(newline)set "PATH=$(PATH)"))
+$(if $(VERBOSE),$(info set "PATH=$(PATH)"))
 
 # option for parallel builds, starting from Visual Studio 2013
 ifneq (,$(call is_less,11,$(VS_VER)))

@@ -4,7 +4,7 @@
 # Licensed under GPL version 2 or any later version, see COPYING
 #----------------------------------------------------------------------------------
 
-ifndef DEF_HEAD_CODE
+ifeq (,$(filter-out undefined environment,$(origin DEF_HEAD_CODE)))
 include $(dir $(lastword $(MAKEFILE_LIST)))_defs.mk
 endif
 
@@ -39,11 +39,6 @@ TOOL_MODE:=$(TOOL_MODE)
 include $m
 endef
 
-# remember number of intermediate non-target makefiles if build is non-verbose
-ifdef REM_SHOWN_MAKEFILE
-$(eval define CLEAN_BUILD_INCLUDE$(newline)INTERMEDIATE_MAKEFILES+=1$(newline)$(value CLEAN_BUILD_INCLUDE)$(newline)endef)
-endif
-
 # build CLEAN_BUILD_PARALLEL macro, which generates code for processing given makefiles
 
 # add list of makefiles $(MDEPS) that need to be built before current makefile to
@@ -74,9 +69,15 @@ $(eval define CLEAN_BUILD_PARALLEL$(newline)$(value \
   CLEAN_BUILD_PARALLEL)CB_INCLUDE_LEVEL+=.$$(foreach \
   m,$$1,$$(CB_INCLUDE_TEMPLATE))$(newline)CB_INCLUDE_LEVEL:=$$(CB_INCLUDE_LEVEL)$(newline)endef)
 
+# remember number of intermediate non-target makefiles if build is non-verbose
+ifdef REM_SHOWN_MAKEFILE
+$(eval define CLEAN_BUILD_PARALLEL$(newline)$(value \
+  CLEAN_BUILD_PARALLEL)$(newline)PROCESSED_MAKEFILES+=$$(CURRENT_MAKEFILE)-$(newline)INTERMEDIATE_MAKEFILES+=1$(newline)endef)
+endif
+
 # at last, check if need to include $(CLEAN_BUILD_DIR)/all.mk
 # NOTE: call DEF_TAIL_CODE with @ - to not show debug info that was already shown above
-# and for the checks in $(CLEAN_BUILD_CHECK_AT_TAIL) at $(CLEAN_BUILD_DIR)/protection.mk
+#  and for the checks in $(CLEAN_BUILD_CHECK_AT_TAIL) at $(CLEAN_BUILD_DIR)/protection.mk
 $(eval define CLEAN_BUILD_PARALLEL$(newline)$(value \
   CLEAN_BUILD_PARALLEL)$(newline)$$$$(eval $$$$(call DEF_TAIL_CODE,@))$(newline)endef)
 

@@ -16,7 +16,7 @@ MCL_MAX_COUNT := 50
 include $(CLEAN_BUILD_DIR)/WINXX/cres.mk
 
 # run via $(MAKE) S=1 to compile each source individually (without /MP compiler option)
-ifeq ("$(origin S)","command line")
+ifeq (command line,$(origin S))
 SEQ_BUILD := $(S:0=)
 else
 SEQ_BUILD:=
@@ -483,19 +483,18 @@ CMN_CC = $(call SUP,$(TMD)CC,$2)$(call WRAP_COMPILER,$(call $3,$(dir $1),$2,$(CF
 CMN_CXX = $(call SUP,$(TMD)CXX,$2)$(call WRAP_COMPILER,$(call $3,$(dir $1),$2,$(CXXFLAGS)),$1,$2,$(basename $1).d,$(UDEPS_INCLUDE_FILTER))
 
 # define compilers for different target variants
+# $$1 - target object/exe/dll/lib, $$2 - source/objects
 define SEQ_COMPILERS_TEMPLATE
 $(empty)
-# $1 - target object, $2 - source
 LIB_$v_CC  = $$(call CMN_CC,$$1,$$2,CMN_$vCL)
 LIB_$v_CXX = $$(call CMN_CXX,$$1,$$2,CMN_$vCL)
 EXE_$v_CC  = $$(LIB_$v_CC)
 EXE_$v_CXX = $$(LIB_$v_CXX)
 DLL_$v_CC  = $$(EXE_$v_CC)
 DLL_$v_CXX = $$(EXE_$v_CXX)
-# $1 - target exe/dll/lib, $2 - objects
-EXE_$v_LD = $$(EXE_$v_LD1)
-DLL_$v_LD = $$(DLL_$v_LD1)
-LIB_$v_LD = $$(LIB_$v_LD1)
+EXE_$v_LD  = $$(EXE_$v_LD1)
+DLL_$v_LD  = $$(DLL_$v_LD1)
+LIB_$v_LD  = $$(LIB_$v_LD1)
 $(empty)
 endef
 $(eval $(foreach v,R $(VARIANTS_FILTER),$(SEQ_COMPILERS_TEMPLATE)))
@@ -563,10 +562,17 @@ FILTER_SDEPS = $(foreach d,$1,$(call FILTER_SDEPS1,$(subst |, ,$d)))
 CMN_MCL = $(call $3,$(dir $(firstword $2)),$(sort $(filter $(SRC),$? $(call FILTER_SDEPS,$(SDEPS)))))
 
 define MULTI_COMPILERS_TEMPLATE
-# $$1 - target EXE,LIB,DLL,... $$2 - objects
-EXE_$v_LD  = $$(call CMN_MCL,$$1,$$2,CMN_$vMCL)$$(EXE_$v_LD1)
-DLL_$v_LD  = $$(call CMN_MCL,$$1,$$2,CMN_$vMCL)$$(DLL_$v_LD1)
-LIB_$v_LD  = $$(call CMN_MCL,$$1,$$2,CMN_$vMCL)$$(LIB_$v_LD1)
+# $$1 - target object, $$2 - source
+LIB_$v_CC:=
+LIB_$v_CXX:=
+EXE_$v_CC:=
+EXE_$v_CXX:=
+DLL_$v_CC:=
+DLL_$v_CXX:=
+# $$1 - target exe/dll/lib, $$2 - objects
+EXE_$v_LD = $$(call CMN_MCL,$$1,$$2,CMN_$vMCL)$$(EXE_$v_LD1)
+DLL_$v_LD = $$(call CMN_MCL,$$1,$$2,CMN_$vMCL)$$(DLL_$v_LD1)
+LIB_$v_LD = $$(call CMN_MCL,$$1,$$2,CMN_$vMCL)$$(LIB_$v_LD1)
 # $$1 - target pch object, $$2 - pch-source, $$3 - pch header
 # target-specific: TMD, CFLAGS, CXXFLAGS
 PCH_$v_CC  = $$(call SUP,$$(TMD)PCHCC,$$2)$$(call WRAP_COMPILER,$$(call CMN_$vCL,$$(dir $$1),$$2,/Yc$$3 /Yl$$(basename \
@@ -720,6 +726,14 @@ CMN_MKCL1 = $(call CMN_MKCL2,$1,$(filter %.c,$2),$(filter %.cpp,$2))
 # $2 - objects
 # target-specific: SRC, SDEPS
 CMN_MKCL = $(call CMN_MKCL1,$(dir $(firstword $2)),$(sort $(filter $(SRC),$? $(call FILTER_SDEPS,$(SDEPS)))))
+
+# reset
+KLIB_R_CC:=
+DRV_R_CC:=
+KDLL_R_CC:=
+KLIB_R_CXX:=
+DRV_R_CXX:=
+KDLL_R_CXX:=
 
 # $1 - target
 # $2 - objects

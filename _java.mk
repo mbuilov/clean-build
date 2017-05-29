@@ -6,12 +6,12 @@
 
 # rules for building java sources
 
-ifndef DEF_HEAD_CODE
+ifeq (,$(filter-out undefined environment,$(origin DEF_HEAD_CODE)))
 include $(dir $(lastword $(MAKEFILE_LIST)))_defs.mk
 endif
 
 # run via $(MAKE) L=1 to run java compiler with -Xlint
-ifeq ("$(origin L)","command line")
+ifeq (command line,$(origin L))
 JLINT := $(L:0=)
 else
 JLINT:=

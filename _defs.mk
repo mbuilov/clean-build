@@ -14,14 +14,39 @@ ifneq (3.80,$(word 1,$(sort $(MAKE_VERSION) 3.80)))
 $(error required GNU Make of version 3.81 or later)
 endif
 
+# For consistent builds, build results should not depend on environment,
+#  only on settings specified in configuration files.
+
+# By default, all environment variables are visible as makefile variables.
+# Any variable, that was defined in environment and then redefined in makefile
+#  is passed having new value to environment of commands executed in rules.
+# All variables defined in command line are also added to environment of the commands.
+# To avoid accidental change of environment variables in makefiles,
+#  unexport all environment and command-line variables,
+#  except PATH and variables named in $(PASS_ENV_VARS).
+# Note: PASS_ENV_VARS may be set either in project makefile or in command line
+CLEANED_ENV_VARS := $(filter-out PATH $(if $(filter-out undefined environment,$(origin \
+  PASS_ENV_VARS)),$(PASS_ENV_VARS)),$(foreach v,$(.VARIABLES),$(if \
+  $(findstring "command line","$(origin $v)")$(findstring "environment","$(origin $v)"),$v)))
+
+# unexport environment + command-line variables
+unexport $(CLEANED_ENV_VARS)
+
+# Also, because any variable may be already initialized from environment
+# 1) always redefine variables before using them
+# 2) never use ?= operator
+# 3) 'ifdef/ifndef' should only be used for previously initialized variables
+#  (ifdef gives 'false' for variable with empty value - and value is not evaluated for the check)
+
 # assume project makefile, which has included this makefile,
-# defines some variables - save list of those variables
+# defines some variables - save list of those variables to override them below
 PROJECT_VARS_NAMES := $(filter-out \
   MAKEFLAGS CURDIR SHELL MAKEFILE_LIST .DEFAULT_GOAL,$(foreach \
   v,$(.VARIABLES),$(if $(filter file,$(origin $v)),$v)))
 
 # clean-build version: major.minor.patch
-override CLEAN_BUILD_VERSION := 0.6.3
+# note: override value, if it was accidentally set in project makefile
+override CLEAN_BUILD_VERSION := 0.6.4
 
 # disable builtin rules and variables, warn about use of undefined variables
 # NOTE: Gnu Make will consider changed $(MAKEFLAGS) only after all makefiles are parsed,
@@ -32,7 +57,7 @@ override CLEAN_BUILD_VERSION := 0.6.3
 MAKEFLAGS += --no-builtin-rules --no-builtin-variables --warn-undefined-variables
 
 # reset if not defined
-ifndef MAKECMDGOALS
+ifeq (undefined,$(origin MAKECMDGOALS))
 MAKECMDGOALS:=
 endif
 
@@ -161,7 +186,7 @@ SUPPORTED_CPUS    := x86 x86_64 sparc sparc64 armv5 mips24k ppc
 OSDIR := $(CLEAN_BUILD_DIR)
 
 # CPU variable must not be used in target makefiles
-override CPU = $(error please use UCPU, KCPU or TCPU instead)
+override CPU = $(error please do not use CPU, use UCPU, KCPU or TCPU instead)
 
 # fix variables - make them non-recursive (simple)
 # note: these variables are used to create simple variables
@@ -233,7 +258,7 @@ endif # distclean
 DEBUG := $(filter DEBUG %D,$(TARGET))
 
 # run via $(MAKE) V=1 for verbose output
-ifeq ("$(origin V)","command line")
+ifeq (command line,$(origin V))
 VERBOSE := $(V:0=)
 else
 # don't print executing commands by default
@@ -244,7 +269,7 @@ endif
 QUIET := $(if $(VERBOSE),,@)
 
 # run via $(MAKE) M=1 to print makefile name the target comes from
-ifeq ("$(origin M)","command line")
+ifeq (command line,$(origin M))
 INFOMF := $(M:0=)
 else
 # don't print makefile names by default
@@ -252,7 +277,7 @@ INFOMF:=
 endif
 
 # run via $(MAKE) D=1 to debug makefiles
-ifeq ("$(origin D)","command line")
+ifeq (command line,$(origin D))
 MDEBUG := $(D:0=)
 else
 # don't debug makefiles by default
@@ -397,6 +422,8 @@ else
 SUP:=
 endif
 endif # !QUIET
+else
+REM_SHOWN_MAKEFILE:=
 endif # !distclean && !clean
 
 # SED - stream editor executable - should be defined in $(OSDIR)/$(OS)/tools.mk
@@ -691,8 +718,10 @@ FIX_SDEPS = $(subst | ,|,$(call fixpath,$(subst |,| ,$1)))
 # $3 - environment variables to set to run executable, in form VAR=value
 # note: this function should be used for rule body, where automatic variable $@ is defined
 # note: WINXX/tools.mk defines own show_dll_path_end
-RUN_WITH_DLL_PATH = $(if $2$3,$(if $2,$(eval $@:$(DLL_PATH_VAR):=$(addsuffix $(PATHSEP),$($(DLL_PATH_VAR)))$2))$(foreach \
-  v,$3,$(foreach g,$(firstword $(subst =, ,$v)),$(eval $@:$g:=$(patsubst $g=%,%,$v))))$(if $(VERBOSE),$(show_with_dll_path)@))$1$(if \
+RUN_WITH_DLL_PATH = $(if $2$3,$(if $2,$(eval \
+  $@:export $(DLL_PATH_VAR):=$(addsuffix $(PATHSEP),$($(DLL_PATH_VAR)))$2))$(foreach \
+  v,$3,$(foreach g,$(firstword $(subst =, ,$v)),$(eval \
+  $@:export $g:=$(patsubst $g=%,%,$v))))$(if $(VERBOSE),$(show_with_dll_path)@))$1$(if \
   $2$3,$(if $(VERBOSE),$(show_dll_path_end)))
 
 # reset
@@ -818,7 +847,9 @@ endif
 endif
 
 # protect variables from modifications in target makefiles
-$(call CLEAN_BUILD_PROTECT_VARS,MAKEFLAGS CLEAN_BUILD_VERSION CLEAN_BUILD_DIR CLEAN_BUILD_REQUIRED_VERSION \
+$(call CLEAN_BUILD_PROTECT_VARS,MAKEFLAGS CLEANED_ENV_VARS PATH PASS_ENV_VARS \
+  $(if $(filter-out undefined environment,$(origin PASS_ENV_VARS)),$(PASS_ENV_VARS)) \
+  PROJECT_VARS_NAMES CLEAN_BUILD_VERSION CLEAN_BUILD_DIR CLEAN_BUILD_REQUIRED_VERSION \
   BUILD DRIVERS_SUPPORT DEBUG NO_CLEAN_BUILD_DISTCLEAN_TARGET \
   SUPPORTED_OSES SUPPORTED_CPUS SUPPORTED_TARGETS OS CPU UCPU KCPU TCPU TARGET \
   OSTYPE VERBOSE QUIET INFOMF MDEBUG OSDIR CHECK_MAKEFILE_NOT_PROCESSED \

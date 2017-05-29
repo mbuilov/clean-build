@@ -6,7 +6,7 @@
 
 # pkg-config file generation
 
-ifndef PKGCONF_DEF_TEMPLATE
+ifeq (,$(filter-out undefined environment,$(origin PKGCONF_DEF_TEMPLATE)))
 
 include $(CLEAN_BUILD_DIR)/exts/echo_inst.mk
 

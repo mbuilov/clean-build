@@ -6,7 +6,7 @@
 
 # should be included after $(CLEAN_BUILD_DIR)/c.mk
 
-ifndef DO_TEST_EXE_TEMPLATE
+ifeq (,$(filter-out undefined environment,$(origin DO_TEST_EXE_TEMPLATE)))
 
 # rule for running test executable for 'check' target
 

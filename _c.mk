@@ -6,7 +6,7 @@
 
 # rules for building C/C++ libs, dlls, executables, kernel-mode libraries
 
-ifndef DEF_HEAD_CODE
+ifeq (,$(filter-out undefined environment,$(origin DEF_HEAD_CODE)))
 include $(dir $(lastword $(MAKEFILE_LIST)))_defs.mk
 endif
 

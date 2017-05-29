@@ -4,6 +4,6 @@
 # Licensed under GPL version 2 or any later version, see COPYING
 #----------------------------------------------------------------------------------
 
-ifndef PROCESS_SUBMAKES
+ifeq (,$(filter-out undefined environment,$(origin PROCESS_SUBMAKES)))
 include $(dir $(lastword $(MAKEFILE_LIST)))_parallel.mk
 endif

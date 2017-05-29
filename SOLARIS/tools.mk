@@ -8,6 +8,13 @@
 
 OSTYPE := UNIX
 
+# print prepared environment in verbose mode
+ifdef VERBOSE
+$(info $(subst $$(newline),$(newline),$(subst $$(space), ,$(addprefix \
+  unset$$(space),$(subst $(space),$$(newline)unset$$(space),$(strip \
+  $(CLEANED_ENV_VARS)))))))
+endif
+
 # delete files $1
 DEL = rm -f $1
 

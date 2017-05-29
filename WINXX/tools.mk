@@ -12,13 +12,23 @@ OSTYPE := WINDOWS
 MAKEFLAGS += -O
 
 # shell must be cmd.exe, not /bin/sh if building under cygwin
-ifdef COMSPEC
+ifeq (environment,$(origin COMSPEC))
 SHELL := $(COMSPEC)
 endif
 
 ifneq (,$(filter /cygdrive/%,$(abspath .)))
-$(error cygwin gnu make is used for build - this is not supported, please use native tools,\
+$(error cygwin gnu make is used for WINDOWS build - this is not supported, please use native tools,\
  for example, under cygwin start build with: /cygdrive/c/tools/gnumake-4.2.1.exe SED=C:/tools/sed.exe <args>)
+endif
+
+# Windows needs TEMP, PATHEXT, SYSTEMROOT and COMSPEC variables to be defined in environment of calling executables
+export $(foreach v,$(CLEANED_ENV_VARS),$(if $(filter \
+  TEMP PATHEXT SYSTEMROOT COMSPEC,$(call toupper,$v)),$v))
+
+# print prepared environment in verbose mode
+ifdef VERBOSE
+$(info setlocal$(foreach v,$(CLEANED_ENV_VARS),$(if $(filter-out \
+  TEMP PATHEXT SYSTEMROOT COMSPEC,$(call toupper,$v)),$(newline)set "$v=")))
 endif
 
 # stip off cygwin paths - to use only native windows tools
@@ -161,5 +171,9 @@ PRINT_PERCENTS = [$1]
 COLORIZE = $1$(padto)$2
 
 # protect variables from modifications in target makefiles
-$(call CLEAN_BUILD_PROTECT_VARS,DEL_ARGS_LIMIT nonrelpath1 DEL DEL_DIR RM1 RM MKDIR SED SED_EXPR \
+ifdef CLEAN_BUILD_PROTECT_VARS
+$(call CLEAN_BUILD_PROTECT_VARS,$(foreach v,$(CLEANED_ENV_VARS),$(if $(filter \
+  TEMP PATHEXT SYSTEMROOT COMSPEC,$(call toupper,$v)),$v)) \
+  DEL_ARGS_LIMIT nonrelpath1 DEL DEL_DIR RM1 RM MKDIR SED SED_EXPR \
   CAT ECHO_LINE ECHO_LINES ECHO WRITE NUL SUPPRESS_CP_OUTPUT TOUCH CP EXECIN DEL_ON_FAIL NO_RPATH)
+endif
