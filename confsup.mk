@@ -32,7 +32,7 @@ endif
 # $v - variable name
 define OVERRIDE_VAR_TEMPLATE
 
-ifneq ("command line","$$(origin $v)")
+ifneq (command line,$$(origin $v))
 override define $v
 $(value $v)
 $(endef)
@@ -46,8 +46,9 @@ endef
 # note: save variables current values in target-specific variable CONFIG_TEXT - variables may be overridden later
 # note: don't override GNUMAKEFLAGS, CLEAN_BUILD_VERSION, CONFIG and $(dump_max) variables by including $(CONFIG) file
 conf: override CONFIG_TEXT := $(foreach v,$(filter-out \
-  GNUMAKEFLAGS CLEAN_BUILD_VERSION CONFIG $(dump_max),$(.VARIABLES)),$(if \
-  $(findstring "command line","$(origin $v)")$(findstring "override","$(origin $v)"),$(OVERRIDE_VAR_TEMPLATE)))
+  PATH SHELL GNUMAKEFLAGS CLEAN_BUILD_VERSION CONFIG $(dump_max),$(.VARIABLES)),$(if \
+  $(findstring "command line","$(origin $v)")$(findstring "override","$(origin \
+  $v)"),$(OVERRIDE_VAR_TEMPLATE)))$(foreach v,PATH SHELL,$(OVERRIDE_VAR_TEMPLATE))
 
 # generate configuration file
 # note: SUP - defined in $(CLEAN_BUILD_DIR)/defs.mk
