@@ -17,19 +17,20 @@ endif
 ifdef MCHECK
 
 # reset
-CLEAN_BUILD_SAVE_PROTECTED_VALUES:=
+CLEAN_BUILD_PROTECTED_VALUES_SAVED:=
 CLEAN_BUILD_OVERRIDEN_VARS:=
 CLEAN_BUILD_NEED_TAIL_CODE:=
 
-# convert value of variable $1 to string
-CLEAN_BUILD_GET_PROTECTED_VALUE = $1@$(subst $$,$$$$,$(subst $(newline),$$(newline),$(subst \
-  $(tab),$$(tab),$(subst $(space),$$(space),$(origin $1):$(if $(filter-out undefined,$(origin $1)),$(value $1))))))
+# save value of variable $1 to $1.v?
+CLEAN_BUILD_ENCODE_VAR_VALUE = $(origin $1):$(if $(filter-out undefined,$(origin $1)),$(flavor \
+  $1):$(subst $(comment),$$(comment),$(subst $(newline),$$(newline),$(subst $$(newline),$$$$(newline),$(value $1)))))
 
 # store values of clean-build protected variables which must not be changed in target makefiles
 # check and set CLEAN_BUILD_NEED_TAIL_CODE - $(DEF_TAIL_CODE) must be evaluated after $(DEF_HEAD_CODE)
 define CLEAN_BUILD_CHECK_AT_HEAD
-ifndef CLEAN_BUILD_SAVE_PROTECTED_VALUES
-CLEAN_BUILD_SAVE_PROTECTED_VALUES := $$(foreach x,$$(CLEAN_BUILD_PROTECTED_VARS),$$(call CLEAN_BUILD_GET_PROTECTED_VALUE,$$x))
+ifndef CLEAN_BUILD_PROTECTED_VALUES_SAVED
+$$(foreach x,$$(CLEAN_BUILD_PROTECTED_VARS),$$(eval $$x.v? = $$(call CLEAN_BUILD_ENCODE_VAR_VALUE,$$x)))
+CLEAN_BUILD_PROTECTED_VALUES_SAVED:=1
 endif
 ifdef CLEAN_BUILD_NEED_TAIL_CODE
 $$(error $$$$(DEFINE_TARGETS) was not evaluated at end of $$(CLEAN_BUILD_NEED_TAIL_CODE)!)
@@ -38,32 +39,33 @@ CLEAN_BUILD_NEED_TAIL_CODE := $(CURRENT_MAKEFILE)
 endef
 
 # replace values of clean-build protected vars in list $1
-# NOTE: if CLEAN_BUILD_SAVE_PROTECTED_VALUES is not defined yet - then $(DEF_HEAD_CODE) was never executed yet:
+# NOTE: if CLEAN_BUILD_PROTECTED_VALUES_SAVED is not defined yet - then $(DEF_HEAD_CODE) was never executed yet:
 # - when it will be executed, it will save initial values of protected vars, so nothing to do here,
 # else - replace old values of protected vars with current ones
 define CLEAN_BUILD_PROTECT_VARS1
 CLEAN_BUILD_PROTECTED_VARS := $$(sort $$(CLEAN_BUILD_PROTECTED_VARS) $1)
-ifdef CLEAN_BUILD_SAVE_PROTECTED_VALUES
-CLEAN_BUILD_SAVE_PROTECTED_VALUES := $$(filter-out $$(addsuffix \
-  @%,CLEAN_BUILD_PROTECTED_VARS $1),$$(CLEAN_BUILD_SAVE_PROTECTED_VALUES)) $$(foreach \
-  x,CLEAN_BUILD_PROTECTED_VARS $1,$$(call CLEAN_BUILD_GET_PROTECTED_VALUE,$$x))
+ifdef CLEAN_BUILD_PROTECTED_VALUES_SAVED
+$$(foreach x,CLEAN_BUILD_PROTECTED_VARS $1,$$(eval $$x.v? = $$(call CLEAN_BUILD_ENCODE_VAR_VALUE,$$x)))
 endif
 endef
 CLEAN_BUILD_PROTECT_VARS = $(eval $(CLEAN_BUILD_PROTECT_VARS1))
 
 # macro to check if clean-build protected $x variable value was changed in target makefile
 define CLEAN_BUILD_CHECK_PROTECTED_VAR
-ifneq ($$(filter $x@%,$$(CLEAN_BUILD_SAVE_PROTECTED_VALUES)),$$(call CLEAN_BUILD_GET_PROTECTED_VALUE,$x))
+$(empty)
+ifneq ($$(value $x.v?),$$(call CLEAN_BUILD_ENCODE_VAR_VALUE,$x))
 ifeq (,$(filter $x,$(CLEAN_BUILD_OVERRIDEN_VARS)))
-$$(error $$$$($x) value was changed:$$(newline)old value:$$(newline)$$(filter \
-  $x@%,$$(CLEAN_BUILD_SAVE_PROTECTED_VALUES))$$(newline)new value:$$(newline)$$(call CLEAN_BUILD_GET_PROTECTED_VALUE,$x)$$(newline))
+$$(error $x value was changed:$$(newline)--- old value:$$(newline)$$(subst \
+  $$$$(comment),$$(comment),$(subst $$$$$$$$(newline),$$$$(newline),$$(subst \
+  $$$$(newline),$$(newline),$$(value $x.v?)))$$(newline)+++ new value:$$(newline)$$(origin \
+  $x):$$(if $$(filter-out undefined,$$(origin $x)),$$(flavor $x):$$(value $x)))$$(newline))
 endif
 endif
 $(empty)
 endef
 
 # check that values of protected vars were not changed
-# note: error suppressed if variable name is specified in $(CLEAN_BUILD_OVERRIDEN_VARS) list
+# note: error is suppressed (only once) if variable name is specified in $(CLEAN_BUILD_OVERRIDEN_VARS) list
 # note: $(CLEAN_BUILD_OVERRIDEN_VARS) list is cleared after checks
 # note: $(CLEAN_BUILD_NEED_TAIL_CODE) value is cleared after checks to mark that $(DEF_TAIL_CODE) was evaluated
 # note: normally, $(CLEAN_BUILD_NEED_TAIL_CODE) is checked at head of next included by $(CLEAN_BUILD_DIR)/parallel.mk target makefile,
@@ -84,7 +86,7 @@ CLEAN_BUILD_NEED_TAIL_CODE:=
 endef
 
 # protect variables from modifications in target makefiles
-CLEAN_BUILD_PROTECTED_VARS := CLEAN_BUILD_PROTECTED_VARS MCHECK CLEAN_BUILD_GET_PROTECTED_VALUE CLEAN_BUILD_CHECK_AT_HEAD \
+CLEAN_BUILD_PROTECTED_VARS := CLEAN_BUILD_PROTECTED_VARS MCHECK CLEAN_BUILD_ENCODE_VAR_VALUE CLEAN_BUILD_CHECK_AT_HEAD \
   CLEAN_BUILD_PROTECT_VARS1 CLEAN_BUILD_PROTECT_VARS CLEAN_BUILD_CHECK_PROTECTED_VAR CLEAN_BUILD_CHECK_AT_TAIL
 
 else # !MCHECK
