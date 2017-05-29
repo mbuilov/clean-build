@@ -14,14 +14,16 @@ ifneq (3.80,$(word 1,$(sort $(MAKE_VERSION) 3.80)))
 $(error required GNU Make of version 3.81 or later)
 endif
 
-# For consistent builds, build result should not depend on environment.
-# 
+# For consistent builds, build results should not depend on environment,
+#  only on settings specified in configuration files.
 
 # By default, all environment variables are visible as makefile variables.
 # Any variable, that was defined in environment and then redefined in makefile
 #  is passed having new value to environment of commands executed in rules.
-# This may lead to unexpected build results, depending on environment, so
-#  unexport all environment variables, except PATH, SHELL and variables named in $(ENV_VARS).
+# All variables defined in command line are also added to environment of the commands.
+# To avoid accidental changes of environment variables in makefiles,
+#  unexport all environment and command-line variables,
+#  except PATH, SHELL and variables named in $(ENV_VARS).
 # Note: ENV_VARS may be set either in project makefile or in command line.
 unexport $(filter-out PATH SHELL $(if $(filter-out undefined environment,$(origin \
   ENV_VARS)),$(ENV_VARS)),$(foreach v,$(.VARIABLES),$(if \
@@ -31,7 +33,7 @@ unexport $(filter-out PATH SHELL $(if $(filter-out undefined environment,$(origi
 # 1) always redefine variables before using them
 # 2) never use ?= operator
 # 3) 'ifdef/ifndef' should only be used for previously initialized variables
-#  (ifdef gives 'false' for variable with empty value - and value does not evaluated for the check)
+#  (ifdef gives 'false' for variable with empty value - and value is not evaluated for the check)
 
 # assume project makefile, which has included this makefile,
 # defines some variables - save list of those variables to override them below
@@ -41,7 +43,7 @@ PROJECT_VARS_NAMES := $(filter-out \
 
 # clean-build version: major.minor.patch
 # note: override value, if it was accidentally set in project makefile
-override CLEAN_BUILD_VERSION := 0.6.3
+override CLEAN_BUILD_VERSION := 0.6.4
 
 # disable builtin rules and variables, warn about use of undefined variables
 # NOTE: Gnu Make will consider changed $(MAKEFLAGS) only after all makefiles are parsed,
