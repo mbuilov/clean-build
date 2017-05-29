@@ -8,7 +8,7 @@
 # variables protection from accidental changes in target makefiles
 
 # run via $(MAKE) C=1 to check makefiles
-ifeq ("$(origin C)","command line")
+ifeq (command line,$(origin C))
 MCHECK := $(C:0=)
 else
 MCHECK:=
