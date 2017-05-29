@@ -21,13 +21,16 @@ endif
 # Any variable, that was defined in environment and then redefined in makefile
 #  is passed having new value to environment of commands executed in rules.
 # All variables defined in command line are also added to environment of the commands.
-# To avoid accidental changes of environment variables in makefiles,
+# To avoid accidental change of environment variables in makefiles,
 #  unexport all environment and command-line variables,
-#  except PATH, SHELL and variables named in $(ENV_VARS).
-# Note: ENV_VARS may be set either in project makefile or in command line.
-unexport $(filter-out PATH SHELL $(if $(filter-out undefined environment,$(origin \
-  ENV_VARS)),$(ENV_VARS)),$(foreach v,$(.VARIABLES),$(if \
+#  except PATH and variables named in $(PASS_ENV_VARS).
+# Note: PASS_ENV_VARS may be set either in project makefile or in command line
+CLEANED_ENV_VARS := $(filter-out PATH $(if $(filter-out undefined environment,$(origin \
+  PASS_ENV_VARS)),$(PASS_ENV_VARS)),$(foreach v,$(.VARIABLES),$(if \
   $(findstring "command line","$(origin $v)")$(findstring "environment","$(origin $v)"),$v)))
+
+# unexport environment + command-line variables
+unexport $(CLEANED_ENV_VARS)
 
 # Also, because any variable may be already initialized from environment
 # 1) always redefine variables before using them
@@ -715,8 +718,10 @@ FIX_SDEPS = $(subst | ,|,$(call fixpath,$(subst |,| ,$1)))
 # $3 - environment variables to set to run executable, in form VAR=value
 # note: this function should be used for rule body, where automatic variable $@ is defined
 # note: WINXX/tools.mk defines own show_dll_path_end
-RUN_WITH_DLL_PATH = $(if $2$3,$(if $2,$(eval $@:$(DLL_PATH_VAR):=$(addsuffix $(PATHSEP),$($(DLL_PATH_VAR)))$2))$(foreach \
-  v,$3,$(foreach g,$(firstword $(subst =, ,$v)),$(eval $@:$g:=$(patsubst $g=%,%,$v))))$(if $(VERBOSE),$(show_with_dll_path)@))$1$(if \
+RUN_WITH_DLL_PATH = $(if $2$3,$(if $2,$(eval \
+  $@:export $(DLL_PATH_VAR):=$(addsuffix $(PATHSEP),$($(DLL_PATH_VAR)))$2))$(foreach \
+  v,$3,$(foreach g,$(firstword $(subst =, ,$v)),$(eval \
+  $@:export $g:=$(patsubst $g=%,%,$v))))$(if $(VERBOSE),$(show_with_dll_path)@))$1$(if \
   $2$3,$(if $(VERBOSE),$(show_dll_path_end)))
 
 # reset
@@ -842,7 +847,9 @@ endif
 endif
 
 # protect variables from modifications in target makefiles
-$(call CLEAN_BUILD_PROTECT_VARS,MAKEFLAGS CLEAN_BUILD_VERSION CLEAN_BUILD_DIR CLEAN_BUILD_REQUIRED_VERSION \
+$(call CLEAN_BUILD_PROTECT_VARS,MAKEFLAGS CLEANED_ENV_VARS PATH PASS_ENV_VARS \
+  $(if $(filter-out undefined environment,$(origin PASS_ENV_VARS)),$(PASS_ENV_VARS)) \
+  PROJECT_VARS_NAMES CLEAN_BUILD_VERSION CLEAN_BUILD_DIR CLEAN_BUILD_REQUIRED_VERSION \
   BUILD DRIVERS_SUPPORT DEBUG NO_CLEAN_BUILD_DISTCLEAN_TARGET \
   SUPPORTED_OSES SUPPORTED_CPUS SUPPORTED_TARGETS OS CPU UCPU KCPU TCPU TARGET \
   OSTYPE VERBOSE QUIET INFOMF MDEBUG OSDIR CHECK_MAKEFILE_NOT_PROCESSED \
