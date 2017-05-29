@@ -16,7 +16,7 @@ MCL_MAX_COUNT := 50
 include $(CLEAN_BUILD_DIR)/WINXX/cres.mk
 
 # run via $(MAKE) S=1 to compile each source individually (without /MP compiler option)
-ifeq ("$(origin S)","command line")
+ifeq (command line,$(origin S))
 SEQ_BUILD := $(S:0=)
 else
 SEQ_BUILD:=
