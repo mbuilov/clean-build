@@ -11,7 +11,7 @@ include $(dir $(lastword $(MAKEFILE_LIST)))_defs.mk
 endif
 
 # run via $(MAKE) L=1 to run java compiler with -Xlint
-ifeq ("$(origin L)","command line")
+ifeq (command line,$(origin L))
 JLINT := $(L:0=)
 else
 JLINT:=
