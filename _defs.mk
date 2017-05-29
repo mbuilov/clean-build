@@ -794,6 +794,7 @@ endif
 DEFINE_TARGETS = $(if $($(DEFINE_TARGETS_EVAL_NAME)),)
 
 # may be used to save vars before $(MAKE_CONTINUE) and restore after
+# note: only for variables having single-line value
 SAVE_VARS = $(eval $(foreach v,$1,$v_=$(if $(filter simple,$(flavor $v)),:=$(subst $$,$$$$,$(value $v)),=$(value $v))$(newline)))
 RESTORE_VARS = $(eval $(foreach v,$1,$v$(value $v_)$(newline)))
 
