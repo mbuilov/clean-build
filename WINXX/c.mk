@@ -147,6 +147,11 @@ endif
 # note: OS_APP_DEFS and OS_KRN_DEFS are may be defined as empty
 # note: some external sources want WIN32 to be defined
 OS_APP_DEFS := $(if $(UCPU:%64=),ILP32,LLP64) WIN32 CRT_SECURE_NO_DEPRECATE _CRT_SECURE_NO_WARNINGS
+
+ifneq (,$(call is_less,$(VS_VER),14))
+OS_APP_DEFS += inline=__inline
+endif
+
 OS_KRN_DEFS := WINNT=1 $(if $(DEBUG),DBG=1 MSC_NOOPT DEPRECATE_DDK_FUNCTIONS=1) $(if $(KCPU:%64=), \
   ILP32 _WIN32 _X86_=1 i386=1 STD_CALL, \
   LLP64 _WIN64 _AMD64_ AMD64 \
@@ -380,6 +385,10 @@ OS_APP_FLAGS += /wd4251 # 'class' needs to have dll-interface to be used by clie
 OS_APP_FLAGS += /wd4275 # non dll-interface class 'class' used as base for dll-interface class 'class'
 OS_APP_FLAGS += /wd4996 # 'strdup': The POSIX name for this item is deprecated...
 OS_APP_FLAGS += /wd4001 # nonstandard extension 'single line comment' was used
+
+ifneq (,$(call is_less,11,$(VS_VER)))
+OS_APP_FLAGS += /Zc:strictStrings # Disable string literal type conversion
+endif
 
 ifdef SEQ_BUILD
 
