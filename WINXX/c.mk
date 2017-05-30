@@ -255,10 +255,13 @@ CMN_LIBS = /OUT:$$(ospath) /VERSION:$$(call MK_MAJ_MIN_VER,$$(MODVER)) $$(addpre
 DEF_SUBSYSTEM = $$(if $$(filter /SUBSYSTEM:%,$$(LDFLAGS)),,/SUBSYSTEM:CONSOLE$(if $$(TMD),,,$(SUBSYSTEM_VER)))
 
 # strings to strip off from link.exe output
-# note: may be overridden either in project configuration file or in command line
+LINKER_STRIP_STRINGS_en := Generating?code Finished?generating?code
+# cp1251 ".РѕР·РґР°РЅРёРµ?РєРѕРґР° .РѕР·РґР°РЅРёРµ?РєРѕРґР°?Р·Р°РІРµСЂС€РµРЅРѕ"
+LINKER_STRIP_STRINGS_ru_cp1251 := .оздание?кода .оздание?кода?завершено
 # cp1251 ".РѕР·РґР°РЅРёРµ?РєРѕРґР° .РѕР·РґР°РЅРёРµ?РєРѕРґР°?Р·Р°РІРµСЂС€РµРЅРѕ" as cp866 converted to cp1251
-#LINKER_STRIP_STRINGS := .ючфрэшх ъюфр .ючфрэшх ъюфр чртхЁ°хэю
-LINKER_STRIP_STRINGS := Generating?code Finished?generating?code
+LINKER_STRIP_STRINGS_ru_cp1251_as_cp866_to_cp1251 := .ючфрэшх?ъюфр .ючфрэшх?ъюфр?чртхЁ°хэю
+# default value, may be overridden either in project configuration file or in command line
+LINKER_STRIP_STRINGS := $(LINKER_STRIP_STRINGS_en)
 
 # wrap linker call to strip-off diagnostic linker messages
 # $1 - linker command with arguments
@@ -424,14 +427,18 @@ CMN_RUCL = $(CMN_RCL) /DUNICODE /D_UNICODE
 CMN_SUCL = $(CMN_SCL) /DUNICODE /D_UNICODE
 
 # $(SED) expression to match C compiler messages about included files
-# note: may be overridden either in project configuration file or in command line
+INCLUDING_FILE_PATTERN_en := Note: including file:
 # utf8 "РџСЂРёРјРµС‡Р°РЅРёРµ: РІРєР»СЋС‡РµРЅРёРµ С„Р°Р№Р»Р°:"
-#INCLUDING_FILE_PATTERN := \xd0\x9f\xd1\x80\xd0\xb8\xd0\xbc\xd0\xb5\xd1\x87\xd0\xb0\xd0\xbd\xd0\xb8\xd0\xb5: \xd0\xb2\xd0\xba\xd0\xbb\xd1\x8e\xd1\x87\xd0\xb5\xd0\xbd\xd0\xb8\xd0\xb5 \xd1\x84\xd0\xb0\xd0\xb9\xd0\xbb\xd0\xb0:
+INCLUDING_FILE_PATTERN_ru_utf8 := РџСЂРёРјРµС‡Р°РЅРёРµ: РІРєР»СЋС‡РµРЅРёРµ С„Р°Р№Р»Р°:
+INCLUDING_FILE_PATTERN_ru_utf8_bytes := \xd0\x9f\xd1\x80\xd0\xb8\xd0\xbc\xd0\xb5\xd1\x87\xd0\xb0\xd0\xbd\xd0\xb8\xd0\xb5: \xd0\xb2\xd0\xba\xd0\xbb\xd1\x8e\xd1\x87\xd0\xb5\xd0\xbd\xd0\xb8\xd0\xb5 \xd1\x84\xd0\xb0\xd0\xb9\xd0\xbb\xd0\xb0:
 # cp1251 "РџСЂРёРјРµС‡Р°РЅРёРµ: РІРєР»СЋС‡РµРЅРёРµ С„Р°Р№Р»Р°:"
-#INCLUDING_FILE_PATTERN := \xcf\xf0\xe8\xec\xe5\xf7\xe0\xed\xe8\xe5: \xe2\xea\xeb\xfe\xf7\xe5\xed\xe8\xe5 \xf4\xe0\xe9\xeb\xe0:
-# cp1251 "РџСЂРёРјРµС‡Р°РЅРёРµ: РІРєР»СЋС‡РµРЅРёРµ С„Р°Р№Р»Р°:"
-#INCLUDING_FILE_PATTERN := Примечание: включение файла:
-INCLUDING_FILE_PATTERN := Note: including file:
+INCLUDING_FILE_PATTERN_ru_cp1251 := Примечание: включение файла:
+INCLUDING_FILE_PATTERN_ru_cp1251_bytes := \xcf\xf0\xe8\xec\xe5\xf7\xe0\xed\xe8\xe5: \xe2\xea\xeb\xfe\xf7\xe5\xed\xe8\xe5 \xf4\xe0\xe9\xeb\xe0:
+# cp866 "РџСЂРёРјРµС‡Р°РЅРёРµ: РІРєР»СЋС‡РµРЅРёРµ С„Р°Р№Р»Р°:"
+INCLUDING_FILE_PATTERN_ru_cp866 := ЏаЁ¬Ґз ­ЁҐ: ўЄ«озҐ­ЁҐ д ©« :
+INCLUDING_FILE_PATTERN_ru_cp866_bytes := \x8f\xe0\xa8\xac\xa5\xe7\xa0\xad\xa8\xa5: \xa2\xaa\xab\xee\xe7\xa5\xad\xa8\xa5 \xe4\xa0\xa9\xab\xa0:
+# default value, may be overridden either in project configuration file or in command line
+INCLUDING_FILE_PATTERN := $(INCLUDING_FILE_PATTERN_en)
 
 # $(SED) expression to filter-out system files while dependencies generation
 # note: may be overridden either in project configuration file or in command line
@@ -1199,12 +1206,16 @@ endef
 $(call CLEAN_BUILD_PROTECT_VARS,SEQ_BUILD YASMC FLEXC BISONC MC YASM_FLAGS MC_STRIP_STRINGS WRAP_MC RC_LOGO_STRINGS \
   WRAP_RC RC KIMP_PREFIX KIMP_SUFFIX SUBSYSTEM_KVER EMBED_MANIFEST_OPTION EMBED_EXE_MANIFEST EMBED_DLL_MANIFEST \
   CHECK_LIB_UNI_NAME1 CHECK_LIB_UNI_NAME MK_MAJ_MIN_VER CMN_LIBS_LDFLAGS CMN_LIBS \
-  DLL_EXPORTS_DEFINE DLL_IMPORTS_DEFINE \
-  DEF_SUBSYSTEM LINKER_STRIP_STRINGS WRAP_LINKER DEL_DEF_MANIFEST_ON_FAIL \
+  DLL_EXPORTS_DEFINE DLL_IMPORTS_DEFINE DEF_SUBSYSTEM \
+  LINKER_STRIP_STRINGS_en LINKER_STRIP_STRINGS_ru_cp1251 LINKER_STRIP_STRINGS_ru_cp1251_as_cp866_to_cp1251 \
+  LINKER_STRIP_STRINGS WRAP_LINKER DEL_DEF_MANIFEST_ON_FAIL \
   WRAP_EXE_EXPORTS_LINKER WRAP_EXE_LINKER EXE_LD_TEMPLATE WRAP_DLL_EXPORTS_LINKER WRAP_DLL_LINKER \
   DLL_LD_TEMPLATE DEF_LIB_LDFLAGS LIB_LD_TEMPLATE DEF_KLIB_LDFLAGS \
   $(foreach v,R $(VARIANTS_FILTER),EXE_$v_LD1 DLL_$v_LD1 LIB_$v_LD1) KLIB_R_LD1 \
   OS_APP_FLAGS APP_FLAGS CMN_CL1 CMN_RCL CMN_SCL CMN_RUCL CMN_SUCL \
+  INCLUDING_FILE_PATTERN_en INCLUDING_FILE_PATTERN_ru_utf8 INCLUDING_FILE_PATTERN_ru_utf8_bytes \
+  INCLUDING_FILE_PATTERN_ru_cp1251 INCLUDING_FILE_PATTERN_ru_cp1251_bytes \
+  INCLUDING_FILE_PATTERN_ru_cp866 INCLUDING_FILE_PATTERN_ru_cp866_bytes \
   INCLUDING_FILE_PATTERN UDEPS_INCLUDE_FILTER SED_DEPS_SCRIPT \
   WRAP_COMPILER CMN_CC CMN_CXX SEQ_COMPILERS_TEMPLATE \
   $(foreach v,R $(VARIANTS_FILTER),LIB_$v_CC LIB_$v_CXX EXE_$v_CC EXE_$v_CXX DLL_$v_CC DLL_$v_CXX EXE_$v_LD DLL_$v_LD LIB_$v_LD) \
