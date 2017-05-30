@@ -144,10 +144,10 @@ EMBED_DLL_MANIFEST:=
 endif
 
 # application-level and kernel-level defines
-# note: OS_APPDEFS and OS_KRNDEFS are may be defined as empty
+# note: OS_APP_DEFS and OS_KRN_DEFS are may be defined as empty
 # note: some external sources want WIN32 to be defined
-OS_APPDEFS := $(if $(UCPU:%64=),ILP32,LLP64) WIN32 CRT_SECURE_NO_DEPRECATE _CRT_SECURE_NO_WARNINGS
-OS_KRNDEFS := WINNT=1 $(if $(DEBUG),DBG=1 MSC_NOOPT DEPRECATE_DDK_FUNCTIONS=1) $(if $(KCPU:%64=), \
+OS_APP_DEFS := $(if $(UCPU:%64=),ILP32,LLP64) WIN32 CRT_SECURE_NO_DEPRECATE _CRT_SECURE_NO_WARNINGS
+OS_KRN_DEFS := WINNT=1 $(if $(DEBUG),DBG=1 MSC_NOOPT DEPRECATE_DDK_FUNCTIONS=1) $(if $(KCPU:%64=), \
   ILP32 _WIN32 _X86_=1 i386=1 STD_CALL, \
   LLP64 _WIN64 _AMD64_ AMD64 \
 ) _KERNEL WIN32_LEAN_AND_MEAN
@@ -1011,10 +1011,12 @@ KLIB_AUX_TEMPLATE = $(ARC_AUX_TEMPLATE)
 # $1 - $(GEN_DIR)/$(call GET_TARGET_NAME,$t)_$t_MC (for $t - EXE,DLL,...)
 # $2 - $(basename $(notdir $3))
 # $3 - NTServiceEventLogMsg.mc (either absolute or makefile-related)
+# note: clean generated MSG00000.bin included by generated .rc
 define ADD_MC_RULE1
 MC_H  := $1/$2.h
 MC_RC := $1/$2.rc
 $$(call MULTI_TARGET,$$(MC_H) $$(MC_RC),$3,$$$$(call MC,$$(MC_H) $$(MC_RC),-h $(ospath) -r $(ospath) $$$$(call ospath,$$$$<)))
+$$(call TOCLEAN,$1/*.bin)
 endef
 
 # add rule to make auxiliary resource for the target and generate header from .mc-file
@@ -1083,7 +1085,7 @@ $1: LIB_DIR    := $(LIB_DIR)
 $1: KLIBS      := $(KLIBS)
 $1: KDLLS      := $(KDLLS)
 $1: INCLUDE    := $(TRG_INCLUDE)
-$1: DEFINES    := $(CMNDEFINES) $(KRNDEFS) $(DEFINES)
+$1: DEFINES    := $(CMNDEFINES) $(KRN_DEFS) $(DEFINES)
 $1: CFLAGS     := $(CFLAGS)
 $1: CXXFLAGS   := $(CXXFLAGS)
 $1: ASMFLAGS   := $(ASMFLAGS)

@@ -73,11 +73,11 @@ DLL_DIR = $(LIB_DIR)
 OS_PREDEFINES := LINUX UNIX
 
 # application-level and kernel-level defines
-OS_APPDEFS := $(if $(UCPU:%64=),ILP32,LP64) _REENTRANT _GNU_SOURCE
+OS_APP_DEFS := $(if $(UCPU:%64=),ILP32,LP64) _REENTRANT _GNU_SOURCE
 
 # note: recursive macro by default - to use $($t) dynamic value
 # $t - KLIB
-OS_KRNDEFS = $(if $(KCPU:%64=),ILP32,LP64) _KERNEL \
+OS_KRN_DEFS = $(if $(KCPU:%64=),ILP32,LP64) _KERNEL \
   KBUILD_STR\(s\)=\\\#s KBUILD_BASENAME=KBUILD_STR\($($t)\) KBUILD_MODNAME=KBUILD_STR\($($t)\)
 
 # prefix to pass options to linker

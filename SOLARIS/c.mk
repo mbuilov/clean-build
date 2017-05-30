@@ -75,8 +75,8 @@ DLL_DIR = $(LIB_DIR)
 OS_PREDEFINES := SOLARIS UNIX
 
 # application-level and kernel-level defines
-OS_APPDEFS := $(if $(UCPU:%64=),ILP32,LP64) _REENTRANT
-OS_KRNDEFS := $(if $(KCPU:%64=),ILP32,LP64) _KERNEL
+OS_APP_DEFS := $(if $(UCPU:%64=),ILP32,LP64) _REENTRANT
+OS_KRN_DEFS := $(if $(KCPU:%64=),ILP32,LP64) _KERNEL
 
 # variants filter function - get possible variants for the target, needed by $(CLEAN_BUILD_DIR)/c.mk
 # $1 - LIB,EXE,DLL
@@ -336,7 +336,7 @@ $1: COMPILER   := $(if $(filter %.cpp,$2),CXX,CC)
 $1: LIB_DIR    := $(LIB_DIR)
 $1: KLIBS      := $(KLIBS)
 $1: INCLUDE    := $(TRG_INCLUDE)
-$1: DEFINES    := $(CMNDEFINES) $(KRNDEFS) $(DEFINES)
+$1: DEFINES    := $(CMNDEFINES) $(KRN_DEFS) $(DEFINES)
 $1: CFLAGS     := $(CFLAGS)
 $1: CXXFLAGS   := $(CXXFLAGS)
 $1: ASMFLAGS   := $(ASMFLAGS)

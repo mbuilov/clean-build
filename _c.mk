@@ -238,7 +238,7 @@ $1:LIB_DIR    := $(LIB_DIR)
 $1:LIBS       := $(LIBS)
 $1:DLLS       := $(DLLS)
 $1:INCLUDE    := $(TRG_INCLUDE)
-$1:DEFINES    := $(CMNDEFINES) $(APPDEFS) $(DEFINES)
+$1:DEFINES    := $(CMNDEFINES) $(APP_DEFS) $(DEFINES)
 $1:CFLAGS     := $(CFLAGS)
 $1:CXXFLAGS   := $(CXXFLAGS)
 $1:ASMFLAGS   := $(ASMFLAGS)
@@ -267,7 +267,7 @@ $1:$(call OBJ_RULES,CXX,$(filter %.cpp,$2),$3,$4)
 $1:$(call OBJ_RULES,ASM,$(filter %.asm,$2),$3,$4)
 $1:COMPILER := $(if $(filter %.cpp,$2),CXX,CC)
 $1:INCLUDE  := $(TRG_INCLUDE)
-$1:DEFINES  := $(CMNDEFINES) $(APPDEFS) $(DEFINES)
+$1:DEFINES  := $(CMNDEFINES) $(APP_DEFS) $(DEFINES)
 $1:CFLAGS   := $(CFLAGS)
 $1:CXXFLAGS := $(CXXFLAGS)
 $1:ASMFLAGS := $(ASMFLAGS)
@@ -291,7 +291,7 @@ $1:$(call OBJ_RULES,CXX,$(filter %.cpp,$2),$3,$4)
 $1:$(call OBJ_RULES,ASM,$(filter %.asm,$2),$3,$4)
 $1:COMPILER := $(if $(filter %.cpp,$2),CXX,CC)
 $1:INCLUDE  := $(TRG_INCLUDE)
-$1:DEFINES  := $(CMNDEFINES) $(KRNDEFS) $(DEFINES)
+$1:DEFINES  := $(CMNDEFINES) $(KRN_DEFS) $(DEFINES)
 $1:CFLAGS   := $(CFLAGS)
 $1:CXXFLAGS := $(CXXFLAGS)
 $1:ASMFLAGS := $(ASMFLAGS)
@@ -360,16 +360,16 @@ DEFINCLUDE:=
 PREDEFINES = $(OS_PREDEFINES)
 
 # common defines for all application-level targets, for example:
-#  override APPDEFS =
-#  note: it's not possible to reset value of $(APPDEFS) in target makefile,
-#   but APPDEFS may be recursive and so may produce dynamic results
-APPDEFS = $(OS_APPDEFS)
+#  override APP_DEFS =
+#  note: it's not possible to reset value of $(APP_DEFS) in target makefile,
+#   but APP_DEFS may be recursive and so may produce dynamic results
+APP_DEFS = $(OS_APP_DEFS)
 
 # common defines for all kernel-level targets, for example:
-#  override KRNDEFS = _KERNEL
-#  note: it's not possible to reset value of $(KRNDEFS) in target makefile,
-#   but KRNDEFS may be recursive and so may produce dynamic results
-KRNDEFS = $(OS_KRNDEFS)
+#  override KRN_DEFS = _KERNEL
+#  note: it's not possible to reset value of $(KRN_DEFS) in target makefile,
+#   but KRN_DEFS may be recursive and so may produce dynamic results
+KRN_DEFS = $(OS_KRN_DEFS)
 
 # product version in form major.minor or major.minor.patch
 #  override PRODUCT_VER := 1.0.0
@@ -423,20 +423,20 @@ endif
 endif
 endif
 
-# try to make APPDEFS non-recursive (simple)
-ifneq (simple,$(flavor APPDEFS))
-ifeq (simple,$(flavor OS_APPDEFS))
-ifeq (,$(findstring $$,$(subst $$(OS_APPDEFS),,$(value APPDEFS))))
-override APPDEFS := $(APPDEFS)
+# try to make APP_DEFS non-recursive (simple)
+ifneq (simple,$(flavor APP_DEFS))
+ifeq (simple,$(flavor OS_APP_DEFS))
+ifeq (,$(findstring $$,$(subst $$(OS_APP_DEFS),,$(value APP_DEFS))))
+override APP_DEFS := $(APP_DEFS)
 endif
 endif
 endif
 
-# try to make KRNDEFS non-recursive (simple)
-ifneq (simple,$(flavor KRNDEFS))
-ifeq (simple,$(flavor OS_KRNDEFS))
-ifeq (,$(findstring $$,$(subst $$(OS_KRNDEFS),,$(value KRNDEFS))))
-override KRNDEFS := $(KRNDEFS)
+# try to make KRN_DEFS non-recursive (simple)
+ifneq (simple,$(flavor KRN_DEFS))
+ifeq (simple,$(flavor OS_KRN_DEFS))
+ifeq (,$(findstring $$,$(subst $$(OS_KRN_DEFS),,$(value KRN_DEFS))))
+override KRN_DEFS := $(KRN_DEFS)
 endif
 endif
 endif
@@ -463,7 +463,7 @@ endif # findstring
 
 # protect variables from modifications in target makefiles
 $(call CLEAN_BUILD_PROTECT_VARS,BLD_TARGETS LIB_VAR_SUFFIX \
-  DEFINCLUDE PREDEFINES OS_PREDEFINES APPDEFS OS_APPDEFS KRNDEFS OS_KRNDEFS PRODUCT_VER VARIANTS_FILTER \
+  DEFINCLUDE PREDEFINES OS_PREDEFINES APP_DEFS OS_APP_DEFS KRN_DEFS OS_KRN_DEFS PRODUCT_VER VARIANTS_FILTER \
   NO_DEPS ADD_OBJ_SDEPS OBJ_RULES2 OBJ_RULES1 OBJ_RULES \
   EXE_SUFFIX_GEN EXE_VAR_SUFFIX FORM_TRG OS_FORM_TRG DLL_DIR \
   EXE_SUFFIX OBJ_SUFFIX LIB_PREFIX LIB_SUFFIX IMP_PREFIX IMP_SUFFIX DLL_PREFIX DLL_SUFFIX \
