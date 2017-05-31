@@ -385,9 +385,25 @@ else
 OS_APP_FLAGS += /Ox /GL /Gy
 endif
 
+ifneq (,$(call is_less,10,$(VS_VER)))
+# >= Visual Studio 2012
+ifdef DEBUG
+OS_APP_FLAGS += /sdl # Enable additional security checks
+endif
+endif
+
 ifneq (,$(call is_less,11,$(VS_VER)))
+# >= Visual Studio 2013
+OS_APP_FLAGS += /Zc:inline # Remove unreferenced COMDAT
 OS_APP_FLAGS += /Zc:strictStrings # Disable string literal type conversion
-OS_APP_FLAGS += /Zc:inline        # Remove unreferenced COMDAT
+OS_APP_FLAGS += /Zc:rvalueCast # Enforce type conversion rules
+endif
+
+ifneq (,$(call is_less,13,$(VS_VER)))
+# >= Visual Studio 2015
+ifdef DEBUG
+OS_APP_FLAGS += /D_ALLOW_RTCc_IN_STL
+endif
 endif
 
 ifdef SEQ_BUILD
@@ -642,8 +658,19 @@ OS_KRN_FLAGS += /GS /Oy- /Od $(if $(KCPU:%64=),,-d2epilogunwind) /d1import_no_re
 else
 OS_KRN_FLAGS += /GS- /Oy /d1nodatetime
 endif
+
+ifneq (,$(call is_less,10,$(VS_VER)))
+# >= Visual Studio 2012
+ifdef DEBUG
+OS_KRN_FLAGS += /sdl # Enable additional security checks
+endif
+endif
+
 ifneq (,$(call is_less,11,$(VS_VER)))
+# >= Visual Studio 2013
 OS_KRN_FLAGS += /Zc:inline # Remove unreferenced COMDAT
+OS_KRN_FLAGS += /Zc:rvalueCast # Enforce type conversion rules
+OS_KRN_FLAGS += /Zc:strictStrings # Disable string literal type conversion
 endif
 
 ifdef SEQ_BUILD
