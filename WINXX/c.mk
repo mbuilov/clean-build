@@ -378,23 +378,16 @@ DEF_KLIB_LDFLAGS := $(if $(DEBUG),,/LTCG)
 KLIB_R_LD1 = $(call SUP,KLIB,$1)$(WKLD) /lib /nologo /OUT:$(call ospath,$1 $2) $(DEF_KLIB_LDFLAGS) $(LDFLAGS) >&2
 
 # flags for application level C-compiler
-OS_APP_FLAGS := /X /GF /Wall /EHsc
+OS_APP_FLAGS := /X /GF /W3 /EHsc
 ifdef DEBUG
 OS_APP_FLAGS += /Od /Zi /RTCc /RTCsu /GS
 else
 OS_APP_FLAGS += /Ox /GL /Gy
 endif
-OS_APP_FLAGS += /wd4251 # 'class' needs to have dll-interface to be used by clients of class...
-OS_APP_FLAGS += /wd4275 # non dll-interface class 'class' used as base for dll-interface class 'class'
-OS_APP_FLAGS += /wd4996 # 'strdup': The POSIX name for this item is deprecated...
-OS_APP_FLAGS += /wd4001 # nonstandard extension 'single line comment' was used
-OS_APP_FLAGS += /wd4820 # 'x' bytes padding added after data member ...
-OS_APP_FLAGS += /wd4710 # 'void fn()': function not inlined
-OS_APP_FLAGS += /wd4711 # function 'fn' selected for automatic inline expansion
-OS_APP_FLAGS += /wd4514 # 'fn': unreferenced inline function has been removed
 
 ifneq (,$(call is_less,11,$(VS_VER)))
 OS_APP_FLAGS += /Zc:strictStrings # Disable string literal type conversion
+OS_APP_FLAGS += /Zc:inline        # Remove unreferenced COMDAT
 endif
 
 ifdef SEQ_BUILD
@@ -643,11 +636,14 @@ DRV_R_LD1 = $(call SUP,KLINK,$1)$(call WRAP_EXE_LINKER,$(DRV_EXPORTS),$1,$(call 
   WRAP_LINKER,$(WKLD) /nologo $(CMN_KLIBS) $(if $(DRV_EXPORTS),/IMPLIB:$(call ospath,$(IMP))) $(LDFLAGS)))
 
 # flags for kernel-level C-compiler
-OS_KRN_FLAGS := /kernel -cbstring /X /GF /Wall /GR- /Gz /Zl /Oi /Zi /Gm- /Zp8 /Gy /fp:precise /Zc:wchar_t- /Zc:forScope /Zc:inline
+OS_KRN_FLAGS := /kernel -cbstring /X /GF /W3 /GR- /Gz /Zl /Oi /Zi /Gm- /Zp8 /Gy /Zc:wchar_t-
 ifdef DEBUG
 OS_KRN_FLAGS += /GS /Oy- /Od $(if $(KCPU:%64=),,-d2epilogunwind) /d1import_no_registry /d2Zi+
 else
 OS_KRN_FLAGS += /GS- /Oy /d1nodatetime
+endif
+ifneq (,$(call is_less,11,$(VS_VER)))
+OS_KRN_FLAGS += /Zc:inline # Remove unreferenced COMDAT
 endif
 
 ifdef SEQ_BUILD
