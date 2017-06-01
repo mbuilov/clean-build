@@ -143,6 +143,15 @@ $(error VS_VER undefined (expecting 8,9,11,12,14,1410), \
   failed to auto-determine it, likely Visual Studio is installed to non-default location)
 endif
 
+# base path to Visual Studio C headers/libraries
+ifneq (,$(call is_less,$(VS_VER),1410))
+# Visual Studio 2014
+VCN := $(VS)\VC
+else
+# Visual Studio 2017
+VCN := $(VS)
+endif
+
 # WDK - path to Windows Development Kit
 # DDK - path to Driver Development Kit
 # SDK - path to Software Development Kit
@@ -168,7 +177,7 @@ GET_WDK_VER = $(if $(WDK_VER),$(WDK_VER),$(if $(WDK),$(error WDK_VER undefined (
   WDK undefined, example: WDK:="C:\Program Files (x86)\Windows Kits\8.1")))
 
 # normalize: x x -> x?x
-VSN  := $(call unspaces,$(VS))
+VCN  := $(call unspaces,$(VCN))
 WDKN := $(call unspaces,$(WDK))
 DDKN := $(call unspaces,$(DDK))
 SDKN := $(call unspaces,$(SDK))
@@ -180,10 +189,10 @@ ONECORE:=
 
 ifeq (,$(call is_less,1000,$(VS_VER)))
 
-VSLIB  := $(VSN)\VC\lib$(ONECORE)$(addprefix \,$(filter-out x86,$(UCPU:x86_64=amd64)))
-VSINC  := $(VSN)\VC\include
+VSLIB  := $(VCN)\lib$(ONECORE)$(addprefix \,$(filter-out x86,$(UCPU:x86_64=amd64)))
+VSINC  := $(VCN)\include
 
-VSTLIB := $(VSN)\VC\lib$(addprefix \,$(filter-out x86,$(TCPU:x86_64=amd64)))
+VSTLIB := $(VCN)\lib$(addprefix \,$(filter-out x86,$(TCPU:x86_64=amd64)))
 VSTINC := $(VSINC)
 
 # determine tool prefix $(TCPU)_$1 where
@@ -193,11 +202,11 @@ VSTINC := $(VSINC)
 #  x86_x86     -> <none>
 VS_TOOL_PREFIX = $(addprefix \,$(filter-out x86_x86,$(subst amd64_amd64,amd64,$(TCPU:x86_64=amd64)_$(1:x86_64=amd64))))
 
-VSLD   := $(call qpath,$(VSN)\VC\bin$(call VS_TOOL_PREFIX,$(UCPU))\link.exe)
-VSCL   := $(call qpath,$(VSN)\VC\bin$(call VS_TOOL_PREFIX,$(UCPU))\cl.exe)
+VSLD   := $(call qpath,$(VCN)\bin$(call VS_TOOL_PREFIX,$(UCPU))\link.exe)
+VSCL   := $(call qpath,$(VCN)\bin$(call VS_TOOL_PREFIX,$(UCPU))\cl.exe)
 
-VSTLD  := $(call qpath,$(VSN)\VC\bin$(call VS_TOOL_PREFIX,$(TCPU))\link.exe)
-VSTCL  := $(call qpath,$(VSN)\VC\bin$(call VS_TOOL_PREFIX,$(TCPU))\cl.exe)
+VSTLD  := $(call qpath,$(VCN)\bin$(call VS_TOOL_PREFIX,$(TCPU))\link.exe)
+VSTCL  := $(call qpath,$(VCN)\bin$(call VS_TOOL_PREFIX,$(TCPU))\cl.exe)
 
 # set path to dlls needed by cl.exe and link.exe to work
 ifneq (,$(call is_less,$(VS_VER),10))
@@ -228,17 +237,17 @@ endif
 
 else # Visual Studio 2017
 
-VSLIB  := $(VSN)\lib$(ONECORE)\$(UCPU:x86_64=x64)
-VSINC  := $(VSN)\include
+VSLIB  := $(VCN)\lib$(ONECORE)\$(UCPU:x86_64=x64)
+VSINC  := $(VCN)\include
 
-VSTLIB := $(VSN)\lib\$(TCPU:x86_64=x64)
+VSTLIB := $(VCN)\lib\$(TCPU:x86_64=x64)
 VSTINC := $(VSINC)
 
-VSLD   := $(call qpath,$(VSN)\bin\Host$(patsubst x%,X%,$(TCPU:x86_64=x64))\$(UCPU:x86_64=x64)\link.exe)
-VSCL   := $(call qpath,$(VSN)\bin\Host$(patsubst x%,X%,$(TCPU:x86_64=x64))\$(UCPU:x86_64=x64)\cl.exe)
+VSLD   := $(call qpath,$(VCN)\bin\Host$(patsubst x%,X%,$(TCPU:x86_64=x64))\$(UCPU:x86_64=x64)\link.exe)
+VSCL   := $(call qpath,$(VCN)\bin\Host$(patsubst x%,X%,$(TCPU:x86_64=x64))\$(UCPU:x86_64=x64)\cl.exe)
 
-VSTLD  := $(call qpath,$(VSN)\bin\Host$(patsubst x%,X%,$(TCPU:x86_64=x64))\$(TCPU:x86_64=x64)\link.exe)
-VSTCL  := $(call qpath,$(VSN)\bin\Host$(patsubst x%,X%,$(TCPU:x86_64=x64))\$(TCPU:x86_64=x64)\cl.exe)
+VSTLD  := $(call qpath,$(VCN)\bin\Host$(patsubst x%,X%,$(TCPU:x86_64=x64))\$(TCPU:x86_64=x64)\link.exe)
+VSTCL  := $(call qpath,$(VCN)\bin\Host$(patsubst x%,X%,$(TCPU:x86_64=x64))\$(TCPU:x86_64=x64)\cl.exe)
 
 # set path to dlls needed by cl.exe and link.exe to work
 ifneq ($(UCPU),$(TCPU))
@@ -393,13 +402,13 @@ KMINC := $(KMINC)\km $(KMINC)\km\crt $(KMINC)\shared
 
 ifeq (,$(call is_less,1000,$(VS_VER)))
 
-WKLD  := $(call qpath,$(VSN)\VC\bin$(call VS_TOOL_PREFIX,$(KCPU))\link.exe)
-WKCL  := $(call qpath,$(VSN)\VC\bin$(call VS_TOOL_PREFIX,$(KCPU))\cl.exe)
+WKLD  := $(call qpath,$(VCN)\bin$(call VS_TOOL_PREFIX,$(KCPU))\link.exe)
+WKCL  := $(call qpath,$(VCN)\bin$(call VS_TOOL_PREFIX,$(KCPU))\cl.exe)
 
 else # Visual Studio 2017
 
-WKLD  := $(call qpath,$(VSN)\bin\Host$(patsubst x%,X%,$(TCPU:x86_64=x64))\$(KCPU:x86_64=x64)\link.exe)
-WKCL  := $(call qpath,$(VSN)\bin\Host$(patsubst x%,X%,$(TCPU:x86_64=x64))\$(KCPU:x86_64=x64)\cl.exe)
+WKLD  := $(call qpath,$(VCN)\bin\Host$(patsubst x%,X%,$(TCPU:x86_64=x64))\$(KCPU:x86_64=x64)\link.exe)
+WKCL  := $(call qpath,$(VCN)\bin\Host$(patsubst x%,X%,$(TCPU:x86_64=x64))\$(KCPU:x86_64=x64)\cl.exe)
 
 endif # Visual Studio 2017
 
@@ -420,4 +429,4 @@ endif
 # protect variables from modifications in target makefiles
 $(call CLEAN_BUILD_PROTECT_VARS,VAUTO WINVARIANTS WINVARIANT WINVER_DEFINES \
   SUBSYSTEM_VER $(WINVARIANT) AUTOCONF_VARS $(AUTOCONF_VARS) NO_AUTOCONF VS_TOOL_PREFIX WDK_TARGET DDK_TARGET WDK_KTARGET \
-  VS_VER WDK_VER GET_WDK_VER FORCE_SYNC_PDB SUPPRESS_RC_LOGO VS WDK DDK SDK VSN WDKN DDKN SDKN ONECORE)
+  VS_VER WDK_VER GET_WDK_VER FORCE_SYNC_PDB SUPPRESS_RC_LOGO VS WDK DDK SDK VCN WDKN DDKN SDKN ONECORE)
