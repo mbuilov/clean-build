@@ -22,15 +22,10 @@ endif
 #  is passed having new value to environment of commands executed in rules.
 # All variables defined in command line are also added to environment of the commands.
 # To avoid accidental change of environment variables in makefiles,
-#  unexport all environment and command-line variables,
-#  except PATH and variables named in $(PASS_ENV_VARS).
+#  unexport all variables, except PATH and variables named in $(PASS_ENV_VARS).
 # Note: PASS_ENV_VARS may be set either in project makefile or in command line
-CLEANED_ENV_VARS := $(filter-out PATH $(if $(filter-out undefined environment,$(origin \
-  PASS_ENV_VARS)),$(PASS_ENV_VARS)),$(foreach v,$(.VARIABLES),$(if \
-  $(findstring "command line","$(origin $v)")$(findstring "environment","$(origin $v)"),$v)))
-
-# unexport environment + command-line variables
-unexport $(CLEANED_ENV_VARS)
+unexport $(filter-out PATH $(if $(filter-out undefined environment,$(origin \
+  PASS_ENV_VARS)),$(PASS_ENV_VARS)),$(.VARIABLES))
 
 # Also, because any variable may be already initialized from environment
 # 1) always redefine variables before using them
@@ -848,7 +843,7 @@ endif
 endif
 
 # protect variables from modifications in target makefiles
-$(call CLEAN_BUILD_PROTECT_VARS,MAKEFLAGS CLEANED_ENV_VARS PATH PASS_ENV_VARS \
+$(call CLEAN_BUILD_PROTECT_VARS,MAKEFLAGS PATH PASS_ENV_VARS \
   $(if $(filter-out undefined environment,$(origin PASS_ENV_VARS)),$(PASS_ENV_VARS)) \
   PROJECT_VARS_NAMES CLEAN_BUILD_VERSION CLEAN_BUILD_DIR CLEAN_BUILD_REQUIRED_VERSION \
   BUILD DRIVERS_SUPPORT DEBUG NO_CLEAN_BUILD_DISTCLEAN_TARGET \

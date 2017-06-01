@@ -45,9 +45,9 @@ endef
 # 2) save new variables specified in command line to $(CONFIG) file
 # 3) always save PATH value to $(CONFIG) file
 # note: save variables current values in target-specific variable CONFIG_TEXT - variables may be overridden later
-# note: do not override CLEANED_ENV_VARS, GNUMAKEFLAGS, CLEAN_BUILD_VERSION, CONFIG and $(dump_max) variables by including $(CONFIG) file
+# note: do not override GNUMAKEFLAGS, CLEAN_BUILD_VERSION, CONFIG and $(dump_max) variables by including $(CONFIG) file
 conf: override CONFIG_TEXT := $(foreach v,$(filter-out \
-  PATH CLEANED_ENV_VARS GNUMAKEFLAGS CLEAN_BUILD_VERSION CONFIG $(dump_max),$(.VARIABLES)),$(if \
+  PATH GNUMAKEFLAGS CLEAN_BUILD_VERSION CONFIG $(dump_max),$(.VARIABLES)),$(if \
   $(findstring "command line","$(origin $v)")$(findstring "override","$(origin \
   $v)"),$(OVERRIDE_VAR_TEMPLATE)))$(foreach v,PATH,$(OVERRIDE_VAR_TEMPLATE))
 

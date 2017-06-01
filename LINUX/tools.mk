@@ -9,15 +9,11 @@
 OSTYPE := UNIX
 
 # print prepared environment in verbose mode
-# note: cannot unset some variables under cygwin, such as "CommonProgramFiles(x86)", so filter them out
-# note: cannot unset variables like BASH_FUNC_AAA1%%, !::
+# note: cannot unset some variables such as "!::" or "CommonProgramFiles(x86)", so filter them out
 ifdef VERBOSE
-$(info $(subst $$(newline),$(newline),$(subst $$(space), ,$(addprefix \
-  unset$$(space),$(subst $(space),$$(newline)unset$$(space),$(strip \
-  $(foreach v,$(CLEANED_ENV_VARS),$(if \
-  $(findstring $(open_brace),$v),,$(if \
-  $(findstring %,$v),,$(if \
-  $(findstring !,$v),,$v))))))))))
+$(info for v in `env | cut -d= -f1`; do $(foreach \
+  x,PATH CommonProgramFiles(x86) ProgramFiles(x86) !::$(if $(filter-out undefined environment,$(origin \
+  PASS_ENV_VARS)), $(PASS_ENV_VARS)),[ "$x" == "$$v" ] ||) unset "$$v"; done)
 endif
 
 # delete files $1

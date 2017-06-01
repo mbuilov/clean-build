@@ -10,9 +10,9 @@ OSTYPE := UNIX
 
 # print prepared environment in verbose mode
 ifdef VERBOSE
-$(info $(subst $$(newline),$(newline),$(subst $$(space), ,$(addprefix \
-  unset$$(space),$(subst $(space),$$(newline)unset$$(space),$(strip \
-  $(CLEANED_ENV_VARS)))))))
+$(info for v in `env | cut -d= -f1`; do $(foreach \
+  x,PATH CommonProgramFiles(x86) ProgramFiles(x86) !::$(if $(filter-out undefined environment,$(origin \
+  PASS_ENV_VARS)), $(PASS_ENV_VARS)),[ "$x" == "$$v" ] ||) unset "$$v"; done)
 endif
 
 # delete files $1

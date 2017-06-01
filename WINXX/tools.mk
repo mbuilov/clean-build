@@ -22,13 +22,13 @@ $(error cygwin gnu make is used for WINDOWS build - this is not supported, pleas
 endif
 
 # Windows needs TEMP, PATHEXT, SYSTEMROOT and COMSPEC variables to be defined in environment of calling executables
-export $(foreach v,$(CLEANED_ENV_VARS),$(if $(filter \
-  TEMP PATHEXT SYSTEMROOT COMSPEC,$(call toupper,$v)),$v))
+export $(foreach v,$(.VARIABLES),$(if $(filter TEMP PATHEXT SYSTEMROOT COMSPEC,$(call toupper,$v)),$v))
 
 # print prepared environment in verbose mode
 ifdef VERBOSE
-$(info setlocal$(foreach v,$(CLEANED_ENV_VARS),$(if $(filter-out \
-  TEMP PATHEXT SYSTEMROOT COMSPEC,$(call toupper,$v)),$(newline)set "$v=")))
+$(info setlocal$(newline)FOR /F "delims==" %%V IN ('SET') DO $(foreach \
+  x,PATH TEMP PATHEXT SYSTEMROOT COMSPEC$(if $(filter-out undefined environment,$(origin \
+  PASS_ENV_VARS)), $(PASS_ENV_VARS)),IF /I NOT "$x"=="%%V") SET "%%V=")
 endif
 
 # stip off cygwin paths - to use only native windows tools
@@ -172,7 +172,7 @@ COLORIZE = $1$(padto)$2
 
 # protect variables from modifications in target makefiles
 ifdef CLEAN_BUILD_PROTECT_VARS
-$(call CLEAN_BUILD_PROTECT_VARS,$(foreach v,$(CLEANED_ENV_VARS),$(if $(filter \
+$(call CLEAN_BUILD_PROTECT_VARS,$(foreach v,$(.VARIABLES),$(if $(filter \
   TEMP PATHEXT SYSTEMROOT COMSPEC,$(call toupper,$v)),$v)) \
   DEL_ARGS_LIMIT nonrelpath1 DEL DEL_DIR RM1 RM MKDIR SED SED_EXPR \
   CAT ECHO_LINE ECHO_LINES ECHO WRITE NUL SUPPRESS_CP_OUTPUT TOUCH CP EXECIN DEL_ON_FAIL NO_RPATH)
