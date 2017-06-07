@@ -222,7 +222,7 @@ DLL_IMPORTS_DEFINE := "__declspec(dllimport)"
 
 # helper macro for target makefiles to pass string define value to C-compiler
 # note: override value from $(CLEAN_BUILD_DIR)/c.mk
-STRING_DEFINE = "$(subst $(space),$$$$(space),$(subst ","",$1))"
+STRING_DEFINE = "$(subst $(space),$$(space),$(subst ","",$(subst $$,$$$$,$1)))"
 
 # make version string: maj.min.patch -> maj.min
 MK_MAJ_MIN_VER = $(subst $(space),.,$(wordlist 1,2,$(subst ., ,$1) 0 0))
@@ -419,7 +419,7 @@ endif # SEQ_BUILD
 APP_FLAGS := $(OS_APP_FLAGS)
 
 # call C compiler
-# $1 - outdir
+# $1 - outdir/
 # $2 - sources
 # $3 - flags
 # target-specific: TMD, DEFINES, INCLUDE
@@ -427,7 +427,7 @@ CMN_CL1 = $(VS$(TMD)CL) /nologo /c $(APP_FLAGS) $(call SUBST_DEFINES,$(addprefix
   qpath,$(call ospath,$(INCLUDE)) $(VS$(TMD)INC) $(UM$(TMD)INC),/I) /Fo$(ospath) /Fd$(ospath) $3 $(call ospath,$2)
 
 # C compilers for different variants (R,S,RU,SU)
-# $1 - outdir
+# $1 - outdir/
 # $2 - sources
 # $3 - flags
 CMN_RCL  = $(CMN_CL1) /MD$(if $(DEBUG),d)
@@ -497,11 +497,21 @@ WRAP_COMPILER = (($1 2>&1 && echo COMPILATION_OK >&2) | findstr /V /X /L "$(notd
   $3)") 3>&2 2>&1 1>&3 | findstr /B /L COMPILATION_OK >NUL
 endif
 
+# override template defined in $(CLEAN_BUILD_DIR)/_c.mk
+# do not need rules for building objects, we will build exe, lib or dll directly from sources
+# note: object files are generated as a side-effect of compiling sources
+ifndef SEQ_BUILD
+ifndef TOCLEAN
+OBJ_RULES:=
+$(call CLEAN_BUILD_PROTECT_VARS,OBJ_RULES)
+endif
+endif
+
 ifdef SEQ_BUILD
 
 # sequential build: don't add /MP option to Visual Studio C compiler
 # note: auto-dependencies generation available only in sequential mode - /MP conflicts with /showIncludes
-# note: precompiled headers are not supported in this mode
+# note: precompiled headers are not supported in this mode (but support may be added later)
 
 # common C/C++ compiler
 # $1 - target object
@@ -512,7 +522,7 @@ CMN_CC = $(call SUP,$(TMD)CC,$2)$(call WRAP_COMPILER,$(call $3,$(dir $1),$2,$(CF
 CMN_CXX = $(call SUP,$(TMD)CXX,$2)$(call WRAP_COMPILER,$(call $3,$(dir $1),$2,$(CXXFLAGS)),$1,$2,$(basename $1).d,$(UDEPS_INCLUDE_FILTER))
 
 # define compilers for different target variants
-# $$1 - target object/exe/dll/lib, $$2 - source/objects
+# $$1 - target object/exe/dll/lib, $$2 - source for compilers, objects for linkers
 define SEQ_COMPILERS_TEMPLATE
 $(empty)
 LIB_$v_CC  = $$(call CMN_CC,$$1,$$2,CMN_$vCL)
@@ -536,7 +546,7 @@ else # !SEQ_BUILD
 
 # $1 - sources
 # $2 - outdir
-# $3 - compiler
+# $3 - compiler (CMN_RCL or CMN_SCL)
 # $4 - aux compiler flags
 # $5 - pch header
 # target-specific: TMD, CFLAGS, CXXFLAGS
@@ -548,7 +558,7 @@ CALL_MPCXX = $(call SUP,$(TMD)MPCXX,$1)$(call WRAP_COMPILER,$(call $3,$2,$1,$4/M
   $(notdir $5))_cpp.pch /FI$5 $(CXXFLAGS)),,$1)
 
 # $1 - outdir
-# $2 - compiler
+# $2 - compiler (CMN_RCL or CMN_SCL)
 # $3 - aux compiler flags
 # $4 - pch header
 # $5 - non-pch C
@@ -563,7 +573,7 @@ CMN_MCL2 = $(if \
   $8,$(call xcmd,CALL_MPCXX,$8,$(MCL_MAX_COUNT),$1,$2,$3,$4)$(newline))
 
 # $1 - outdir
-# $2 - compiler
+# $2 - compiler (CMN_RCL or CMN_SCL)
 # $3 - aux compiler flags (either empty or '/DUNICODE /D_UNICODE ')
 # $4 - C-sources
 # $5 - CXX-sources
@@ -585,23 +595,18 @@ FILTER_SDEPS1 = $(if $(filter $(wordlist 2,999999,$1),$?),$(firstword $1))
 FILTER_SDEPS = $(foreach d,$1,$(call FILTER_SDEPS1,$(subst |, ,$d)))
 
 # $1 - target
-# $2 - objects
-# $3 - CMN_RMCL, CMN_SMCL, CMN_RUMCL, CMN_SUMCL
-# target-specific: SRC, SDEPS
-CMN_MCL = $(call $3,$(dir $(firstword $2)),$(sort $(filter $(SRC),$? $(call FILTER_SDEPS,$(SDEPS)))))
+# $2 - CMN_RMCL, CMN_SMCL, CMN_RUMCL, CMN_SUMCL
+# target-specific: SRC, SDEPS, OBJ_DIR
+CMN_MCL = $(call $2,$(OBJ_DIR)/,$(sort $(filter $(SRC),$? $(call FILTER_SDEPS,$(SDEPS)))))
 
 define MULTI_COMPILERS_TEMPLATE
-# $$1 - target object, $$2 - source
-LIB_$v_CC:=
-LIB_$v_CXX:=
-EXE_$v_CC:=
-EXE_$v_CXX:=
-DLL_$v_CC:=
-DLL_$v_CXX:=
-# $$1 - target exe/dll/lib, $$2 - objects
-EXE_$v_LD = $$(call CMN_MCL,$$1,$$2,CMN_$vMCL)$$(EXE_$v_LD1)
-DLL_$v_LD = $$(call CMN_MCL,$$1,$$2,CMN_$vMCL)$$(DLL_$v_LD1)
-LIB_$v_LD = $$(call CMN_MCL,$$1,$$2,CMN_$vMCL)$$(LIB_$v_LD1)
+# $$1 - target exe/dll/lib, target-specific: SRC, OBJ_DIR
+EXE_$v_LD = $$(call CMN_MCL,$$1,CMN_$vMCL)$$(call \
+  EXE_$v_LD1,$$1,$$(addprefix $$(OBJ_DIR)/,$$(addsuffix $(OBJ_SUFFIX),$$(basename $$(notdir $$(SRC))))))
+DLL_$v_LD = $$(call CMN_MCL,$$1,CMN_$vMCL)$$(call \
+  DLL_$v_LD1,$$1,$$(addprefix $$(OBJ_DIR)/,$$(addsuffix $(OBJ_SUFFIX),$$(basename $$(notdir $$(SRC))))))
+LIB_$v_LD = $$(call CMN_MCL,$$1,CMN_$vMCL)$$(call \
+  LIB_$v_LD1,$$1,$$(addprefix $$(OBJ_DIR)/,$$(addsuffix $(OBJ_SUFFIX),$$(basename $$(notdir $$(SRC))))))
 # $$1 - target pch object, $$2 - pch-source, $$3 - pch header
 # target-specific: TMD, CFLAGS, CXXFLAGS
 PCH_$v_CC  = $$(call SUP,$$(TMD)PCHCC,$$2)$$(call WRAP_COMPILER,$$(call CMN_$vCL,$$(dir $$1),$$2,/Yc$$3 /Yl$$(basename \
@@ -699,7 +704,7 @@ ifdef SEQ_BUILD
 
 # sequential build: don't add /MP option to Visual Studio C compiler
 # note: auto-dependencies generation available only in sequential mode - /MP conflicts with /showIncludes
-# note: precompiled headers are not supported in this mode
+# note: precompiled headers are not supported in this mode (but support may be added later)
 
 # $(SED) expression to filter-out system files while dependencies generation
 # note: may be overridden either in project configuration file or in command line
@@ -769,14 +774,6 @@ CMN_MKCL1 = $(call CMN_MKCL2,$1,$(filter %.c,$2),$(filter %.cpp,$2))
 # $2 - objects
 # target-specific: SRC, SDEPS
 CMN_MKCL = $(call CMN_MKCL1,$(dir $(firstword $2)),$(sort $(filter $(SRC),$? $(call FILTER_SDEPS,$(SDEPS)))))
-
-# reset
-KLIB_R_CC:=
-DRV_R_CC:=
-KDLL_R_CC:=
-KLIB_R_CXX:=
-DRV_R_CXX:=
-KDLL_R_CXX:=
 
 # $1 - target
 # $2 - objects
@@ -906,7 +903,7 @@ MAKE_IMP_PATH = $(LIB_DIR)/$(IMP_PREFIX)$1$(call LIB_VAR_SUFFIX,$2)$(IMP_SUFFIX)
 # $1 - $(call FORM_TRG,$t,$v)
 # $2 - $(call fixpath,$(DEF))
 # $3 - $(call MAKE_IMP_PATH,$n,$v)
-# $t - DLL or EXE
+# $t - EXE, DLL, DRV or KDLL
 # $n - $(call GET_TARGET_NAME,$t)
 define EXPORTS_TEMPLATE1
 $1: IMP := $3
@@ -914,14 +911,19 @@ $1: DEF := $2
 $1: $2 | $(LIB_DIR)
 NEEDED_DIRS += $(LIB_DIR)
 $3: $1
-ifdef DEBUG
-$(call TOCLEAN,$3 $(3:$(IMP_SUFFIX)=.exp))
-endif
 endef
+
+# cleanup generated .exp file in debug
+# $3 - $(call MAKE_IMP_PATH,$n,$v)
+ifdef TOCLEAN
+ifdef DEBUG
+$(eval define EXPORTS_TEMPLATE1$(newline)$(value EXPORTS_TEMPLATE1)$$(call TOCLEAN,$$3 $$(3:$(IMP_SUFFIX)=.exp))$(newline)endef)
+endif
+endif
 
 # for DLL or EXE that do not exports symbols
 # $1 - $(call FORM_TRG,$t,$v)
-# $t - DLL or EXE
+# $t - EXE, DLL, DRV or KDLL
 # $n - $(call GET_TARGET_NAME,$t)
 define NO_EXPORTS_TEMPLATE
 $1: IMP:=
@@ -931,33 +933,43 @@ endef
 # $1 - $(call FORM_TRG,$t,$v)
 # $2 - $(call fixpath,$(DEF))
 # $3 - non-<empty> if target exports symbols, <empty> - otherwise
-# $t - DLL, EXE or DRV
+# $t - EXE, DLL, DRV or KDLL
 # $n - $(call GET_TARGET_NAME,$t)
 # $v - R,S
 EXPORTS_TEMPLATE = $(if $3,$(call EXPORTS_TEMPLATE1,$1,$2,$(call MAKE_IMP_PATH,$n,$v)),$(NO_EXPORTS_TEMPLATE))
 
+# add dependency on sources for the target,
+# define target-specific variables: SRC, SDEPS, OBJ_DIR
+# $1 - $(TRG_SRC)
+# $2 - $(TRG_SDEPS)
+# $3 - $(TRG_ALL_SDEPS)
+# $4 - $(call FORM_TRG,$t,$v)
+# $5 - $(call FORM_OBJ_DIR,$t,$v)
+# $t - EXE, DLL, DRV or KDLL
+ifndef SEQ_BUILD
+define MULTISOURCE_AUX
+$(empty)
+$4: SRC := $1
+$4: SDEPS := $2
+$4: OBJ_DIR := $5
+$4: $1 $3 | $5
+endef
+endif
+
 # $1 - $(TRG_SRC)
 # $2 - $(TRG_SDEPS)
 # $3 - $(TRG_ALL_SDEPS)
 # $4 - $(call FORM_TRG,$t,$v)
 # $5 - $(call FORM_OBJ_DIR,$t,$v)
 # $6 - $(call fixpath,$(DEF))
-# $t - EXE
+# $t - EXE, DRV
 # $n - $(call GET_TARGET_NAME,$t)
 # $v - R,S
 define EXE_AUX_TEMPLATE2
 $(empty)
-$4: SRC := $1
-$4: SDEPS := $2
 $4: MODVER := $(MODVER)
-$4: EXE_EXPORTS := $(EXE_EXPORTS)
-ifndef SEQ_BUILD
-$4: $1 $3 | $5
-endif
-ifdef DEBUG
-$(call TOCLEAN,$5/vc*.pdb $(4:$(EXE_SUFFIX)=.pdb))
-endif
-$(call EXPORTS_TEMPLATE,$4,$6,$(EXE_EXPORTS))
+$4: $t_EXPORTS := $($t_EXPORTS)
+$(call EXPORTS_TEMPLATE,$4,$6,$($t_EXPORTS))
 endef
 
 # $1 - $(TRG_SRC)
@@ -966,36 +978,41 @@ endef
 # $4 - $(call FORM_TRG,$t,$v)
 # $5 - $(call FORM_OBJ_DIR,$t,$v)
 # $6 - $(call fixpath,$(DEF))
-# $t - DLL
+# $t - DLL, KDLL
 # $n - $(call GET_TARGET_NAME,$t)
 # $v - R,S
 define DLL_AUX_TEMPLATE2
 $(empty)
-$4: SRC := $1
-$4: SDEPS := $2
 $4: MODVER := $(MODVER)
-$4: DLL_NO_EXPORTS := $(DLL_NO_EXPORTS)
-ifndef SEQ_BUILD
-$4: $1 $3 | $5
-endif
-ifdef DEBUG
-$(call TOCLEAN,$5/vc*.pdb $(4:$(DLL_SUFFIX)=.pdb))
-endif
-$(call EXPORTS_TEMPLATE,$4,$6,$(if $(DLL_NO_EXPORTS),,1))
+$4: $t_NO_EXPORTS := $($t_NO_EXPORTS)
+$(call EXPORTS_TEMPLATE,$4,$6,$(if $($t_NO_EXPORTS),,1))
 endef
+
+# cleanup generated vc*.pdb and .pdb in debug
+# define target-specific variables SRC, SDEPS and OBJ_DIR
+# $t - EXE, DLL, DRV or KDLL
+ifdef TOCLEAN
+ifdef DEBUG
+$(eval define EXE_AUX_TEMPLATE2$(newline)$(value EXE_AUX_TEMPLATE2)$$(call TOCLEAN,$$5/vc*.pdb $$(4:$$($$t_SUFFIX)=.pdb))$(newline)endef)
+$(eval define DLL_AUX_TEMPLATE2$(newline)$(value DLL_AUX_TEMPLATE2)$$(call TOCLEAN,$$5/vc*.pdb $$(4:$$($$t_SUFFIX)=.pdb))$(newline)endef)
+endif
+else ifndef SEQ_BUILD
+$(eval define EXE_AUX_TEMPLATE2$(newline)$(value EXE_AUX_TEMPLATE2)$(value MULTISOURCE_AUX)$(newline)endef)
+$(eval define DLL_AUX_TEMPLATE2$(newline)$(value DLL_AUX_TEMPLATE2)$(value MULTISOURCE_AUX)$(newline)endef)
+endif
 
 # $1 - $(TRG_SRC)
 # $2 - $(TRG_SDEPS)
 # $3 - $(TRG_ALL_SDEPS)
 # $4 - $(call fixpath,$(DEF))
-# $t - EXE or DLL
+# $t - EXE, DLL, DRV or KDLL
 EXP_AUX_TEMPLATE1 = $(foreach n,$(call GET_TARGET_NAME,$t),$(foreach v,$(call GET_VARIANTS,$t),$(call \
   $t_AUX_TEMPLATE2,$1,$2,$3,$(call FORM_TRG,$t,$v),$(call FORM_OBJ_DIR,$t,$v),$4)))
 
 # auxiliary defines for EXE or DLL:
 # - standard resource
 # - precompiled header
-# - target-specific SRC and SDEPS (for CMN_MCL) and IMP (for EXE_LD_TEMPLATE/DLL_LD_TEMPLATE)
+# - target-specific SRC, SDEPS and OBJ_DIR (for CMN_MCL) and IMP (for EXE_LD_TEMPLATE/DLL_LD_TEMPLATE)
 # $t - EXE or DLL
 define EXP_AUX_TEMPLATE
 $(empty)
@@ -1005,6 +1022,7 @@ $(call EXP_AUX_TEMPLATE1,$(TRG_SRC),$(TRG_SDEPS),$(TRG_ALL_SDEPS),$(call fixpath
 endef
 
 # called by OS_DEFINE_TARGETS
+# $t - EXE or DLL
 EXE_AUX_TEMPLATE = $(EXP_AUX_TEMPLATE)
 DLL_AUX_TEMPLATE = $(EXP_AUX_TEMPLATE)
 
@@ -1015,17 +1033,15 @@ DLL_AUX_TEMPLATE = $(EXP_AUX_TEMPLATE)
 # $5 - $(call FORM_OBJ_DIR,$t,$v)
 # $t - LIB or KLIB
 # $v - R,S
-define ARC_AUX_TEMPLATE2
-$(empty)
-$4: SRC := $1
-$4: SDEPS := $2
-ifndef SEQ_BUILD
-$4: $1 $3 | $5
-endif
+# cleanup generated vc*.pdb in debug
+ARC_AUX_TEMPLATE2:=
+ifdef TOCLEAN
 ifdef DEBUG
-$(call TOCLEAN,$5/vc*.pdb)
+ARC_AUX_TEMPLATE2 = $(call TOCLEAN,$5/vc*.pdb)
 endif
-endef
+else ifndef SEQ_BUILD
+ARC_AUX_TEMPLATE2 = $(MULTISOURCE_AUX)
+endif
 
 # $1 - $(TRG_SRC)
 # $2 - $(TRG_SDEPS)
@@ -1036,16 +1052,18 @@ ARC_AUX_TEMPLATE1 = $(foreach v,$(call GET_VARIANTS,$t),$(call \
 
 # auxiliary defines for LIB or KLIB:
 # - precompiled header
-# - target-specific SRC and SDEPS (for CMN_MCL)
+# - target-specific SRC, SDEPS and OBJ_DIR (for CMN_MCL)
 # $t - LIB or KLIB
 define ARC_AUX_TEMPLATE
-$(empty)
-ifneq (,$(RES))
-$$(error don't link resource(s) $(RES) into static library: linker will ignore resources in static library)
-endif
+$(if $(RES),$(error do not link resource(s) $(RES) into static library $($t): linker will ignore resources in static library))
 $(PCH_TEMPLATE)
-$(call ARC_AUX_TEMPLATE1,$(TRG_SRC),$(TRG_SDEPS),$(TRG_ALL_SDEPS))
 endef
+
+# $t - LIB or KLIB
+ifdef ARC_AUX_TEMPLATE2
+$(eval define ARC_AUX_TEMPLATE$(newline)$(value ARC_AUX_TEMPLATE)$(newline)$$(call \
+  ARC_AUX_TEMPLATE1,$$(TRG_SRC),$$(TRG_SDEPS),$$(TRG_ALL_SDEPS))$(newline)endef)
+endif
 
 # called by OS_DEFINE_TARGETS
 LIB_AUX_TEMPLATE = $(ARC_AUX_TEMPLATE)
@@ -1070,9 +1088,7 @@ endef
 ADD_MC_RULE = $(eval $(call ADD_MC_RULE1,$(GEN_DIR)/$(call GET_TARGET_NAME,$1)_$1_MC,$(basename $(notdir $2)),$2))
 
 # rules to build auxiliary resources
-# note: must be recursive macro - to delay expansion of RC options,
-# for example to expand options after including USEs
-CB_WINXX_RES_RULES=
+CB_WINXX_RES_RULES:=
 
 # add rule to make auxiliary res for the target
 # $1 - EXE,DLL,...
@@ -1080,39 +1096,46 @@ CB_WINXX_RES_RULES=
 # $3 - options for RC
 # $4 - optional deps for .res
 # $5 - $(call FORM_OBJ_DIR,$1)
-# NOTE: EXE,DLL,...-target dependency on $(AUX_RES) is added in $(STD_RES_TEMPLATE) (see ADD_RES_TEMPLATE macro)
+# $6 - $5/$(basename $(notdir $2)).res
+# NOTE: EXE,DLL,...-target dependency on generated resource file is added in $(STD_RES_TEMPLATE) (see ADD_RES_TEMPLATE macro)
 # NOTE: generated .res is added to CLEAN list in $(OS_DEFINE_TARGETS) via $(RES)
 # NOTE: postpone expansion of ORDER_DEPS - $(FIX_ORDER_DEPS) changes $(ORDER_DEPS) value
-define ADD_RES_RULE1
+define ADD_RES_RULE2
 $(FIX_ORDER_DEPS)
-AUX_RES := $5/$(basename $(notdir $2)).res
 NEEDED_DIRS += $5
-$$(AUX_RES): RES_OPTS := $3
-$$(AUX_RES): $(call fixpath,$2 $4) | $5 $$(ORDER_DEPS)
-	$$(call RC,$$@,$$<,$$(RES_OPTS))
-RES += $$(AUX_RES)
+$6: $(call fixpath,$2 $4) | $5 $$(ORDER_DEPS)
+	$$(call RC,$$@,$$<,$3)
+RES += $6
 endef
+
+# $1 - EXE,DLL,...
+# $2 - rc pathname (either absolute or makefile-related)
+# $3 - options for RC
+# $4 - optional deps for .res
+# $5 - $(call FORM_OBJ_DIR,$1)
+ADD_RES_RULE1 = $(call ADD_RES_RULE2,$1,$2,$3,$4,$5,$5/$(basename $(notdir $2)).res)
 
 # add rule to make auxiliary res for the target
 # $1 - EXE,DLL,...
 # $2 - rc pathname (either absolute or makefile-related)
 # $3 - options for RC
 # $4 - optional deps for .res
-# NOTE: $3 - options for RC are expanded in $(OS_DEFINE_TARGETS), after including USEs
-ADD_RES_RULE = $(eval CB_WINXX_RES_RULES += $(subst $(newline),$$(newline),$(call ADD_RES_RULE1,$1,$2,$3,$4,$(call FORM_OBJ_DIR,$1))))
+ADD_RES_RULE = $(eval define CB_WINXX_RES_RULES$(newline)$(if $(value CB_WINXX_RES_RULES),,CB_WINXX_RES_RULES:=$(newline))$(value \
+  CB_WINXX_RES_RULES)$(newline)$(call ADD_RES_RULE1,$1,$2,$3,$4,$(call FORM_OBJ_DIR,$1))$(newline)endef)
 
 # used to specify path to some resource for rc.exe via /DMY_BMP=$(call RC_DEFINE_PATH,$(TOP)/xx/yy/tt.bmp)
 RC_DEFINE_PATH = "\"$(subst \,\\,$(ospath))\""
 
 ifdef DRIVERS_SUPPORT
 
+# how to build driver, used by $(C_RULES)
 # $1 - target file: $(call FORM_TRG,$t,$v)
 # $2 - sources:     $(TRG_SRC)
 # $3 - sdeps:       $(TRG_SDEPS)
 # $4 - objdir:      $(call FORM_OBJ_DIR,$t,$v)
 # $t - DRV or KDLL
 # $v - non-empty variant: R
-define DRV_TEMPLATE1
+define DRV_TEMPLATE
 $(call STD_RES_TEMPLATE,$t)
 $(PCH_TEMPLATE)
 $(STD_TARGET_VARS)
@@ -1120,9 +1143,6 @@ NEEDED_DIRS += $4
 $1: $(call OBJ_RULES,CC,$(filter %.c,$2),$3,$4)
 $1: $(call OBJ_RULES,CXX,$(filter %.cpp,$2),$3,$4)
 $1: $(call OBJ_RULES,ASM,$(filter %.asm,$2),$3,$4)
-$1: SRC        := $2
-$1: SDEPS      := $3
-$1: MODVER     := $(MODVER)
 $1: COMPILER   := $(if $(filter %.cpp,$2),CXX,CC)
 $1: LIB_DIR    := $(LIB_DIR)
 $1: KLIBS      := $(KLIBS)
@@ -1135,62 +1155,28 @@ $1: ASMFLAGS   := $(ASMFLAGS)
 $1: LDFLAGS    := $(LDFLAGS)
 $1: SYSLIBS    := $(SYSLIBS)
 $1: SYSLIBPATH := $(SYSLIBPATH)
-ifndef SEQ_BUILD
-$1: $2 $(TRG_ALL_SDEPS) | $4
-endif
 $1: $(addprefix $(LIB_DIR)/,$(addprefix \
   $(KLIB_PREFIX),$(KLIBS:=$(KLIB_SUFFIX))) $(addprefix \
   $(KIMP_PREFIX),$(KDLLS:=$(KIMP_SUFFIX))))
 	$$(call $t_$v_LD,$$@,$$(filter %$(OBJ_SUFFIX),$$^))
 endef
 
-# how to build driver, used by $(C_RULES)
-# $1 - target file: $(call FORM_TRG,$t,$v)
-# $2 - sources:     $(TRG_SRC)
-# $3 - sdeps:       $(TRG_SDEPS)
-# $4 - objdir:      $(call FORM_OBJ_DIR,$t,$v)
-# $t - DRV
-# $v - non-empty variant: R
-DRV_TEMPLATE = $(DRV_TEMPLATE1)$(call TOCLEAN,$4/vc*.pdb $(1:$(DRV_SUFFIX)=.pdb))
-
 # how to build kernel shared library, used by $(C_RULES)
-# $1 - target file: $(call FORM_TRG,$t,$v)
-# $2 - sources:     $(TRG_SRC)
-# $3 - sdeps:       $(TRG_SDEPS)
-# $4 - objdir:      $(call FORM_OBJ_DIR,$t,$v)
-# $t - KDLL
-# $v - non-empty variant: R
-KDLL_TEMPLATE = $(DRV_TEMPLATE1)$(call TOCLEAN,$4/vc*.pdb $(1:$(KDLL_SUFFIX)=.pdb))
+KDLL_TEMPLATE = $(DRV_TEMPLATE)
 
-# $1 - $(call FORM_TRG,$t,$v)
-# $2 - $(call fixpath,$(DEF))
-# $t - DRV
-# $n - $(call GET_TARGET_NAME,$t)
-# $v - R
-define DRV_AUX_TEMPLATE2
-$(empty)
-$1: DRV_EXPORTS := $(DRV_EXPORTS)
-$(call EXPORTS_TEMPLATE,$1,$2,$(DRV_EXPORTS))
-endef
+# for EXP_AUX_TEMPLATE1
+DRV_AUX_TEMPLATE2 = $(EXE_AUX_TEMPLATE2)
+KDLL_AUX_TEMPLATE2 = $(DLL_AUX_TEMPLATE2)
 
-# $1 - $(call FORM_TRG,$t,$v)
-# $2 - $(call fixpath,$(DEF))
-# $t - KDLL
-# $n - $(call GET_TARGET_NAME,$t)
-# $v - R
-define KDLL_AUX_TEMPLATE2
-$(empty)
-$1: KDLL_NO_EXPORTS := $(KDLL_NO_EXPORTS)
-$(call EXPORTS_TEMPLATE,$1,$2,$(if $(KDLL_NO_EXPORTS),,1))
-endef
-
-# $1 - $(call fixpath,$(DEF))
+# auxiliary defines for DRV or KDLL:
+# - standard resource
+# - precompiled header
+# - target-specific SRC, SDEPS and OBJ_DIR (for CMN_MCL) and IMP (for DRV_LD_TEMPLATE/KDLL_LD_TEMPLATE)
 # $t - DRV or KDLL
-KEXP_AUX_TEMPLATE1 = $(foreach n,$(call GET_TARGET_NAME,$t),$(foreach v,$(call GET_VARIANTS,$t),$(call \
-  $t_AUX_TEMPLATE2,$(call FORM_TRG,$t,$v),$1)))
-
-# $t - DRV or KDLL
-KEXP_AUX_TEMPLATE = $(call KEXP_AUX_TEMPLATE1,$(call fixpath,$(DEF)))
+define KEXP_AUX_TEMPLATE
+$(empty)
+$(call EXP_AUX_TEMPLATE1,$(TRG_SRC),$(TRG_SDEPS),$(TRG_ALL_SDEPS),$(call fixpath,$(DEF)))
+endef
 
 # called by OS_DEFINE_TARGETS
 # $t - DRV or KDLL
@@ -1214,16 +1200,19 @@ KDLL_NO_EXPORTS:=
 # NOTE: reset DRV_EXPORTS     - it may be defined to strip-off diagnostic linker message about drv-exported symbols
 # NOTE: reset KDLL_NO_EXPORTS - it may be defined to pass check that KDLL must export symbols
 define OS_DEFINE_TARGETS
-$(subst $$(newline),$(newline),$(value CB_WINXX_RES_RULES))
+$(value CB_WINXX_RES_RULES)
 $(foreach t,$(BLD_TARGETS),$(if $($t),$($t_AUX_TEMPLATE)))
-$$(call TOCLEAN,$$(RES))
-CB_WINXX_RES_RULES=
 NO_STD_RES:=
 DLL_NO_EXPORTS:=
 EXE_EXPORTS:=
 DRV_EXPORTS:=
 KDLL_NO_EXPORTS:=
 endef
+
+# cleanup $(RES)
+ifdef TOCLEAN
+$(eval define OS_DEFINE_TARGETS$(newline)$(value OS_DEFINE_TARGETS)$(newline)$$$$(call TOCLEAN,$$$$(RES))$(newline)endef)
+endif
 
 # protect variables from modifications in target makefiles
 $(call CLEAN_BUILD_PROTECT_VARS,SEQ_BUILD YASMC FLEXC BISONC MC YASM_FLAGS MC_STRIP_STRINGS WRAP_MC RC_LOGO_STRINGS \
@@ -1249,8 +1238,8 @@ $(call CLEAN_BUILD_PROTECT_VARS,SEQ_BUILD YASMC FLEXC BISONC MC YASM_FLAGS MC_ST
   KLIB_R_CC DRV_R_CC KDLL_R_CC KLIB_R_CXX DRV_R_CXX KDLL_R_CXX KLIB_R_LD DRV_R_LD KDLL_R_LD FORCE_SYNC_PDB_KERN \
   CALL_MKCC CALL_MKCXX CALL_MPKCC CALL_MPKCXX CMN_MKCL3 CMN_MKCL2 CMN_MKCL1 CMN_MKCL PCH_K_CC PCH_K_CXX KLIB_R_ASM BISON FLEX \
   PCH_TEMPLATE1 PCH_TEMPLATE2 PCH_TEMPLATE3 PCH_TEMPLATE ADD_WITH_PCH \
-  TRG_ALL_SDEPS MAKE_IMP_PATH EXPORTS_TEMPLATE1 NO_EXPORTS_TEMPLATE EXPORTS_TEMPLATE \
+  TRG_ALL_SDEPS MAKE_IMP_PATH EXPORTS_TEMPLATE1 NO_EXPORTS_TEMPLATE EXPORTS_TEMPLATE MULTISOURCE_AUX \
   EXE_AUX_TEMPLATE2 DLL_AUX_TEMPLATE2 EXP_AUX_TEMPLATE1 EXP_AUX_TEMPLATE EXE_AUX_TEMPLATE DLL_AUX_TEMPLATE \
   ARC_AUX_TEMPLATE2 ARC_AUX_TEMPLATE1 ARC_AUX_TEMPLATE LIB_AUX_TEMPLATE KLIB_AUX_TEMPLATE \
-  ADD_MC_RULE1 ADD_MC_RULE ADD_RES_RULE1 ADD_RES_RULE RC_DEFINE_PATH \
-  DRV_TEMPLATE1 KDLL_TEMPLATE DRV_AUX_TEMPLATE2 KDLL_AUX_TEMPLATE2 KEXP_AUX_TEMPLATE1 KEXP_AUX_TEMPLATE DRV_AUX_TEMPLATE KDLL_AUX_TEMPLATE)
+  ADD_MC_RULE1 ADD_MC_RULE ADD_RES_RULE1 ADD_RES_RULE2 ADD_RES_RULE RC_DEFINE_PATH \
+  DRV_TEMPLATE KDLL_TEMPLATE DRV_AUX_TEMPLATE2 KDLL_AUX_TEMPLATE2 KEXP_AUX_TEMPLATE DRV_AUX_TEMPLATE KDLL_AUX_TEMPLATE)
