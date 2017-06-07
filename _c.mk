@@ -76,6 +76,9 @@ ifdef TOCLEAN
 OBJ_RULES1 = $(call TOCLEAN,$(addsuffix .d,$5) $(addsuffix $(OBJ_SUFFIX),$5))
 else
 OBJ_RULES1 = $(call OBJ_RULES2,$1,$2,$3,$4,$(addsuffix $(OBJ_SUFFIX),$5),$t_$v_$1)$(newline)-include $(addsuffix .d,$5)
+ifndef NO_DEPS
+OBJ_RULES1 += $(newline)-include $(addsuffix .d,$5)
+endif
 endif
 
 # rule that defines how to build objects from sources
