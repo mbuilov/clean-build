@@ -315,7 +315,7 @@ MOD_AUX_TEMPLATE = $(call MOD_AUX_TEMPLATE1,$(call fixpath,$(MAP)))
 # this code is evaluated from $(DEFINE_TARGETS)
 define OS_DEFINE_TARGETS
 $(foreach t,EXE DLL,$(if $($t),$(MOD_AUX_TEMPLATE)))
-endif
+endef
 
 ifdef DRIVERS_SUPPORT
 
