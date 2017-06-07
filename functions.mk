@@ -108,8 +108,18 @@ repl09AZ = $(call repl09,$(subst \
   S,.,$(subst T,.,$(subst U,.,$(subst V,.,$(subst W,.,$(subst X,.,$(subst Y,.,$(subst Z,.,$1)))))))))))))))))))))))))))
 
 # return string of spaces to add to given argument to align total argument length to fixed width (8 chars)
-padto = $(subst .,       ,$(subst ..,      ,$(subst ...,     ,$(subst \
+padto1 = $(subst .,       ,$(subst ..,      ,$(subst ...,     ,$(subst \
   ....,    ,$(subst .....,   ,$(subst ......,  ,$(subst ......., ,$(repl09AZ))))))))
+
+# cache computed padding values
+define padto2
+ifeq (undefined,$(origin $1_pad_))
+$1_pad_:=$(padto1)
+endif
+endef
+
+# return string of spaces to add to given argument to align total argument length to fixed width (8 chars)
+padto = $(eval $(value padto2))$($1_pad_)
 
 # 1) check number of digits: if $4 > $3 -> $2 > $1
 # 2) else if number of digits are equal, check number values
@@ -246,7 +256,7 @@ lazy_simple = $(eval $(filter override,$(origin $1)) $1:=$$2)$($1)
 # protect variables from modification in target makefiles
 $(call CLEAN_BUILD_PROTECT_VARS,empty space tab comma newline comment open_brace close_brace \
   infofn dump dump_max dump_args trace_params trace_calls_template trace_calls \
-  unspaces ifaddq qpath tolower toupper repl09 repl09AZ padto \
+  unspaces ifaddq qpath tolower toupper repl09 repl09AZ padto1 padto2 padto \
   is_less1 is_less xargs1 xargs xcmd trim normp2 normp1 normp \
   cmn_path1 cmn_path back_prefix relpath2 relpath1 relpath join_with \
   ver_major ver_minor ver_patch ver_compatible1 ver_compatible \
