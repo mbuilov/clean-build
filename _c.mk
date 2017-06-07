@@ -61,10 +61,8 @@ define OBJ_RULES2
 $5
 $(subst $(space),$(newline),$(join $(addsuffix :,$5),$2))$(if \
   $3,$(foreach x,$2,$(call ADD_OBJ_SDEPS,$4,$(call EXTRACT_SDEPS,$x,$3))))
-ifdef $6
 $5:| $4 $$(ORDER_DEPS)
 	$$(call $6,$$@,$$<)
-endif
 endef
 
 # $1 - CXX,CC,ASM,...
@@ -77,8 +75,7 @@ endef
 ifdef TOCLEAN
 OBJ_RULES1 = $(call TOCLEAN,$(addsuffix .d,$5) $(addsuffix $(OBJ_SUFFIX),$5))
 else
-OBJ_RULES1 = $(eval OBJ_RULES1=$$(call OBJ_RULES2,$$1,$$2,$$3,$$4,$$(addsuffix $(OBJ_SUFFIX),$$5),$$t_$$v_$$1)$(if \
-  $(NO_DEPS),,$$(newline)-include $$(addsuffix .d,$$5))$(newline)$(call CLEAN_BUILD_PROTECT_VARS1,OBJ_RULES1))$(OBJ_RULES1)
+OBJ_RULES1 = $(call OBJ_RULES2,$1,$2,$3,$4,$(addsuffix $(OBJ_SUFFIX),$5),$t_$v_$1)$(newline)-include $(addsuffix .d,$5)
 endif
 
 # rule that defines how to build objects from sources
@@ -88,6 +85,7 @@ endif
 # $4 - objdir
 # $v - non-empty variant: R,P,S,...
 # $t - EXE,LIB,...
+# note: $(CLEAN_BUILD_DIR)/WINXX/c.mk overrides OBJ_RULES
 OBJ_RULES = $(if $2,$(call OBJ_RULES1,$1,$2,$3,$4,$(addprefix $4/,$(basename $(notdir $2)))))
 
 # get target name suffix for EXE,DRV... in case of multiple target variants
@@ -190,12 +188,11 @@ DEP_IMPS = $(call MAKE_DEP_IMPS,$1,$2,$(DLLS))
 
 # subst $(space) with space character in defines passed to C-compiler
 # called by macro that expands to C-complier call
-SUBST_DEFINES = $(subst $$(space),$(space),$1)
+SUBST_DEFINES = $(eval SUBST_DEFINES_:=$1)$(SUBST_DEFINES_)
 
 # helper macro for target makefiles to pass string define value to C-compiler
-# may be already defined by $(OSDIR)/$(OS)/c.mk
 # note: WINXX/c.mk defines own STRING_DEFINE
-STRING_DEFINE = "$(subst $(space),$$$$(space),$(subst ",\",$1))"
+STRING_DEFINE = "$(subst $(space),$$(space),$(subst ",\",$(subst $$,$$$$,$1)))"
 
 # $1 - $(call FORM_TRG,$t,$v)
 # $2 - $(TRG_SRC)
@@ -225,7 +222,7 @@ C_RULES = $(foreach t,$1,$(if $($t),$(call C_RULES1,$(TRG_SRC),$(TRG_SDEPS))))
 # $2 - sources:     $(TRG_SRC)
 # $3 - sdeps:       $(TRG_SDEPS)
 # $4 - objdir:      $(call FORM_OBJ_DIR,$t,$v)
-# $t - EXE
+# $t - EXE or DLL
 # $v - non-empty variant: R,P,S,...
 define EXE_TEMPLATE
 $(STD_TARGET_VARS)
