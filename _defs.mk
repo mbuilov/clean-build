@@ -88,7 +88,7 @@ define OVERRIDE_VAR_TEMPLATE
 
 override define $v
 $(value $v)
-$(endef)
+$(keyword_endef)
 $(if $(filter simple,$(flavor $v)),override $v:=$$(value $v))
 
 endef
@@ -367,7 +367,6 @@ COLORIZE = $($1_COLOR)$1[0m$(padto)$(if $3,$2,$(join $(dir $2),$(addsuffix [0m
 # $4 - if empty, then try to update percents of executed makefiles
 ifeq (,$(filter distclean clean,$(MAKECMDGOALS)))
 ifdef QUIET
-SHOWN_MAKEFILES:=
 SHOWN_PERCENTS:=
 SHOWN_REMAINDER:=
 # general formula: percents = current*100/total
@@ -378,15 +377,8 @@ SHOWN_REMAINDER:=
 # 3) current = 2, percents2 = percents1 + int((remainder1 + 100)/total), remainder2 = rem((remainder1 + 100)/total)
 # 4) current = 3, percents3 = percents2 + int((remainder2 + 100)/total), remainder3 = rem((remainder2 + 100)/total)
 # ...
-ADD_SHOWN_PERCENTS = $(eval ADD_SHOWN_PERCENTS=$$(if $$(word $(TARGET_MAKEFILES_COUNT),$$1),+ $$(call \
-  ADD_SHOWN_PERCENTS,$$(wordlist $(TARGET_MAKEFILES_COUNT1),999999,$$1)),$$(eval SHOWN_REMAINDER:=$$1)))$(ADD_SHOWN_PERCENTS)
-# remember shown makefile $(MF), try to increment total percents count
-define REM_SHOWN_MAKEFILE
-SHOWN_MAKEFILES += $(MF)
-SHOWN_PERCENTS += $(call ADD_SHOWN_PERCENTS,$(SHOWN_REMAINDER) \
-1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 \
-1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1)
-endef
+ADD_SHOWN_PERCENTS = $(if $(word $(TARGET_MAKEFILES_COUNT),$1),+ $(call \
+  ADD_SHOWN_PERCENTS,$(wordlist $(TARGET_MAKEFILES_COUNT1),999999,$1)),$(eval SHOWN_REMAINDER:=$1))
 # prepare for printing percents of processed makefiles
 FORMAT_PERCENTS = $(subst |,,$(subst \
   |0%,00%,$(subst \
@@ -400,17 +392,25 @@ FORMAT_PERCENTS = $(subst |,,$(subst \
   |8%,08%,$(subst \
   |9%,09%,$(subst \
   |100%,FIN,|$(words $(SHOWN_PERCENTS))%))))))))))))
-# don't update percents if $(MF) was already shown
-TRY_REM_MAKEFILE = $(if $(filter $(MF),$(SHOWN_MAKEFILES)),,$(eval $(REM_SHOWN_MAKEFILE)))
+# don't update percents if $(MF) has been already shown
+# else remember makefile $(MF), then try to increment total percents count
+define TRY_REM_MAKEFILE
+ifeq (undefined,$(origin $(MF)))
+$(MF):=1
+SHOWN_PERCENTS += $(call ADD_SHOWN_PERCENTS,$(SHOWN_REMAINDER) \
+1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 \
+1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1)
+endif
+endef
 ifdef INFOMF
-SUP = $(info $(call PRINT_PERCENTS,$(if $4,,$(TRY_REM_MAKEFILE))$(FORMAT_PERCENTS))$(MF)$(MCONT):$(COLORIZE))@
+SUP = $(info $(call PRINT_PERCENTS,$(if $4,,$(eval $(value TRY_REM_MAKEFILE)))$(FORMAT_PERCENTS))$(MF)$(MCONT):$(COLORIZE))@
 else
-SUP = $(info $(call PRINT_PERCENTS,$(if $4,,$(TRY_REM_MAKEFILE))$(FORMAT_PERCENTS))$(COLORIZE))@
+SUP = $(info $(call PRINT_PERCENTS,$(if $4,,$(eval $(value TRY_REM_MAKEFILE)))$(FORMAT_PERCENTS))$(COLORIZE))@
 endif
 # used to remember number of intermediate makefiles which include other makefiles
 INTERMEDIATE_MAKEFILES:=
 else # !QUIET
-REM_SHOWN_MAKEFILE:=
+ADD_SHOWN_PERCENTS:=
 ifdef INFOMF
 SUP = $(info $(MF)$(MCONT):)
 else
@@ -418,12 +418,13 @@ SUP:=
 endif
 endif # !QUIET
 else
-REM_SHOWN_MAKEFILE:=
+ADD_SHOWN_PERCENTS:=
 endif # !distclean && !clean
 
 # SED - stream editor executable - should be defined in $(OSDIR)/$(OS)/tools.mk
 # helper macro: convert multi-line sed script $1 to multiple sed expressions - one expression for each script line
-SED_MULTI_EXPR = $(subst $$(space), ,$(foreach s,$(subst $(newline), ,$(subst $(space),$$(space),$1)),-e $(call SED_EXPR,$s)))
+SED_MULTI_EXPR = $(foreach s,$(subst $(newline), ,$(subst $(space),$$(space),$(subst \
+  $$,$$$$,$1))),-e $(call SED_EXPR,$(eval SED_MULTI_EXPR_:=$s)$(SED_MULTI_EXPR_)))
 
 # to allow parallel builds for different combinations
 # of $(OS)/$(KCPU)/$(UCPU)/$(TARGET) - create unique directories for each combination
@@ -849,7 +850,7 @@ $(call CLEAN_BUILD_PROTECT_VARS,MAKEFLAGS PATH PASS_ENV_VARS \
   BUILD DRIVERS_SUPPORT DEBUG NO_CLEAN_BUILD_DISTCLEAN_TARGET \
   SUPPORTED_OSES SUPPORTED_CPUS SUPPORTED_TARGETS OS CPU UCPU KCPU TCPU TARGET \
   OSTYPE VERBOSE QUIET INFOMF MDEBUG OSDIR CHECK_MAKEFILE_NOT_PROCESSED \
-  PRINT_PERCENTS SUP ADD_SHOWN_PERCENTS REM_SHOWN_MAKEFILE FORMAT_PERCENTS \
+  PRINT_PERCENTS SUP ADD_SHOWN_PERCENTS FORMAT_PERCENTS \
   GEN_COLOR MGEN_COLOR CP_COLOR RM_COLOR DEL_COLOR LN_COLOR MKDIR_COLOR TOUCH_COLOR \
   COLORIZE TRY_REM_MAKEFILE SED_MULTI_EXPR ospath nonrelpath TOOL_SUFFIX PATHSEP \
   TARGET_TRIPLET DEF_BIN_DIR DEF_OBJ_DIR DEF_LIB_DIR DEF_GEN_DIR SET_DEFAULT_DIRS \

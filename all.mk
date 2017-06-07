@@ -23,12 +23,13 @@ $(addprefix $(dir $(BUILD)),$(NEEDED_DIRS)):
 # default target
 # note: $(PROCESSED_MAKEFILES) - absolute paths of all processed target makefiles with '-' suffix
 # (without suffix, if real makefile names are used - make always wants to recreate makefiles, even before clean target)
-ifdef REM_SHOWN_MAKEFILE
+ifdef ADD_SHOWN_PERCENTS
 # TARGET_MAKEFILES_COUNT - number of target makefiles - used to compute percents of executed makefiles
-# substract $(INTERMEDIATE_MAKEFILES) from $(PROCESSED_MAKEFILES)
+# note: substract $(INTERMEDIATE_MAKEFILES) from $(PROCESSED_MAKEFILES)
 TARGET_MAKEFILES_COUNT := $(wordlist $(words 1 $(INTERMEDIATE_MAKEFILES)),999999,$(PROCESSED_MAKEFILES))
-TARGET_MAKEFILES_COUNT1 := $(words 1 $(TARGET_MAKEFILES_COUNT))
-TARGET_MAKEFILES_COUNT := $(words $(TARGET_MAKEFILES_COUNT))
+$(eval ADD_SHOWN_PERCENTS = $(subst \
+  $$(TARGET_MAKEFILES_COUNT),$(words $(TARGET_MAKEFILES_COUNT)),$(subst \
+  $$(TARGET_MAKEFILES_COUNT1),$(words 1 $(TARGET_MAKEFILES_COUNT)),$(value ADD_SHOWN_PERCENTS))))
 endif
 
 ifdef MCHECK
