@@ -22,7 +22,7 @@ define DO_TEST_EXE_TEMPLATE
 $(call ADD_GENERATED,$r.out)
 $r.out: TEST_AUX_PARAMS := $2
 $r.out: TEST_AUX_PATH   := $3
-$r.out: TEST_AUX_VARS   := $(subst $,$$$$,$4)
+$r.out: TEST_AUX_VARS   := $(subst $$,$$$$,$4)
 $r.out: $r
 	$$(call SUP,TEST,$$@)$$(call RUN_WITH_DLL_PATH,$$< $$(TEST_AUX_PARAMS) > $$@,$$(TEST_AUX_PATH),$$(TEST_AUX_VARS))
 endef
