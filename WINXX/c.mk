@@ -125,7 +125,7 @@ SUBSYSTEM_KVER := $(SUBSYSTEM_VER)
 
 # standard defines
 # for example, WINVER_DEFINES = WINVER=0x0501 _WIN32_WINNT=0x0501
-OS_PREDEFINES := WINXX $(WINVARIANT) $(WINVER_DEFINES)
+OS_PREDEFINES := $(WINVARIANT) $(WINVER_DEFINES)
 
 # how to embed manifest into executable or dll
 # Note: starting from Visual Studio 2012, linker supports /MANIFEST:EMBED option - linker will call mt.exe internally
