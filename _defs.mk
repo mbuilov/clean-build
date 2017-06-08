@@ -402,7 +402,7 @@ SHOWN_PERCENTS += $(call ADD_SHOWN_PERCENTS,$(SHOWN_REMAINDER) \
 endef
 define TRY_REM_MAKEFILE
 ifeq (undefined,$(origin $(MF)))
-$(eval $(REM_MAKEFILE))
+$(eval $(value REM_MAKEFILE))
 endif
 endef
 ifdef INFOMF
