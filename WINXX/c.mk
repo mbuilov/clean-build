@@ -10,7 +10,7 @@
 $(eval define PREPARE_C_VARS$(newline)$(value PREPARE_C_VARS)$(newline)RES:=$(newline)DEF:=$(newline)endef)
 
 # max number of sources to compile with /MP compiler option
-# - with too many sources it's possible to exceed max command string length
+# - with too many sources it's possible to exceed maximum command string length
 MCL_MAX_COUNT := 50
 
 include $(CLEAN_BUILD_DIR)/WINXX/cres.mk
@@ -143,19 +143,25 @@ EMBED_EXE_MANIFEST:=
 EMBED_DLL_MANIFEST:=
 endif
 
-# application-level and kernel-level defines
-# note: OS_APP_DEFS and OS_KRN_DEFS are may be defined as empty
+# application-level defines
 # note: some external sources want WIN32 to be defined
-OS_APP_DEFS := $(if $(UCPU:%64=),ILP32,LLP64) WIN32 CRT_SECURE_NO_DEPRECATE _CRT_SECURE_NO_WARNINGS
+OS_APP_DEFINES := WIN32 CRT_SECURE_NO_DEPRECATE _CRT_SECURE_NO_WARNINGS
 
 ifneq (,$(call is_less,$(VS_VER),14))
-OS_APP_DEFS += inline=__inline
+OS_APP_DEFINES += inline=__inline
 endif
 
-OS_KRN_DEFS := WINNT=1 $(if $(DEBUG),DBG=1 MSC_NOOPT DEPRECATE_DDK_FUNCTIONS=1) $(if $(KCPU:%64=), \
+# kernel-level defines
+OS_KRN_DEFINES := WINNT=1 $(if $(DEBUG),DBG=1 MSC_NOOPT DEPRECATE_DDK_FUNCTIONS=1) $(if $(KCPU:%64=), \
   ILP32 _WIN32 _X86_=1 i386=1 STD_CALL, \
   LLP64 _WIN64 _AMD64_ AMD64 \
-) _KERNEL WIN32_LEAN_AND_MEAN
+) WIN32_LEAN_AND_MEAN
+
+# $t - EXE,LIB,DLL,DRV,KLIB,KDLL,...
+OS_TRG_DEFINES = $(if $(filter DRV KLIB KDLL,$t),$(OS_KRN_DEFINES),$(OS_APP_DEFINES)) $(DEFINES)
+
+# note: override value defined in $(CLEAN_BUILD_DIR)/c.mk
+TRG_DEFINES = $(value OS_TRG_DEFINES)
 
 # variants filter function - get possible variants for the target, needed by $(CLEAN_BUILD_DIR)/c.mk
 # $1 - LIB,EXE,DLL
@@ -378,31 +384,31 @@ DEF_KLIB_LDFLAGS := $(if $(DEBUG),,/LTCG)
 KLIB_R_LD1 = $(call SUP,KLIB,$1)$(WKLD) /lib /nologo /OUT:$(call ospath,$1 $2) $(DEF_KLIB_LDFLAGS) $(LDFLAGS) >&2
 
 # flags for application level C-compiler
-OS_APP_FLAGS := /X /GF /W3 /EHsc
+OS_APP_CFLAGS := /X /GF /W3 /EHsc
 ifdef DEBUG
-OS_APP_FLAGS += /Od /Zi /RTCc /RTCsu /GS
+OS_APP_CFLAGS += /Od /Zi /RTCc /RTCsu /GS
 else
-OS_APP_FLAGS += /Ox /GL /Gy
+OS_APP_CFLAGS += /Ox /GL /Gy
 endif
 
 ifneq (,$(call is_less,10,$(VS_VER)))
 # >= Visual Studio 2012
 ifdef DEBUG
-OS_APP_FLAGS += /sdl # Enable additional security checks
+OS_APP_CFLAGS += /sdl # Enable additional security checks
 endif
 endif
 
 ifneq (,$(call is_less,11,$(VS_VER)))
 # >= Visual Studio 2013
-OS_APP_FLAGS += /Zc:inline # Remove unreferenced COMDAT
-OS_APP_FLAGS += /Zc:strictStrings # Disable string literal type conversion
-OS_APP_FLAGS += /Zc:rvalueCast # Enforce type conversion rules
+OS_APP_CFLAGS += /Zc:inline # Remove unreferenced COMDAT
+OS_APP_CFLAGS += /Zc:strictStrings # Disable string literal type conversion
+OS_APP_CFLAGS += /Zc:rvalueCast # Enforce type conversion rules
 endif
 
 ifneq (,$(call is_less,13,$(VS_VER)))
 # >= Visual Studio 2015
 ifdef DEBUG
-OS_APP_FLAGS += /D_ALLOW_RTCc_IN_STL
+OS_APP_CFLAGS += /D_ALLOW_RTCc_IN_STL
 endif
 endif
 
@@ -410,20 +416,20 @@ ifdef SEQ_BUILD
 
 # option for parallel builds, starting from Visual Studio 2013
 ifdef FORCE_SYNC_PDB
-OS_APP_FLAGS += $(FORCE_SYNC_PDB) #/FS
+OS_APP_CFLAGS += $(FORCE_SYNC_PDB) #/FS
 endif
 
 endif # SEQ_BUILD
 
-# APP_FLAGS may be overridden in project makefile
-APP_FLAGS := $(OS_APP_FLAGS)
+# APP_CFLAGS may be overridden in project makefile
+APP_CFLAGS := $(OS_APP_CFLAGS)
 
 # call C compiler
 # $1 - outdir/
 # $2 - sources
 # $3 - flags
 # target-specific: TMD, DEFINES, INCLUDE
-CMN_CL1 = $(VS$(TMD)CL) /nologo /c $(APP_FLAGS) $(call SUBST_DEFINES,$(addprefix /D,$(DEFINES))) $(call \
+CMN_CL1 = $(VS$(TMD)CL) /nologo /c $(APP_CFLAGS) $(call SUBST_DEFINES,$(addprefix /D,$(DEFINES))) $(call \
   qpath,$(call ospath,$(INCLUDE)) $(VS$(TMD)INC) $(UM$(TMD)INC),/I) /Fo$(ospath) /Fd$(ospath) $3 $(call ospath,$2)
 
 # C compilers for different variants (R,S,RU,SU)
@@ -657,25 +663,25 @@ DRV_R_LD1 = $(call SUP,KLINK,$1)$(call WRAP_EXE_LINKER,$(DRV_EXPORTS),$1,$(call 
   WRAP_LINKER,$(WKLD) /nologo $(CMN_KLIBS) $(if $(DRV_EXPORTS),/IMPLIB:$(call ospath,$(IMP))) $(LDFLAGS)))
 
 # flags for kernel-level C-compiler
-OS_KRN_FLAGS := /kernel -cbstring /X /GF /W3 /GR- /Gz /Zl /Oi /Zi /Gm- /Zp8 /Gy /Zc:wchar_t-
+OS_KRN_CFLAGS := /kernel -cbstring /X /GF /W3 /GR- /Gz /Zl /Oi /Zi /Gm- /Zp8 /Gy /Zc:wchar_t-
 ifdef DEBUG
-OS_KRN_FLAGS += /GS /Oy- /Od $(if $(KCPU:%64=),,-d2epilogunwind) /d1import_no_registry /d2Zi+
+OS_KRN_CFLAGS += /GS /Oy- /Od $(if $(KCPU:%64=),,-d2epilogunwind) /d1import_no_registry /d2Zi+
 else
-OS_KRN_FLAGS += /GS- /Oy /d1nodatetime
+OS_KRN_CFLAGS += /GS- /Oy /d1nodatetime
 endif
 
 ifneq (,$(call is_less,10,$(VS_VER)))
 # >= Visual Studio 2012
 ifdef DEBUG
-OS_KRN_FLAGS += /sdl # Enable additional security checks
+OS_KRN_CFLAGS += /sdl # Enable additional security checks
 endif
 endif
 
 ifneq (,$(call is_less,11,$(VS_VER)))
 # >= Visual Studio 2013
-OS_KRN_FLAGS += /Zc:inline # Remove unreferenced COMDAT
-OS_KRN_FLAGS += /Zc:rvalueCast # Enforce type conversion rules
-OS_KRN_FLAGS += /Zc:strictStrings # Disable string literal type conversion
+OS_KRN_CFLAGS += /Zc:inline # Remove unreferenced COMDAT
+OS_KRN_CFLAGS += /Zc:rvalueCast # Enforce type conversion rules
+OS_KRN_CFLAGS += /Zc:strictStrings # Disable string literal type conversion
 endif
 
 ifdef SEQ_BUILD
@@ -684,20 +690,20 @@ ifdef SEQ_BUILD
 FORCE_SYNC_PDB_KERN := $(FORCE_SYNC_PDB)
 
 ifdef FORCE_SYNC_PDB_KERN
-OS_KRN_FLAGS += $(FORCE_SYNC_PDB_KERN) #/FS
+OS_KRN_CFLAGS += $(FORCE_SYNC_PDB_KERN) #/FS
 endif
 
 endif # SEQ_BUILD
 
-# KRN_FLAGS may be overridden in project makefile
-KRN_FLAGS := $(OS_KRN_FLAGS)
+# KRN_CFLAGS may be overridden in project makefile
+KRN_CFLAGS := $(OS_KRN_CFLAGS)
 
 # call C compiler
 # $1 - outdir
 # $2 - sources
 # $3 - flags
 # target-specific: DEFINES, INCLUDE
-CMN_KCL = $(WKCL) /nologo /c $(KRN_FLAGS) $(call SUBST_DEFINES,$(addprefix /D,$(DEFINES))) $(call \
+CMN_KCL = $(WKCL) /nologo /c $(KRN_CFLAGS) $(call SUBST_DEFINES,$(addprefix /D,$(DEFINES))) $(call \
   qpath,$(call ospath,$(INCLUDE)) $(KMINC),/I) /Fo$(ospath) /Fd$(ospath) $3 $(call ospath,$2)
 
 ifdef SEQ_BUILD
@@ -1148,11 +1154,11 @@ $1: LIB_DIR    := $(LIB_DIR)
 $1: KLIBS      := $(KLIBS)
 $1: KDLLS      := $(KDLLS)
 $1: INCLUDE    := $(TRG_INCLUDE)
-$1: DEFINES    := $(CMNDEFINES) $(KRN_DEFS) $(DEFINES)
-$1: CFLAGS     := $(CFLAGS)
-$1: CXXFLAGS   := $(CXXFLAGS)
-$1: ASMFLAGS   := $(ASMFLAGS)
-$1: LDFLAGS    := $(LDFLAGS)
+$1: DEFINES    := $(TRG_DEFINES)
+$1: CFLAGS     := $(TRG_CFLAGS)
+$1: CXXFLAGS   := $(TRG_CXXFLAGS)
+$1: ASMFLAGS   := $(TRG_ASMFLAGS)
+$1: LDFLAGS    := $(TRG_LDFLAGS)
 $1: SYSLIBS    := $(SYSLIBS)
 $1: SYSLIBPATH := $(SYSLIBPATH)
 $1: $(addprefix $(LIB_DIR)/,$(addprefix \
@@ -1217,14 +1223,14 @@ endif
 # protect variables from modifications in target makefiles
 $(call CLEAN_BUILD_PROTECT_VARS,SEQ_BUILD YASMC FLEXC BISONC MC YASM_FLAGS MC_STRIP_STRINGS WRAP_MC RC_LOGO_STRINGS \
   WRAP_RC RC KIMP_PREFIX KIMP_SUFFIX SUBSYSTEM_KVER EMBED_MANIFEST_OPTION EMBED_EXE_MANIFEST EMBED_DLL_MANIFEST \
-  CHECK_LIB_UNI_NAME1 CHECK_LIB_UNI_NAME MK_MAJ_MIN_VER CMN_LIBS_LDFLAGS CMN_LIBS \
+  OS_APP_DEFINES OS_KRN_DEFINES OS_TRG_DEFINES CHECK_LIB_UNI_NAME1 CHECK_LIB_UNI_NAME MK_MAJ_MIN_VER CMN_LIBS_LDFLAGS CMN_LIBS \
   DLL_EXPORTS_DEFINE DLL_IMPORTS_DEFINE DEF_SUBSYSTEM \
   LINKER_STRIP_STRINGS_en LINKER_STRIP_STRINGS_ru_cp1251 LINKER_STRIP_STRINGS_ru_cp1251_as_cp866_to_cp1251 \
   LINKER_STRIP_STRINGS WRAP_LINKER DEL_DEF_MANIFEST_ON_FAIL \
   WRAP_EXE_EXPORTS_LINKER WRAP_EXE_LINKER EXE_LD_TEMPLATE WRAP_DLL_EXPORTS_LINKER WRAP_DLL_LINKER \
   DLL_LD_TEMPLATE DEF_LIB_LDFLAGS LIB_LD_TEMPLATE DEF_KLIB_LDFLAGS \
   $(foreach v,R $(VARIANTS_FILTER),EXE_$v_LD1 DLL_$v_LD1 LIB_$v_LD1) KLIB_R_LD1 \
-  OS_APP_FLAGS APP_FLAGS CMN_CL1 CMN_RCL CMN_SCL CMN_RUCL CMN_SUCL \
+  OS_APP_CFLAGS APP_CFLAGS CMN_CL1 CMN_RCL CMN_SCL CMN_RUCL CMN_SUCL \
   INCLUDING_FILE_PATTERN_en INCLUDING_FILE_PATTERN_ru_utf8 INCLUDING_FILE_PATTERN_ru_utf8_bytes \
   INCLUDING_FILE_PATTERN_ru_cp1251 INCLUDING_FILE_PATTERN_ru_cp1251_bytes \
   INCLUDING_FILE_PATTERN_ru_cp866 INCLUDING_FILE_PATTERN_ru_cp866_bytes \
@@ -1234,7 +1240,7 @@ $(call CLEAN_BUILD_PROTECT_VARS,SEQ_BUILD YASMC FLEXC BISONC MC YASM_FLAGS MC_ST
   MCL_MAX_COUNT CALL_MCC CALL_MCXX CALL_MPCC CALL_MPCXX CMN_MCL2 CMN_MCL1 CMN_RMCL CMN_SMCL CMN_RUMCL CMN_SUMCL \
   FILTER_SDEPS1 FILTER_SDEPS CMN_MCL MULTI_COMPILERS_TEMPLATE \
   $(foreach v,R $(VARIANTS_FILTER),PCH_$v_CC PCH_$v_CXX) \
-  DEF_DRV_LDFLAGS CMN_KLIBS KDLL_R_LD1 DRV_R_LD1 OS_KRN_FLAGS KRN_FLAGS CMN_KCL KDEPS_INCLUDE_FILTER CMN_KCC CMN_KCXX \
+  DEF_DRV_LDFLAGS CMN_KLIBS KDLL_R_LD1 DRV_R_LD1 OS_KRN_CFLAGS KRN_CFLAGS CMN_KCL KDEPS_INCLUDE_FILTER CMN_KCC CMN_KCXX \
   KLIB_R_CC DRV_R_CC KDLL_R_CC KLIB_R_CXX DRV_R_CXX KDLL_R_CXX KLIB_R_LD DRV_R_LD KDLL_R_LD FORCE_SYNC_PDB_KERN \
   CALL_MKCC CALL_MKCXX CALL_MPKCC CALL_MPKCXX CMN_MKCL3 CMN_MKCL2 CMN_MKCL1 CMN_MKCL PCH_K_CC PCH_K_CXX KLIB_R_ASM BISON FLEX \
   PCH_TEMPLATE1 PCH_TEMPLATE2 PCH_TEMPLATE3 PCH_TEMPLATE ADD_WITH_PCH \
