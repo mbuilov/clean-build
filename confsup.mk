@@ -35,7 +35,7 @@ define OVERRIDE_VAR_TEMPLATE
 ifneq (command line,$$(origin $v))
 override define $v
 $(value $v)
-$(endef)
+$(keyword_endef)
 $(if $(filter simple,$(flavor $v)),override $v:=$$(value $v))
 endif
 endef
