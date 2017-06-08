@@ -137,9 +137,9 @@ DRIVERS_SUPPORT:=
 override DRIVERS_SUPPORT := $(DRIVERS_SUPPORT:0=)
 
 # standard variables that may be overridden:
-# TARGET                - one of $(SUPPORTED_TARGETS)
-# OS                    - one of $(SUPPORTED_OSES),
-# CPU or UCPU,KCPU,TCPU - one of $(SUPPORTED_CPUS),
+# TARGET           - one of $(SUPPORTED_TARGETS)
+# OS               - one of $(SUPPORTED_OSES),
+# CPU or TCPU,KCPU - one of $(SUPPORTED_CPUS),
 
 # what target type to build
 # note: do not take TARGET value from environment
@@ -157,19 +157,17 @@ else
 OS:=
 endif
 
-# CPU processor architecture we are building for 
+# CPU processor architecture we are building applications for
 # note: do not take CPU value from environment
 # note: CPU may be overridden either in command line or in project configuration makefile
 CPU := x86
 
-# UCPU - processor architecture for user-level applications
+# TCPU - processor architecture for build tools (may be different from $(CPU) if cross-compiling)
 # KCPU - processor architecture for kernel modules
-# TCPU - processor architecture for build tools (may be different from $(UCPU) if cross-compiling)
-# note: do not take UCPU, KCPU and TCPU values from environment
-# note: UCPU, KCPU and TCPU may be overridden either in command line or in project configuration makefile
-UCPU := $(CPU)
+# note: do not take TCPU and KCPU values from environment
+# note: TCPU and KCPU may be overridden either in command line or in project configuration makefile
+TCPU := $(CPU)
 KCPU := $(CPU)
-TCPU := $(UCPU)
 
 # set defaults
 # note: these defaults may be overridden either in command line or in project configuration makefile
@@ -180,16 +178,13 @@ SUPPORTED_CPUS    := x86 x86_64 sparc sparc64 armv5 mips24k ppc
 # directory of $(OS)-specific definitions, such as FREEBSD/{tools.mk,c.mk,java.mk} and so on
 OSDIR := $(CLEAN_BUILD_DIR)
 
-# CPU variable must not be used in target makefiles
-override CPU = $(error please do not use CPU, use UCPU, KCPU or TCPU instead)
-
 # fix variables - make them non-recursive (simple)
 # note: these variables are used to create simple variables
 override TARGET := $(TARGET)
 override OS     := $(OS)
-override UCPU   := $(UCPU)
-override KCPU   := $(KCPU)
+override CPU    := $(CPU)
 override TCPU   := $(TCPU)
+override KCPU   := $(KCPU)
 override OSDIR  := $(OSDIR)
 
 # OS - operating system we are building for (and we are building on)
@@ -205,8 +200,13 @@ endif
 ifeq (,$(filter distclean,$(MAKECMDGOALS)))
 
 # CPU for user-level
-ifeq (,$(filter $(UCPU),$(SUPPORTED_CPUS)))
-$(error unknown UCPU=$(UCPU), please pick one of target CPU types: $(SUPPORTED_CPUS))
+ifeq (,$(filter $(CPU),$(SUPPORTED_CPUS)))
+$(error unknown CPU=$(CPU), please pick one of target CPU types: $(SUPPORTED_CPUS))
+endif
+
+# CPU for build-tools
+ifeq (,$(filter $(TCPU),$(SUPPORTED_CPUS)))
+$(error unknown TCPU=$(TCPU), please pick one of build CPU types: $(SUPPORTED_CPUS))
 endif
 
 ifdef DRIVERS_SUPPORT
@@ -214,11 +214,6 @@ ifdef DRIVERS_SUPPORT
 ifeq (,$(filter $(KCPU),$(SUPPORTED_CPUS)))
 $(error unknown KCPU=$(KCPU), please pick one of target CPU types: $(SUPPORTED_CPUS))
 endif
-endif
-
-# CPU for build-tools
-ifeq (,$(filter $(TCPU),$(SUPPORTED_CPUS)))
-$(error unknown TCPU=$(TCPU), please pick one of build CPU types: $(SUPPORTED_CPUS))
 endif
 
 # what to build
@@ -280,7 +275,7 @@ MDEBUG:=
 endif
 
 ifdef MDEBUG
-$(call dump,CLEAN_BUILD_DIR OSDIR BUILD CONFIG TARGET OS UCPU KCPU TCPU,,)
+$(call dump,CLEAN_BUILD_DIR OSDIR BUILD CONFIG TARGET OS CPU TCPU KCPU,,)
 endif
 
 # get absolute path to current makefile
@@ -430,11 +425,11 @@ SED_MULTI_EXPR = $(foreach s,$(subst $(newline), ,$(subst $(space),$$(space),$(s
   $$,$$$$,$1))),-e $(call SED_EXPR,$(eval SED_MULTI_EXPR_:=$s)$(SED_MULTI_EXPR_)))
 
 # to allow parallel builds for different combinations
-# of $(OS)/$(KCPU)/$(UCPU)/$(TARGET) - create unique directories for each combination
+# of $(OS)/$(CPU)/$(KCPU)/$(TARGET) - create unique directories for each combination
 ifdef DRIVERS_SUPPORT
-TARGET_TRIPLET := $(OS)-$(KCPU)-$(UCPU)-$(TARGET)
+TARGET_TRIPLET := $(OS)-$(CPU)-$(KCPU)-$(TARGET)
 else
-TARGET_TRIPLET := $(OS)-$(UCPU)-$(TARGET)
+TARGET_TRIPLET := $(OS)-$(CPU)-$(TARGET)
 endif
 
 # output directories:
@@ -461,11 +456,11 @@ SET_DEFAULT_DIRS := $(SET_DEFAULT_DIRS)
 $(eval $(SET_DEFAULT_DIRS))
 
 # to allow parallel builds for different combinations
-# of $(OS)/$(KCPU)/$(UCPU)/$(TARGET) - tool dir must be unique for each such combination
+# of $(OS)/$(CPU)/$(KCPU)/$(TARGET) - tool dir must be unique for each such combination
 # (this is true for TOOL_BASE = $(DEF_GEN_DIR))
 TOOL_BASE := $(DEF_GEN_DIR)
 
-# TOOL_BASE should be non-recursive (simple) - it is used in TOOL_OVERRIDE_DIRS 
+# TOOL_BASE should be non-recursive (simple) - it is used in TOOL_OVERRIDE_DIRS
 override TOOL_BASE := $(TOOL_BASE)
 
 ifeq (,$(filter $(BUILD)/%,$(TOOL_BASE)))
@@ -532,7 +527,7 @@ else # !clean
 # NOTE: postpone expansion of ORDER_DEPS - $(FIX_ORDER_DEPS) changes $(ORDER_DEPS) value
 define STD_TARGET_VARS1
 $(FIX_ORDER_DEPS)
-$1:TMD:=$(CB_TOOL_MODE)
+$1:TMD:=$(TMD)
 $1:| $2 $$(ORDER_DEPS)
 $(CURRENT_MAKEFILE)-:$1
 NEEDED_DIRS+=$2
@@ -616,7 +611,7 @@ ifdef MDEBUG
 # $2 - function to form target file name (FORM_TRG), must be defined at time of $(eval)
 # $3 - variants filter function (VARIANTS_FILTER by default), must be defined at time of $(eval)
 DEBUG_TARGETS = $(foreach t,$1,$(if $($t),$(newline)$(foreach \
-  v,$(call GET_VARIANTS,$t,$3),$(info $(if $(CB_TOOL_MODE),[TOOL]: )$t $(subst \
+  v,$(call GET_VARIANTS,$t,$3),$(info $(if $(TMD),[TOOL]: )$t $(subst \
   R ,,$v )= $(call GET_TARGET_NAME,$t) '$(patsubst $(BUILD)/%,%,$(call $2,$t,$v))'))))
 
 else # !MDEBUG
@@ -724,7 +719,7 @@ RUN_WITH_DLL_PATH = $(if $2$3,$(if $2,$(eval \
   $2$3,$(if $(VERBOSE),$(show_dll_path_end)))
 
 # reset
-CB_TOOL_MODE:=
+TMD:=
 
 # TOOL_MODE should be specified in target makefile before including this file
 # reset TOOL_MODE if it's not set in target makefile
@@ -750,14 +745,14 @@ DEF_TAIL_CODE_EVAL = $(eval $(call DEF_TAIL_CODE,))
 #  $(MAKE_CONTINUE) before expanding $(DEF_HEAD_CODE) adds 2 to $(MAKE_CONT) list (which is normally empty or contains 1 1...)
 #  - so we know if $(DEF_HEAD_CODE) was expanded from $(MAKE_CONTINUE) - remove 2 from $(MAKE_CONT) in this case
 #  - if $(DEF_HEAD_CODE) was expanded not from $(MAKE_CONTINUE) - no 2 in $(MAKE_CONT) - reset $(MAKE_CONT)
-# NOTE: set CB_TOOL_MODE to remember if we are in tool mode - TOOL_MODE variable may be changed before calling $(MAKE_CONTINUE)
+# NOTE: set TMD to remember if we are in tool mode - TOOL_MODE variable may be changed before calling $(MAKE_CONTINUE)
 # NOTE: append $(empty) at end of $(DEF_HEAD_CODE) - to allow to join it and eval: $(eval $(DEF_HEAD_CODE)$(MY_PREPARE_CODE))
 define DEF_HEAD_CODE
 $(if $(findstring 2,$(MAKE_CONT)),MAKE_CONT:=$(subst 2,1,$(MAKE_CONT)),MAKE_CONT:=\
   $(newline)$(CHECK_MAKEFILE_NOT_PROCESSED)\
   $(newline)PROCESSED_MAKEFILES+=$(CURRENT_MAKEFILE)-)
-CB_TOOL_MODE:=$(if $(TOOL_MODE),T)
-$(if $(TOOL_MODE),$(if $(CB_TOOL_MODE),,$(TOOL_OVERRIDE_DIRS)),$(if $(CB_TOOL_MODE),$(SET_DEFAULT_DIRS)))
+TMD:=$(if $(TOOL_MODE),T)
+$(if $(TOOL_MODE),$(if $(TMD),,$(TOOL_OVERRIDE_DIRS)),$(if $(TMD),$(SET_DEFAULT_DIRS)))
 DEFINE_TARGETS_EVAL_NAME:=DEF_TAIL_CODE_EVAL
 $(empty)
 endef
@@ -851,7 +846,7 @@ $(call CLEAN_BUILD_PROTECT_VARS,MAKEFLAGS PATH PASS_ENV_VARS \
   $(if $(filter-out undefined environment,$(origin PASS_ENV_VARS)),$(PASS_ENV_VARS)) \
   PROJECT_VARS_NAMES CLEAN_BUILD_VERSION CLEAN_BUILD_DIR CLEAN_BUILD_REQUIRED_VERSION \
   BUILD DRIVERS_SUPPORT DEBUG NO_CLEAN_BUILD_DISTCLEAN_TARGET \
-  SUPPORTED_OSES SUPPORTED_CPUS SUPPORTED_TARGETS OS CPU UCPU KCPU TCPU TARGET \
+  SUPPORTED_OSES SUPPORTED_CPUS SUPPORTED_TARGETS OS CPU TCPU KCPU TARGET \
   OSTYPE VERBOSE QUIET INFOMF MDEBUG OSDIR CHECK_MAKEFILE_NOT_PROCESSED \
   PRINT_PERCENTS SUP ADD_SHOWN_PERCENTS FORMAT_PERCENTS \
   GEN_COLOR MGEN_COLOR CP_COLOR RM_COLOR DEL_COLOR LN_COLOR MKDIR_COLOR TOUCH_COLOR \
