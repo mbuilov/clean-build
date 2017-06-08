@@ -70,7 +70,7 @@ $(eval define CLEAN_BUILD_PARALLEL$(newline)$(value \
   m,$$1,$$(CB_INCLUDE_TEMPLATE))$(newline)CB_INCLUDE_LEVEL:=$$(CB_INCLUDE_LEVEL)$(newline)endef)
 
 # remember number of intermediate non-target makefiles if build is non-verbose
-ifdef REM_SHOWN_MAKEFILE
+ifdef ADD_SHOWN_PERCENTS
 $(eval define CLEAN_BUILD_PARALLEL$(newline)$(value \
   CLEAN_BUILD_PARALLEL)$(newline)PROCESSED_MAKEFILES+=$$(CURRENT_MAKEFILE)-$(newline)INTERMEDIATE_MAKEFILES+=1$(newline)endef)
 endif
