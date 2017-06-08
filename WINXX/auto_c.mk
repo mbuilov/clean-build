@@ -60,7 +60,7 @@ SUBSYSTEM_VER := 6.01
 else ifeq (WINV,$(WINVARIANT))
 SUBSYSTEM_VER := 6.00
 else ifeq (WINXP,$(WINVARIANT))
-SUBSYSTEM_VER := $(if $(UCPU:%64=),5.01,5.02)
+SUBSYSTEM_VER := $(if $(CPU:%64=),5.01,5.02)
 else
 SUBSYSTEM_VER:=
 ifndef SUBSYSTEM_VER
@@ -189,21 +189,21 @@ ONECORE:=
 
 ifeq (,$(call is_less,1000,$(VS_VER)))
 
-VSLIB  := $(VCN)\lib$(ONECORE)$(addprefix \,$(filter-out x86,$(UCPU:x86_64=amd64)))
+VSLIB  := $(VCN)\lib$(ONECORE)$(addprefix \,$(filter-out x86,$(CPU:x86_64=amd64)))
 VSINC  := $(VCN)\include
 
 VSTLIB := $(VCN)\lib$(addprefix \,$(filter-out x86,$(TCPU:x86_64=amd64)))
 VSTINC := $(VSINC)
 
 # determine tool prefix $(TCPU)_$1 where
-# $1 - target cpu (either $(UCPU) or $(KCPU))
+# $1 - target cpu (either $(CPU) or $(KCPU))
 # Note: some prefixes reduced:
 #  amd64_amd64 -> amd64
 #  x86_x86     -> <none>
 VS_TOOL_PREFIX = $(addprefix \,$(filter-out x86_x86,$(subst amd64_amd64,amd64,$(TCPU:x86_64=amd64)_$(1:x86_64=amd64))))
 
-VSLD   := $(call qpath,$(VCN)\bin$(call VS_TOOL_PREFIX,$(UCPU))\link.exe)
-VSCL   := $(call qpath,$(VCN)\bin$(call VS_TOOL_PREFIX,$(UCPU))\cl.exe)
+VSLD   := $(call qpath,$(VCN)\bin$(call VS_TOOL_PREFIX,$(CPU))\link.exe)
+VSCL   := $(call qpath,$(VCN)\bin$(call VS_TOOL_PREFIX,$(CPU))\cl.exe)
 
 VSTLD  := $(call qpath,$(VCN)\bin$(call VS_TOOL_PREFIX,$(TCPU))\link.exe)
 VSTCL  := $(call qpath,$(VCN)\bin$(call VS_TOOL_PREFIX,$(TCPU))\cl.exe)
@@ -211,21 +211,21 @@ VSTCL  := $(call qpath,$(VCN)\bin$(call VS_TOOL_PREFIX,$(TCPU))\cl.exe)
 # set path to dlls needed by cl.exe and link.exe to work
 ifneq (,$(call is_less,$(VS_VER),10))
 
-ifneq (\amd64,$(call VS_TOOL_PREFIX,$(UCPU)))
+ifneq (\amd64,$(call VS_TOOL_PREFIX,$(CPU)))
 # not for \amd64
 override PATH := $(VS)\Common7\IDE;$(VS)\VC\bin;$(PATH)
 endif
 
 else ifneq (,$(call is_less,$(VS_VER),13))
 
-ifneq ($(UCPU),$(TCPU))
+ifneq ($(CPU),$(TCPU))
 # for \x86_amd64
 override PATH := $(VS)\VC\bin;$(PATH)
 endif
 
 else # Visual Studio 2015
 
-ifneq ($(UCPU),$(TCPU))
+ifneq ($(CPU),$(TCPU))
 # for \amd64_arm
 # for \amd64_x86
 # for \x86_amd64
@@ -237,20 +237,20 @@ endif
 
 else # Visual Studio 2017
 
-VSLIB  := $(VCN)\lib$(ONECORE)\$(UCPU:x86_64=x64)
+VSLIB  := $(VCN)\lib$(ONECORE)\$(CPU:x86_64=x64)
 VSINC  := $(VCN)\include
 
 VSTLIB := $(VCN)\lib\$(TCPU:x86_64=x64)
 VSTINC := $(VSINC)
 
-VSLD   := $(call qpath,$(VCN)\bin\Host$(patsubst x%,X%,$(TCPU:x86_64=x64))\$(UCPU:x86_64=x64)\link.exe)
-VSCL   := $(call qpath,$(VCN)\bin\Host$(patsubst x%,X%,$(TCPU:x86_64=x64))\$(UCPU:x86_64=x64)\cl.exe)
+VSLD   := $(call qpath,$(VCN)\bin\Host$(patsubst x%,X%,$(TCPU:x86_64=x64))\$(CPU:x86_64=x64)\link.exe)
+VSCL   := $(call qpath,$(VCN)\bin\Host$(patsubst x%,X%,$(TCPU:x86_64=x64))\$(CPU:x86_64=x64)\cl.exe)
 
 VSTLD  := $(call qpath,$(VCN)\bin\Host$(patsubst x%,X%,$(TCPU:x86_64=x64))\$(TCPU:x86_64=x64)\link.exe)
 VSTCL  := $(call qpath,$(VCN)\bin\Host$(patsubst x%,X%,$(TCPU:x86_64=x64))\$(TCPU:x86_64=x64)\cl.exe)
 
 # set path to dlls needed by cl.exe and link.exe to work
-ifneq ($(UCPU),$(TCPU))
+ifneq ($(CPU),$(TCPU))
 # for HostX64/x86
 # for HostX86/x64
 override PATH := $(VS)\bin\Host$(patsubst x%,X%,$(TCPU:x86_64=x64))\$(TCPU:x86_64=x64);$(PATH)
@@ -281,7 +281,7 @@ ifneq (,$(call is_less,12,$(VS_VER)))
 $(error too new Visual Studio version $(lastword $(subst \, ,$(VS))) to build with SDK, please use WDK)
 endif
 
-UMLIB  := $(SDKN)\Lib$(addprefix \,$(filter-out x86,$(UCPU:x86_64=x64)))
+UMLIB  := $(SDKN)\Lib$(addprefix \,$(filter-out x86,$(CPU:x86_64=x64)))
 UMINC  := $(SDKN)\Include
 UMTLIB := $(SDKN)\Lib$(addprefix \,$(filter-out x86,$(TCPU:x86_64=x64)))
 UMTINC := $(UMINC)
@@ -316,7 +316,7 @@ $(error unsuitable WDK version $(GET_WDK_VER) for building APP-level, use SDK in
 
 else ifneq (,$(call is_less,$(WDK_VER),10))
 
-UMLIB  := $(WDKN)\Lib\$(WDK_TARGET)\um\$(UCPU:x86_64=x64)
+UMLIB  := $(WDKN)\Lib\$(WDK_TARGET)\um\$(CPU:x86_64=x64)
 UMINC  := $(WDKN)\Include
 UMINC  := $(UMINC)\um $(UMINC)\shared
 UMTLIB := $(WDKN)\Lib\$(WDK_TARGET)\um\$(TCPU:x86_64=x64)
@@ -324,7 +324,7 @@ UMTINC := $(UMINC)
 
 else # WDK10
 
-UMLIB  := $(WDKN)\Lib\$(WDK_TARGET)\um\$(UCPU:x86_64=x64) $(WDKN)\Lib\$(WDK_TARGET)\ucrt\$(UCPU:x86_64=x64)
+UMLIB  := $(WDKN)\Lib\$(WDK_TARGET)\um\$(CPU:x86_64=x64) $(WDKN)\Lib\$(WDK_TARGET)\ucrt\$(CPU:x86_64=x64)
 UMINC  := $(WDKN)\Include\$(WDK_TARGET)
 UMINC  := $(UMINC)\um $(UMINC)\ucrt $(UMINC)\shared
 UMTLIB := $(WDKN)\Lib\$(WDK_TARGET)\um\$(TCPU:x86_64=x64) $(WDKN)\Lib\$(WDK_TARGET)\ucrt\$(TCPU:x86_64=x64)
