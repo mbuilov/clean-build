@@ -14,16 +14,16 @@ $(eval define PREPARE_C_VARS$(newline)$(value PREPARE_C_VARS)$(newline)RPATH:=$(
   $(filter simple,$(flavor INST_RPATH)),$(INST_RPATH),$$(INST_RPATH))$(newline)MAP:=$(newline)endef)
 
 # compilers/linkers
-CC   := gcc -m$(if $(UCPU:%64=),32,64)
-CXX  := g++ -m$(if $(UCPU:%64=),32,64)
-LD   := ld$(if $(filter x86%,$(UCPU)), -m$(if $(UCPU:%64=),elf_i386,elf_x86_64))
+CC   := gcc -m$(if $(CPU:%64=),32,64)
+CXX  := g++ -m$(if $(CPU:%64=),32,64)
+LD   := ld$(if $(CPU:x86%=),, -m$(if $(CPU:%64=),elf_i386,elf_x86_64))
 AR   := ar
 TCC  := gcc -m$(if $(TCPU:%64=),32,64)
 TCXX := g++ -m$(if $(TCPU:%64=),32,64)
-TLD  := ld$(if $(filter x86%,$(TCPU)), -m$(if $(TCPU:%64=),elf_i386,elf_x86_64))
+TLD  := ld$(if $(TCPU:x86%=),, -m$(if $(TCPU:%64=),elf_i386,elf_x86_64))
 TAR  := ar
 KCC  := gcc -m$(if $(KCPU:%64=),32,64)
-KLD  := ld$(if $(filter x86%,$(KCPU)), -m$(if $(KCPU:%64=),elf_i386,elf_x86_64))
+KLD  := ld$(if $(KCPU:x86%=),, -m$(if $(KCPU:%64=),elf_i386,elf_x86_64))
 
 # make used by kbuild
 KMAKE := $(MAKE)
@@ -37,7 +37,7 @@ FLEXC  := flex
 BISONC := bison
 
 # note: assume yasm used only for drivers
-YASM_FLAGS := -f $(if $(KCPU:%64=),elf32,elf64)$(if $(filter x86%,$(KCPU)), -m $(if $(KCPU:%64=),x86,amd64))
+YASM_FLAGS := -f $(if $(KCPU:%64=),elf32,elf64)$(if $(KCPU:x86%=),, -m $(if $(KCPU:%64=),x86,amd64))
 
 # exe file suffix
 EXE_SUFFIX:=
@@ -69,16 +69,19 @@ DRV_SUFFIX := .ko
 # NOTE: DLL_DIR must be recursive because $(LIB_DIR) have different values in TOOL-mode and non-TOOL mode
 DLL_DIR = $(LIB_DIR)
 
-# standard defines
-OS_PREDEFINES := LINUX UNIX
+# application-level defines
+OS_APP_DEFINES := _GNU_SOURCE
 
-# application-level and kernel-level defines
-OS_APP_DEFS := $(if $(UCPU:%64=),ILP32,LP64) _REENTRANT _GNU_SOURCE
-
+# kernel-level defines
 # note: recursive macro by default - to use $($t) dynamic value
 # $t - KLIB
-OS_KRN_DEFS = $(if $(KCPU:%64=),ILP32,LP64) _KERNEL \
-  KBUILD_STR\(s\)=\\\#s KBUILD_BASENAME=KBUILD_STR\($($t)\) KBUILD_MODNAME=KBUILD_STR\($($t)\)
+OS_KRN_DEFINES = KBUILD_STR\(s\)=\\\#s KBUILD_BASENAME=KBUILD_STR\($($t)\) KBUILD_MODNAME=KBUILD_STR\($($t)\)
+
+# $t - EXE,LIB,DLL,DRV,KLIB,KDLL,...
+OS_TRG_DEFINES = $(if $(filter DRV KLIB KDLL,$t),$(OS_KRN_DEFINES),$(OS_APP_DEFINES)) $(DEFINES)
+
+# note: override value defined in $(CLEAN_BUILD_DIR)/c.mk
+TRG_DEFINES = $(value OS_TRG_DEFINES)
 
 # prefix to pass options to linker
 WLPREFIX := -Wl,
@@ -194,15 +197,15 @@ KLIB_R_LD = $(call SUP,KLD,$1)$(KLD) $(DEF_KLD_FLAGS) -o $1 $2 $(LDFLAGS)
 AUTO_DEPS_FLAGS := $(if $(NO_DEPS),,-MMD -MP)
 
 # flags for application level C/C++-compiler
-OS_APP_FLAGS := -Wall -fvisibility=hidden
+OS_APP_CFLAGS := -Wall -fvisibility=hidden
 ifdef DEBUG
-OS_APP_FLAGS += -ggdb
+OS_APP_CFLAGS += -ggdb
 else
-OS_APP_FLAGS += -g -O2
+OS_APP_CFLAGS += -g -O2
 endif
 
-# APP_FLAGS may be overridden in project makefile
-APP_FLAGS := $(OS_APP_FLAGS)
+# APP_CFLAGS may be overridden in project makefile
+APP_CFLAGS := $(OS_APP_CFLAGS)
 
 # default flags for C++ compiler
 DEF_CXXFLAGS:=
@@ -214,7 +217,7 @@ DEF_CFLAGS := -std=c99 -pedantic
 # $1 - target
 # $2 - source
 # target-specific: DEFINES, INCLUDE
-CC_PARAMS = -pipe -c $(APP_FLAGS) $(AUTO_DEPS_FLAGS) $(call SUBST_DEFINES,$(addprefix -D,$(DEFINES))) $(addprefix -I,$(INCLUDE))
+CC_PARAMS = -pipe -c $(APP_CFLAGS) $(AUTO_DEPS_FLAGS) $(call SUBST_DEFINES,$(addprefix -D,$(DEFINES))) $(addprefix -I,$(INCLUDE))
 
 # C++ and C compilers
 # $1 - target
@@ -269,14 +272,14 @@ PCH_LIB_D_CXX = $(PCH_DLL_R_CXX)
 PCH_LIB_D_CC  = $(PCH_DLL_R_CC)
 
 # flags for kernel level C/C++-compiler
-OS_KRN_FLAGS:=
+OS_KRN_CFLAGS:=
 
-# KRN_FLAGS may be overridden in project makefile
-KRN_FLAGS := $(OS_KRN_FLAGS)
+# KRN_CFLAGS may be overridden in project makefile
+KRN_CFLAGS := $(OS_KRN_CFLAGS)
 
 # parameters for kernel-level static library
 # target-specific: DEFINES, INCLUDE, CFLAGS
-KLIB_PARAMS = -pipe -c $(KRN_FLAGS) $(AUTO_DEPS_FLAGS) $(call \
+KLIB_PARAMS = -pipe -c $(KRN_CFLAGS) $(AUTO_DEPS_FLAGS) $(call \
   SUBST_DEFINES,$(addprefix -D,$(DEFINES))) $(addprefix -I,$(INCLUDE)) $(CFLAGS)
 
 # kernel-level C compiler
@@ -359,12 +362,16 @@ $(if $1,$(addprefix $4/,$(addsuffix $(OBJ_SUFFIX),$(basename $(notdir $1)))): $4
 $(if $2,$(addprefix $4/,$(addsuffix $(OBJ_SUFFIX),$(basename $(notdir $2)))): $4/$3_pch_cxx.h.gch)
 endef
 
+# $1 - EXE,LIB,DLL,...
+# $2 - C-sources
+# $3 - C++-sources
+# $4 - $(basename $(notdir $(PCH)))
+ADD_WITH_PCH1 = $(foreach v,$(call GET_VARIANTS,$1),$(call ADD_WITH_PCH2,$2,$3,$4,$(call FORM_OBJ_DIR,$1,$v)))
+
 # function to add (generated?) sources to $({EXE,LIB,DLL,...}_WITH_PCH) list - to compile sources with pch header
 # $1 - EXE,LIB,DLL,...
 # $2 - sources
-ADD_WITH_PCH1 = $(foreach v,$(call GET_VARIANTS,$1),$(call ADD_WITH_PCH2,$2,$3,$4,$(call FORM_OBJ_DIR,$1,$v)))
-ADD_WITH_PCH  = $(eval WITH_PCH += $2$(call \
-  ADD_WITH_PCH1,$1,$(filter %.c,$2),$(filter %.cpp,$2),$(basename $(notdir $(PCH)))))
+ADD_WITH_PCH = $(eval WITH_PCH += $2$(call ADD_WITH_PCH1,$1,$(filter %.c,$2),$(filter %.cpp,$2),$(basename $(notdir $(PCH)))))
 
 endif # NO_PCH
 
@@ -452,10 +459,11 @@ endif # DRIVERS_SUPPORT
 
 # protect variables from modifications in target makefiles
 $(call CLEAN_BUILD_PROTECT_VARS,INST_RPATH CC CXX MODULES_PATH LD AR TCC TCXX TLD TAR KCC KLD KMAKE YASMC FLEXC BISONC YASM_FLAGS \
-  WLPREFIX DEF_SHARED_FLAGS DEF_EXE_FLAGS DEF_SO_FLAGS DEF_LD_FLAGS DEF_KLD_FLAGS DEF_AR_FLAGS DLL_EXPORTS_DEFINE DLL_IMPORTS_DEFINE \
+  OS_APP_DEFINES OS_KRN_DEFINES OS_TRG_DEFINES WLPREFIX DEF_SHARED_FLAGS DEF_EXE_FLAGS DEF_SO_FLAGS DEF_LD_FLAGS DEF_KLD_FLAGS \
+  DEF_AR_FLAGS DLL_EXPORTS_DEFINE DLL_IMPORTS_DEFINE \
   RPATH_OPTION RPATH_LINK_OPTION CMN_LIBS VERSION_SCRIPT_OPTION SONAME_OPTION1 SONAME_OPTION \
   EXE_R_LD EXE_P_LD DLL_R_LD LIB_R_LD LIB_P_LD LIB_D_LD KLIB_LD AUTO_DEPS_FLAGS \
-  OS_APP_FLAGS APP_FLAGS OS_KRN_FLAGS KRN_FLAGS DEF_CXXFLAGS DEF_CFLAGS CC_PARAMS \
+  OS_APP_CFLAGS APP_CFLAGS OS_KRN_CFLAGS KRN_CFLAGS DEF_CXXFLAGS DEF_CFLAGS CC_PARAMS \
   CMN_CXX CMN_CC PCH_CXX PCH_CC EXE_R_CXX EXE_R_CC EXE_P_CXX EXE_P_CC LIB_R_CXX LIB_R_CC LIB_P_CXX LIB_P_CC DLL_R_CXX DLL_R_CC \
   LIB_D_CXX LIB_D_CC PCH_EXE_R_CXX PCH_EXE_R_CC PCH_EXE_P_CXX PCH_EXE_P_CC PCH_LIB_R_CXX PCH_LIB_R_CC PCH_LIB_P_CXX PCH_LIB_P_CC \
   PCH_DLL_R_CXX PCH_DLL_R_CC PCH_LIB_D_CXX PCH_LIB_D_CC KLIB_PARAMS KLIB_R_CC PCH_KLIB_R_CC KLIB_R_ASM BISON FLEX \
