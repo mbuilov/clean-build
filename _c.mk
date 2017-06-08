@@ -113,8 +113,8 @@ EXE_VAR_SUFFIX = $(if $(filter-out R,$2),$(call \
 # note: WINXX/c.mk defines own LIB_VAR_SUFFIX
 LIB_VAR_SUFFIX = $(if $(filter-out R,$1),_$1)
 
-# $(OS_FORM_TRG) - $(OS) may define more targets, for example, for DDD:
-#  $(if $(filter DDD,$1),$(addprefix $(BIN_DIR)/$(DDD_PREFIX),$(GET_TARGET_NAME:=$(EXE_VAR_SUFFIX)$(DDD_SUFFIX))))
+# $(OSDIR)/$(OS)/c.mk may define more targets, for example, to define DDD:
+# OS_FORM_TRG = $(if $(filter DDD,$1),$(addprefix $(BIN_DIR)/$(DDD_PREFIX),$(GET_TARGET_NAME:=$(EXE_VAR_SUFFIX)$(DDD_SUFFIX))))
 OS_FORM_TRG:=
 
 # make target filename
@@ -135,9 +135,24 @@ FORM_TRG = $(if \
 # $(foreach v,$(call GET_VARIANTS,$1),$(call FORM_TRG,$1,$v))
 
 # make absolute paths to include directories - we need absolute paths to headers in generated .d dependency file
-# note: do not touch $(SYSINCLUDE) - it may contain paths with spaces,
+# note: do not touch paths in $(SYSINCLUDE) - assume they are absolute,
 # note: $(SYSINCLUDE) paths are generally filtered-out while .d dependency file generation
-TRG_INCLUDE = $(call fixpath,$(INCLUDE) $(CMNINCLUDE)) $(SYSINCLUDE)
+TRG_INCLUDE = $(call fixpath,$(INCLUDE)) $(SYSINCLUDE)
+
+# target flags
+# $t     - EXE,LIB,DLL,DRV,KLIB,KDLL,...
+# $v     - non-empty variant: R,P,S,...
+# $(TMD) - T in tool mode, empty otherwise
+# note: these macros may be overridden in project configuration makefile, for example:
+# TRG_DEFINES = $(if $(DEBUG),_DEBUG) TARGET_$(TARGET:D=) $(foreach \
+#   c,$($(if $(filter DRV KLIB KDLL,$t),K,$(TMD))CPU),$(if \
+#   $(filter sparc% mips% ppc%,$c),B_ENDIAN,L_ENDIAN) $(if \
+#   $(filter arm% sparc% mips% ppc%,$c),ADDRESS_NEEDALIGN)) $(DEFINES)
+TRG_DEFINES  = $(DEFINES)
+TRG_CFLAGS   = $(CFLAGS)
+TRG_CXXFLAGS = $(CXXFLAGS)
+TRG_ASMFLAGS = $(ASMFLAGS)
+TRG_LDFLAGS  = $(LDFLAGS)
 
 # make list of sources for the target
 # NOTE: this list does not include generated sources
@@ -205,8 +220,7 @@ STRING_DEFINE = "$(subst $(space),$$(space),$(subst ",\",$(subst $$,$$$$,$1)))"
 # $v - non-empty variant: R,P,S,...
 ifdef MCHECK
 # check that target template is defined
-C_RULES2 = $(if $(value $t_TEMPLATE),$($t_TEMPLATE),$(error \
-  $t_TEMPLATE not defined! (define it in $(OSDIR)/$(OS)/c.mk)))
+C_RULES2 = $(if $(value $t_TEMPLATE),$($t_TEMPLATE),$(error $t_TEMPLATE not defined! (define it in $(OSDIR)/$(OS)/c.mk)))
 else
 C_RULES2 = $($t_TEMPLATE)
 endif
@@ -238,11 +252,11 @@ $1:LIB_DIR    := $(LIB_DIR)
 $1:LIBS       := $(LIBS)
 $1:DLLS       := $(DLLS)
 $1:INCLUDE    := $(TRG_INCLUDE)
-$1:DEFINES    := $(CMNDEFINES) $(APP_DEFS) $(DEFINES)
-$1:CFLAGS     := $(CFLAGS)
-$1:CXXFLAGS   := $(CXXFLAGS)
-$1:ASMFLAGS   := $(ASMFLAGS)
-$1:LDFLAGS    := $(LDFLAGS)
+$1:DEFINES    := $(TRG_DEFINES)
+$1:CFLAGS     := $(TRG_CFLAGS)
+$1:CXXFLAGS   := $(TRG_CXXFLAGS)
+$1:ASMFLAGS   := $(TRG_ASMFLAGS)
+$1:LDFLAGS    := $(TRG_LDFLAGS)
 $1:SYSLIBS    := $(SYSLIBS)
 $1:SYSLIBPATH := $(SYSLIBPATH)
 $1:$(addprefix $(LIB_DIR)/,$(call DEP_LIBS,$t,$v) $(call DEP_IMPS,$t,$v))
@@ -267,11 +281,11 @@ $1:$(call OBJ_RULES,CXX,$(filter %.cpp,$2),$3,$4)
 $1:$(call OBJ_RULES,ASM,$(filter %.asm,$2),$3,$4)
 $1:COMPILER := $(if $(filter %.cpp,$2),CXX,CC)
 $1:INCLUDE  := $(TRG_INCLUDE)
-$1:DEFINES  := $(CMNDEFINES) $(APP_DEFS) $(DEFINES)
-$1:CFLAGS   := $(CFLAGS)
-$1:CXXFLAGS := $(CXXFLAGS)
-$1:ASMFLAGS := $(ASMFLAGS)
-$1:LDFLAGS  := $(LDFLAGS)
+$1:DEFINES  := $(TRG_DEFINES)
+$1:CFLAGS   := $(TRG_CFLAGS)
+$1:CXXFLAGS := $(TRG_CXXFLAGS)
+$1:ASMFLAGS := $(TRG_ASMFLAGS)
+$1:LDFLAGS  := $(TRG_LDFLAGS)
 $1:
 	$$(call $t_$v_LD,$$@,$$(filter %$(OBJ_SUFFIX),$$^))
 endef
@@ -291,11 +305,11 @@ $1:$(call OBJ_RULES,CXX,$(filter %.cpp,$2),$3,$4)
 $1:$(call OBJ_RULES,ASM,$(filter %.asm,$2),$3,$4)
 $1:COMPILER := $(if $(filter %.cpp,$2),CXX,CC)
 $1:INCLUDE  := $(TRG_INCLUDE)
-$1:DEFINES  := $(CMNDEFINES) $(KRN_DEFS) $(DEFINES)
-$1:CFLAGS   := $(CFLAGS)
-$1:CXXFLAGS := $(CXXFLAGS)
-$1:ASMFLAGS := $(ASMFLAGS)
-$1:LDFLAGS  := $(LDFLAGS)
+$1:DEFINES  := $(TRG_DEFINES)
+$1:CFLAGS   := $(TRG_CFLAGS)
+$1:CXXFLAGS := $(TRG_CXXFLAGS)
+$1:ASMFLAGS := $(TRG_ASMFLAGS)
+$1:LDFLAGS  := $(TRG_LDFLAGS)
 $1:
 	$$(call $t_$v_LD,$$@,$$(filter %$(OBJ_SUFFIX),$$^))
 endef
@@ -328,7 +342,7 @@ else
 CHECK_C_RULES:=
 endif
 
-# $(OS)-specific definitions
+# auxiliary definitions possibly defined in $(OSDIR)/$(OS)/c.mk
 OS_DEFINE_TARGETS:=
 
 # this code is normally evaluated at end of target makefile
@@ -345,32 +359,6 @@ $(eval $(CHECK_C_RULES)$(call C_RULES,$(BLD_TARGETS)))
 $(DEF_TAIL_CODE_EVAL)
 endef
 
-# common include path for all targets, added at end of compiler's include paths list, for example:
-#  override DEFINCLUDE = $(TOP)/include
-#  note: DEFINCLUDE may be recursive, it's value may be calculated based on $(CURRENT_MAKEFILE)
-#  note: target makefiles may avoid using include paths from $(DEFINCLUDE) by resetting $(CMNINCLUDE) value
-DEFINCLUDE:=
-
-# predefined macros for all targets, for example:
-#  override PREDEFINES = $(if $(DEBUG),_DEBUG) TARGET_$(TARGET:D=) \
-#                        $(if $(filter sparc% mips% ppc%,$(CPU)),B_ENDIAN,L_ENDIAN) \
-#                        $(if $(filter arm% sparc% mips% ppc%,$(CPU)),ADDRESS_NEEDALIGN)
-#  note: $(PREDEFINES) may be recursive, it's value may be calculated based on $(CURRENT_MAKEFILE)
-#  note: target makefile may avoid using macros from $(PREDEFINES) by resetting $(CMNDEFINES) value
-PREDEFINES = $(OS_PREDEFINES)
-
-# common defines for all application-level targets, for example:
-#  override APP_DEFS =
-#  note: it's not possible to reset value of $(APP_DEFS) in target makefile,
-#   but APP_DEFS may be recursive and so may produce dynamic results
-APP_DEFS = $(OS_APP_DEFS)
-
-# common defines for all kernel-level targets, for example:
-#  override KRN_DEFS = _KERNEL
-#  note: it's not possible to reset value of $(KRN_DEFS) in target makefile,
-#   but KRN_DEFS may be recursive and so may produce dynamic results
-KRN_DEFS = $(OS_KRN_DEFS)
-
 # product version in form major.minor or major.minor.patch
 #  override PRODUCT_VER := 1.0.0
 #  note: this is also default version for any built module (exe, dll or driver)
@@ -384,8 +372,6 @@ BLD_TARGETS_RESET := $(subst $(space),:=$(newline),$(BLD_TARGETS)):=
 define PREPARE_C_VARS
 $(BLD_TARGETS_RESET)
 MODVER:=$(PRODUCT_VER)
-CMNDEFINES:=$(PREDEFINES)
-CMNINCLUDE:=$(DEFINCLUDE)
 PCH:=
 WITH_PCH:=
 SRC:=
@@ -414,61 +400,30 @@ CLEAN_BUILD_C_EVAL = $(eval $(DEF_HEAD_CODE)$(PREPARE_C_VARS))
 # note: $(OSDIR)/$(OS)/c.mk must define VARIANTS_FILTER
 include $(OSDIR)/$(OS)/c.mk
 
-# try to make PREDEFINES non-recursive (simple)
-ifneq (simple,$(flavor PREDEFINES))
-ifeq (simple,$(flavor OS_PREDEFINES))
-ifeq (,$(findstring $$,$(subst $$(OS_PREDEFINES),,$(value PREDEFINES))))
-override PREDEFINES := $(PREDEFINES)
-endif
-endif
-endif
-
-# try to make APP_DEFS non-recursive (simple)
-ifneq (simple,$(flavor APP_DEFS))
-ifeq (simple,$(flavor OS_APP_DEFS))
-ifeq (,$(findstring $$,$(subst $$(OS_APP_DEFS),,$(value APP_DEFS))))
-override APP_DEFS := $(APP_DEFS)
-endif
-endif
-endif
-
-# try to make KRN_DEFS non-recursive (simple)
-ifneq (simple,$(flavor KRN_DEFS))
-ifeq (simple,$(flavor OS_KRN_DEFS))
-ifeq (,$(findstring $$,$(subst $$(OS_KRN_DEFS),,$(value KRN_DEFS))))
-override KRN_DEFS := $(KRN_DEFS)
-endif
-endif
-endif
-
 # check if no new variables introduced in PREPARE_C_VARS
 ifeq (,$(findstring $$,$(subst \
   $$(BLD_TARGETS_RESET),,$(subst \
-  $$(PRODUCT_VER),,$(subst \
-  $$(PREDEFINES),,$(subst \
-  $$(DEFINCLUDE),,$(value PREPARE_C_VARS)))))))
+  $$(PRODUCT_VER),,$(value PREPARE_C_VARS)))))
 
-# check if BLD_TARGETS_RESET, PRODUCT_VER, PREDEFINES, DEFINCLUDE are simple
-ifeq (4,$(words $(filter simple,$(flavor \
+# check if BLD_TARGETS_RESET and PRODUCT_VER are simple
+ifeq (2,$(words $(filter simple,$(flavor \
   BLD_TARGETS_RESET) $(flavor \
-  PRODUCT_VER) $(flavor \
-  PREDEFINES) $(flavor \
-  DEFINCLUDE))))
+  PRODUCT_VER))))
 
 # then make PREPARE_C_VARS non-recursive (simple)
-PREPARE_C_VARS := $(PREPARE_C_VARS)
+override PREPARE_C_VARS := $(PREPARE_C_VARS)
 
 endif # words
 endif # findstring
 
 # protect variables from modifications in target makefiles
 $(call CLEAN_BUILD_PROTECT_VARS,BLD_TARGETS LIB_VAR_SUFFIX \
-  DEFINCLUDE PREDEFINES OS_PREDEFINES APP_DEFS OS_APP_DEFS KRN_DEFS OS_KRN_DEFS PRODUCT_VER VARIANTS_FILTER \
-  NO_DEPS ADD_OBJ_SDEPS OBJ_RULES2 OBJ_RULES1 OBJ_RULES \
+  PRODUCT_VER VARIANTS_FILTER NO_DEPS ADD_OBJ_SDEPS OBJ_RULES2 OBJ_RULES1 OBJ_RULES \
   EXE_SUFFIX_GEN EXE_VAR_SUFFIX FORM_TRG OS_FORM_TRG DLL_DIR \
   EXE_SUFFIX OBJ_SUFFIX LIB_PREFIX LIB_SUFFIX IMP_PREFIX IMP_SUFFIX DLL_PREFIX DLL_SUFFIX \
   KLIB_PREFIX KLIB_SUFFIX DRV_PREFIX DRV_SUFFIX KDLL_PREFIX KDLL_SUFFIX \
-  SUBST_DEFINES STRING_DEFINE TRG_INCLUDE GET_SOURCES TRG_SRC TRG_SDEPS GET_OBJS DEP_LIB_SUFFIX DEP_IMP_SUFFIX \
+  SUBST_DEFINES STRING_DEFINE TRG_INCLUDE TRG_DEFINES TRG_CFLAGS TRG_CXXFLAGS TRG_ASMFLAGS TRG_LDFLAGS \
+  GET_SOURCES TRG_SRC TRG_SDEPS GET_OBJS DEP_LIB_SUFFIX DEP_IMP_SUFFIX \
   VARIANT_LIB_MAP VARIANT_IMP_MAP MAKE_DEP_LIBS MAKE_DEP_IMPS DEP_LIBS DEP_IMPS \
   C_RULES2 C_RULES1 C_RULES EXE_TEMPLATE LIB_TEMPLATE DLL_TEMPLATE KLIB_TEMPLATE DRV_TEMPLATE \
   CC_COLOR CXX_COLOR AR_COLOR LD_COLOR XLD_COLOR ASM_COLOR \
