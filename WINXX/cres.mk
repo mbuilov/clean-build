@@ -32,8 +32,8 @@ WIN_RC_PRODUCT_DEFS_HEADER = $(GEN_DIR)/$(PRODUCT_NAMES_H)
 #define PRODUCT_VERSION_MINOR 12
 #define PRODUCT_VERSION_PATCH 0 /* optional */
 #define PRODUCT_OS            "WINDOWS"
+#define PRODUCT_CPU           "x86"
 #define PRODUCT_KCPU          "x64"
-#define PRODUCT_UCPU          "x86"
 #define PRODUCT_TARGET        "RELEASE"
 #define PRODUCT_BUILD_NUM     12345
 #define PRODUCT_BUILD_DATE    "01/01/2017:09.30"
@@ -47,7 +47,7 @@ WIN_RC_MODULE_VERSION_MINOR  = $(call ver_minor,$(MODVER))
 WIN_RC_MODULE_VERSION_PATCH  = $(call ver_patch,$(MODVER))
 WIN_RC_PRODUCT_BUILD_NUM     = PRODUCT_BUILD_NUM
 WIN_RC_COMMENTS              = PRODUCT_TARGET "/" PRODUCT_OS "/" $(if \
-                                $(filter DRV KDLL,$1),PRODUCT_KCPU,PRODUCT_UCPU) "/" PRODUCT_BUILD_DATE
+                                $(filter DRV KDLL,$1),PRODUCT_KCPU,PRODUCT_CPU) "/" PRODUCT_BUILD_DATE
 WIN_RC_COMPANY_NAME          = VENDOR_NAME
 WIN_RC_FILE_DESCRIPTION      = "$(GET_TARGET_NAME)"
 WIN_RC_FILE_VERSION          = VERSION_TO_STR($(if \
