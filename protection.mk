@@ -56,8 +56,17 @@ $$(foreach x,CLEAN_BUILD_PROTECTED_VARS $1,$$(eval $$x.v? = $$(call CLEAN_BUILD_
 endif
 endef
 
-# list $1: AAA=b1,b2=e1,e2 BBB=b1,b2=e1,e2,...
+# $1 - list: AAA=b1,b2=e1,e2 BBB=b1,b2=e1,e2,...
+# $2 - if empty, then do not trace calls for given macros (for example, if called from trace_calls_template)
+ifdef TRACE
+CLEAN_BUILD_PROTECT_VARS1 = $(if $2,$(trace_calls),$(CLEAN_BUILD_PROTECT_VARS2))
+else
 CLEAN_BUILD_PROTECT_VARS1 = $(call CLEAN_BUILD_PROTECT_VARS2,$(foreach v,$1,$(firstword $(subst =, ,$v))))
+endif
+
+# protect macros from modification in target makefiles
+# $1 - list of macros in form: AAA=b1,b2=e1,e2 BBB=b1,b2=e1,e2,...
+# $2 - if empty, then do not trace calls for given macros
 CLEAN_BUILD_PROTECT_VARS = $(eval $(CLEAN_BUILD_PROTECT_VARS1))
 
 # macro to check if clean-build protected $x variable value was changed in target makefile

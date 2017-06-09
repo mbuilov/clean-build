@@ -52,6 +52,7 @@ trace_params = $(warning params: $$($0) {)$(dump_args)$(info params: } $$($0))
 # $1 - macro name, must accept no more than $(dump_max) arguments
 # $2 - names of variables to dump before traced call
 # $3 - names of variables to dump after traced call
+# note: pass <empty> as second parameter to CLEAN_BUILD_PROTECT_VARS1 to not try to trace already traced macro
 define trace_calls_template
 $(empty)
 define $1.t_
@@ -59,7 +60,7 @@ $(value $1)
 endef
 override $1 = $$(warning $$$$($1) {)$$(dump_args)$$(call dump,$2,,$1: )$$(info ------$1 value---->)$$(info \
   $$(value $1.t_))$$(info ------$1 result--->)$$(call infofn,$$(call $1.t_,_dump_params_))$$(call dump,$3,,$1: )$$(info end: } $$$$($1))
-$(call CLEAN_BUILD_PROTECT_VARS1,$1 $1.t_)
+$(call CLEAN_BUILD_PROTECT_VARS1,$1 $1.t_,)
 endef
 
 # replace _dump_params_
@@ -74,7 +75,7 @@ $(eval define trace_calls_template$(newline)$(subst _dump_params_,$$$$$(open_bra
 #   b1,b2,b3 - names of variables to dump before traced call
 #   e1,e2    - names of variables to dump after traced call
 # note: may also be used for simple variables, for example: $(call trace_calls,Macro=VarPre=VarPost)
-trace_calls = $(eval $(foreach f,$1,$(if $(findstring ^.$$(warning $$$$($f) {),^.$(value $(firstword \
+trace_calls = $(eval $(foreach f,$1,$(if $(findstring ^.$$(warning $$$$($(firstword $(subst =, ,$f))) {),^.$(value $(firstword \
   $(subst =, ,$f)))),,$(call trace_calls_template,$(firstword \
   $(subst =, ,$f)),$(subst $(comma), ,$(word 2,$(subst =, ,$f))),$(subst $(comma), ,$(word 3,$(subst =, ,$f)))))))
 
@@ -257,10 +258,15 @@ mk_dir_deps = $(subst :|,:| $2,$(addprefix $(newline)$2,$(filter-out %:|,$(join 
 lazy_simple = $(eval $(filter override,$(origin $1)) $1:=$$2)$($1)
 
 # protect variables from modification in target makefiles
-$(call CLEAN_BUILD_PROTECT_VARS,empty space tab comma newline comment open_brace close_brace keyword_endef \
-  infofn dump dump_max dump_args trace_params trace_calls_template trace_calls \
+# note: do not try to trace calls to these macros
+$(call CLEAN_BUILD_PROTECT_VARS, \
+  empty space tab comma newline comment open_brace close_brace keyword_endef \
+  infofn dump dump_max dump_args trace_params trace_calls_template trace_calls)
+
+# protect variables from modification in target makefiles
+$(call CLEAN_BUILD_PROTECT_VARS, \
   unspaces ifaddq qpath tolower toupper repl09 repl09AZ padto1 padto2 padto \
   is_less1 is_less xargs1 xargs xcmd trim normp2 normp1 normp \
   cmn_path1 cmn_path back_prefix relpath2 relpath1 relpath join_with \
   ver_major ver_minor ver_patch ver_compatible1 ver_compatible \
-  get_dir split_dirs1 split_dirs mk_dir_deps lazy_simple)
+  get_dir split_dirs1 split_dirs mk_dir_deps lazy_simple,1)
