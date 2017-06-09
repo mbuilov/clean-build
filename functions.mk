@@ -57,10 +57,8 @@ $(empty)
 define $1_t_
 $(value $1)
 endef
-override define $1
-$$(warning $$$$($1) {)$$(dump_args)$$(call dump,$2,,$1: )$$(info ------$1 value---->)$$(info \
+override $1 = $$(warning $$$$($1) {)$$(dump_args)$$(call dump,$2,,$1: )$$(info ------$1 value---->)$$(info \
   $$(value $1_t_))$$(info ------$1 result--->)$$(call infofn,$$(call $1_t_,_dump_params_))$$(call dump,$3,,$1: )$$(info end: } $$$$($1))
-endef
 $(call CLEAN_BUILD_PROTECT_VARS1,$1 $1_t_)
 endef
 
