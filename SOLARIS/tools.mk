@@ -11,7 +11,7 @@ OSTYPE := UNIX
 # print prepared environment in verbose mode
 ifdef VERBOSE
 $(info for v in `env | cut -d= -f1`; do $(foreach \
-  x,PATH !::$(if $(filter-out undefined environment,$(origin \
+  x,PATH$(if $(filter-out undefined environment,$(origin \
   PASS_ENV_VARS)), $(PASS_ENV_VARS)),[ "$x" == "$$v" ] ||) unset "$$v"; done)
 endif
 
