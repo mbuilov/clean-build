@@ -62,8 +62,6 @@ override $1 = $$(warning $$$$($1) {)$$(dump_args)$$(call dump,$2,,$1: )$$(info -
 $(call CLEAN_BUILD_PROTECT_VARS1,$1 $1.t_)
 endef
 
-$(call trace_calls,AAA=r,t,u=y,t,r BBB=r,e,w )
-
 # replace _dump_params_
 $(eval define trace_calls_template$(newline)$(subst _dump_params_,$$$$$(open_brace)$(subst \
   $(space),$(close_brace)$(comma)$$$$$(open_brace),$(dump_max))$(close_brace),$(value trace_calls_template))$(newline)endef)
