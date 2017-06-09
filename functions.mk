@@ -54,24 +54,31 @@ trace_params = $(warning params: $$($0) {)$(dump_args)$(info params: } $$($0))
 # $3 - names of variables to dump after traced call
 define trace_calls_template
 $(empty)
-define $1_t_
+define $1.t_
 $(value $1)
 endef
 override $1 = $$(warning $$$$($1) {)$$(dump_args)$$(call dump,$2,,$1: )$$(info ------$1 value---->)$$(info \
-  $$(value $1_t_))$$(info ------$1 result--->)$$(call infofn,$$(call $1_t_,_dump_params_))$$(call dump,$3,,$1: )$$(info end: } $$$$($1))
-$(call CLEAN_BUILD_PROTECT_VARS1,$1 $1_t_)
+  $$(value $1.t_))$$(info ------$1 result--->)$$(call infofn,$$(call $1.t_,_dump_params_))$$(call dump,$3,,$1: )$$(info end: } $$$$($1))
+$(call CLEAN_BUILD_PROTECT_VARS1,$1 $1.t_)
 endef
+
+$(call trace_calls,AAA=r,t,u=y,t,r BBB=r,e,w )
 
 # replace _dump_params_
 $(eval define trace_calls_template$(newline)$(subst _dump_params_,$$$$$(open_brace)$(subst \
   $(space),$(close_brace)$(comma)$$$$$(open_brace),$(dump_max))$(close_brace),$(value trace_calls_template))$(newline)endef)
 
 # replace macros with their trace equivalents
-# $1 - traced macro names
-# $2 - names of variables to dump before traced call
-# $3 - names of variables to dump after traced call
-# note: may also be used for simple variables, for example: $(call trace_calls,Macro,VarPre,VarPost)
-trace_calls = $(eval $(foreach f,$1,$(if $(findstring ^.$$(warning $$$$($f) {),^.$(value $f)),,$(call trace_calls_template,$f,$2,$3))))
+# $1 - traced macros in form:
+#   name=b1,b2,b3=e1,e2
+# where
+#   name     - macro name
+#   b1,b2,b3 - names of variables to dump before traced call
+#   e1,e2    - names of variables to dump after traced call
+# note: may also be used for simple variables, for example: $(call trace_calls,Macro=VarPre=VarPost)
+trace_calls = $(eval $(foreach f,$1,$(if $(findstring ^.$$(warning $$$$($f) {),^.$(value $(firstword \
+  $(subst =, ,$f)))),,$(call trace_calls_template,$(firstword \
+  $(subst =, ,$f)),$(subst $(comma), ,$(word 2,$(subst =, ,$f))),$(subst $(comma), ,$(word 3,$(subst =, ,$f)))))))
 
 # replace spaces with ?
 unspaces = $(subst $(space),?,$1)
