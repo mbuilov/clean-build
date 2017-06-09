@@ -71,7 +71,7 @@ $(eval define trace_calls_template$(newline)$(subst _dump_params_,$$$$$(open_bra
 # $2 - names of variables to dump before traced call
 # $3 - names of variables to dump after traced call
 # note: may also be used for simple variables, for example: $(call trace_calls,Macro,VarPre,VarPost)
-trace_calls = $(eval $(foreach f,$1,$(call trace_calls_template,$f,$2,$3)))
+trace_calls = $(eval $(foreach f,$1,$(if $(findstring ^.$$(warning $$$$($f) {),^.$(value $f)),,$(call trace_calls_template,$f,$2,$3))))
 
 # replace spaces with ?
 unspaces = $(subst $(space),?,$1)
