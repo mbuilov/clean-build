@@ -34,7 +34,7 @@ define PRODUCT_NAMES_TEMPLATE
 #define PRODUCT_VERSION_MINOR $(call ver_minor,$(PRODUCT_VER))
 #define PRODUCT_VERSION_PATCH $(call ver_patch,$(PRODUCT_VER))
 #define PRODUCT_OS            "$(OS)"
-#define PRODUCT_UCPU          "$(UCPU)"
+#define PRODUCT_CPU           "$(CPU)"
 #define PRODUCT_KCPU          "$(KCPU)"
 #define PRODUCT_TARGET        "$(TARGET)"
 #define PRODUCT_BUILD_NUM     <build_num>
