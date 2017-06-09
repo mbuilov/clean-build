@@ -252,7 +252,7 @@ mk_dir_deps = $(subst :|,:| $2,$(addprefix $(newline)$2,$(filter-out %:|,$(join 
 lazy_simple = $(eval $(filter override,$(origin $1)) $1:=$$2)$($1)
 
 # protect variables from modification in target makefiles
-$(call CLEAN_BUILD_PROTECT_VARS,empty space tab comma newline comment open_brace close_brace \
+$(call CLEAN_BUILD_PROTECT_VARS,empty space tab comma newline comment open_brace close_brace keyword_endef \
   infofn dump dump_max dump_args trace_params trace_calls_template trace_calls \
   unspaces ifaddq qpath tolower toupper repl09 repl09AZ padto1 padto2 padto \
   is_less1 is_less xargs1 xargs xcmd trim normp2 normp1 normp \
