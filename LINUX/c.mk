@@ -150,7 +150,7 @@ RPATH_LINK:=
 RPATH_LINK_OPTION = $(addprefix $(WLPREFIX)-rpath-link=,$(RPATH_LINK))
 
 # common linker options for EXE or DLL
-# $1 - target
+# $1 - target EXE or DLL
 # $2 - objects
 # $3 - variant
 # target-specific: LIBS, DLLS, LIB_DIR, SYSLIBPATH, SYSLIBS, LDFLAGS
@@ -168,7 +168,7 @@ VERSION_SCRIPT_OPTION = $(addprefix $(WLPREFIX)--version-script=,$(MAP))
 SONAME_OPTION = $(addprefix $(WLPREFIX)-soname=$(notdir $1).,$(firstword $(subst ., ,$(MODVER))))
 
 # different linkers
-# $1 - target
+# $1 - target EXE,DLL,LIB,KLIB
 # $2 - objects
 # target-specific: TMD, COMPILER
 EXE_R_LD = $(call SUP,$(TMD)XLD,$1)$($(TMD)$(COMPILER)) $(DEF_EXE_FLAGS) $(call CMN_LIBS,$1,$2,R)
@@ -188,7 +188,7 @@ DEF_CXXFLAGS:=
 # default flags for application-level C compiler
 DEF_CFLAGS := -std=c99 -pedantic
 
-# flags for application level C/C++-compiler
+# flags for application-level C/C++-compiler
 OS_APP_CFLAGS := -Wall -fvisibility=hidden
 ifdef DEBUG
 OS_APP_CFLAGS += -ggdb
@@ -206,23 +206,23 @@ OS_APP_DEFINES := _GNU_SOURCE
 APP_DEFINES := $(OS_APP_DEFINES)
 
 # common options for application-level C++ and C compilers
-# $1 - target
+# $1 - target object file
 # $2 - source
 # target-specific: DEFINES, INCLUDE
 CC_PARAMS = -pipe -c $(APP_CFLAGS) $(AUTO_DEPS_FLAGS) $(call \
   SUBST_DEFINES,$(addprefix -D,$(APP_DEFINES) $(DEFINES))) $(addprefix -I,$(INCLUDE))
 
 # C++ and C compilers
-# $1 - target
+# $1 - target object file
 # $2 - source
 # target-specific: WITH_PCH, TMD, PCHS, CXXFLAGS, CFLAG
 CMN_CXX = $(if $(filter $2,$(WITH_PCH)),$(call SUP,P$(TMD)CXX,$2)$($(TMD)CXX) -I$(dir $1) -include $(basename \
-  $(notdir $(PCH)))_pch_cxx.h,$(call SUP,$(TMD)CXX,$2)$($(TMD)CXX)) $(DEF_CXXFLAGS) $(CC_PARAMS) $(CXXFLAGS)
+  $(notdir $(PCH)))_pch_cxx.h,$(call SUP,$(TMD)CXX,$2)$($(TMD)CXX)) $(DEF_CXXFLAGS) $(CC_PARAMS) $(CXXFLAGS) -o $1 $2
 CMN_CC  = $(if $(filter $2,$(WITH_PCH)),$(call SUP,P$(TMD)CC,$2)$($(TMD)CC) -I$(dir $1) -include $(basename \
-  $(notdir $(PCH)))_pch_c.h,$(call SUP,$(TMD)CC,$2)$($(TMD)CC)) $(DEF_CFLAGS) $(CC_PARAMS) $(CFLAGS)
+  $(notdir $(PCH)))_pch_c.h,$(call SUP,$(TMD)CC,$2)$($(TMD)CC)) $(DEF_CFLAGS) $(CC_PARAMS) $(CFLAGS) -o $1 $2
 
 # C++ and C precompiled header compilers
-# $1 - target
+# $1 - target .gch
 # $2 - source
 # target-specific: CXXFLAGS, CFLAGS
 PCH_CXX = $(call SUP,$(TMD)PCHCXX,$2)$($(TMD)CXX) $(DEF_CXXFLAGS) $(CC_PARAMS) $(CXXFLAGS)
@@ -233,38 +233,38 @@ PIE_OPTION := -fpie
 PIC_OPTION := -fpic
 
 # different compilers
-# $1 - target
+# $1 - target object file
 # $2 - source
-EXE_R_CXX = $(CMN_CXX) -o $1 $2
-EXE_R_CC  = $(CMN_CC) -o $1 $2
+EXE_R_CXX = $(CMN_CXX)
+EXE_R_CC  = $(CMN_CC)
 EXE_P_CXX = $(EXE_R_CXX) $(PIE_OPTION)
 EXE_P_CC  = $(EXE_R_CC) $(PIE_OPTION)
 LIB_R_CXX = $(EXE_R_CXX)
 LIB_R_CC  = $(EXE_R_CC)
 LIB_P_CXX = $(EXE_P_CXX)
 LIB_P_CC  = $(EXE_P_CC)
-DLL_R_CXX = $(CMN_CXX) $(PIC_OPTION) -o $1 $2
-DLL_R_CC  = $(CMN_CC) $(PIC_OPTION) -o $1 $2
+DLL_R_CXX = $(CMN_CXX) $(PIC_OPTION)
+DLL_R_CC  = $(CMN_CC) $(PIC_OPTION)
 LIB_D_CXX = $(DLL_R_CXX)
 LIB_D_CC  = $(DLL_R_CC)
 
 # different precompiler header compilers
-# $1 - target
-# $2 - source
-PCH_EXE_R_CXX = $(PCH_CXX) -o $1 $2
-PCH_EXE_R_CC  = $(PCH_CC) -o $1 $2
+# $1 - target .gch
+# $2 - source header
+PCH_EXE_R_CXX = $(PCH_CXX)
+PCH_EXE_R_CC  = $(PCH_CC)
 PCH_EXE_P_CXX = $(PCH_EXE_R_CXX) $(PIE_OPTION)
 PCH_EXE_P_CC  = $(PCH_EXE_R_CC) $(PIE_OPTION)
 PCH_LIB_R_CXX = $(PCH_EXE_R_CXX)
 PCH_LIB_R_CC  = $(PCH_EXE_R_CC)
 PCH_LIB_P_CXX = $(PCH_EXE_P_CXX)
 PCH_LIB_P_CC  = $(PCH_EXE_P_CC)
-PCH_DLL_R_CXX = $(PCH_CXX) $(PIC_OPTION) -o $1 $2
-PCH_DLL_R_CC  = $(PCH_CC) $(PIC_OPTION) -o $1 $2
+PCH_DLL_R_CXX = $(PCH_CXX) $(PIC_OPTION)
+PCH_DLL_R_CC  = $(PCH_CC) $(PIC_OPTION)
 PCH_LIB_D_CXX = $(PCH_DLL_R_CXX)
 PCH_LIB_D_CC  = $(PCH_DLL_R_CC)
 
-# flags for kernel level C/C++-compiler
+# flags for kernel-level C/C++-compiler
 OS_KRN_CFLAGS:=
 
 # KRN_CFLAGS may be overridden in project makefile
@@ -284,22 +284,22 @@ KLIB_PARAMS = -pipe -c $(KRN_CFLAGS) $(AUTO_DEPS_FLAGS) $(call \
   SUBST_DEFINES,$(addprefix -D,$(KRN_DEFINES) $(DEFINES))) $(addprefix -I,$(INCLUDE))
 
 # kernel-level C compiler
-# $1 - target
+# $1 - target object file
 # $2 - source
 # target-specific: WITH_PCH, PCH
 KLIB_R_CC = $(if $(filter $2,$(WITH_PCH)),$(call SUP,PKCC,$2)$(KCC) -I$(dir $1) -include $(basename \
   $(notdir $(PCH)))_pch_c.h,$(call SUP,KCC,$2)$(KCC)) $(KLIB_PARAMS) $(CFLAGS) -o $1 $2
 
 # kernel-level precompiled header C compiler
-# $1 - target
-# $2 - source
+# $1 - target .gch
+# $2 - source header
 PCH_KLIB_R_CC = $(call SUP,PCHKLIB,$2)$(KCC) $(KLIB_PARAMS) $(CFLAGS) -o $1 $2
 
 # kernel-level assembler
-# $1 - target
-# $2 - source
+# $1 - target object file
+# $2 - asm-source
 # target-specific: ASMFLAGS
-KLIB_R_ASM = $(call SUP,ASM,$2)$(YASMC) $(YASM_FLAGS) -o $1 $2 $(ASMFLAGS)
+KLIB_R_ASM = $(call SUP,ASM,$2)$(YASMC) $(YASM_FLAGS) $(ASMFLAGS) -o $1 $2
 
 # $1 - target
 # $2 - source
@@ -341,7 +341,7 @@ ifndef NO_DEPS
 endif
 $$(addprefix $1/,$$(addsuffix $(OBJ_SUFFIX),$$(basename $$(notdir $$(filter %.cpp,$$(TRG_WITH_PCH)))))): $$(CXX_GCH).gch
 $$(call TOCLEAN,$$(CXX_GCH).gch $$(CXX_GCH).d)
-ndif
+endif
 endef
 
 # code to eval to build with precompiled headers
