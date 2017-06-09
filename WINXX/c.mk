@@ -120,49 +120,6 @@ DRV_SUFFIX := .sys
 # NOTE: DLL_DIR must be recursive because $(BIN_DIR) have different values in TOOL-mode and non-TOOL mode
 DLL_DIR = $(BIN_DIR)
 
-# SUBSYSTEM for kernel mode
-SUBSYSTEM_KVER := $(SUBSYSTEM_VER)
-
-# standard defines
-# for example, WINVER_DEFINES = WINVER=0x0501 _WIN32_WINNT=0x0501
-OS_PREDEFINES := $(WINVARIANT) $(WINVER_DEFINES)
-
-# how to embed manifest into executable or dll
-# Note: starting from Visual Studio 2012, linker supports /MANIFEST:EMBED option - linker will call mt.exe internally
-EMBED_MANIFEST_OPTION:=
-
-ifndef EMBED_MANIFEST_OPTION
-# target-specific: TMD
-EMBED_EXE_MANIFEST = $(newline)$(QUIET)if exist $(ospath).manifest ($($(TMD)MT1) -nologo -manifest \
-  $(ospath).manifest -outputresource:$(ospath);1 && del $(ospath).manifest)$(DEL_ON_FAIL)
-EMBED_DLL_MANIFEST = $(newline)$(QUIET)if exist $(ospath).manifest ($($(TMD)MT1) -nologo -manifest \
-  $(ospath).manifest -outputresource:$(ospath);2 && del $(ospath).manifest)$(DEL_ON_FAIL)
-else
-# reset
-EMBED_EXE_MANIFEST:=
-EMBED_DLL_MANIFEST:=
-endif
-
-# application-level defines
-# note: some external sources want WIN32 to be defined
-OS_APP_DEFINES := WIN32 CRT_SECURE_NO_DEPRECATE _CRT_SECURE_NO_WARNINGS
-
-ifneq (,$(call is_less,$(VS_VER),14))
-OS_APP_DEFINES += inline=__inline
-endif
-
-# kernel-level defines
-OS_KRN_DEFINES := WINNT=1 $(if $(DEBUG),DBG=1 MSC_NOOPT DEPRECATE_DDK_FUNCTIONS=1) $(if $(KCPU:%64=), \
-  ILP32 _WIN32 _X86_=1 i386=1 STD_CALL, \
-  LLP64 _WIN64 _AMD64_ AMD64 \
-) WIN32_LEAN_AND_MEAN
-
-# $t - EXE,LIB,DLL,DRV,KLIB,KDLL,...
-OS_TRG_DEFINES = $(if $(filter DRV KLIB KDLL,$t),$(OS_KRN_DEFINES),$(OS_APP_DEFINES)) $(DEFINES)
-
-# note: override value defined in $(CLEAN_BUILD_DIR)/c.mk
-TRG_DEFINES = $(value OS_TRG_DEFINES)
-
 # variants filter function - get possible variants for the target, needed by $(CLEAN_BUILD_DIR)/c.mk
 # $1 - LIB,EXE,DLL
 # R  - dynamically linked multi-threaded libc (regular, default variant)
@@ -230,8 +187,47 @@ DLL_IMPORTS_DEFINE := "__declspec(dllimport)"
 # note: override value from $(CLEAN_BUILD_DIR)/c.mk
 STRING_DEFINE = "$(subst $(space),$$(space),$(subst ","",$(subst $$,$$$$,$1)))"
 
+# how to embed manifest into executable or dll
+# Note: starting from Visual Studio 2012, linker supports /MANIFEST:EMBED option - linker will call mt.exe internally
+EMBED_MANIFEST_OPTION:=
+
+ifndef EMBED_MANIFEST_OPTION
+# target-specific: TMD
+EMBED_EXE_MANIFEST = $(newline)$(QUIET)if exist $(ospath).manifest ($($(TMD)MT1) -nologo -manifest \
+  $(ospath).manifest -outputresource:$(ospath);1 && del $(ospath).manifest)$(DEL_ON_FAIL)
+EMBED_DLL_MANIFEST = $(newline)$(QUIET)if exist $(ospath).manifest ($($(TMD)MT1) -nologo -manifest \
+  $(ospath).manifest -outputresource:$(ospath);2 && del $(ospath).manifest)$(DEL_ON_FAIL)
+else
+# reset
+EMBED_EXE_MANIFEST:=
+EMBED_DLL_MANIFEST:=
+endif
+
+# standard defines
+# for example, WINVER_DEFINES = WINVER=0x0501 _WIN32_WINNT=0x0501
+OS_PREDEFINES := $(WINVARIANT) $(WINVER_DEFINES)
+
 # make version string: maj.min.patch -> maj.min
 MK_MAJ_MIN_VER = $(subst $(space),.,$(wordlist 1,2,$(subst ., ,$1) 0 0))
+
+# default linker flags for LIB
+# $$1 - target lib
+# $$2 - objects
+# $v - variant
+DEF_LIB_LDFLAGS := $(if $(DEBUG),,/LTCG)
+
+# define LIB linker for variant $v
+# $$1 - target lib
+# $$2 - objects
+# $v - variant
+# target-specific: TMD, LDFLAGS
+# note: send linker output to stderr
+define LIB_LD_TEMPLATE
+$(empty)
+LIB_$v_LD1 = $(call CHECK_LIB_UNI_NAME,LIB)$$(call SUP,$$(TMD)LIB,$$1)$$(VS$$(TMD)LD) \
+  /lib /nologo /OUT:$$(call ospath,$$1 $$2) $(DEF_LIB_LDFLAGS) $$(LDFLAGS) >&2
+endef
+$(eval $(foreach v,R $(VARIANTS_FILTER),$(LIB_LD_TEMPLATE)))
 
 # common linker flags for EXE or DLL
 # $$1 - target file
@@ -257,7 +253,7 @@ CMN_LIBS = /OUT:$$(ospath) /VERSION:$$(call MK_MAJ_MIN_VER,$$(MODVER)) $$(addpre
 # $$2 - objects
 # $v - variant
 # note: do not add /SUBSYSTEM option if $(LDFLAGS) have already specified one
-# target-specific: LDFLAGS
+# target-specific: LDFLAGS, TMD
 DEF_SUBSYSTEM = $$(if $$(filter /SUBSYSTEM:%,$$(LDFLAGS)),,/SUBSYSTEM:CONSOLE$(if $$(TMD),,,$(SUBSYSTEM_VER)))
 
 # strings to strip off from link.exe output
@@ -352,38 +348,7 @@ DLL_$v_LD1 = $$(call SUP,$$(TMD)LINK,$$1)$$(call WRAP_DLL_LINKER,$$(DLL_NO_EXPOR
 endef
 $(eval $(foreach v,R $(VARIANTS_FILTER),$(DLL_LD_TEMPLATE)))
 
-# default linker flags for LIB
-# $$1 - target lib
-# $$2 - objects
-# $v - variant
-DEF_LIB_LDFLAGS := $(if $(DEBUG),,/LTCG)
-
-# define LIB linker for variant $v
-# $$1 - target lib
-# $$2 - objects
-# $v - variant
-# target-specific: TMD, LDFLAGS
-# note: send linker output to stderr
-define LIB_LD_TEMPLATE
-$(empty)
-LIB_$v_LD1 = $(call CHECK_LIB_UNI_NAME,LIB)$$(call SUP,$$(TMD)LIB,$$1)$$(VS$$(TMD)LD) \
-  /lib /nologo /OUT:$$(call ospath,$$1 $$2) $(DEF_LIB_LDFLAGS) $$(LDFLAGS) >&2
-endef
-$(eval $(foreach v,R $(VARIANTS_FILTER),$(LIB_LD_TEMPLATE)))
-
-# default linker flags for KLIB
-# $1 - target klib
-# $2 - objects
-DEF_KLIB_LDFLAGS := $(if $(DEBUG),,/LTCG)
-
-# define KLIB linker
-# $1 - target klib
-# $2 - objects
-# target-specific: LDFLAGS
-# note: send linker stdout to stderr
-KLIB_R_LD1 = $(call SUP,KLIB,$1)$(WKLD) /lib /nologo /OUT:$(call ospath,$1 $2) $(DEF_KLIB_LDFLAGS) $(LDFLAGS) >&2
-
-# flags for application level C-compiler
+# flags for application-level C-compiler
 OS_APP_CFLAGS := /X /GF /W3 /EHsc
 ifdef DEBUG
 OS_APP_CFLAGS += /Od /Zi /RTCc /RTCsu /GS
@@ -424,12 +389,23 @@ endif # SEQ_BUILD
 # APP_CFLAGS may be overridden in project makefile
 APP_CFLAGS := $(OS_APP_CFLAGS)
 
+# application-level defines
+# note: some external sources want WIN32 to be defined
+OS_APP_DEFINES := WIN32 CRT_SECURE_NO_DEPRECATE _CRT_SECURE_NO_WARNINGS
+
+ifneq (,$(call is_less,$(VS_VER),14))
+OS_APP_DEFINES += inline=__inline
+endif
+
+# APP_DEFINES may be overridden in project makefile
+APP_DEFINES := $(OS_PREDEFINES) $(OS_APP_DEFINES)
+
 # call C compiler
 # $1 - outdir/
 # $2 - sources
 # $3 - flags
 # target-specific: TMD, DEFINES, INCLUDE
-CMN_CL1 = $(VS$(TMD)CL) /nologo /c $(APP_CFLAGS) $(call SUBST_DEFINES,$(addprefix /D,$(DEFINES))) $(call \
+CMN_CL1 = $(VS$(TMD)CL) /nologo /c $(APP_CFLAGS) $(call SUBST_DEFINES,$(addprefix /D,$(APP_DEFINES) $(DEFINES))) $(call \
   qpath,$(call ospath,$(INCLUDE)) $(VS$(TMD)INC) $(UM$(TMD)INC),/I) /Fo$(ospath) /Fd$(ospath) $3 $(call ospath,$2)
 
 # C compilers for different variants (R,S,RU,SU)
@@ -627,6 +603,21 @@ endif # !SEQ_BUILD
 
 ifdef DRIVERS_SUPPORT
 
+# SUBSYSTEM for kernel mode
+SUBSYSTEM_KVER := $(SUBSYSTEM_VER)
+
+# default linker flags for KLIB
+# $1 - target klib
+# $2 - objects
+DEF_KLIB_LDFLAGS := $(if $(DEBUG),,/LTCG)
+
+# define KLIB linker
+# $1 - target klib
+# $2 - objects
+# target-specific: LDFLAGS
+# note: send linker stdout to stderr
+KLIB_R_LD1 = $(call SUP,KLIB,$1)$(WKLD) /lib /nologo /OUT:$(call ospath,$1 $2) $(DEF_KLIB_LDFLAGS) $(LDFLAGS) >&2
+
 DEF_DRV_LDFLAGS = \
   /kernel /INCREMENTAL:NO $(if $(DEBUG),/DEBUG,/RELEASE /LTCG /OPT:REF) /DRIVER /FULLBUILD \
   /NODEFAULTLIB /SAFESEH:NO /MANIFEST:NO /MERGE:_PAGE=PAGE /MERGE:_TEXT=.text /MERGE:.rdata=.text \
@@ -644,15 +635,6 @@ CMN_KLIBS = /OUT:$(ospath) /VERSION:$(call MK_MAJ_MIN_VER,$(MODVER)) $(addprefix
   $(KLIB_PREFIX),$(KLIBS:=$(KLIB_SUFFIX))) $(addprefix $(KIMP_PREFIX),$(KDLLS:=$(KIMP_SUFFIX))) $(call \
   qpath,$(call ospath,$(SYSLIBPATH)),/LIBPATH:) $(SYSLIBS)
 
-# define KDLL linker
-# $1 - target kdll
-# $2 - objects
-# $v - variant: R
-# target-specific: DEF, LDFLAGS, IMP, KDLL_NO_EXPORTS
-# note: send linker output to stderr
-KDLL_R_LD1 = $(call SUP,KLINK,$1)$(call WRAP_DLL_LINKER,$(KDLL_NO_EXPORTS),$1,$(call \
-  WRAP_LINKER,$(WKLD) /nologo /DLL $(CMN_KLIBS) $(if $(KDLL_NO_EXPORTS),,/IMPLIB:$(call ospath,$(IMP))) $(LDFLAGS)))
-
 # define DRV linker
 # $1 - target drv
 # $2 - objects
@@ -661,6 +643,15 @@ KDLL_R_LD1 = $(call SUP,KLINK,$1)$(call WRAP_DLL_LINKER,$(KDLL_NO_EXPORTS),$1,$(
 # note: send linker output to stderr
 DRV_R_LD1 = $(call SUP,KLINK,$1)$(call WRAP_EXE_LINKER,$(DRV_EXPORTS),$1,$(call \
   WRAP_LINKER,$(WKLD) /nologo $(CMN_KLIBS) $(if $(DRV_EXPORTS),/IMPLIB:$(call ospath,$(IMP))) $(LDFLAGS)))
+
+# define KDLL linker
+# $1 - target kdll
+# $2 - objects
+# $v - variant: R
+# target-specific: DEF, LDFLAGS, IMP, KDLL_NO_EXPORTS
+# note: send linker output to stderr
+KDLL_R_LD1 = $(call SUP,KLINK,$1)$(call WRAP_DLL_LINKER,$(KDLL_NO_EXPORTS),$1,$(call \
+  WRAP_LINKER,$(WKLD) /nologo /DLL $(CMN_KLIBS) $(if $(KDLL_NO_EXPORTS),,/IMPLIB:$(call ospath,$(IMP))) $(LDFLAGS)))
 
 # flags for kernel-level C-compiler
 OS_KRN_CFLAGS := /kernel -cbstring /X /GF /W3 /GR- /Gz /Zl /Oi /Zi /Gm- /Zp8 /Gy /Zc:wchar_t-
@@ -698,12 +689,19 @@ endif # SEQ_BUILD
 # KRN_CFLAGS may be overridden in project makefile
 KRN_CFLAGS := $(OS_KRN_CFLAGS)
 
+# kernel-level defines
+OS_KRN_DEFINES := WINNT=1 $(if $(DEBUG),DBG=1 MSC_NOOPT DEPRECATE_DDK_FUNCTIONS=1) $(if \
+  $(KCPU:%64=),_WIN32 _X86_=1 i386=1 STD_CALL,_WIN64 _AMD64_ AMD64) WIN32_LEAN_AND_MEAN
+
+# KRN_DEFINES may be overridden in project makefile
+KRN_DEFINES := $(OS_PREDEFINES) $(OS_KRN_DEFINES)
+
 # call C compiler
 # $1 - outdir
 # $2 - sources
 # $3 - flags
 # target-specific: DEFINES, INCLUDE
-CMN_KCL = $(WKCL) /nologo /c $(KRN_CFLAGS) $(call SUBST_DEFINES,$(addprefix /D,$(DEFINES))) $(call \
+CMN_KCL = $(WKCL) /nologo /c $(KRN_CFLAGS) $(call SUBST_DEFINES,$(addprefix /D,$(KRN_DEFINES) $(DEFINES))) $(call \
   qpath,$(call ospath,$(INCLUDE)) $(KMINC),/I) /Fo$(ospath) /Fd$(ospath) $3 $(call ospath,$2)
 
 ifdef SEQ_BUILD
@@ -791,9 +789,9 @@ KDLL_R_LD = $(CMN_MKCL)$(KDLL_R_LD1)
 # $2 - pch-source
 # $3 - pch
 # target-specific: CFLAGS, CXXFLAGS
-PCH_K_CC  = $(call SUP,PCHKCC,$2)$(call WRAP_COMPILER,$(call CMN_KCL,$(dir $1),$2,/Yc$3 /Yl$(basename \
+PCH_R_KCC  = $(call SUP,PCHKCC,$2)$(call WRAP_COMPILER,$(call CMN_KCL,$(dir $1),$2,/Yc$3 /Yl$(basename \
   $(notdir $2)) /Fp$(dir $1)$(basename $(notdir $3))_c.pch $(CFLAGS)),$1,$2,$(basename $1).d,$(KDEPS_INCLUDE_FILTER))
-PCH_K_CXX = $(call SUP,PCHKCXX,$2)$(call WRAP_COMPILER,$(call CMN_KCL,$(dir $1),$2,/Yc$3 /Yl$(basename \
+PCH_R_KCXX = $(call SUP,PCHKCXX,$2)$(call WRAP_COMPILER,$(call CMN_KCL,$(dir $1),$2,/Yc$3 /Yl$(basename \
   $(notdir $2)) /Fp$(dir $1)$(basename $(notdir $3))_cpp.pch $(CXXFLAGS)),$1,$2,$(basename $1).d,$(KDEPS_INCLUDE_FILTER))
 
 endif # !SEQ_BUILD
@@ -826,7 +824,7 @@ else # !SEQ_BUILD
 
 # $1 - $(call GET_TARGET_NAME,$t)
 # $2 - $$(basename $$(notdir $$(TRG_PCH)))
-# $t - EXE,LIB,DLL,KLIB,DRV
+# $t - EXE,LIB,DLL,DRV,KLIB,KDLL
 # target-specific: $$(PCH)
 define PCH_TEMPLATE1
 TRG_PCH      := $(call fixpath,$(PCH))
@@ -835,7 +833,7 @@ PCH_C_SRC    := $(GEN_DIR)/pch/$1_$t_$2_c.c
 PCH_CXX_SRC  := $(GEN_DIR)/pch/$1_$t_$2_cpp.cpp
 NEEDED_DIRS  += $(GEN_DIR)/pch
 $$(PCH_C_SRC) $$(PCH_CXX_SRC): | $(GEN_DIR)/pch
-	$(if $(VERBOSE),,@)echo #include "$$(PCH)" > $$@
+	$(QUIET)echo #include "$$(PCH)" > $$@
 $$(call TOCLEAN,$$(if $$(filter %.c,$$(TRG_WITH_PCH)),$$(PCH_C_SRC)) $$(if $$(filter %.cpp,$$(TRG_WITH_PCH)),$$(PCH_CXX_SRC)))
 endef
 
@@ -844,7 +842,7 @@ endef
 # $3 - $(call FORM_OBJ_DIR,$t,$v)
 # $4 - $(call FORM_TRG,$t,$v)
 # $5 - K or <empty>
-# $t - EXE,LIB,DLL,KLIB,DRV
+# $t - EXE,LIB,DLL,DRV,KLIB,KDLL
 # $v - R,S,RU,SU
 # note: $$(PCH_OBJS) will be built before link phase - before sources are compiled with MCL
 define PCH_TEMPLATE2
@@ -872,16 +870,16 @@ endef
 # $1 - $(call GET_TARGET_NAME,$t)
 # $2 - $$(basename $$(notdir $$(TRG_PCH)))
 # $3 - K or <empty>
-# $t - EXE,LIB,DLL,KLIB,DRV
+# $t - EXE,LIB,DLL,DRV,KLIB,KDLL
 PCH_TEMPLATE3 = $(PCH_TEMPLATE1)$(foreach v,$(call GET_VARIANTS,$t),$(call \
   PCH_TEMPLATE2,$1,$2,$(call FORM_OBJ_DIR,$t,$v),$(call FORM_TRG,$t,$v),$3))
 
-# $t - EXE,LIB,DLL,KLIB,DRV
+# $t - EXE,LIB,DLL,DRV,KLIB,KDLL
 # note: must reset target-specific WITH_PCH if not using precompiled header, otherwise:
 # - DLL or LIB target may inherit WITH_PCH value from EXE,
 # - LIB target may inherit WITH_PCH value from DLL
 PCH_TEMPLATE = $(if $(word 2,$(PCH) $(WITH_PCH)),$(call \
-  PCH_TEMPLATE3,$(call GET_TARGET_NAME,$t),$$(basename $$(notdir $$(TRG_PCH))),$(if $(findstring DRV,$t),K)),$(foreach \
+  PCH_TEMPLATE3,$(call GET_TARGET_NAME,$t),$$(basename $$(notdir $$(TRG_PCH))),$(if $(filter DRV KLIB KDLL,$t),K)),$(foreach \
   v,$(call GET_VARIANTS,$t),$(call FORM_TRG,$t,$v): WITH_PCH:=$(newline)))
 
 endif # !SEQ_BUILD
@@ -911,6 +909,7 @@ MAKE_IMP_PATH = $(LIB_DIR)/$(IMP_PREFIX)$1$(call LIB_VAR_SUFFIX,$2)$(IMP_SUFFIX)
 # $3 - $(call MAKE_IMP_PATH,$n,$v)
 # $t - EXE, DLL, DRV or KDLL
 # $n - $(call GET_TARGET_NAME,$t)
+ifndef TOCLEAN
 define EXPORTS_TEMPLATE1
 $1: IMP := $3
 $1: DEF := $2
@@ -918,23 +917,25 @@ $1: $2 | $(LIB_DIR)
 NEEDED_DIRS += $(LIB_DIR)
 $3: $1
 endef
-
+else ifdef DEBUG
 # cleanup generated .exp file in debug
-# $3 - $(call MAKE_IMP_PATH,$n,$v)
-ifdef TOCLEAN
-ifdef DEBUG
-$(eval define EXPORTS_TEMPLATE1$(newline)$(value EXPORTS_TEMPLATE1)$$(call TOCLEAN,$$3 $$(3:$(IMP_SUFFIX)=.exp))$(newline)endef)
-endif
+EXPORTS_TEMPLATE1 = $(call TOCLEAN,$3 $(3:$(IMP_SUFFIX)=.exp))
+else
+EXPORTS_TEMPLATE1:=
 endif
 
 # for DLL or EXE that do not exports symbols
 # $1 - $(call FORM_TRG,$t,$v)
 # $t - EXE, DLL, DRV or KDLL
 # $n - $(call GET_TARGET_NAME,$t)
+ifndef TOCLEAN
 define NO_EXPORTS_TEMPLATE
 $1: IMP:=
 $1: DEF:=
 endef
+else
+NO_EXPORTS_TEMPLATE:=
+endif
 
 # $1 - $(call FORM_TRG,$t,$v)
 # $2 - $(call fixpath,$(DEF))
@@ -1221,28 +1222,28 @@ $(eval define OS_DEFINE_TARGETS$(newline)$(value OS_DEFINE_TARGETS)$(newline)$$$
 endif
 
 # protect variables from modifications in target makefiles
-$(call CLEAN_BUILD_PROTECT_VARS,SEQ_BUILD YASMC FLEXC BISONC MC YASM_FLAGS MC_STRIP_STRINGS WRAP_MC RC_LOGO_STRINGS \
-  WRAP_RC RC KIMP_PREFIX KIMP_SUFFIX SUBSYSTEM_KVER EMBED_MANIFEST_OPTION EMBED_EXE_MANIFEST EMBED_DLL_MANIFEST \
-  OS_APP_DEFINES OS_KRN_DEFINES OS_TRG_DEFINES CHECK_LIB_UNI_NAME1 CHECK_LIB_UNI_NAME MK_MAJ_MIN_VER CMN_LIBS_LDFLAGS CMN_LIBS \
-  DLL_EXPORTS_DEFINE DLL_IMPORTS_DEFINE DEF_SUBSYSTEM \
+$(call CLEAN_BUILD_PROTECT_VARS,MCL_MAX_COUNT SEQ_BUILD YASMC FLEXC BISONC MC YASM_FLAGS MC_STRIP_STRINGS WRAP_MC RC_LOGO_STRINGS \
+  WRAP_RC RC KIMP_PREFIX KIMP_SUFFIX CHECK_LIB_UNI_NAME1 CHECK_LIB_UNI_NAME DLL_EXPORTS_DEFINE DLL_IMPORTS_DEFINE \
+  EMBED_MANIFEST_OPTION EMBED_EXE_MANIFEST EMBED_DLL_MANIFEST OS_PREDEFINES MK_MAJ_MIN_VER DEF_LIB_LDFLAGS LIB_LD_TEMPLATE \
+  CMN_LIBS_LDFLAGS CMN_LIBS DEF_SUBSYSTEM \
   LINKER_STRIP_STRINGS_en LINKER_STRIP_STRINGS_ru_cp1251 LINKER_STRIP_STRINGS_ru_cp1251_as_cp866_to_cp1251 \
   LINKER_STRIP_STRINGS WRAP_LINKER DEL_DEF_MANIFEST_ON_FAIL \
-  WRAP_EXE_EXPORTS_LINKER WRAP_EXE_LINKER EXE_LD_TEMPLATE WRAP_DLL_EXPORTS_LINKER WRAP_DLL_LINKER \
-  DLL_LD_TEMPLATE DEF_LIB_LDFLAGS LIB_LD_TEMPLATE DEF_KLIB_LDFLAGS \
-  $(foreach v,R $(VARIANTS_FILTER),EXE_$v_LD1 DLL_$v_LD1 LIB_$v_LD1) KLIB_R_LD1 \
-  OS_APP_CFLAGS APP_CFLAGS CMN_CL1 CMN_RCL CMN_SCL CMN_RUCL CMN_SUCL \
+  WRAP_EXE_EXPORTS_LINKER WRAP_EXE_LINKER EXE_LD_TEMPLATE WRAP_DLL_EXPORTS_LINKER WRAP_DLL_LINKER DLL_LD_TEMPLATE \
+  $(foreach v,R $(VARIANTS_FILTER),EXE_$v_LD1 DLL_$v_LD1 LIB_$v_LD1) \
+  OS_APP_CFLAGS APP_CFLAGS OS_APP_DEFINES APP_DEFINES CMN_CL1 CMN_RCL CMN_SCL CMN_RUCL CMN_SUCL \
   INCLUDING_FILE_PATTERN_en INCLUDING_FILE_PATTERN_ru_utf8 INCLUDING_FILE_PATTERN_ru_utf8_bytes \
   INCLUDING_FILE_PATTERN_ru_cp1251 INCLUDING_FILE_PATTERN_ru_cp1251_bytes \
   INCLUDING_FILE_PATTERN_ru_cp866 INCLUDING_FILE_PATTERN_ru_cp866_bytes \
   INCLUDING_FILE_PATTERN UDEPS_INCLUDE_FILTER SED_DEPS_SCRIPT \
   WRAP_COMPILER CMN_CC CMN_CXX SEQ_COMPILERS_TEMPLATE \
   $(foreach v,R $(VARIANTS_FILTER),LIB_$v_CC LIB_$v_CXX EXE_$v_CC EXE_$v_CXX DLL_$v_CC DLL_$v_CXX EXE_$v_LD DLL_$v_LD LIB_$v_LD) \
-  MCL_MAX_COUNT CALL_MCC CALL_MCXX CALL_MPCC CALL_MPCXX CMN_MCL2 CMN_MCL1 CMN_RMCL CMN_SMCL CMN_RUMCL CMN_SUMCL \
+  CALL_MCC CALL_MCXX CALL_MPCC CALL_MPCXX CMN_MCL2 CMN_MCL1 CMN_RMCL CMN_SMCL CMN_RUMCL CMN_SUMCL \
   FILTER_SDEPS1 FILTER_SDEPS CMN_MCL MULTI_COMPILERS_TEMPLATE \
   $(foreach v,R $(VARIANTS_FILTER),PCH_$v_CC PCH_$v_CXX) \
-  DEF_DRV_LDFLAGS CMN_KLIBS KDLL_R_LD1 DRV_R_LD1 OS_KRN_CFLAGS KRN_CFLAGS CMN_KCL KDEPS_INCLUDE_FILTER CMN_KCC CMN_KCXX \
-  KLIB_R_CC DRV_R_CC KDLL_R_CC KLIB_R_CXX DRV_R_CXX KDLL_R_CXX KLIB_R_LD DRV_R_LD KDLL_R_LD FORCE_SYNC_PDB_KERN \
-  CALL_MKCC CALL_MKCXX CALL_MPKCC CALL_MPKCXX CMN_MKCL3 CMN_MKCL2 CMN_MKCL1 CMN_MKCL PCH_K_CC PCH_K_CXX KLIB_R_ASM BISON FLEX \
+  SUBSYSTEM_KVER DEF_KLIB_LDFLAGS KLIB_R_LD1 DEF_DRV_LDFLAGS CMN_KLIBS KDLL_R_LD1 DRV_R_LD1 \
+  OS_KRN_CFLAGS FORCE_SYNC_PDB_KERN KRN_CFLAGS OS_KRN_DEFINES KRN_DEFINES CMN_KCL KDEPS_INCLUDE_FILTER CMN_KCC CMN_KCXX \
+  KLIB_R_CC DRV_R_CC KDLL_R_CC KLIB_R_CXX DRV_R_CXX KDLL_R_CXX KLIB_R_LD DRV_R_LD KDLL_R_LD \
+  CALL_MKCC CALL_MKCXX CALL_MPKCC CALL_MPKCXX CMN_MKCL3 CMN_MKCL2 CMN_MKCL1 CMN_MKCL PCH_R_KCC PCH_R_KCXX KLIB_R_ASM BISON FLEX \
   PCH_TEMPLATE1 PCH_TEMPLATE2 PCH_TEMPLATE3 PCH_TEMPLATE ADD_WITH_PCH \
   TRG_ALL_SDEPS MAKE_IMP_PATH EXPORTS_TEMPLATE1 NO_EXPORTS_TEMPLATE EXPORTS_TEMPLATE MULTISOURCE_AUX \
   EXE_AUX_TEMPLATE2 DLL_AUX_TEMPLATE2 EXP_AUX_TEMPLATE1 EXP_AUX_TEMPLATE EXE_AUX_TEMPLATE DLL_AUX_TEMPLATE \
