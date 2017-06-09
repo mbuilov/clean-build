@@ -69,20 +69,6 @@ DRV_SUFFIX := .ko
 # NOTE: DLL_DIR must be recursive because $(LIB_DIR) have different values in TOOL-mode and non-TOOL mode
 DLL_DIR = $(LIB_DIR)
 
-# application-level defines
-OS_APP_DEFINES := _GNU_SOURCE
-
-# kernel-level defines
-# note: recursive macro by default - to use $($t) dynamic value
-# $t - KLIB
-OS_KRN_DEFINES = KBUILD_STR\(s\)=\\\#s KBUILD_BASENAME=KBUILD_STR\($($t)\) KBUILD_MODNAME=KBUILD_STR\($($t)\)
-
-# $t - EXE,LIB,DLL,DRV,KLIB,KDLL,...
-OS_TRG_DEFINES = $(if $(filter DRV KLIB KDLL,$t),$(OS_KRN_DEFINES),$(OS_APP_DEFINES)) $(DEFINES)
-
-# note: override value defined in $(CLEAN_BUILD_DIR)/c.mk
-TRG_DEFINES = $(value OS_TRG_DEFINES)
-
 # prefix to pass options to linker
 WLPREFIX := -Wl,
 
@@ -196,6 +182,12 @@ KLIB_R_LD = $(call SUP,KLD,$1)$(KLD) $(DEF_KLD_FLAGS) -o $1 $2 $(LDFLAGS)
 # flags for auto-dependencies generation
 AUTO_DEPS_FLAGS := $(if $(NO_DEPS),,-MMD -MP)
 
+# default flags for application-level C++ compiler
+DEF_CXXFLAGS:=
+
+# default flags for application-level C compiler
+DEF_CFLAGS := -std=c99 -pedantic
+
 # flags for application level C/C++-compiler
 OS_APP_CFLAGS := -Wall -fvisibility=hidden
 ifdef DEBUG
@@ -207,33 +199,34 @@ endif
 # APP_CFLAGS may be overridden in project makefile
 APP_CFLAGS := $(OS_APP_CFLAGS)
 
-# default flags for C++ compiler
-DEF_CXXFLAGS:=
+# application-level defines
+OS_APP_DEFINES := _GNU_SOURCE
 
-# default flags for C compiler
-DEF_CFLAGS := -std=c99 -pedantic
+# APP_DEFINES may be overridden in project makefile
+APP_DEFINES := $(OS_APP_DEFINES)
 
 # common options for application-level C++ and C compilers
 # $1 - target
 # $2 - source
 # target-specific: DEFINES, INCLUDE
-CC_PARAMS = -pipe -c $(APP_CFLAGS) $(AUTO_DEPS_FLAGS) $(call SUBST_DEFINES,$(addprefix -D,$(DEFINES))) $(addprefix -I,$(INCLUDE))
+CC_PARAMS = -pipe -c $(APP_CFLAGS) $(AUTO_DEPS_FLAGS) $(call \
+  SUBST_DEFINES,$(addprefix -D,$(APP_DEFINES) $(DEFINES))) $(addprefix -I,$(INCLUDE))
 
 # C++ and C compilers
 # $1 - target
 # $2 - source
 # target-specific: WITH_PCH, TMD, PCHS, CXXFLAGS, CFLAG
 CMN_CXX = $(if $(filter $2,$(WITH_PCH)),$(call SUP,P$(TMD)CXX,$2)$($(TMD)CXX) -I$(dir $1) -include $(basename \
-  $(notdir $(PCH)))_pch_cxx.h,$(call SUP,$(TMD)CXX,$2)$($(TMD)CXX)) $(CC_PARAMS) $(DEF_CXXFLAGS) $(CXXFLAGS)
+  $(notdir $(PCH)))_pch_cxx.h,$(call SUP,$(TMD)CXX,$2)$($(TMD)CXX)) $(DEF_CXXFLAGS) $(CC_PARAMS) $(CXXFLAGS)
 CMN_CC  = $(if $(filter $2,$(WITH_PCH)),$(call SUP,P$(TMD)CC,$2)$($(TMD)CC) -I$(dir $1) -include $(basename \
-  $(notdir $(PCH)))_pch_c.h,$(call SUP,$(TMD)CC,$2)$($(TMD)CC)) $(CC_PARAMS) $(DEF_CFLAGS) $(CFLAGS)
+  $(notdir $(PCH)))_pch_c.h,$(call SUP,$(TMD)CC,$2)$($(TMD)CC)) $(DEF_CFLAGS) $(CC_PARAMS) $(CFLAGS)
 
 # C++ and C precompiled header compilers
 # $1 - target
 # $2 - source
 # target-specific: CXXFLAGS, CFLAGS
-PCH_CXX = $(call SUP,$(TMD)PCHCXX,$2)$($(TMD)CXX) $(CC_PARAMS) $(DEF_CXXFLAGS) $(CXXFLAGS)
-PCH_CC  = $(call SUP,$(TMD)PCHCC,$2)$($(TMD)CC) $(CC_PARAMS) $(DEF_CFLAGS) $(CFLAGS)
+PCH_CXX = $(call SUP,$(TMD)PCHCXX,$2)$($(TMD)CXX) $(DEF_CXXFLAGS) $(CC_PARAMS) $(CXXFLAGS)
+PCH_CC  = $(call SUP,$(TMD)PCHCC,$2)$($(TMD)CC) $(DEF_CFLAGS) $(CC_PARAMS) $(CFLAGS)
 
 # position-independent code for executables/shared objects (dynamic libraries)
 PIE_OPTION := -fpie
@@ -277,22 +270,30 @@ OS_KRN_CFLAGS:=
 # KRN_CFLAGS may be overridden in project makefile
 KRN_CFLAGS := $(OS_KRN_CFLAGS)
 
+# kernel-level defines
+# note: recursive macro by default - to use $($t) dynamic value
+# $t - KLIB
+OS_KRN_DEFINES = KBUILD_STR\(s\)=\\\#s KBUILD_BASENAME=KBUILD_STR\($($t)\) KBUILD_MODNAME=KBUILD_STR\($($t)\)
+
+# KRN_DEFINES may be overridden in project makefile
+KRN_DEFINES = $(OS_KRN_DEFINES)
+
 # parameters for kernel-level static library
 # target-specific: DEFINES, INCLUDE, CFLAGS
 KLIB_PARAMS = -pipe -c $(KRN_CFLAGS) $(AUTO_DEPS_FLAGS) $(call \
-  SUBST_DEFINES,$(addprefix -D,$(DEFINES))) $(addprefix -I,$(INCLUDE)) $(CFLAGS)
+  SUBST_DEFINES,$(addprefix -D,$(KRN_DEFINES) $(DEFINES))) $(addprefix -I,$(INCLUDE))
 
 # kernel-level C compiler
 # $1 - target
 # $2 - source
 # target-specific: WITH_PCH, PCH
 KLIB_R_CC = $(if $(filter $2,$(WITH_PCH)),$(call SUP,PKCC,$2)$(KCC) -I$(dir $1) -include $(basename \
-  $(notdir $(PCH)))_pch_c.h,$(call SUP,KCC,$2)$(KCC)) $(KLIB_PARAMS) -o $1 $2
+  $(notdir $(PCH)))_pch_c.h,$(call SUP,KCC,$2)$(KCC)) $(KLIB_PARAMS) $(CFLAGS) -o $1 $2
 
 # kernel-level precompiled header C compiler
 # $1 - target
 # $2 - source
-PCH_KLIB_R_CC = $(call SUP,PCHKLIB,$2)$(KCC) $(KLIB_PARAMS) -o $1 $2
+PCH_KLIB_R_CC = $(call SUP,PCHKLIB,$2)$(KCC) $(KLIB_PARAMS) $(CFLAGS) -o $1 $2
 
 # kernel-level assembler
 # $1 - target
@@ -459,7 +460,7 @@ endif # DRIVERS_SUPPORT
 
 # protect variables from modifications in target makefiles
 $(call CLEAN_BUILD_PROTECT_VARS,INST_RPATH CC CXX MODULES_PATH LD AR TCC TCXX TLD TAR KCC KLD KMAKE YASMC FLEXC BISONC YASM_FLAGS \
-  OS_APP_DEFINES OS_KRN_DEFINES OS_TRG_DEFINES WLPREFIX DEF_SHARED_FLAGS DEF_EXE_FLAGS DEF_SO_FLAGS DEF_LD_FLAGS DEF_KLD_FLAGS \
+  OS_APP_DEFINES APP_DEFINES OS_KRN_DEFINES KRN_DEFINES WLPREFIX DEF_SHARED_FLAGS DEF_EXE_FLAGS DEF_SO_FLAGS DEF_LD_FLAGS DEF_KLD_FLAGS \
   DEF_AR_FLAGS DLL_EXPORTS_DEFINE DLL_IMPORTS_DEFINE \
   RPATH_OPTION RPATH_LINK_OPTION CMN_LIBS VERSION_SCRIPT_OPTION SONAME_OPTION1 SONAME_OPTION \
   EXE_R_LD EXE_P_LD DLL_R_LD LIB_R_LD LIB_P_LD LIB_D_LD KLIB_LD AUTO_DEPS_FLAGS \
