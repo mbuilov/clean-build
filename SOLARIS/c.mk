@@ -14,9 +14,9 @@ $(eval define PREPARE_C_VARS$(newline)$(value PREPARE_C_VARS)$(newline)RPATH:=$(
   $(filter simple,$(flavor INST_RPATH)),$(INST_RPATH),$$(INST_RPATH))$(newline)MAP:=$(newline)endef)
 
 # compilers
-CC   := cc -m$(if $(CPU:%64=),32,64 -xport64)
+CC   := cc -m$(if $(CPU:%64=),32,64)
 CXX  := CC -m$(if $(CPU:%64=),32,64 -xport64)
-TCC  := cc -m$(if $(TCPU:%64=),32,64 -xport64)
+TCC  := cc -m$(if $(TCPU:%64=),32,64)
 TCXX := CC -m$(if $(TCPU:%64=),32,64 -xport64)
 
 # static library archiver
