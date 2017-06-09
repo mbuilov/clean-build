@@ -14,6 +14,13 @@ else
 MCHECK:=
 endif
 
+# run via $(MAKE) T=1 to trace all macros (with some exceptions)
+ifeq (command line,$(origin T))
+TRACE := $(T:0=)
+else
+TRACE:=
+endif
+
 ifdef MCHECK
 
 # reset
