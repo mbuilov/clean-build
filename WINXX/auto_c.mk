@@ -75,9 +75,6 @@ FORCE_SYNC_PDB:=
 # SUPPRESS_RC_LOGO may be defined as /nologo, but not all versions of rc.exe support this switch
 SUPPRESS_RC_LOGO:=
 
-# for simple use as 'ifdef WINXP'
-$(WINVARIANT) := 1
-
 # variables that must be defined:
 AUTOCONF_VARS:=
 AUTOCONF_VARS += VSLIB    # spaces must be replaced with ?
@@ -423,10 +420,10 @@ endif # autoconf
 
 # print autoconfigured vars
 ifdef VAUTO
-$(foreach x,$(AUTOCONF_VARS),$(info $x $(if $(filter simple,$(flavor $x)),:)= $(value $x)))
+$(foreach x,$(AUTOCONF_VARS),$(info $x $(if $(findstring simple,$(flavor $x)),:)= $(value $x)))
 endif
 
 # protect variables from modifications in target makefiles
 $(call CLEAN_BUILD_PROTECT_VARS,VAUTO WINVARIANTS WINVARIANT WINVER_DEFINES \
-  SUBSYSTEM_VER $(WINVARIANT) AUTOCONF_VARS $(AUTOCONF_VARS) NO_AUTOCONF VS_TOOL_PREFIX WDK_TARGET DDK_TARGET WDK_KTARGET \
+  SUBSYSTEM_VER AUTOCONF_VARS $(AUTOCONF_VARS) NO_AUTOCONF VS_TOOL_PREFIX WDK_TARGET DDK_TARGET WDK_KTARGET \
   VS_VER WDK_VER GET_WDK_VER FORCE_SYNC_PDB SUPPRESS_RC_LOGO VS WDK DDK SDK VCN WDKN DDKN SDKN ONECORE)
