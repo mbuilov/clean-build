@@ -25,7 +25,7 @@ include $(CLEAN_BUILD_DIR)/exts/echo_inst.mk
 # $13  - ${libdir}
 # $14  - ${exec_prefix}
 # $15  - ${prefix}
-# note: PKGCONF_TEMPLATE may be defined via override directive in project configuration file before including this file
+# note: PKGCONF_TEMPLATE may be overridden in project configuration makefile before including this file
 define PKGCONF_TEMPLATE
 $(if $4,# $(subst $(newline),$(newline)# ,$4)$(newline))
 prefix=$(15)
@@ -51,7 +51,7 @@ pc_unescape = $(subst $$(space), ,$(subst %%,%,$1))
 pc_nchoose  = $(firstword $(filter-out $(pc_escape),$(call pc_escape,$2) $3))
 
 # define standard pkg-config values
-# note: some of PKGCONF_... variables may be defined via override directive in project configuration file before including this file
+# note: some of PKGCONF_... variables may be overridden in project configuration makefile before including this file
 PKGCONF_PREFIX      = $(if $(PREFIX),$(PREFIX),/usr/local)
 PKGCONF_EXEC_PREFIX = $(call pc_unescape,$(call pc_nchoose,$(PKGCONF_PREFIX),$(EXEC_PREFIX),$${prefix}))
 PKGCONF_INCLUDEDIR  = $(call pc_unescape,$(foreach d,$(firstword $(call pc_escape,$(notdir $(INCLUDEDIR))) include),$(call \
@@ -103,7 +103,7 @@ INSTALL_PKGCONFS = $(foreach r,$1,$(newline)$(call INSTALL_PKGCONF,$(subst ?, ,$
 
 # protect variables from modifications in target makefiles
 $(call CLEAN_BUILD_PROTECT_VARS,PKGCONF_TEMPLATE pc_escape pc_unescape pc_nchoose \
-  PKGCONF_PREFIX PKGCONF_EXEC_PREFIX PKGCONF_LIBDIR PKGCONF_INCLUDEDIR PKGCONF_CFLAGS PKGCONF_LIBS PKGCONF_DEF_TEMPLATE \
+  PKGCONF_PREFIX PKGCONF_EXEC_PREFIX PKGCONF_INCLUDEDIR PKGCONF_LIBDIR PKGCONF_CFLAGS PKGCONF_LIBS PKGCONF_DEF_TEMPLATE \
   INSTALLED_PKGCONF INSTALLED_PKGCONFS INSTALL_PKGCONF INSTALL_PKGCONFS)
 
 endif
