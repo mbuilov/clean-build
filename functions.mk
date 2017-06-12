@@ -21,17 +21,19 @@ endef
 comment := $(comment)
 open_brace  := (
 close_brace := )
+keyword_override := override
+keyword_define := define
 keyword_endef := endef
 
 # print result $1 and return $1
-infofn = $(info $1)$1
+infofn = $(info <$1>)$1
 
 # dump variables
 # $1 - list of variables to dump
 # $2 - optional prefix
 # $3 - optional pre-prefix
 # $(call dump,VAR1,prefix,Q) -> print 'Qdump: prefix: VAR1=xxx'
-dump = $(foreach v,$1,$(info $3dump: $(2:=: )$v$(if $(filter recursive,$(flavor $v)),,:)=$(value $v)))
+dump = $(foreach dump.,$1,$(info $3dump: <$(2:=: )$(dump.)$(if $(findstring recursive,$(flavor $(dump.))),,:)=$(value $(dump.))>))
 
 # maximum number of arguments of any macro
 dump_max := 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30
@@ -40,7 +42,7 @@ dump_max := 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26
 $(eval override $(subst $(space),:=$(newline)override ,$(dump_max)):=)
 
 # dump function arguments
-dump_args := $(foreach i,$(dump_max),:$$(if $$($i),$$(info $$$$$i=$$($i))))
+dump_args := $(foreach i,$(dump_max),:$$(if $$($i),$$(info <$$$$$i=$$($i)>)))
 $(eval dump_args = $(subst $(space):,, $(dump_args)))
 
 # trace function call parameters - print function name and parameter values
@@ -48,36 +50,49 @@ $(eval dump_args = $(subst $(space):,, $(dump_args)))
 # example: fun = $(trace_params)fn_body
 trace_params = $(warning params: $$($0) {)$(dump_args)$(info params: } $$($0))
 
+# trace level
+trace_level.:=
+
 # helper template for $(trace_calls)
 # $1 - macro name, must accept no more than $(dump_max) arguments
 # $2 - names of variables to dump before traced call
 # $3 - names of variables to dump after traced call
-# note: pass <empty> as second parameter to CLEAN_BUILD_PROTECT_VARS1 to not try to trace already traced macro
+# note: pass 0 as second parameter to CLEAN_BUILD_PROTECT_VARS1 to not try to trace already traced macro
 define trace_calls_template
 $(empty)
+ifdef $1
+ifeq (simple,$(flavor $1))
+$1.t_:=$$($1)
+override $1 = $$(warning $$(trace_level.) $$$$($1) {)$$(call infofn,$$($1.t_))$$(info end: } $$$$($1))
+else
 define $1.t_
 $(value $1)
 endef
-override $1 = $$(warning $$$$($1) {)$$(dump_args)$$(call dump,$2,,$1: )$$(info ------$1 value---->)$$(info \
-  $$(value $1.t_))$$(info ------$1 result--->)$$(call infofn,$$(call $1.t_,_dump_params_))$$(call dump,$3,,$1: )$$(info end: } $$$$($1))
-$(call CLEAN_BUILD_PROTECT_VARS1,$1 $1.t_,)
+override $1 = $$(warning $$(trace_level.) $$$$($1) {)$$(dump_args)$$(call dump,$2,,$1: )$$(info \
+  ------$1 value---->)$$(info <$$(value $1.t_)>)$$(info \
+  ------$1 result--->)$$(eval trace_level.+=$1->)$$(call infofn,$$(call $1.t_,_dump_params_))$$(call \
+  dump,$3,,$1: )$$(eval trace_level.:=$$(wordlist 2,$$(words $$(trace_level.)),x $$(trace_level.)))$$(info end: } $$$$($1))
+endif
+endif
+$(call CLEAN_BUILD_PROTECT_VARS1,$1 $1.t_,0)
 endef
 
-# replace _dump_params_
+# replace _dump_params_ with: $(1),$(2),$(3...)
 $(eval define trace_calls_template$(newline)$(subst _dump_params_,$$$$$(open_brace)$(subst \
   $(space),$(close_brace)$(comma)$$$$$(open_brace),$(dump_max))$(close_brace),$(value trace_calls_template))$(newline)endef)
 
 # replace macros with their trace equivalents
 # $1 - traced macros in form:
-#   name=b1,b2,b3=e1,e2
+#   name=b1;b2;b3=e1;e2
 # where
 #   name     - macro name
-#   b1,b2,b3 - names of variables to dump before traced call
-#   e1,e2    - names of variables to dump after traced call
+#   b1;b2;b3 - names of variables to dump before traced call
+#   e1;e2    - names of variables to dump after traced call
 # note: may also be used for simple variables, for example: $(call trace_calls,Macro=VarPre=VarPost)
-trace_calls = $(eval $(foreach f,$1,$(if $(findstring ^.$$(warning $$$$($(firstword $(subst =, ,$f))) {),^.$(value $(firstword \
+trace_calls = $(eval $(foreach f,$1,$(if $(filter-out undefined,$(origin $(firstword $(subst =, ,$f)))),$(if \
+  $(findstring ^.$$(warning $$(trace_level.) $$$$($(firstword $(subst =, ,$f))) {),^.$(value $(firstword \
   $(subst =, ,$f)))),,$(call trace_calls_template,$(firstword \
-  $(subst =, ,$f)),$(subst $(comma), ,$(word 2,$(subst =, ,$f))),$(subst $(comma), ,$(word 3,$(subst =, ,$f)))))))
+  $(subst =, ,$f)),$(subst ;, ,$(word 2,$(subst =, ,$f))),$(subst ;, ,$(word 3,$(subst =, ,$f))))))))
 
 # replace spaces with ?
 unspaces = $(subst $(space),?,$1)
@@ -115,15 +130,9 @@ repl09AZ = $(call repl09,$(subst \
 padto1 = $(subst .,       ,$(subst ..,      ,$(subst ...,     ,$(subst \
   ....,    ,$(subst .....,   ,$(subst ......,  ,$(subst ......., ,$(repl09AZ))))))))
 
-# cache computed padding values
-define padto2
-ifeq (undefined,$(origin $1_pad_))
-$1_pad_:=$(padto1)
-endif
-endef
-
 # return string of spaces to add to given argument to align total argument length to fixed width (8 chars)
-padto = $(eval $(value padto2))$($1_pad_)
+# note: cache computed padding values
+padto = $(if $(findstring undefined,$(origin $1_pad_)),$(eval $1_pad_:=$$(padto1)))$($1_pad_)
 
 # 1) check number of digits: if $4 > $3 -> $2 > $1
 # 2) else if number of digits are equal, check number values
@@ -258,15 +267,15 @@ mk_dir_deps = $(subst :|,:| $2,$(addprefix $(newline)$2,$(filter-out %:|,$(join 
 lazy_simple = $(eval $(filter override,$(origin $1)) $1:=$$2)$($1)
 
 # protect variables from modification in target makefiles
-# note: do not try to trace calls to these macros
-$(call CLEAN_BUILD_PROTECT_VARS, \
-  empty space tab comma newline comment open_brace close_brace keyword_endef \
-  infofn dump dump_max dump_args trace_params trace_calls_template trace_calls)
+# note: do not try to trace calls to these macros, pass 0 as second parameter to CLEAN_BUILD_PROTECT_VARS
+CURRENT_MAKEFILE = $(call CLEAN_BUILD_PROTECT_VARS, \
+  empty space tab comma newline comment open_brace close_brace keyword_override keyword_define keyword_endef \
+  infofn dump dump_max dump_args trace_params trace_calls_template trace_calls,0)
 
 # protect variables from modification in target makefiles
-$(call CLEAN_BUILD_PROTECT_VARS, \
-  unspaces ifaddq qpath tolower toupper repl09 repl09AZ padto1 padto2 padto \
+CURRENT_MAKEFILE += $(call CLEAN_BUILD_PROTECT_VARS, \
+  unspaces ifaddq qpath tolower toupper repl09 repl09AZ padto1 padto \
   is_less1 is_less xargs1 xargs xcmd trim normp2 normp1 normp \
   cmn_path1 cmn_path back_prefix relpath2 relpath1 relpath join_with \
   ver_major ver_minor ver_patch ver_compatible1 ver_compatible \
-  get_dir split_dirs1 split_dirs mk_dir_deps lazy_simple,1)
+  get_dir split_dirs1 split_dirs mk_dir_deps lazy_simple)
