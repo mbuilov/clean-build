@@ -33,10 +33,9 @@ endif
 define OVERRIDE_VAR_TEMPLATE
 
 ifneq (command line,$$(origin $v))
-override define $v
+$(keyword_override) $(keyword_define) $v
 $(value $v)
-$(keyword_endef)
-$(if $(filter simple,$(flavor $v)),override $v:=$$(value $v))
+$(keyword_endef)$(if $(findstring simple,$(flavor $v)),$(newline)override $v:=$$(value $v))
 endif
 endef
 
