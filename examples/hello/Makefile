@@ -24,9 +24,6 @@ ifeq (WINXX,$(OS))
 TO_MAKE += $(MTOP)/exts/version
 endif
 
-$(call trace_calls,PROCESS_SUBMAKES PROCESS_SUBMAKES=1=2)
-$(call trace_calls,PROCESS_SUBMAKES)
-
 # process sub-makefiles and directories specified in TO_MAKE variable
 $(call PROCESS_SUBMAKES,$(TO_MAKE))
 
