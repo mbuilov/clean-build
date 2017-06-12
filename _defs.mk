@@ -41,7 +41,7 @@ PROJECT_VARS_NAMES := $(filter-out \
 
 # clean-build version: major.minor.patch
 # note: override value, if it was accidentally set in project makefile
-override CLEAN_BUILD_VERSION := 0.8.2
+override CLEAN_BUILD_VERSION := 0.8.3
 
 # disable builtin rules and variables, warn about use of undefined variables
 # NOTE: Gnu Make will consider changed $(MAKEFLAGS) only after all makefiles are parsed,
@@ -86,10 +86,13 @@ endif
 # to override these defaults by project-defined ones, use override directive
 define OVERRIDE_VAR_TEMPLATE
 
-override define $v
+ifeq (simple,$(flavor $v))
+override $v:=$$($v)
+else
+$(keyword_override) $(keyword_define) $v
 $(value $v)
 $(keyword_endef)
-$(if $(filter simple,$(flavor $v)),override $v:=$$(value $v))
+endif
 
 endef
 $(eval $(foreach v,$(PROJECT_VARS_NAMES),$(OVERRIDE_VAR_TEMPLATE)))
@@ -104,9 +107,12 @@ NEEDED_DIRS:=
 # then it will be deleted together with $(BUILD) directory in clean-build implementation of 'distclean' goal
 include $(CLEAN_BUILD_DIR)/confsup.mk
 
+# protect variables in $(CLEAN_BUILD_DIR)/functions.mk
+$(CURRENT_MAKEFILE)
+
 # BUILD - directory for built files - must be defined either in command line
-# or in project configuration file before including this file, via:
-# override BUILD := /my_project/build
+# or in project configuration makefile before including this file, via:
+# BUILD := /my_project/build
 ifeq (environment,$(origin BUILD))
 $(error BUILD must not be taken from environment,\
  please define BUILD either in command line or in project configuration\
@@ -129,8 +135,8 @@ endif
 
 # by default, do not build kernel modules and drivers
 # note: DRIVERS_SUPPORT may be overridden either in command line
-# or in project configuration file before including this file, via:
-# override DRIVERS_SUPPORT := 1
+# or in project configuration makefile before including this file, via:
+# DRIVERS_SUPPORT := 1
 DRIVERS_SUPPORT:=
 
 # ensure DRIVERS_SUPPORT is non-recursive (simple)
@@ -300,36 +306,36 @@ CHECK_MAKEFILE_NOT_PROCESSED:=
 endif # MCHECK
 
 # for UNIX: don't change paths when converting from make internal file path to path accepted by $(OS)
-# NOTE: WINXX/tools.mk defines own ospath
+# note: $(CLEAN_BUILD_DIR)/WINXX/tools.mk defines own ospath
 ospath = $1
 
 # add $1 only to non-absolute paths in $2
 # note: $1 must end with /
-# NOTE: WINXX/tools.mk defines own nonrelpath
+# note: $(CLEAN_BUILD_DIR)/WINXX/tools.mk defines own nonrelpath
 nonrelpath = $(patsubst $1/%,/%,$(addprefix $1,$2))
 
 # suffix of built tool executables
-# NOTE: WINXX/tools.mk defines own TOOL_SUFFIX
+# note: $(CLEAN_BUILD_DIR)/WINXX/tools.mk defines own TOOL_SUFFIX
 TOOL_SUFFIX:=
 
 # paths separator char
-# NOTE: WINXX/tools.mk defines own PATHSEP
+# note: $(CLEAN_BUILD_DIR)/WINXX/tools.mk defines own PATHSEP
 PATHSEP := :
 
 # name of environment variable to modify in $(RUN_WITH_DLL_PATH)
 # note: $(DLL_PATH_VAR) should be PATH (for WINDOWS) or LD_LIBRARY_PATH (for UNIX-like OS)
-# NOTE: WINXX/tools.mk defines own DLL_PATH_VAR
+# note: $(CLEAN_BUILD_DIR)/WINXX/tools.mk defines own DLL_PATH_VAR
 DLL_PATH_VAR := LD_LIBRARY_PATH
 
 # show modified $(DLL_PATH_VAR) environment variable with running command
 # $1 - command to run (with parameters)
 # $2 - additional paths to append to $(DLL_PATH_VAR)
 # $3 - environment variables to set to run executable, in form VAR=value
-# NOTE: WINXX/tools.mk defines own show_with_dll_path
+# note: $(CLEAN_BUILD_DIR)/WINXX/tools.mk defines own show_with_dll_path
 show_with_dll_path = $(info $(if $2,$(DLL_PATH_VAR)="$($(DLL_PATH_VAR))" )$(foreach \
   v,$3,$(foreach n,$(firstword $(subst =, ,$v)),$n="$($n)")) $1)
 
-# NOTE: WINXX/tools.mk defines own show_dll_path_end
+# note: $(CLEAN_BUILD_DIR)/WINXX/tools.mk defines own show_dll_path_end
 show_dll_path_end:=
 
 # tools colors
@@ -344,14 +350,14 @@ TOUCH_COLOR := [00;36m
 CAT_COLOR   := [00;32m
 
 # colorize percents
-# NOTE: WINXX/tools.mk redefines: PRINT_PERCENTS = [$1]
+# note: $(CLEAN_BUILD_DIR)/WINXX/tools.mk redefines: PRINT_PERCENTS = [$1]
 PRINT_PERCENTS = [00;34m[[01;34m$1[00;34m][0m
 
 # print in color short name of called tool $1 with argument $2
 # $1 - tool
 # $2 - argument
 # $3 - empty, then colorize argument
-# NOTE: WINXX/tools.mk redefines: COLORIZE = $1$(padto)$2
+# note: $(CLEAN_BUILD_DIR)/WINXX/tools.mk redefines: COLORIZE = $1$(padto)$2
 COLORIZE = $($1_COLOR)$1[0m$(padto)$(if $3,$2,$(join $(dir $2),$(addsuffix [0m,$(addprefix $($1_COLOR),$(notdir $2)))))
 
 # SUP: suppress output of executed build tool, print some pretty message instead, like "CC  source.c"
@@ -395,15 +401,12 @@ SHOWN_PERCENTS += $(call ADD_SHOWN_PERCENTS,$(SHOWN_REMAINDER) \
 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 \
 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1)
 endef
-define TRY_REM_MAKEFILE
-ifeq (undefined,$(origin $(MF)))
-$(eval $(value REM_MAKEFILE))
-endif
-endef
 ifdef INFOMF
-SUP = $(info $(call PRINT_PERCENTS,$(if $4,,$(eval $(value TRY_REM_MAKEFILE)))$(FORMAT_PERCENTS))$(MF)$(MCONT):$(COLORIZE))@
+SUP = $(info $(call PRINT_PERCENTS,$(if $4,,$(if $(findstring undefined,$(origin \
+  $(MF))),$(eval $(REM_MAKEFILE))))$(FORMAT_PERCENTS))$(MF)$(MCONT):$(COLORIZE))@
 else
-SUP = $(info $(call PRINT_PERCENTS,$(if $4,,$(eval $(value TRY_REM_MAKEFILE)))$(FORMAT_PERCENTS))$(COLORIZE))@
+SUP = $(info $(call PRINT_PERCENTS,$(if $4,,$(if $(findstring undefined,$(origin \
+  $(MF))),$(eval $(REM_MAKEFILE))))$(FORMAT_PERCENTS))$(COLORIZE))@
 endif
 # used to remember number of intermediate makefiles which include other makefiles
 INTERMEDIATE_MAKEFILES:=
@@ -420,6 +423,7 @@ ADD_SHOWN_PERCENTS:=
 endif # !distclean && !clean
 
 # SED - stream editor executable - should be defined in $(OSDIR)/$(OS)/tools.mk
+# SED_EXPR - should be defined in $(OSDIR)/$(OS)/tools.mk
 # helper macro: convert multi-line sed script $1 to multiple sed expressions - one expression for each script line
 SED_MULTI_EXPR = $(foreach s,$(subst $(newline), ,$(subst $(space),$$(space),$(subst \
   $$,$$$$,$1))),-e $(call SED_EXPR,$(eval SED_MULTI_EXPR_:=$s)$(SED_MULTI_EXPR_)))
@@ -576,7 +580,7 @@ ifdef MDEBUG
 MAKEFILE_DEBUG_INFO = $(subst $(space),,$(CB_INCLUDE_LEVEL))$(CURRENT_MAKEFILE)$(if $(ORDER_DEPS), | $(ORDER_DEPS:-=))
 
 # note: show debug info only if $1 does not contain @ (used by $(CLEAN_BUILD_DIR)/parallel.mk)
-DEF_TAIL_CODE_DEBUG = $(if $(filter @,$1),,$$(info $(MAKEFILE_DEBUG_INFO)))
+DEF_TAIL_CODE_DEBUG = $(if $(findstring @,$1),,$$(info $(MAKEFILE_DEBUG_INFO)))
 
 else # !MDEBUG
 
@@ -788,9 +792,12 @@ endif
 DEFINE_TARGETS = $(if $($(DEFINE_TARGETS_EVAL_NAME)),)
 
 # may be used to save vars before $(MAKE_CONTINUE) and restore after
-# note: only for variables having single-line value
-SAVE_VARS = $(eval $(foreach v,$1,$v_=$(if $(filter simple,$(flavor $v)),:=$(subst $$,$$$$,$(value $v)),=$(value $v))$(newline)))
-RESTORE_VARS = $(eval $(foreach v,$1,$v$(value $v_)$(newline)))
+SAVE_VARS = $(eval $(foreach v,$1,$(newline)$(if $(findstring \
+  simple,$(flavor $v)),$v_:=$$($v)$(newline),define $v_$(newline)$(value $v)$(newline)endef)))
+
+# restore variables saved using SAVE_VARS macro
+RESTORE_VARS = $(eval $(foreach v,$1,$(newline)$(if $(findstring \
+  simple,$(flavor $v_)),$v:=$$($v_)$(newline),define $v$(newline)$(value $v_)$(newline)endef)))
 
 # $(MAKE_CONTINUE_EVAL_NAME) - contains name of macro that when expanded
 # evaluates code to prepare to define more targets (at least, by evaluating $(DEF_HEAD_CODE))
@@ -841,21 +848,23 @@ $(info $(call PRINT_PERCENTS,use)$(call COLORIZE,CONF,$(CONFIG)))
 endif
 endif
 
+ifdef TRACE
+$(call trace_calls,ORDER_DEPS MDEPS)
+endif
+
 # protect variables from modifications in target makefiles
 $(call CLEAN_BUILD_PROTECT_VARS,MAKEFLAGS PATH PASS_ENV_VARS \
   $(if $(filter-out undefined environment,$(origin PASS_ENV_VARS)),$(PASS_ENV_VARS)) \
   PROJECT_VARS_NAMES CLEAN_BUILD_VERSION CLEAN_BUILD_DIR CLEAN_BUILD_REQUIRED_VERSION \
-  BUILD DRIVERS_SUPPORT DEBUG NO_CLEAN_BUILD_DISTCLEAN_TARGET \
-  SUPPORTED_OSES SUPPORTED_CPUS SUPPORTED_TARGETS OS CPU TCPU KCPU TARGET \
-  OSTYPE VERBOSE QUIET INFOMF MDEBUG OSDIR CHECK_MAKEFILE_NOT_PROCESSED \
-  PRINT_PERCENTS SUP ADD_SHOWN_PERCENTS FORMAT_PERCENTS \
+  BUILD DRIVERS_SUPPORT TARGET OS CPU TCPU KCPU SUPPORTED_TARGETS SUPPORTED_OSES SUPPORTED_CPUS \
+  OSDIR NO_CLEAN_BUILD_DISTCLEAN_TARGET DEBUG VERBOSE QUIET INFOMF MDEBUG CHECK_MAKEFILE_NOT_PROCESSED \
+  ospath nonrelpath TOOL_SUFFIX PATHSEP DLL_PATH_VAR show_with_dll_path show_dll_path_end \
   GEN_COLOR MGEN_COLOR CP_COLOR RM_COLOR DEL_COLOR LN_COLOR MKDIR_COLOR TOUCH_COLOR \
-  COLORIZE REM_MAKEFILE TRY_REM_MAKEFILE SED_MULTI_EXPR ospath nonrelpath TOOL_SUFFIX PATHSEP \
-  TARGET_TRIPLET DEF_BIN_DIR DEF_OBJ_DIR DEF_LIB_DIR DEF_GEN_DIR SET_DEFAULT_DIRS \
-  TOOL_BASE MK_TOOLS_DIR GET_TOOLS GET_TOOL TOOL_OVERRIDE_DIRS FIX_ORDER_DEPS \
-  STD_TARGET_VARS1 STD_TARGET_VARS MAKEFILE_INFO_TEMPL SET_MAKEFILE_INFO TOCLEAN fixpath MAKEFILE_DEBUG_INFO \
-  DEF_TAIL_CODE_DEBUG DEF_HEAD_CODE DEF_HEAD_CODE_EVAL DEF_TAIL_CODE DEF_TAIL_CODE_EVAL \
-  FILTER_VARIANTS_LIST GET_VARIANTS GET_TARGET_NAME DEBUG_TARGETS FORM_OBJ_DIR \
-  CHECK_GENERATED ADD_GENERATED MULTI_TARGET_RULE CHECK_MULTI_RULE MULTI_TARGET_SEQ MULTI_TARGET \
-  DEFINE_TARGETS SAVE_VARS RESTORE_VARS MAKE_CONTINUE_BODY_EVAL MAKE_CONTINUE FORM_SDEPS EXTRACT_SDEPS FIX_SDEPS \
-  DLL_PATH_VAR show_with_dll_path show_dll_path_end RUN_WITH_DLL_PATH CONF_COLOR)
+  PRINT_PERCENTS COLORIZE ADD_SHOWN_PERCENTS FORMAT_PERCENTS REM_MAKEFILE SUP \
+  SED_MULTI_EXPR TARGET_TRIPLET DEF_BIN_DIR DEF_OBJ_DIR DEF_LIB_DIR DEF_GEN_DIR SET_DEFAULT_DIRS \
+  TOOL_BASE MK_TOOLS_DIR GET_TOOLS GET_TOOL TOOL_OVERRIDE_DIRS TOCLEAN FIX_ORDER_DEPS \
+  STD_TARGET_VARS1 STD_TARGET_VARS MAKEFILE_INFO_TEMPL SET_MAKEFILE_INFO fixpath MAKEFILE_DEBUG_INFO \
+  DEF_TAIL_CODE_DEBUG FILTER_VARIANTS_LIST GET_VARIANTS GET_TARGET_NAME DEBUG_TARGETS FORM_OBJ_DIR \
+  CHECK_GENERATED ADD_GENERATED MULTI_TARGET_RULE MULTI_TARGET_SEQ CHECK_MULTI_RULE MULTI_TARGET \
+  FORM_SDEPS EXTRACT_SDEPS FIX_SDEPS RUN_WITH_DLL_PATH DEF_HEAD_CODE DEF_HEAD_CODE_EVAL DEF_TAIL_CODE DEF_TAIL_CODE_EVAL \
+  DEFINE_TARGETS=DEFINE_TARGETS_EVAL_NAME SAVE_VARS RESTORE_VARS MAKE_CONTINUE_BODY_EVAL MAKE_CONTINUE OSTYPE CONF_COLOR)
