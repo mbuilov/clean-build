@@ -425,8 +425,8 @@ endif # !distclean && !clean
 # SED - stream editor executable - should be defined in $(OSDIR)/$(OS)/tools.mk
 # SED_EXPR - should be defined in $(OSDIR)/$(OS)/tools.mk
 # helper macro: convert multi-line sed script $1 to multiple sed expressions - one expression for each script line
-SED_MULTI_EXPR = $(foreach s,$(subst $(newline), ,$(subst $(space),$$(space),$(subst \
-  $$,$$$$,$1))),-e $(call SED_EXPR,$(eval SED_MULTI_EXPR_:=$s)$(SED_MULTI_EXPR_)))
+SED_MULTI_EXPR = $(foreach s,$(subst $(newline), ,$(subst $(comment),$$(comment),$(subst $(space),$$(space),$(subst \
+  $$,$$$$,$1)))),-e $(call SED_EXPR,$(eval SED_MULTI_EXPR_:=$s)$(SED_MULTI_EXPR_)))
 
 # to allow parallel builds for different combinations
 # of $(OS)/$(CPU)/$(KCPU)/$(TARGET) - create unique directories for each combination
