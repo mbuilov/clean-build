@@ -26,8 +26,8 @@ jpath = $(ospath)
 # path separator for $(FORM_CLASS_PATH)
 JPATHSEP = $(PATHSEP)
 
-# SCALAC, if needed, may be defined either in command line or in project configuration file as:
-# override SCALAC = $(JAVA) $(call FORM_CLASS_PATH,scala-compiler-2.11.6.jar)
+# SCALAC, if needed, may be defined either in command line or in project configuration makefile as:
+# SCALAC = $(JAVA) $(call FORM_CLASS_PATH,scala-compiler-2.11.6.jar)
 SCALAC = $(error SCALAC not defined, example: SCALAC=$$(JAVA) $$(call FORM_CLASS_PATH,scala-compiler-2.11.6.jar) scala.tools.nsc.Main)
 
 # JAVA may be redefined in $(OSDIR)/$(OS)/java.mk
@@ -223,7 +223,8 @@ CLEAN_BUILD_JAVA_EVAL = $(eval $(DEF_HEAD_CODE)$(PREPARE_JAVA_VARS))
 
 # protect variables from modifications in target makefiles
 $(call CLEAN_BUILD_PROTECT_VARS,JLINT BLD_JTARGETS \
-  jpath JPATHSEP SCALAC JAVA JAVAC JARC FORM_JTRG JAR_BUNDLES_OPTIONS1 JAR_BUNDLES_OPTIONS MAKE_BUNDLE_DEPS1 MAKE_BUNDLE_DEPS \
+  jpath JPATHSEP SCALAC JAVA JAVAC JARC FORM_JTRG FORM_BUNDLES \
+  JAR_BUNDLES_OPTIONS1 JAR_BUNDLES_OPTIONS MAKE_BUNDLE_DEPS1 MAKE_BUNDLE_DEPS \
   JCLS_DIR FORM_CLASS_PATH JAVAC_OPTIONS SCALAC_OPTIONS \
   ARGS_FILE_SOURCES_PER_LINE CREATE_JARGS_FILE1 CREATE_JARGS_FILE \
   JAVA_CC2 JAVA_CC1 JAVA_CC SCALA_CC2 SCALA_CC1 SCALA_CC JAR_LD1 JAR_LD FORM_BUILT_JARS JAR_TEMPLATE JAR_RULES \
