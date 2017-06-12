@@ -28,8 +28,8 @@ RM = $(QUIET)rm -rf$(if $(VERBOSE),v) $1$(if $(VERBOSE), >&2)
 MKDIR = mkdir -p$(if $(VERBOSE),v) $1$(if $(VERBOSE), >&2)
 
 # stream-editor executable
-# note: SED value may be overridden either in command line or in project configuration file, like:
-# override SED := /usr/local/bin/sed
+# note: SED value may be overridden either in command line or in project configuration makefile, like:
+# SED := /usr/local/bin/sed
 SED := sed
 
 # escape command line argument to pass it to $(SED)
