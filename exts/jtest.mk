@@ -4,9 +4,9 @@
 # Licensed under GPL version 2 or any later version, see COPYING
 #----------------------------------------------------------------------------------
 
-# must be included after $(CLEAN_BUILD_DIR)/java.mk
+# should be included after $(CLEAN_BUILD_DIR)/java.mk
 
-ifndef DO_TEST_JAR_TEMPLATE
+ifeq (,$(filter-out undefined environment,$(origin DO_TEST_JAR_TEMPLATE)))
 
 # rule for running test java archive, for 'check' target
 
