@@ -204,13 +204,14 @@ DEP_LIBS = $(call MAKE_DEP_LIBS,$1,$2,$(LIBS))
 # $2 - variant of target EXE or DLL: R,P,S,<empty>
 DEP_IMPS = $(call MAKE_DEP_IMPS,$1,$2,$(DLLS))
 
-# subst $(space) with space character in defines passed to C-compiler
+# process result of STRING_DEFINE to make values of defines passed to C-compiler
 # called by macro that expands to C-complier call
 SUBST_DEFINES = $(eval SUBST_DEFINES_:=$1)$(SUBST_DEFINES_)
 
 # helper macro for target makefiles to pass string define value to C-compiler
-# note: WINXX/c.mk defines own STRING_DEFINE
-STRING_DEFINE = "$(subst $(space),$$(space),$(subst ",\",$(subst $$,$$$$,$1)))"
+# result of this macro will be processed by SUBST_DEFINES
+# note: WINXX/c.mk defines own STRING_DEFINE macro
+STRING_DEFINE = "$(subst ",\",$(subst $(comment),$$(comment),$(subst $(space),$$(space),$(subst $$,$$$$,$1))))"
 
 # $1 - $(call FORM_TRG,$t,$v)
 # $2 - $(TRG_SRC)
