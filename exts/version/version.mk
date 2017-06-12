@@ -4,13 +4,13 @@
 # Licensed under GPL version 2 or any later version, see COPYING
 #----------------------------------------------------------------------------------
 
-# normally, some project configuration file should be processed before this file
+# normally, some project configuration makefile should be processed before this file
 # tip: this file may be built individually via:
 # make --eval 'include my_project.mk' -f <this makefile>
 
 include $(dir $(lastword $(MAKEFILE_LIST)))../../defs.mk
 
-# next variables must be defined for this makefile (for example, in my_project.mk):
+# next variables must be defined for this makefile (for example, in included before my_project.mk):
 
 # PRODUCT_NAMES_H  - for example, vers.h
 # VENDOR_NAME      - for example, Acme Corp
@@ -46,7 +46,7 @@ endef
 # may be defined as: 17160 2017/02/16 10:43:09
 
 # note: do not inherit PRODUCT_BUILDNUMBERS from environment,
-# to define PRODUCT_BUILDNUMBERS - use command line or project configuration file (via override directive)
+# PRODUCT_BUILDNUMBERS may be specified either in use command line or in project configuration makefile
 PRODUCT_BUILDNUMBERS:=
 
 $(GENERATED): TEMPL := $(PRODUCT_NAMES_TEMPLATE)
