@@ -334,7 +334,7 @@ TAR_COLOR  := [01;32m
 # check that KLIBS specified only when building DRV
 ifdef MCHECK
 CHECK_C_RULES = $(if \
-  $(CB_TOOL_MODE),$(if $(KDLL)$(KLIB)$(DRV),$(error cannot build drivers in tool mode)))$(if \
+  $(TMD),$(if $(KDLL)$(KLIB)$(DRV),$(error cannot build drivers in tool mode)))$(if \
   $(if $(EXE)$(DLL),,$(LIBS)),$(warning LIBS = $(LIBS) is used only when building EXE or DLL))$(if \
   $(if $(EXE)$(DLL),,$(DLLS)),$(warning DLLS = $(DLLS) is used only when building EXE or DLL))$(if \
   $(if $(DRV)$(KDLL),,$(KLIBS)),$(warning KLIBS = $(KLIBS) is used only when building DRV or KDLL))$(if \
