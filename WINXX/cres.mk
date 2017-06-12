@@ -23,8 +23,13 @@ RC_FST = $(if $(filter DRV KDLL,$1),VFT2_DRV_SYSTEM,0L)
 # so may produce dynamic results, for example based on value of $(CURRENT_MAKEFILE)
 WIN_RC_PRODUCT_DEFS_HEADER = $(GEN_DIR)/$(PRODUCT_NAMES_H)
 
-# define standard resource values - use definitions from $(WIN_RC_PRODUCT_DEFS_HEADER), which should contain (example):
+ifeq (simple,$(flavor PRODUCT_NAMES_H))
+WIN_RC_PRODUCT_DEFS_HEADER := $(WIN_RC_PRODUCT_DEFS_HEADER)
+endif
 
+# define standard resource values - use definitions from C-header file $(WIN_RC_PRODUCT_DEFS_HEADER),
+# which should contain (example):
+#
 #define VENDOR_NAME           "Acme corp"
 #define PRODUCT_NAME          "Super app"
 #define VENDOR_COPYRIGHT      "(c) Acme corp. All rights reserved"
@@ -38,36 +43,39 @@ WIN_RC_PRODUCT_DEFS_HEADER = $(GEN_DIR)/$(PRODUCT_NAMES_H)
 #define PRODUCT_BUILD_NUM     12345
 #define PRODUCT_BUILD_DATE    "01/01/2017:09.30"
 
-# note: some of WIN_RC_... variables may be defined via override directive in project configuration file before including this file
-WIN_RC_PRODUCT_VERSION_MAJOR = PRODUCT_VERSION_MAJOR
-WIN_RC_PRODUCT_VERSION_MINOR = PRODUCT_VERSION_MINOR
-WIN_RC_PRODUCT_VERSION_PATCH = PRODUCT_VERSION_PATCH
-WIN_RC_MODULE_VERSION_MAJOR  = $(call ver_major,$(MODVER))
-WIN_RC_MODULE_VERSION_MINOR  = $(call ver_minor,$(MODVER))
-WIN_RC_MODULE_VERSION_PATCH  = $(call ver_patch,$(MODVER))
-WIN_RC_PRODUCT_BUILD_NUM     = PRODUCT_BUILD_NUM
-WIN_RC_COMMENTS              = PRODUCT_TARGET "/" PRODUCT_OS "/" $(if \
+# define parameters for .rc-file generation
+# $1 - target EXE,DLL,DRV,KDLL
+# target-specific variables: MODVER
+# note: some of WIN_RC_... variables may be overridden in project configuration makefile before including this file
+WIN_RC_PRODUCT_VERSION_MAJOR := PRODUCT_VERSION_MAJOR
+WIN_RC_PRODUCT_VERSION_MINOR := PRODUCT_VERSION_MINOR
+WIN_RC_PRODUCT_VERSION_PATCH := PRODUCT_VERSION_PATCH
+WIN_RC_MODULE_VERSION_MAJOR   = $(call ver_major,$(MODVER))
+WIN_RC_MODULE_VERSION_MINOR   = $(call ver_minor,$(MODVER))
+WIN_RC_MODULE_VERSION_PATCH   = $(call ver_patch,$(MODVER))
+WIN_RC_PRODUCT_BUILD_NUM     := PRODUCT_BUILD_NUM
+WIN_RC_COMMENTS               = PRODUCT_TARGET "/" PRODUCT_OS "/" $(if \
                                 $(filter DRV KDLL,$1),PRODUCT_KCPU,PRODUCT_CPU) "/" PRODUCT_BUILD_DATE
-WIN_RC_COMPANY_NAME          = VENDOR_NAME
-WIN_RC_FILE_DESCRIPTION      = "$(GET_TARGET_NAME)"
-WIN_RC_FILE_VERSION          = VERSION_TO_STR($(if \
+WIN_RC_COMPANY_NAME          := VENDOR_NAME
+WIN_RC_FILE_DESCRIPTION       = "$(GET_TARGET_NAME)"
+WIN_RC_FILE_VERSION           = VERSION_TO_STR($(if \
                                ,)$(WIN_RC_MODULE_VERSION_MAJOR),$(if \
                                ,)$(WIN_RC_MODULE_VERSION_MINOR),$(if \
                                ,)$(WIN_RC_MODULE_VERSION_PATCH),$(if \
                                ,)$(WIN_RC_PRODUCT_BUILD_NUM))
-WIN_RC_INTERNAL_NAME         = "$(GET_TARGET_NAME)"
-WIN_RC_LEGAL_COPYRIGHT       = VENDOR_COPYRIGHT
-WIN_RC_LEGAL_TRADEMARKS      =
-WIN_RC_PRIVATE_BUILD         =
-WIN_RC_PRODUCT_NAME          = PRODUCT_NAME
-WIN_RC_PRODUCT_VERSION       = VERSION_TO_STR($(if \
+WIN_RC_INTERNAL_NAME          = "$(GET_TARGET_NAME)"
+WIN_RC_LEGAL_COPYRIGHT       := VENDOR_COPYRIGHT
+WIN_RC_LEGAL_TRADEMARKS      :=
+WIN_RC_PRIVATE_BUILD         :=
+WIN_RC_PRODUCT_NAME          := PRODUCT_NAME
+WIN_RC_PRODUCT_VERSION       := VERSION_TO_STR($(if \
                                ,)$(WIN_RC_PRODUCT_VERSION_MAJOR),$(if \
                                ,)$(WIN_RC_PRODUCT_VERSION_MINOR),$(if \
                                ,)$(WIN_RC_PRODUCT_VERSION_PATCH),$(if \
                                ,)$(WIN_RC_PRODUCT_BUILD_NUM))
-WIN_RC_SPECIAL_BUILD         =
-WIN_RC_LANG                  = 0409
-WIN_RC_CHARSET               = 04b0
+WIN_RC_SPECIAL_BUILD         :=
+WIN_RC_LANG                  := 0409
+WIN_RC_CHARSET               := 04b0
 
 # $1    - EXE,DLL,DRV,KDLL
 # $2    - $(GET_TARGET_NAME)
@@ -92,7 +100,6 @@ WIN_RC_CHARSET               = 04b0
 # $(21) - $(WIN_RC_SPECIAL_BUILD)
 # $(22) - $(WIN_RC_LANG)
 # $(23) - $(WIN_RC_CHARSET)
-# note: STD_VERSION_RC_TEMPLATE may be defined via override directive in project configuration file before including this file
 define STD_VERSION_RC_TEMPLATE
 #include <winver.h>
 #include "$3"
@@ -173,9 +180,12 @@ TRG_RES := $3/$2_$1.res
 $$(TRG_RES): $$(TRG_RC) $(WIN_RC_PRODUCT_DEFS_HEADER) | $3
 	$$(call RC,$$@,$$<,)
 NEEDED_DIRS += $(GEN_DIR)/stdres $3
-$$(call TOCLEAN,$$(TRG_RC))
 RES += $$(TRG_RES)
 endef
+
+ifdef TOCLEAN
+$(eval define STD_RES_TEMPLATE1$(newline)$(value STD_RES_TEMPLATE1)$(newline)$$$$(call TOCLEAN,$$$$(TRG_RC))$(newline)endef)
+endif
 
 # $1 - $(call FORM_TRG,$1,$v)
 # note: after evaluating of STD_RES_TEMPLATE1, standard resource will be appended to RES, so postpone expansion of $$(RES) here
