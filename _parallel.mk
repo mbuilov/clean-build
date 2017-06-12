@@ -50,7 +50,7 @@ CLEAN_BUILD_PARALLEL = $(eval $(APPEND_MDEPS))
 # DEF_TAIL_CODE will be called with @ - to suppress showing debug info.
 # note: debug info shows $(ORDER_DEPS), so ORDER_DEPS must be set before showing the info
 ifdef MDEBUG
-$(eval CLEAN_BUILD_PARALLEL = $(value CLEAN_BUILD_PARALLEL)$$(info $$(MAKEFILE_DEBUG_INFO)))
+CLEAN_BUILD_PARALLEL += $(info $(MAKEFILE_DEBUG_INFO))
 endif
 
 # $(CURRENT_MAKEFILE) is built if all $$1 makefiles are built
