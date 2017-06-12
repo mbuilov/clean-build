@@ -4,14 +4,12 @@
 # Licensed under GPL version 2 or any later version, see COPYING
 #----------------------------------------------------------------------------------
 
-# normally, some project configuration file should be processed before this file
+# normally, some project configuration makefile should be processed before this file
 # tip: this file may be built individually via:
 # make --eval 'include my_project.mk' -f <this makefile>
 
 TOOL_MODE := 1
 include $(dir $(lastword $(MAKEFILE_LIST)))../../c.mk
-EXE        := buildnumber S
-SRC        := buildnumber.c
-CMNDEFINES :=
-CMNINCLUDE :=
+EXE := buildnumber S
+SRC := buildnumber.c
 $(DEFINE_TARGETS)
