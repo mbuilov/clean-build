@@ -23,9 +23,10 @@ SEQ_BUILD:=
 endif
 
 # dependencies generation supported only for non-multisource (sequential) builds
+# note: do not try to trace calls to NO_DEPS, pass 0 as second parameter to CLEAN_BUILD_PROTECT_VARS
 ifndef SEQ_BUILD
 NO_DEPS := 1
-$(call CLEAN_BUILD_PROTECT_VARS,NO_DEPS)
+$(call CLEAN_BUILD_PROTECT_VARS,NO_DEPS,0)
 endif
 
 include $(CLEAN_BUILD_DIR)/WINXX/auto_c.mk
@@ -36,10 +37,10 @@ FLEXC  := flex.exe
 BISONC := bison.exe
 
 # note: assume yasm used only for drivers
-YASM_FLAGS := $(if $(KCPU:%64=),-f win32 -m x86,-f win64 -m amd64)
+YASM_FLAGS := -f $(if $(KCPU:%64=),win32,win64)$(if $(KCPU:x86%=),, -m $(if $(KCPU:%64=),x86,amd64))
 
 # strings to strip off from mc.exe output
-# note: may be overridden either in project configuration file or in command line
+# note: may be overridden either in project configuration makefile or in command line
 MC_STRIP_STRINGS := MC:?Compiling
 
 # wrap mc.exe call to strip-off diagnostic mc messages
@@ -59,7 +60,7 @@ endif
 MC = $(call SUP,$(TMD)MC,$1)$(call WRAP_MC,$($(TMD)MC1)$(if $(VERBOSE), -v) $2)
 
 # strings to strip off from rc.exe output if rc.exe does not support /nologo option
-# note: may be overridden either in project configuration file or in command line
+# note: may be overridden either in project configuration makefile or in command line
 RC_LOGO_STRINGS := Microsoft?(R)?Windows?(R)?Resource?Compiler?Version Copyright?(C)?Microsoft?Corporation.??All?rights?reserved. ^$$
 
 # send resource compiler output to stderr
@@ -184,8 +185,9 @@ DLL_EXPORTS_DEFINE := "__declspec(dllexport)"
 DLL_IMPORTS_DEFINE := "__declspec(dllimport)"
 
 # helper macro for target makefiles to pass string define value to C-compiler
+# result of this macro will be processed by SUBST_DEFINES
 # note: override value from $(CLEAN_BUILD_DIR)/c.mk
-STRING_DEFINE = "$(subst $(space),$$(space),$(subst ","",$(subst $$,$$$$,$1)))"
+STRING_DEFINE = "$(subst ","",$(subst $(comment),$$(comment),$(subst $(space),$$(space),$(subst $$,$$$$,$1))))"
 
 # how to embed manifest into executable or dll
 # Note: starting from Visual Studio 2012, linker supports /MANIFEST:EMBED option - linker will call mt.exe internally
@@ -262,7 +264,7 @@ LINKER_STRIP_STRINGS_en := Generating?code Finished?generating?code
 LINKER_STRIP_STRINGS_ru_cp1251 := .ÓÁ‰‡ÌËÂ?ÍÓ‰‡ .ÓÁ‰‡ÌËÂ?ÍÓ‰‡?Á‡‚Â¯ÂÌÓ
 # cp1251 ".–æ–∑–¥–∞–Ω–∏–µ?–∫–æ–¥–∞ .–æ–∑–¥–∞–Ω–∏–µ?–∫–æ–¥–∞?–∑–∞–≤–µ—Ä—à–µ–Ω–æ" as cp866 converted to cp1251
 LINKER_STRIP_STRINGS_ru_cp1251_as_cp866_to_cp1251 := .˛˜Ù˝¯ı?˙˛Ù .˛˜Ù˝¯ı?˙˛Ù?˜Úı®∞ı˝˛
-# default value, may be overridden either in project configuration file or in command line
+# default value, may be overridden either in project configuration makefile or in command line
 LINKER_STRIP_STRINGS := $(LINKER_STRIP_STRINGS_en)
 
 # wrap linker call to strip-off diagnostic linker messages
@@ -428,11 +430,11 @@ INCLUDING_FILE_PATTERN_ru_cp1251_bytes := \xcf\xf0\xe8\xec\xe5\xf7\xe0\xed\xe8\x
 # cp866 "–ü—Ä–∏–º–µ—á–∞–Ω–∏–µ: –≤–∫–ª—é—á–µ–Ω–∏–µ —Ñ–∞–π–ª–∞:"
 INCLUDING_FILE_PATTERN_ru_cp866 := è‡®¨•Á†≠®•: ¢™´ÓÁ•≠®• ‰†©´†:
 INCLUDING_FILE_PATTERN_ru_cp866_bytes := \x8f\xe0\xa8\xac\xa5\xe7\xa0\xad\xa8\xa5: \xa2\xaa\xab\xee\xe7\xa5\xad\xa8\xa5 \xe4\xa0\xa9\xab\xa0:
-# default value, may be overridden either in project configuration file or in command line
+# default value, may be overridden either in project configuration makefile or in command line
 INCLUDING_FILE_PATTERN := $(INCLUDING_FILE_PATTERN_en)
 
 # $(SED) expression to filter-out system files while dependencies generation
-# note: may be overridden either in project configuration file or in command line
+# note: may be overridden either in project configuration makefile or in command line
 # c:\\program?files?(x86)\\microsoft?visual?studio?10.0\\vc\\include\\
 UDEPS_INCLUDE_FILTER := $(subst \,\\,$(VSINC) $(UMINC))
 
@@ -513,9 +515,9 @@ EXE_$v_CC  = $$(LIB_$v_CC)
 EXE_$v_CXX = $$(LIB_$v_CXX)
 DLL_$v_CC  = $$(EXE_$v_CC)
 DLL_$v_CXX = $$(EXE_$v_CXX)
+LIB_$v_LD  = $$(LIB_$v_LD1)
 EXE_$v_LD  = $$(EXE_$v_LD1)
 DLL_$v_LD  = $$(DLL_$v_LD1)
-LIB_$v_LD  = $$(LIB_$v_LD1)
 $(empty)
 endef
 $(eval $(foreach v,R $(VARIANTS_FILTER),$(SEQ_COMPILERS_TEMPLATE)))
@@ -583,12 +585,12 @@ CMN_MCL = $(call $2,$(OBJ_DIR)/,$(sort $(filter $(SRC),$? $(call FILTER_SDEPS,$(
 
 define MULTI_COMPILERS_TEMPLATE
 # $$1 - target EXE, DLL or LIB, target-specific: SRC, OBJ_DIR
+LIB_$v_LD = $$(call CMN_MCL,$$1,CMN_$vMCL)$$(call \
+  LIB_$v_LD1,$$1,$$(addprefix $$(OBJ_DIR)/,$$(addsuffix $(OBJ_SUFFIX),$$(basename $$(notdir $$(SRC))))))
 EXE_$v_LD = $$(call CMN_MCL,$$1,CMN_$vMCL)$$(call \
   EXE_$v_LD1,$$1,$$(addprefix $$(OBJ_DIR)/,$$(addsuffix $(OBJ_SUFFIX),$$(basename $$(notdir $$(SRC))))))
 DLL_$v_LD = $$(call CMN_MCL,$$1,CMN_$vMCL)$$(call \
   DLL_$v_LD1,$$1,$$(addprefix $$(OBJ_DIR)/,$$(addsuffix $(OBJ_SUFFIX),$$(basename $$(notdir $$(SRC))))))
-LIB_$v_LD = $$(call CMN_MCL,$$1,CMN_$vMCL)$$(call \
-  LIB_$v_LD1,$$1,$$(addprefix $$(OBJ_DIR)/,$$(addsuffix $(OBJ_SUFFIX),$$(basename $$(notdir $$(SRC))))))
 # $$1 - target pch object, $$2 - pch-source, $$3 - pch header name
 # target-specific: TMD, CFLAGS, CXXFLAGS
 PCH_$v_CC  = $$(call SUP,$$(TMD)PCHCC,$$2)$$(call WRAP_COMPILER,$$(call CMN_$vCL,$$(dir $$1),$$2,/Yc$$3 /Yl$$(basename \
@@ -711,7 +713,7 @@ ifdef SEQ_BUILD
 # note: precompiled headers are not supported in this mode (but support may be added later)
 
 # $(SED) expression to filter-out system files while dependencies generation
-# note: may be overridden either in project configuration file or in command line
+# note: may be overridden either in project configuration makefile or in command line
 # c:\\winddk\\
 KDEPS_INCLUDE_FILTER := $(subst \,\\,$(KMINC))
 
@@ -1222,31 +1224,32 @@ $(eval define OS_DEFINE_TARGETS$(newline)$(value OS_DEFINE_TARGETS)$(newline)$$$
 endif
 
 # protect variables from modifications in target makefiles
-$(call CLEAN_BUILD_PROTECT_VARS,MCL_MAX_COUNT SEQ_BUILD YASMC FLEXC BISONC MC YASM_FLAGS MC_STRIP_STRINGS WRAP_MC RC_LOGO_STRINGS \
-  WRAP_RC RC KIMP_PREFIX KIMP_SUFFIX CHECK_LIB_UNI_NAME1 CHECK_LIB_UNI_NAME DLL_EXPORTS_DEFINE DLL_IMPORTS_DEFINE \
-  EMBED_MANIFEST_OPTION EMBED_EXE_MANIFEST EMBED_DLL_MANIFEST OS_PREDEFINES MK_MAJ_MIN_VER DEF_LIB_LDFLAGS LIB_LD_TEMPLATE \
-  CMN_LIBS_LDFLAGS CMN_LIBS DEF_SUBSYSTEM \
+$(call CLEAN_BUILD_PROTECT_VARS,MCL_MAX_COUNT SEQ_BUILD YASMC FLEXC BISONC YASM_FLAGS MC_STRIP_STRINGS WRAP_MC MC RC_LOGO_STRINGS \
+  WRAP_RC RC KIMP_PREFIX KIMP_SUFFIX CHECK_LIB_UNI_NAME1=v CHECK_LIB_UNI_NAME=v DLL_EXPORTS_DEFINE DLL_IMPORTS_DEFINE \
+  EMBED_MANIFEST_OPTION EMBED_EXE_MANIFEST=TMD EMBED_DLL_MANIFEST OS_PREDEFINES MK_MAJ_MIN_VER DEF_LIB_LDFLAGS LIB_LD_TEMPLATE=v \
+  CMN_LIBS_LDFLAGS CMN_LIBS=v DEF_SUBSYSTEM \
   LINKER_STRIP_STRINGS_en LINKER_STRIP_STRINGS_ru_cp1251 LINKER_STRIP_STRINGS_ru_cp1251_as_cp866_to_cp1251 \
   LINKER_STRIP_STRINGS WRAP_LINKER DEL_DEF_MANIFEST_ON_FAIL \
-  WRAP_EXE_EXPORTS_LINKER WRAP_EXE_LINKER EXE_LD_TEMPLATE WRAP_DLL_EXPORTS_LINKER WRAP_DLL_LINKER DLL_LD_TEMPLATE \
-  $(foreach v,R $(VARIANTS_FILTER),EXE_$v_LD1 DLL_$v_LD1 LIB_$v_LD1) \
+  WRAP_EXE_EXPORTS_LINKER WRAP_EXE_LINKER EXE_LD_TEMPLATE=v WRAP_DLL_EXPORTS_LINKER WRAP_DLL_LINKER DLL_LD_TEMPLATE=v \
+  $(foreach v,R $(VARIANTS_FILTER),LIB_$v_LD1 EXE_$v_LD1 DLL_$v_LD1) \
   OS_APP_CFLAGS APP_CFLAGS OS_APP_DEFINES APP_DEFINES CMN_CL1 CMN_RCL CMN_SCL CMN_RUCL CMN_SUCL \
   INCLUDING_FILE_PATTERN_en INCLUDING_FILE_PATTERN_ru_utf8 INCLUDING_FILE_PATTERN_ru_utf8_bytes \
   INCLUDING_FILE_PATTERN_ru_cp1251 INCLUDING_FILE_PATTERN_ru_cp1251_bytes \
   INCLUDING_FILE_PATTERN_ru_cp866 INCLUDING_FILE_PATTERN_ru_cp866_bytes \
   INCLUDING_FILE_PATTERN UDEPS_INCLUDE_FILTER SED_DEPS_SCRIPT \
   WRAP_COMPILER CMN_CC CMN_CXX SEQ_COMPILERS_TEMPLATE \
-  $(foreach v,R $(VARIANTS_FILTER),LIB_$v_CC LIB_$v_CXX EXE_$v_CC EXE_$v_CXX DLL_$v_CC DLL_$v_CXX EXE_$v_LD DLL_$v_LD LIB_$v_LD) \
+  $(foreach v,R $(VARIANTS_FILTER),LIB_$v_CC LIB_$v_CXX EXE_$v_CC EXE_$v_CXX DLL_$v_CC DLL_$v_CXX LIB_$v_LD EXE_$v_LD DLL_$v_LD) \
   CALL_MCC CALL_MCXX CALL_MPCC CALL_MPCXX CMN_MCL2 CMN_MCL1 CMN_RMCL CMN_SMCL CMN_RUMCL CMN_SUMCL \
   FILTER_SDEPS1 FILTER_SDEPS CMN_MCL MULTI_COMPILERS_TEMPLATE \
   $(foreach v,R $(VARIANTS_FILTER),PCH_$v_CC PCH_$v_CXX) \
-  SUBSYSTEM_KVER DEF_KLIB_LDFLAGS KLIB_R_LD1 DEF_DRV_LDFLAGS CMN_KLIBS KDLL_R_LD1 DRV_R_LD1 \
+  SUBSYSTEM_KVER DEF_KLIB_LDFLAGS KLIB_R_LD1 DEF_DRV_LDFLAGS CMN_KLIBS DRV_R_LD1 KDLL_R_LD1 \
   OS_KRN_CFLAGS FORCE_SYNC_PDB_KERN KRN_CFLAGS OS_KRN_DEFINES KRN_DEFINES CMN_KCL KDEPS_INCLUDE_FILTER CMN_KCC CMN_KCXX \
   KLIB_R_CC DRV_R_CC KDLL_R_CC KLIB_R_CXX DRV_R_CXX KDLL_R_CXX KLIB_R_LD DRV_R_LD KDLL_R_LD \
-  CALL_MKCC CALL_MKCXX CALL_MPKCC CALL_MPKCXX CMN_MKCL3 CMN_MKCL2 CMN_MKCL1 CMN_MKCL PCH_R_KCC PCH_R_KCXX KLIB_R_ASM BISON FLEX \
-  PCH_TEMPLATE1 PCH_TEMPLATE2 PCH_TEMPLATE3 PCH_TEMPLATE ADD_WITH_PCH \
-  TRG_ALL_SDEPS MAKE_IMP_PATH EXPORTS_TEMPLATE1 NO_EXPORTS_TEMPLATE EXPORTS_TEMPLATE MULTISOURCE_AUX \
-  EXE_AUX_TEMPLATE2 DLL_AUX_TEMPLATE2 EXP_AUX_TEMPLATE1 EXP_AUX_TEMPLATE EXE_AUX_TEMPLATE DLL_AUX_TEMPLATE \
-  ARC_AUX_TEMPLATE2 ARC_AUX_TEMPLATE1 ARC_AUX_TEMPLATE LIB_AUX_TEMPLATE KLIB_AUX_TEMPLATE \
-  ADD_MC_RULE1 ADD_MC_RULE ADD_RES_RULE1 ADD_RES_RULE2 ADD_RES_RULE RC_DEFINE_PATH \
-  DRV_TEMPLATE KDLL_TEMPLATE DRV_AUX_TEMPLATE2 KDLL_AUX_TEMPLATE2 KEXP_AUX_TEMPLATE DRV_AUX_TEMPLATE KDLL_AUX_TEMPLATE)
+  CALL_MKCC CALL_MKCXX CALL_MPKCC CALL_MPKCXX CMN_MKCL3 CMN_MKCL2 CMN_MKCL1 CMN_MKCL PCH_R_KCC PCH_R_KCXX \
+  KLIB_R_ASM DRV_R_ASM KDLL_R_ASM BISON FLEX \
+  PCH_TEMPLATE1 PCH_TEMPLATE2=v;t PCH_TEMPLATE3=t PCH_TEMPLATE=t ADD_WITH_PCH \
+  TRG_ALL_SDEPS MAKE_IMP_PATH EXPORTS_TEMPLATE1=t;n;v NO_EXPORTS_TEMPLATE=t;n;v EXPORTS_TEMPLATE=t;n;v MULTISOURCE_AUX=t;v \
+  EXE_AUX_TEMPLATE2=t;n;v DLL_AUX_TEMPLATE2=t;n;v EXP_AUX_TEMPLATE1=t EXP_AUX_TEMPLATE=t EXE_AUX_TEMPLATE=t DLL_AUX_TEMPLATE=t \
+  ARC_AUX_TEMPLATE2=t;v ARC_AUX_TEMPLATE1=t ARC_AUX_TEMPLATE=t LIB_AUX_TEMPLATE KLIB_AUX_TEMPLATE \
+  ADD_MC_RULE1 ADD_MC_RULE ADD_RES_RULE2 ADD_RES_RULE1 ADD_RES_RULE RC_DEFINE_PATH \
+  DRV_TEMPLATE=t KDLL_TEMPLATE DRV_AUX_TEMPLATE2 KDLL_AUX_TEMPLATE2 KEXP_AUX_TEMPLATE=t DRV_AUX_TEMPLATE KDLL_AUX_TEMPLATE)
