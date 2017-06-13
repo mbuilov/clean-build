@@ -206,12 +206,12 @@ DEP_IMPS = $(call MAKE_DEP_IMPS,$1,$2,$(DLLS))
 
 # process result of STRING_DEFINE to make values of defines passed to C-compiler
 # called by macro that expands to C-complier call
-SUBST_DEFINES = $(eval SUBST_DEFINES_:=$1)$(SUBST_DEFINES_)
+SUBST_DEFINES = $(eval SUBST_DEFINES_:=$(subst $(comment),$$(comment),$1))$(SUBST_DEFINES_)
 
 # helper macro for target makefiles to pass string define value to C-compiler
 # result of this macro will be processed by SUBST_DEFINES
 # note: WINXX/c.mk defines own STRING_DEFINE macro
-STRING_DEFINE = "$(subst ",\",$(subst $(comment),$$(comment),$(subst $(space),$$(space),$(subst $$,$$$$,$1))))"
+STRING_DEFINE = "$(subst ",\",$(subst $(tab),$$(tab),$(subst $(space),$$(space),$(subst $$,$$$$,$1))))"
 
 # $1 - $(call FORM_TRG,$t,$v)
 # $2 - $(TRG_SRC)
