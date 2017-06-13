@@ -187,7 +187,7 @@ DLL_IMPORTS_DEFINE := "__declspec(dllimport)"
 # helper macro for target makefiles to pass string define value to C-compiler
 # result of this macro will be processed by SUBST_DEFINES
 # note: override value from $(CLEAN_BUILD_DIR)/c.mk
-STRING_DEFINE = "$(subst ","",$(subst $(comment),$$(comment),$(subst $(space),$$(space),$(subst $$,$$$$,$1))))"
+STRING_DEFINE = "$(subst ","",$(subst $(tab),$$(tab),$(subst $(space),$$(space),$(subst $$,$$$$,$1))))"
 
 # how to embed manifest into executable or dll
 # Note: starting from Visual Studio 2012, linker supports /MANIFEST:EMBED option - linker will call mt.exe internally
