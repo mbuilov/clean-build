@@ -584,13 +584,13 @@ FILTER_SDEPS = $(foreach d,$1,$(call FILTER_SDEPS1,$(subst |, ,$d)))
 CMN_MCL = $(call $2,$(OBJ_DIR)/,$(sort $(filter $(SRC),$? $(call FILTER_SDEPS,$(SDEPS)))))
 
 define MULTI_COMPILERS_TEMPLATE
-# $$1 - target EXE, DLL or LIB, target-specific: SRC, OBJ_DIR
+# $$1 - target EXE, DLL or LIB, target-specific: SRC, OBJ_DIR, $$2 - objects (of precompiled headers)
 LIB_$v_LD = $$(call CMN_MCL,$$1,CMN_$vMCL)$$(call \
-  LIB_$v_LD1,$$1,$$(addprefix $$(OBJ_DIR)/,$$(addsuffix $(OBJ_SUFFIX),$$(basename $$(notdir $$(SRC))))))
+  LIB_$v_LD1,$$1,$$2 $$(addprefix $$(OBJ_DIR)/,$$(addsuffix $(OBJ_SUFFIX),$$(basename $$(notdir $$(SRC))))))
 EXE_$v_LD = $$(call CMN_MCL,$$1,CMN_$vMCL)$$(call \
-  EXE_$v_LD1,$$1,$$(addprefix $$(OBJ_DIR)/,$$(addsuffix $(OBJ_SUFFIX),$$(basename $$(notdir $$(SRC))))))
+  EXE_$v_LD1,$$1,$$2 $$(addprefix $$(OBJ_DIR)/,$$(addsuffix $(OBJ_SUFFIX),$$(basename $$(notdir $$(SRC))))))
 DLL_$v_LD = $$(call CMN_MCL,$$1,CMN_$vMCL)$$(call \
-  DLL_$v_LD1,$$1,$$(addprefix $$(OBJ_DIR)/,$$(addsuffix $(OBJ_SUFFIX),$$(basename $$(notdir $$(SRC))))))
+  DLL_$v_LD1,$$1,$$2 $$(addprefix $$(OBJ_DIR)/,$$(addsuffix $(OBJ_SUFFIX),$$(basename $$(notdir $$(SRC))))))
 # $$1 - target pch object, $$2 - pch-source, $$3 - pch header name
 # target-specific: TMD, CFLAGS, CXXFLAGS
 PCH_$v_CC  = $$(call SUP,$$(TMD)PCHCC,$$2)$$(call WRAP_COMPILER,$$(call CMN_$vCL,$$(dir $$1),$$2,/Yc$$3 /Yl$$(basename \
