@@ -741,6 +741,9 @@ DEF_HEAD_CODE_EVAL = $(eval $(DEF_HEAD_CODE))
 # expand this macro to evaluate default tail code
 DEF_TAIL_CODE_EVAL = $(eval $(call DEF_TAIL_CODE,))
 
+# $(DEF_HEAD_CODE) must evaluated before expanding $(DEFINE_TARGETS)
+DEFINE_TARGETS_EVAL_NAME = $(error $$(DEF_HEAD_CODE) was not evaluated at head of makefile!)
+
 # code to $(eval) at beginning of each makefile
 # 1) add $(CURRENT_MAKEFILE) to build
 # 2) change bin,lib,obj,gen dirs in TOOL_MODE or restore them to default values in non-TOOL_MODE
