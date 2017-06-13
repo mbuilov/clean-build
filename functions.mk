@@ -55,23 +55,24 @@ trace_level.:=
 
 # helper template for $(trace_calls)
 # $1 - macro name, must accept no more than $(dump_max) arguments
-# $2 - names of variables to dump before traced call
-# $3 - names of variables to dump after traced call
+# $2 - override or <empty>
+# $3 - names of variables to dump before traced call
+# $4 - names of variables to dump after traced call
 # note: pass 0 as second parameter to CLEAN_BUILD_PROTECT_VARS1 to not try to trace already traced macro
 define trace_calls_template
 $(empty)
 ifdef $1
 ifeq (simple,$(flavor $1))
 $1.t_:=$$($1)
-override $1 = $$(warning $$(trace_level.) $$$$($1) {)$$(call infofn,$$($1.t_))$$(info end: } $$$$($1))
+$2 $1 = $$(warning $$(trace_level.) $$$$($1) {)$$(call infofn,$$($1.t_))$$(info end: } $$$$($1))
 else
 define $1.t_
 $(value $1)
 endef
-override $1 = $$(warning $$(trace_level.) $$$$($1) {)$$(dump_args)$$(call dump,$2,,$1: )$$(info \
+$2 $1 = $$(warning $$(trace_level.) $$$$($1) {)$$(dump_args)$$(call dump,$3,,$1: )$$(info \
   ------$1 value---->)$$(info <$$(value $1.t_)>)$$(info \
   ------$1 result--->)$$(eval trace_level.+=$1->)$$(call infofn,$$(call $1.t_,_dump_params_))$$(call \
-  dump,$3,,$1: )$$(eval trace_level.:=$$(wordlist 2,$$(words $$(trace_level.)),x $$(trace_level.)))$$(info end: } $$$$($1))
+  dump,$4,,$1: )$$(eval trace_level.:=$$(wordlist 2,$$(words $$(trace_level.)),x $$(trace_level.)))$$(info end: } $$$$($1))
 endif
 endif
 $(call CLEAN_BUILD_PROTECT_VARS1,$1 $1.t_,0)
@@ -89,10 +90,10 @@ $(eval define trace_calls_template$(newline)$(subst _dump_params_,$$$$$(open_bra
 #   b1;b2;b3 - names of variables to dump before traced call
 #   e1;e2    - names of variables to dump after traced call
 # note: may also be used for simple variables, for example: $(call trace_calls,Macro=VarPre=VarPost)
-trace_calls = $(eval $(foreach f,$1,$(if $(filter-out undefined,$(origin $(firstword $(subst =, ,$f)))),$(if \
-  $(findstring ^.$$(warning $$(trace_level.) $$$$($(firstword $(subst =, ,$f))) {),^.$(value $(firstword \
-  $(subst =, ,$f)))),,$(call trace_calls_template,$(firstword \
-  $(subst =, ,$f)),$(subst ;, ,$(word 2,$(subst =, ,$f))),$(subst ;, ,$(word 3,$(subst =, ,$f))))))))
+trace_calls = $(eval $(foreach f,$1,$(foreach v,$(firstword $(subst =, ,$f)),$(if $(filter-out undefined,$(origin $v)),$(if \
+  $(findstring ^.$$(warning $$(trace_level.) $$$$($v) {),^.$(value $v)),,$(call trace_calls_template,$v,$(if \
+  $(findstring "command line",$(origin $v))$(findstring "override",$(origin $v)),override),$(subst \
+  ;, ,$(word 2,$(subst =, ,$f))),$(subst ;, ,$(word 3,$(subst =, ,$f)))))))))
 
 # replace spaces with ?
 unspaces = $(subst $(space),?,$1)
