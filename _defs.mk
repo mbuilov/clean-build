@@ -396,7 +396,7 @@ FORMAT_PERCENTS = $(subst |,,$(subst \
 # don't update percents if $(MF) has been already shown
 # else remember makefile $(MF), then try to increment total percents count
 define REM_MAKEFILE
-$(MF):=1
+$$(MF):=1
 SHOWN_PERCENTS += $(call ADD_SHOWN_PERCENTS,$(SHOWN_REMAINDER) \
 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 \
 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1)
@@ -448,10 +448,10 @@ DEF_GEN_DIR := $(BUILD)/gen-$(TARGET_TRIPLET)
 
 # restore default dirs after tool mode
 define SET_DEFAULT_DIRS
-BIN_DIR := $(DEF_BIN_DIR)
-OBJ_DIR := $(DEF_OBJ_DIR)
-LIB_DIR := $(DEF_LIB_DIR)
-GEN_DIR := $(DEF_GEN_DIR)
+BIN_DIR:=$(DEF_BIN_DIR)
+OBJ_DIR:=$(DEF_OBJ_DIR)
+LIB_DIR:=$(DEF_LIB_DIR)
+GEN_DIR:=$(DEF_GEN_DIR)
 $(call CLEAN_BUILD_PROTECT_VARS1,BIN_DIR OBJ_DIR LIB_DIR GEN_DIR)
 endef
 SET_DEFAULT_DIRS := $(SET_DEFAULT_DIRS)
@@ -487,10 +487,10 @@ GET_TOOL = $(call GET_TOOLS,$(TOOL_BASE),$(TCPU),$1)
 
 # override default dirs in tool mode (when TOOL_MODE has non-empty value)
 define TOOL_OVERRIDE_DIRS
-BIN_DIR := $(TOOL_BASE)/bin-TOOL-$(TCPU)-$(TARGET)
-OBJ_DIR := $(TOOL_BASE)/obj-TOOL-$(TCPU)-$(TARGET)
-LIB_DIR := $(TOOL_BASE)/lib-TOOL-$(TCPU)-$(TARGET)
-GEN_DIR := $(TOOL_BASE)/gen-TOOL-$(TCPU)-$(TARGET)
+BIN_DIR:=$(TOOL_BASE)/bin-TOOL-$(TCPU)-$(TARGET)
+OBJ_DIR:=$(TOOL_BASE)/obj-TOOL-$(TCPU)-$(TARGET)
+LIB_DIR:=$(TOOL_BASE)/lib-TOOL-$(TCPU)-$(TARGET)
+GEN_DIR:=$(TOOL_BASE)/gen-TOOL-$(TCPU)-$(TARGET)
 $(call CLEAN_BUILD_PROTECT_VARS1,BIN_DIR OBJ_DIR LIB_DIR GEN_DIR)
 endef
 TOOL_OVERRIDE_DIRS := $(TOOL_OVERRIDE_DIRS)
