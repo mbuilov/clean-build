@@ -21,9 +21,9 @@ $(error cygwin gnu make is used for WINDOWS build - this configuration is not su
  for example, under cygwin start build with: /cygdrive/c/tools/gnumake-4.2.1.exe SED=C:/tools/sed.exe <args>)
 endif
 
-# Windows needs TEMP, PATHEXT, SYSTEMROOT and COMSPEC variables to be defined in environment of calling executables
+# Windows needs TMP, PATHEXT, SYSTEMROOT and COMSPEC variables to be defined in environment of calling executables
 # note: assume variable name cannot contain = character
-WIN_EXPORTED := $(foreach v,$(filter TEMP=% PATHEXT=% SYSTEMROOT=% COMSPEC=%,$(join \
+WIN_EXPORTED := $(foreach v,$(filter TMP=% PATHEXT=% SYSTEMROOT=% COMSPEC=%,$(join \
   $(addsuffix =,$(call toupper,$(.VARIABLES))),$(.VARIABLES))),$(word 2,$(subst =, ,$v)))
 
 export $(WIN_EXPORTED)
@@ -31,7 +31,7 @@ export $(WIN_EXPORTED)
 # print prepared environment in verbose mode
 ifdef VERBOSE
 $(info setlocal$(newline)FOR /F "delims==" %%V IN ('SET') DO $(foreach \
-  x,PATH TEMP PATHEXT SYSTEMROOT COMSPEC$(if $(filter-out undefined environment,$(origin \
+  x,PATH TMP PATHEXT SYSTEMROOT COMSPEC$(if $(filter-out undefined environment,$(origin \
   PASS_ENV_VARS)), $(PASS_ENV_VARS)),IF /I NOT "$x"=="%%V") SET "%%V=")
 endif
 
@@ -184,6 +184,6 @@ PRINT_PERCENTS = [$1]
 COLORIZE = $1$(padto)$2
 
 # protect variables from modifications in target makefiles
-$(call CLEAN_BUILD_PROTECT_VARS,WIN_EXPORTED $(sort TEMP PATHEXT SYSTEMROOT COMSPEC $(WIN_EXPORTED)) \
+$(call CLEAN_BUILD_PROTECT_VARS,WIN_EXPORTED $(sort TMP PATHEXT SYSTEMROOT COMSPEC $(WIN_EXPORTED)) \
   DEL_ARGS_LIMIT nonrelpath1 DEL DEL_DIR RM1 RM MKDIR SED SED_EXPR \
   CAT ECHO_LINE ECHO_LINES ECHO WRITE NUL SUPPRESS_CP_OUTPUT CP TOUCH EXECIN DEL_ON_FAIL NO_RPATH)
