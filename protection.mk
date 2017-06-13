@@ -48,7 +48,7 @@ endef
 # $1 - list: AAA=b1;b2=e1;e2 BBB=b1;b2=e1;e2;...
 # $2 - if not empty, then do not trace calls for given macros (for example, if called from trace_calls_template)
 ifdef TRACE
-CLEAN_BUILD_PROTECT_VARS1 = $(if $2,$(CLEAN_BUILD_PROTECT_VARS2),$(trace_calls))
+CLEAN_BUILD_PROTECT_VARS1 = $(if $2,$(CLEAN_BUILD_PROTECT_VARS2),$$(call trace_calls,$1))
 else
 CLEAN_BUILD_PROTECT_VARS1 = $(call CLEAN_BUILD_PROTECT_VARS2,$(foreach v,$1,$(firstword $(subst =, ,$v))))
 endif
@@ -106,12 +106,12 @@ ifdef TRACE
 # trace calls to macros
 # $1 - list: AAA=b1;b2=e1;e2 BBB=b1;b2=e1;e2;...
 # $2 - if not empty, then do not trace calls for given macros (for example, if called from trace_calls_template)
-CLEAN_BUILD_PROTECT_VARS1 = $(if $2,,$(trace_calls))
+CLEAN_BUILD_PROTECT_VARS1 = $(if $2,,$$(call trace_calls,$1))
 
 # trace calls to macros
 # $1 - list of macros in form: AAA=b1;b2=e1;e2 BBB=b1;b2=e1;e2;...
 # $2 - if not empty, then do not trace calls for given macros
-CLEAN_BUILD_PROTECT_VARS = $(CLEAN_BUILD_PROTECT_VARS1)
+CLEAN_BUILD_PROTECT_VARS = $(eval $(CLEAN_BUILD_PROTECT_VARS1))
 
 else # !TRACE
 
