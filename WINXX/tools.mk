@@ -112,18 +112,19 @@ ECHO_LINE = echo.$(subst $(open_brace),^$(open_brace),$(subst $(close_brace),^$(
 # $6 - empty if overwrite file $2, non-empty if append text to it
 # NOTE: ECHO_LINES may be not defined for other OSes, use ECHO in platform-independent code
 # NOTE: total text length must not exceed maximum command line length (8191 characters)
-ECHO_LINES = $(if $6,$3,$4)($(foreach x,$1,$(eval ECHO_LINES_:=$x)($(call ECHO_LINE,$(ECHO_LINES_))) &&) rem.)$(if $2, >$(if $6,>) $2)
+ECHO_LINES = $(if $6,$3,$4)($(foreach x,$1,$(eval ECHO_LINES_:=$(subst \
+  $(comment),$$(comment),$x))($(call ECHO_LINE,$(ECHO_LINES_))) &&) rem.)$(if $2, >$(if $6,>) $2)
 
 # print lines of text (to stdout, for redirecting it to output file)
 # note: each line will be ended with CRLF
 # NOTE: total text length must not exceed maximum command line length (8191 characters)
 ECHO = $(if $(findstring $(newline),$1),$(call ECHO_LINES,$(subst $(newline),$$(empty) ,$(subst \
-  $(comment),$$(comment),$(subst $(space),$$(space),$(subst $$,$$$$,$1))))),$(ECHO_LINE))
+  $(tab),$$(tab),$(subst $(space),$$(space),$(subst $$,$$$$,$1))))),$(ECHO_LINE))
 
 # write lines of text $1 to file $2 by $3 lines at one time
 # NOTE: echoed at one time text length must not exceed maximum command line length (8191 characters)
 WRITE = $(call xargs,ECHO_LINES,$(subst $(newline),$$(empty) ,$(subst \
-  $(comment),$$(comment),$(subst $(space),$$(space),$(subst $$,$$$$,$1)))),$3,$2,$(QUIET),,,$(newline))
+  $(tab),$$(tab),$(subst $(space),$$(space),$(subst $$,$$$$,$1)))),$3,$2,$(QUIET),,,$(newline))
 
 # null device for redirecting output into
 NUL := NUL
