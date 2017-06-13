@@ -22,7 +22,11 @@ $(error cygwin gnu make is used for WINDOWS build - this configuration is not su
 endif
 
 # Windows needs TEMP, PATHEXT, SYSTEMROOT and COMSPEC variables to be defined in environment of calling executables
-export $(foreach v,$(.VARIABLES),$(if $(filter TEMP PATHEXT SYSTEMROOT COMSPEC,$(call toupper,$v)),$v))
+# note: assume variable name cannot contain = character
+WIN_EXPORTED := $(foreach v,$(filter TEMP=% PATHEXT=% SYSTEMROOT=% COMSPEC=%,$(join \
+  $(addsuffix =,$(call toupper,$(.VARIABLES))),$(.VARIABLES))),$(word 2,$(subst =, ,$v)))
+
+export $(WIN_EXPORTED)
 
 # print prepared environment in verbose mode
 ifdef VERBOSE
@@ -179,9 +183,6 @@ PRINT_PERCENTS = [$1]
 COLORIZE = $1$(padto)$2
 
 # protect variables from modifications in target makefiles
-ifdef CLEAN_BUILD_PROTECT_VARS
-$(call CLEAN_BUILD_PROTECT_VARS,$(sort $(foreach v,$(.VARIABLES),$(if $(filter \
-  TEMP PATHEXT SYSTEMROOT COMSPEC,$(call toupper,$v)),$v)) TEMP PATHEXT SYSTEMROOT COMSPEC) \
+$(call CLEAN_BUILD_PROTECT_VARS,WIN_EXPORTED $(sort TEMP PATHEXT SYSTEMROOT COMSPEC $(WIN_EXPORTED)) \
   DEL_ARGS_LIMIT nonrelpath1 DEL DEL_DIR RM1 RM MKDIR SED SED_EXPR \
   CAT ECHO_LINE ECHO_LINES ECHO WRITE NUL SUPPRESS_CP_OUTPUT CP TOUCH EXECIN DEL_ON_FAIL NO_RPATH)
-endif
