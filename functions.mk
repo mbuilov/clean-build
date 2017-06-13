@@ -58,6 +58,7 @@ trace_level.:=
 # $2 - override or <empty>
 # $3 - names of variables to dump before traced call
 # $4 - names of variables to dump after traced call
+# $5 - if non-empty, then forcibly protect new values of traced macros
 # note: pass 0 as second parameter to CLEAN_BUILD_PROTECT_VARS1 to not try to trace already traced macro
 define trace_calls_template
 $(empty)
@@ -75,7 +76,7 @@ $2 $1 = $$(warning $$(trace_level.) $$$$($1) {)$$(dump_args)$$(call dump,$3,,$1:
   dump,$4,,$1: )$$(eval trace_level.:=$$(wordlist 2,$$(words $$(trace_level.)),x $$(trace_level.)))$$(info end: } $$$$($1))
 endif
 endif
-$(call CLEAN_BUILD_PROTECT_VARS1,$1 $1.t_,0)
+$(call CLEAN_BUILD_PROTECT_VARS1,$1.t_ $(if $5,$1,$(if $(filter $1,$(CLEAN_BUILD_PROTECTED_VARS)),$1)),0)
 endef
 
 # replace _dump_params_ with: $(1),$(2),$(3...)
@@ -85,6 +86,7 @@ $(eval define trace_calls_template$(newline)$(subst _dump_params_,$$$$$(open_bra
 # replace macros with their trace equivalents
 # $1 - traced macros in form:
 #   name=b1;b2;b3=e1;e2
+# $2 - if non-empty, then forcibly protect new values of traced macros
 # where
 #   name     - macro name
 #   b1;b2;b3 - names of variables to dump before traced call
@@ -93,7 +95,7 @@ $(eval define trace_calls_template$(newline)$(subst _dump_params_,$$$$$(open_bra
 trace_calls = $(eval $(foreach f,$1,$(foreach v,$(firstword $(subst =, ,$f)),$(if $(filter-out undefined,$(origin $v)),$(if \
   $(findstring ^.$$(warning $$(trace_level.) $$$$($v) {),^.$(value $v)),,$(call trace_calls_template,$v,$(if \
   $(findstring "command line",$(origin $v))$(findstring "override",$(origin $v)),override),$(subst \
-  ;, ,$(word 2,$(subst =, ,$f))),$(subst ;, ,$(word 3,$(subst =, ,$f)))))))))
+  ;, ,$(word 2,$(subst =, ,$f))),$(subst ;, ,$(word 3,$(subst =, ,$f))),$2))))))
 
 # replace spaces with ?
 unspaces = $(subst $(space),?,$1)

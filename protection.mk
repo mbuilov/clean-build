@@ -21,12 +21,14 @@ else
 TRACE:=
 endif
 
+# reset - this macro is checked in trace_calls function in $(CLEAN_BUILD_DIR)/functions.mk
+CLEAN_BUILD_PROTECTED_VARS:=
+
 ifdef MCHECK
 
 # reset
 CLEAN_BUILD_OVERRIDDEN_VARS:=
 CLEAN_BUILD_NEED_TAIL_CODE:=
-CLEAN_BUILD_PROTECTED_VARS:=
 
 # save value of variable $1 to $1.v
 CLEAN_BUILD_ENCODE_VAR_VALUE = $(origin $1):$(if $(filter-out undefined,$(origin $1)),$(flavor $1):$(value $1))
@@ -48,7 +50,7 @@ endef
 # $1 - list: AAA=b1;b2=e1;e2 BBB=b1;b2=e1;e2;...
 # $2 - if not empty, then do not trace calls for given macros (for example, if called from trace_calls_template)
 ifdef TRACE
-CLEAN_BUILD_PROTECT_VARS1 = $(if $2,$(CLEAN_BUILD_PROTECT_VARS2),$$(call trace_calls,$1))
+CLEAN_BUILD_PROTECT_VARS1 = $(if $2,$(CLEAN_BUILD_PROTECT_VARS2),$$(call trace_calls,$1,1))
 else
 CLEAN_BUILD_PROTECT_VARS1 = $(call CLEAN_BUILD_PROTECT_VARS2,$(foreach v,$1,$(firstword $(subst =, ,$v))))
 endif
@@ -106,7 +108,7 @@ ifdef TRACE
 # trace calls to macros
 # $1 - list: AAA=b1;b2=e1;e2 BBB=b1;b2=e1;e2;...
 # $2 - if not empty, then do not trace calls for given macros (for example, if called from trace_calls_template)
-CLEAN_BUILD_PROTECT_VARS1 = $(if $2,,$$(call trace_calls,$1))
+CLEAN_BUILD_PROTECT_VARS1 = $(if $2,,$$(call trace_calls,$1,))
 
 # trace calls to macros
 # $1 - list of macros in form: AAA=b1;b2=e1;e2 BBB=b1;b2=e1;e2;...
