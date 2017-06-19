@@ -393,7 +393,7 @@ APP_CFLAGS := $(OS_APP_CFLAGS)
 
 # application-level defines
 # note: some external sources want WIN32 to be defined
-OS_APP_DEFINES := WIN32 CRT_SECURE_NO_DEPRECATE _CRT_SECURE_NO_WARNINGS
+OS_APP_DEFINES := WIN32 _CRT_SECURE_NO_DEPRECATE _CRT_SECURE_NO_WARNINGS
 
 ifneq (,$(call is_less,$(VS_VER),14))
 OS_APP_DEFINES += inline=__inline
