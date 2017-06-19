@@ -14,6 +14,8 @@ MAKEFLAGS += -O
 # shell must be cmd.exe, not /bin/sh if building under cygwin
 ifeq (environment,$(origin COMSPEC))
 SHELL := $(COMSPEC)
+else ifneq (cmd.exe,$(notdir $(SHELL)))
+SHELL := $(SystemRoot)\System32\cmd.exe
 endif
 
 ifneq (,$(filter /cygdrive/%,$(abspath .)))
