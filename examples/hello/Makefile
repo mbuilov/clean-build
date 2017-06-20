@@ -20,7 +20,7 @@ include $(dir $(lastword $(MAKEFILE_LIST)))project.mk
 include $(MTOP)/parallel.mk
 
 # clean-build provides default rule for distclean goal
-ifeq (,$(filter distclean,$(MAKECMDGOALS)))
+ifneq (distclean,$(MAKECMDGOALS))
 
 # list of sub-makefiles
 TO_MAKE := hello.mk

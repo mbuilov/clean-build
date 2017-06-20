@@ -361,8 +361,7 @@ $(DEF_TAIL_CODE_EVAL)
 endef
 
 # product version in form major.minor or major.minor.patch
-#  override PRODUCT_VER := 1.0.0
-#  note: this is also default version for any built module (exe, dll or driver)
+# note: this is also default version for any built module (exe, dll or driver)
 PRODUCT_VER := 0.0.1
 
 # reset variables in from $(BLD_TARGETS) list
