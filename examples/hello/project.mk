@@ -1,3 +1,9 @@
+#----------------------------------------------------------------------------------
+# clean-build - non-recursive build system based on GNU Make
+# Copyright (C) 2015-2017 Michael M. Builov, https://github.com/mbuilov/clean-build
+# Licensed under GPL version 2 or any later version, see COPYING
+#----------------------------------------------------------------------------------
+
 # the only case when TOP is defined - after completing project configuration
 ifneq (override,$(origin TOP))
 
@@ -46,7 +52,7 @@ MTOP := $(abspath $(TOP)/../..)
 #  - together with $(CONFIG) file, if it was generated under $(BUILD)
 #
 # Note: define CONFIG as recursive variable
-#  - for the case when BUILD is defined in command line also as recursive variable
+#  - for the case when BUILD is redefined in next included $(OVERRIDES) makefile
 CONFIG = $(BUILD)/conf.mk
 
 # adjust project defaults
