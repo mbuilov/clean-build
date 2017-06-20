@@ -584,7 +584,7 @@ FILTER_SDEPS = $(foreach d,$1,$(call FILTER_SDEPS1,$(subst |, ,$d)))
 CMN_MCL = $(call $2,$(OBJ_DIR)/,$(sort $(filter $(SRC),$? $(call FILTER_SDEPS,$(SDEPS)))))
 
 define MULTI_COMPILERS_TEMPLATE
-# $$1 - target EXE, DLL or LIB, target-specific: SRC, OBJ_DIR, $$2 - objects (of precompiled headers)
+# $$1 - target EXE, DLL or LIB, $$2 - objects (of precompiled headers), target-specific: SRC, OBJ_DIR
 LIB_$v_LD = $$(call CMN_MCL,$$1,CMN_$vMCL)$$(call \
   LIB_$v_LD1,$$1,$$2 $$(addprefix $$(OBJ_DIR)/,$$(addsuffix $(OBJ_SUFFIX),$$(basename $$(notdir $$(SRC))))))
 EXE_$v_LD = $$(call CMN_MCL,$$1,CMN_$vMCL)$$(call \
@@ -776,16 +776,16 @@ CMN_MKCL2 = $(call CMN_MKCL3,$1,$(PCH),$(filter-out $(WITH_PCH),$2),$(filter-out
 # $2 - sources
 CMN_MKCL1 = $(call CMN_MKCL2,$1,$(filter %.c,$2),$(filter %.cpp,$2))
 
-# $1 - target KLIB, DRV or KDLL
-# $2 - objects
-# target-specific: SRC, SDEPS
-CMN_MKCL = $(call CMN_MKCL1,$(dir $(firstword $2)),$(sort $(filter $(SRC),$? $(call FILTER_SDEPS,$(SDEPS)))))
+# $1 - target DRV, KDLL or KLIB
+# target-specific: SRC, SDEPS, OBJ_DIR
+CMN_MKCL = $(call CMN_MKCL1,$(OBJ_DIR)/,$(sort $(filter $(SRC),$? $(call FILTER_SDEPS,$(SDEPS)))))
 
-# $1 - target KLIB, DRV or KDLL
-# $2 - objects
-KLIB_R_LD = $(CMN_MKCL)$(KLIB_R_LD1)
-DRV_R_LD  = $(CMN_MKCL)$(DRV_R_LD1)
-KDLL_R_LD = $(CMN_MKCL)$(KDLL_R_LD1)
+# $1 - target DRV, KDLL or KLIB
+# $2 - objects (of precompiled headers)
+# target-specific: SRC, OBJ_DIR
+KLIB_R_LD = $(CMN_MKCL)$(call KLIB_R_LD1,$1,$2 $(addprefix $(OBJ_DIR)/,$(addsuffix $(OBJ_SUFFIX),$(basename $(notdir $(SRC))))))
+DRV_R_LD  = $(CMN_MKCL)$(call DRV_R_LD1,$1,$2 $(addprefix $(OBJ_DIR)/,$(addsuffix $(OBJ_SUFFIX),$(basename $(notdir $(SRC))))))
+KDLL_R_LD = $(CMN_MKCL)$(call KDLL_R_LD1,$1,$2 $(addprefix $(OBJ_DIR)/,$(addsuffix $(OBJ_SUFFIX),$(basename $(notdir $(SRC))))))
 
 # $1 - target pch object
 # $2 - pch-source
