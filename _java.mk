@@ -179,9 +179,9 @@ Implementation-Vendor: $7
 endef
 
 # tools colors
-JAR_COLOR    := [01;33m
-JAVAC_COLOR  := [01;36m
-SCALAC_COLOR := [01;36m
+JAR_COLOR    := [1;33m
+JAVAC_COLOR  := [1;36m
+SCALAC_COLOR := [1;36m
 
 # this code is normally evaluated at end of target makefile
 define DEFINE_JAVA_TARGETS_EVAL
