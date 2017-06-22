@@ -177,13 +177,17 @@ show_dll_path_end = $(newline)@echo endlocal
 # there is no support for embedding dll search path into executables or dlls
 NO_RPATH := 1
 
-# windows terminal do not supports changing output colors
+# windows terminal do not supports ANSI color escape sequences
 # note: override PRINT_PERCENTS from $(CLEAN_BUILD_DIR)/defs.mk
+ifeq (,$(filter ansi-colors,$(.FEATURES)))
 PRINT_PERCENTS = [$1]
+endif
 
-# windows terminal do not supports changing output colors
+# windows terminal do not supports ANSI color escape sequences
 # note: override COLORIZE from $(CLEAN_BUILD_DIR)/defs.mk
+ifeq (,$(filter ansi-colors,$(.FEATURES)))
 COLORIZE = $1$(padto)$2
+endif
 
 # protect variables from modifications in target makefiles
 $(call CLEAN_BUILD_PROTECT_VARS,WIN_EXPORTED $(sort TMP PATHEXT SYSTEMROOT COMSPEC $(WIN_EXPORTED)) \
