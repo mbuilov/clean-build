@@ -339,19 +339,19 @@ show_with_dll_path = $(info $(if $2,$(DLL_PATH_VAR)="$($(DLL_PATH_VAR))" )$(fore
 show_dll_path_end:=
 
 # tools colors
-GEN_COLOR   := [01;32m
-MGEN_COLOR  := [01;32m
-CP_COLOR    := [00;36m
-RM_COLOR    := [01;31m
-DEL_COLOR   := [01;31m
-LN_COLOR    := [00;36m
-MKDIR_COLOR := [00;36m
-TOUCH_COLOR := [00;36m
-CAT_COLOR   := [00;32m
+GEN_COLOR   := [1;32m
+MGEN_COLOR  := [1;32m
+CP_COLOR    := [0;36m
+RM_COLOR    := [1;31m
+DEL_COLOR   := [1;31m
+LN_COLOR    := [0;36m
+MKDIR_COLOR := [0;36m
+TOUCH_COLOR := [0;36m
+CAT_COLOR   := [0;32m
 
 # colorize percents
 # note: $(CLEAN_BUILD_DIR)/WINXX/tools.mk redefines: PRINT_PERCENTS = [$1]
-PRINT_PERCENTS = [00;34m[[01;34m$1[00;34m][0m
+PRINT_PERCENTS = [0;34m[[1;34m$1[0;34m][0m
 
 # print in color short name of called tool $1 with argument $2
 # $1 - tool
@@ -846,7 +846,7 @@ include $(OSDIR)/$(OS)/tools.mk
 # if $(CONFIG) was included, show it
 ifndef VERBOSE
 ifneq (,$(filter $(CONFIG),$(abspath $(MAKEFILE_LIST))))
-CONF_COLOR := [01;32m
+CONF_COLOR := [1;32m
 $(info $(call PRINT_PERCENTS,use)$(call COLORIZE,CONF,$(CONFIG)))
 endif
 endif
