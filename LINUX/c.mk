@@ -306,6 +306,10 @@ KLIB_R_ASM = $(call SUP,ASM,$2)$(YASMC) $(YASM_FLAGS) $(ASMFLAGS) -o $1 $2
 BISON = $(call SUP,BISON,$2)$(BISONC) -o $1 -d --fixed-output-files $(abspath $2)
 FLEX  = $(call SUP,FLEX,$2)$(FLEXC) -o$1 $2
 
+# tools colors
+BISON_COLOR := $(GEN_COLOR)
+FLEX_COLOR  := $(GEN_COLOR)
+
 # compile with precompiled headers by default
 NO_PCH:=
 
@@ -419,6 +423,12 @@ $1/$(notdir $2): $2 $3 | $1
 	$$(call SUP,CP,$$@)cp -f$(if $(VERBOSE),v) $$< $$@
 endef
 
+# defines, symbols and optional architecture for the driver
+# note: may be defined in project configuration makefile
+EXTRA_DRV_DEFINES:=
+KBUILD_EXTRA_SYMBOLS:=
+DRV_ARCH:=
+
 # $1 - target file: $(call FORM_TRG,DRV,$v)
 # $2 - sources:     $(TRG_SRC)
 # $3 - sdeps:       $(TRG_SDEPS)
@@ -437,7 +447,7 @@ $4/Makefile: | $4
 	$(QUIET)echo "EXTRA_CFLAGS += $(addprefix -D,$(EXTRA_DRV_DEFINES)) $(addprefix -I,$(TRG_INCLUDE))" >> $$@
 $4/$(DRV_PREFIX)$(DRV)$(DRV_SUFFIX): $(addprefix $4/,$(notdir $2) $5) | $4/Makefile $$(ORDER_DEPS)
 	+$$(call SUP,KBUILD,$$@)$(KMAKE) V=$(if $(VERBOSE),1,0) CC="$(KCC)" LD="$(KLD)" AR="$(AR)" $(addprefix \
-  KBUILD_EXTRA_SYMBOLS=,$(KBUILD_EXTRA_SYMBOLS)) -C $(MODULES_PATH) M=$$(patsubst %/,%,$$(dir $$@)) $(addprefix ARCH=,$(ARCH))
+  KBUILD_EXTRA_SYMBOLS=,$(KBUILD_EXTRA_SYMBOLS)) -C $(MODULES_PATH) M=$$(patsubst %/,%,$$(dir $$@)) $(addprefix ARCH=,$(DRV_ARCH))
 $1: $4/$(DRV_PREFIX)$(DRV)$(DRV_SUFFIX)
 	$$(call SUP,CP,$$@)cp -f$(if $(VERBOSE),v) $$< $$@
 endef
@@ -467,5 +477,7 @@ $(call CLEAN_BUILD_PROTECT_VARS,INST_RPATH CC CXX LD AR TCC TCXX TLD TAR KCC KLD
   EXE_R_CXX EXE_R_CC EXE_P_CXX EXE_P_CC LIB_R_CXX LIB_R_CC LIB_P_CXX LIB_P_CC DLL_R_CXX DLL_R_CC LIB_D_CXX LIB_D_CC \
   PCH_EXE_R_CXX PCH_EXE_R_CC PCH_EXE_P_CXX PCH_EXE_P_CC PCH_LIB_R_CXX PCH_LIB_R_CC PCH_LIB_P_CXX PCH_LIB_P_CC \
   PCH_DLL_R_CXX PCH_DLL_R_CC PCH_LIB_D_CXX PCH_LIB_D_CC OS_KRN_CFLAGS KRN_CFLAGS OS_KRN_DEFINES KRN_DEFINES KLIB_PARAMS \
-  KLIB_R_CC PCH_KLIB_R_CC KLIB_R_ASM BISON FLEX NO_PCH PCH_TEMPLATE1 PCH_TEMPLATE ADD_WITH_PCH2 ADD_WITH_PCH1 ADD_WITH_PCH \
-  EXE_AUX_TEMPLATE2=t;v DLL_AUX_TEMPLATE2=t;v MOD_AUX_TEMPLATE1=t MOD_AUX_TEMPLATE=t COPY_FILE_RULE DRV_TEMPLATE1 DRV_TEMPLATE=DRV;LIB_DIR;KLIBS)
+  KLIB_R_CC PCH_KLIB_R_CC KLIB_R_ASM BISON FLEX BISON_COLOR FLEX_COLOR NO_PCH \
+  PCH_TEMPLATE1 PCH_TEMPLATE ADD_WITH_PCH2 ADD_WITH_PCH1 ADD_WITH_PCH \
+  EXE_AUX_TEMPLATE2=t;v DLL_AUX_TEMPLATE2=t;v MOD_AUX_TEMPLATE1=t MOD_AUX_TEMPLATE=t \
+  COPY_FILE_RULE EXTRA_DRV_DEFINES KBUILD_EXTRA_SYMBOLS DRV_ARCH DRV_TEMPLATE1 DRV_TEMPLATE=DRV;LIB_DIR;KLIBS;)
