@@ -22,13 +22,6 @@ else
 SEQ_BUILD:=
 endif
 
-# dependencies generation supported only for non-multisource (sequential) builds
-# note: do not try to trace calls to NO_DEPS, pass 0 as second parameter to CLEAN_BUILD_PROTECT_VARS
-ifndef SEQ_BUILD
-NO_DEPS := 1
-$(call CLEAN_BUILD_PROTECT_VARS,NO_DEPS,0)
-endif
-
 include $(CLEAN_BUILD_DIR)/WINXX/auto_c.mk
 
 # yasm/flex/bison compilers
@@ -215,7 +208,7 @@ endif
 
 # standard defines
 # for example, WINVER_DEFINES = WINVER=0x0501 _WIN32_WINNT=0x0501
-OS_PREDEFINES := $(WINVARIANT) $(WINVER_DEFINES)
+OS_PREDEFINES := $(WINVER_DEFINES)
 
 # make version string: maj.min.patch -> maj.min
 MK_MAJ_MIN_VER = $(subst $(space),.,$(wordlist 1,2,$(subst ., ,$1) 0 0))
@@ -361,7 +354,7 @@ $(eval $(foreach v,R $(VARIANTS_FILTER),$(DLL_LD_TEMPLATE)))
 # flags for application-level C-compiler
 OS_APP_CFLAGS := /X /GF /W3 /EHsc
 ifdef DEBUG
-OS_APP_CFLAGS += /Od /Zi /RTCc /RTCsu /GS
+OS_APP_CFLAGS += /Od /RTCc /RTCsu /GS
 else
 OS_APP_CFLAGS += /Ox /GL /Gy
 endif
@@ -387,14 +380,16 @@ OS_APP_CFLAGS += /D_ALLOW_RTCc_IN_STL
 endif
 endif
 
-ifdef SEQ_BUILD
-
-# option for parallel builds, starting from Visual Studio 2013
+# option /Zi is used to store debug info in one .pdb for all compiled sources
+# for parallel builds, it's needed to synchronize access to this .pdb
+# if FORCE_SYNC_PDB is defined (as /FS, starting with Visual Studio 2013),
+# then may use /Zi, else - use old /Z7 to store debug info in each .obj
+# note: no debug info in release build if /FS option is not supported
 ifdef FORCE_SYNC_PDB
-OS_APP_CFLAGS += $(FORCE_SYNC_PDB) #/FS
+OS_APP_CFLAGS += $(FORCE_SYNC_PDB) /Zi
+else ifdef DEBUG
+OS_APP_CFLAGS += /Z7
 endif
-
-endif # SEQ_BUILD
 
 # APP_CFLAGS may be overridden in project makefile
 APP_CFLAGS := $(OS_APP_CFLAGS)
@@ -427,6 +422,14 @@ CMN_SCL  = $(CMN_CL1) /MT$(if $(DEBUG),d)
 CMN_RUCL = $(CMN_RCL) /DUNICODE /D_UNICODE
 CMN_SUCL = $(CMN_SCL) /DUNICODE /D_UNICODE
 
+# stip-off names of compiled sources
+# $1 - compiler with options
+# $2 - target object file (unused)
+# $3 - sources
+# note: send compiler output to stderr
+WRAP_COMPILER = (($1 2>&1 && echo COMPILATION_OK >&2) | findstr /V /X /L "$(notdir \
+  $3)") 3>&2 2>&1 1>&3 | findstr /B /L COMPILATION_OK >NUL
+
 # $(SED) expression to match C compiler messages about included files
 INCLUDING_FILE_PATTERN_en := Note: including file:
 # utf8 "Примечание: включение файла:"
@@ -447,46 +450,34 @@ INCLUDING_FILE_PATTERN := $(INCLUDING_FILE_PATTERN_en)
 UDEPS_INCLUDE_FILTER := $(subst \,\\,$(VSINC) $(UMINC))
 
 # $(SED) script to generate dependencies file from C compiler output
+# $1 - compiler with options (unused)
 # $2 - target object file
 # $3 - source
-# $4 - $(basename $2).d
-# $5 - prefixes of system includes to filter out
+# $4 - name of variale with prefixes of system includes to filter out (UDEPS_INCLUDE_FILTER/KDEPS_INCLUDE_FILTER)
 
-# s/\x0d//;                                - fix line endings - remove CR
-# /^$(notdir $3)$$/d;                      - delete compiled file name printed by cl, start new circle
-# /^$(INCLUDING_FILE_PATTERN) /!{p;d;}     - print all lines not started with $(INCLUDING_FILE_PATTERN) and space, start new circle
-# s/^$(INCLUDING_FILE_PATTERN)  *//;       - strip-off leading $(INCLUDING_FILE_PATTERN) with spaces
-# $(subst ?, ,$(foreach x,$5,\@^$x.*@Id;)) - delete lines started with system include paths, start new circle
-# s/ /\\ /g;                               - escape spaces in included file path
-# s@.*@&:\n$2: &@;w $4                     - make dependencies, then write to generated dep-file
+# s/\x0d//;                                   - fix line endings - remove CR
+# /^$(notdir $3)$$/d;                         - delete compiled file name printed by cl, start new circle
+# /^$(INCLUDING_FILE_PATTERN) /!{p;d;}        - print all lines not started with $(INCLUDING_FILE_PATTERN) and space, start new circle
+# s/^$(INCLUDING_FILE_PATTERN)  *//;          - strip-off leading $(INCLUDING_FILE_PATTERN) with spaces
+# $(subst ?, ,$(foreach x,$($4),\@^$x.*@Id;)) - delete lines started with system include paths, start new circle
+# s/ /\\ /g;                                  - escape spaces in included file path
+# s@.*@&:\n$2: &@;w $(basename $2).d          - make dependencies, then write to generated dep-file
 
 SED_DEPS_SCRIPT = \
 -e "s/\x0d//;/^$(notdir $3)$$/d;/^$(INCLUDING_FILE_PATTERN) /!{p;d;}" \
--e "s/^$(INCLUDING_FILE_PATTERN)  *//;$(subst ?, ,$(foreach x,$5,\@^$x.*@Id;))s/ /\\ /g;s@.*@&:\n$2: &@;w $4"
+-e "s/^$(INCLUDING_FILE_PATTERN)  *//;$(subst ?, ,$(foreach x,$($4),\@^$x.*@Id;))s/ /\\ /g;s@.*@&:\n$2: &@;w $(basename $2).d"
 
-# WRAP_COMPILER - call compiler and auto-generate dependencies
-WRAP_COMPILER:=
-
+# call compiler and auto-generate dependencies
 # $1 - compiler with options
 # $2 - target object file
 # $3 - source
-# $4 - $(basename $2).d
-# $5 - prefixes of system includes
+# $4 - name of variale with prefixes of system includes to filter out
 # note: send compiler output to stderr
-ifndef NO_DEPS
-ifdef SEQ_BUILD
-WRAP_COMPILER = (($1 /showIncludes 2>&1 && set /p ="COMPILATION_OK" >&2 <NUL) | \
+ifdef NO_DEPS
+WRAP_COMPILER_DEPS = $(WRAP_COMPILER)
+else
+WRAP_COMPILER_DEPS = (($1 /showIncludes 2>&1 && set /p ="COMPILATION_OK" >&2 <NUL) | \
   ($(SED) -n $(SED_DEPS_SCRIPT) 2>&1 && set /p ="_SED_OK" >&2 <NUL)) 3>&2 2>&1 1>&3 | findstr /B /L COMPILATION_OK_SED_OK >NUL
-endif
-endif
-
-ifndef WRAP_COMPILER
-# if not generating auto-dependencies, just stip-off names of compiled sources
-# $1 - compiler with options
-# $3 - sources
-# note: send compiler output to stderr
-WRAP_COMPILER = (($1 2>&1 && echo COMPILATION_OK >&2) | findstr /V /X /L "$(notdir \
-  $3)") 3>&2 2>&1 1>&3 | findstr /B /L COMPILATION_OK >NUL
 endif
 
 # override template defined in $(CLEAN_BUILD_DIR)/_c.mk
@@ -502,16 +493,16 @@ endif
 ifdef SEQ_BUILD
 
 # sequential build: don't add /MP option to Visual Studio C compiler
-# note: auto-dependencies generation available only in sequential mode - /MP conflicts with /showIncludes
-# note: precompiled headers are not supported in this mode (but support may be added later)
+# note: auto-dependencies generation is available only in sequential mode - /MP conflicts with /showIncludes
+# note: precompiled headers are not supported in sequential mode (but support may be added later)
 
 # common C/C++ compiler
 # $1 - target object file
 # $2 - source
 # $3 - compiler
 # target-specific: TMD, CFLAGS, CXXFLAGS
-CMN_CC = $(call SUP,$(TMD)CC,$2)$(call WRAP_COMPILER,$(call $3,$(dir $1),$2,$(CFLAGS)),$1,$2,$(basename $1).d,$(UDEPS_INCLUDE_FILTER))
-CMN_CXX = $(call SUP,$(TMD)CXX,$2)$(call WRAP_COMPILER,$(call $3,$(dir $1),$2,$(CXXFLAGS)),$1,$2,$(basename $1).d,$(UDEPS_INCLUDE_FILTER))
+CMN_CC = $(call SUP,$(TMD)CC,$2)$(call WRAP_COMPILER_DEPS,$(call $3,$(dir $1),$2,$(CFLAGS)),$1,$2,UDEPS_INCLUDE_FILTER)
+CMN_CXX = $(call SUP,$(TMD)CXX,$2)$(call WRAP_COMPILER_DEPS,$(call $3,$(dir $1),$2,$(CXXFLAGS)),$1,$2,UDEPS_INCLUDE_FILTER)
 
 # define compilers for different target variants
 # $$1 - target object/exe/dll/lib, $$2 - source for compilers, objects for linkers
@@ -534,7 +525,7 @@ else # !SEQ_BUILD
 
 # multi-source build: build multiple sources at one CL call - using /MP option
 # note: auto-dependencies generation is not supported in this mode - /MP conflicts with /showIncludes
-# note: there is support for precompiled headers in this mode
+# note: precompiled headers are supported in this mode
 
 # $1 - sources
 # $2 - outdir/
@@ -601,15 +592,33 @@ DLL_$v_LD = $$(call CMN_MCL,$$1,CMN_$vMCL)$$(call \
   DLL_$v_LD1,$$1,$$2 $$(addprefix $$(OBJ_DIR)/,$$(addsuffix $(OBJ_SUFFIX),$$(basename $$(notdir $$(SRC))))))
 # $$1 - target pch object, $$2 - pch-source, $$3 - pch header name
 # target-specific: TMD, CFLAGS, CXXFLAGS
-PCH_$v_CC  = $$(call SUP,$$(TMD)PCHCC,$$2)$$(call WRAP_COMPILER,$$(call CMN_$vCL,$$(dir $$1),$$2,/Yc$$3 /Yl$$(basename \
-  $$(notdir $$2)) /Fp$$(dir $$1)$$(basename $$(notdir $$3))_c.pch $$(CFLAGS)),$$1,$$2,$$(basename $$1).d,$(UDEPS_INCLUDE_FILTER))
-PCH_$v_CXX = $$(call SUP,$$(TMD)PCHCXX,$$2)$$(call WRAP_COMPILER,$$(call CMN_$vCL,$$(dir $$1),$$2,/Yc$$3 /Yl$$(basename \
-  $$(notdir $$2)) /Fp$$(dir $$1)$$(basename $$(notdir $$3))_cpp.pch $$(CXXFLAGS)),$$1,$$2,$$(basename $$1).d,$(UDEPS_INCLUDE_FILTER))
+PCH_$v_CC  = $$(call SUP,$$(TMD)PCHCC,$$2)$$(call WRAP_COMPILER_DEPS,$$(call CMN_$vCL,$$(dir $$1),$$2,/Yc$$3 /Yl$$(basename \
+  $$(notdir $$2)) /Fp$$(dir $$1)$$(basename $$(notdir $$3))_c.pch $$(CFLAGS)),$$1,$$2,UDEPS_INCLUDE_FILTER)
+PCH_$v_CXX = $$(call SUP,$$(TMD)PCHCXX,$$2)$$(call WRAP_COMPILER_DEPS,$$(call CMN_$vCL,$$(dir $$1),$$2,/Yc$$3 /Yl$$(basename \
+  $$(notdir $$2)) /Fp$$(dir $$1)$$(basename $$(notdir $$3))_cpp.pch $$(CXXFLAGS)),$$1,$$2,UDEPS_INCLUDE_FILTER)
 $(empty)
 endef
 $(eval $(foreach v,R $(VARIANTS_FILTER),$(MULTI_COMPILERS_TEMPLATE)))
 
+# tools colors
+MCC_COLOR    := $(CC_COLOR)
+MCXX_COLOR   := $(CXX_COLOR)
+MPCC_COLOR   := $(MCC_COLOR)
+MPCXX_COLOR  := $(MCXX_COLOR)
+TMCC_COLOR   := $(MCC_COLOR)
+TMCXX_COLOR  := $(MCXX_COLOR)
+TMPCC_COLOR  := $(MPCC_COLOR)
+TMPCXX_COLOR := $(MPCXX_COLOR)
+
 endif # !SEQ_BUILD
+
+# tools colors
+LINK_COLOR   := $(LD_COLOR)
+XLINK_COLOR  := $(LD_COLOR)
+LIB_COLOR    := $(AR_COLOR)
+TLINK_COLOR  := $(LINK_COLOR)
+TXLINK_COLOR := $(XLINK_COLOR)
+TLIB_COLOR   := $(LIB_COLOR)
 
 ifdef DRIVERS_SUPPORT
 
@@ -629,10 +638,17 @@ DEF_KLIB_LDFLAGS := $(if $(DEBUG),,/LTCG)
 KLIB_R_LD1 = $(call SUP,KLIB,$1)$(WKLD) /lib /nologo /OUT:$(call ospath,$1 $2) $(DEF_KLIB_LDFLAGS) $(LDFLAGS) >&2
 
 DEF_DRV_LDFLAGS = \
-  /kernel /INCREMENTAL:NO $(if $(DEBUG),/DEBUG,/RELEASE /LTCG /OPT:REF) /DRIVER /FULLBUILD \
+  /INCREMENTAL:NO $(if $(DEBUG),/DEBUG,/RELEASE /LTCG /OPT:REF) /DRIVER /FULLBUILD \
   /NODEFAULTLIB /SAFESEH:NO /MANIFEST:NO /MERGE:_PAGE=PAGE /MERGE:_TEXT=.text /MERGE:.rdata=.text \
   /SECTION:INIT,d /ENTRY:DriverEntry$(if $(KCPU:%64=),@8) /ALIGN:0x40 /BASE:0x10000 /STACK:0x40000,0x1000 \
   /MACHINE:$(if $(KCPU:%64=),x86,x64) /SUBSYSTEM:NATIVE,$(SUBSYSTEM_KVER)
+
+ifdef WDK
+ifneq (,$(call is_less,10,$(VS_VER)))
+# >= Visual Studio 2012
+DEF_DRV_LDFLAGS += /kernel
+endif
+endif
 
 # common parts of linker options for built DRV or KDLL
 # $1 - target EXE or DLL
@@ -664,19 +680,31 @@ KDLL_R_LD1 = $(call SUP,KLINK,$1)$(call WRAP_DLL_LINKER,$(KDLL_NO_EXPORTS),$1,$(
   WRAP_LINKER,$(WKLD) /nologo /DLL $(CMN_KLIBS) $(if $(KDLL_NO_EXPORTS),,/IMPLIB:$(call ospath,$(IMP))) $(LDFLAGS)))
 
 # flags for kernel-level C-compiler
-OS_KRN_CFLAGS := /kernel -cbstring /X /GF /W3 /GR- /Gz /Zl /Oi /Zi /Gm- /Zp8 /Gy /Zc:wchar_t-
+OS_KRN_CFLAGS := -cbstring /X /GF /W3 /GR- /Gz /Zl /Oi /Gm- /Zp8 /Gy /Zc:wchar_t- /typedil-
 ifdef DEBUG
-OS_KRN_CFLAGS += /GS /Oy- /Od $(if $(KCPU:%64=),,-d2epilogunwind) /d1import_no_registry /d2Zi+
+OS_KRN_CFLAGS += /GS /Oy- /Od
 else
-OS_KRN_CFLAGS += /GS- /Oy /d1nodatetime
+OS_KRN_CFLAGS += /GS- /Oy
 endif
+
+ifdef WDK
 
 ifneq (,$(call is_less,10,$(VS_VER)))
 # >= Visual Studio 2012
+
+OS_KRN_CFLAGS := $(filter-out /typedil-,$(OS_KRN_CFLAGS)) /kernel
+
+ifdef DEBUG
+OS_KRN_CFLAGS += $(if $(KCPU:%64=),,-d2epilogunwind) /d1import_no_registry /d2Zi+
+else
+OS_KRN_CFLAGS += /d1nodatetime
+endif
+
 ifdef DEBUG
 OS_KRN_CFLAGS += /sdl # Enable additional security checks
 endif
-endif
+
+endif # Visual Studio 2012
 
 ifneq (,$(call is_less,11,$(VS_VER)))
 # >= Visual Studio 2013
@@ -685,26 +713,25 @@ OS_KRN_CFLAGS += /Zc:rvalueCast # Enforce type conversion rules
 OS_KRN_CFLAGS += /Zc:strictStrings # Disable string literal type conversion
 endif
 
-# tools colors
-KLINK_COLOR := $(KLD_COLOR)
+endif # WDK
 
-ifdef SEQ_BUILD
-
-# option for parallel builds, starting from Visual Studio 2013
-FORCE_SYNC_PDB_KERN := $(FORCE_SYNC_PDB)
-
+# option /Zi is used to store debug info in one .pdb for all compiled sources
+# for parallel builds, it's needed to synchronize access to this .pdb
+# if FORCE_SYNC_PDB_KERN is defined (as /FS, starting with Visual Studio 2013),
+# then may use /Zi, else - use old /Z7 to store debug info in each .obj
+# note: no debug info in release build if /FS option is not supported
 ifdef FORCE_SYNC_PDB_KERN
-OS_KRN_CFLAGS += $(FORCE_SYNC_PDB_KERN) #/FS
+OS_KRN_CFLAGS += $(FORCE_SYNC_PDB_KERN) /Zi
+else ifdef DEBUG
+OS_KRN_CFLAGS += /Z7
 endif
-
-endif # SEQ_BUILD
 
 # KRN_CFLAGS may be overridden in project makefile
 KRN_CFLAGS := $(OS_KRN_CFLAGS)
 
 # kernel-level defines
-OS_KRN_DEFINES := WINNT=1 $(if $(DEBUG),DBG=1 MSC_NOOPT DEPRECATE_DDK_FUNCTIONS=1) $(if \
-  $(KCPU:%64=),_WIN32 _X86_=1 i386=1 STD_CALL,_WIN64 _AMD64_ AMD64) WIN32_LEAN_AND_MEAN
+OS_KRN_DEFINES := WIN32=100 WINNT=1 _DLL=1 $(if $(DEBUG),DBG=1 MSC_NOOPT DEPRECATE_DDK_FUNCTIONS=1,NDEBUG) $(if \
+  $(KCPU:%64=),_WIN32 _X86_=1 i386=1 STD_CALL,_WIN64 _AMD64_ AMD64) WIN32_LEAN_AND_MEAN=1
 
 # KRN_DEFINES may be overridden in project makefile
 KRN_DEFINES := $(OS_PREDEFINES) $(OS_KRN_DEFINES)
@@ -732,8 +759,8 @@ KDEPS_INCLUDE_FILTER := $(subst \,\\,$(KMINC))
 # $1 - target object file
 # $2 - source
 # target-specific: CFLAGS, CXXFLAGS
-CMN_KCC = $(call SUP,KCC,$2)$(call WRAP_COMPILER,$(call CMN_KCL,$(dir $1),$2,$(CFLAGS)),$1,$2,$(basename $1).d,$(KDEPS_INCLUDE_FILTER))
-CMN_KCXX = $(call SUP,KCXX,$2)$(call WRAP_COMPILER,$(call CMN_KCL,$(dir $1),$2,$(CXXFLAGS)),$1,$2,$(basename $1).d,$(KDEPS_INCLUDE_FILTER))
+CMN_KCC = $(call SUP,KCC,$2)$(call WRAP_COMPILER_DEPS,$(call CMN_KCL,$(dir $1),$2,$(CFLAGS)),$1,$2,KDEPS_INCLUDE_FILTER)
+CMN_KCXX = $(call SUP,KCXX,$2)$(call WRAP_COMPILER_DEPS,$(call CMN_KCL,$(dir $1),$2,$(CXXFLAGS)),$1,$2,KDEPS_INCLUDE_FILTER)
 
 # $1 - target object file
 # $2 - source
@@ -802,13 +829,12 @@ KDLL_R_LD = $(CMN_MKCL)$(call KDLL_R_LD1,$1,$2 $(addprefix $(OBJ_DIR)/,$(addsuff
 # $2 - pch-source
 # $3 - pch header name
 # target-specific: CFLAGS, CXXFLAGS
-PCH_R_KCC  = $(call SUP,PCHKCC,$2)$(call WRAP_COMPILER,$(call CMN_KCL,$(dir $1),$2,/Yc$3 /Yl$(basename \
-  $(notdir $2)) /Fp$(dir $1)$(basename $(notdir $3))_c.pch $(CFLAGS)),$1,$2,$(basename $1).d,$(KDEPS_INCLUDE_FILTER))
-PCH_R_KCXX = $(call SUP,PCHKCXX,$2)$(call WRAP_COMPILER,$(call CMN_KCL,$(dir $1),$2,/Yc$3 /Yl$(basename \
-  $(notdir $2)) /Fp$(dir $1)$(basename $(notdir $3))_cpp.pch $(CXXFLAGS)),$1,$2,$(basename $1).d,$(KDEPS_INCLUDE_FILTER))
+PCH_R_KCC  = $(call SUP,PCHKCC,$2)$(call WRAP_COMPILER_DEPS,$(call CMN_KCL,$(dir $1),$2,/Yc$3 /Yl$(basename \
+  $(notdir $2)) /Fp$(dir $1)$(basename $(notdir $3))_c.pch $(CFLAGS)),$1,$2,KDEPS_INCLUDE_FILTER)
+PCH_R_KCXX = $(call SUP,PCHKCXX,$2)$(call WRAP_COMPILER_DEPS,$(call CMN_KCL,$(dir $1),$2,/Yc$3 /Yl$(basename \
+  $(notdir $2)) /Fp$(dir $1)$(basename $(notdir $3))_cpp.pch $(CXXFLAGS)),$1,$2,KDEPS_INCLUDE_FILTER)
 
 # tools colors
-KLIB_COLOR   := $(AR_COLOR)
 MKCC_COLOR   := $(KCC_COLOR)
 MKCXX_COLOR  := $(KCXX_COLOR)
 MKPCC_COLOR  := $(MKCC_COLOR)
@@ -823,6 +849,10 @@ endif # !SEQ_BUILD
 KLIB_R_ASM = $(call SUP,ASM,$2)$(YASMC) $(YASM_FLAGS) $(ASMFLAGS) -o $(call ospath,$1 $2)
 DRV_R_ASM  = $(KLIB_R_ASM)
 KDLL_R_ASM = $(KLIB_R_ASM)
+
+# tools colors
+KLINK_COLOR := $(KLD_COLOR)
+KLIB_COLOR  := $(AR_COLOR)
 
 endif # DRIVERS_SUPPORT
 
@@ -1252,25 +1282,28 @@ $(call CLEAN_BUILD_PROTECT_VARS,MCL_MAX_COUNT SEQ_BUILD YASMC FLEXC BISONC YASM_
   LINKER_STRIP_STRINGS WRAP_LINKER DEL_DEF_MANIFEST_ON_FAIL \
   WRAP_EXE_EXPORTS_LINKER WRAP_EXE_LINKER EXE_LD_TEMPLATE=v WRAP_DLL_EXPORTS_LINKER WRAP_DLL_LINKER DLL_LD_TEMPLATE=v \
   $(foreach v,R $(VARIANTS_FILTER),LIB_$v_LD1 EXE_$v_LD1 DLL_$v_LD1) \
-  OS_APP_CFLAGS APP_CFLAGS OS_APP_DEFINES APP_DEFINES CMN_CL1 CMN_RCL CMN_SCL CMN_RUCL CMN_SUCL \
+  OS_APP_CFLAGS APP_CFLAGS OS_APP_DEFINES APP_DEFINES CMN_CL1 CMN_RCL CMN_SCL CMN_RUCL CMN_SUCL WRAP_COMPILER \
   INCLUDING_FILE_PATTERN_en INCLUDING_FILE_PATTERN_ru_utf8 INCLUDING_FILE_PATTERN_ru_utf8_bytes \
   INCLUDING_FILE_PATTERN_ru_cp1251 INCLUDING_FILE_PATTERN_ru_cp1251_bytes \
   INCLUDING_FILE_PATTERN_ru_cp866 INCLUDING_FILE_PATTERN_ru_cp866_bytes \
   INCLUDING_FILE_PATTERN UDEPS_INCLUDE_FILTER SED_DEPS_SCRIPT \
-  WRAP_COMPILER CMN_CC CMN_CXX SEQ_COMPILERS_TEMPLATE \
+  WRAP_COMPILER_DEPS CMN_CC CMN_CXX SEQ_COMPILERS_TEMPLATE \
   $(foreach v,R $(VARIANTS_FILTER),LIB_$v_CC LIB_$v_CXX EXE_$v_CC EXE_$v_CXX DLL_$v_CC DLL_$v_CXX LIB_$v_LD EXE_$v_LD DLL_$v_LD) \
   CALL_MCC CALL_MCXX CALL_MPCC CALL_MPCXX CMN_MCL2 CMN_MCL1 CMN_RMCL CMN_SMCL CMN_RUMCL CMN_SUMCL \
   FILTER_SDEPS1 FILTER_SDEPS CMN_MCL MULTI_COMPILERS_TEMPLATE \
   $(foreach v,R $(VARIANTS_FILTER),PCH_$v_CC PCH_$v_CXX) \
+  MCC_COLOR MCXX_COLOR MPCC_COLOR MPCXX_COLOR TMCC_COLOR TMCXX_COLOR TMPCC_COLOR TMPCXX_COLOR \
+  LINK_COLOR XLINK_COLOR LIB_COLOR TLINK_COLOR TXLINK_COLOR TLIB_COLOR \
   SUBSYSTEM_KVER DEF_KLIB_LDFLAGS KLIB_R_LD1 DEF_DRV_LDFLAGS CMN_KLIBS DRV_R_LD1 KDLL_R_LD1 \
-  OS_KRN_CFLAGS KLINK_COLOR FORCE_SYNC_PDB_KERN KRN_CFLAGS OS_KRN_DEFINES KRN_DEFINES CMN_KCL KDEPS_INCLUDE_FILTER CMN_KCC CMN_KCXX \
+  OS_KRN_CFLAGS FORCE_SYNC_PDB_KERN KRN_CFLAGS OS_KRN_DEFINES KRN_DEFINES CMN_KCL KDEPS_INCLUDE_FILTER CMN_KCC CMN_KCXX \
   KLIB_R_CC DRV_R_CC KDLL_R_CC KLIB_R_CXX DRV_R_CXX KDLL_R_CXX KLIB_R_LD DRV_R_LD KDLL_R_LD \
   CALL_MKCC CALL_MKCXX CALL_MPKCC CALL_MPKCXX CMN_MKCL3 CMN_MKCL2 CMN_MKCL1 CMN_MKCL PCH_R_KCC PCH_R_KCXX \
-  KLIB_COLOR MKCC_COLOR MKCXX_COLOR MKPCC_COLOR MKPCXX_COLOR \
-  KLIB_R_ASM DRV_R_ASM KDLL_R_ASM BISON FLEX \
+  MKCC_COLOR MKCXX_COLOR MKPCC_COLOR MKPCXX_COLOR \
+  KLIB_R_ASM DRV_R_ASM KDLL_R_ASM KLINK_COLOR KLIB_COLOR BISON FLEX \
   PCH_TEMPLATE1 PCH_TEMPLATE2=v;t PCH_TEMPLATE3=t PCH_TEMPLATE=t ADD_WITH_PCH \
   TRG_ALL_SDEPS MAKE_IMP_PATH EXPORTS_TEMPLATE1=t;n;v NO_EXPORTS_TEMPLATE=t;n;v EXPORTS_TEMPLATE=t;n;v MULTISOURCE_AUX=t;v \
   EXE_AUX_TEMPLATE2=t;n;v DLL_AUX_TEMPLATE2=t;n;v EXP_AUX_TEMPLATE1=t EXP_AUX_TEMPLATE=t EXE_AUX_TEMPLATE=t DLL_AUX_TEMPLATE=t \
   ARC_AUX_TEMPLATE2=t;v ARC_AUX_TEMPLATE1=t ARC_AUX_TEMPLATE=t LIB_AUX_TEMPLATE KLIB_AUX_TEMPLATE \
   ADD_MC_RULE1 ADD_MC_RULE ADD_RES_RULE2 ADD_RES_RULE1 ADD_RES_RULE RC_DEFINE_PATH \
-  DRV_TEMPLATE=t KDLL_TEMPLATE DRV_AUX_TEMPLATE2 KDLL_AUX_TEMPLATE2 KEXP_AUX_TEMPLATE=t DRV_AUX_TEMPLATE KDLL_AUX_TEMPLATE)
+  DRV_TEMPLATE=t;DRV;LIB_DIR;KLIBS;KDLLS;SYSLIBS;SYSLIBPATH KDLL_TEMPLATE DRV_AUX_TEMPLATE2 KDLL_AUX_TEMPLATE2 \
+  KEXP_AUX_TEMPLATE=t DRV_AUX_TEMPLATE KDLL_AUX_TEMPLATE)

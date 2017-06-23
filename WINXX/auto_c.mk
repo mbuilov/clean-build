@@ -16,7 +16,7 @@ WINVARIANTS := WINXP WINV WIN7 WIN8 WIN81 WIN10
 
 # default target variant - must be defined either in command line
 # or in project configuration file before including this file, via:
-# override WINVARIANT := WIN7
+# WINVARIANT := WIN7
 WINVARIANT:=
 
 # WINVARIANT should be non-recursive (simple)
@@ -71,6 +71,7 @@ endif
 # option for parallel builds, starting from Visual Studio 2013
 # empty by default
 FORCE_SYNC_PDB:=
+FORCE_SYNC_PDB_KERN:=
 
 # SUPPRESS_RC_LOGO may be defined as /nologo, but not all versions of rc.exe support this switch
 SUPPRESS_RC_LOGO:=
@@ -116,7 +117,7 @@ endif
 
 # VS - path to Visual Studio - must be defined either in command line
 # or in project configuration file before including this file, via:
-# override VS:=C:\Program Files (x86)\Microsoft Visual Studio 10.0
+# VS:=C:\Program Files (x86)\Microsoft Visual Studio 10.0
 VS:=
 
 ifeq (,$(VS))
@@ -125,10 +126,22 @@ $(error VS undefined, example: VS:="C:\Program Files (x86)\Microsoft Visual Stud
 endif
 
 # Visual Studio version
-ifneq ($(VS),$(subst \Microsoft Visual Studio ,,$(VS)))
+# Visual Studio 97          = 5
+# Visual Studio 6.0         = 6
+# Visual Studio .NET (2002) = 7
+# Visual Studio .NET 2003   = 7
+# Visual Studio 2005        = 8     c:\Program Files\Microsoft Visual Studio 8
+# Visual Studio 2008        = 9     c:\Program Files\Microsoft Visual Studio 9.0
+# Visual Studio 2010        = 10
+# Visual Studio 2012        = 11    c:\Program Files\Microsoft Visual Studio 11.0
+# Visual Studio 2013        = 12    c:\Program Files\Microsoft Visual Studio 12.0
+# Visual Studio 2015        = 14    c:\Program Files\Microsoft Visual Studio 14.0
+# Visual Studio 2017        = 1410  c:\Program Files\Microsoft Visual Studio\2017\Community\VC\Tools\MSVC\14.10.25017
+
+ifneq (,$(findstring \Microsoft Visual Studio ,$(VS)))
 # 10.0 -> 10
 VS_VER := $(firstword $(subst ., ,$(lastword $(VS))))
-else ifneq ($(VS),$(subst \VC\Tools\MSVC\,,$(VS)))
+else ifneq (,$(findstring \VC\Tools\MSVC\,$(VS)))
 # 14.10.25017 -> 1410
 VS_VER := $(subst $(space),,$(wordlist 1,2,$(subst ., ,$(word 2,$(subst \VC\Tools\MSVC\, ,$(subst $(space),?,$(VS)))))))
 else
@@ -142,10 +155,10 @@ endif
 
 # base path to Visual Studio C headers/libraries
 ifneq (,$(call is_less,$(VS_VER),1410))
-# Visual Studio 2014
+# < Visual Studio 2017
 VCN := $(VS)\VC
 else
-# Visual Studio 2017
+# >= Visual Studio 2017
 VCN := $(VS)
 endif
 
@@ -154,15 +167,20 @@ endif
 # SDK - path to Software Development Kit
 # - if any of these variables is needed, it may be defined either in command line
 # or in project configuration file before including this file, via:
-# override WDK:=C:\Program Files (x86)\Windows Kits\8.1
-# override DDK:=C:\WinDDK\7600.16385.1
-# override SDK:=C:\Program Files (x86)\Microsoft SDKs\Windows\v7.1A
+# WDK:=C:\Program Files (x86)\Windows Kits\8.1
+# DDK:=C:\WinDDK\7600.16385.1
+# SDK:=C:\Program Files (x86)\Microsoft SDKs\Windows\v7.1A
 WDK:=
 DDK:=
 SDK:=
 
+# ensure that next variables are non-recursive (simple)
+override WDK := $(WDK)
+override DDK := $(DDK)
+override SDK := $(SDK)
+
 # Windows Kit version
-ifneq ($(WDK),$(subst \Windows Kits\,,$(WDK)))
+ifneq (,$(findstring \Windows Kits\,$(WDK)))
 WDK_VER := $(firstword $(subst ., ,$(lastword $(subst \, ,$(WDK)))))
 else
 WDK_VER:=
@@ -185,6 +203,7 @@ ONECORE:=
 # APP LEVEL
 
 ifeq (,$(call is_less,1000,$(VS_VER)))
+# < Visual Studio 2017
 
 VSLIB  := $(VCN)\lib$(ONECORE)$(addprefix \,$(filter-out x86,$(CPU:x86_64=amd64)))
 VSINC  := $(VCN)\include
@@ -207,6 +226,7 @@ VSTCL  := $(call qpath,$(VCN)\bin$(call VS_TOOL_PREFIX,$(TCPU))\cl.exe)
 
 # set path to dlls needed by cl.exe and link.exe to work
 ifneq (,$(call is_less,$(VS_VER),10))
+# <= Visual Studio 2008
 
 ifneq (\amd64,$(call VS_TOOL_PREFIX,$(CPU)))
 # not for \amd64
@@ -214,6 +234,7 @@ override PATH := $(VS)\Common7\IDE;$(VS)\VC\bin;$(PATH)
 endif
 
 else ifneq (,$(call is_less,$(VS_VER),13))
+# <= Visual Studio 2013
 
 ifneq ($(CPU),$(TCPU))
 # for \x86_amd64
@@ -230,7 +251,7 @@ ifneq ($(CPU),$(TCPU))
 override PATH := $(VS)\VC\bin$(addprefix \,$(filter-out x86,$(TCPU:x86_64=amd64)));$(PATH)
 endif
 
-endif
+endif # Visual Studio 2015
 
 else # Visual Studio 2017
 
@@ -253,7 +274,7 @@ ifneq ($(CPU),$(TCPU))
 override PATH := $(VS)\bin\Host$(patsubst x%,X%,$(TCPU:x86_64=x64))\$(TCPU:x86_64=x64);$(PATH)
 endif
 
-endif
+endif # Visual Studio 2017
 
 # PATH variable may have changed, print it to generated batch file
 $(if $(VERBOSE),$(info set "PATH=$(PATH)"))
@@ -268,9 +289,9 @@ $(error no SDK nor WDK defined, example:\
  SDK:="C:\Program Files (x86)\Microsoft SDKs\Windows\v7.1A" or WDK:="C:\Program Files (x86)\Windows Kits\8.1")
 endif
 
-ifneq (,$(SDK))
+ifdef SDK
 
-ifneq (,$(WDK))
+ifdef WDK
 $(error either SDK or WDK must be defined, but not both)
 endif
 
@@ -292,15 +313,15 @@ MT1  := $(TMT1)
 
 endif # SDK
 
-ifneq (,$(WDK))
+ifdef WDK
 
-ifneq (,$(SDK))
+ifdef SDK
 $(error either SDK or WDK must be defined, but not both)
 endif
 
 # WDK target OS version - must be defined either in command line
 # or in project configuration file before including this file, via:
-# override WDK_TARGET := win7
+# WDK_TARGET := win7
 WDK_TARGET:=
 
 ifeq (,$(WDK_TARGET))
@@ -344,12 +365,13 @@ ifdef DRIVERS_SUPPORT
 # KERNEL LEVEL
 
 ifeq (,$(strip $(DDK)$(WDK)))
-$(error no DDK nor WDK defined, example: DDK:="C:\WinDDK\7600.16385.1" or WDK:="C:\Program Files (x86)\Windows Kits\8.1")
+$(error no DDK nor WDK defined, example: DDK:="C:\WinDDK\7600.16385.1" or DDK:="C:\WDK71"\
+ or WDK:="C:\Program Files (x86)\Windows Kits\8.1")
 endif
 
-ifneq (,$(DDK))
+ifdef DDK
 
-ifneq (,$(WDK))
+ifdef WDK
 $(error either DDK or WDK must be defined, but not both)
 endif
 
@@ -361,7 +383,7 @@ endif
 DDK_TARGET := $(if $(filter WINXP,$(WINVARIANT)),wxp,win7)
 
 KMLIB := $(DDKN)\Lib\$(DDK_TARGET)\$(if $(KCPU:x86_64=),$(KCPU:x86=i386),amd64)
-KMINC := $(DDKN)\inc\api $(DDKN)\inc\crt $(DDKN)\inc\ddk
+KMINC := $(DDKN)\inc\api $(DDKN)\inc\ddk $(DDKN)\inc\crt
 
 WKLD  := $(call qpath,$(DDKN)\bin\x86\$(KCPU:x86_64=amd64)\link.exe)
 WKCL  := $(call qpath,$(DDKN)\bin\x86\$(KCPU:x86_64=amd64)\cl.exe)
@@ -371,15 +393,15 @@ SIGNTOOL := $(call qpath,$(DDKN)\bin\$(KCPU:x86_64=amd64)\SignTool.exe)
 
 endif # DDK
 
-ifneq (,$(WDK))
+ifdef WDK
 
-ifneq (,$(DDK))
+ifdef DDK
 $(error either DDK or WDK must be defined, but not both)
 endif
 
 # target kernel version - must be defined either in command line
 # or in project configuration file before including this file, via:
-# override WDK_KTARGET := 10.0.10240.0
+# WDK_KTARGET := 10.0.10240.0
 WDK_KTARGET:=
 
 ifeq (,$(WDK_KTARGET))
@@ -412,6 +434,11 @@ endif # Visual Studio 2017
 INF2CAT  := $(call qpath,$(WDKN)\bin\x86\Inf2Cat.exe)
 SIGNTOOL := $(call qpath,$(WDKN)\bin\$(TCPU:x86_64=x64)\SignTool.exe)
 
+# option for parallel builds, starting from Visual Studio 2013
+ifneq (,$(call is_less,11,$(VS_VER)))
+FORCE_SYNC_PDB_KERN := /FS
+endif
+
 endif # WDK
 
 endif # DRIVERS_SUPPORT
@@ -426,4 +453,4 @@ endif
 # protect variables from modifications in target makefiles
 $(call CLEAN_BUILD_PROTECT_VARS,VAUTO WINVARIANTS WINVARIANT WINVER_DEFINES \
   SUBSYSTEM_VER AUTOCONF_VARS $(AUTOCONF_VARS) NO_AUTOCONF VS_TOOL_PREFIX WDK_TARGET DDK_TARGET WDK_KTARGET \
-  VS_VER WDK_VER GET_WDK_VER FORCE_SYNC_PDB SUPPRESS_RC_LOGO VS WDK DDK SDK VCN WDKN DDKN SDKN ONECORE PATH)
+  VS_VER WDK_VER GET_WDK_VER FORCE_SYNC_PDB FORCE_SYNC_PDB_KERN SUPPRESS_RC_LOGO VS WDK DDK SDK VCN WDKN DDKN SDKN ONECORE PATH)
