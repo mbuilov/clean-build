@@ -94,7 +94,7 @@ $(eval define trace_calls_template$(newline)$(subst _dump_params_,$$$$$(open_bra
 # note: may also be used for simple variables, for example: $(call trace_calls,Macro=VarPre=VarPost)
 trace_calls = $(eval $(foreach f,$1,$(foreach v,$(firstword $(subst =, ,$f)),$(if $(filter-out undefined,$(origin $v)),$(if \
   $(findstring ^.$$(warning $$(trace_level.) $$$$($v) {),^.$(value $v)),,$(call trace_calls_template,$v,$(if \
-  $(findstring "command line",$(origin $v))$(findstring "override",$(origin $v)),override),$(subst \
+  $(findstring command line,$(origin $v))$(findstring override,$(origin $v)),override),$(subst \
   ;, ,$(word 2,$(subst =, ,$f))),$(subst ;, ,$(word 3,$(subst =, ,$f))),$2))))))
 
 # replace spaces with ?
