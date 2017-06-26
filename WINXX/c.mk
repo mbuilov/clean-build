@@ -40,10 +40,10 @@ MC_STRIP_STRINGS := MC:?Compiling
 # $1 - mc command with arguments
 # note: send mc output to stderr
 ifndef MC_STRIP_STRINGS
-WRAP_MC = $1 >&2
+WRAP_MC = $1>&2
 else
-WRAP_MC = (($1 2>&1 && echo TRG_MC_OK >&2) | findstr /V /B /R $(call \
-  qpath,$(MC_STRIP_STRINGS),/C:)) 3>&2 2>&1 1>&3 | findstr /B /L TRG_MC_OK >NUL
+WRAP_MC = (($1 2>&1 && echo TRG_MC_OK>&2)$(call \
+  qpath,$(MC_STRIP_STRINGS),|findstr /VBRC:))3>&2 2>&1 1>&3|findstr /BC:TRG_MC_OK>NUL
 endif
 
 # message compiler
@@ -63,12 +63,12 @@ RC_LOGO_STRINGS := Microsoft?(R)?Windows?(R)?Resource?Compiler?Version Copyright
 # send resource compiler output to stderr
 # $1 - rc command with arguments
 ifndef RC_LOGO_STRINGS
-WRAP_RC = $1 >&2
+WRAP_RC = $1>&2
 else ifdef SUPPRESS_RC_LOGO
-WRAP_RC = $1 >&2
+WRAP_RC = $1>&2
 else
-WRAP_RC = (($1 2>&1 && echo RC_COMPILED_OK >&2) | findstr /B /V /R $(call \
-  qpath,$(RC_LOGO_STRINGS),/C:)) 3>&2 2>&1 1>&3 | findstr /B /L RC_COMPILED_OK >NUL
+WRAP_RC = (($1 2>&1 && echo RC_COMPILED_OK>&2)$(call \
+  qpath,$(RC_LOGO_STRINGS),|findstr /VBRC:))3>&2 2>&1 1>&3|findstr /BC:RC_COMPILED_OK>NUL
 endif
 
 # resource compiler
@@ -274,10 +274,10 @@ LINKER_STRIP_STRINGS := $(LINKER_STRIP_STRINGS_en)
 ifdef DEBUG
 WRAP_LINKER = $1
 else ifndef LINKER_STRIP_STRINGS
-WRAP_LINKER = $1 >&2
+WRAP_LINKER = $1>&2
 else
-WRAP_LINKER = (($1 2>&1 && echo TRG_LINKED_OK >&2) | findstr /V /B /R $(call \
-  qpath,$(LINKER_STRIP_STRINGS),/C:)) 3>&2 2>&1 1>&3 | findstr /B /L TRG_LINKED_OK >NUL
+WRAP_LINKER = (($1 2>&1 && echo TRG_LINKED_OK>&2)$(call \
+  qpath,$(LINKER_STRIP_STRINGS),|findstr /VBRC:))3>&2 2>&1 1>&3|findstr /BC:TRG_LINKED_OK>NUL
 endif
 
 # Link.exe has a bug/feature:
@@ -293,8 +293,8 @@ DEL_DEF_MANIFEST_ON_FAIL = $(if $(DEF)$2,$(call DEL_ON_FAIL,$(if $(DEF),$1) $(if
 # $2 - (wrapped) linker with options
 # $3 - $(basename $(notdir $(IMP))).exp
 # note: send linker output to stderr
-WRAP_EXE_EXPORTS_LINKER = (($(if $(DEBUG),$2 2>&1,($2) 3>&2 2>&1 1>&3) && echo EXE_EXP_LINKED_OK >&2) | \
-  findstr /V /L $3) 3>&2 2>&1 1>&3 | findstr /B /L EXE_EXP_LINKED_OK >NUL
+WRAP_EXE_EXPORTS_LINKER = (($(if $(DEBUG),$2 2>&1,($2)3>&2 2>&1 1>&3) && echo EXE_EXP_LINKED_OK>&2)|findstr \
+  /VC:$3)3>&2 2>&1 1>&3|findstr /BC:EXE_EXP_LINKED_OK>NUL
 
 # wrap exe/drv linker call to strip-off message about generated .exp-file
 # $1 - non-<empty> if exe/drv exports symbols, <empty> - otherwise
@@ -324,9 +324,9 @@ $(eval $(foreach v,R $(VARIANTS_FILTER),$(EXE_LD_TEMPLATE)))
 # $3 - $(basename $(notdir $(IMP))).exp
 # target-specific: LIB_DIR
 # note: send linker output to stderr
-WRAP_DLL_EXPORTS_LINKER = (($(if $(DEBUG),$2 2>&1,($2) 3>&2 2>&1 1>&3) && (dir $(call ospath,$(LIB_DIR)/$3) >NUL 2>&1 || \
-  ((echo $(notdir $1) does not exports any symbols!) & del $(ospath) & exit /b 1)) && echo DLL_EXP_LINKED_OK >&2) | \
-  findstr /V /L $3) 3>&2 2>&1 1>&3 | findstr /B /L DLL_EXP_LINKED_OK >NUL
+WRAP_DLL_EXPORTS_LINKER = (($(if $(DEBUG),$2 2>&1,($2)3>&2 2>&1 1>&3) && (dir $(call ospath,$(LIB_DIR)/$3)>NUL 2>&1 || \
+  ((echo $(notdir $1) does not exports any symbols!) & del $(ospath) & exit /b 1)) && echo DLL_EXP_LINKED_OK>&2)|findstr \
+  /VC:$3)3>&2 2>&1 1>&3|findstr /BC:DLL_EXP_LINKED_OK>NUL
 
 # wrap dll linker call to check that dll exports symbols, then strip-off message about .exp-file
 # $1 - non-<empty> if dll/kdll do not exports symbols, <empty> - otherwise
@@ -427,8 +427,8 @@ CMN_SUCL = $(CMN_SCL) /DUNICODE /D_UNICODE
 # $2 - target object file (unused)
 # $3 - sources
 # note: send compiler output to stderr
-WRAP_COMPILER = (($1 2>&1 && echo COMPILATION_OK >&2) | findstr /V /X /L "$(notdir \
-  $3)") 3>&2 2>&1 1>&3 | findstr /B /L COMPILATION_OK >NUL
+WRAP_COMPILER = (($1 2>&1 && echo COMPILATION_OK>&2)$(addprefix \
+  |findstr /VXC:,$(notdir $3)))3>&2 2>&1 1>&3|findstr /BC:COMPILATION_OK>NUL
 
 # $(SED) expression to match C compiler messages about included files
 INCLUDING_FILE_PATTERN_en := Note: including file:
@@ -476,8 +476,8 @@ SED_DEPS_SCRIPT = \
 ifdef NO_DEPS
 WRAP_COMPILER_DEPS = $(WRAP_COMPILER)
 else
-WRAP_COMPILER_DEPS = (($1 /showIncludes 2>&1 && set /p ="COMPILATION_OK" >&2 <NUL) | \
-  ($(SED) -n $(SED_DEPS_SCRIPT) 2>&1 && set /p ="_SED_OK" >&2 <NUL)) 3>&2 2>&1 1>&3 | findstr /B /L COMPILATION_OK_SED_OK >NUL
+WRAP_COMPILER_DEPS = (($1 /showIncludes 2>&1 && set /p ="COMPILATION_OK">&2<NUL)|($(SED) \
+  -n $(SED_DEPS_SCRIPT) 2>&1 && set /p ="_SED_OK">&2<NUL))3>&2 2>&1 1>&3|findstr /BC:COMPILATION_OK_SED_OK>NUL
 endif
 
 # override template defined in $(CLEAN_BUILD_DIR)/_c.mk
