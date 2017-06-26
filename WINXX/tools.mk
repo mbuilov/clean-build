@@ -66,15 +66,15 @@ nonrelpath1 = $(if $2,$(call nonrelpath1,$1,$(wordlist 2,999999,$2),$(patsubst $
 nonrelpath = $(if $(findstring :,$2),$(call nonrelpath1,$1,$(sort $(filter %:,$(subst :,: ,$2))),$(addprefix $1,$2)),$(addprefix $1,$2))
 
 # delete files $1
-DEL = for %%f in ($(ospath)) do if exist %%f del /F /Q %%f
+DEL = for %%f in ($(ospath)) do if exist %%f del /F/Q %%f
 
 # delete directories $1
 # note: DEL_DIR may be not defined for other OSes, use RM in platform-independent code
-DEL_DIR = for %%f in ($(ospath)) do if exist %%f rd /S /Q %%f
+DEL_DIR = for %%f in ($(ospath)) do if exist %%f rd /S/Q %%f
 
 # delete files and directories
 # note: do not need to add $(QUIET) before $(RM)
-RM1 = $(QUIET)for %%f in ($(ospath)) do if exist %%f\* (rd /S /Q %%f) else if exist %%f (del /F /Q %%f)
+RM1 = $(QUIET)for %%f in ($(ospath)) do if exist %%f\* (rd /S/Q %%f) else if exist %%f (del /F/Q %%f)
 RM  = $(call xcmd,RM1,$1,$(DEL_ARGS_LIMIT),,,,)
 
 # NOTE! there are races in MKDIR - if make spawns two parallel jobs:
