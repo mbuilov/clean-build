@@ -11,8 +11,8 @@ space := $(empty) $(empty)
 tab   := $(empty)	$(empty)
 comma := ,
 define newline
-$(empty)
-$(empty)
+
+
 endef
 newline := $(newline)
 define comment
