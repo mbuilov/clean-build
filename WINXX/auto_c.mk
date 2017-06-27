@@ -277,7 +277,7 @@ endif
 endif # Visual Studio 2017
 
 # PATH variable may have changed, print it to generated batch file
-$(if $(VERBOSE),$(info set "PATH=$(PATH)"))
+$(if $(VERBOSE),$(info SET "PATH=$(PATH)"))
 
 # option for parallel builds, starting from Visual Studio 2013
 ifneq (,$(call is_less,11,$(VS_VER)))
