@@ -13,7 +13,9 @@ OSTYPE := UNIX
 ifdef VERBOSE
 $(info for v in `env | cut -d= -f1`; do $(foreach \
   x,PATH CommonProgramFiles(x86) ProgramFiles(x86) !::$(if $(filter-out undefined environment,$(origin \
-  PASS_ENV_VARS)), $(PASS_ENV_VARS)),[ "$x" == "$$v" ] ||) unset "$$v"; done)
+  PASS_ENV_VARS)), $(PASS_ENV_VARS)),[ "$x" == "$$v" ] ||) unset "$$v"; done$(foreach \
+  v,PATH$(if $(filter-out undefined environment,$(origin \
+  PASS_ENV_VARS)), $(PASS_ENV_VARS)),$(newline)export $v='$($v)'))
 endif
 
 # delete files $1

@@ -30,17 +30,19 @@ WIN_EXPORTED := $(foreach v,$(filter TMP=% PATHEXT=% SYSTEMROOT=% COMSPEC=%,$(jo
 
 export $(WIN_EXPORTED)
 
+# strip off cygwin paths - to use only native windows tools
+# for example, sed.exe from cygwin handles quotes in format string differently than C:/GnuWin32/bin/sed.exe
+override PATH := $(subst ?, ,$(subst $(space),;,$(strip $(foreach p,$(subst \
+  ;, ,$(subst $(space),?,$(PATH))),$(if $(findstring cygwin,$p),,$p)))))
+
 # print prepared environment in verbose mode
 ifdef VERBOSE
 $(info setlocal$(newline)FOR /F "delims==" %%V IN ('SET') DO $(foreach \
   x,PATH TMP PATHEXT SYSTEMROOT COMSPEC$(if $(filter-out undefined environment,$(origin \
-  PASS_ENV_VARS)), $(PASS_ENV_VARS)),IF /I NOT "$x"=="%%V") SET "%%V=")
+  PASS_ENV_VARS)), $(PASS_ENV_VARS)),IF /I NOT "$x"=="%%V") SET "%%V="$(foreach \
+  v,PATH $(WIN_EXPORTED)$(if $(filter-out undefined environment,$(origin \
+  PASS_ENV_VARS)), $(PASS_ENV_VARS)),$(newline)SET "$v=$($v)"))
 endif
-
-# stip off cygwin paths - to use only native windows tools
-# for example, sed.exe from cygwin handles format string differently than C:/GnuWin32/bin/sed.exe
-override PATH := $(subst ?, ,$(subst $(space),;,$(strip $(foreach p,$(subst \
-  ;, ,$(subst $(space),?,$(PATH))),$(if $(findstring cygwin,$p),,$p)))))
 
 # maximum command line length
 # for Windows 95 and later   - 127 chars;
