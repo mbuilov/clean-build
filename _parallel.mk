@@ -24,10 +24,6 @@ APPEND_MDEPS = $(if $(MDEPS),$(call APPEND_MDEPS1,$(filter-out $(ORDER_DEPS),$(c
 # overwrite code for adding $(MDEPS) - list of makefiles that need to be built before target makefile - to $(ORDER_DEPS)
 $(eval FIX_ORDER_DEPS = $(value APPEND_MDEPS))
 
-# don't complain about new FIX_ORDER_DEPS value
-# - replace old FIX_ORDER_DEPS value defined in $(CLEAN_BUILD_DIR)/defs.mk with a new one
-$(call CLEAN_BUILD_PROTECT_VARS,FIX_ORDER_DEPS)
-
 # $m - absolute path to makefile to include
 # note: $(ORDER_DEPS) value may be changed in included makefile, so restore ORDER_DEPS before including next makefile
 # note: $(TOOL_MODE) value may be changed (set) in included makefile, so restore TOOL_MODE before including next makefile
@@ -83,7 +79,7 @@ $(eval define CLEAN_BUILD_PARALLEL$(newline)$(value \
 
 # PROCESS_SUBMAKES normally called with non-empty first argument $1
 # to not define variable 1 for next processed makefiles,
-# this macro must be expanded by $(call PROCESS_SUBMAKES_EVAL)
+# this macro must be expanded by explicit $(call PROCESS_SUBMAKES_EVAL)
 PROCESS_SUBMAKES_EVAL = $(eval $(value CB_PARALLEL_CODE))
 
 # generate code for processing given makefiles - in $(CB_PARALLEL_CODE), then evaluate it
@@ -92,5 +88,7 @@ PROCESS_SUBMAKES = $(eval define CB_PARALLEL_CODE$(newline)$(call CLEAN_BUILD_PA
   NORM_MAKEFILES,$1,))$(newline)endef)$(call PROCESS_SUBMAKES_EVAL)
 
 # protect variables from modifications in target makefiles
-$(call CLEAN_BUILD_PROTECT_VARS,NORM_MAKEFILES APPEND_MDEPS1 APPEND_MDEPS \
-  CB_INCLUDE_TEMPLATE CLEAN_BUILD_PARALLEL PROCESS_SUBMAKES_EVAL PROCESS_SUBMAKES)
+# note: don't complain about new FIX_ORDER_DEPS value
+# - replace old FIX_ORDER_DEPS value defined in $(CLEAN_BUILD_DIR)/defs.mk with a new one
+$(call CLEAN_BUILD_PROTECT_VARS,NORM_MAKEFILES APPEND_MDEPS1 APPEND_MDEPS=MDEPS;ORDER_DEPS FIX_ORDER_DEPS=MDEPS;ORDER_DEPS \
+  CB_INCLUDE_TEMPLATE=ORDER_DEPS;TOOL_MODE CLEAN_BUILD_PARALLEL PROCESS_SUBMAKES_EVAL=CB_PARALLEL_CODE PROCESS_SUBMAKES)
