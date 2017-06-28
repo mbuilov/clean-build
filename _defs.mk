@@ -22,9 +22,9 @@ endif
 #  is passed having new value to environment of commands executed in rules.
 # All variables defined in command line are also added to environment of the commands.
 # To avoid accidental change of environment variables in makefiles,
-#  unexport all variables, except PATH and variables named in $(PASS_ENV_VARS).
+#  unexport all variables, except PATH, SHELL and variables named in $(PASS_ENV_VARS).
 # Note: PASS_ENV_VARS may be set either in project makefile or in command line
-unexport $(filter-out PATH$(if $(filter-out undefined environment,$(origin \
+unexport $(filter-out PATH SHELL$(if $(filter-out undefined environment,$(origin \
   PASS_ENV_VARS)), $(PASS_ENV_VARS)),$(.VARIABLES))
 
 # Also, because any variable may be already initialized from environment
@@ -36,7 +36,7 @@ unexport $(filter-out PATH$(if $(filter-out undefined environment,$(origin \
 # assume project makefile, which has included this makefile,
 # defines some variables - save list of those variables to override them below
 PROJECT_VARS_NAMES := $(filter-out \
-  MAKEFLAGS CURDIR SHELL MAKEFILE_LIST .DEFAULT_GOAL,$(foreach \
+  MAKEFLAGS CURDIR MAKEFILE_LIST .DEFAULT_GOAL,$(foreach \
   v,$(.VARIABLES),$(if $(filter file,$(origin $v)),$v)))
 
 # clean-build version: major.minor.patch
