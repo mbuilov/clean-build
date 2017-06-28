@@ -379,7 +379,7 @@ SHOWN_REMAINDER:=
 # 4) current = 3, percents3 = percents2 + int((remainder2 + 100)/total), remainder3 = rem((remainder2 + 100)/total)
 # ...
 ADD_SHOWN_PERCENTS = $(if $(word $(TARGET_MAKEFILES_COUNT),$1),+ $(call \
-  ADD_SHOWN_PERCENTS,$(wordlist $(TARGET_MAKEFILES_COUNT1),999999,$1)),$(eval SHOWN_REMAINDER:=$1))
+  ADD_SHOWN_PERCENTS,$(wordlist $(TARGET_MAKEFILES_COUNT1),999999,$1)),$(eval SHOWN_REMAINDER:=$$1))
 # prepare for printing percents of processed makefiles
 FORMAT_PERCENTS = $(subst |,,$(subst \
   |0%,00%,$(subst \
@@ -506,7 +506,7 @@ TOCLEAN:=
 else ifneq (,$(word 2,$(MAKECMDGOALS)))
 $(error clean goal must be specified alone, current goals: $(MAKECMDGOALS))
 else
-TOCLEAN = $(eval CLEAN+=$1)
+TOCLEAN = $(eval CLEAN+=$$1)
 endif
 
 # order-only makefiles dependencies (absolute paths) to add to all leaf prerequisites for the targets
@@ -849,10 +849,6 @@ ifneq (,$(filter $(CONFIG),$(abspath $(MAKEFILE_LIST))))
 CONF_COLOR := [1;32m
 $(info $(call PRINT_PERCENTS,use)$(call COLORIZE,CONF,$(CONFIG)))
 endif
-endif
-
-ifdef TRACE
-$(call trace_calls,ORDER_DEPS MDEPS)
 endif
 
 # protect variables from modifications in target makefiles
