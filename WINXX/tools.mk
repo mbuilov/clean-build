@@ -34,11 +34,12 @@ override SHELL := $(SystemRoot)\System32\cmd.exe
 else ifneq (undefined,$(origin SYSTEMROOT))
 override SHELL := $(SYSTEMROOT)\System32\cmd.exe
 else
-$(error unable to get cmd.exe for the SHELL)
+$(error unable to determine cmd.exe for the SHELL)
 endif
 endif
 
 # save exported variables in generated config
+# note: SHELL may be overridden just above, save it's new value also
 ifdef CONFIG
 ifneq (,$(filter conf,$(MAKECMDGOALS)))
 conf: override CONFIG_TEXT += $(foreach v,SHELL $(WIN_EXPORTED),$(OVERRIDE_VAR_TEMPLATE))
