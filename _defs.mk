@@ -96,8 +96,8 @@ endif
 endef
 $(eval $(foreach v,$(PROJECT_VARS_NAMES),$(OVERRIDE_VAR_TEMPLATE)))
 
-# initialize PASS_ENV_VARS
-# Note: PASS_ENV_VARS may be set either in project makefile or in command line
+# initialize PASS_ENV_VARS (list of variables to export to subprocesses), if it is not defined already
+# note: PASS_ENV_VARS may be set either in project makefile or in command line
 PASS_ENV_VARS:=
 
 # needed directories - we will create them in $(CLEAN_BUILD_DIR)/all.mk
