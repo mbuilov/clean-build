@@ -42,13 +42,13 @@ endef
 # generated $(CONFIG) file is likely already sourced,
 # 1) override variables in $(CONFIG) file with values specified in command line,
 # 2) save new variables specified in command line to $(CONFIG) file
-# 3) always save PATH value to $(CONFIG) file
+# 3) always save PATH and SHELL values to $(CONFIG) file because they are exported by default
 # note: save variables current values in target-specific variable CONFIG_TEXT - variables may be overridden later
 # note: do not override GNUMAKEFLAGS, CLEAN_BUILD_VERSION, CONFIG and $(dump_max) variables by including $(CONFIG) file
 conf: override CONFIG_TEXT := $(foreach v,$(filter-out \
-  PATH GNUMAKEFLAGS CLEAN_BUILD_VERSION CONFIG $(dump_max),$(.VARIABLES)),$(if \
+  PATH SHELL GNUMAKEFLAGS CLEAN_BUILD_VERSION CONFIG $(dump_max),$(.VARIABLES)),$(if \
   $(findstring "command line","$(origin $v)")$(findstring "override","$(origin \
-  $v)"),$(OVERRIDE_VAR_TEMPLATE)))$(foreach v,PATH,$(OVERRIDE_VAR_TEMPLATE))
+  $v)"),$(OVERRIDE_VAR_TEMPLATE)))$(foreach v,PATH SHELL,$(OVERRIDE_VAR_TEMPLATE))
 
 # generate configuration file
 # note: SUP - defined in $(CLEAN_BUILD_DIR)/defs.mk
