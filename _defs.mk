@@ -23,12 +23,11 @@ endif
 # All variables defined in command line are also added to environment of the commands.
 # To avoid accidental change of environment variables in makefiles,
 #  unexport all variables, except PATH, SHELL and variables named in $(PASS_ENV_VARS).
-# Note: PASS_ENV_VARS may be set either in project makefile or in command line
 unexport $(filter-out PATH SHELL$(if $(filter-out undefined environment,$(origin \
   PASS_ENV_VARS)), $(PASS_ENV_VARS)),$(.VARIABLES))
 
 # Also, because any variable may be already initialized from environment
-# 1) always redefine variables before using them
+# 1) always redefine variables with clean-build default values before using them
 # 2) never use ?= operator
 # 3) 'ifdef/ifndef' should only be used for previously initialized variables
 #  (ifdef gives 'false' for variable with empty value - and value is not evaluated for the check)
@@ -96,6 +95,10 @@ endif
 
 endef
 $(eval $(foreach v,$(PROJECT_VARS_NAMES),$(OVERRIDE_VAR_TEMPLATE)))
+
+# initialize PASS_ENV_VARS
+# Note: PASS_ENV_VARS may be set either in project makefile or in command line
+PASS_ENV_VARS:=
 
 # needed directories - we will create them in $(CLEAN_BUILD_DIR)/all.mk
 # note: NEEDED_DIRS is never cleared, only appended
@@ -853,8 +856,7 @@ endif
 endif
 
 # protect variables from modifications in target makefiles
-$(call CLEAN_BUILD_PROTECT_VARS,MAKEFLAGS PATH PASS_ENV_VARS \
-  $(if $(filter-out undefined environment,$(origin PASS_ENV_VARS)),$(PASS_ENV_VARS)) \
+$(call CLEAN_BUILD_PROTECT_VARS,MAKEFLAGS PATH SHELL PASS_ENV_VARS $(PASS_ENV_VARS) \
   PROJECT_VARS_NAMES CLEAN_BUILD_VERSION CLEAN_BUILD_DIR CLEAN_BUILD_REQUIRED_VERSION \
   BUILD DRIVERS_SUPPORT TARGET OS CPU TCPU KCPU SUPPORTED_TARGETS SUPPORTED_OSES SUPPORTED_CPUS \
   OSDIR NO_CLEAN_BUILD_DISTCLEAN_TARGET DEBUG VERBOSE QUIET INFOMF MDEBUG CHECK_MAKEFILE_NOT_PROCESSED \
