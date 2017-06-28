@@ -14,7 +14,7 @@ GCC4_PEDANTIC_CXXFLAGS := -fstrict-overflow -Waddress -Waggressive-loop-optimiza
  -Wunused-but-set-variable -Wunused-function -Wunused-label -Wunused-local-typedefs -Wunused-parameter -Wunused-value -Wunused-variable \
  -Wvector-operation-performance -Wvla -Wvolatile-register-var -Wwrite-strings
 
-GCC4_PEDANTIC_CFLAGS := -std=c99 $(GCC4_PEDANTIC_CXXFLAGS) -Wbad-function-cast -Wc++-compat -Wdeclaration-after-statement \
+GCC4_PEDANTIC_CFLAGS := $(GCC4_PEDANTIC_CXXFLAGS) -Wbad-function-cast -Wc++-compat -Wdeclaration-after-statement \
  -Wimplicit -Wimplicit-function-declaration -Wimplicit-int -Wjump-misses-init -Wmissing-parameter-type -Wmissing-prototypes \
  -Wold-style-declaration -Wold-style-definition -Wpointer-sign -Wstrict-prototypes -Wunsuffixed-float-constants -Wvariadic-macros \
 
@@ -27,7 +27,7 @@ GCC5_PEDANTIC_CFLAGS := -Warray-bounds=2 -Wbool-compare -Wdate-time -Wfatal-erro
  -Wsizeof-array-argument -Wsuggest-final-methods -Wsuggest-final-types -Wswitch-bool -Wno-aggregate-return -Wno-padded \
  -Wno-switch-default -Wno-float-conversion -Wno-date-time
 
-GCC5_PEDANTIC_CXXFLAGS = $(GCC4_PEDANTIC_CXXFLAGS) $(GCC5_PEDANTIC_CFLAGS) -pedantic-errors -Wabi-tag -Wc++11-compat -Wc++14-compat \
+GCC5_PEDANTIC_CXXFLAGS := $(GCC4_PEDANTIC_CXXFLAGS) $(GCC5_PEDANTIC_CFLAGS) -pedantic-errors -Wabi-tag -Wc++11-compat -Wc++14-compat \
  -Wconditionally-supported -Wconversion-null -Wctor-dtor-privacy -Wdelete-incomplete -Wdelete-non-virtual-dtor -Wliteral-suffix \
  -Wnoexcept -Wnon-virtual-dtor -Woverloaded-virtual -Wreorder -Wsign-promo -Wstrict-null-sentinel -Wsuggest-override -Wvariadic-macros \
  -Wno-useless-cast -Wno-system-headers -Wno-zero-as-null-pointer-constant -Wno-effc++
