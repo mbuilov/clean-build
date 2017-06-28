@@ -12,8 +12,8 @@ OSTYPE := UNIX
 # note: cannot unset some variables such as "!::" or "CommonProgramFiles(x86)", so filter them out
 ifdef VERBOSE
 $(info for v in `env | cut -d= -f1`; do $(foreach \
-  x,CommonProgramFiles(x86) ProgramFiles(x86) !:: PATH $(PASS_ENV_VARS),[ "$x" == "$$v" ] ||) unset "$$v"; done$(foreach \
-  v,PATH $(PASS_ENV_VARS),$(newline)export $v='$($v)'))
+  x,PATH SHELL $(PASS_ENV_VARS) CommonProgramFiles(x86) ProgramFiles(x86) !::,[ "$x" == "$$v" ] ||) unset "$$v"; done$(foreach \
+  v,PATH SHELL $(PASS_ENV_VARS),$(newline)export $v='$($v)'))
 endif
 
 # delete files $1
