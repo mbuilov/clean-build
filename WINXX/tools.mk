@@ -11,13 +11,6 @@ OSTYPE := WINDOWS
 # synchronize make output for parallel builds
 MAKEFLAGS += -O
 
-# shell must be cmd.exe, not /bin/sh if building under cygwin
-ifeq (environment,$(origin COMSPEC))
-SHELL := $(COMSPEC)
-else ifneq (cmd.exe,$(notdir $(SHELL)))
-SHELL := $(SystemRoot)\System32\cmd.exe
-endif
-
 ifneq (,$(filter /cygdrive/%,$(abspath .)))
 $(error cygwin gnu make is used for WINDOWS build - this configuration is not supported, please use native windows tools,\
  for example, under cygwin start build with: /cygdrive/c/tools/gnumake-4.2.1.exe SED=C:/tools/sed.exe <args>)
@@ -30,6 +23,28 @@ WIN_EXPORTED := $(foreach v,$(filter TMP=% PATHEXT=% SYSTEMROOT=% COMSPEC=%,$(jo
 
 export $(WIN_EXPORTED)
 
+# shell must be cmd.exe, not /bin/sh if building under cygwin
+ifneq (cmd.exe,$(notdir $(SHELL)))
+ifneq (,$(filter environment file override,$(origin ComSpec)))
+override SHELL := $(ComSpec)
+else ifneq (,$(filter environment file override,$(origin COMSPEC)))
+override SHELL := $(COMSPEC)
+else ifneq (undefined,$(origin SystemRoot))
+override SHELL := $(SystemRoot)\System32\cmd.exe
+else ifneq (undefined,$(origin SYSTEMROOT))
+override SHELL := $(SYSTEMROOT)\System32\cmd.exe
+else
+$(error unable to get cmd.exe for the SHELL)
+endif
+endif
+
+# save exported variables in generated config
+ifdef CONFIG
+ifneq (,$(filter conf,$(MAKECMDGOALS)))
+conf: override CONFIG_TEXT += $(foreach v,SHELL $(WIN_EXPORTED),$(OVERRIDE_VAR_TEMPLATE))
+endif
+endif
+
 # strip off cygwin paths - to use only native windows tools
 # for example, sed.exe from cygwin handles quotes in format string differently than C:/GnuWin32/bin/sed.exe
 override PATH := $(subst ?, ,$(subst $(space),;,$(strip $(foreach p,$(subst \
@@ -38,10 +53,8 @@ override PATH := $(subst ?, ,$(subst $(space),;,$(strip $(foreach p,$(subst \
 # print prepared environment in verbose mode
 ifdef VERBOSE
 $(info setlocal$(newline)FOR /F "delims==" %%V IN ('SET') DO $(foreach \
-  x,PATH TMP PATHEXT SYSTEMROOT COMSPEC$(if $(filter-out undefined environment,$(origin \
-  PASS_ENV_VARS)), $(PASS_ENV_VARS)),IF /I NOT "$x"=="%%V") SET "%%V="$(foreach \
-  v,PATH $(WIN_EXPORTED)$(if $(filter-out undefined environment,$(origin \
-  PASS_ENV_VARS)), $(PASS_ENV_VARS)),$(newline)SET "$v=$($v)"))
+  x,PATH TMP PATHEXT SYSTEMROOT COMSPEC $(PASS_ENV_VARS),IF /I NOT "$x"=="%%V") SET "%%V="$(foreach \
+  v,PATH $(WIN_EXPORTED) $(PASS_ENV_VARS),$(newline)SET "$v=$($v)"))
 endif
 
 # maximum command line length
