@@ -215,7 +215,7 @@ CC_PARAMS = -pipe -c $(APP_CFLAGS) $(AUTO_DEPS_FLAGS) $(call \
 # C++ and C compilers
 # $1 - target object file
 # $2 - source
-# target-specific: WITH_PCH, TMD, PCHS, CXXFLAGS, CFLAG
+# target-specific: WITH_PCH, TMD, PCHS, CXXFLAGS, CFLAGS
 CMN_CXX = $(if $(filter $2,$(WITH_PCH)),$(call SUP,P$(TMD)CXX,$2)$($(TMD)CXX) -I$(dir $1) -include $(basename \
   $(notdir $(PCH)))_pch_cxx.h,$(call SUP,$(TMD)CXX,$2)$($(TMD)CXX)) $(DEF_CXXFLAGS) $(CC_PARAMS) $(CXXFLAGS) -o $1 $2
 CMN_CC  = $(if $(filter $2,$(WITH_PCH)),$(call SUP,P$(TMD)CC,$2)$($(TMD)CC) -I$(dir $1) -include $(basename \
