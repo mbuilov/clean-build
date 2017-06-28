@@ -24,8 +24,8 @@ endif
 # To avoid accidental change of environment variables in makefiles,
 #  unexport all variables, except PATH and variables named in $(PASS_ENV_VARS).
 # Note: PASS_ENV_VARS may be set either in project makefile or in command line
-unexport $(filter-out PATH $(if $(filter-out undefined environment,$(origin \
-  PASS_ENV_VARS)),$(PASS_ENV_VARS)),$(.VARIABLES))
+unexport $(filter-out PATH$(if $(filter-out undefined environment,$(origin \
+  PASS_ENV_VARS)), $(PASS_ENV_VARS)),$(.VARIABLES))
 
 # Also, because any variable may be already initialized from environment
 # 1) always redefine variables before using them
@@ -348,6 +348,7 @@ LN_COLOR    := [0;36m
 MKDIR_COLOR := [0;36m
 TOUCH_COLOR := [0;36m
 CAT_COLOR   := [0;32m
+SED_COLOR   := [0;32m
 
 # colorize percents
 # note: $(CLEAN_BUILD_DIR)/WINXX/tools.mk redefines: PRINT_PERCENTS = [$1]
@@ -858,7 +859,7 @@ $(call CLEAN_BUILD_PROTECT_VARS,MAKEFLAGS PATH PASS_ENV_VARS \
   BUILD DRIVERS_SUPPORT TARGET OS CPU TCPU KCPU SUPPORTED_TARGETS SUPPORTED_OSES SUPPORTED_CPUS \
   OSDIR NO_CLEAN_BUILD_DISTCLEAN_TARGET DEBUG VERBOSE QUIET INFOMF MDEBUG CHECK_MAKEFILE_NOT_PROCESSED \
   ospath nonrelpath TOOL_SUFFIX PATHSEP DLL_PATH_VAR show_with_dll_path show_dll_path_end \
-  GEN_COLOR MGEN_COLOR CP_COLOR RM_COLOR DEL_COLOR LN_COLOR MKDIR_COLOR TOUCH_COLOR \
+  GEN_COLOR MGEN_COLOR CP_COLOR RM_COLOR DEL_COLOR LN_COLOR MKDIR_COLOR TOUCH_COLOR CAT_COLOR SED_COLOR \
   PRINT_PERCENTS COLORIZE ADD_SHOWN_PERCENTS FORMAT_PERCENTS REM_MAKEFILE SUP \
   SED_MULTI_EXPR TARGET_TRIPLET DEF_BIN_DIR DEF_OBJ_DIR DEF_LIB_DIR DEF_GEN_DIR SET_DEFAULT_DIRS \
   TOOL_BASE MK_TOOLS_DIR GET_TOOLS GET_TOOL TOOL_OVERRIDE_DIRS TOCLEAN FIX_ORDER_DEPS \
