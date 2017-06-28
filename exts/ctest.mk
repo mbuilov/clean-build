@@ -10,7 +10,7 @@ ifeq (,$(filter-out undefined environment,$(origin DO_TEST_EXE_TEMPLATE)))
 
 # rule for running test executable for 'check' target
 
-TEST_COLOR := [00;36m
+TEST_COLOR := [0;36m
 
 # run $(EXE) and dump its stderr to $(EXE).out
 # $1 - built shared libraries needed by executable, in form <library_name>.<major_number>
@@ -55,8 +55,8 @@ SO_SOFTLINK_TEMPLATE = $(TOCLEAN)
 endif # TOCLEAN
 
 # $1 - built shared libraries needed by executable, in form <library_name>.<major_number>
-TEST_NEED_SIMLINKS = $(foreach d,$1,$(if $(filter $d,$(CB_GENERATED_SIMLINK_RULES)),,$(eval $(call \
-  SO_SOFTLINK_TEMPLATE,$(LIB_DIR)/$(DLL_PREFIX)$(subst .,$(DLL_SUFFIX).,$d),$(DLL_PREFIX)$(firstword $(subst ., ,$d))$(DLL_SUFFIX)))))
+TEST_NEED_SIMLINKS = $(foreach d,$(filter-out $(CB_GENERATED_SIMLINK_RULES),$1),$(eval $(call \
+  SO_SOFTLINK_TEMPLATE,$(LIB_DIR)/$(DLL_PREFIX)$(subst .,$(DLL_SUFFIX).,$d),$(DLL_PREFIX)$(firstword $(subst ., ,$d))$(DLL_SUFFIX))))
 
 endif # UNIX
 
@@ -77,6 +77,6 @@ endif # not check or clean
 
 # protect variables from modifications in target makefiles
 $(call CLEAN_BUILD_PROTECT_VARS,TEST_COLOR DO_TEST_EXE_TEMPLATE=r \
-  TEST_EXE_SOFTLINKS=r SO_SOFTLINK_TEMPLATE=d TEST_NEED_SIMLINKS DO_TEST_EXE)
+  TEST_EXE_SOFTLINKS=r SO_SOFTLINK_TEMPLATE=d TEST_NEED_SIMLINKS=CB_GENERATED_SIMLINK_RULES DO_TEST_EXE=EXE)
 
 endif # DO_TEST_EXE_TEMPLATE
