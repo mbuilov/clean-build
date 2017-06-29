@@ -344,7 +344,7 @@ show_dll_path_end:=
 # tools colors
 GEN_COLOR   := [1;32m
 MGEN_COLOR  := [1;32m
-CP_COLOR    := [0;36m
+CP_COLOR    := [1;36m
 RM_COLOR    := [1;31m
 DEL_COLOR   := [1;31m
 LN_COLOR    := [0;36m
