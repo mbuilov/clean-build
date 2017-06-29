@@ -18,19 +18,31 @@ endif
 
 # Windows needs TMP, PATHEXT, SYSTEMROOT and COMSPEC variables to be defined in environment of calling executables
 # note: assume variable name cannot contain = character
-WIN_EXPORTED := $(foreach v,$(filter TMP=% PATHEXT=% SYSTEMROOT=% COMSPEC=%,$(join \
-  $(addsuffix =,$(call toupper,$(.VARIABLES))),$(.VARIABLES))),$(word 2,$(subst =, ,$v)))
+WIN_EXPORTED := $(filter TMP=% PATHEXT=% SYSTEMROOT=% COMSPEC=%,$(join \
+  $(addsuffix =,$(call toupper,$(.VARIABLES))),$(.VARIABLES)))
 
+#      if SYSTEMROOT is defined, define SystemRoot = $(value SYSTEMROOT)
+# else if SystemRoot is defined, define SYSTEMROOT = $(value SystemRoot)
+$(foreach t,TMP PATHEXT SYSTEMROOT COMSPEC,\
+  $(if $(filter %=$t,$(WIN_EXPORTED)),\
+    $(foreach v,$(filter-out %=$t,$(filter $t=%,$(WIN_EXPORTED))),\
+      $(eval override $(lastword $(subst =, ,$v))=$(value $t))\
+    )\
+  ,\
+    $(foreach v,$(firstword $(filter $t=%,$(WIN_EXPORTED))),\
+      $(eval $t=$(value $(lastword $(subst =, ,$v))))\
+    )\
+  )\
+)
+
+# export all SYSTEMROOT, SystemRoot, etc.
+WIN_EXPORTED := $(sort $(subst =, ,$(WIN_EXPORTED)))
 export $(WIN_EXPORTED)
 
 # shell must be cmd.exe, not /bin/sh if building under cygwin
 ifneq (cmd.exe,$(notdir $(SHELL)))
-ifneq (,$(filter environment file override,$(origin ComSpec)))
-override SHELL := $(ComSpec)
-else ifneq (,$(filter environment file override,$(origin COMSPEC)))
+ifneq (undefined,$(origin COMSPEC))
 override SHELL := $(COMSPEC)
-else ifneq (undefined,$(origin SystemRoot))
-override SHELL := $(SystemRoot)\System32\cmd.exe
 else ifneq (undefined,$(origin SYSTEMROOT))
 override SHELL := $(SYSTEMROOT)\System32\cmd.exe
 else
@@ -55,7 +67,7 @@ override PATH := $(subst ?, ,$(subst $(space),;,$(strip $(foreach p,$(subst \
 ifdef VERBOSE
 $(info setlocal$(newline)FOR /F "delims==" %%V IN ('SET') DO $(foreach \
   x,PATH TMP PATHEXT SYSTEMROOT COMSPEC $(PASS_ENV_VARS),IF /I NOT "$x"=="%%V") SET "%%V="$(foreach \
-  v,PATH $(WIN_EXPORTED) $(PASS_ENV_VARS),$(newline)SET "$v=$($v)"))
+  v,PATH $(filter TMP PATHEXT SYSTEMROOT COMSPEC,$(WIN_EXPORTED)) $(PASS_ENV_VARS),$(newline)SET "$v=$($v)"))
 endif
 
 # maximum command line length
