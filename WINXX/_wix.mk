@@ -58,7 +58,7 @@ INSTALLER_LD = $(MSI_LD)
 
 # tools colors
 CANDLE_COLOR := $(GEN_COLOR)
-LIGHT_COLOR  := $(GEN_COLOR)
+LIGHT_COLOR  := $(CP_COLOR)
 
 # make target filename, $1 - MSI,INSTALLER
 FORM_WIX_TRG = $(if \
