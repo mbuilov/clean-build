@@ -134,6 +134,14 @@ FORM_TRG = $(if \
 # $1 - EXE,LIB,DLL,...
 # $(foreach v,$(call GET_VARIANTS,$1),$(call FORM_TRG,$1,$v))
 
+# compiler for the target
+# $1     - target file: $(call FORM_TRG,$t,$v)
+# $2     - sources:     $(TRG_SRC)
+# $t     - EXE,LIB,DLL,DRV,KLIB,KDLL,...
+# $v     - non-empty variant: R,P,S,...
+# $(TMD) - T in tool mode, empty otherwise
+TRG_COMPILER = $(if $(filter %.cpp,$2),CXX,CC)
+
 # make absolute paths to include directories - we need absolute paths to headers in generated .d dependency file
 # note: do not touch paths in $(SYSINCLUDE) - assume they are absolute,
 # note: $(SYSINCLUDE) paths are generally filtered-out while .d dependency file generation
@@ -248,7 +256,7 @@ NEEDED_DIRS+=$4
 $1:$(call OBJ_RULES,CC,$(filter %.c,$2),$3,$4)
 $1:$(call OBJ_RULES,CXX,$(filter %.cpp,$2),$3,$4)
 $1:$(call OBJ_RULES,ASM,$(filter %.asm,$2),$3,$4)
-$1:COMPILER   := $(if $(filter %.cpp,$2),CXX,CC)
+$1:COMPILER   := $(TRG_COMPILER)
 $1:LIB_DIR    := $(LIB_DIR)
 $1:LIBS       := $(LIBS)
 $1:DLLS       := $(DLLS)
@@ -280,7 +288,7 @@ NEEDED_DIRS+=$4
 $1:$(call OBJ_RULES,CC,$(filter %.c,$2),$3,$4)
 $1:$(call OBJ_RULES,CXX,$(filter %.cpp,$2),$3,$4)
 $1:$(call OBJ_RULES,ASM,$(filter %.asm,$2),$3,$4)
-$1:COMPILER := $(if $(filter %.cpp,$2),CXX,CC)
+$1:COMPILER := $(TRG_COMPILER)
 $1:INCLUDE  := $(TRG_INCLUDE)
 $1:DEFINES  := $(TRG_DEFINES)
 $1:CFLAGS   := $(TRG_CFLAGS)
@@ -304,7 +312,7 @@ NEEDED_DIRS+=$4
 $1:$(call OBJ_RULES,CC,$(filter %.c,$2),$3,$4)
 $1:$(call OBJ_RULES,CXX,$(filter %.cpp,$2),$3,$4)
 $1:$(call OBJ_RULES,ASM,$(filter %.asm,$2),$3,$4)
-$1:COMPILER := $(if $(filter %.cpp,$2),CXX,CC)
+$1:COMPILER := $(TRG_COMPILER)
 $1:INCLUDE  := $(TRG_INCLUDE)
 $1:DEFINES  := $(TRG_DEFINES)
 $1:CFLAGS   := $(TRG_CFLAGS)
@@ -420,7 +428,7 @@ endif # findstring
 # protect variables from modifications in target makefiles
 $(call CLEAN_BUILD_PROTECT_VARS,BLD_TARGETS NO_DEPS ADD_OBJ_SDEPS=x OBJ_RULES2=t;v OBJ_RULES1=t;v OBJ_RULES=t;v \
   VARIANTS_FILTER EXE_SUFFIX_GEN EXE_VAR_SUFFIX LIB_VAR_SUFFIX DLL_DIR OS_FORM_TRG FORM_TRG \
-  TRG_INCLUDE=t;v;SYSINCLUDE TRG_DEFINES=t;v;DEFINES TRG_CFLAGS=t;v;CFLAGS \
+  TRG_COMPILER=t;v TRG_INCLUDE=t;v;SYSINCLUDE TRG_DEFINES=t;v;DEFINES TRG_CFLAGS=t;v;CFLAGS \
   TRG_CXXFLAGS=t;v;CXXFLAGS TRG_ASMFLAGS=t;v;ASMFLAGS TRG_LDFLAGS=t;v;LDFLAGS \
   GET_SOURCES=SRC;WITH_PCH TRG_SRC TRG_SDEPS=SDEPS GET_OBJS VARIANT_LIB_MAP VARIANT_IMP_MAP \
   DEP_LIB_SUFFIX DEP_IMP_SUFFIX MAKE_DEP_LIBS MAKE_DEP_IMPS DEP_LIBS=LIBS DEP_IMPS=DLLS \
