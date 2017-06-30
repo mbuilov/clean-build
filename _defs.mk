@@ -40,7 +40,7 @@ PROJECT_VARS_NAMES := $(filter-out \
 
 # clean-build version: major.minor.patch
 # note: override value, if it was accidentally set in project makefile
-override CLEAN_BUILD_VERSION := 0.8.3
+override CLEAN_BUILD_VERSION := 0.8.4
 
 # disable builtin rules and variables, warn about use of undefined variables
 # NOTE: Gnu Make will consider changed $(MAKEFLAGS) only after all makefiles are parsed,
