@@ -183,16 +183,16 @@ SED_DEPS_SCRIPT = \
 -e '/^$(tab)*\//!{p;d;}' \
 -e 's/^\$(tab)*//;$(foreach x,$5,\@^$x.*@d;)s@.*@&:\$(newline)$2: &@;w $4'
 
-# WRAP_COMPILER - either just call compiler or call compiler and auto-generate dependencies
+# WRAP_CC_COMPILER - either just call compiler or call compiler and auto-generate dependencies
 # $1 - compiler with options
 # $2 - target object file
 # $3 - source
 # $4 - $(basename $2).d
 # $5 - prefixes of system includes
 ifdef NO_DEPS
-WRAP_COMPILER = $1
+WRAP_CC_COMPILER = $1
 else
-WRAP_COMPILER = (($1 -H 2>&1 && echo COMPILATION_OK 1>&2) |\
+WRAP_CC_COMPILER = (($1 -H 2>&1 && echo COMPILATION_OK 1>&2) |\
   sed -n $(SED_DEPS_SCRIPT) 2>&1) 3>&2 2>&1 1>&3 3>&- | grep COMPILATION_OK > /dev/null
 endif
 
@@ -207,26 +207,26 @@ DEF_CFLAGS:=
 
 # flags for applications- level C/C++-compiler
 ifdef DEBUG
-OS_APP_CFLAGS := -g
+OS_APP_CC_FLAGS := -g
 else
-OS_APP_CFLAGS := -O
+OS_APP_CC_FLAGS := -O
 endif
 
-# APP_CFLAGS may be overridden in project makefile
-APP_CFLAGS := $(OS_APP_CFLAGS)
+# APP_CC_FLAGS may be overridden in project makefile
+APP_CC_FLAGS := $(OS_APP_CC_FLAGS)
 
 # application-level defines
-OS_APP_DEFINES:=
+OS_APP_CC_DEFINES:=
 
-# APP_DEFINES may be overridden in project makefile
-APP_DEFINES := $(OS_APP_DEFINES)
+# APP_CC_DEFINES may be overridden in project makefile
+APP_CC_DEFINES := $(OS_APP_CC_DEFINES)
 
 # common options for application-level C++ and C compilers
 # $1 - target object file
 # $2 - source
-# target-specific: DEFINES, INCLUDE
-CC_PARAMS = -c $(APP_CFLAGS) $(call \
-  SUBST_DEFINES,$(addprefix -D,$(APP_DEFINES) $(DEFINES))) $(addprefix -I,$(INCLUDE))
+# target-specific: DEFINES, INCLUDE, COMPILER
+CC_PARAMS = -c $(APP_CC_FLAGS) $(call \
+  SUBST_DEFINES,$(addprefix -D,$(APP_CC_DEFINES) $(DEFINES))) $(addprefix -I,$(INCLUDE))
 
 # C++ and C compilers
 # $1 - target object file
@@ -234,9 +234,9 @@ CC_PARAMS = -c $(APP_CFLAGS) $(call \
 # $3 - aux flags
 # target-specific: TMD, CXXFLAGS, CFLAGS
 CMN_CXX = $(call SUP,$(TMD)CXX,$2)$(call \
-  WRAP_COMPILER,$($(TMD)CXX) $(DEF_CXXFLAGS) $(CC_PARAMS) $(CXXFLAGS) $3 -o $1 $2,$1,$2,$(basename $1).d,$(UDEPS_INCLUDE_FILTER))
+  WRAP_CC_COMPILER,$($(TMD)CXX) $(DEF_CXXFLAGS) $(CC_PARAMS) $(CXXFLAGS) $3 -o $1 $2,$1,$2,$(basename $1).d,$(UDEPS_INCLUDE_FILTER))
 CMN_CC  = $(call SUP,$(TMD)CC,$2)$(call \
-  WRAP_COMPILER,$($(TMD)CC) $(DEF_CFLAGS) $(CC_PARAMS) $(CFLAGS) $3 -o $1 $2,$1,$2,$(basename $1).d,$(UDEPS_INCLUDE_FILTER))
+  WRAP_CC_COMPILER,$($(TMD)CC) $(DEF_CFLAGS) $(CC_PARAMS) $(CFLAGS) $3 -o $1 $2,$1,$2,$(basename $1).d,$(UDEPS_INCLUDE_FILTER))
 
 # position-independent code for shared objects (dynamic libraries)
 PIC_OPTION := -KPIC
@@ -258,32 +258,33 @@ KDEPS_INCLUDE_FILTER := /usr/include/
 
 # flags for kernel-level C-compiler
 ifdef DEBUG
-OS_KRN_CFLAGS := -g
+OS_KRN_CC_FLAGS := -g
 else
-OS_KRN_CFLAGS := -O
+OS_KRN_CC_FLAGS := -O
 endif
 
-# KRN_CFLAGS may be overridden in project makefile
-KRN_CFLAGS := $(OS_KRN_CFLAGS)
+# KRN_CC_FLAGS may be overridden in project makefile
+KRN_CC_FLAGS := $(OS_KRN_CC_FLAGS)
 
 # kernel-level defines
-OS_KRN_DEFINES:=
+OS_KRN_CC_DEFINES:=
 
-# KRN_DEFINES may be overridden in project makefile
-KRN_DEFINES = $(OS_KRN_DEFINES)
+# KRN_CC_DEFINES may be overridden in project makefile
+KRN_CC_DEFINES = $(OS_KRN_CC_DEFINES)
 
 # common options for kernel-level C compiler
 # $1 - target object file
 # $2 - source
-# target-specific: DEFINES, INCLUDE, CFLAGS
-KCC_PARAMS = -c $(KRN_CFLAGS) $(call \
-  SUBST_DEFINES,$(addprefix -D,$(KRN_DEFINES) $(DEFINES))) $(addprefix -I,$(INCLUDE))
+# target-specific: DEFINES, INCLUDE, COMPILER
+KCC_PARAMS = -c $(KRN_CC_FLAGS) $(call \
+  SUBST_DEFINES,$(addprefix -D,$(KRN_CC_DEFINES) $(DEFINES))) $(addprefix -I,$(INCLUDE))
 
 # kernel-level C compilers
 # $1 - targets object file
 # $2 - source
+# target-specific: CFLAGS
 KLIB_R_CC = $(call SUP,KCC,$2)$(call \
-  WRAP_COMPILER,$(KCC) $(DEF_CFLAGS) $(KCC_PARAMS) $(CFLAGS) -o $1 $2,$1,$2,$(basename $1).d,$(KDEPS_INCLUDE_FILTER))
+  WRAP_CC_COMPILER,$(KCC) $(DEF_CFLAGS) $(KCC_PARAMS) $(CFLAGS) -o $1 $2,$1,$2,$(basename $1).d,$(KDEPS_INCLUDE_FILTER))
 DRV_R_CC  = $(KLIB_R_CC)
 
 # kernel-level assembler
@@ -348,7 +349,7 @@ NEEDED_DIRS += $4
 $1: $(call OBJ_RULES,CC,$(filter %.c,$2),$3,$4)
 $1: $(call OBJ_RULES,CXX,$(filter %.cpp,$2),$3,$4)
 $1: $(call OBJ_RULES,ASM,$(filter %.asm,$2),$3,$4)
-$1: COMPILER   := $(if $(filter %.cpp,$2),CXX,CC)
+$1: COMPILER   := $(TRG_COMPILER)
 $1: LIB_DIR    := $(LIB_DIR)
 $1: KLIBS      := $(KLIBS)
 $1: INCLUDE    := $(TRG_INCLUDE)
@@ -370,9 +371,9 @@ $(call CLEAN_BUILD_PROTECT_VARS,INST_RPATH CC CXX TCC TCXX AR TAR KCC KLD YASMC 
   KLIB_NAME_PREFIX DEF_SHARED_FLAGS DEF_SHARED_LIBS DEF_EXE_FLAGS DEF_SO_FLAGS DEF_KLD_FLAGS DEF_AR_FLAGS \
   DLL_EXPORTS_DEFINE DLL_IMPORTS_DEFINE RPATH_OPTION DEF_C_LIBS DEF_CXX_LIBS CMN_LIBS VERSION_SCRIPT_OPTION SONAME_OPTION \
   EXE_R_LD DLL_R_LD LIB_R_LD LIB_D_LD KLIB_R_LD DRV_R_LD \
-  UDEPS_INCLUDE_FILTER SED_DEPS_SCRIPT WRAP_COMPILER \
-  DEF_CXXFLAGS DEF_CFLAGS OS_APP_CFLAGS APP_CFLAGS OS_APP_DEFINES APP_DEFINES CC_PARAMS CMN_CXX CMN_CC \
+  UDEPS_INCLUDE_FILTER SED_DEPS_SCRIPT WRAP_CC_COMPILER \
+  DEF_CXXFLAGS DEF_CFLAGS OS_APP_CC_FLAGS APP_CC_FLAGS OS_APP_CC_DEFINES APP_CC_DEFINES CC_PARAMS CMN_CXX CMN_CC \
   PIC_OPTION EXE_R_CXX EXE_R_CC LIB_R_CXX LIB_R_CC DLL_R_CXX DLL_R_CC LIB_D_CXX LIB_D_CC \
-  KDEPS_INCLUDE_FILTER OS_KRN_CFLAGS KRN_CFLAGS OS_KRN_DEFINES KRN_DEFINES \
+  KDEPS_INCLUDE_FILTER OS_KRN_CC_FLAGS KRN_CC_FLAGS OS_KRN_CC_DEFINES KRN_CC_DEFINES \
   KCC_PARAMS KLIB_R_CC DRV_R_CC KLIB_R_ASM DRV_R_ASM BISON FLEX BISON_COLOR FLEX_COLOR \
   EXE_AUX_TEMPLATE2=t DLL_AUX_TEMPLATE2=t MOD_AUX_TEMPLATE1=t MOD_AUX_TEMPLATE=t DRV_TEMPLATE=DRV;LIB_DIR;KLIBS;SYSLIBS;SYSLIBPATH)
