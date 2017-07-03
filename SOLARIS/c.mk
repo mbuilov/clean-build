@@ -207,26 +207,26 @@ DEF_CFLAGS:=
 
 # flags for applications- level C/C++-compiler
 ifdef DEBUG
-OS_APP_CC_FLAGS := -g
+OS_APP_FLAGS := -g
 else
-OS_APP_CC_FLAGS := -O
+OS_APP_FLAGS := -O
 endif
 
-# APP_CC_FLAGS may be overridden in project makefile
-APP_CC_FLAGS := $(OS_APP_CC_FLAGS)
+# APP_FLAGS may be overridden in project makefile
+APP_FLAGS := $(OS_APP_FLAGS)
 
 # application-level defines
-OS_APP_CC_DEFINES:=
+OS_APP_DEFINES:=
 
-# APP_CC_DEFINES may be overridden in project makefile
-APP_CC_DEFINES := $(OS_APP_CC_DEFINES)
+# APP_DEFINES may be overridden in project makefile
+APP_DEFINES := $(OS_APP_DEFINES)
 
 # common options for application-level C++ and C compilers
 # $1 - target object file
 # $2 - source
 # target-specific: DEFINES, INCLUDE, COMPILER
-CC_PARAMS = -c $(APP_CC_FLAGS) $(call \
-  SUBST_DEFINES,$(addprefix -D,$(APP_CC_DEFINES) $(DEFINES))) $(addprefix -I,$(INCLUDE))
+CC_PARAMS = -c $(APP_FLAGS) $(call \
+  SUBST_DEFINES,$(addprefix -D,$(APP_DEFINES) $(DEFINES))) $(addprefix -I,$(INCLUDE))
 
 # C++ and C compilers
 # $1 - target object file
@@ -258,26 +258,26 @@ KDEPS_INCLUDE_FILTER := /usr/include/
 
 # flags for kernel-level C-compiler
 ifdef DEBUG
-OS_KRN_CC_FLAGS := -g
+OS_KRN_FLAGS := -g
 else
-OS_KRN_CC_FLAGS := -O
+OS_KRN_FLAGS := -O
 endif
 
-# KRN_CC_FLAGS may be overridden in project makefile
-KRN_CC_FLAGS := $(OS_KRN_CC_FLAGS)
+# KRN_FLAGS may be overridden in project makefile
+KRN_FLAGS := $(OS_KRN_FLAGS)
 
 # kernel-level defines
-OS_KRN_CC_DEFINES:=
+OS_KRN_DEFINES:=
 
-# KRN_CC_DEFINES may be overridden in project makefile
-KRN_CC_DEFINES = $(OS_KRN_CC_DEFINES)
+# KRN_DEFINES may be overridden in project makefile
+KRN_DEFINES = $(OS_KRN_DEFINES)
 
 # common options for kernel-level C compiler
 # $1 - target object file
 # $2 - source
 # target-specific: DEFINES, INCLUDE, COMPILER
-KCC_PARAMS = -c $(KRN_CC_FLAGS) $(call \
-  SUBST_DEFINES,$(addprefix -D,$(KRN_CC_DEFINES) $(DEFINES))) $(addprefix -I,$(INCLUDE))
+KCC_PARAMS = -c $(KRN_FLAGS) $(call \
+  SUBST_DEFINES,$(addprefix -D,$(KRN_DEFINES) $(DEFINES))) $(addprefix -I,$(INCLUDE))
 
 # kernel-level C compilers
 # $1 - targets object file
@@ -372,8 +372,8 @@ $(call CLEAN_BUILD_PROTECT_VARS,INST_RPATH CC CXX TCC TCXX AR TAR KCC KLD YASMC 
   DLL_EXPORTS_DEFINE DLL_IMPORTS_DEFINE RPATH_OPTION DEF_C_LIBS DEF_CXX_LIBS CMN_LIBS VERSION_SCRIPT_OPTION SONAME_OPTION \
   EXE_R_LD DLL_R_LD LIB_R_LD LIB_D_LD KLIB_R_LD DRV_R_LD \
   UDEPS_INCLUDE_FILTER SED_DEPS_SCRIPT WRAP_CC_COMPILER \
-  DEF_CXXFLAGS DEF_CFLAGS OS_APP_CC_FLAGS APP_CC_FLAGS OS_APP_CC_DEFINES APP_CC_DEFINES CC_PARAMS CMN_CXX CMN_CC \
+  DEF_CXXFLAGS DEF_CFLAGS OS_APP_FLAGS APP_FLAGS OS_APP_DEFINES APP_DEFINES CC_PARAMS CMN_CXX CMN_CC \
   PIC_OPTION EXE_R_CXX EXE_R_CC LIB_R_CXX LIB_R_CC DLL_R_CXX DLL_R_CC LIB_D_CXX LIB_D_CC \
-  KDEPS_INCLUDE_FILTER OS_KRN_CC_FLAGS KRN_CC_FLAGS OS_KRN_CC_DEFINES KRN_CC_DEFINES \
+  KDEPS_INCLUDE_FILTER OS_KRN_FLAGS KRN_FLAGS OS_KRN_DEFINES KRN_DEFINES \
   KCC_PARAMS KLIB_R_CC DRV_R_CC KLIB_R_ASM DRV_R_ASM BISON FLEX BISON_COLOR FLEX_COLOR \
   EXE_AUX_TEMPLATE2=t DLL_AUX_TEMPLATE2=t MOD_AUX_TEMPLATE1=t MOD_AUX_TEMPLATE=t DRV_TEMPLATE=DRV;LIB_DIR;KLIBS;SYSLIBS;SYSLIBPATH)

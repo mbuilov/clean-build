@@ -352,31 +352,31 @@ endef
 $(eval $(foreach v,R $(VARIANTS_FILTER),$(DLL_LD_TEMPLATE)))
 
 # flags for application-level C/C++-compiler
-OS_APP_CC_FLAGS := /X /GF /W3 /EHsc
+OS_APP_FLAGS := /X /GF /W3 /EHsc
 ifdef DEBUG
-OS_APP_CC_FLAGS += /Od /RTCc /RTCsu /GS
+OS_APP_FLAGS += /Od /RTCc /RTCsu /GS
 else
-OS_APP_CC_FLAGS += /Ox /GL /Gy
+OS_APP_FLAGS += /Ox /GL /Gy
 endif
 
 ifneq (,$(call is_less,10,$(VS_VER)))
 # >= Visual Studio 2012
 ifdef DEBUG
-OS_APP_CC_FLAGS += /sdl # Enable additional security checks
+OS_APP_FLAGS += /sdl # Enable additional security checks
 endif
 endif
 
 ifneq (,$(call is_less,11,$(VS_VER)))
 # >= Visual Studio 2013
-OS_APP_CC_FLAGS += /Zc:inline # Remove unreferenced COMDAT
-OS_APP_CC_FLAGS += /Zc:strictStrings # Disable string literal type conversion
-OS_APP_CC_FLAGS += /Zc:rvalueCast # Enforce type conversion rules
+OS_APP_FLAGS += /Zc:inline # Remove unreferenced COMDAT
+OS_APP_FLAGS += /Zc:strictStrings # Disable string literal type conversion
+OS_APP_FLAGS += /Zc:rvalueCast # Enforce type conversion rules
 endif
 
 ifneq (,$(call is_less,13,$(VS_VER)))
 # >= Visual Studio 2015
 ifdef DEBUG
-OS_APP_CC_FLAGS += /D_ALLOW_RTCc_IN_STL
+OS_APP_FLAGS += /D_ALLOW_RTCc_IN_STL
 endif
 endif
 
@@ -386,31 +386,31 @@ endif
 # then may use /Zi, else - use old /Z7 to store debug info in each .obj
 # note: no debug info in release build if /FS option is not supported
 ifdef FORCE_SYNC_PDB
-OS_APP_CC_FLAGS += $(FORCE_SYNC_PDB) /Zi
+OS_APP_FLAGS += $(FORCE_SYNC_PDB) /Zi
 else ifdef DEBUG
-OS_APP_CC_FLAGS += /Z7
+OS_APP_FLAGS += /Z7
 endif
 
-# APP_CC_FLAGS may be overridden in project makefile
-APP_CC_FLAGS := $(OS_APP_CC_FLAGS)
+# APP_FLAGS may be overridden in project makefile
+APP_FLAGS := $(OS_APP_FLAGS)
 
 # application-level defines for C/C++-compiler
 # note: some external sources want WIN32 to be defined
-OS_APP_CC_DEFINES := WIN32 _CRT_SECURE_NO_DEPRECATE _CRT_SECURE_NO_WARNINGS
+OS_APP_DEFINES := WIN32 _CRT_SECURE_NO_DEPRECATE _CRT_SECURE_NO_WARNINGS
 
 ifneq (,$(call is_less,$(VS_VER),14))
-OS_APP_CC_DEFINES += inline=__inline
+OS_APP_DEFINES += inline=__inline
 endif
 
-# APP_CC_DEFINES may be overridden in project makefile
-APP_CC_DEFINES := $(OS_PREDEFINES) $(OS_APP_CC_DEFINES)
+# APP_DEFINES may be overridden in project makefile
+APP_DEFINES := $(OS_PREDEFINES) $(OS_APP_DEFINES)
 
 # call C compiler
 # $1 - outdir/
 # $2 - sources
 # $3 - flags
 # target-specific: TMD, DEFINES, INCLUDE, COMPILER
-CMN_CL1 = $(VS$(TMD)CL) /nologo /c $(APP_CC_FLAGS) $(call SUBST_DEFINES,$(addprefix /D,$(APP_CC_DEFINES) $(DEFINES))) $(call \
+CMN_CL1 = $(VS$(TMD)CL) /nologo /c $(APP_FLAGS) $(call SUBST_DEFINES,$(addprefix /D,$(APP_DEFINES) $(DEFINES))) $(call \
   qpath,$(call ospath,$(INCLUDE)) $(VS$(TMD)INC) $(UM$(TMD)INC),/I) /Fo$(ospath) /Fd$(ospath) $3 $(call ospath,$2)
 
 # C compilers for different variants (R,S,RU,SU)
@@ -684,11 +684,11 @@ KDLL_R_LD1 = $(call SUP,KLINK,$1)$(call WRAP_DLL_LINKER,$(KDLL_NO_EXPORTS),$1,$(
   WRAP_LINKER,$(WKLD) /nologo /DLL $(CMN_KLIBS) $(if $(KDLL_NO_EXPORTS),,/IMPLIB:$(call ospath,$(IMP))) $(LDFLAGS)))
 
 # flags for kernel-level C-compiler
-OS_KRN_CC_FLAGS := -cbstring /X /GF /W3 /GR- /Gz /Zl /Oi /Gm- /Zp8 /Gy /Zc:wchar_t- /typedil-
+OS_KRN_FLAGS := -cbstring /X /GF /W3 /GR- /Gz /Zl /Oi /Gm- /Zp8 /Gy /Zc:wchar_t- /typedil-
 ifdef DEBUG
-OS_KRN_CC_FLAGS += /GS /Oy- /Od
+OS_KRN_FLAGS += /GS /Oy- /Od
 else
-OS_KRN_CC_FLAGS += /GS- /Oy
+OS_KRN_FLAGS += /GS- /Oy
 endif
 
 ifdef WDK
@@ -696,25 +696,25 @@ ifdef WDK
 ifneq (,$(call is_less,10,$(VS_VER)))
 # >= Visual Studio 2012
 
-OS_KRN_CC_FLAGS := $(filter-out /typedil-,$(OS_KRN_CC_FLAGS)) /kernel
+OS_KRN_FLAGS := $(filter-out /typedil-,$(OS_KRN_FLAGS)) /kernel
 
 ifdef DEBUG
-OS_KRN_CC_FLAGS += $(if $(KCPU:%64=),,-d2epilogunwind) /d1import_no_registry /d2Zi+
+OS_KRN_FLAGS += $(if $(KCPU:%64=),,-d2epilogunwind) /d1import_no_registry /d2Zi+
 else
-OS_KRN_CC_FLAGS += /d1nodatetime
+OS_KRN_FLAGS += /d1nodatetime
 endif
 
 ifdef DEBUG
-OS_KRN_CC_FLAGS += /sdl # Enable additional security checks
+OS_KRN_FLAGS += /sdl # Enable additional security checks
 endif
 
 endif # Visual Studio 2012
 
 ifneq (,$(call is_less,11,$(VS_VER)))
 # >= Visual Studio 2013
-OS_KRN_CC_FLAGS += /Zc:inline # Remove unreferenced COMDAT
-OS_KRN_CC_FLAGS += /Zc:rvalueCast # Enforce type conversion rules
-OS_KRN_CC_FLAGS += /Zc:strictStrings # Disable string literal type conversion
+OS_KRN_FLAGS += /Zc:inline # Remove unreferenced COMDAT
+OS_KRN_FLAGS += /Zc:rvalueCast # Enforce type conversion rules
+OS_KRN_FLAGS += /Zc:strictStrings # Disable string literal type conversion
 endif
 
 endif # WDK
@@ -725,27 +725,27 @@ endif # WDK
 # then may use /Zi, else - use old /Z7 to store debug info in each .obj
 # note: no debug info in release build if /FS option is not supported
 ifdef FORCE_SYNC_PDB_KERN
-OS_KRN_CC_FLAGS += $(FORCE_SYNC_PDB_KERN) /Zi
+OS_KRN_FLAGS += $(FORCE_SYNC_PDB_KERN) /Zi
 else ifdef DEBUG
-OS_KRN_CC_FLAGS += /Z7
+OS_KRN_FLAGS += /Z7
 endif
 
-# KRN_CC_FLAGS may be overridden in project makefile
-KRN_CC_FLAGS := $(OS_KRN_CC_FLAGS)
+# KRN_FLAGS may be overridden in project makefile
+KRN_FLAGS := $(OS_KRN_FLAGS)
 
 # kernel-level defines
-OS_KRN_CC_DEFINES := WIN32=100 WINNT=1 _DLL=1 $(if $(DEBUG),DBG=1 MSC_NOOPT DEPRECATE_DDK_FUNCTIONS=1,NDEBUG) $(if \
+OS_KRN_DEFINES := WIN32=100 WINNT=1 _DLL=1 $(if $(DEBUG),DBG=1 MSC_NOOPT DEPRECATE_DDK_FUNCTIONS=1,NDEBUG) $(if \
   $(KCPU:%64=),_WIN32 _X86_=1 i386=1 STD_CALL,_WIN64 _AMD64_ AMD64) WIN32_LEAN_AND_MEAN=1
 
-# KRN_CC_DEFINES may be overridden in project makefile
-KRN_CC_DEFINES := $(OS_PREDEFINES) $(OS_KRN_CC_DEFINES)
+# KRN_DEFINES may be overridden in project makefile
+KRN_DEFINES := $(OS_PREDEFINES) $(OS_KRN_DEFINES)
 
 # call C compiler
 # $1 - outdir/
 # $2 - sources
 # $3 - flags
 # target-specific: DEFINES, INCLUDE, COMPILER
-CMN_KCL = $(WKCL) /nologo /c $(KRN_CC_FLAGS) $(call SUBST_DEFINES,$(addprefix /D,$(KRN_CC_DEFINES) $(DEFINES))) $(call \
+CMN_KCL = $(WKCL) /nologo /c $(KRN_FLAGS) $(call SUBST_DEFINES,$(addprefix /D,$(KRN_DEFINES) $(DEFINES))) $(call \
   qpath,$(call ospath,$(INCLUDE)) $(KMINC),/I) /Fo$(ospath) /Fd$(ospath) $3 $(call ospath,$2)
 
 ifdef SEQ_BUILD
@@ -1290,7 +1290,7 @@ $(call CLEAN_BUILD_PROTECT_VARS,MCL_MAX_COUNT SEQ_BUILD YASMC FLEXC BISONC YASM_
   LINKER_STRIP_STRINGS WRAP_LINKER DEL_DEF_MANIFEST_ON_FAIL \
   WRAP_EXE_EXPORTS_LINKER WRAP_EXE_LINKER EXE_LD_TEMPLATE=v WRAP_DLL_EXPORTS_LINKER WRAP_DLL_LINKER DLL_LD_TEMPLATE=v \
   $(foreach v,R $(VARIANTS_FILTER),LIB_$v_LD1 EXE_$v_LD1 DLL_$v_LD1) \
-  OS_APP_CC_FLAGS APP_CC_FLAGS OS_APP_CC_DEFINES APP_CC_DEFINES CMN_CL1 CMN_RCL CMN_SCL CMN_RUCL CMN_SUCL WRAP_CC_COMPILER \
+  OS_APP_FLAGS APP_FLAGS OS_APP_DEFINES APP_DEFINES CMN_CL1 CMN_RCL CMN_SCL CMN_RUCL CMN_SUCL WRAP_CC_COMPILER \
   INCLUDING_FILE_PATTERN_en INCLUDING_FILE_PATTERN_ru_utf8 INCLUDING_FILE_PATTERN_ru_utf8_bytes \
   INCLUDING_FILE_PATTERN_ru_cp1251 INCLUDING_FILE_PATTERN_ru_cp1251_bytes \
   INCLUDING_FILE_PATTERN_ru_cp866 INCLUDING_FILE_PATTERN_ru_cp866_bytes \
@@ -1304,7 +1304,7 @@ $(call CLEAN_BUILD_PROTECT_VARS,MCL_MAX_COUNT SEQ_BUILD YASMC FLEXC BISONC YASM_
   TMCC_COLOR TMCXX_COLOR TMPCC_COLOR TMPCXX_COLOR TPCHCC_COLOR TPCHCXX_COLOR \
   LINK_COLOR XLINK_COLOR LIB_COLOR TLINK_COLOR TXLINK_COLOR TLIB_COLOR \
   SUBSYSTEM_KVER DEF_KLIB_LDFLAGS KLIB_R_LD1 DEF_DRV_LDFLAGS CMN_KLIBS DRV_R_LD1 KDLL_R_LD1 \
-  OS_KRN_CC_FLAGS FORCE_SYNC_PDB_KERN KRN_CC_FLAGS OS_KRN_CC_DEFINES KRN_CC_DEFINES CMN_KCL KDEPS_INCLUDE_FILTER CMN_KCC CMN_KCXX \
+  OS_KRN_FLAGS FORCE_SYNC_PDB_KERN KRN_FLAGS OS_KRN_DEFINES KRN_DEFINES CMN_KCL KDEPS_INCLUDE_FILTER CMN_KCC CMN_KCXX \
   KLIB_R_CC DRV_R_CC KDLL_R_CC KLIB_R_CXX DRV_R_CXX KDLL_R_CXX KLIB_R_LD DRV_R_LD KDLL_R_LD \
   CALL_MKCC CALL_MKCXX CALL_MPKCC CALL_MPKCXX CMN_MKCL3 CMN_MKCL2 CMN_MKCL1 CMN_MKCL PCH_R_KCC PCH_R_KCXX \
   MKCC_COLOR MKCXX_COLOR MKPCC_COLOR MKPCXX_COLOR \

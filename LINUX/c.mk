@@ -189,28 +189,28 @@ DEF_CXXFLAGS:=
 DEF_CFLAGS := -std=c99 -pedantic
 
 # flags for application-level C/C++-compiler
-OS_APP_CC_FLAGS := -Wall -fvisibility=hidden
+OS_APP_FLAGS := -Wall -fvisibility=hidden
 ifdef DEBUG
-OS_APP_CC_FLAGS += -ggdb
+OS_APP_FLAGS += -ggdb
 else
-OS_APP_CC_FLAGS += -g -O2
+OS_APP_FLAGS += -g -O2
 endif
 
-# APP_CC_FLAGS may be overridden in project makefile
-APP_CC_FLAGS := $(OS_APP_CC_FLAGS)
+# APP_FLAGS may be overridden in project makefile
+APP_FLAGS := $(OS_APP_FLAGS)
 
 # application-level defines
-OS_APP_CC_DEFINES := _GNU_SOURCE
+OS_APP_DEFINES := _GNU_SOURCE
 
-# APP_CC_DEFINES may be overridden in project makefile
-APP_CC_DEFINES := $(OS_APP_CC_DEFINES)
+# APP_DEFINES may be overridden in project makefile
+APP_DEFINES := $(OS_APP_DEFINES)
 
 # common options for application-level C++ and C compilers
 # $1 - target object file
 # $2 - source
 # target-specific: DEFINES, INCLUDE, COMPILER
-CC_PARAMS = -pipe -c $(APP_CC_FLAGS) $(AUTO_DEPS_FLAGS) $(call \
-  SUBST_DEFINES,$(addprefix -D,$(APP_CC_DEFINES) $(DEFINES))) $(addprefix -I,$(INCLUDE))
+CC_PARAMS = -pipe -c $(APP_FLAGS) $(AUTO_DEPS_FLAGS) $(call \
+  SUBST_DEFINES,$(addprefix -D,$(APP_DEFINES) $(DEFINES))) $(addprefix -I,$(INCLUDE))
 
 # C++ and C compilers
 # $1 - target object file
@@ -271,23 +271,23 @@ PCH_LIB_D_CXX = $(PCH_DLL_R_CXX)
 PCH_LIB_D_CC  = $(PCH_DLL_R_CC)
 
 # flags for kernel-level C/C++-compiler
-OS_KRN_CC_FLAGS:=
+OS_KRN_FLAGS:=
 
-# KRN_CC_FLAGS may be overridden in project makefile
-KRN_CC_FLAGS := $(OS_KRN_CC_FLAGS)
+# KRN_FLAGS may be overridden in project makefile
+KRN_FLAGS := $(OS_KRN_FLAGS)
 
 # kernel-level defines
 # note: recursive macro by default - to use $($t) dynamic value
 # $t - KLIB
-OS_KRN_CC_DEFINES = KBUILD_STR\(s\)=\\\#s KBUILD_BASENAME=KBUILD_STR\($($t)\) KBUILD_MODNAME=KBUILD_STR\($($t)\)
+OS_KRN_DEFINES = KBUILD_STR\(s\)=\\\#s KBUILD_BASENAME=KBUILD_STR\($($t)\) KBUILD_MODNAME=KBUILD_STR\($($t)\)
 
-# KRN_CC_DEFINES may be overridden in project makefile
-KRN_CC_DEFINES = $(OS_KRN_CC_DEFINES)
+# KRN_DEFINES may be overridden in project makefile
+KRN_DEFINES = $(OS_KRN_DEFINES)
 
 # parameters for kernel-level static library
 # target-specific: DEFINES, INCLUDE, COMPILER
-KLIB_PARAMS = -pipe -c $(KRN_CC_FLAGS) $(AUTO_DEPS_FLAGS) $(call \
-  SUBST_DEFINES,$(addprefix -D,$(KRN_CC_DEFINES) $(DEFINES))) $(addprefix -I,$(INCLUDE))
+KLIB_PARAMS = -pipe -c $(KRN_FLAGS) $(AUTO_DEPS_FLAGS) $(call \
+  SUBST_DEFINES,$(addprefix -D,$(KRN_DEFINES) $(DEFINES))) $(addprefix -I,$(INCLUDE))
 
 # kernel-level C compiler
 # $1 - target object file
@@ -480,11 +480,11 @@ $(call CLEAN_BUILD_PROTECT_VARS,INST_RPATH CC CXX LD AR TCC TCXX TLD TAR KCC KLD
   WLPREFIX DEF_SHARED_FLAGS DEF_SHARED_LIBS DEF_EXE_FLAGS DEF_SO_FLAGS DEF_LD_FLAGS DEF_KLD_FLAGS DEF_AR_FLAGS \
   DLL_EXPORTS_DEFINE DLL_IMPORTS_DEFINE RPATH_OPTION RPATH_LINK RPATH_LINK_OPTION CMN_LIBS VERSION_SCRIPT_OPTION SONAME_OPTION \
   EXE_R_LD EXE_P_LD DLL_R_LD LIB_R_LD LIB_P_LD LIB_D_LD KLIB_R_LD AUTO_DEPS_FLAGS DEF_CXXFLAGS DEF_CFLAGS \
-  OS_APP_CC_FLAGS APP_CC_FLAGS OS_APP_CC_DEFINES APP_CC_DEFINES CC_PARAMS CMN_CXX CMN_CC PCH_CXX PCH_CC \
+  OS_APP_FLAGS APP_FLAGS OS_APP_DEFINES APP_DEFINES CC_PARAMS CMN_CXX CMN_CC PCH_CXX PCH_CC \
   PCHCC_COLOR PCHCXX_COLOR TPCHCC_COLOR TPCHCXX_COLOR PIE_OPTION PIC_OPTION \
   EXE_R_CXX EXE_R_CC EXE_P_CXX EXE_P_CC LIB_R_CXX LIB_R_CC LIB_P_CXX LIB_P_CC DLL_R_CXX DLL_R_CC \
   LIB_D_CXX LIB_D_CC PCH_EXE_R_CXX PCH_EXE_R_CC PCH_EXE_P_CXX PCH_EXE_P_CC PCH_LIB_R_CXX PCH_LIB_R_CC PCH_LIB_P_CXX PCH_LIB_P_CC \
-  PCH_DLL_R_CXX PCH_DLL_R_CC PCH_LIB_D_CXX PCH_LIB_D_CC OS_KRN_CC_FLAGS KRN_CC_FLAGS OS_KRN_CC_DEFINES KRN_CC_DEFINES KLIB_PARAMS \
+  PCH_DLL_R_CXX PCH_DLL_R_CC PCH_LIB_D_CXX PCH_LIB_D_CC OS_KRN_FLAGS KRN_FLAGS OS_KRN_DEFINES KRN_DEFINES KLIB_PARAMS \
   KLIB_R_CC PCH_KLIB_R_CC KLIB_R_ASM BISON FLEX BISON_COLOR FLEX_COLOR NO_PCH \
   PCH_TEMPLATE1 PCH_TEMPLATE ADD_WITH_PCH2 ADD_WITH_PCH1 ADD_WITH_PCH \
   EXE_AUX_TEMPLATE2=t;v DLL_AUX_TEMPLATE2=t;v MOD_AUX_TEMPLATE1=t MOD_AUX_TEMPLATE=t \
