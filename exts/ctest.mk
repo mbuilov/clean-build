@@ -65,8 +65,8 @@ endif # UNIX
 ifneq (,$(filter check clean,$(MAKECMDGOALS)))
 
 # for 'check' target, run built executable(s)
-# $1 - built shared libraries needed by executable, in form <library_name>.<major_number>
-# $2 - auxiliary parameters to pass to executable
+# $1 - auxiliary parameters to pass to executable
+# $2 - built shared libraries needed by executable, in form <library_name>.<major_number>
 # $3 - dlls search paths: appended to PATH (for WINDOWS) or LD_LIBRARY_PATH (for UNIX-like OS) environment variable to run executable
 # $4 - environment variables to set to run executable, in form VAR=value
 DO_TEST_EXE = $(eval $(foreach v,$(call GET_VARIANTS,EXE),$(newline)$(foreach r,$(call FORM_TRG,EXE,$v),$(DO_TEST_EXE_TEMPLATE))))
