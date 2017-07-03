@@ -26,6 +26,9 @@ RM = $(QUIET)rm -rf $1
 # note: MKDIR should create intermediate parent directories of destination directory
 MKDIR = mkdir -p $1
 
+# diff content of two files: $1 and $2
+DIFF = diff $1 $2
+
 # stream-editor executable
 # note: SED value may be overridden either in command line or in project configuration file, like:
 # override SED := /usr/local/bin/sed
@@ -70,4 +73,4 @@ EXECIN = pushd $1 >/dev/null && { $2 && popd >/dev/null || { popd >/dev/null; fa
 DEL_ON_FAIL = || { $(DEL); false; }
 
 # protect variables from modifications in target makefiles
-$(call CLEAN_BUILD_PROTECT_VARS,DEL RM MKDIR SED SED_EXPR CAT ECHO WRITE NUL CP LN TOUCH CHMOD EXECIN DEL_ON_FAIL)
+$(call CLEAN_BUILD_PROTECT_VARS,DEL RM MKDIR DIFF SED SED_EXPR CAT ECHO WRITE NUL CP LN TOUCH CHMOD EXECIN DEL_ON_FAIL)
