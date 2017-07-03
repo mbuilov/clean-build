@@ -25,8 +25,9 @@ BUILD := $(TOP)/build
 # format: major.minor.patch
 PRODUCT_VER := 1.0.0
 
-# next variables are needed for generating resource file under Windows
-# and for generating pkg-config files for libraries
+# next variables are needed for generating:
+# - header file with version info (see $(MTOP)/exts/version/version.mk)
+# - under Windows, resource files with version info (see $(MTOP)/WINXX/cres.mk)
 PRODUCT_NAMES_H  := product_names.h
 VENDOR_NAME      := Michael M. Builov
 PRODUCT_NAME     := Sample app
@@ -56,7 +57,7 @@ MTOP := $(abspath $(TOP)/../..)
 CONFIG = $(BUILD)/conf.mk
 
 # adjust project defaults
-# OVERRIDES may be specified in command line, which overrides next definition
+# OVERRIDES may be specified in command line, which overrides next empty definition
 OVERRIDES:=
 ifdef OVERRIDES
 ifeq (,$(wildcard $(OVERRIDES)))
@@ -67,5 +68,11 @@ endif
 
 # source clean-build generated config file, if it exist
 -include $(CONFIG)
+
+# clean-build path must be defined, to include clean-build definitions
+ifndef MTOP
+$(error MTOP - path to clean-build (https://github.com/mbuilov/clean-build) is not defined,\
+ example: MTOP=/usr/local/clean-build or MTOP=C:\User\clean-build)
+endif
 
 endif # TOP
