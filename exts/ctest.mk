@@ -11,6 +11,7 @@ ifeq (,$(filter-out undefined environment,$(origin DO_TEST_EXE_TEMPLATE)))
 # rule for running test executable for 'check' target
 
 TEST_COLOR := [0;36m
+DIFF_COLOR := [0;36m
 
 # run $(EXE) and dump its stderr to $(EXE).out
 # $1 - auxiliary parameters to pass to executable
@@ -25,6 +26,17 @@ $r.out: TEST_AUX_PATH   := $3
 $r.out: TEST_AUX_VARS   := $(subst $$,$$$$,$4)
 $r.out: $r
 	$$(call SUP,TEST,$$@)$$(call RUN_WITH_DLL_PATH,$$< $$(TEST_AUX_PARAMS) > $$@,$$(TEST_AUX_PATH),$$(TEST_AUX_VARS))
+endef
+
+# diff $(EXE).out with given file:
+# if there is difference, it is printed and rule fails, else $(EXE).chk file is created.
+# $f - absolute path to file to diff $(EXE).out with
+# $r - $(call FORM_TRG,EXE,$v)
+define DO_DIFF_EXE_TEMPLATE
+$(call ADD_GENERATED,$r.chk)
+$r.chk: DIFF_WITH := $f
+$r.chk: $r.out
+	$$(call SUP,DIFF,$$@)$$(call DIFF,$$<,$$(DIFF_WITH)) 2> $$@
 endef
 
 ifeq (UNIX,$(OSTYPE))
@@ -69,16 +81,23 @@ ifneq (,$(filter check clean,$(MAKECMDGOALS)))
 # $2 - built shared libraries needed by executable, in form <library_name>.<major_number>
 # $3 - dlls search paths: appended to PATH (for WINDOWS) or LD_LIBRARY_PATH (for UNIX-like OS) environment variable to run executable
 # $4 - environment variables to set to run executable, in form VAR=value
-DO_TEST_EXE = $(eval $(foreach v,$(call GET_VARIANTS,EXE),$(newline)$(foreach r,$(call FORM_TRG,EXE,$v),$(DO_TEST_EXE_TEMPLATE))))
+DO_TEST_EXE = $(eval $(foreach v,$(call GET_VARIANTS,EXE),$(foreach r,$(call FORM_TRG,EXE,$v),$(newline)$(DO_TEST_EXE_TEMPLATE))))
+
+# for 'check' target, diff output of executable(s) with given file;
+# if there is difference, it is printed and rule fails, else .chk file is created.
+# $1 - file to diff executable(s) output with
+DO_DIFF_EXE = $(foreach f,$(call fixpath,$1),$(eval $(foreach v,$(call GET_VARIANTS,EXE),$(foreach \
+  r,$(call FORM_TRG,EXE,$v),$(newline)$(DO_DIFF_EXE_TEMPLATE)))))
 
 else # not check or clean
 
 DO_TEST_EXE:=
+DO_DIFF_EXE:=
 
 endif # not check or clean
 
 # protect variables from modifications in target makefiles
-$(call CLEAN_BUILD_PROTECT_VARS,TEST_COLOR DO_TEST_EXE_TEMPLATE=r \
-  TEST_EXE_SOFTLINKS=r SO_SOFTLINK_TEMPLATE=d TEST_NEED_SIMLINKS=CB_GENERATED_SIMLINK_RULES DO_TEST_EXE=EXE)
+$(call CLEAN_BUILD_PROTECT_VARS,TEST_COLOR DIFF_COLOR DO_TEST_EXE_TEMPLATE=r DO_DIFF_EXE_TEMPLATE=f;r \
+  TEST_EXE_SOFTLINKS=r SO_SOFTLINK_TEMPLATE=d TEST_NEED_SIMLINKS=CB_GENERATED_SIMLINK_RULES DO_TEST_EXE=EXE DO_DIFF_EXE=EXE)
 
 endif # DO_TEST_EXE_TEMPLATE
