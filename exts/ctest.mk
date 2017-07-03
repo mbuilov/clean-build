@@ -13,14 +13,14 @@ ifeq (,$(filter-out undefined environment,$(origin DO_TEST_EXE_TEMPLATE)))
 TEST_COLOR := [0;36m
 
 # run $(EXE) and dump its stderr to $(EXE).out
-# $1 - built shared libraries needed by executable, in form <library_name>.<major_number>
-# $2 - auxiliary parameters to pass to executable
+# $1 - auxiliary parameters to pass to executable
+# $2 - built shared libraries needed by executable, in form <library_name>.<major_number>
 # $3 - dlls search paths: appended to PATH (for WINDOWS) or LD_LIBRARY_PATH (for UNIX-like OS) environment variable to run executable
 # $4 - environment variables to set to run executable, in form VAR=value
 # $r - $(call FORM_TRG,EXE,$v)
 define DO_TEST_EXE_TEMPLATE
 $(call ADD_GENERATED,$r.out)
-$r.out: TEST_AUX_PARAMS := $2
+$r.out: TEST_AUX_PARAMS := $1
 $r.out: TEST_AUX_PATH   := $3
 $r.out: TEST_AUX_VARS   := $(subst $$,$$$$,$4)
 $r.out: $r
@@ -32,7 +32,9 @@ ifeq (UNIX,$(OSTYPE))
 # $1 - built shared libraries needed by executable, in form <library_name>.<major_number>
 # $r - $(call FORM_TRG,EXE,$v)
 TEST_EXE_SOFTLINKS = $(if $1,$r: | $(addprefix $(LIB_DIR)/$(DLL_PREFIX),$(subst .,$(DLL_SUFFIX).,$1))$(TEST_NEED_SIMLINKS))
-$(eval define DO_TEST_EXE_TEMPLATE$(newline)$(value DO_TEST_EXE_TEMPLATE)$(newline)$$(TEST_EXE_SOFTLINKS)$(newline)endef)
+
+# create simlinks to shared libraries for running test executable
+$(eval define DO_TEST_EXE_TEMPLATE$(newline)$(value DO_TEST_EXE_TEMPLATE)$(newline)$$(call TEST_EXE_SOFTLINKS,$$2)$(newline)endef)
 
 # initial reset
 CB_GENERATED_SIMLINK_RULES:=
