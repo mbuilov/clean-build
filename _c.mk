@@ -130,9 +130,9 @@ FORM_TRG = $(if \
   $(filter LIB,$1),$(addprefix $(LIB_DIR)/$(LIB_PREFIX),$(GET_TARGET_NAME:=$(call LIB_VAR_SUFFIX,$2)$(LIB_SUFFIX))),$(if \
   $(filter DRV,$1),$(addprefix $(BIN_DIR)/$(DRV_PREFIX),$(GET_TARGET_NAME:=$(EXE_VAR_SUFFIX)$(DRV_SUFFIX))),$(OS_FORM_TRG)))))))
 
-# example how to make target filenames for all variants specified for the target
+# make target filenames for all variants of the target
 # $1 - EXE,LIB,DLL,...
-# $(foreach v,$(call GET_VARIANTS,$1),$(call FORM_TRG,$1,$v))
+ALL_TRG = $(foreach v,$(call GET_VARIANTS,$1),$(call FORM_TRG,$1,$v))
 
 # compiler for the target
 # $1     - target file: $(call FORM_TRG,$t,$v)
@@ -427,7 +427,7 @@ endif # findstring
 
 # protect variables from modifications in target makefiles
 $(call CLEAN_BUILD_PROTECT_VARS,BLD_TARGETS NO_DEPS ADD_OBJ_SDEPS=x OBJ_RULES2=t;v OBJ_RULES1=t;v OBJ_RULES=t;v \
-  VARIANTS_FILTER EXE_SUFFIX_GEN EXE_VAR_SUFFIX LIB_VAR_SUFFIX DLL_DIR OS_FORM_TRG FORM_TRG \
+  VARIANTS_FILTER EXE_SUFFIX_GEN EXE_VAR_SUFFIX LIB_VAR_SUFFIX DLL_DIR OS_FORM_TRG FORM_TRG ALL_TRG \
   TRG_COMPILER=t;v TRG_INCLUDE=t;v;SYSINCLUDE TRG_DEFINES=t;v;DEFINES TRG_CFLAGS=t;v;CFLAGS \
   TRG_CXXFLAGS=t;v;CXXFLAGS TRG_ASMFLAGS=t;v;ASMFLAGS TRG_LDFLAGS=t;v;LDFLAGS \
   GET_SOURCES=SRC;WITH_PCH TRG_SRC TRG_SDEPS=SDEPS GET_OBJS VARIANT_LIB_MAP VARIANT_IMP_MAP \
