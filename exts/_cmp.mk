@@ -23,7 +23,7 @@ $(ADD_GENERATED)
 $1: CMP_WITH := $3
 $(subst $(space),$(newline),$(join $(addsuffix :,$1),$2))
 $1:
-	$$(call SUP,CMP,$$@)$$(call CMP,$$<,$$(CMP_WITH)) 2> $$@
+	$$(call SUP,CMP,$$@)$$(call CMP,$$<,$$(CMP_WITH)) > $$@ 2>&1
 endef
 
 # for 'check' target, compare tested executable(s) output with given file;
