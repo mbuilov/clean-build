@@ -161,8 +161,12 @@ TARGET := RELEASE
 ifndef OS
 OS:=
 else ifeq (Windows_NT,$(OS))
-OS := WINXX
+ifneq (,$(filter /cygdrive/%,$(CURDIR)))
+OS := LINUX
 else
+OS := WINXX
+endif
+else # !Windows_NT
 OS:=
 endif
 
