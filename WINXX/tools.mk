@@ -11,7 +11,7 @@ OSTYPE := WINDOWS
 # synchronize make output for parallel builds
 MAKEFLAGS += -O
 
-ifneq (,$(filter /cygdrive/%,$(abspath .)))
+ifneq (,$(filter /cygdrive/%,$(CURDIR)))
 $(error cygwin gnu make is used for WINDOWS build - this configuration is not supported, please use native windows tools,\
  for example, under cygwin start build with: /cygdrive/c/tools/gnumake-4.2.1.exe SED=C:/tools/sed.exe <args>)
 endif
@@ -116,6 +116,10 @@ RM  = $(call xcmd,RM1,$1,$(DEL_ARGS_LIMIT),,,,)
 # note: MKDIR must create intermediate parent directories of destination directory
 MKDIR = mkdir $(ospath)
 
+# compare content of two text files: $1 and $2
+# return an error if they are differ
+CMP = FC /T $(call ospath,$1 $2)
+
 # stream-editor executable
 # note: SED value may be overridden either in command line or in project configuration makefile, like:
 # SED := C:\tools\gnused.exe
@@ -162,7 +166,7 @@ NUL := NUL
 # code for suppressing output of copy command, like
 # "        1 file(s) copied."
 # "Скопировано файлов:         1."
-SUPPRESS_CP_OUTPUT := | findstr /v /c:"        1" & if errorlevel 1 (cmd /c exit 0) else (cmd /c exit 1)
+SUPPRESS_CP_OUTPUT := | findstr /VC:"        1" & if errorlevel 1 (cmd /c exit 0) else (cmd /c exit 1)
 
 # copy preserving modification date:
 # - file(s) $1 to directory $2 or
@@ -219,5 +223,5 @@ endif
 
 # protect variables from modifications in target makefiles
 $(call CLEAN_BUILD_PROTECT_VARS,WIN_EXPORTED $(sort TMP PATHEXT SYSTEMROOT COMSPEC $(WIN_EXPORTED)) \
-  PATH DEL_ARGS_LIMIT nonrelpath1 DEL DEL_DIR RM1 RM MKDIR SED SED_EXPR \
+  PATH DEL_ARGS_LIMIT nonrelpath1 DEL DEL_DIR RM1 RM MKDIR CMP SED SED_EXPR \
   CAT ECHO_LINE ECHO_LINES ECHO WRITE NUL SUPPRESS_CP_OUTPUT CP TOUCH EXECIN DEL_ON_FAIL NO_RPATH)
