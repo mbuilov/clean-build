@@ -27,8 +27,9 @@ RM = $(QUIET)rm -rf$(if $(VERBOSE),v) $1$(if $(VERBOSE), >&2)
 # note: MKDIR should create intermediate parent directories of destination directory
 MKDIR = mkdir -p$(if $(VERBOSE),v) $1$(if $(VERBOSE), >&2)
 
-# diff content of two files: $1 and $2
-DIFF = diff $1 $2
+# compare content of two text files: $1 and $2
+# return an error if they are differ
+CMP = cmp $1 $2
 
 # stream-editor executable
 # note: SED value may be overridden either in command line or in project configuration makefile, like:
@@ -74,4 +75,4 @@ EXECIN = pushd $1 >/dev/null && { $2 && popd >/dev/null || { popd >/dev/null; fa
 DEL_ON_FAIL = || { $(DEL); false; }
 
 # protect variables from modifications in target makefiles
-$(call CLEAN_BUILD_PROTECT_VARS,DEL RM MKDIR DIFF SED SED_EXPR CAT ECHO WRITE NUL CP LN TOUCH CHMOD EXECIN DEL_ON_FAIL)
+$(call CLEAN_BUILD_PROTECT_VARS,DEL RM MKDIR CMP SED SED_EXPR CAT ECHO WRITE NUL CP LN TOUCH CHMOD EXECIN DEL_ON_FAIL)
