@@ -884,7 +884,7 @@ else # !SEQ_BUILD
 # $2 - $$(basename $$(notdir $$(TRG_PCH)))
 # $t - EXE,LIB,DLL,DRV,KLIB,KDLL
 # target-specific: $$(PCH)
-define PCH_TEMPLATE1
+define PCH_TEMPLATEt
 TRG_PCH      := $(call fixpath,$(PCH))
 TRG_WITH_PCH := $(call fixpath,$(WITH_PCH))
 PCH_C_SRC    := $(GEN_DIR)/pch/$1_$t_$2_c.c
@@ -897,48 +897,46 @@ endef
 
 # $1 - $(call GET_TARGET_NAME,$t)
 # $2 - $$(basename $$(notdir $$(TRG_PCH)))
-# $3 - $(call FORM_OBJ_DIR,$t,$v)
-# $4 - $(call FORM_TRG,$t,$v)
+# $3 - $(call FORM_TRG,$t,$v)
+# $4 - $(call FORM_OBJ_DIR,$t,$v)
 # $5 - K or <empty>
 # $t - EXE,LIB,DLL,DRV,KLIB,KDLL
 # $v - R,S,RU,SU
 # note: $$(PCH_OBJS) will be built before link phase - before sources are compiled with MCL
-define PCH_TEMPLATE2
-$(empty)
-$4: PCH := $$(TRG_PCH)
-$4: WITH_PCH := $$(TRG_WITH_PCH)
-PCH_C_OBJ := $3/$1_$t_$2_c$(OBJ_SUFFIX)
-PCH_CXX_OBJ := $3/$1_$t_$2_cpp$(OBJ_SUFFIX)
-$$(PCH_C_OBJ): $$(PCH_C_SRC) $$(TRG_PCH) | $3 $$(ORDER_DEPS)
-	$$(call PCH_$v_$5CC,$$@,$$<,$$(PCH))
-$$(PCH_CXX_OBJ): $$(PCH_CXX_SRC) $$(TRG_PCH) | $3 $$(ORDER_DEPS)
-	$$(call PCH_$v_$5CXX,$$@,$$<,$$(PCH))
+define PCH_TEMPLATEv
+PCH_C_OBJ := $4/$1_$t_$2_c$(OBJ_SUFFIX)
+PCH_CXX_OBJ := $4/$1_$t_$2_cpp$(OBJ_SUFFIX)
 PCH_OBJS := $$(if $$(filter %.c,$$(TRG_WITH_PCH)),$$(PCH_C_OBJ)) $$(if $$(filter %.cpp,$$(TRG_WITH_PCH)),$$(PCH_CXX_OBJ))
-$4: $$(PCH_OBJS)
+$3: PCH := $$(TRG_PCH)
+$3: WITH_PCH := $$(TRG_WITH_PCH)
+$3: $$(PCH_OBJS)
+$$(PCH_C_OBJ): $$(PCH_C_SRC) $$(TRG_PCH) | $4 $$(ORDER_DEPS)
+	$$(call PCH_$v_$5CC,$$@,$$<,$$(PCH))
+$$(PCH_CXX_OBJ): $$(PCH_CXX_SRC) $$(TRG_PCH) | $4 $$(ORDER_DEPS)
+	$$(call PCH_$v_$5CXX,$$@,$$<,$$(PCH))
 ifndef NO_DEPS
--include $$(addprefix $3/,$$(if \
+-include $$(addprefix $4/,$$(if \
   $$(filter %.c,$$(TRG_WITH_PCH)),$$(basename $$(notdir $$(PCH_C_SRC))).d) $$(if \
   $$(filter %.cpp,$$(TRG_WITH_PCH)),$$(basename $$(notdir $$(PCH_CXX_SRC))).d))
 endif
 $$(call TOCLEAN,$$(PCH_OBJS))
-$$(call TOCLEAN,$$(if $$(filter %.c,$$(TRG_WITH_PCH)),$3/$2_c.pch $3/$$(basename $$(notdir $$(PCH_C_SRC))).d))
-$$(call TOCLEAN,$$(if $$(filter %.cpp,$$(TRG_WITH_PCH)),$3/$2_cpp.pch $3/$$(basename $$(notdir $$(PCH_CXX_SRC))).d))
+$$(call TOCLEAN,$$(if $$(filter %.c,$$(TRG_WITH_PCH)),$4/$2_c.pch $4/$$(basename $$(notdir $$(PCH_C_SRC))).d))
+$$(call TOCLEAN,$$(if $$(filter %.cpp,$$(TRG_WITH_PCH)),$4/$2_cpp.pch $4/$$(basename $$(notdir $$(PCH_CXX_SRC))).d))
 endef
 
 # $1 - $(call GET_TARGET_NAME,$t)
 # $2 - $$(basename $$(notdir $$(TRG_PCH)))
 # $3 - K or <empty>
 # $t - EXE,LIB,DLL,DRV,KLIB,KDLL
-PCH_TEMPLATE3 = $(PCH_TEMPLATE1)$(foreach v,$(call GET_VARIANTS,$t),$(call \
-  PCH_TEMPLATE2,$1,$2,$(call FORM_OBJ_DIR,$t,$v),$(call FORM_TRG,$t,$v),$3))
+PCH_TEMPLATE3 = $(PCH_TEMPLATEt)$(foreach v,$(call GET_VARIANTS,$t),$(newline)$(call \
+  PCH_TEMPLATEv,$1,$2,$(call FORM_TRG,$t,$v),$(call FORM_OBJ_DIR,$t,$v),$3))
 
 # $t - EXE,LIB,DLL,DRV,KLIB,KDLL
 # note: must reset target-specific WITH_PCH if not using precompiled header, otherwise:
 # - DLL or LIB target may inherit WITH_PCH value from EXE,
 # - LIB target may inherit WITH_PCH value from DLL
-PCH_TEMPLATE = $(if $(word 2,$(PCH) $(WITH_PCH)),$(call \
-  PCH_TEMPLATE3,$(call GET_TARGET_NAME,$t),$$(basename $$(notdir $$(TRG_PCH))),$(if $(filter DRV KLIB KDLL,$t),K)),$(foreach \
-  v,$(call GET_VARIANTS,$t),$(call FORM_TRG,$t,$v): WITH_PCH:=$(newline)))
+PCH_TEMPLATE = $(if $(word 2,$(PCH) $(WITH_PCH)),$(call PCH_TEMPLATE3,$(call GET_TARGET_NAME,$t),$$(basename \
+  $$(notdir $$(TRG_PCH))),$(if $(filter DRV KLIB KDLL,$t),K)),$(call ALL_TRG,$t): WITH_PCH:=)
 
 endif # !SEQ_BUILD
 
@@ -965,10 +963,10 @@ MAKE_IMP_PATH = $(LIB_DIR)/$(IMP_PREFIX)$1$(call LIB_VAR_SUFFIX,$2)$(IMP_SUFFIX)
 # $1 - $(call FORM_TRG,$t,$v)
 # $2 - $(call fixpath,$(DEF))
 # $3 - $(call MAKE_IMP_PATH,$n,$v)
-# $t - EXE, DLL, DRV or KDLL
+# $t - EXE,DLL,DRV or KDLL
 # $n - $(call GET_TARGET_NAME,$t)
 ifndef TOCLEAN
-define EXPORTS_TEMPLATE1
+define EXPORTS_TEMPLATEn
 $1: IMP := $3
 $1: DEF := $2
 $1: $2 | $(LIB_DIR)
@@ -977,14 +975,14 @@ $3: $1
 endef
 else ifdef DEBUG
 # cleanup generated .exp file in debug
-EXPORTS_TEMPLATE1 = $(call TOCLEAN,$3 $(3:$(IMP_SUFFIX)=.exp))
+EXPORTS_TEMPLATEn = $(call TOCLEAN,$3 $(3:$(IMP_SUFFIX)=.exp))
 else
-EXPORTS_TEMPLATE1:=
+EXPORTS_TEMPLATEn:=
 endif
 
 # for DLL or EXE that do not exports symbols
 # $1 - $(call FORM_TRG,$t,$v)
-# $t - EXE, DLL, DRV or KDLL
+# $t - EXE,DLL,DRV or KDLL
 # $n - $(call GET_TARGET_NAME,$t)
 ifndef TOCLEAN
 define NO_EXPORTS_TEMPLATE
@@ -998,10 +996,10 @@ endif
 # $1 - $(call FORM_TRG,$t,$v)
 # $2 - $(call fixpath,$(DEF))
 # $3 - non-<empty> if target exports symbols, <empty> - otherwise
-# $t - EXE, DLL, DRV or KDLL
+# $t - EXE,DLL,DRV or KDLL
 # $n - $(call GET_TARGET_NAME,$t)
 # $v - R,S
-EXPORTS_TEMPLATE = $(if $3,$(call EXPORTS_TEMPLATE1,$1,$2,$(call MAKE_IMP_PATH,$n,$v)),$(NO_EXPORTS_TEMPLATE))
+EXPORTS_TEMPLATE = $(if $3,$(call EXPORTS_TEMPLATEn,$1,$2,$(call MAKE_IMP_PATH,$n,$v)),$(NO_EXPORTS_TEMPLATE))
 
 # add dependency on sources for the target,
 # define target-specific variables: SRC, SDEPS, OBJ_DIR
@@ -1010,7 +1008,8 @@ EXPORTS_TEMPLATE = $(if $3,$(call EXPORTS_TEMPLATE1,$1,$2,$(call MAKE_IMP_PATH,$
 # $3 - $(TRG_ALL_SDEPS)
 # $4 - $(call FORM_TRG,$t,$v)
 # $5 - $(call FORM_OBJ_DIR,$t,$v)
-# $t - EXE, DLL, DRV or KDLL
+# $t - EXE,DLL,DRV or KDLL
+# $v - R,S
 ifndef SEQ_BUILD
 define MULTISOURCE_AUX
 $(empty)
@@ -1027,10 +1026,10 @@ endif
 # $4 - $(call FORM_TRG,$t,$v)
 # $5 - $(call FORM_OBJ_DIR,$t,$v)
 # $6 - $(call fixpath,$(DEF))
-# $t - EXE, DRV
+# $t - EXE,DRV
 # $n - $(call GET_TARGET_NAME,$t)
 # $v - R,S
-define EXE_AUX_TEMPLATE2
+define EXE_AUX_TEMPLATEv
 $(empty)
 $4: MODVER := $(MODVER)
 $4: $t_EXPORTS := $($t_EXPORTS)
@@ -1043,10 +1042,10 @@ endef
 # $4 - $(call FORM_TRG,$t,$v)
 # $5 - $(call FORM_OBJ_DIR,$t,$v)
 # $6 - $(call fixpath,$(DEF))
-# $t - DLL, KDLL
+# $t - DLL,KDLL
 # $n - $(call GET_TARGET_NAME,$t)
 # $v - R,S
-define DLL_AUX_TEMPLATE2
+define DLL_AUX_TEMPLATEv
 $(empty)
 $4: MODVER := $(MODVER)
 $4: $t_NO_EXPORTS := $($t_NO_EXPORTS)
@@ -1055,35 +1054,36 @@ endef
 
 # cleanup generated vc*.pdb and .pdb in debug
 # define target-specific variables SRC, SDEPS and OBJ_DIR
-# $t - EXE, DLL, DRV or KDLL
+# $t - EXE,DLL,DRV or KDLL
+# $v - R,S
 ifdef TOCLEAN
 ifdef DEBUG
-$(eval define EXE_AUX_TEMPLATE2$(newline)$(value EXE_AUX_TEMPLATE2)$$(call TOCLEAN,$$5/vc*.pdb $$(4:$$($$t_SUFFIX)=.pdb))$(newline)endef)
-$(eval define DLL_AUX_TEMPLATE2$(newline)$(value DLL_AUX_TEMPLATE2)$$(call TOCLEAN,$$5/vc*.pdb $$(4:$$($$t_SUFFIX)=.pdb))$(newline)endef)
+$(eval define EXE_AUX_TEMPLATEv$(newline)$(value EXE_AUX_TEMPLATEv)$$(call TOCLEAN,$$5/vc*.pdb $$(4:$$($$t_SUFFIX)=.pdb))$(newline)endef)
+$(eval define DLL_AUX_TEMPLATEv$(newline)$(value DLL_AUX_TEMPLATEv)$$(call TOCLEAN,$$5/vc*.pdb $$(4:$$($$t_SUFFIX)=.pdb))$(newline)endef)
 endif
 else ifndef SEQ_BUILD
-$(eval define EXE_AUX_TEMPLATE2$(newline)$(value EXE_AUX_TEMPLATE2)$(value MULTISOURCE_AUX)$(newline)endef)
-$(eval define DLL_AUX_TEMPLATE2$(newline)$(value DLL_AUX_TEMPLATE2)$(value MULTISOURCE_AUX)$(newline)endef)
+$(eval define EXE_AUX_TEMPLATEv$(newline)$(value EXE_AUX_TEMPLATEv)$(value MULTISOURCE_AUX)$(newline)endef)
+$(eval define DLL_AUX_TEMPLATEv$(newline)$(value DLL_AUX_TEMPLATEv)$(value MULTISOURCE_AUX)$(newline)endef)
 endif
 
 # $1 - $(TRG_SRC)
 # $2 - $(TRG_SDEPS)
 # $3 - $(TRG_ALL_SDEPS)
 # $4 - $(call fixpath,$(DEF))
-# $t - EXE, DLL, DRV or KDLL
-EXP_AUX_TEMPLATE1 = $(foreach n,$(call GET_TARGET_NAME,$t),$(foreach v,$(call GET_VARIANTS,$t),$(call \
-  $t_AUX_TEMPLATE2,$1,$2,$3,$(call FORM_TRG,$t,$v),$(call FORM_OBJ_DIR,$t,$v),$4)))
+# $t - EXE,DLL,DRV or KDLL
+EXP_AUX_TEMPLATEt = $(foreach n,$(call GET_TARGET_NAME,$t),$(foreach v,$(call GET_VARIANTS,$t),$(call \
+  $t_AUX_TEMPLATEv,$1,$2,$3,$(call FORM_TRG,$t,$v),$(call FORM_OBJ_DIR,$t,$v),$4)))
 
-# auxiliary defines for EXE or DLL:
+# auxiliary defines for EXE, DLL, DRV or KDLL:
 # - standard resource
 # - precompiled header
-# - target-specific SRC, SDEPS and OBJ_DIR (for CMN_MCL) and IMP (for EXE_LD_TEMPLATE/DLL_LD_TEMPLATE)
-# $t - EXE or DLL
+# - target-specific SRC, SDEPS and OBJ_DIR (for CMN_MCL) and IMP (for _LD_TEMPLATE)
+# $t - EXE,DLL,DRV or KDLL
 define EXP_AUX_TEMPLATE
 $(empty)
 $(call STD_RES_TEMPLATE,$t)
 $(PCH_TEMPLATE)
-$(call EXP_AUX_TEMPLATE1,$(TRG_SRC),$(TRG_SDEPS),$(TRG_ALL_SDEPS),$(call fixpath,$(DEF)))
+$(call EXP_AUX_TEMPLATEt,$(TRG_SRC),$(TRG_SDEPS),$(TRG_ALL_SDEPS),$(call fixpath,$(DEF)))
 endef
 
 # called by OS_DEFINE_TARGETS
@@ -1099,21 +1099,21 @@ DLL_AUX_TEMPLATE = $(EXP_AUX_TEMPLATE)
 # $t - LIB or KLIB
 # $v - R,S
 # cleanup generated vc*.pdb in debug
-ARC_AUX_TEMPLATE2:=
+ARC_AUX_TEMPLATEv:=
 ifdef TOCLEAN
 ifdef DEBUG
-ARC_AUX_TEMPLATE2 = $(call TOCLEAN,$5/vc*.pdb)
+ARC_AUX_TEMPLATEv = $(call TOCLEAN,$5/vc*.pdb)
 endif
 else ifndef SEQ_BUILD
-ARC_AUX_TEMPLATE2 = $(MULTISOURCE_AUX)
+ARC_AUX_TEMPLATEv = $(MULTISOURCE_AUX)
 endif
 
 # $1 - $(TRG_SRC)
 # $2 - $(TRG_SDEPS)
 # $3 - $(TRG_ALL_SDEPS)
 # $t - LIB or KLIB
-ARC_AUX_TEMPLATE1 = $(foreach v,$(call GET_VARIANTS,$t),$(call \
-  ARC_AUX_TEMPLATE2,$1,$2,$3,$(call FORM_TRG,$t,$v),$(call FORM_OBJ_DIR,$t,$v)))
+ARC_AUX_TEMPLATEt= $(foreach v,$(call GET_VARIANTS,$t),$(call \
+  ARC_AUX_TEMPLATEv,$1,$2,$3,$(call FORM_TRG,$t,$v),$(call FORM_OBJ_DIR,$t,$v)))
 
 # auxiliary defines for LIB or KLIB:
 # - precompiled header
@@ -1125,9 +1125,9 @@ $(PCH_TEMPLATE)
 endef
 
 # $t - LIB or KLIB
-ifdef ARC_AUX_TEMPLATE2
+ifdef ARC_AUX_TEMPLATEv
 $(eval define ARC_AUX_TEMPLATE$(newline)$(value ARC_AUX_TEMPLATE)$(newline)$$(call \
-  ARC_AUX_TEMPLATE1,$$(TRG_SRC),$$(TRG_SDEPS),$$(TRG_ALL_SDEPS))$(newline)endef)
+  ARC_AUX_TEMPLATEt,$$(TRG_SRC),$$(TRG_SDEPS),$$(TRG_ALL_SDEPS))$(newline)endef)
 endif
 
 # called by OS_DEFINE_TARGETS
@@ -1201,8 +1201,6 @@ ifdef DRIVERS_SUPPORT
 # $t - DRV or KDLL
 # $v - non-empty variant: R
 define DRV_TEMPLATE
-$(call STD_RES_TEMPLATE,$t)
-$(PCH_TEMPLATE)
 $(STD_TARGET_VARS)
 NEEDED_DIRS += $4
 $1: $(call OBJ_RULES,CC,$(filter %.c,$2),$3,$4)
@@ -1229,24 +1227,10 @@ endef
 # how to build kernel shared library, used by $(C_RULES)
 KDLL_TEMPLATE = $(DRV_TEMPLATE)
 
-# for EXP_AUX_TEMPLATE1
-DRV_AUX_TEMPLATE2 = $(EXE_AUX_TEMPLATE2)
-KDLL_AUX_TEMPLATE2 = $(DLL_AUX_TEMPLATE2)
-
-# auxiliary defines for DRV or KDLL:
-# - standard resource
-# - precompiled header
-# - target-specific SRC, SDEPS and OBJ_DIR (for CMN_MKCL) and IMP (for DRV_LD_TEMPLATE/KDLL_LD_TEMPLATE)
-# $t - DRV or KDLL
-define KEXP_AUX_TEMPLATE
-$(empty)
-$(call EXP_AUX_TEMPLATE1,$(TRG_SRC),$(TRG_SDEPS),$(TRG_ALL_SDEPS),$(call fixpath,$(DEF)))
-endef
-
 # called by OS_DEFINE_TARGETS
 # $t - DRV or KDLL
-DRV_AUX_TEMPLATE = $(KEXP_AUX_TEMPLATE)
-KDLL_AUX_TEMPLATE = $(KEXP_AUX_TEMPLATE)
+DRV_AUX_TEMPLATE = $(EXP_AUX_TEMPLATE)
+KDLL_AUX_TEMPLATE = $(EXP_AUX_TEMPLATE)
 
 endif # DRIVERS_SUPPORT
 
@@ -1309,10 +1293,10 @@ $(call CLEAN_BUILD_PROTECT_VARS,MCL_MAX_COUNT SEQ_BUILD YASMC FLEXC BISONC YASM_
   CALL_MKCC CALL_MKCXX CALL_MPKCC CALL_MPKCXX CMN_MKCL3 CMN_MKCL2 CMN_MKCL1 CMN_MKCL PCH_R_KCC PCH_R_KCXX \
   MKCC_COLOR MKCXX_COLOR MKPCC_COLOR MKPCXX_COLOR \
   KLIB_R_ASM DRV_R_ASM KDLL_R_ASM KLINK_COLOR KLIB_COLOR BISON FLEX BISON_COLOR FLEX_COLOR \
-  PCH_TEMPLATE1 PCH_TEMPLATE2=v;t PCH_TEMPLATE3=t PCH_TEMPLATE=t ADD_WITH_PCH \
-  TRG_ALL_SDEPS MAKE_IMP_PATH EXPORTS_TEMPLATE1=t;n;v NO_EXPORTS_TEMPLATE=t;n;v EXPORTS_TEMPLATE=t;n;v MULTISOURCE_AUX=t;v \
-  EXE_AUX_TEMPLATE2=t;n;v DLL_AUX_TEMPLATE2=t;n;v EXP_AUX_TEMPLATE1=t EXP_AUX_TEMPLATE=t EXE_AUX_TEMPLATE=t DLL_AUX_TEMPLATE=t \
-  ARC_AUX_TEMPLATE2=t;v ARC_AUX_TEMPLATE1=t ARC_AUX_TEMPLATE=t LIB_AUX_TEMPLATE KLIB_AUX_TEMPLATE \
+  PCH_TEMPLATEt=t PCH_TEMPLATEv=t;v PCH_TEMPLATE3=t PCH_TEMPLATE=t ADD_WITH_PCH \
+  TRG_ALL_SDEPS MAKE_IMP_PATH EXPORTS_TEMPLATEn=t;n;v NO_EXPORTS_TEMPLATE=t;n;v EXPORTS_TEMPLATE=t;n;v MULTISOURCE_AUX=t;v \
+  EXE_AUX_TEMPLATEv=t;n;v DLL_AUX_TEMPLATEv=t;n;v EXP_AUX_TEMPLATEt=t EXP_AUX_TEMPLATE=t EXE_AUX_TEMPLATE=t DLL_AUX_TEMPLATE=t \
+  ARC_AUX_TEMPLATEv=t;v ARC_AUX_TEMPLATEt=t ARC_AUX_TEMPLATE=t LIB_AUX_TEMPLATE KLIB_AUX_TEMPLATE \
   ADD_MC_RULE1 ADD_MC_RULE ADD_RES_RULE2 ADD_RES_RULE1 ADD_RES_RULE RC_DEFINE_PATH \
   DRV_TEMPLATE=t;DRV;LIB_DIR;KLIBS;KDLLS;SYSLIBS;SYSLIBPATH KDLL_TEMPLATE DRV_AUX_TEMPLATE2 KDLL_AUX_TEMPLATE2 \
-  KEXP_AUX_TEMPLATE=t DRV_AUX_TEMPLATE KDLL_AUX_TEMPLATE)
+  DRV_AUX_TEMPLATE KDLL_AUX_TEMPLATE)
