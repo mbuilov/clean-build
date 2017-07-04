@@ -36,8 +36,8 @@ WIX_EXTS_DIR := $(WIXN)bin
 # $1 - compiler with options
 # $2 - source
 # note: send compiler output to stderr
-WRAP_WIX = (($1 2>&1 && echo WIX_COMPILATION_OK >&2) | findstr /V /X /L "$(notdir \
-  $2)") 3>&2 2>&1 1>&3 | findstr /B /L WIX_COMPILATION_OK >NUL
+WRAP_WIX = (($1 2>&1 && echo WIX_COMPILATION_OK>&2)|findstr /VXC:"$(notdir \
+  $2)")3>&2 2>&1 1>&3|findstr /BC:WIX_COMPILATION_OK>NUL
 
 # compile .wxs file
 # $1 - .wixobj
