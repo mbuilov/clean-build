@@ -7,7 +7,7 @@
 ifeq (,$(filter-out undefined environment,$(origin ECHO_INSTALL)))
 
 # CHMOD tool color
-CHMOD_COLOR := [01;35m
+CHMOD_COLOR := [1;35m
 
 # print $1 to file $2, then change its access mode to $3
 # note: pass non-empty 3-d argument to SUP function to not colorize tool arguments
