@@ -324,33 +324,33 @@ ifndef NO_PCH
 
 # NOTE: $(PCH) - makefile-related path to header to precompile
 
-# $1 - $(call FORM_OBJ_DIR,$t,$v)
-# $2 - $(call FORM_TRG,$1,$v)
+# $1 - $(call FORM_TRG,$t,$v)
+# $2 - $(call FORM_OBJ_DIR,$t,$v)
 # $t - EXE,LIB,DLL,KLIB
-# $v - R,P,
-define PCH_TEMPLATE1
+# $v - R,P
+define PCH_TEMPLATEv
 TRG_PCH := $(call fixpath,$(PCH))
 TRG_WITH_PCH := $(call fixpath,$(WITH_PCH))
-$2: PCH := $$(TRG_PCH)
-$2: WITH_PCH := $$(TRG_WITH_PCH)
+$1: PCH := $$(TRG_PCH)
+$1: WITH_PCH := $$(TRG_WITH_PCH)
 ifneq (,$$(filter %.c,$$(TRG_WITH_PCH)))
-C_GCH := $1/$$(basename $$(notdir $$(TRG_PCH)))_pch_c.h
-$$(C_GCH).gch: $$(TRG_PCH) | $1 $$(ORDER_DEPS)
+C_GCH := $2/$$(basename $$(notdir $$(TRG_PCH)))_pch_c.h
+$$(C_GCH).gch: $$(TRG_PCH) | $2 $$(ORDER_DEPS)
 	$$(call PCH_$t_$v_CC,$$@,$$(PCH))
 ifndef NO_DEPS
 -include $$(C_GCH).d)
 endif
-$$(addprefix $1/,$$(addsuffix $(OBJ_SUFFIX),$$(basename $$(notdir $$(filter %.c,$$(TRG_WITH_PCH)))))): $$(C_GCH).gch
+$$(addprefix $2/,$$(addsuffix $(OBJ_SUFFIX),$$(basename $$(notdir $$(filter %.c,$$(TRG_WITH_PCH)))))): $$(C_GCH).gch
 $$(call TOCLEAN,$$(C_GCH).gch $$(C_GCH).d)
 endif
 ifneq (,$$(filter %.cpp,$$(TRG_WITH_PCH)))
-CXX_GCH := $1/$$(basename $$(notdir $$(TRG_PCH)))_pch_cxx.h
-$$(CXX_GCH).gch: $$(TRG_PCH) | $1 $$(ORDER_DEPS)
+CXX_GCH := $2/$$(basename $$(notdir $$(TRG_PCH)))_pch_cxx.h
+$$(CXX_GCH).gch: $$(TRG_PCH) | $2 $$(ORDER_DEPS)
 	$$(call PCH_$t_$v_CXX,$$@,$$(PCH))
 ifndef NO_DEPS
 -include $$(CXX_GCH).d
 endif
-$$(addprefix $1/,$$(addsuffix $(OBJ_SUFFIX),$$(basename $$(notdir $$(filter %.cpp,$$(TRG_WITH_PCH)))))): $$(CXX_GCH).gch
+$$(addprefix $2/,$$(addsuffix $(OBJ_SUFFIX),$$(basename $$(notdir $$(filter %.cpp,$$(TRG_WITH_PCH)))))): $$(CXX_GCH).gch
 $$(call TOCLEAN,$$(CXX_GCH).gch $$(CXX_GCH).d)
 endif
 endef
@@ -360,15 +360,16 @@ endef
 # note: must reset target-specific WITH_PCH if not using precompiled header,
 # otherwise DLL or LIB target may inherit WITH_PCH value from EXE, LIB target may inherit WITH_PCH value from DLL
 PCH_TEMPLATE = $(if $(word 2,$(PCH) $(firstword $(WITH_PCH))),$(foreach \
-  v,$(call GET_VARIANTS,$t),$(newline)$(call PCH_TEMPLATE1,$(call FORM_OBJ_DIR,$t,$v),$(call \
-  FORM_TRG,$t,$v))),$(foreach v,$(call GET_VARIANTS,$t),$(call FORM_TRG,$t,$v): WITH_PCH:=$(newline)))
+  v,$(call GET_VARIANTS,$t),$(newline)$(call PCH_TEMPLATEv,$(call FORM_TRG,$t,$v),$(call \
+  FORM_OBJ_DIR,$t,$v))),$(call ALL_TRG,$t): WITH_PCH:=$(newline))
 
 # set dependencies of objects compiled with pch header on .gch
 # $1 - $(filter %.c,$src)
 # $2 - $(filter %.cpp,$src)
 # $3 - pch header name
 # $4 - objdir
-define ADD_WITH_PCH2
+# $v - R
+define ADD_WITH_PCHv
 $(empty)
 $(if $1,$(addprefix $4/,$(addsuffix $(OBJ_SUFFIX),$(basename $(notdir $1)))): $4/$3_pch_c.h.gch)
 $(if $2,$(addprefix $4/,$(addsuffix $(OBJ_SUFFIX),$(basename $(notdir $2)))): $4/$3_pch_cxx.h.gch)
@@ -378,7 +379,7 @@ endef
 # $2 - C-sources
 # $3 - C++-sources
 # $4 - $(basename $(notdir $(PCH)))
-ADD_WITH_PCH1 = $(foreach v,$(call GET_VARIANTS,$1),$(call ADD_WITH_PCH2,$2,$3,$4,$(call FORM_OBJ_DIR,$1,$v)))
+ADD_WITH_PCH1 = $(foreach v,$(call GET_VARIANTS,$1),$(call ADD_WITH_PCHv,$2,$3,$4,$(call FORM_OBJ_DIR,$1,$v)))
 
 # function to add (generated?) sources to $({EXE,LIB,DLL,...}_WITH_PCH) list - to compile sources with pch header
 # $1 - EXE,LIB,DLL,...
@@ -391,7 +392,8 @@ endif # NO_PCH
 # $1 - $(call FORM_TRG,$t,$v)
 # $2 - $(call fixpath,$(MAP))
 # $t - EXE
-define EXE_AUX_TEMPLATE2
+# $v - R
+define EXE_AUX_TEMPLATEv
 $1: RPATH := $(subst $$,$$$$,$(RPATH))
 $1: MAP := $2
 $1: $2
@@ -401,7 +403,8 @@ endef
 # $1 - $(call FORM_TRG,$t,$v)
 # $2 - $(call fixpath,$(MAP))
 # $t - DLL
-define DLL_AUX_TEMPLATE2
+# $v - R
+define DLL_AUX_TEMPLATEv
 $1: MODVER := $(MODVER)
 $1: RPATH := $(subst $$,$$$$,$(RPATH))
 $1: MAP := $2
@@ -410,7 +413,7 @@ endef
 
 # auxiliary defines for EXE or DLL
 # $t - EXE or DLL
-MOD_AUX_TEMPLATE1 = $(foreach v,$(call GET_VARIANTS,$t),$(call $t_AUX_TEMPLATE2,$(call FORM_TRG,$t,$v),$2))
+MOD_AUX_TEMPLATE1 = $(foreach v,$(call GET_VARIANTS,$t),$(call $t_AUX_TEMPLATEv,$(call FORM_TRG,$t,$v),$2))
 MOD_AUX_TEMPLATE  = $(call MOD_AUX_TEMPLATE1,$(call fixpath,$(MAP)))
 
 # this code is evaluated from $(DEFINE_TARGETS)
@@ -486,6 +489,6 @@ $(call CLEAN_BUILD_PROTECT_VARS,INST_RPATH CC CXX LD AR TCC TCXX TLD TAR KCC KLD
   LIB_D_CXX LIB_D_CC PCH_EXE_R_CXX PCH_EXE_R_CC PCH_EXE_P_CXX PCH_EXE_P_CC PCH_LIB_R_CXX PCH_LIB_R_CC PCH_LIB_P_CXX PCH_LIB_P_CC \
   PCH_DLL_R_CXX PCH_DLL_R_CC PCH_LIB_D_CXX PCH_LIB_D_CC OS_KRN_FLAGS KRN_FLAGS OS_KRN_DEFINES KRN_DEFINES KLIB_PARAMS \
   KLIB_R_CC PCH_KLIB_R_CC KLIB_R_ASM BISON FLEX BISON_COLOR FLEX_COLOR NO_PCH \
-  PCH_TEMPLATE1 PCH_TEMPLATE ADD_WITH_PCH2 ADD_WITH_PCH1 ADD_WITH_PCH \
-  EXE_AUX_TEMPLATE2=t;v DLL_AUX_TEMPLATE2=t;v MOD_AUX_TEMPLATE1=t MOD_AUX_TEMPLATE=t \
-  COPY_FILE_RULE EXTRA_DRV_DEFINES KBUILD_EXTRA_SYMBOLS DRV_ARCH DRV_TEMPLATE1 DRV_TEMPLATE=DRV;LIB_DIR;KLIBS;)
+  PCH_TEMPLATEv=t;v PCH_TEMPLATE=t ADD_WITH_PCHv=v ADD_WITH_PCH1 ADD_WITH_PCH \
+  EXE_AUX_TEMPLATEv=t;v DLL_AUX_TEMPLATEv=t;v MOD_AUX_TEMPLATE1=t MOD_AUX_TEMPLATE=t \
+  COPY_FILE_RULE EXTRA_DRV_DEFINES KBUILD_EXTRA_SYMBOLS DRV_ARCH DRV_TEMPLATE1 DRV_TEMPLATE=DRV;LIB_DIR;KLIBS;v)
