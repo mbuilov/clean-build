@@ -84,14 +84,14 @@ UNINSTALL_RM = $(call SUP,RM,$1,1,1)rm -f$2$(if $(filter LINUX,$(OS)),$(if \
 INSTALL_LN = $(call SUP,LN,'$2' -> $1,1,1)$(call LN,$1,'$2')
 
 # INSTALL tool color
-INSTALL_COLOR := [01;31m
+INSTALL_COLOR := [1;31m
 
 # post-install/uninstall shared libraries
 # $1 - inst/uninst
 ifdef LDCONFIG
 
 # LDCONFIG tool color
-LDCONF_COLOR := [01;33m
+LDCONF_COLOR := [1;33m
 
 # $1 - inst/uninst
 # $2 - full paths to built dlls
