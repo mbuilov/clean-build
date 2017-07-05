@@ -396,10 +396,10 @@ APP_FLAGS := $(OS_APP_FLAGS)
 
 # application-level defines for C/C++-compiler
 # note: some external sources want WIN32 to be defined
-OS_APP_DEFINES := WIN32 _CRT_SECURE_NO_DEPRECATE _CRT_SECURE_NO_WARNINGS
+OS_APP_DEFINES := WIN32 _CRT_SECURE_NO_DEPRECATE _CRT_NONSTDC_NO_DEPRECATE
 
 ifneq (,$(call is_less,$(VS_VER),14))
-OS_APP_DEFINES += _CRT_NONSTDC_NO_DEPRECATE inline=__inline
+OS_APP_DEFINES += inline=__inline
 endif
 
 # APP_DEFINES may be overridden in project makefile
