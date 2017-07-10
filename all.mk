@@ -42,8 +42,7 @@ $(PROCESSED_MAKEFILES):
 
 endif # MCHECK
 
-all: $(PROCESSED_MAKEFILES)
-	@:
+all: $(PROCESSED_MAKEFILES);
 
 clean:
 	$(call RM,$(CLEAN))
