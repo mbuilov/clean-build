@@ -32,6 +32,9 @@ BISONC := bison.exe
 # note: assume yasm used only for drivers
 YASM_FLAGS := -f $(if $(KCPU:%64=),win32,win64)$(if $(KCPU:x86%=),, -m $(if $(KCPU:%64=),x86,amd64))
 
+# if not-empty, then do not wrap tools
+NO_WRAP:=
+
 # strings to strip off from mc.exe output
 # note: may be overridden either in project configuration makefile or in command line
 MC_STRIP_STRINGS := MC:?Compiling
@@ -39,11 +42,12 @@ MC_STRIP_STRINGS := MC:?Compiling
 # wrap mc.exe call to strip-off diagnostic mc messages
 # $1 - mc command with arguments
 # note: send mc output to stderr
-ifndef MC_STRIP_STRINGS
-WRAP_MC = $1>&2
+ifdef NO_WRAP
+WRAP_MC = $1 >&2
+else ifndef MC_STRIP_STRINGS
+WRAP_MC = $1 >&2
 else
-WRAP_MC = (($1 2>&1 && echo TRG_MC_OK>&2)$(call \
-  qpath,$(MC_STRIP_STRINGS),|findstr /VBRC:))3>&2 2>&1 1>&3|findstr /BC:TRG_MC_OK>NUL
+WRAP_MC = $(call FILTER_OUTPUT,$1,$(call qpath,$(MC_STRIP_STRINGS),|findstr /VBRC:))
 endif
 
 # message compiler
@@ -62,13 +66,15 @@ RC_LOGO_STRINGS := Microsoft?(R)?Windows?(R)?Resource?Compiler?Version Copyright
 
 # send resource compiler output to stderr
 # $1 - rc command with arguments
-ifndef RC_LOGO_STRINGS
-WRAP_RC = $1>&2
+# note: send rc output to stderr
+ifdef NO_WRAP
+WRAP_RC = $1 >&2
+else ifndef RC_LOGO_STRINGS
+WRAP_RC = $1 >&2
 else ifdef SUPPRESS_RC_LOGO
-WRAP_RC = $1>&2
+WRAP_RC = $1 >&2
 else
-WRAP_RC = (($1 2>&1 && echo RC_COMPILED_OK>&2)$(call \
-  qpath,$(RC_LOGO_STRINGS),|findstr /VBRC:))3>&2 2>&1 1>&3|findstr /BC:RC_COMPILED_OK>NUL
+WRAP_RC = $(call FILTER_OUTPUT,$1,$(call qpath,$(RC_LOGO_STRINGS),|findstr /VBRC:))
 endif
 
 # resource compiler
@@ -270,14 +276,14 @@ LINKER_STRIP_STRINGS := $(LINKER_STRIP_STRINGS_en)
 
 # wrap linker call to strip-off diagnostic linker messages
 # $1 - linker command with arguments
-# note: if not $(DEBUG), then send linker output to stderr
+# note: send linker output to stderr
+# note: in debug, no diagnostic messages in the stdout
 ifdef DEBUG
-WRAP_LINKER = $1
+WRAP_LINKER = $1 >&2
 else ifndef LINKER_STRIP_STRINGS
-WRAP_LINKER = $1>&2
+WRAP_LINKER = $1 >&2
 else
-WRAP_LINKER = (($1 2>&1 && echo TRG_LINKED_OK>&2)$(call \
-  qpath,$(LINKER_STRIP_STRINGS),|findstr /VBRC:))3>&2 2>&1 1>&3|findstr /BC:TRG_LINKED_OK>NUL
+WRAP_LINKER = $(call FILTER_OUTPUT,$1,$(call qpath,$(LINKER_STRIP_STRINGS),|findstr /VBRC:))
 endif
 
 # Link.exe has a bug/feature:
@@ -289,20 +295,28 @@ endif
 DEL_DEF_MANIFEST_ON_FAIL = $(if $(DEF)$2,$(call DEL_ON_FAIL,$(if $(DEF),$1) $(if $2,$1.manifest)))$2
 
 # call exe/drv linker and strip-off message about generated .exp-file
-# $1 - target EXE or DLL
-# $2 - (wrapped) linker with options
-# $3 - $(basename $(notdir $(IMP))).exp
+# $1 - linker with options
+# $2 - $(basename $(notdir $(IMP))).exp
 # note: send linker output to stderr
-WRAP_EXE_EXPORTS_LINKER = (($(if $(DEBUG),$2 2>&1,($2)3>&2 2>&1 1>&3) && echo EXE_EXP_LINKED_OK>&2)|findstr \
-  /VC:$3)3>&2 2>&1 1>&3|findstr /BC:EXE_EXP_LINKED_OK>NUL
+# note: in debug, no diagnostic messages in the stdout
+WRAP_EXE_EXPORTS_LINKER = $(call FILTER_OUTPUT,$1,|findstr /VC:$2
+ifndef DEBUG
+ifdef LINKER_STRIP_STRINGS
+WRAP_EXE_EXPORTS_LINKER += $(call qpath,$(LINKER_STRIP_STRINGS),|findstr /VBRC:)
+endif
+endif
+WRAP_EXE_EXPORTS_LINKER += )
 
 # wrap exe/drv linker call to strip-off message about generated .exp-file
 # $1 - non-<empty> if exe/drv exports symbols, <empty> - otherwise
-# $2 - target EXE or DLL
-# $3 - (wrapped) linker with options
+# $2 - linker with options
 # target-specific: IMP
 # note: send linker output to stderr
-WRAP_EXE_LINKER = $(if $1,$(call WRAP_EXE_EXPORTS_LINKER,$2,$3,$(basename $(notdir $(IMP))).exp),$3$(if $(DEBUG), >&2))
+ifdef NO_WRAP
+WRAP_EXE_LINKER = $2 >&2
+else
+WRAP_EXE_LINKER = $(if $1,$(call WRAP_EXE_EXPORTS_LINKER,$2,$(basename $(notdir $(IMP))).exp),$(call WRAP_LINKER,$2))
+endif
 
 # define EXE linker for variant $v
 # $$1 - target EXE
@@ -311,42 +325,51 @@ WRAP_EXE_LINKER = $(if $1,$(call WRAP_EXE_EXPORTS_LINKER,$2,$3,$(basename $(notd
 # target-specific: TMD, LDFLAGS, IMP, EXE_EXPORTS
 define EXE_LD_TEMPLATE
 $(empty)
-EXE_$v_LD1 = $$(call SUP,$$(TMD)XLINK,$$1)$$(call WRAP_EXE_LINKER,$$(EXE_EXPORTS),$$1,$$(call \
-  WRAP_LINKER,$$(VS$$(TMD)LD) /nologo $(CMN_LIBS) $$(if $$(EXE_EXPORTS),/IMPLIB:$$(call \
-  ospath,$$(IMP))) $(DEF_SUBSYSTEM) $(EMBED_MANIFEST_OPTION) $$(LDFLAGS)))$$(call \
+EXE_$v_LD1 = $$(call SUP,$$(TMD)XLINK,$$1)$$(call \
+  WRAP_EXE_LINKER,$$(EXE_EXPORTS),$$(VS$$(TMD)LD) /nologo $(CMN_LIBS) $$(if $$(EXE_EXPORTS),/IMPLIB:$$(call \
+  ospath,$$(IMP))) $(DEF_SUBSYSTEM) $(EMBED_MANIFEST_OPTION) $$(LDFLAGS))$$(call \
   DEL_DEF_MANIFEST_ON_FAIL,$$1,$$(EMBED_EXE_MANIFEST))
 endef
 $(eval $(foreach v,R $(VARIANTS_FILTER),$(EXE_LD_TEMPLATE)))
 
-# call dll linker and check that dll exports symbols, then strip-off message about generated .exp-file
+# call dll/kdll linker and check that dll/kdll exports symbols, then strip-off message about generated .exp-file
 # $1 - target DLL or KDLL
-# $2 - (wrapped) linker with options
+# $2 - linker with options
 # $3 - $(basename $(notdir $(IMP))).exp
 # target-specific: LIB_DIR
 # note: send linker output to stderr
-WRAP_DLL_EXPORTS_LINKER = (($(if $(DEBUG),$2 2>&1,($2)3>&2 2>&1 1>&3) && (dir $(call ospath,$(LIB_DIR)/$3)>NUL 2>&1 || \
-  ((echo $(notdir $1) does not exports any symbols!) & del $(ospath) & exit /b 1)) && echo DLL_EXP_LINKED_OK>&2)|findstr \
-  /VC:$3)3>&2 2>&1 1>&3|findstr /BC:DLL_EXP_LINKED_OK>NUL
+# note: in debug, no diagnostic messages in the stdout
+WRAP_DLL_EXPORTS_LINKER = $(call FILTER_OUTPUT,($2 && (dir $(call ospath,$(LIB_DIR)/$3)>NUL 2>&1 || ((echo $(notdir \
+  $1) does not exports any symbols!) & del $(ospath) & exit /b 1))),|findstr /VC:$3
+ifndef DEBUG
+ifdef LINKER_STRIP_STRINGS
+WRAP_DLL_EXPORTS_LINKER += $(call qpath,$(LINKER_STRIP_STRINGS),|findstr /VBRC:)
+endif
+endif
+WRAP_DLL_EXPORTS_LINKER += )
 
 # wrap dll linker call to check that dll exports symbols, then strip-off message about .exp-file
 # $1 - non-<empty> if dll/kdll do not exports symbols, <empty> - otherwise
 # $2 - target DLL or KDLL
-# $3 - (wrapped) linker with options
+# $3 - linker with options
 # target-specific: IMP
 # note: send linker output to stderr
-WRAP_DLL_LINKER = $(if $1,$3$(if $(DEBUG), >&2),$(call WRAP_DLL_EXPORTS_LINKER,$2,$3,$(basename $(notdir $(IMP))).exp))
+ifdef NO_WRAP
+WRAP_DLL_LINKER = $3 >&2
+else
+WRAP_DLL_LINKER = $(if $1,$(call WRAP_LINKER,$3),$(call WRAP_DLL_EXPORTS_LINKER,$2,$3,$(basename $(notdir $(IMP))).exp))
+endif
 
 # define DLL linker for variant $v
 # $$1 - target DLL
 # $$2 - objects
 # $v - variant
 # target-specific: TMD, LDFLAGS, IMP, DLL_NO_EXPORTS
-# note: send linker output to stderr
 define DLL_LD_TEMPLATE
 $(empty)
-DLL_$v_LD1 = $$(call SUP,$$(TMD)LINK,$$1)$$(call WRAP_DLL_LINKER,$$(DLL_NO_EXPORTS),$$1,$$(call \
-  WRAP_LINKER,$$(VS$$(TMD)LD) /nologo /DLL $(CMN_LIBS) $$(if $$(DLL_NO_EXPORTS),,/IMPLIB:$$(call \
-  ospath,$$(IMP))) $(DEF_SUBSYSTEM) $(EMBED_MANIFEST_OPTION) $$(LDFLAGS)))$$(call \
+DLL_$v_LD1 = $$(call SUP,$$(TMD)LINK,$$1)$$(call \
+  WRAP_DLL_LINKER,$$(DLL_NO_EXPORTS),$$1,$$(VS$$(TMD)LD) /nologo /DLL $(CMN_LIBS) $$(if $$(DLL_NO_EXPORTS),,/IMPLIB:$$(call \
+  ospath,$$(IMP))) $(DEF_SUBSYSTEM) $(EMBED_MANIFEST_OPTION) $$(LDFLAGS))$$(call \
   DEL_DEF_MANIFEST_ON_FAIL,$$1,$$(EMBED_DLL_MANIFEST))
 endef
 $(eval $(foreach v,R $(VARIANTS_FILTER),$(DLL_LD_TEMPLATE)))
@@ -427,8 +450,11 @@ CMN_SUCL = $(CMN_SCL) /DUNICODE /D_UNICODE
 # $2 - target object file (unused)
 # $3 - sources
 # note: send compiler output to stderr
-WRAP_CC_COMPILER = (($1 2>&1 && echo COMPILATION_OK>&2)$(addprefix \
-  |findstr /VXC:,$(notdir $3)))3>&2 2>&1 1>&3|findstr /BC:COMPILATION_OK>NUL
+ifdef NO_WRAP
+WRAP_CC_COMPILER = $1 >&2
+else
+WRAP_CC_COMPILER = $(call FILTER_OUTPUT,$1,$(addprefix |findstr /VXC:,$(notdir $3)))
+endif
 
 # $(SED) expression to match C compiler messages about included files
 INCLUDING_FILE_PATTERN_en := Note: including file:
@@ -473,11 +499,13 @@ SED_DEPS_SCRIPT = \
 # $3 - source
 # $4 - name of variale with prefixes of system includes to filter out
 # note: send compiler output to stderr
-ifdef NO_DEPS
+ifdef NO_WRAP
+WRAP_CC_COMPILER_DEPS = $1 >&2
+else ifdef NO_DEPS
 WRAP_CC_COMPILER_DEPS = $(WRAP_CC_COMPILER)
 else
-WRAP_CC_COMPILER_DEPS = (($1 /showIncludes 2>&1 && set /p ="COMPILATION_OK">&2<NUL)|($(SED) \
-  -n $(SED_DEPS_SCRIPT) 2>&1 && set /p ="_SED_OK">&2<NUL))3>&2 2>&1 1>&3|findstr /BC:COMPILATION_OK_SED_OK>NUL
+WRAP_CC_COMPILER_DEPS = (($1 /showIncludes 2>&1 && set/p="C">&2<NUL)|$(SED)\
+  -n $(SED_DEPS_SCRIPT) 2>&1 && set/p="S">&2<NUL)3>&2 2>&1 1>&3|findstr /BC:CS>NUL
 endif
 
 # override template defined in $(CLEAN_BUILD_DIR)/_c.mk
@@ -671,8 +699,9 @@ CMN_KLIBS = /OUT:$(ospath) /VERSION:$(call MK_MAJ_MIN_VER,$(MODVER)) $(addprefix
 # $v - variant: R
 # target-specific: MODVER, RES, KLIBS, SYSLIBPATH, SYSLIBS, LDFLAGS, DEF, IMP, DRV_EXPORTS
 # note: send linker output to stderr
-DRV_R_LD1 = $(call SUP,KLINK,$1)$(call WRAP_EXE_LINKER,$(DRV_EXPORTS),$1,$(call \
-  WRAP_LINKER,$(WKLD) /nologo $(CMN_KLIBS) $(if $(DRV_EXPORTS),/IMPLIB:$(call ospath,$(IMP))) $(LDFLAGS)))
+DRV_R_LD1 = $(call SUP,KLINK,$1)$(call \
+  WRAP_EXE_LINKER,$(DRV_EXPORTS),$(WKLD) /nologo $(CMN_KLIBS) $(if \
+  $(DRV_EXPORTS),/IMPLIB:$(call ospath,$(IMP))) $(LDFLAGS))
 
 # define KDLL linker
 # $1 - target KDLL
@@ -680,8 +709,9 @@ DRV_R_LD1 = $(call SUP,KLINK,$1)$(call WRAP_EXE_LINKER,$(DRV_EXPORTS),$1,$(call 
 # $v - variant: R
 # target-specific: DEF, LDFLAGS, IMP, KDLL_NO_EXPORTS
 # note: send linker output to stderr
-KDLL_R_LD1 = $(call SUP,KLINK,$1)$(call WRAP_DLL_LINKER,$(KDLL_NO_EXPORTS),$1,$(call \
-  WRAP_LINKER,$(WKLD) /nologo /DLL $(CMN_KLIBS) $(if $(KDLL_NO_EXPORTS),,/IMPLIB:$(call ospath,$(IMP))) $(LDFLAGS)))
+KDLL_R_LD1 = $(call SUP,KLINK,$1)$(call \
+  WRAP_DLL_LINKER,$(KDLL_NO_EXPORTS),$1,$(WKLD) /nologo /DLL $(CMN_KLIBS) $(if \
+  $(KDLL_NO_EXPORTS),,/IMPLIB:$(call ospath,$(IMP))) $(LDFLAGS))
 
 # flags for kernel-level C-compiler
 OS_KRN_FLAGS := -cbstring /X /GF /W3 /GR- /Gz /Zl /Oi /Gm- /Zp8 /Gy /Zc:wchar_t- /typedil-
@@ -1268,7 +1298,7 @@ $(eval define OS_DEFINE_TARGETS$(newline)$(value OS_DEFINE_TARGETS)$(newline)$$$
 endif
 
 # protect variables from modifications in target makefiles
-$(call CLEAN_BUILD_PROTECT_VARS,MCL_MAX_COUNT SEQ_BUILD YASMC FLEXC BISONC YASM_FLAGS \
+$(call CLEAN_BUILD_PROTECT_VARS,MCL_MAX_COUNT SEQ_BUILD YASMC FLEXC BISONC YASM_FLAGS NO_WRAP \
   MC_STRIP_STRINGS WRAP_MC MC MC_COLOR TMC_COLOR \
   RC_LOGO_STRINGS WRAP_RC RC RC_COLOR TRC_COLOR \
   KIMP_PREFIX KIMP_SUFFIX CHECK_LIB_UNI_NAME1=v CHECK_LIB_UNI_NAME=v DLL_EXPORTS_DEFINE DLL_IMPORTS_DEFINE \
