@@ -192,8 +192,7 @@ SED_DEPS_SCRIPT = \
 ifdef NO_DEPS
 WRAP_CC_COMPILER = $1
 else
-WRAP_CC_COMPILER = (($1 -H 2>&1 && echo COMPILATION_OK 1>&2) |\
-  sed -n $(SED_DEPS_SCRIPT) 2>&1) 3>&2 2>&1 1>&3 3>&- | grep COMPILATION_OK > /dev/null
+WRAP_CC_COMPILER = {{ $1 -H 2>&1 && echo OK >&2;} | sed -n $(SED_DEPS_SCRIPT) 2>&1;} 3>&2 2>&1 1>&3 3>&- | grep OK > /dev/null
 endif
 
 # default flags for C++ compiler
