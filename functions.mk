@@ -7,23 +7,23 @@
 # this file included by $(CLEAN_BUILD_DIR)/defs.mk after including $(CLEAN_BUILD_DIR)/protection.mk
 
 empty:=
-space := $(empty) $(empty)
-tab   := $(empty)	$(empty)
-comma := ,
+space:= $(empty) $(empty)
+tab:= $(empty)	$(empty)
+comma:= ,
 define newline
 
 
 endef
-newline := $(newline)
+newline:= $(newline)
 define comment
 #
 endef
-comment := $(comment)
-open_brace  := (
-close_brace := )
-keyword_override := override
-keyword_define := define
-keyword_endef := endef
+comment:= $(comment)
+open_brace:= (
+close_brace:= )
+keyword_override:= override
+keyword_define:= define
+keyword_endef:= endef
 
 # print result $1 and return $1
 infofn = $(info <$1>)$1
@@ -51,7 +51,7 @@ $(eval dump_args = $(subst $(space):,, $(dump_args)))
 trace_params = $(warning params: $$($0) {)$(dump_args)$(info params: } $$($0))
 
 # trace level
-trace_level.:=
+cb_trace_level.^tl:=
 
 # helper template for $(trace_calls)
 # $1 - macro name, must accept no more than $(dump_max) arguments
@@ -64,19 +64,20 @@ define trace_calls_template
 $(empty)
 ifdef $1
 ifeq (simple,$(flavor $1))
-$1.t_:=$$($1)
-$2 $1 = $$(warning $$(trace_level.) $$$$($1) {)$$(call infofn,$$($1.t_))$$(info end: } $$$$($1))
+$1.^tv:=$$($1)
+$2 $1 = $$(warning $$(cb_trace_level.^tl) $$$$($1) {)$$(call infofn,$$($1.^tv))$$(info end: } $$$$($1))
 else
-define $1.t_
+define $1.^tv
 $(value $1)
 endef
-$2 $1 = $$(warning $$(trace_level.) $$$$($1) {)$$(dump_args)$$(call dump,$3,,$1: )$$(info \
-  ------$1 value---->)$$(info <$$(value $1.t_)>)$$(info \
-  ------$1 result--->)$$(eval trace_level.+=$1->)$$(call infofn,$$(call $1.t_,_dump_params_))$$(call \
-  dump,$4,,$1: )$$(eval trace_level.:=$$(wordlist 2,$$(words $$(trace_level.)),x $$(trace_level.)))$$(info end: } $$$$($1))
+$2 $1 = $$(warning $$(cb_trace_level.^tl) $$$$($1) {)$$(dump_args)$$(call dump,$3,,$1: )$$(info \
+  ------$1 value---->)$$(info <$$(value $1.^tv)>)$$(info \
+  ------$1 result--->)$$(eval cb_trace_level.^tl+=$1->)$$(call infofn,$$(call $1.^tv,_dump_params_))$$(call \
+  dump,$4,,$1: )$$(eval cb_trace_level.^tl:=$$(wordlist 2,$$(words \
+  $$(cb_trace_level.^tl)),x $$(cb_trace_level.^tl)))$$(info end: } $$$$($1))
 endif
 endif
-$(call CLEAN_BUILD_PROTECT_VARS1,$1.t_ $(if $5,$1,$(if $(filter $1,$(CLEAN_BUILD_PROTECTED_VARS)),$1)),0)
+$(call CLEAN_BUILD_PROTECT_VARS1,$1.^tv $(if $5,$1,$(if $(filter $1,$(CLEAN_BUILD_PROTECTED_VARS)),$1)),0)
 endef
 
 # replace _dump_params_ with: $(1),$(2),$(3...)
@@ -92,9 +93,9 @@ $(eval define trace_calls_template$(newline)$(subst _dump_params_,$$$$$(open_bra
 #   b1;b2;b3 - names of variables to dump before traced call
 #   e1;e2    - names of variables to dump after traced call
 # note: may also be used for simple variables, for example: $(call trace_calls,Macro=VarPre=VarPost)
-trace_calls = $(eval $(foreach f,$1,$(foreach v,$(firstword $(subst =, ,$f)),$(if $(filter-out undefined,$(origin $v)),$(if \
-  $(findstring ^.$$(warning $$(trace_level.) $$$$($v) {),^.$(value $v)),,$(call trace_calls_template,$v,$(if \
-  $(findstring command line,$(origin $v))$(findstring override,$(origin $v)),override),$(subst \
+trace_calls = $(eval $(foreach f,$1,$(foreach v,$(firstword $(subst =, ,$f)),$(if $(findstring undefined,$(origin $v)),,$(if \
+  $(findstring ^.$$(warning $$(cb_trace_level.^tl) $$$$($v) {),^.$(value $v)),,$(call trace_calls_template,$v,$(if \
+  $(findstring command line,$(origin $v)),override,$(findstring override,$(origin $v))),$(subst \
   ;, ,$(word 2,$(subst =, ,$f))),$(subst ;, ,$(word 3,$(subst =, ,$f))),$2))))))
 
 # replace spaces with ?
@@ -269,16 +270,16 @@ mk_dir_deps = $(subst :|,:| $2,$(addprefix $(newline)$2,$(filter-out %:|,$(join 
 # $2 - macro value
 # for example, if MY_VALUE is not defined yet, but it will be defined at time of MY_MACRO call, then:
 # MY_MACRO = $(call lazy_simple,MY_MACRO,$(MY_VALUE))
-lazy_simple = $(eval $(filter override,$(origin $1)) $1:=$$2)$($1)
+lazy_simple = $(eval $(findstring override,$(origin $1)) $1:=$$2)$($1)
 
 # protect variables from modification in target makefiles
 # note: do not try to trace calls to these macros, pass 0 as second parameter to CLEAN_BUILD_PROTECT_VARS
-CURRENT_MAKEFILE = $(call CLEAN_BUILD_PROTECT_VARS, \
+TARGET_MAKEFILE = $(call CLEAN_BUILD_PROTECT_VARS, \
   empty space tab comma newline comment open_brace close_brace keyword_override keyword_define keyword_endef \
   infofn dump dump_max dump_args trace_params trace_calls_template trace_calls,0)
 
 # protect variables from modification in target makefiles
-CURRENT_MAKEFILE += $(call CLEAN_BUILD_PROTECT_VARS, \
+TARGET_MAKEFILE += $(call CLEAN_BUILD_PROTECT_VARS, \
   unspaces ifaddq qpath tolower toupper repl09 repl09AZ padto1 padto \
   is_less1 is_less xargs1 xargs xcmd trim normp2 normp1 normp \
   cmn_path1 cmn_path back_prefix relpath2 relpath1 relpath join_with \
