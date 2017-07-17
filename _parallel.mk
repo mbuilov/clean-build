@@ -27,8 +27,9 @@ $(eval FIX_ORDER_DEPS = $(value APPEND_MDEPS))
 # $m - absolute path to makefile to include
 # note: $(ORDER_DEPS) value may be changed in included makefile, so restore ORDER_DEPS before including next makefile
 # note: $(TOOL_MODE) value may be changed (set) in included makefile, so restore TOOL_MODE before including next makefile
+# note: first line must be empty
 define CB_INCLUDE_TEMPLATE
-$(empty)
+
 TARGET_MAKEFILE:=$m
 ORDER_DEPS:=$(ORDER_DEPS)
 TOOL_MODE:=$(TOOL_MODE)
@@ -46,7 +47,7 @@ CLEAN_BUILD_PARALLEL = $(eval $(APPEND_MDEPS))
 # DEF_TAIL_CODE will be called with @ - to suppress showing debug info.
 # note: debug info shows $(ORDER_DEPS), so ORDER_DEPS must be set before showing the info
 ifdef MDEBUG
-CLEAN_BUILD_PARALLEL += $(info $(MAKEFILE_DEBUG_INFO))
+$(eval CLEAN_BUILD_PARALLEL = $(value CLEAN_BUILD_PARALLEL)$$(info $$(MAKEFILE_DEBUG_INFO)))
 endif
 
 # $(TARGET_MAKEFILE) is built if all $$1 makefiles are built
@@ -54,28 +55,24 @@ endif
 # and built target files may depend on .PHONY targets only as order-only,
 # otherwise target files are will always be rebuilt - because .PHONY targets are always updated
 ifndef TOCLEAN
-$(eval define CLEAN_BUILD_PARALLEL$(newline)$(value \
-  CLEAN_BUILD_PARALLEL)$$(TARGET_MAKEFILE)-:| $$(addsuffix -,$$1)$(newline)$(newline)endef)
+$(eval CLEAN_BUILD_PARALLEL = $(value CLEAN_BUILD_PARALLEL)$$(TARGET_MAKEFILE)-:| $$(addsuffix -,$$1)$(newline))
 endif
 
 # increase makefile include level,
 # include and process makefiles $$1,
 # decrease makefile include level
-$(eval define CLEAN_BUILD_PARALLEL$(newline)$(value \
-  CLEAN_BUILD_PARALLEL)CB_INCLUDE_LEVEL+=.$$(foreach \
-  m,$$1,$$(CB_INCLUDE_TEMPLATE))$(newline)CB_INCLUDE_LEVEL:=$$(CB_INCLUDE_LEVEL)$(newline)endef)
+$(call define_append,CLEAN_BUILD_PARALLEL,CB_INCLUDE_LEVEL+=.$$(foreach \
+  m,$$1,$$(CB_INCLUDE_TEMPLATE))$(newline)CB_INCLUDE_LEVEL:=$$(CB_INCLUDE_LEVEL))
 
 # remember number of intermediate non-target makefiles if build is non-verbose
 ifdef ADD_SHOWN_PERCENTS
-$(eval define CLEAN_BUILD_PARALLEL$(newline)$(value \
-  CLEAN_BUILD_PARALLEL)$(newline)PROCESSED_MAKEFILES+=$$(TARGET_MAKEFILE)-$(newline)INTERMEDIATE_MAKEFILES+=1$(newline)endef)
+$(call define_append,CLEAN_BUILD_PARALLEL,$(newline)PROCESSED_MAKEFILES+=$$(TARGET_MAKEFILE)-$(newline)INTERMEDIATE_MAKEFILES+=1)
 endif
 
 # at last, check if need to include $(CLEAN_BUILD_DIR)/all.mk
 # NOTE: call DEF_TAIL_CODE with @ - to not show debug info that was already shown above
 #  and for the checks in $(CLEAN_BUILD_CHECK_AT_TAIL) at $(CLEAN_BUILD_DIR)/protection.mk
-$(eval define CLEAN_BUILD_PARALLEL$(newline)$(value \
-  CLEAN_BUILD_PARALLEL)$(newline)$$$$(eval $$$$(call DEF_TAIL_CODE,@))$(newline)endef)
+$(call define_append,CLEAN_BUILD_PARALLEL,$(newline)$$$$(eval $$$$(call DEF_TAIL_CODE,@)))
 
 # PROCESS_SUBMAKES normally called with non-empty first argument $1
 # to not define variable 1 for next processed makefiles,

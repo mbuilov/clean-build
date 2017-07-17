@@ -11,8 +11,20 @@ $(error MAKE_VERSION is not defined, ensure you are using GNU Make of version 3.
 endif
 
 ifneq (3.80,$(word 1,$(sort $(MAKE_VERSION) 3.80)))
-$(error GNU Make of version 3.81 or later is required for build)
+$(error GNU Make of version 3.81 or later is required for the build)
 endif
+
+# disable builtin rules and variables, warn about use of undefined variables
+# NOTE: Gnu Make will consider changed $(MAKEFLAGS) only after all makefiles are parsed,
+#  so it will first define builtin rules/variables, then undefine them,
+#  also, it will warn about undefined variables only while executing rules
+# - it's better to specify these flags in command line, e.g.:
+# $ make -rR --warn-undefined-variables
+MAKEFLAGS += --no-builtin-rules --no-builtin-variables --warn-undefined-variables
+
+# clean-build version: major.minor.patch
+# note: override value, if it was accidentally set in project makefile
+override CLEAN_BUILD_VERSION := 0.8.9
 
 # assume project makefile, which has included this makefile,
 # defines some variables - save list of those variables to override them below
@@ -38,18 +50,6 @@ unexport $(filter-out PATH SHELL$(if $(filter-out undefined environment,$(origin
 # 3) 'ifdef/ifndef' should only be used for previously initialized variables
 #  (ifdef gives 'false' for variable with empty value - and value is not evaluated for the check)
 # 4) Undefine (below) all variables passed from environment, except PATH, SHELL and variables named in $(PASS_ENV_VARS).
-
-# clean-build version: major.minor.patch
-# note: override value, if it was accidentally set in project makefile
-override CLEAN_BUILD_VERSION := 0.8.9
-
-# disable builtin rules and variables, warn about use of undefined variables
-# NOTE: Gnu Make will consider changed $(MAKEFLAGS) only after all makefiles are parsed,
-#  so it will first define builtin rules/variables, then undefine them,
-#  also, it will warn about undefined variables only while executing rules
-# - it's better to specify these flags in command line, e.g.:
-# $ make -rR --warn-undefined-variables
-MAKEFLAGS += --no-builtin-rules --no-builtin-variables --warn-undefined-variables
 
 # reset if not defined
 ifeq (undefined,$(origin MAKECMDGOALS))
@@ -107,7 +107,7 @@ NEEDED_DIRS:=
 
 # save configuration to $(CONFIG) file as result of 'conf' goal
 # note: if $(CONFIG) file is generated under $(BUILD) directory,
-# (for example, CONFIG may be defined in project makefile as 'override CONFIG := $(BUILD)/conf.mk'),
+# (for example, CONFIG may be defined in project makefile as 'CONFIG = $(BUILD)/conf.mk'),
 # then it will be deleted together with $(BUILD) directory in clean-build implementation of 'distclean' goal
 include $(CLEAN_BUILD_DIR)/confsup.mk
 
@@ -116,25 +116,32 @@ $(TARGET_MAKEFILE)
 
 ifdef MCHECK
 
-# Redefine all variables passed from environment, except PATH, SHELL and variables named in $(PASS_ENV_VARS),
+# Redefine all variables passed from environment,
+# except exported PATH, SHELL and variables named in $(PASS_ENV_VARS),
 # so access to them in global context will produce errors.
-# To get environment variable use 'getenv' function.
+# To get environment variable use 'getenv' function (defined below).
+CLEAN_BUILD_GETENV_ERROR = $(error use 'getenv' function to get value of environment variable $1)
+
+# note: do not redefine GNU Make special environment variables GNUMAKEFLAGS, MAKELEVEL, MAKEOVERRIDES, MFLAGS.
 define OVERRIDE_VAR_TEMPLATE
 
-$(keyword_define) $v.^ev
-$(value $v)
+$(keyword_define) $v.^e
+$(patsubst %$(backslash),%$$(backslash),$(value $v))
 $(keyword_endef)
-$v = $$(error use 'getenv' function to get value of environment variable $v)
+$(keyword_define) $v
+$$(call CLEAN_BUILD_GETENV_ERROR,$v)
+$(keyword_endef)
 
 endef
-$(eval $(foreach v,$(filter-out PATH SHELL $(PASS_ENV_VARS),$(.VARIABLES)),$(if \
+$(eval $(foreach v,$(filter-out PATH SHELL $(PASS_ENV_VARS) \
+  GNUMAKEFLAGS MAKELEVEL MAKEOVERRIDES MFLAGS,$(.VARIABLES)),$(if \
   $(findstring environment,$(origin $v)),$(OVERRIDE_VAR_TEMPLATE))))
 
 # return non-empty value if given environment variable $1 do exist
-env_var_exist = $(findstring file,$(origin $1.^ev))
+env_var_exist = $(findstring file,$(origin $1.^e))
 
 # get effective name of environment variable $1 (it may be renamed)
-env_var_name = $1.^ev
+env_var_name = $1.^e
 
 else # !MCHECK
 
@@ -150,9 +157,12 @@ endif # !MCHECK
 getenv = $($(call env_var_name,$1))
 
 # protect from modification all variables, except automatic and clean-build special ones
+# note: do not redefine GNU Make special environment variables GNUMAKEFLAGS, MAKELEVEL, MAKEOVERRIDES, MFLAGS.
+# note: do not touch GNU Make automatic file variables MAKEFLAGS, MAKEFILE_LIST, CURDIR
 ifdef CLEAN_BUILD_PROTECT_VARS
-$(info -------$(foreach v,$(PASS_ENV_VARS) $(filter-out \
-  $(dump_max) cb_trace_level.^tl %.^pv $(CLEAN_BUILD_PROTECTED_VARS),$(.VARIABLES)),$(if \
+$(call CLEAN_BUILD_PROTECT_VARS,$(foreach v,$(PASS_ENV_VARS) $(filter-out \
+  GNUMAKEFLAGS MAKELEVEL MAKEOVERRIDES MFLAGS MAKEFLAGS MAKEFILE_LIST CURDIR \
+  $(dump_max) cb_trace_level.^l %.^p $(CLEAN_BUILD_PROTECTED_VARS),$(.VARIABLES)),$(if \
   $(filter file override environment,$(origin $v)),$v)))
 endif
 
@@ -198,10 +208,10 @@ override DRIVERS_SUPPORT := $(DRIVERS_SUPPORT:0=)
 TARGET := RELEASE
 
 # operating system we are building for (and we are building on)
-# note: OS must be overridden either in command line or in project configuration makefile
-ifndef OS
+# note: OS may be specified either in command line or in project configuration makefile
+ifeq (,$(call env_var_exist,OS))
 OS:=
-else ifeq (Windows_NT,$(OS))
+else ifeq (Windows_NT,$(call getenv,OS))
 ifneq (,$(filter /cygdrive/%,$(CURDIR)))
 OS := LINUX
 else
@@ -584,6 +594,11 @@ $(TARGET_MAKEFILE)-:$1
 NEEDED_DIRS+=$2
 endef
 
+# protect from modification just changed NEEDED_DIRS variable
+ifdef MCHECK
+$(call define_append,STD_TARGET_VARS1,$(newline)$$(call CLEAN_BUILD_PROTECT_VARS1,NEEDED_DIRS))
+endif
+
 # standard target-specific variables
 # $1 - generated file(s) (absolute paths)
 STD_TARGET_VARS = $(call STD_TARGET_VARS1,$1,$(patsubst %/,%,$(sort $(dir $1))))
@@ -613,7 +628,7 @@ endif
 # define target-specific variables MF and MCONT for the target(s) $1
 ifndef TOCLEAN
 ifdef SET_MAKEFILE_INFO
-$(eval define STD_TARGET_VARS1$(newline)$(value MAKEFILE_INFO_TEMPL)$(newline)$(value STD_TARGET_VARS1)$(newline)endef)
+$(call define_prepend,STD_TARGET_VARS1,$(value MAKEFILE_INFO_TEMPL))
 endif
 endif
 
@@ -814,27 +829,28 @@ endef
 
 # prepend DEF_HEAD_CODE with $(CLEAN_BUILD_CHECK_AT_HEAD), if it's defined in $(CLEAN_BUILD_DIR)/protection.mk
 ifdef CLEAN_BUILD_CHECK_AT_HEAD
-$(eval define DEF_HEAD_CODE$(newline)$$(CLEAN_BUILD_CHECK_AT_HEAD)$(newline)$(value DEF_HEAD_CODE)$(newline)endef)
+$(call define_prepend,DEF_HEAD_CODE,$$(CLEAN_BUILD_CHECK_AT_HEAD))
 endif
 
 # code to $(eval) at end of each makefile
-DEF_TAIL_CODE=
+DEF_TAIL_CODE:=
 
 # call $(CLEAN_BUILD_CHECK_AT_TAIL), if it's defined in $(CLEAN_BUILD_DIR)/protection.mk
 ifdef CLEAN_BUILD_CHECK_AT_TAIL
-DEF_TAIL_CODE += $(CLEAN_BUILD_CHECK_AT_TAIL)
+DEF_TAIL_CODE = $(CLEAN_BUILD_CHECK_AT_TAIL)
 endif
 
 # call $(DEF_TAIL_CODE_DEBUG), if it's defined above
 ifdef DEF_TAIL_CODE_DEBUG
-DEF_TAIL_CODE += $(DEF_TAIL_CODE_DEBUG)
+$(eval DEF_TAIL_CODE = $(value DEF_TAIL_CODE)$$(DEF_TAIL_CODE_DEBUG))
 endif
 
 # include $(CLEAN_BUILD_DIR)/all.mk only if $(CB_INCLUDE_LEVEL) is empty and will not call $(MAKE_CONTINUE)
 # if called from $(MAKE_CONTINUE), $1 - list of vars to save (may be empty)
 # note: $(MAKE_CONTINUE) before expanding $(DEF_TAIL_CODE) adds 2 to $(MAKE_CONT) list
 # note: $(CLEAN_BUILD_DIR)/parallel.mk executes $(eval $(call DEF_TAIL_CODE,@)) to not show debug info second time in $(DEF_TAIL_CODE_DEBUG)
-DEF_TAIL_CODE += $(if $(CB_INCLUDE_LEVEL),,$(if $(findstring 2,$(MAKE_CONT)),,include $(CLEAN_BUILD_DIR)/all.mk))
+$(eval DEF_TAIL_CODE = $(value DEF_TAIL_CODE)$$(if \
+  $$(CB_INCLUDE_LEVEL),,$$(if $$(findstring 2,$$(MAKE_CONT)),,include $$(CLEAN_BUILD_DIR)/all.mk)))
 
 # define targets at end of makefile
 # evaluate code in $($(DEFINE_TARGETS_EVAL_NAME)) only once, then reset DEFINE_TARGETS_EVAL_NAME

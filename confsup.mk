@@ -28,7 +28,9 @@ $(error conf and unconf goals cannot be specified at the same time)
 endif
 
 # use of environment variables is discouraged,
-# override variable only if it's not specified in command-line
+# generate text of $(CONFIG) file so that by including it
+# any variable specified there will be restored with saved value,
+# except for variables specified in command line
 # $v - variable name
 define OVERRIDE_VAR_TEMPLATE
 
@@ -40,15 +42,15 @@ endif
 endef
 
 # generated $(CONFIG) file is likely already sourced,
-# 1) override variables in $(CONFIG) file with values specified in command line,
+# 1) override variables in $(CONFIG) file with new values specified in command line,
 # 2) save new variables specified in command line to $(CONFIG) file
 # 3) always save PATH, SHELL and variables named in $(PASS_ENV_VARS) values to $(CONFIG) file because they are exported
-# note: save variables current values in target-specific variable CONFIG_TEXT - variables may be overridden later
-# note: do not override GNUMAKEFLAGS, CLEAN_BUILD_VERSION, CONFIG and $(dump_max) variables by including $(CONFIG) file
+# note: save current values of variables in target-specific variable CONFIG_TEXT - variables may be overridden later
+# note: never override GNUMAKEFLAGS, CLEAN_BUILD_VERSION, CONFIG and $(dump_max) variables by including $(CONFIG) file
 conf: override CONFIG_TEXT := $(foreach v,$(filter-out \
   PATH SHELL $(PASS_ENV_VARS) GNUMAKEFLAGS CLEAN_BUILD_VERSION CONFIG $(dump_max),$(.VARIABLES)),$(if \
-  $(findstring "command line","$(origin $v)")$(findstring "override","$(origin \
-  $v)"),$(OVERRIDE_VAR_TEMPLATE)))$(foreach v,PATH SHELL $(PASS_ENV_VARS),$(OVERRIDE_VAR_TEMPLATE))
+  $(findstring command line,$(origin $v))$(findstring override,$(origin \
+  $v)),$(OVERRIDE_VAR_TEMPLATE)))$(foreach v,PATH SHELL $(PASS_ENV_VARS),$(OVERRIDE_VAR_TEMPLATE))
 
 # generate configuration file
 # note: SUP - defined in $(CLEAN_BUILD_DIR)/defs.mk

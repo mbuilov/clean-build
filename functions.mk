@@ -24,6 +24,7 @@ close_brace:= )
 keyword_override:= override
 keyword_define:= define
 keyword_endef:= endef
+backslash:= \$(empty)
 
 # print result $1 and return $1
 infofn = $(info <$1>)$1
@@ -33,7 +34,7 @@ infofn = $(info <$1>)$1
 # $2 - optional prefix
 # $3 - optional pre-prefix
 # $(call dump,VAR1,prefix,Q) -> print 'Qdump: prefix: VAR1=xxx'
-dump = $(foreach dump.,$1,$(info $3dump: <$(2:=: )$(dump.)$(if $(findstring recursive,$(flavor $(dump.))),,:)=$(value $(dump.))>))
+dump = $(foreach dump=,$1,$(info $3dump: <$(2:=: )$(dump=)$(if $(findstring recursive,$(flavor $(dump=))),,:)=$(value $(dump=))>))
 
 # maximum number of arguments of any macro
 dump_max := 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30
@@ -51,33 +52,42 @@ $(eval dump_args = $(subst $(space):,, $(dump_args)))
 trace_params = $(warning params: $$($0) {)$(dump_args)$(info params: } $$($0))
 
 # trace level
-cb_trace_level.^tl:=
+cb_trace_level.^l:=
+
+# encode variable name $v so that it may be used in $(eval name=...)
+encode_traced_var_name = $(subst $(close_brace),.^cl@,$(subst $(open_brace),.^op@,$(subst :,.^dc@,$(subst !,.^ex@,$v)))).^t
 
 # helper template for $(trace_calls)
 # $1 - macro name, must accept no more than $(dump_max) arguments
-# $2 - override or <empty>
-# $3 - names of variables to dump before traced call
-# $4 - names of variables to dump after traced call
-# $5 - if non-empty, then forcibly protect new values of traced macros
+# $2 - result of $(call encode_traced_var_name,$1)
+# $3 - override or <empty>
+# $4 - names of variables to dump before traced call
+# $5 - names of variables to dump after traced call
+# $6 - if non-empty, then forcibly protect new values of traced macros
 # note: pass 0 as second parameter to CLEAN_BUILD_PROTECT_VARS1 to not try to trace already traced macro
+# note: first line must be empty
 define trace_calls_template
-$(empty)
+
 ifdef $1
 ifeq (simple,$(flavor $1))
-$1.^tv:=$$($1)
-$2 $1 = $$(warning $$(cb_trace_level.^tl) $$$$($1) {)$$(call infofn,$$($1.^tv))$$(info end: } $$$$($1))
+$2:=$$($1)
+$3 $(keyword_define) $1
+$$(warning $$(cb_trace_level.^l) $$$$($1) {)$$(call infofn,$$($2))$$(info end: } $$$$($1))
+$(keyword_endef)
 else
-define $1.^tv
+$(keyword_define) $2
 $(value $1)
-endef
-$2 $1 = $$(warning $$(cb_trace_level.^tl) $$$$($1) {)$$(dump_args)$$(call dump,$3,,$1: )$$(info \
-  ------$1 value---->)$$(info <$$(value $1.^tv)>)$$(info \
-  ------$1 result--->)$$(eval cb_trace_level.^tl+=$1->)$$(call infofn,$$(call $1.^tv,_dump_params_))$$(call \
-  dump,$4,,$1: )$$(eval cb_trace_level.^tl:=$$(wordlist 2,$$(words \
-  $$(cb_trace_level.^tl)),x $$(cb_trace_level.^tl)))$$(info end: } $$$$($1))
+$(keyword_endef)
+$3 $(keyword_define) $1
+$$(warning $$(cb_trace_level.^l) $$$$($1) {)$$(dump_args)$$(call dump,$4,,$1: )$$(info \
+  ------$1 value---->)$$(info <$$(value $2)>)$$(info \
+  ------$1 result--->)$$(eval cb_trace_level.^l+=$1->)$$(call infofn,$$(call $2,_dump_params_))$$(call \
+  dump,$5,,$1: )$$(eval cb_trace_level.^l:=$$(wordlist 2,$$(words \
+  $$(cb_trace_level.^l)),x $$(cb_trace_level.^l)))$$(info end: } $$$$($1))
+$(keyword_endef)
 endif
 endif
-$(call CLEAN_BUILD_PROTECT_VARS1,$1.^tv $(if $5,$1,$(if $(filter $1,$(CLEAN_BUILD_PROTECTED_VARS)),$1)),0)
+$(call CLEAN_BUILD_PROTECT_VARS1,$2 $(if $6,$1,$(if $(filter $1,$(CLEAN_BUILD_PROTECTED_VARS)),$1)),0)
 endef
 
 # replace _dump_params_ with: $(1),$(2),$(3...)
@@ -94,9 +104,9 @@ $(eval define trace_calls_template$(newline)$(subst _dump_params_,$$$$$(open_bra
 #   e1;e2    - names of variables to dump after traced call
 # note: may also be used for simple variables, for example: $(call trace_calls,Macro=VarPre=VarPost)
 trace_calls = $(eval $(foreach f,$1,$(foreach v,$(firstword $(subst =, ,$f)),$(if $(findstring undefined,$(origin $v)),,$(if \
-  $(findstring ^.$$(warning $$(cb_trace_level.^tl) $$$$($v) {),^.$(value $v)),,$(call trace_calls_template,$v,$(if \
-  $(findstring command line,$(origin $v)),override,$(findstring override,$(origin $v))),$(subst \
-  ;, ,$(word 2,$(subst =, ,$f))),$(subst ;, ,$(word 3,$(subst =, ,$f))),$2))))))
+  $(findstring ^.$$(warning $$(cb_trace_level.^l) $$$$($v) {),^.$(value $v)),,$(call \
+  trace_calls_template,$v,$(encode_traced_var_name),$(if $(findstring command line,$(origin $v)),override,$(findstring \
+  override,$(origin $v))),$(subst ;, ,$(word 2,$(subst =, ,$f))),$(subst ;, ,$(word 3,$(subst =, ,$f))),$2))))))
 
 # replace spaces with ?
 unspaces = $(subst $(space),?,$1)
@@ -272,11 +282,16 @@ mk_dir_deps = $(subst :|,:| $2,$(addprefix $(newline)$2,$(filter-out %:|,$(join 
 # MY_MACRO = $(call lazy_simple,MY_MACRO,$(MY_VALUE))
 lazy_simple = $(eval $(findstring override,$(origin $1)) $1:=$$2)$($1)
 
+# append/prepend text $2 to value of variable $1
+# note: do not adds a space between appendded $1 and $2
+define_append = $(eval define $1$(newline)$(value $1)$2$(newline)endef)
+define_prepend = $(eval define $1$(newline)$2$(value $1)$(newline)endef)
+
 # protect variables from modification in target makefiles
 # note: do not try to trace calls to these macros, pass 0 as second parameter to CLEAN_BUILD_PROTECT_VARS
 TARGET_MAKEFILE = $(call CLEAN_BUILD_PROTECT_VARS, \
-  empty space tab comma newline comment open_brace close_brace keyword_override keyword_define keyword_endef \
-  infofn dump dump_max dump_args trace_params trace_calls_template trace_calls,0)
+  empty space tab comma newline comment open_brace close_brace keyword_override keyword_define keyword_endef backslash \
+  infofn dump dump_max dump_args trace_params encode_traced_var_name trace_calls_template trace_calls,0)
 
 # protect variables from modification in target makefiles
 TARGET_MAKEFILE += $(call CLEAN_BUILD_PROTECT_VARS, \
@@ -284,4 +299,4 @@ TARGET_MAKEFILE += $(call CLEAN_BUILD_PROTECT_VARS, \
   is_less1 is_less xargs1 xargs xcmd trim normp2 normp1 normp \
   cmn_path1 cmn_path back_prefix relpath2 relpath1 relpath join_with \
   ver_major ver_minor ver_patch ver_compatible1 ver_compatible \
-  get_dir split_dirs1 split_dirs mk_dir_deps lazy_simple)
+  get_dir split_dirs1 split_dirs mk_dir_deps lazy_simple define_append=$$1=$$1 define_prepend=$$1=$$1)
