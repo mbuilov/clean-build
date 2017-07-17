@@ -7,12 +7,18 @@
 # generic rules and definitions for building targets
 
 ifeq (,$(MAKE_VERSION))
-$(error MAKE_VERSION not defined, ensure you are using GNU Make of version 3.81 or later)
+$(error MAKE_VERSION is not defined, ensure you are using GNU Make of version 3.81 or later)
 endif
 
 ifneq (3.80,$(word 1,$(sort $(MAKE_VERSION) 3.80)))
-$(error required GNU Make of version 3.81 or later)
+$(error GNU Make of version 3.81 or later is required for build)
 endif
+
+# assume project makefile, which has included this makefile,
+# defines some variables - save list of those variables to override them below
+PROJECT_VARS_NAMES := $(filter-out \
+  MAKEFLAGS CURDIR MAKEFILE_LIST .DEFAULT_GOAL,$(foreach \
+  v,$(.VARIABLES),$(if $(findstring file,$(origin $v)),$v)))
 
 # For consistent builds, build results should not depend on environment,
 #  only on settings specified in configuration files.
@@ -31,16 +37,11 @@ unexport $(filter-out PATH SHELL$(if $(filter-out undefined environment,$(origin
 # 2) never use ?= operator
 # 3) 'ifdef/ifndef' should only be used for previously initialized variables
 #  (ifdef gives 'false' for variable with empty value - and value is not evaluated for the check)
-
-# assume project makefile, which has included this makefile,
-# defines some variables - save list of those variables to override them below
-PROJECT_VARS_NAMES := $(filter-out \
-  MAKEFLAGS CURDIR MAKEFILE_LIST .DEFAULT_GOAL,$(foreach \
-  v,$(.VARIABLES),$(if $(filter file,$(origin $v)),$v)))
+# 4) Undefine (below) all variables passed from environment, except PATH, SHELL and variables named in $(PASS_ENV_VARS).
 
 # clean-build version: major.minor.patch
 # note: override value, if it was accidentally set in project makefile
-override CLEAN_BUILD_VERSION := 0.8.8
+override CLEAN_BUILD_VERSION := 0.8.9
 
 # disable builtin rules and variables, warn about use of undefined variables
 # NOTE: Gnu Make will consider changed $(MAKEFLAGS) only after all makefiles are parsed,
@@ -72,7 +73,7 @@ include $(CLEAN_BUILD_DIR)/functions.mk
 # it is normally defined in project configuration makefile like:
 # CLEAN_BUILD_REQUIRED_VERSION := 0.3
 # note: dot not take CLEAN_BUILD_REQUIRED_VERSION value from environment
-ifeq (environment,$(origin CLEAN_BUILD_REQUIRED_VERSION))
+ifneq (,$(filter environment undefined,$(origin CLEAN_BUILD_REQUIRED_VERSION)))
 CLEAN_BUILD_REQUIRED_VERSION := 0.0.0
 endif
 
@@ -110,19 +111,61 @@ NEEDED_DIRS:=
 # then it will be deleted together with $(BUILD) directory in clean-build implementation of 'distclean' goal
 include $(CLEAN_BUILD_DIR)/confsup.mk
 
-# protect variables in $(CLEAN_BUILD_DIR)/functions.mk
-$(CURRENT_MAKEFILE)
+# protect from modification macros defined in $(CLEAN_BUILD_DIR)/functions.mk
+$(TARGET_MAKEFILE)
+
+ifdef MCHECK
+
+# Redefine all variables passed from environment, except PATH, SHELL and variables named in $(PASS_ENV_VARS),
+# so access to them in global context will produce errors.
+# To get environment variable use 'getenv' function.
+define OVERRIDE_VAR_TEMPLATE
+
+$(keyword_define) $v.^ev
+$(value $v)
+$(keyword_endef)
+$v = $$(error use 'getenv' function to get value of environment variable $v)
+
+endef
+$(eval $(foreach v,$(filter-out PATH SHELL $(PASS_ENV_VARS),$(.VARIABLES)),$(if \
+  $(findstring environment,$(origin $v)),$(OVERRIDE_VAR_TEMPLATE))))
+
+# return non-empty value if given environment variable $1 do exist
+env_var_exist = $(findstring file,$(origin $1.^ev))
+
+# get effective name of environment variable $1 (it may be renamed)
+env_var_name = $1.^ev
+
+else # !MCHECK
+
+# return non-empty value if given environment variable $1 do exist
+env_var_exist = $(findstring environment,$(origin $1))
+
+# get effective name of environment variable $1 (it may be renamed)
+env_var_name = $1
+
+endif # !MCHECK
+
+# get value of environment variable $1
+getenv = $($(call env_var_name,$1))
+
+# protect from modification all variables, except automatic and clean-build special ones
+ifdef CLEAN_BUILD_PROTECT_VARS
+$(info -------$(foreach v,$(PASS_ENV_VARS) $(filter-out \
+  $(dump_max) cb_trace_level.^tl %.^pv $(CLEAN_BUILD_PROTECTED_VARS),$(.VARIABLES)),$(if \
+  $(filter file override environment,$(origin $v)),$v)))
+endif
 
 # BUILD - directory for built files - must be defined either in command line
 # or in project configuration makefile before including this file, via:
 # BUILD := /my_project/build
-ifeq (environment,$(origin BUILD))
+ifneq (,$(call env_var_exist,BUILD))
 $(error BUILD must not be taken from environment,\
  please define BUILD either in command line or in project configuration\
  makefile (via override directive) before including this file)
 endif
 
-# do not inherit BUILD from environment
+# BUILD must be overridden either in command line or in project configuration makefile
 BUILD:=
 
 # ensure that BUILD is non-recursive (simple)
@@ -151,12 +194,10 @@ override DRIVERS_SUPPORT := $(DRIVERS_SUPPORT:0=)
 # CPU or TCPU,KCPU - one of $(SUPPORTED_CPUS),
 
 # what target type to build
-# note: do not take TARGET value from environment
 # note: TARGET may be overridden either in command line or in project configuration makefile
 TARGET := RELEASE
 
 # operating system we are building for (and we are building on)
-# note: do not take OS value from environment
 # note: OS must be overridden either in command line or in project configuration makefile
 ifndef OS
 OS:=
@@ -171,13 +212,11 @@ OS:=
 endif
 
 # CPU processor architecture we are building applications for
-# note: do not take CPU value from environment
 # note: CPU may be overridden either in command line or in project configuration makefile
 CPU := x86
 
 # TCPU - processor architecture for build tools (may be different from $(CPU) if cross-compiling)
 # KCPU - processor architecture for kernel modules
-# note: do not take TCPU and KCPU values from environment
 # note: TCPU and KCPU may be overridden either in command line or in project configuration makefile
 TCPU := $(CPU)
 KCPU := $(CPU)
@@ -291,8 +330,8 @@ ifdef MDEBUG
 $(call dump,CLEAN_BUILD_DIR OSDIR BUILD CONFIG TARGET OS CPU TCPU KCPU,,)
 endif
 
-# get absolute path to current makefile
-CURRENT_MAKEFILE := $(abspath $(firstword $(MAKEFILE_LIST)))
+# get absolute path to current target makefile
+TARGET_MAKEFILE := $(abspath $(firstword $(MAKEFILE_LIST)))
 
 # list of all processed makefiles names
 # note: PROCESSED_MAKEFILES is never cleared, only appended
@@ -301,9 +340,9 @@ PROCESSED_MAKEFILES:=
 
 ifdef MCHECK
 
-# check that $(CURRENT_MAKEFILE) is not already processed
+# check that $(TARGET_MAKEFILE) is not already processed
 CHECK_MAKEFILE_NOT_PROCESSED = $(if $(filter \
-  $(CURRENT_MAKEFILE)-,$(PROCESSED_MAKEFILES)),$$(error makefile $(CURRENT_MAKEFILE) is already processed!))
+  $(TARGET_MAKEFILE)-,$(PROCESSED_MAKEFILES)),$$(error makefile $(TARGET_MAKEFILE) is already processed!))
 
 else # !MCHECK
 
@@ -541,7 +580,7 @@ define STD_TARGET_VARS1
 $(FIX_ORDER_DEPS)
 $1:TMD:=$(TMD)
 $1:| $2 $$(ORDER_DEPS)
-$(CURRENT_MAKEFILE)-:$1
+$(TARGET_MAKEFILE)-:$1
 NEEDED_DIRS+=$2
 endef
 
@@ -559,13 +598,13 @@ endif # !clean
 # NOTE: MCONT will be either empty or 2,3,4... - MCONT cannot be 1 - some rules may be defined before calling $(MAKE_CONTINUE)
 ifdef INFOMF
 define MAKEFILE_INFO_TEMPL
-$1:MF:=$(CURRENT_MAKEFILE)
+$1:MF:=$(TARGET_MAKEFILE)
 $1:MCONT:=$(subst +0,,+$(words $(subst 2,,$(MAKE_CONT))))
 endef
 SET_MAKEFILE_INFO = $(eval $(MAKEFILE_INFO_TEMPL))
 else ifdef QUIET
-# remember $(CURRENT_MAKEFILE) to properly update percents
-MAKEFILE_INFO_TEMPL = $1:MF:=$(CURRENT_MAKEFILE)
+# remember $(TARGET_MAKEFILE) to properly update percents
+MAKEFILE_INFO_TEMPL = $1:MF:=$(TARGET_MAKEFILE)
 SET_MAKEFILE_INFO = $(eval $(MAKEFILE_INFO_TEMPL))
 else
 SET_MAKEFILE_INFO:=
@@ -580,14 +619,15 @@ endif
 
 # add absolute path to directory of currently processing makefile to non-absolute paths
 # - we need absolute paths to sources to work with generated dependencies in .d files
-fixpath = $(abspath $(call nonrelpath,$(dir $(CURRENT_MAKEFILE)),$1))
+fixpath = $(abspath $(call nonrelpath,$(dir $(TARGET_MAKEFILE)),$1))
 
 ifdef MDEBUG
 
 # info about which makefile is expanded now and order dependencies for it
-MAKEFILE_DEBUG_INFO = $(subst $(space),,$(CB_INCLUDE_LEVEL))$(CURRENT_MAKEFILE)$(if $(ORDER_DEPS), | $(ORDER_DEPS:-=))
+MAKEFILE_DEBUG_INFO = $(subst $(space),,$(CB_INCLUDE_LEVEL))$(TARGET_MAKEFILE)$(if $(ORDER_DEPS), | $(ORDER_DEPS:-=))
 
 # note: show debug info only if $1 does not contain @ (used by $(CLEAN_BUILD_DIR)/parallel.mk)
+# note: MAKEFILE_DEBUG_INFO shows $(ORDER_DEPS), but ORDER_DEPS gets its value while $(eval), so call $(info) inside $(eval)
 DEF_TAIL_CODE_DEBUG = $(if $(findstring @,$1),,$$(info $(MAKEFILE_DEBUG_INFO)))
 
 else # !MDEBUG
@@ -655,11 +695,11 @@ $(eval ADD_GENERATED = $$(CHECK_GENERATED)$(value ADD_GENERATED))
 
 endif # MCHECK
 
-# processed multi-target rules
+# list of processed multi-target rules (numbers - each rule has own unique number)
 # note: MULTI_TARGETS is never cleared, only appended
 MULTI_TARGETS:=
 
-# to count each call of $(MULTI_TARGET)
+# used to count each call of $(MULTI_TARGET)
 # note: MULTI_TARGET_NUM is never cleared, only appended
 MULTI_TARGET_NUM:=
 
@@ -753,7 +793,7 @@ DEF_TAIL_CODE_EVAL = $(eval $(call DEF_TAIL_CODE,))
 DEFINE_TARGETS_EVAL_NAME = $(error $$(DEF_HEAD_CODE) was not evaluated at head of makefile!)
 
 # code to $(eval) at beginning of each makefile
-# 1) add $(CURRENT_MAKEFILE) to build
+# 1) add $(TARGET_MAKEFILE) to build
 # 2) change bin,lib,obj,gen dirs in TOOL_MODE or restore them to default values in non-TOOL_MODE
 # 3) reset DEFINE_TARGETS_EVAL_NAME to DEF_TAIL_CODE_EVAL - so $(DEFINE_TARGETS) will eval $(DEF_TAIL_CODE) by default
 # NOTE:
@@ -761,15 +801,15 @@ DEFINE_TARGETS_EVAL_NAME = $(error $$(DEF_HEAD_CODE) was not evaluated at head o
 #  - so we know if $(DEF_HEAD_CODE) was expanded from $(MAKE_CONTINUE) - remove 2 from $(MAKE_CONT) in this case
 #  - if $(DEF_HEAD_CODE) was expanded not from $(MAKE_CONTINUE) - no 2 in $(MAKE_CONT) - reset $(MAKE_CONT)
 # NOTE: set TMD to remember if we are in tool mode - TOOL_MODE variable may be changed before calling $(MAKE_CONTINUE)
-# NOTE: append $(empty) at end of $(DEF_HEAD_CODE) - to allow to join it and eval: $(eval $(DEF_HEAD_CODE)$(MY_PREPARE_CODE))
+# NOTE: append empty line at end of $(DEF_HEAD_CODE) - to allow to join it and eval: $(eval $(DEF_HEAD_CODE)$(MY_PREPARE_CODE))
 define DEF_HEAD_CODE
 $(if $(findstring 2,$(MAKE_CONT)),MAKE_CONT:=$(subst 2,1,$(MAKE_CONT)),MAKE_CONT:=\
   $(newline)$(CHECK_MAKEFILE_NOT_PROCESSED)\
-  $(newline)PROCESSED_MAKEFILES+=$(CURRENT_MAKEFILE)-)
+  $(newline)PROCESSED_MAKEFILES+=$(TARGET_MAKEFILE)-)
 TMD:=$(if $(TOOL_MODE),T)
 $(if $(TOOL_MODE),$(if $(TMD),,$(TOOL_OVERRIDE_DIRS)),$(if $(TMD),$(SET_DEFAULT_DIRS)))
 DEFINE_TARGETS_EVAL_NAME:=DEF_TAIL_CODE_EVAL
-$(empty)
+
 endef
 
 # prepend DEF_HEAD_CODE with $(CLEAN_BUILD_CHECK_AT_HEAD), if it's defined in $(CLEAN_BUILD_DIR)/protection.mk
@@ -778,23 +818,23 @@ $(eval define DEF_HEAD_CODE$(newline)$$(CLEAN_BUILD_CHECK_AT_HEAD)$(newline)$(va
 endif
 
 # code to $(eval) at end of each makefile
+DEF_TAIL_CODE=
+
+# call $(CLEAN_BUILD_CHECK_AT_TAIL), if it's defined in $(CLEAN_BUILD_DIR)/protection.mk
+ifdef CLEAN_BUILD_CHECK_AT_TAIL
+DEF_TAIL_CODE += $(CLEAN_BUILD_CHECK_AT_TAIL)
+endif
+
+# call $(DEF_TAIL_CODE_DEBUG), if it's defined above
+ifdef DEF_TAIL_CODE_DEBUG
+DEF_TAIL_CODE += $(DEF_TAIL_CODE_DEBUG)
+endif
+
 # include $(CLEAN_BUILD_DIR)/all.mk only if $(CB_INCLUDE_LEVEL) is empty and will not call $(MAKE_CONTINUE)
 # if called from $(MAKE_CONTINUE), $1 - list of vars to save (may be empty)
 # note: $(MAKE_CONTINUE) before expanding $(DEF_TAIL_CODE) adds 2 to $(MAKE_CONT) list
 # note: $(CLEAN_BUILD_DIR)/parallel.mk executes $(eval $(call DEF_TAIL_CODE,@)) to not show debug info second time in $(DEF_TAIL_CODE_DEBUG)
-define DEF_TAIL_CODE
-$(if $(CB_INCLUDE_LEVEL)$(findstring 2,$(MAKE_CONT)),,include $(CLEAN_BUILD_DIR)/all.mk)
-endef
-
-# prepend DEF_TAIL_CODE with $(DEF_TAIL_CODE_DEBUG), if it's defined above
-ifdef DEF_TAIL_CODE_DEBUG
-$(eval define DEF_TAIL_CODE$(newline)$$(DEF_TAIL_CODE_DEBUG)$(newline)$(value DEF_TAIL_CODE)$(newline)endef)
-endif
-
-# prepend DEF_TAIL_CODE with $(CLEAN_BUILD_CHECK_AT_TAIL), if it's defined in $(CLEAN_BUILD_DIR)/protection.mk
-ifdef CLEAN_BUILD_CHECK_AT_TAIL
-$(eval define DEF_TAIL_CODE$(newline)$$(CLEAN_BUILD_CHECK_AT_TAIL)$(newline)$(value DEF_TAIL_CODE)$(newline)endef)
-endif
+DEF_TAIL_CODE += $(if $(CB_INCLUDE_LEVEL),,$(if $(findstring 2,$(MAKE_CONT)),,include $(CLEAN_BUILD_DIR)/all.mk))
 
 # define targets at end of makefile
 # evaluate code in $($(DEFINE_TARGETS_EVAL_NAME)) only once, then reset DEFINE_TARGETS_EVAL_NAME
@@ -860,8 +900,7 @@ endif
 endif
 
 # protect variables from modifications in target makefiles
-$(call CLEAN_BUILD_PROTECT_VARS,MAKEFLAGS PATH SHELL PASS_ENV_VARS $(PASS_ENV_VARS) \
-  PROJECT_VARS_NAMES CLEAN_BUILD_VERSION CLEAN_BUILD_DIR CLEAN_BUILD_REQUIRED_VERSION \
+$(call CLEAN_BUILD_PROTECT_VARS, \
   BUILD DRIVERS_SUPPORT TARGET OS CPU TCPU KCPU SUPPORTED_TARGETS SUPPORTED_OSES SUPPORTED_CPUS \
   OSDIR NO_CLEAN_BUILD_DISTCLEAN_TARGET DEBUG VERBOSE QUIET INFOMF MDEBUG CHECK_MAKEFILE_NOT_PROCESSED \
   ospath nonrelpath TOOL_SUFFIX PATHSEP DLL_PATH_VAR show_with_dll_path show_dll_path_end \
