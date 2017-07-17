@@ -7,9 +7,9 @@
 # configuration file generation:
 # if CONFIG is set, define conf/unconf goals
 
-# do not inherit CONFIG from environment - if needed,
-# CONFIG may be specified before including this file via:
-# override CONFIG = $(BUILD)/conf.mk
+# note: CONFIG may be specified either in command line
+# or in project configuration makefile before including this file, via:
+# CONFIG = $(BUILD)/conf.mk
 CONFIG:=
 
 ifdef CONFIG
