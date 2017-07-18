@@ -17,7 +17,7 @@ NORM_MAKEFILES = $(patsubst %.mk/Makefile$2,%.mk$2,$(addsuffix /Makefile$2,$(pat
 
 # add empty rules for $(MDEPS): don't complain if order deps are not resolved when build started in sub-directory
 # note: $(ORDER_DEPS) - absolute paths of dependency makefiles with '-' suffix
-# note: reset MDEPS to not update ORDER_DEPS on each evaluation of STD_TARGET_VARS in target makefile
+# note: reset MDEPS after adding them to ORDER_DEPS list
 APPEND_MDEPS = $(if $1,$1:$(newline)ORDER_DEPS+=$1$(newline))MDEPS:=
 
 # overwrite code for adding $(MDEPS) - list of makefiles that need to be built before target makefile - to ORDER_DEPS
