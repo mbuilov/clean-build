@@ -56,7 +56,6 @@ ADD_OBJ_SDEPS = $(if $2,$(newline)$1/$(basename $(notdir $x))$(OBJ_SUFFIX): $2)
 # $6 - $t_$v_$1
 # $v - non-empty variant: R,P,S,...
 # $t - EXE,LIB,...
-# note: postpone expansion of ORDER_DEPS - $(FIX_ORDER_DEPS) from $(STD_TARGET_VARS) changes $(ORDER_DEPS) value
 define OBJ_RULES2
 $5
 $(subst $(space),$(newline),$(join $(addsuffix :,$5),$2))$(if \
