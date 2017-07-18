@@ -38,7 +38,7 @@ define CLEAN_BUILD_CHECK_AT_HEAD
 ifdef CLEAN_BUILD_NEED_TAIL_CODE
 $$(error $$$$(DEFINE_TARGETS) was not evaluated at end of $$(CLEAN_BUILD_NEED_TAIL_CODE)!)
 endif
-CLEAN_BUILD_NEED_TAIL_CODE := $(CURRENT_MAKEFILE)
+CLEAN_BUILD_NEED_TAIL_CODE := $(TARGET_MAKEFILE)
 endef
 
 # store values of clean-build protected variables which must not be changed in target makefiles

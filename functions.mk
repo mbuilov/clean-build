@@ -290,12 +290,12 @@ define_prepend = $(eval define $1$(newline)$2$(value $1)$(newline)endef)
 
 # protect variables from modification in target makefiles
 # note: do not try to trace calls to these macros, pass 0 as second parameter to CLEAN_BUILD_PROTECT_VARS
-CURRENT_MAKEFILE = $(call CLEAN_BUILD_PROTECT_VARS, \
+TARGET_MAKEFILE = $(call CLEAN_BUILD_PROTECT_VARS, \
   empty space tab comma newline comment open_brace close_brace keyword_override keyword_define keyword_endef backslash \
   infofn dump dump_max dump_args trace_params encode_traced_var_name trace_calls_template trace_calls,0)
 
 # protect variables from modification in target makefiles
-CURRENT_MAKEFILE += $(call CLEAN_BUILD_PROTECT_VARS, \
+TARGET_MAKEFILE += $(call CLEAN_BUILD_PROTECT_VARS, \
   unspaces ifaddq qpath tolower toupper repl09 repl09AZ padto1 padto \
   is_less1 is_less xargs1 xargs xcmd trim normp2 normp1 normp \
   cmn_path1 cmn_path back_prefix relpath2 relpath1 relpath join_with \

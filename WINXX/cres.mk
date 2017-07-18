@@ -20,7 +20,7 @@ RC_FST = $(if $(filter DRV KDLL,$1),VFT2_DRV_SYSTEM,0L)
 
 # C-header file which defines constants for standard resource template
 # note: $(PRODUCT_NAMES_H) may be recursive macro,
-# so may produce dynamic results, for example based on value of $(CURRENT_MAKEFILE)
+# so may produce dynamic results, for example based on value of $(TARGET_MAKEFILE)
 WIN_RC_PRODUCT_DEFS_HEADER = $(GEN_DIR)/$(PRODUCT_NAMES_H)
 
 ifeq (simple,$(flavor PRODUCT_NAMES_H))

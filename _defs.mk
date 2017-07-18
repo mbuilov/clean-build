@@ -40,7 +40,7 @@ PROJECT_VARS_NAMES := $(filter-out \
 
 # clean-build version: major.minor.patch
 # note: override value, if it was accidentally set in project makefile
-override CLEAN_BUILD_VERSION := 0.8.8
+override CLEAN_BUILD_VERSION := 0.8.9
 
 # disable builtin rules and variables, warn about use of undefined variables
 # NOTE: Gnu Make will consider changed $(MAKEFLAGS) only after all makefiles are parsed,
@@ -111,7 +111,7 @@ NEEDED_DIRS:=
 include $(CLEAN_BUILD_DIR)/confsup.mk
 
 # protect variables in $(CLEAN_BUILD_DIR)/functions.mk
-$(CURRENT_MAKEFILE)
+$(TARGET_MAKEFILE)
 
 # BUILD - directory for built files - must be defined either in command line
 # or in project configuration makefile before including this file, via:
@@ -292,7 +292,7 @@ $(call dump,CLEAN_BUILD_DIR OSDIR BUILD CONFIG TARGET OS CPU TCPU KCPU,,)
 endif
 
 # get absolute path to current makefile
-CURRENT_MAKEFILE := $(abspath $(firstword $(MAKEFILE_LIST)))
+TARGET_MAKEFILE := $(abspath $(firstword $(MAKEFILE_LIST)))
 
 # list of all processed makefiles names
 # note: PROCESSED_MAKEFILES is never cleared, only appended
@@ -301,9 +301,9 @@ PROCESSED_MAKEFILES:=
 
 ifdef MCHECK
 
-# check that $(CURRENT_MAKEFILE) is not already processed
+# check that $(TARGET_MAKEFILE) is not already processed
 CHECK_MAKEFILE_NOT_PROCESSED = $(if $(filter \
-  $(CURRENT_MAKEFILE)-,$(PROCESSED_MAKEFILES)),$$(error makefile $(CURRENT_MAKEFILE) is already processed!))
+  $(TARGET_MAKEFILE)-,$(PROCESSED_MAKEFILES)),$$(error makefile $(TARGET_MAKEFILE) is already processed!))
 
 else # !MCHECK
 
@@ -541,7 +541,7 @@ define STD_TARGET_VARS1
 $(FIX_ORDER_DEPS)
 $1:TMD:=$(TMD)
 $1:| $2 $$(ORDER_DEPS)
-$(CURRENT_MAKEFILE)-:$1
+$(TARGET_MAKEFILE)-:$1
 NEEDED_DIRS+=$2
 endef
 
@@ -559,13 +559,13 @@ endif # !clean
 # NOTE: MCONT will be either empty or 2,3,4... - MCONT cannot be 1 - some rules may be defined before calling $(MAKE_CONTINUE)
 ifdef INFOMF
 define MAKEFILE_INFO_TEMPL
-$1:MF:=$(CURRENT_MAKEFILE)
+$1:MF:=$(TARGET_MAKEFILE)
 $1:MCONT:=$(subst +0,,+$(words $(subst 2,,$(MAKE_CONT))))
 endef
 SET_MAKEFILE_INFO = $(eval $(MAKEFILE_INFO_TEMPL))
 else ifdef QUIET
-# remember $(CURRENT_MAKEFILE) to properly update percents
-MAKEFILE_INFO_TEMPL = $1:MF:=$(CURRENT_MAKEFILE)
+# remember $(TARGET_MAKEFILE) to properly update percents
+MAKEFILE_INFO_TEMPL = $1:MF:=$(TARGET_MAKEFILE)
 SET_MAKEFILE_INFO = $(eval $(MAKEFILE_INFO_TEMPL))
 else
 SET_MAKEFILE_INFO:=
@@ -580,12 +580,12 @@ endif
 
 # add absolute path to directory of currently processing makefile to non-absolute paths
 # - we need absolute paths to sources to work with generated dependencies in .d files
-fixpath = $(abspath $(call nonrelpath,$(dir $(CURRENT_MAKEFILE)),$1))
+fixpath = $(abspath $(call nonrelpath,$(dir $(TARGET_MAKEFILE)),$1))
 
 ifdef MDEBUG
 
 # info about which makefile is expanded now and order dependencies for it
-MAKEFILE_DEBUG_INFO = $(subst $(space),,$(CB_INCLUDE_LEVEL))$(CURRENT_MAKEFILE)$(if $(ORDER_DEPS), | $(ORDER_DEPS:-=))
+MAKEFILE_DEBUG_INFO = $(subst $(space),,$(CB_INCLUDE_LEVEL))$(TARGET_MAKEFILE)$(if $(ORDER_DEPS), | $(ORDER_DEPS:-=))
 
 # note: show debug info only if $1 does not contain @ (used by $(CLEAN_BUILD_DIR)/parallel.mk)
 DEF_TAIL_CODE_DEBUG = $(if $(findstring @,$1),,$$(info $(MAKEFILE_DEBUG_INFO)))
@@ -753,7 +753,7 @@ DEF_TAIL_CODE_EVAL = $(eval $(call DEF_TAIL_CODE,))
 DEFINE_TARGETS_EVAL_NAME = $(error $$(DEF_HEAD_CODE) was not evaluated at head of makefile!)
 
 # code to $(eval) at beginning of each makefile
-# 1) add $(CURRENT_MAKEFILE) to build
+# 1) add $(TARGET_MAKEFILE) to build
 # 2) change bin,lib,obj,gen dirs in TOOL_MODE or restore them to default values in non-TOOL_MODE
 # 3) reset DEFINE_TARGETS_EVAL_NAME to DEF_TAIL_CODE_EVAL - so $(DEFINE_TARGETS) will eval $(DEF_TAIL_CODE) by default
 # NOTE:
@@ -765,7 +765,7 @@ DEFINE_TARGETS_EVAL_NAME = $(error $$(DEF_HEAD_CODE) was not evaluated at head o
 define DEF_HEAD_CODE
 $(if $(findstring 2,$(MAKE_CONT)),MAKE_CONT:=$(subst 2,1,$(MAKE_CONT)),MAKE_CONT:=\
   $(newline)$(CHECK_MAKEFILE_NOT_PROCESSED)\
-  $(newline)PROCESSED_MAKEFILES+=$(CURRENT_MAKEFILE)-)
+  $(newline)PROCESSED_MAKEFILES+=$(TARGET_MAKEFILE)-)
 TMD:=$(if $(TOOL_MODE),T)
 $(if $(TOOL_MODE),$(if $(TMD),,$(TOOL_OVERRIDE_DIRS)),$(if $(TMD),$(SET_DEFAULT_DIRS)))
 DEFINE_TARGETS_EVAL_NAME:=DEF_TAIL_CODE_EVAL

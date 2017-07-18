@@ -12,7 +12,7 @@ endif
 MDEPS:=
 
 # make absolute paths to makefiles $1 with suffix $2:
-# add path to directory of $(CURRENT_MAKEFILE) if makefile path is not absolute, add /Makefile if makefile path is a directory
+# add path to directory of $(TARGET_MAKEFILE) if makefile path is not absolute, add /Makefile if makefile path is a directory
 NORM_MAKEFILES = $(patsubst %.mk/Makefile$2,%.mk$2,$(addsuffix /Makefile$2,$(patsubst %/Makefile,%,$(call fixpath,$1))))
 
 # add empty rules for $(MDEPS): don't complain if order deps are not resolved when build started in sub-directory
@@ -29,7 +29,7 @@ $(eval FIX_ORDER_DEPS = $(value APPEND_MDEPS))
 # note: $(TOOL_MODE) value may be changed (set) in included makefile, so restore TOOL_MODE before including next makefile
 define CB_INCLUDE_TEMPLATE
 $(empty)
-CURRENT_MAKEFILE:=$m
+TARGET_MAKEFILE:=$m
 ORDER_DEPS:=$(ORDER_DEPS)
 TOOL_MODE:=$(TOOL_MODE)
 include $m
@@ -49,13 +49,13 @@ ifdef MDEBUG
 CLEAN_BUILD_PARALLEL += $(info $(MAKEFILE_DEBUG_INFO))
 endif
 
-# $(CURRENT_MAKEFILE) is built if all $$1 makefiles are built
-# note: $(CURRENT_MAKEFILE)- and other order-dependent makefile names - are .PHONY targets,
+# $(TARGET_MAKEFILE) is built if all $$1 makefiles are built
+# note: $(TARGET_MAKEFILE)- and other order-dependent makefile names - are .PHONY targets,
 # and built target files may depend on .PHONY targets only as order-only,
 # otherwise target files are will always be rebuilt - because .PHONY targets are always updated
 ifndef TOCLEAN
 $(eval define CLEAN_BUILD_PARALLEL$(newline)$(value \
-  CLEAN_BUILD_PARALLEL)$$(CURRENT_MAKEFILE)-:| $$(addsuffix -,$$1)$(newline)$(newline)endef)
+  CLEAN_BUILD_PARALLEL)$$(TARGET_MAKEFILE)-:| $$(addsuffix -,$$1)$(newline)$(newline)endef)
 endif
 
 # increase makefile include level,
@@ -68,7 +68,7 @@ $(eval define CLEAN_BUILD_PARALLEL$(newline)$(value \
 # remember number of intermediate non-target makefiles if build is non-verbose
 ifdef ADD_SHOWN_PERCENTS
 $(eval define CLEAN_BUILD_PARALLEL$(newline)$(value \
-  CLEAN_BUILD_PARALLEL)$(newline)PROCESSED_MAKEFILES+=$$(CURRENT_MAKEFILE)-$(newline)INTERMEDIATE_MAKEFILES+=1$(newline)endef)
+  CLEAN_BUILD_PARALLEL)$(newline)PROCESSED_MAKEFILES+=$$(TARGET_MAKEFILE)-$(newline)INTERMEDIATE_MAKEFILES+=1$(newline)endef)
 endif
 
 # at last, check if need to include $(CLEAN_BUILD_DIR)/all.mk
