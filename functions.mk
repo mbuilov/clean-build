@@ -52,32 +52,41 @@ $(eval dump_args = $(subst $(space):,, $(dump_args)))
 trace_params = $(warning params: $$($0) {)$(dump_args)$(info params: } $$($0))
 
 # trace level
-trace_level.:=
+cb_trace_level^:=
+
+# encode variable name $v so that it may be used in $(eval $(encoded_name)=...)
+encode_traced_var_name = $(subst $(close_brace),^c@,$(subst $(open_brace),^o@,$(subst :,^d@,$(subst !,^e@,$v)))).^t
 
 # helper template for $(trace_calls)
 # $1 - macro name, must accept no more than $(dump_max) arguments
-# $2 - override or <empty>
-# $3 - names of variables to dump before traced call
-# $4 - names of variables to dump after traced call
-# $5 - if non-empty, then forcibly protect new values of traced macros
+# $2 - result of $(call encode_traced_var_name,$1)
+# $3 - override or <empty>
+# $4 - names of variables to dump before traced call
+# $5 - names of variables to dump after traced call
+# $6 - if non-empty, then forcibly protect new values of traced macros
 # note: pass 0 as second parameter to CLEAN_BUILD_PROTECT_VARS1 to not try to trace already traced macro
+# note: first line must be empty
 define trace_calls_template
-$(empty)
+
 ifdef $1
 ifeq (simple,$(flavor $1))
-$1.t_:=$$($1)
-$2 $1 = $$(warning $$(trace_level.) $$$$($1) {)$$(call infofn,$$($1.t_))$$(info end: } $$$$($1))
+$2:=$$($1)
+$3 $(keyword_define) $1
+$$(warning $$(cb_trace_level^) $$$$($1) {)$$(call infofn,$$($2))$$(info end: } $$$$($1))
+$(keyword_endef)
 else
-define $1.t_
+$(keyword_define) $2
 $(value $1)
-endef
-$2 $1 = $$(warning $$(trace_level.) $$$$($1) {)$$(dump_args)$$(call dump,$3,,$1: )$$(info \
-  ------$1 value---->)$$(info <$$(value $1.t_)>)$$(info \
-  ------$1 result--->)$$(eval trace_level.+=$1->)$$(call infofn,$$(call $1.t_,_dump_params_))$$(call \
-  dump,$4,,$1: )$$(eval trace_level.:=$$(wordlist 2,$$(words $$(trace_level.)),x $$(trace_level.)))$$(info end: } $$$$($1))
+$(keyword_endef)
+$3 $(keyword_define) $1
+$$(warning $$(cb_trace_level^) $$$$($1) {)$$(dump_args)$$(call dump,$4,,$1: )$$(info \
+  ------$1 value---->)$$(info <$$(value $2)>)$$(info \
+  ------$1 result--->)$$(eval cb_trace_level^+=$1->)$$(call infofn,$$(call $2,_dump_params_))$$(call \
+  dump,$5,,$1: )$$(eval cb_trace_level^:=$$(wordlist 2,$$(words $$(cb_trace_level^)),x $$(cb_trace_level^)))$$(info end: } $$$$($1))
+$(keyword_endef)
 endif
 endif
-$(call CLEAN_BUILD_PROTECT_VARS1,$1.t_ $(if $5,$1,$(if $(filter $1,$(CLEAN_BUILD_PROTECTED_VARS)),$1)),0)
+$(call CLEAN_BUILD_PROTECT_VARS1,$2 $(if $6,$1,$(if $(filter $1,$(CLEAN_BUILD_PROTECTED_VARS)),$1)),0)
 endef
 
 # replace _dump_params_ with: $(1),$(2),$(3...)
@@ -93,10 +102,10 @@ $(eval define trace_calls_template$(newline)$(subst _dump_params_,$$$$$(open_bra
 #   b1;b2;b3 - names of variables to dump before traced call
 #   e1;e2    - names of variables to dump after traced call
 # note: may also be used for simple variables, for example: $(call trace_calls,Macro=VarPre=VarPost)
-trace_calls = $(eval $(foreach f,$1,$(foreach v,$(firstword $(subst =, ,$f)),$(if $(filter-out undefined,$(origin $v)),$(if \
-  $(findstring ^.$$(warning $$(trace_level.) $$$$($v) {),^.$(value $v)),,$(call trace_calls_template,$v,$(if \
-  $(findstring command line,$(origin $v))$(findstring override,$(origin $v)),override),$(subst \
-  ;, ,$(word 2,$(subst =, ,$f))),$(subst ;, ,$(word 3,$(subst =, ,$f))),$2))))))
+trace_calls = $(eval $(foreach f,$1,$(foreach v,$(firstword $(subst =, ,$f)),$(if $(findstring undefined,$(origin $v)),,$(if \
+  $(findstring ^.$$(warning $$(cb_trace_level^) $$$$($v) {),^.$(value $v)),,$(call \
+  trace_calls_template,$v,$(encode_traced_var_name),$(if $(findstring command line,$(origin $v)),override,$(findstring \
+  override,$(origin $v))),$(subst ;, ,$(word 2,$(subst =, ,$f))),$(subst ;, ,$(word 3,$(subst =, ,$f))),$2))))))
 
 # replace spaces with ?
 unspaces = $(subst $(space),?,$1)
@@ -276,7 +285,7 @@ lazy_simple = $(eval $(filter override,$(origin $1)) $1:=$$2)$($1)
 # note: do not try to trace calls to these macros, pass 0 as second parameter to CLEAN_BUILD_PROTECT_VARS
 CURRENT_MAKEFILE = $(call CLEAN_BUILD_PROTECT_VARS, \
   empty space tab comma newline comment open_brace close_brace keyword_override keyword_define keyword_endef backslash \
-  infofn dump dump_max dump_args trace_params trace_calls_template trace_calls,0)
+  infofn dump dump_max dump_args trace_params encode_traced_var_name trace_calls_template trace_calls,0)
 
 # protect variables from modification in target makefiles
 CURRENT_MAKEFILE += $(call CLEAN_BUILD_PROTECT_VARS, \
