@@ -126,7 +126,7 @@ $(error BUILD must not be taken from environment,\
  makefile (via override directive) before including this file)
 endif
 
-# do not inherit BUILD from environment
+# BUILD must be overridden either in command line or in project configuration makefile
 BUILD:=
 
 # ensure that BUILD is non-recursive (simple)
@@ -155,12 +155,10 @@ override DRIVERS_SUPPORT := $(DRIVERS_SUPPORT:0=)
 # CPU or TCPU,KCPU - one of $(SUPPORTED_CPUS),
 
 # what target type to build
-# note: do not take TARGET value from environment
 # note: TARGET may be overridden either in command line or in project configuration makefile
 TARGET := RELEASE
 
 # operating system we are building for (and we are building on)
-# note: do not take OS value from environment
 # note: OS must be overridden either in command line or in project configuration makefile
 ifndef OS
 OS:=
@@ -175,13 +173,11 @@ OS:=
 endif
 
 # CPU processor architecture we are building applications for
-# note: do not take CPU value from environment
 # note: CPU may be overridden either in command line or in project configuration makefile
 CPU := x86
 
 # TCPU - processor architecture for build tools (may be different from $(CPU) if cross-compiling)
 # KCPU - processor architecture for kernel modules
-# note: do not take TCPU and KCPU values from environment
 # note: TCPU and KCPU may be overridden either in command line or in project configuration makefile
 TCPU := $(CPU)
 KCPU := $(CPU)
