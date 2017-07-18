@@ -1193,9 +1193,7 @@ CB_WINXX_RES_RULES:=
 # $6 - $5/$(basename $(notdir $2)).res
 # NOTE: EXE,DLL,...-target dependency on generated resource file is added in $(STD_RES_TEMPLATE) (see ADD_RES_TEMPLATE macro)
 # NOTE: generated .res is added to CLEAN list in $(OS_DEFINE_TARGETS) via $(RES)
-# NOTE: postpone expansion of ORDER_DEPS - $(FIX_ORDER_DEPS) changes $(ORDER_DEPS) value
 define ADD_RES_RULE2
-$(FIX_ORDER_DEPS)
 NEEDED_DIRS += $5
 $6: $(call fixpath,$2 $4) | $5 $$(ORDER_DEPS)
 	$$(call RC,$$@,$$<,$3)
