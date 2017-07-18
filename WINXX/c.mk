@@ -7,7 +7,7 @@
 # reset additional variables
 # RES - resources to link to dll or exe
 # DEF - linker definitions file (used mostly to list exported symbols)
-$(eval define PREPARE_C_VARS$(newline)$(value PREPARE_C_VARS)$(newline)RES:=$(newline)DEF:=$(newline)endef)
+$(call define_append,PREPARE_C_VARS,$(newline)RES:=$(newline)DEF:=)
 
 # max number of sources to compile with /MP compiler option
 # - with too many sources it's possible to exceed maximum command string length
@@ -1088,12 +1088,12 @@ endef
 # $v - R,S
 ifdef TOCLEAN
 ifdef DEBUG
-$(eval define EXE_AUX_TEMPLATEv$(newline)$(value EXE_AUX_TEMPLATEv)$$(call TOCLEAN,$$5/vc*.pdb $$(4:$$($$t_SUFFIX)=.pdb))$(newline)endef)
-$(eval define DLL_AUX_TEMPLATEv$(newline)$(value DLL_AUX_TEMPLATEv)$$(call TOCLEAN,$$5/vc*.pdb $$(4:$$($$t_SUFFIX)=.pdb))$(newline)endef)
+$(call define_append,EXE_AUX_TEMPLATEv,$$(call TOCLEAN,$$5/vc*.pdb $$(4:$$($$t_SUFFIX)=.pdb)))
+$(call define_append,DLL_AUX_TEMPLATEv,$$(call TOCLEAN,$$5/vc*.pdb $$(4:$$($$t_SUFFIX)=.pdb)))
 endif
 else ifndef SEQ_BUILD
-$(eval define EXE_AUX_TEMPLATEv$(newline)$(value EXE_AUX_TEMPLATEv)$(value MULTISOURCE_AUX)$(newline)endef)
-$(eval define DLL_AUX_TEMPLATEv$(newline)$(value DLL_AUX_TEMPLATEv)$(value MULTISOURCE_AUX)$(newline)endef)
+$(call define_append,EXE_AUX_TEMPLATEv,$(value MULTISOURCE_AUX))
+$(call define_append,DLL_AUX_TEMPLATEv,$(value MULTISOURCE_AUX))
 endif
 
 # $1 - $(TRG_SRC)
@@ -1156,8 +1156,7 @@ endef
 
 # $t - LIB or KLIB
 ifdef ARC_AUX_TEMPLATEv
-$(eval define ARC_AUX_TEMPLATE$(newline)$(value ARC_AUX_TEMPLATE)$(newline)$$(call \
-  ARC_AUX_TEMPLATEt,$$(TRG_SRC),$$(TRG_SDEPS),$$(TRG_ALL_SDEPS))$(newline)endef)
+$(call define_append,ARC_AUX_TEMPLATE,$(newline)$$(call ARC_AUX_TEMPLATEt,$$(TRG_SRC),$$(TRG_SDEPS),$$(TRG_ALL_SDEPS)))
 endif
 
 # called by OS_DEFINE_TARGETS
@@ -1294,7 +1293,7 @@ endef
 
 # cleanup $(RES)
 ifdef TOCLEAN
-$(eval define OS_DEFINE_TARGETS$(newline)$(value OS_DEFINE_TARGETS)$(newline)$$$$(call TOCLEAN,$$$$(RES))$(newline)endef)
+$(call define_append,OS_DEFINE_TARGETS,$(newline)$$$$(call TOCLEAN,$$$$(RES)))
 endif
 
 # protect variables from modifications in target makefiles
