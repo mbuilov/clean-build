@@ -22,15 +22,15 @@ endif
 # $ make -rR --warn-undefined-variables
 MAKEFLAGS += --no-builtin-rules --no-builtin-variables --warn-undefined-variables
 
-# clean-build version: major.minor.patch
-# note: override value, if it was accidentally set in project makefile
-override CLEAN_BUILD_VERSION := 0.8.9
-
 # assume project makefile, which has included this makefile,
 # defines some variables - save list of those variables to override them below
 PROJECT_VARS_NAMES := $(filter-out \
   MAKEFLAGS CURDIR MAKEFILE_LIST .DEFAULT_GOAL,$(foreach \
   v,$(.VARIABLES),$(if $(findstring file,$(origin $v)),$v)))
+
+# clean-build version: major.minor.patch
+# note: override value, if it was accidentally set in project makefile
+override CLEAN_BUILD_VERSION := 0.8.9
 
 # For consistent builds, build results should not depend on environment,
 #  only on settings specified in configuration files.
@@ -62,7 +62,7 @@ endif
 # delete target file if failed to execute any of commands to make it
 .DELETE_ON_ERROR:
 
-# specify default goal
+# specify default goal (defined in $(CLEAN_BUILD_DIR)/all.mk)
 .DEFAULT_GOAL := all
 
 # clean-build root directory (absolute path)
