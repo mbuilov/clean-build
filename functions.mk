@@ -7,23 +7,24 @@
 # this file included by $(CLEAN_BUILD_DIR)/defs.mk after including $(CLEAN_BUILD_DIR)/protection.mk
 
 empty:=
-space := $(empty) $(empty)
-tab   := $(empty)	$(empty)
-comma := ,
+space:= $(empty) $(empty)
+tab:= $(empty)	$(empty)
+comma:= ,
 define newline
 
 
 endef
-newline := $(newline)
+newline:= $(newline)
 define comment
 #
 endef
-comment := $(comment)
-open_brace  := (
-close_brace := )
-keyword_override := override
-keyword_define := define
-keyword_endef := endef
+comment:= $(comment)
+open_brace:= (
+close_brace:= )
+keyword_override:= override
+keyword_define:= define
+keyword_endef:= endef
+backslash:= \$(empty)
 
 # print result $1 and return $1
 infofn = $(info <$1>)$1
@@ -33,7 +34,7 @@ infofn = $(info <$1>)$1
 # $2 - optional prefix
 # $3 - optional pre-prefix
 # $(call dump,VAR1,prefix,Q) -> print 'Qdump: prefix: VAR1=xxx'
-dump = $(foreach dump.,$1,$(info $3dump: <$(2:=: )$(dump.)$(if $(findstring recursive,$(flavor $(dump.))),,:)=$(value $(dump.))>))
+dump = $(foreach dump=,$1,$(info $3dump: <$(2:=: )$(dump=)$(if $(findstring recursive,$(flavor $(dump=))),,:)=$(value $(dump=))>))
 
 # maximum number of arguments of any macro
 dump_max := 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30
@@ -274,7 +275,7 @@ lazy_simple = $(eval $(filter override,$(origin $1)) $1:=$$2)$($1)
 # protect variables from modification in target makefiles
 # note: do not try to trace calls to these macros, pass 0 as second parameter to CLEAN_BUILD_PROTECT_VARS
 CURRENT_MAKEFILE = $(call CLEAN_BUILD_PROTECT_VARS, \
-  empty space tab comma newline comment open_brace close_brace keyword_override keyword_define keyword_endef \
+  empty space tab comma newline comment open_brace close_brace keyword_override keyword_define keyword_endef backslash \
   infofn dump dump_max dump_args trace_params trace_calls_template trace_calls,0)
 
 # protect variables from modification in target makefiles
