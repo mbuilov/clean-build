@@ -18,7 +18,7 @@ NORM_MAKEFILES = $(patsubst %.mk/Makefile$2,%.mk$2,$(addsuffix /Makefile$2,$(pat
 # add empty rules for $(MDEPS): don't complain if order deps are not resolved when build started in sub-directory
 # note: $(ORDER_DEPS) - absolute paths of dependency makefiles with '-' suffix
 # note: reset MDEPS to not update ORDER_DEPS on each evaluation of STD_TARGET_VARS in target makefile
-APPEND_MDEPS1 = $(if $1,$1:$(newline)ORDER_DEPS+=$1$(newline))
+APPEND_MDEPS1 = $(if $1,$1:$(newline)ORDER_DEPS+=$1$(newline)!protect!)
 APPEND_MDEPS = $(if $(MDEPS),$(call APPEND_MDEPS1,$(filter-out $(ORDER_DEPS),$(call NORM_MAKEFILES,$(MDEPS),-)))$(eval MDEPS:=))
 
 # overwrite code for adding $(MDEPS) - list of makefiles that need to be built before target makefile - to $(ORDER_DEPS)
@@ -30,8 +30,8 @@ $(eval FIX_ORDER_DEPS = $(value APPEND_MDEPS))
 # note: first line must be empty
 define CB_INCLUDE_TEMPLATE
 
-TARGET_MAKEFILE:=$m
-ORDER_DEPS:=$(ORDER_DEPS)
+TARGET_MAKEFILE:=$m!protect!
+ORDER_DEPS:=$(ORDER_DEPS)!protect!
 TOOL_MODE:=$(TOOL_MODE)
 include $m
 endef
@@ -61,8 +61,8 @@ endif
 # increase makefile include level,
 # include and process makefiles $$1,
 # decrease makefile include level
-$(call define_append,CLEAN_BUILD_PARALLEL,CB_INCLUDE_LEVEL+=.$$(foreach \
-  m,$$1,$$(CB_INCLUDE_TEMPLATE))$(newline)CB_INCLUDE_LEVEL:=$$(CB_INCLUDE_LEVEL))
+$(call define_append,CLEAN_BUILD_PARALLEL,CB_INCLUDE_LEVEL+=.!protect!$$(foreach \
+  m,$$1,$$(CB_INCLUDE_TEMPLATE))$(newline)CB_INCLUDE_LEVEL:=$$(CB_INCLUDE_LEVEL)!protect!)
 
 # remember number of intermediate non-target makefiles if build is non-verbose
 ifdef ADD_SHOWN_PERCENTS

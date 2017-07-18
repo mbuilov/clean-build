@@ -100,8 +100,8 @@ endif
 # $5 - objdir:      $(call FORM_OBJ_DIR,$1)
 # note: calls either MSI_LD or INSTALLER_LD
 define WIX_TEMPLATE
-$(call STD_TARGET_VARS,$2)
 NEEDED_DIRS+=$5
+$(call STD_TARGET_VARS,$2)
 $2:$(call WIX_OBJ_RULES,$3,$4,$5)
 $2:WEXTS    := $(WEXTS)
 $2:WINCLUDE := $(WINCLUDE)

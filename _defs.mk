@@ -62,6 +62,9 @@ endif
 # delete target file if failed to execute any of commands to make it
 .DELETE_ON_ERROR:
 
+# specify default goal
+.DEFAULT_GOAL := all
+
 # clean-build root directory (absolute path)
 CLEAN_BUILD_DIR := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
 
@@ -113,6 +116,9 @@ include $(CLEAN_BUILD_DIR)/confsup.mk
 
 # protect from modification macros defined in $(CLEAN_BUILD_DIR)/functions.mk
 $(TARGET_MAKEFILE)
+
+# absolute path to current target makefile
+TARGET_MAKEFILE := $(abspath $(firstword $(MAKEFILE_LIST)))
 
 ifdef MCHECK
 
@@ -340,24 +346,22 @@ ifdef MDEBUG
 $(call dump,CLEAN_BUILD_DIR OSDIR BUILD CONFIG TARGET OS CPU TCPU KCPU,,)
 endif
 
-# get absolute path to current target makefile
-TARGET_MAKEFILE := $(abspath $(firstword $(MAKEFILE_LIST)))
-
 # list of all processed makefiles names
 # note: PROCESSED_MAKEFILES is never cleared, only appended
 # note: default target 'all' depends only on $(PROCESSED_MAKEFILES) list
 PROCESSED_MAKEFILES:=
 
-ifdef MCHECK
+ifndef MCHECK
 
-# check that $(TARGET_MAKEFILE) is not already processed
-CHECK_MAKEFILE_NOT_PROCESSED = $(if $(filter \
-  $(TARGET_MAKEFILE)-,$(PROCESSED_MAKEFILES)),$$(error makefile $(TARGET_MAKEFILE) is already processed!))
+# remember processed makefile
+REMEMBER_PROCESSED_MAKEFILE := PROCESSED_MAKEFILES+=$$(TARGET_MAKEFILE)-
 
-else # !MCHECK
+else # MCHECK
 
-# reset
-CHECK_MAKEFILE_NOT_PROCESSED:=
+# check that $(TARGET_MAKEFILE) is not already processed, then remember it
+REMEMBER_PROCESSED_MAKEFILE = $(if $(filter $(TARGET_MAKEFILE)-,$(PROCESSED_MAKEFILES)),$(error \
+  makefile $(TARGET_MAKEFILE) is already processed!))PROCESSED_MAKEFILES+=$(TARGET_MAKEFILE)-$(newline)$(call \
+  CLEAN_BUILD_PROTECT_VARS1,PROCESSED_MAKEFILES)
 
 endif # MCHECK
 
@@ -563,7 +567,7 @@ TOCLEAN:=
 else ifneq (,$(word 2,$(MAKECMDGOALS)))
 $(error clean goal must be specified alone, current goals: $(MAKECMDGOALS))
 else
-TOCLEAN = $(eval CLEAN+=$$1)
+TOCLEAN = $(eval CLEAN+=$$1)!protect!
 endif
 
 # order-only makefiles dependencies (absolute paths) to add to all leaf prerequisites for the targets
@@ -576,10 +580,25 @@ FIX_ORDER_DEPS:=
 
 ifdef TOCLEAN
 
+# reset
+NEED_DIRS1:=
+NEED_DIRS:=
+
 # just cleanup target file(s) $1 (absolute paths)
 $(eval STD_TARGET_VARS = $(value TOCLEAN))
 
 else # !clean
+
+# register more directories $1 that need to be created for the build
+NEED_DIRS1 = NEEDED_DIRS+=$1
+
+# protect from modification just changed NEEDED_DIRS variable
+ifdef MCHECK
+$(call define_append,NEED_DIRS1,$(newline)$$(call CLEAN_BUILD_PROTECT_VARS1,NEEDED_DIRS))
+endif
+
+# register more directories $1 that need to be created for the build
+NEED_DIRS = $(eval $(NEED_DIRS1))
 
 # standard target-specific variables
 # $1     - target file(s) to build (absolute paths)
@@ -591,13 +610,10 @@ $(FIX_ORDER_DEPS)
 $1:TMD:=$(TMD)
 $1:| $2 $$(ORDER_DEPS)
 $(TARGET_MAKEFILE)-:$1
-NEEDED_DIRS+=$2
 endef
 
-# protect from modification just changed NEEDED_DIRS variable
-ifdef MCHECK
-$(call define_append,STD_TARGET_VARS1,$(newline)$$(call CLEAN_BUILD_PROTECT_VARS1,NEEDED_DIRS))
-endif
+# add directories of target file(s) to NEEDED_DIRS
+$(call define_append,STD_TARGET_VARS1,$(newline)$(subst $$1,$$2,$(value NEED_DIRS1)))
 
 # standard target-specific variables
 # $1 - generated file(s) (absolute paths)
@@ -732,6 +748,11 @@ $1: $(call fixpath,$2)
 MULTI_TARGET_NUM+=1
 endef
 
+# protect from modification just changed MULTI_TARGET_NUM variable
+ifdef MCHECK
+$(call define_append,MULTI_TARGET_RULE,$(newline)$$(call CLEAN_BUILD_PROTECT_VARS1,MULTI_TARGET_NUM))
+endif
+
 # make chain of dependencies of multi-targets on each other: 1 2 3 4 -> 2:| 1; 3:| 2; 4:| 3;
 # $1 - list of generated files (absolute paths without spaces)
 MULTI_TARGET_SEQ = $(subst ||,| ,$(subst $(space),$(newline),$(filter-out \
@@ -818,9 +839,7 @@ DEFINE_TARGETS_EVAL_NAME = $(error $$(DEF_HEAD_CODE) was not evaluated at head o
 # NOTE: set TMD to remember if we are in tool mode - TOOL_MODE variable may be changed before calling $(MAKE_CONTINUE)
 # NOTE: append empty line at end of $(DEF_HEAD_CODE) - to allow to join it and eval: $(eval $(DEF_HEAD_CODE)$(MY_PREPARE_CODE))
 define DEF_HEAD_CODE
-$(if $(findstring 2,$(MAKE_CONT)),MAKE_CONT:=$(subst 2,1,$(MAKE_CONT)),MAKE_CONT:=\
-  $(newline)$(CHECK_MAKEFILE_NOT_PROCESSED)\
-  $(newline)PROCESSED_MAKEFILES+=$(TARGET_MAKEFILE)-)
+MAKE_CONT:=$(if $(findstring 2,$(MAKE_CONT)),$(subst 2,1,$(MAKE_CONT)),$(newline)$(REMEMBER_PROCESSED_MAKEFILE))
 TMD:=$(if $(TOOL_MODE),T)
 $(if $(TOOL_MODE),$(if $(TMD),,$(TOOL_OVERRIDE_DIRS)),$(if $(TMD),$(SET_DEFAULT_DIRS)))
 DEFINE_TARGETS_EVAL_NAME:=DEF_TAIL_CODE_EVAL
@@ -918,14 +937,14 @@ endif
 # protect variables from modifications in target makefiles
 $(call CLEAN_BUILD_PROTECT_VARS, \
   BUILD DRIVERS_SUPPORT TARGET OS CPU TCPU KCPU SUPPORTED_TARGETS SUPPORTED_OSES SUPPORTED_CPUS \
-  OSDIR NO_CLEAN_BUILD_DISTCLEAN_TARGET DEBUG VERBOSE QUIET INFOMF MDEBUG CHECK_MAKEFILE_NOT_PROCESSED \
+  OSDIR NO_CLEAN_BUILD_DISTCLEAN_TARGET DEBUG VERBOSE QUIET INFOMF MDEBUG PROCESSED_MAKEFILES REMEMBER_PROCESSED_MAKEFILE \
   ospath nonrelpath TOOL_SUFFIX PATHSEP DLL_PATH_VAR show_with_dll_path show_dll_path_end \
   GEN_COLOR MGEN_COLOR CP_COLOR RM_COLOR DEL_COLOR LN_COLOR MKDIR_COLOR TOUCH_COLOR CAT_COLOR SED_COLOR \
   PRINT_PERCENTS COLORIZE ADD_SHOWN_PERCENTS FORMAT_PERCENTS REM_MAKEFILE SUP \
   SED_MULTI_EXPR TARGET_TRIPLET DEF_BIN_DIR DEF_OBJ_DIR DEF_LIB_DIR DEF_GEN_DIR SET_DEFAULT_DIRS \
-  TOOL_BASE MK_TOOLS_DIR GET_TOOLS GET_TOOL TOOL_OVERRIDE_DIRS TOCLEAN FIX_ORDER_DEPS \
+  TOOL_BASE MK_TOOLS_DIR GET_TOOLS GET_TOOL TOOL_OVERRIDE_DIRS CLEAN TOCLEAN ORDER_DEPS FIX_ORDER_DEPS NEED_DIRS1 NEED_DIRS \
   STD_TARGET_VARS1 STD_TARGET_VARS MAKEFILE_INFO_TEMPL SET_MAKEFILE_INFO fixpath MAKEFILE_DEBUG_INFO \
   DEF_TAIL_CODE_DEBUG FILTER_VARIANTS_LIST GET_VARIANTS GET_TARGET_NAME DEBUG_TARGETS FORM_OBJ_DIR \
   CHECK_GENERATED ADD_GENERATED MULTI_TARGET_RULE MULTI_TARGET_SEQ CHECK_MULTI_RULE MULTI_TARGET \
-  FORM_SDEPS EXTRACT_SDEPS FIX_SDEPS RUN_WITH_DLL_PATH DEF_HEAD_CODE DEF_HEAD_CODE_EVAL DEF_TAIL_CODE DEF_TAIL_CODE_EVAL \
-  DEFINE_TARGETS=DEFINE_TARGETS_EVAL_NAME SAVE_VARS RESTORE_VARS MAKE_CONTINUE_BODY_EVAL MAKE_CONTINUE OSTYPE CONF_COLOR)
+  FORM_SDEPS EXTRACT_SDEPS FIX_SDEPS RUN_WITH_DLL_PATH DEF_HEAD_CODE CB_INCLUDE_LEVEL DEF_HEAD_CODE_EVAL DEF_TAIL_CODE DEF_TAIL_CODE_EVAL \
+  DEFINE_TARGETS=DEFINE_TARGETS_EVAL_NAME SAVE_VARS RESTORE_VARS MAKE_CONT MAKE_CONTINUE_BODY_EVAL MAKE_CONTINUE OSTYPE CONF_COLOR)

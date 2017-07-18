@@ -251,8 +251,8 @@ C_RULES = $(foreach t,$1,$(if $($t),$(call C_RULES1,$(TRG_SRC),$(TRG_SDEPS))))
 # $t - EXE or DLL
 # $v - non-empty variant: R,P,S,...
 define EXE_TEMPLATE
-$(STD_TARGET_VARS)
 NEEDED_DIRS+=$4
+$(STD_TARGET_VARS)
 $1:$(call OBJ_RULES,CC,$(filter %.c,$2),$3,$4)
 $1:$(call OBJ_RULES,CXX,$(filter %.cpp,$2),$3,$4)
 $1:$(call OBJ_RULES,ASM,$(filter %.asm,$2),$3,$4)
@@ -283,8 +283,8 @@ DLL_TEMPLATE = $(EXE_TEMPLATE)
 # $t - LIB
 # $v - non-empty variant: R,P,D,S
 define LIB_TEMPLATE
-$(STD_TARGET_VARS)
 NEEDED_DIRS+=$4
+$(STD_TARGET_VARS)
 $1:$(call OBJ_RULES,CC,$(filter %.c,$2),$3,$4)
 $1:$(call OBJ_RULES,CXX,$(filter %.cpp,$2),$3,$4)
 $1:$(call OBJ_RULES,ASM,$(filter %.asm,$2),$3,$4)
@@ -307,8 +307,8 @@ endef
 # $t - KLIB
 # $v - non-empty variant: R
 define KLIB_TEMPLATE
-$(STD_TARGET_VARS)
 NEEDED_DIRS+=$4
+$(STD_TARGET_VARS)
 $1:$(call OBJ_RULES,CC,$(filter %.c,$2),$3,$4)
 $1:$(call OBJ_RULES,CXX,$(filter %.cpp,$2),$3,$4)
 $1:$(call OBJ_RULES,ASM,$(filter %.asm,$2),$3,$4)
@@ -357,11 +357,10 @@ OS_DEFINE_TARGETS:=
 
 # this code is normally evaluated at end of target makefile
 # 1) print what we will build
-# 2) if there are rules to generate sources - eval them before defining objects for the target
-# 3) evaluate $(OS)-specific default targets before defining common default targets
+# 2) evaluate $(OS)-specific default targets before defining common default targets
 #   to allow additional $(OS)-specific dependencies on targets
-# 4) check and evaluate rules
-# 5) evaluate $(DEF_TAIL_CODE)
+# 3) check and evaluate rules
+# 4) evaluate $(DEF_TAIL_CODE)
 define DEFINE_C_TARGETS_EVAL
 $(if $(MDEBUG),$(eval $(call DEBUG_TARGETS,$(BLD_TARGETS),FORM_TRG,VARIANTS_FILTER)))
 $(eval $(OS_DEFINE_TARGETS))

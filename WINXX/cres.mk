@@ -184,7 +184,7 @@ RES += $$(TRG_RES)
 endef
 
 ifdef TOCLEAN
-$(eval define STD_RES_TEMPLATE1$(newline)$(value STD_RES_TEMPLATE1)$(newline)$$$$(call TOCLEAN,$$$$(TRG_RC))$(newline)endef)
+$(call define_append,STD_RES_TEMPLATE1,$(newline)$$$$(call TOCLEAN,$$$$(TRG_RC)))
 endif
 
 # $1 - $(call FORM_TRG,$1,$v)

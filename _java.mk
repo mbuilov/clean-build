@@ -135,8 +135,8 @@ FORM_BUILT_JARS = $(addprefix $(BIN_DIR)/,$(addsuffix .jar,$1))
 # $6 - objdir:                  $(call FORM_OBJ_DIR,JAR)
 # $7 - jars:                    $(addprefix $(BIN_DIR)/,$(addsuffix .jar,$(JARS)))
 define JAR_TEMPLATE
-$(STD_TARGET_VARS)
 $(if $2$3,NEEDED_DIRS += $6/$(JCLS_DIR))
+$(STD_TARGET_VARS)
 $1:JSRC         := $2
 $1:SCALA        := $3
 $1:JSCALA       := $4

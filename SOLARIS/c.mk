@@ -10,8 +10,8 @@ INST_RPATH:=
 # reset additional variables
 # RPATH - runtime path of external dependencies
 # MAP   - linker map file (used mostly to list exported symbols)
-$(eval define PREPARE_C_VARS$(newline)$(value PREPARE_C_VARS)$(newline)RPATH:=$(if \
-  $(findstring simple,$(flavor INST_RPATH)),$(INST_RPATH),$$(INST_RPATH))$(newline)MAP:=$(newline)endef)
+$(call define_append,PREPARE_C_VARS,$(newline)RPATH:=$(if $(findstring \
+  simple,$(flavor INST_RPATH)),$(INST_RPATH),$$(INST_RPATH))$(newline)MAP:=)
 
 # compilers
 CC   := cc -m$(if $(CPU:%64=),32,64)
@@ -345,8 +345,8 @@ ifdef DRIVERS_SUPPORT
 # $t - DRV
 # $v - non-empty variant: R
 define DRV_TEMPLATE
-$(STD_TARGET_VARS)
 NEEDED_DIRS += $4
+$(STD_TARGET_VARS)
 $1: $(call OBJ_RULES,CC,$(filter %.c,$2),$3,$4)
 $1: $(call OBJ_RULES,CXX,$(filter %.cpp,$2),$3,$4)
 $1: $(call OBJ_RULES,ASM,$(filter %.asm,$2),$3,$4)
