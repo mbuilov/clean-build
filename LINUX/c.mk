@@ -10,8 +10,8 @@ INST_RPATH:=
 # reset additional variables
 # RPATH - runtime path of external dependencies
 # MAP   - linker map file (used mostly to list exported symbols)
-$(eval define PREPARE_C_VARS$(newline)$(value PREPARE_C_VARS)$(newline)RPATH:=$(if \
-  $(findstring simple,$(flavor INST_RPATH)),$(INST_RPATH),$$(INST_RPATH))$(newline)MAP:=$(newline)endef)
+$(call define_append,PREPARE_C_VARS,$(newline)RPATH:=$(if $(findstring \
+  simple,$(flavor INST_RPATH)),$(INST_RPATH),$$(INST_RPATH))$(newline)MAP:=)
 
 # compilers/linkers
 CC   := gcc -m$(if $(CPU:%64=),32,64)
