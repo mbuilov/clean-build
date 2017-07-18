@@ -185,7 +185,6 @@ SCALAC_COLOR := [1;36m
 
 # this code is normally evaluated at end of target makefile
 define DEFINE_JAVA_TARGETS_EVAL
-$(if $(MDEBUG),$(eval $(call DEBUG_TARGETS,$(BLD_JTARGETS),FORM_JTRG)))
 $(eval $(JAR_RULES))
 $(DEF_TAIL_CODE_EVAL)
 endef

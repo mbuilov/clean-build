@@ -357,13 +357,11 @@ OS_DEFINE_TARGETS:=
 
 # this code is normally evaluated at end of target makefile
 # 1) print what we will build
-# 2) if there are rules to generate sources - eval them before defining objects for the target
-# 3) evaluate $(OS)-specific default targets before defining common default targets
+# 2) evaluate $(OS)-specific default targets before defining common default targets
 #   to allow additional $(OS)-specific dependencies on targets
-# 4) check and evaluate rules
-# 5) evaluate $(DEF_TAIL_CODE)
+# 3) check and evaluate rules
+# 4) evaluate $(DEF_TAIL_CODE)
 define DEFINE_C_TARGETS_EVAL
-$(if $(MDEBUG),$(eval $(call DEBUG_TARGETS,$(BLD_TARGETS),FORM_TRG,VARIANTS_FILTER)))
 $(eval $(OS_DEFINE_TARGETS))
 $(eval $(CHECK_C_RULES)$(call C_RULES,$(BLD_TARGETS)))
 $(DEF_TAIL_CODE_EVAL)

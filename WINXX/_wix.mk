@@ -121,7 +121,6 @@ INSTALLER_RULES = $(if $(INSTALLER),$(call WIX_RULES,INSTALLER))
 
 # this code is normally evaluated at end of target makefile
 define DEFINE_WIX_TARGETS_EVAL
-$(if $(MDEBUG),$(eval $(call DEBUG_TARGETS,$(BLD_WIX_TARGETS),FORM_WIX_TRG)))
 $(eval $(MSI_RULES)$(INSTALLER_RULES))
 $(DEF_TAIL_CODE_EVAL)
 endef
