@@ -67,6 +67,3 @@ endif
 # note: don't try to update makefiles in $(MAKEFILE_LIST) - mark them as .PHONY targets
 # note: $(PROCESSED_MAKEFILES) - names of processed makefiles with '-' suffix
 .PHONY: all clean check tests install uninstall $(MAKEFILE_LIST) $(PROCESSED_MAKEFILES)
-
-# specify default target
-.DEFAULT_GOAL := all

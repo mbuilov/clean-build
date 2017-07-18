@@ -7,12 +7,30 @@
 # generic rules and definitions for building targets
 
 ifeq (,$(MAKE_VERSION))
-$(error MAKE_VERSION not defined, ensure you are using GNU Make of version 3.81 or later)
+$(error MAKE_VERSION is not defined, ensure you are using GNU Make of version 3.81 or later)
 endif
 
 ifneq (3.80,$(word 1,$(sort $(MAKE_VERSION) 3.80)))
-$(error required GNU Make of version 3.81 or later)
+$(error GNU Make of version 3.81 or later is required for the build)
 endif
+
+# disable builtin rules and variables, warn about use of undefined variables
+# NOTE: Gnu Make will consider changed $(MAKEFLAGS) only after all makefiles are parsed,
+#  so it will first define builtin rules/variables, then undefine them,
+#  also, it will warn about undefined variables only while executing rules
+# - it's better to specify these flags in command line, e.g.:
+# $ make -rR --warn-undefined-variables
+MAKEFLAGS += --no-builtin-rules --no-builtin-variables --warn-undefined-variables
+
+# assume project makefile, which has included this makefile,
+# defines some variables - save list of those variables to override them below
+PROJECT_VARS_NAMES := $(filter-out \
+  MAKEFLAGS CURDIR MAKEFILE_LIST .DEFAULT_GOAL,$(foreach \
+  v,$(.VARIABLES),$(if $(findstring file,$(origin $v)),$v)))
+
+# clean-build version: major.minor.patch
+# note: override value, if it was accidentally set in project makefile
+override CLEAN_BUILD_VERSION := 0.8.9
 
 # For consistent builds, build results should not depend on environment,
 #  only on settings specified in configuration files.
@@ -31,24 +49,7 @@ unexport $(filter-out PATH SHELL$(if $(filter-out undefined environment,$(origin
 # 2) never use ?= operator
 # 3) 'ifdef/ifndef' should only be used for previously initialized variables
 #  (ifdef gives 'false' for variable with empty value - and value is not evaluated for the check)
-
-# assume project makefile, which has included this makefile,
-# defines some variables - save list of those variables to override them below
-PROJECT_VARS_NAMES := $(filter-out \
-  MAKEFLAGS CURDIR MAKEFILE_LIST .DEFAULT_GOAL,$(foreach \
-  v,$(.VARIABLES),$(if $(filter file,$(origin $v)),$v)))
-
-# clean-build version: major.minor.patch
-# note: override value, if it was accidentally set in project makefile
-override CLEAN_BUILD_VERSION := 0.8.9
-
-# disable builtin rules and variables, warn about use of undefined variables
-# NOTE: Gnu Make will consider changed $(MAKEFLAGS) only after all makefiles are parsed,
-#  so it will first define builtin rules/variables, then undefine them,
-#  also, it will warn about undefined variables only while executing rules
-# - it's better to specify these flags in command line, e.g.:
-# $ make -rR --warn-undefined-variables
-MAKEFLAGS += --no-builtin-rules --no-builtin-variables --warn-undefined-variables
+# 4) Undefine (below) all variables passed from environment, except PATH, SHELL and variables named in $(PASS_ENV_VARS).
 
 # reset if not defined
 ifeq (undefined,$(origin MAKECMDGOALS))
@@ -61,6 +62,9 @@ endif
 # delete target file if failed to execute any of commands to make it
 .DELETE_ON_ERROR:
 
+# specify default goal (defined in $(CLEAN_BUILD_DIR)/all.mk)
+.DEFAULT_GOAL := all
+
 # clean-build root directory (absolute path)
 CLEAN_BUILD_DIR := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
 
@@ -72,7 +76,7 @@ include $(CLEAN_BUILD_DIR)/functions.mk
 # it is normally defined in project configuration makefile like:
 # CLEAN_BUILD_REQUIRED_VERSION := 0.3
 # note: dot not take CLEAN_BUILD_REQUIRED_VERSION value from environment
-ifeq (environment,$(origin CLEAN_BUILD_REQUIRED_VERSION))
+ifneq (,$(filter environment undefined,$(origin CLEAN_BUILD_REQUIRED_VERSION)))
 CLEAN_BUILD_REQUIRED_VERSION := 0.0.0
 endif
 
@@ -106,11 +110,11 @@ NEEDED_DIRS:=
 
 # save configuration to $(CONFIG) file as result of 'conf' goal
 # note: if $(CONFIG) file is generated under $(BUILD) directory,
-# (for example, CONFIG may be defined in project makefile as 'override CONFIG := $(BUILD)/conf.mk'),
+# (for example, CONFIG may be defined in project makefile as 'CONFIG = $(BUILD)/conf.mk'),
 # then it will be deleted together with $(BUILD) directory in clean-build implementation of 'distclean' goal
 include $(CLEAN_BUILD_DIR)/confsup.mk
 
-# protect variables in $(CLEAN_BUILD_DIR)/functions.mk
+# protect from modification macros defined in $(CLEAN_BUILD_DIR)/functions.mk
 $(TARGET_MAKEFILE)
 
 # BUILD - directory for built files - must be defined either in command line
