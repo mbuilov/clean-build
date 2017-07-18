@@ -149,7 +149,7 @@ padto1 = $(subst .,       ,$(subst ..,      ,$(subst ...,     ,$(subst \
 
 # return string of spaces to add to given argument to align total argument length to fixed width (8 chars)
 # note: cache computed padding values
-padto = $(if $(findstring undefined,$(origin $1_pad_)),$(eval $1_pad_:=$$(padto1)))$($1_pad_)
+padto = $(if $(findstring undefined,$(origin $1.^pad)),$(eval $1.^pad:=$$(padto1)))$($1.^pad)
 
 # 1) check number of digits: if $4 > $3 -> $2 > $1
 # 2) else if number of digits are equal, check number values
@@ -281,7 +281,12 @@ mk_dir_deps = $(subst :|,:| $2,$(addprefix $(newline)$2,$(filter-out %:|,$(join 
 # $2 - macro value
 # for example, if MY_VALUE is not defined yet, but it will be defined at time of MY_MACRO call, then:
 # MY_MACRO = $(call lazy_simple,MY_MACRO,$(MY_VALUE))
-lazy_simple = $(eval $(filter override,$(origin $1)) $1:=$$2)$($1)
+lazy_simple = $(eval $(findstring override,$(origin $1)) $1:=$$2)$($1)
+
+# append/prepend text $2 to value of variable $1
+# note: do not adds a space between joined $1 and $2
+define_append = $(eval define $1$(newline)$(value $1)$2$(newline)endef)
+define_prepend = $(eval define $1$(newline)$2$(value $1)$(newline)endef)
 
 # protect variables from modification in target makefiles
 # note: do not try to trace calls to these macros, pass 0 as second parameter to CLEAN_BUILD_PROTECT_VARS
@@ -295,4 +300,4 @@ CURRENT_MAKEFILE += $(call CLEAN_BUILD_PROTECT_VARS, \
   is_less1 is_less xargs1 xargs xcmd trim normp2 normp1 normp \
   cmn_path1 cmn_path back_prefix relpath2 relpath1 relpath join_with \
   ver_major ver_minor ver_patch ver_compatible1 ver_compatible \
-  get_dir split_dirs1 split_dirs mk_dir_deps lazy_simple)
+  get_dir split_dirs1 split_dirs mk_dir_deps lazy_simple define_append=$$1=$$1 define_prepend=$$1=$$1)
