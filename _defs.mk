@@ -306,7 +306,7 @@ ifdef MCHECK
 
 # also check that $(TARGET_MAKEFILE) is not already processed
 $(call define_prepend,REMEMBER_PROCESSED_MAKEFILE,$$(if $$(filter \
-  $$(TARGET_MAKEFILE)-,$$(PROCESSED_MAKEFILES)),$$$$(error makefile $$(TARGET_MAKEFILE) is already processed!)))
+  $$(TARGET_MAKEFILE)-,$$(PROCESSED_MAKEFILES)),$$(error makefile $$(TARGET_MAKEFILE) is already processed!)))
 
 endif
 
@@ -519,8 +519,8 @@ endif
 # NOTE: FIX_ORDER_DEPS may change ORDER_DEPS list by appending $(MDEPS) to it
 ORDER_DEPS:=
 
-# adds $(MDEPS) - list of makefiles that need to be maked before target makefile to ORDER_DEPS, then returns $(ORDER_DEPS)
-# overwritten in $(CLEAN_BUILD_DIR)/parallel.mk
+# adds $(MDEPS) - list of makefiles that need to be maked before target makefile to ORDER_DEPS
+# note: overwritten in $(CLEAN_BUILD_DIR)/parallel.mk
 FIX_ORDER_DEPS:=
 
 ifdef TOCLEAN
@@ -534,9 +534,11 @@ else # !clean
 # $1     - target file(s) to build (absolute paths)
 # $2     - directories of target file(s) (absolute paths)
 # $(TMD) - T if target is built in TOOL_MODE
+# NOTE: expansion of FIX_ORDER_DEPS immediately changes ORDER_DEPS value,
+#  but postpone expansion of ORDER_DEPS until $(eval) - to optimize parsing
 define STD_TARGET_VARS1
 $1:TMD:=$(TMD)
-$1:| $2 $(FIX_ORDER_DEPS)$(ORDER_DEPS)
+$1:| $2 $(FIX_ORDER_DEPS)$$(ORDER_DEPS)
 $(TARGET_MAKEFILE)-:$1
 NEEDED_DIRS+=$2
 endef
@@ -724,7 +726,7 @@ DEF_TAIL_CODE_EVAL = $(eval $(DEF_TAIL_CODE))
 DEFINE_TARGETS_EVAL_NAME = $(error $$(DEF_HEAD_CODE) was not evaluated at head of makefile!)
 
 # code to $(eval) at beginning of each makefile
-# 1) add $(TARGET_MAKEFILE) to build
+# 1) add $(TARGET_MAKEFILE) to list of processed makefiles
 # 2) change bin,lib,obj,gen dirs in TOOL_MODE or restore them to default values in non-TOOL_MODE
 # 3) reset DEFINE_TARGETS_EVAL_NAME to DEF_TAIL_CODE_EVAL - so $(DEFINE_TARGETS) will eval $(DEF_TAIL_CODE) by default
 # NOTE:
@@ -734,6 +736,7 @@ DEFINE_TARGETS_EVAL_NAME = $(error $$(DEF_HEAD_CODE) was not evaluated at head o
 # NOTE: set TMD to remember if we are in tool mode - TOOL_MODE variable may be changed before calling $(MAKE_CONTINUE)
 # NOTE: append empty line at end of $(DEF_HEAD_CODE) - to allow to join it and eval: $(eval $(DEF_HEAD_CODE)$(MY_PREPARE_CODE))
 define DEF_HEAD_CODE
+MAKE_CONT:=$(if $(findstring 2,$(MAKE_CONT)),$(subst 2,1,$(MAKE_CONT)),$(REMEMBER_PROCESSED_MAKEFILE))
 TMD:=$(if $(TOOL_MODE),T)
 $(if $(TOOL_MODE),$(if $(TMD),,$(TOOL_OVERRIDE_DIRS)),$(if $(TMD),$(SET_DEFAULT_DIRS)))
 DEFINE_TARGETS_EVAL_NAME:=DEF_TAIL_CODE_EVAL
@@ -741,14 +744,11 @@ DEFINE_TARGETS_EVAL_NAME:=DEF_TAIL_CODE_EVAL
 endef
 
 # show debug info prior defining targets
+# note: $(MAKE_CONT) contains 2 if inside $(MAKE_CONTINUE)
 ifdef MDEBUG
-$(call define_prepend,DEF_HEAD_CODE,$$$$(info $$(subst \
-  $$(space),,$$(CB_INCLUDE_LEVEL))$$(TARGET_MAKEFILE)$$$$(subst +0,,+$$$$(words $$$$(MAKE_CONT))))$(newline))
+$(call define_prepend,DEF_HEAD_CODE,$$(info $$(subst \
+  $$(space),,$$(CB_INCLUDE_LEVEL))$$(TARGET_MAKEFILE)$$(if $$(findstring 2,$$(MAKE_CONT)),+$$(words $$(MAKE_CONT)))))
 endif
-
-# 1) add $(TARGET_MAKEFILE) to build
-$(call define_prepend,DEF_HEAD_CODE,MAKE_CONT:=$$(if $$(findstring \
-  2,$$(MAKE_CONT)),$$(subst 2,1,$$(MAKE_CONT)),$$(REMEMBER_PROCESSED_MAKEFILE))$(newline))
 
 # prepend DEF_HEAD_CODE with $(CLEAN_BUILD_CHECK_AT_HEAD), if it's defined in $(CLEAN_BUILD_DIR)/protection.mk
 ifdef CLEAN_BUILD_CHECK_AT_HEAD
@@ -772,7 +772,7 @@ endif
 # note: surround $($(DEFINE_TARGETS_EVAL_NAME)) with fake $(if ...) to suppress any text output
 # - $(DEFINE_TARGETS) must not expand to any text - to allow calling it via just $(DEFINE_TARGETS) in target makefile
 # note: call $(DEFINE_TARGETS_EVAL_NAME) with empty arguments list - to not pass to any arguments of MAKE_CONTINUE to DEF_TAIL_CODE.
-DEFINE_TARGETS = $(if $(call $(DEFINE_TARGETS_EVAL_NAME)),)
+DEFINE_TARGETS = $(if $(FIX_ORDER_DEPS)$(call $(DEFINE_TARGETS_EVAL_NAME)),)
 
 # may be used to save vars before $(MAKE_CONTINUE) and restore after
 SAVE_VARS = $(eval $(foreach v,$1,$(newline)$(if $(findstring \
