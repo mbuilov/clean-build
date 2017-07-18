@@ -27,7 +27,8 @@ keyword_endef:= endef
 backslash:= \$(empty)
 
 # print result $1 and return $1
-infofn = $(info <$1>)$1
+# add prefix $2 before printed lines
+infofn = $(info $2<$(subst $(newline),>$(newline)$2<,$1)>)$1
 
 # dump variables
 # $1 - list of variables to dump
@@ -72,17 +73,18 @@ ifdef $1
 ifeq (simple,$(flavor $1))
 $2:=$$($1)
 $3 $(keyword_define) $1
-$$(warning $$(cb_trace_level^) $$$$($1) {)$$(call infofn,$$($2))$$(info end: } $$$$($1))
+$$(foreach w=,$$(words $$(cb_trace_level^)),$$(warning $$(cb_trace_level^) $$$$($1) $$(w=){)$$(call \
+  infofn,$$($2),$$(w=))$$(info end: }$$(w=) $$$$($1)))
 $(keyword_endef)
 else
 $(keyword_define) $2
 $(value $1)
 $(keyword_endef)
 $3 $(keyword_define) $1
-$$(warning $$(cb_trace_level^) $$$$($1) {)$$(dump_args)$$(call dump,$4,,$1: )$$(info \
-  ------$1 value---->)$$(info <$$(value $2)>)$$(info \
-  ------$1 result--->)$$(eval cb_trace_level^+=$1->)$$(call infofn,$$(call $2,_dump_params_))$$(call \
-  dump,$5,,$1: )$$(eval cb_trace_level^:=$$(wordlist 2,$$(words $$(cb_trace_level^)),x $$(cb_trace_level^)))$$(info end: } $$$$($1))
+$$(foreach w=,$$(words $$(cb_trace_level^)),$$(warning $$(cb_trace_level^) $$$$($1) $$(w=){)$$(dump_args)$$(call dump,$4,,$1: )$$(info \
+  ------$1 value---->)$$(info <$$(subst $$(newline),>$$(newline)<,$$(value $2))>)$$(eval cb_trace_level^+=$1->)$$(info \
+  ------$1 result--->)$$(call infofn,$$(call $2,_dump_params_),$$(w=))$$(call dump,$5,,$1: )$$(eval \
+  cb_trace_level^:=$$(wordlist 2,$$(words $$(cb_trace_level^)),x $$(cb_trace_level^)))$$(info end: }$$(w=) $$$$($1)))
 $(keyword_endef)
 endif
 endif
@@ -102,9 +104,9 @@ $(eval define trace_calls_template$(newline)$(subst _dump_params_,$$$$$(open_bra
 #   b1;b2;b3 - names of variables to dump before traced call
 #   e1;e2    - names of variables to dump after traced call
 # note: may also be used for simple variables, for example: $(call trace_calls,Macro=VarPre=VarPost)
-trace_calls = $(eval $(foreach f,$1,$(foreach v,$(firstword $(subst =, ,$f)),$(if $(findstring undefined,$(origin $v)),,$(if \
-  $(findstring ^.$$(warning $$(cb_trace_level^) $$$$($v) {),^.$(value $v)),,$(call \
-  trace_calls_template,$v,$(encode_traced_var_name),$(if $(findstring command line,$(origin $v)),override,$(findstring \
+trace_calls = $(eval $(foreach f,$1,$(foreach v,$(firstword $(subst =, ,$f)),$(if $(findstring undefined,$(origin $v)),,$(if $(findstring \
+  ^.$$$(open_brace)foreach w=$(comma)$$(words $$(cb_trace_level^))$(comma)$$(warning $$(cb_trace_level^) $$$$($v) $$(w=){),^.$(value \
+  $v)),,$(call trace_calls_template,$v,$(encode_traced_var_name),$(if $(findstring command line,$(origin $v)),override,$(findstring \
   override,$(origin $v))),$(subst ;, ,$(word 2,$(subst =, ,$f))),$(subst ;, ,$(word 3,$(subst =, ,$f))),$2))))))
 
 # replace spaces with ?
