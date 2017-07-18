@@ -34,11 +34,13 @@ CLEAN_BUILD_NEED_TAIL_CODE:=
 CLEAN_BUILD_ENCODE_VAR_VALUE = $(origin $1):$(if $(filter-out undefined,$(origin $1)),$(flavor $1):$(value $1))
 
 # check and set CLEAN_BUILD_NEED_TAIL_CODE - $(DEF_TAIL_CODE) must be evaluated after $(DEF_HEAD_CODE)
+# note: add empty line at end to allow to join $(CLEAN_BUILD_CHECK_AT_HEAD) with other calls in define
 define CLEAN_BUILD_CHECK_AT_HEAD
 ifdef CLEAN_BUILD_NEED_TAIL_CODE
 $$(error $$$$(DEFINE_TARGETS) was not evaluated at end of $$(CLEAN_BUILD_NEED_TAIL_CODE)!)
 endif
 CLEAN_BUILD_NEED_TAIL_CODE := $(TARGET_MAKEFILE)
+
 endef
 
 # store values of clean-build protected variables which must not be changed in target makefiles
@@ -78,8 +80,9 @@ endef
 # note: normally, $(CLEAN_BUILD_NEED_TAIL_CODE) is checked at head of next included by $(CLEAN_BUILD_DIR)/parallel.mk target makefile,
 # but for the last included target makefile - need to check $(CLEAN_BUILD_NEED_TAIL_CODE) here
 # - $(CLEAN_BUILD_DIR)/parallel.mk calls $(DEF_TAIL_CODE) with $1=@
+# note: add empty line at end to allow to join $(CLEAN_BUILD_CHECK_AT_TAIL) with other calls in define
 define CLEAN_BUILD_CHECK_AT_TAIL
-$(if $(findstring @,$1),ifdef CLEAN_BUILD_NEED_TAIL_CODE$(newline)$$(error \
+$(if $1,ifdef CLEAN_BUILD_NEED_TAIL_CODE$(newline)$$(error \
   $$$$(DEFINE_TARGETS) was not evaluated at end of $$(CLEAN_BUILD_NEED_TAIL_CODE)!)$(newline)endif)
 ifneq (x$(space)x,x x)
 $$(error $$$$(space) value was changed)
@@ -90,6 +93,7 @@ endif
 $(foreach x,$(CLEAN_BUILD_PROTECTED_VARS),$(CLEAN_BUILD_CHECK_PROTECTED_VAR))
 CLEAN_BUILD_OVERRIDDEN_VARS:=
 CLEAN_BUILD_NEED_TAIL_CODE:=
+
 endef
 
 # protect variables from modifications in target makefiles
