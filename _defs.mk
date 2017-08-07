@@ -22,36 +22,54 @@ endif
 # $ make -rR --warn-undefined-variables
 MAKEFLAGS += --no-builtin-rules --no-builtin-variables --warn-undefined-variables
 
-# assume project makefile, which has included this makefile,
-# defines some variables - save list of those variables to override them below
+# assume project makefile, which have included this makefile, defines some variables
+# - save list of those variables to override them below, after including needed definitions
 PROJECT_VARS_NAMES := $(filter-out \
   MAKEFLAGS CURDIR MAKEFILE_LIST .DEFAULT_GOAL,$(foreach \
   v,$(.VARIABLES),$(if $(findstring file,$(origin $v)),$v)))
 
 # clean-build version: major.minor.patch
 # note: override value, if it was accidentally set in project makefile
-override CLEAN_BUILD_VERSION := 0.8.9
+override CLEAN_BUILD_VERSION := 0.9.0
 
 # For consistent builds, build results should not depend on environment,
 #  only on settings specified in configuration files.
-
-# By default, all environment variables are visible as makefile variables.
-# Any variable, that was defined in environment and then redefined in makefile
-#  is passed having new value to environment of commands executed in rules.
-# All variables defined in command line are also added to environment of the commands.
-# To avoid accidental change of environment variables in makefiles,
-#  unexport all variables, except PATH, SHELL and variables named in $(PASS_ENV_VARS).
+# Environment variables are visible as exported makefile variables,
+#  their use is discouraged, so unexport and reset them.
+# Also unexport variables specified in command line.
+# Note: do not touch only variables needed for executing shell commands:
+#  PATH, SHELL and variables named in $(PASS_ENV_VARS).
 unexport $(filter-out PATH SHELL$(if $(filter-out undefined environment,$(origin \
   PASS_ENV_VARS)), $(PASS_ENV_VARS)),$(.VARIABLES))
 
-# Also, because any variable may be already initialized from environment
-# 1) always redefine variables with clean-build default values before using them
+# Because any variable may be already initialized from environment
+# 1) always initialize variables with default values before using them
 # 2) never use ?= operator
 # 3) 'ifdef/ifndef' should only be used for previously initialized variables
-#  (ifdef gives 'false' for variable with empty value - and value is not evaluated for the check)
-# 4) Undefine (below) all variables passed from environment, except PATH, SHELL and variables named in $(PASS_ENV_VARS).
+# 4) reset (together with unprotected variables, in check mode, before including target makefile)
+#  all variables passed from environment, except PATH, SHELL and variables named in $(PASS_ENV_VARS).
 
-# reset if not defined
+# clean-build root directory (absolute path)
+# note: override value, if it was accidentally set in project makefile
+override CLEAN_BUILD_DIR := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
+
+# include functions library
+include $(CLEAN_BUILD_DIR)/protection.mk
+include $(CLEAN_BUILD_DIR)/functions.mk
+
+# CLEAN_BUILD_REQUIRED_VERSION - clean-build version required by project makefiles
+#  it is normally defined in project configuration makefile like:
+# CLEAN_BUILD_REQUIRED_VERSION := 0.3
+ifneq (file,$(origin CLEAN_BUILD_REQUIRED_VERSION))
+CLEAN_BUILD_REQUIRED_VERSION := 0.0.0
+endif
+
+# check required clean-build version
+ifeq (,$(call ver_compatible,$(CLEAN_BUILD_VERSION),$(CLEAN_BUILD_REQUIRED_VERSION)))
+$(error incompatible clean-build version: $(CLEAN_BUILD_VERSION), project needs: $(CLEAN_BUILD_REQUIRED_VERSION))
+endif
+
+# reset Gnu Make internal variable if it's not defined
 ifeq (undefined,$(origin MAKECMDGOALS))
 MAKECMDGOALS:=
 endif
@@ -64,26 +82,6 @@ endif
 
 # specify default goal (defined in $(CLEAN_BUILD_DIR)/all.mk)
 .DEFAULT_GOAL := all
-
-# clean-build root directory (absolute path)
-CLEAN_BUILD_DIR := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
-
-# include functions library
-include $(CLEAN_BUILD_DIR)/protection.mk
-include $(CLEAN_BUILD_DIR)/functions.mk
-
-# CLEAN_BUILD_REQUIRED_VERSION - clean-build version required by project makefiles
-# it is normally defined in project configuration makefile like:
-# CLEAN_BUILD_REQUIRED_VERSION := 0.3
-# note: dot not take CLEAN_BUILD_REQUIRED_VERSION value from environment
-ifneq (,$(filter environment undefined,$(origin CLEAN_BUILD_REQUIRED_VERSION)))
-CLEAN_BUILD_REQUIRED_VERSION := 0.0.0
-endif
-
-# check required clean-build version
-ifeq (,$(call ver_compatible,$(CLEAN_BUILD_VERSION),$(CLEAN_BUILD_REQUIRED_VERSION)))
-$(error incompatible clean-build version: $(CLEAN_BUILD_VERSION), project needs: $(CLEAN_BUILD_REQUIRED_VERSION))
-endif
 
 # clean-build always sets default values for variables - to not inherit them from environment
 # to override these defaults by project-defined ones, use override directive
@@ -181,7 +179,12 @@ $(error BUILD must not be taken from environment,\
  makefile (via override directive) before including this file)
 endif
 
-# BUILD must be overridden either in command line or in project configuration makefile
+# absolute path to current makefile
+TARGET_MAKEFILE := $(abspath $(firstword $(MAKEFILE_LIST)))
+
+# BUILD - directory for built files - must be defined either in command line
+#  or in project configuration makefile before including this file, for example:
+# BUILD := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))/build
 BUILD:=
 
 # ensure that BUILD is non-recursive (simple)
@@ -195,14 +198,33 @@ ifneq (,$(findstring $(space),$(BUILD)))
 $(error BUILD=$(BUILD), path to generated files must not contain spaces)
 endif
 
+
+- unexport all variables, except SHELL
+- define getenv function
+- replace values of environment variables with $(error use getenv function to get value of non-exported environment variable)
+- export per-conf variable PATH
+
+2) define utils/gnu.mk, utils/cmd.mk, utils/solaris.mk etc.
+3) define toolchain/gcc.mk, toolchain/clang.mk, toolchain/msvc.mk, toolchain/java.mk etc.
+4) split-out kc.mk from c.mk
+5) define drv/linux/kc.mk, drv/windows/kc.mk, drv/solaris/kc.mk
+6) confs names: $(UTILS)-$(TOOLCHAIN)-$(OS)-$(CPU)-$(TARGET) gnu-gcc-linux-x86-debug.mk, cmd-msvc-windows-x86_64-release.mk etc.
+6.5) build dirs: bin-gnu-gcc-linux-x86-debug, lib-gnu-gcc-linux-x86-debug, gen-gnu-gcc-linux-x86-debug, obj-gnu-gcc-linux-x86-debug.
+
+7) define set_global function
+8) reset all non-global variables at beginning of target makefile
+
+
+
+
 # by default, do not build kernel modules and drivers
 # note: DRIVERS_SUPPORT may be overridden either in command line
 # or in project configuration makefile before including this file, via:
 # DRIVERS_SUPPORT := 1
-DRIVERS_SUPPORT:=
+#DRIVERS_SUPPORT:=
 
 # ensure DRIVERS_SUPPORT is non-recursive (simple)
-override DRIVERS_SUPPORT := $(DRIVERS_SUPPORT:0=)
+#override DRIVERS_SUPPORT := $(DRIVERS_SUPPORT:0=)
 
 # standard variables that may be overridden:
 # TARGET           - one of $(SUPPORTED_TARGETS)
