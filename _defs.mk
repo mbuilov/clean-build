@@ -28,10 +28,6 @@ PROJECT_VARS_NAMES := $(filter-out \
   MAKEFLAGS CURDIR MAKEFILE_LIST .DEFAULT_GOAL,$(foreach \
   v,$(.VARIABLES),$(if $(findstring file,$(origin $v)),$v)))
 
-# clean-build version: major.minor.patch
-# note: override value, if it was accidentally set in project makefile
-override CLEAN_BUILD_VERSION := 0.9.0
-
 # For consistent builds, build results should not depend on environment,
 #  only on settings specified in configuration files.
 # Environment variables are visible as exported makefile variables,
@@ -39,8 +35,8 @@ override CLEAN_BUILD_VERSION := 0.9.0
 # Also unexport variables specified in command line.
 # Note: do not touch only variables needed for executing shell commands:
 #  PATH, SHELL and variables named in $(PASS_ENV_VARS).
-unexport $(filter-out PATH SHELL$(if $(filter-out undefined environment,$(origin \
-  PASS_ENV_VARS)), $(PASS_ENV_VARS)),$(.VARIABLES))
+unexport $(filter-out PATH SHELL$(if $(filter-out \
+  undefined environment,$(origin PASS_ENV_VARS)), $(PASS_ENV_VARS)),$(.VARIABLES))
 
 # Because any variable may be already initialized from environment
 # 1) always initialize variables with default values before using them
@@ -48,6 +44,10 @@ unexport $(filter-out PATH SHELL$(if $(filter-out undefined environment,$(origin
 # 3) 'ifdef/ifndef' should only be used for previously initialized variables
 # 4) reset (together with unprotected variables, in check mode, before including target makefile)
 #  all variables passed from environment, except PATH, SHELL and variables named in $(PASS_ENV_VARS).
+
+# clean-build version: major.minor.patch
+# note: override value, if it was accidentally set in project makefile
+override CLEAN_BUILD_VERSION := 0.9.0
 
 # clean-build root directory (absolute path)
 # note: override value, if it was accidentally set in project makefile
@@ -69,7 +69,7 @@ ifeq (,$(call ver_compatible,$(CLEAN_BUILD_VERSION),$(CLEAN_BUILD_REQUIRED_VERSI
 $(error incompatible clean-build version: $(CLEAN_BUILD_VERSION), project needs: $(CLEAN_BUILD_REQUIRED_VERSION))
 endif
 
-# reset Gnu Make internal variable if it's not defined
+# reset Gnu Make internal variable if it's not defined (to avoid use of undefined variable)
 ifeq (undefined,$(origin MAKECMDGOALS))
 MAKECMDGOALS:=
 endif
@@ -85,20 +85,10 @@ endif
 
 # clean-build always sets default values for variables - to not inherit them from environment
 # to override these defaults by project-defined ones, use override directive
-define OVERRIDE_VAR_TEMPLATE
+$(eval $(foreach v,$(PROJECT_VARS_NAMES),override $(if $(findstring simple,$(flavor \
+  $v)),$v:=$$($v),define $v$(newline)$(value $v)$(newline)endef)$(newline)))
 
-ifeq (simple,$(flavor $v))
-override $v:=$$($v)
-else
-$(keyword_override) $(keyword_define) $v
-$(value $v)
-$(keyword_endef)
-endif
-
-endef
-$(eval $(foreach v,$(PROJECT_VARS_NAMES),$(OVERRIDE_VAR_TEMPLATE)))
-
-# initialize PASS_ENV_VARS (list of variables to export to subprocesses), if it is not defined already
+# initialize PASS_ENV_VARS - list of variables to export to subprocesses
 # note: PASS_ENV_VARS may be set either in project makefile or in command line
 PASS_ENV_VARS:=
 
@@ -115,72 +105,8 @@ include $(CLEAN_BUILD_DIR)/confsup.mk
 # protect from modification macros defined in $(CLEAN_BUILD_DIR)/functions.mk
 $(TARGET_MAKEFILE)
 
-# absolute path to current target makefile
-TARGET_MAKEFILE := $(abspath $(firstword $(MAKEFILE_LIST)))
-
-ifdef MCHECK
-
-# Redefine all variables passed from environment,
-# except exported PATH, SHELL and variables named in $(PASS_ENV_VARS),
-# so access to them in global context will produce errors.
-# To get environment variable use 'getenv' function (defined below).
-CLEAN_BUILD_GETENV_ERROR = $(error use 'getenv' function to get value of environment variable $1)
-
-# note: do not redefine GNU Make special environment variables GNUMAKEFLAGS, MAKELEVEL, MAKEOVERRIDES, MFLAGS.
-define OVERRIDE_VAR_TEMPLATE
-
-$(keyword_define) $v.^e
-$(patsubst %$(backslash),%$$(backslash),$(value $v))
-$(keyword_endef)
-$(keyword_define) $v
-$$(call CLEAN_BUILD_GETENV_ERROR,$v)
-$(keyword_endef)
-
-endef
-$(eval $(foreach v,$(filter-out PATH SHELL $(PASS_ENV_VARS) \
-  GNUMAKEFLAGS MAKELEVEL MAKEOVERRIDES MFLAGS,$(.VARIABLES)),$(if \
-  $(findstring environment,$(origin $v)),$(OVERRIDE_VAR_TEMPLATE))))
-
-# return non-empty value if given environment variable $1 do exist
-env_var_exist = $(findstring file,$(origin $1.^e))
-
-# get effective name of environment variable $1 (it may be renamed)
-env_var_name = $1.^e
-
-else # !MCHECK
-
-# return non-empty value if given environment variable $1 do exist
-env_var_exist = $(findstring environment,$(origin $1))
-
-# get effective name of environment variable $1 (it may be renamed)
-env_var_name = $1
-
-endif # !MCHECK
-
-# get value of environment variable $1
-getenv = $($(call env_var_name,$1))
-
-# protect from modification all variables, except automatic and clean-build special ones
-# note: do not redefine GNU Make special environment variables GNUMAKEFLAGS, MAKELEVEL, MAKEOVERRIDES, MFLAGS.
-# note: do not touch GNU Make automatic file variables MAKEFLAGS, MAKEFILE_LIST, CURDIR
-ifdef CLEAN_BUILD_PROTECT_VARS
-$(call CLEAN_BUILD_PROTECT_VARS,$(foreach v,$(PASS_ENV_VARS) $(filter-out \
-  GNUMAKEFLAGS MAKELEVEL MAKEOVERRIDES MFLAGS MAKEFLAGS MAKEFILE_LIST CURDIR \
-  $(dump_max) cb_trace_level.^l %.^p $(CLEAN_BUILD_PROTECTED_VARS),$(.VARIABLES)),$(if \
-  $(filter file override environment,$(origin $v)),$v)))
-endif
-
-# BUILD - directory for built files - must be defined either in command line
-# or in project configuration makefile before including this file, via:
-# BUILD := /my_project/build
-ifneq (,$(call env_var_exist,BUILD))
-$(error BUILD must not be taken from environment,\
- please define BUILD either in command line or in project configuration\
- makefile (via override directive) before including this file)
-endif
-
-# absolute path to current makefile
-TARGET_MAKEFILE := $(abspath $(firstword $(MAKEFILE_LIST)))
+# protect from modification project-specific variables
+$(call SET_GLOBAL,$(PROJECT_VARS_NAMES))
 
 # BUILD - directory for built files - must be defined either in command line
 #  or in project configuration makefile before including this file, for example:
