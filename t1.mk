@@ -171,7 +171,7 @@ else
 UTILS := unix
 endif
 
-# COMPILERS - names of compilers to use for the build (gcc, clang, msvc, python2.7, python3.6, etc.)
+# COMPILERS - space-separated names of compilers to use for the build (gcc, clang, msvc, python2.7, etc.)
 ifeq (LINUX,$(OS))
 COMPILERS := gcc
 else ifneq (WINDOWS,$(OS))
@@ -303,7 +303,7 @@ MDEBUG:=
 endif
 
 ifdef MDEBUG
-$(call dump,CLEAN_BUILD_DIR TOOLCHAINS_DIR BUILD CONFIG UTILS TOOLCHAINS TARGET OS CPU TCPU,,)
+$(call dump,CLEAN_BUILD_DIR TOOLCHAINS_DIR BUILD CONFIG UTILS COMPILERS TARGET OS CPU TCPU,,)
 endif
 
 # absolute path to target makefile
@@ -317,9 +317,9 @@ PROCESSED_MAKEFILES:=
 REMEMBER_PROCESSED_MAKEFILE = $(newline)PROCESSED_MAKEFILES+=$(TARGET_MAKEFILE)
 
 ifdef MCHECK
-# check that $(TARGET_MAKEFILE) is not already processed
+# check that $(TARGET_MAKEFILE) was not already processed
 $(call define_prepend,REMEMBER_PROCESSED_MAKEFILE,$$(if $$(filter \
-  $$(TARGET_MAKEFILE),$$(PROCESSED_MAKEFILES)),$$(error makefile $$(TARGET_MAKEFILE) is already processed!)))
+  $$(TARGET_MAKEFILE),$$(PROCESSED_MAKEFILES)),$$(error makefile $$(TARGET_MAKEFILE) was already processed!)))
 endif
 
 # for UNIX: don't change paths when converting from make internal file path to path accepted by $(UTILS)
@@ -355,6 +355,12 @@ show_with_dll_path = $(info $(if $2,$(DLL_PATH_VAR)="$($(DLL_PATH_VAR))" )$(fore
 # note: $(CLEAN_BUILD_DIR)/utils/cmd.mk defines own show_dll_path_end
 show_dll_path_end:=
 
+# SED - stream editor executable - should be defined in $(TOOLCHAINS_DIR)/utils/$(UTILS).mk
+# SED_EXPR - also should be defined in $(TOOLCHAINS_DIR)/utils/$(UTILS).mk
+# helper macro: convert multi-line sed script $1 to multiple sed expressions - one expression for each script line
+SED_MULTI_EXPR = $(foreach s,$(subst $(newline), ,$(subst $(comment),$$(comment),$(subst $(space),$$(space),$(subst \
+  $$,$$$$,$1)))),-e $(call SED_EXPR,$(eval SED_MULTI_EXPR_:=$s)$(SED_MULTI_EXPR_)))
+
 # utilities colors
 GEN_COLOR   := [1;32m
 MGEN_COLOR  := [1;32m
@@ -384,6 +390,7 @@ COLORIZE = $($1_COLOR)$1[m$(padto)$(if $3,$2,$(join $(dir $2),$(addsuffix [m,$
 # $2 - tool arguments
 # $3 - if empty, then colorize argument of called tool
 # $4 - if empty, then try to update percents of executed makefiles
+# note: ADD_SHOWN_PERCENTS is checked in $(CLEAN_BUILD_DIR)/all.mk, so must always be defined
 ifeq (,$(filter distclean clean,$(MAKECMDGOALS)))
 ifdef QUIET
 SHOWN_PERCENTS:=
@@ -396,6 +403,7 @@ SHOWN_REMAINDER:=
 # 3) current = 2, percents2 = percents1 + int((remainder1 + 100)/total), remainder2 = rem((remainder1 + 100)/total)
 # 4) current = 3, percents3 = percents2 + int((remainder2 + 100)/total), remainder3 = rem((remainder2 + 100)/total)
 # ...
+# note: TARGET_MAKEFILES_COUNT and TARGET_MAKEFILES_COUNT1 are defined in $(CLEAN_BUILD_DIR)/all.mk
 ADD_SHOWN_PERCENTS = $(if $(word $(TARGET_MAKEFILES_COUNT),$1),+ $(call \
   ADD_SHOWN_PERCENTS,$(wordlist $(TARGET_MAKEFILES_COUNT1),999999,$1)),$(eval SHOWN_REMAINDER:=$$1))
 # prepare for printing percents of processed makefiles
@@ -436,15 +444,9 @@ else
 SUP:=
 endif
 endif # !QUIET
-else
+else  # distclean || clean
 ADD_SHOWN_PERCENTS:=
-endif # !distclean && !clean
-
-# SED - stream editor executable - should be defined in $(TOOLCHAINS_DIR)/utils/$(UTILS).mk
-# SED_EXPR - also should be defined in $(TOOLCHAINS_DIR)/utils/$(UTILS).mk
-# helper macro: convert multi-line sed script $1 to multiple sed expressions - one expression for each script line
-SED_MULTI_EXPR = $(foreach s,$(subst $(newline), ,$(subst $(comment),$$(comment),$(subst $(space),$$(space),$(subst \
-  $$,$$$$,$1)))),-e $(call SED_EXPR,$(eval SED_MULTI_EXPR_:=$s)$(SED_MULTI_EXPR_)))
+endif # distclean || clean
 
 # base part of created directories of built artifacts
 TARGET_TRIPLET := $(TARGET)-$(OS)-$(CPU)-$(subst $(space),-,$(COMPILERS))
@@ -459,7 +461,7 @@ DEF_OBJ_DIR := $(BUILD)/obj-$(TARGET_TRIPLET)
 DEF_LIB_DIR := $(BUILD)/lib-$(TARGET_TRIPLET)
 DEF_GEN_DIR := $(BUILD)/gen-$(TARGET_TRIPLET)
 
-# code to eval to restore default dirs after tool mode
+# code to eval to restore default directories after tool mode
 define SET_DEFAULT_DIRS
 BIN_DIR:=$(DEF_BIN_DIR)
 OBJ_DIR:=$(DEF_OBJ_DIR)
@@ -471,6 +473,231 @@ SET_DEFAULT_DIRS := $(SET_DEFAULT_DIRS)
 
 # define BIN_DIR/OBJ_DIR/LIB_DIR/GEN_DIR
 $(eval $(SET_DEFAULT_DIRS))
+
+# base directory of build tools
+TOOL_BASE := $(BUILD)/tools
+
+# TOOL_BASE should be non-recursive (simple) - it is used in TOOL_OVERRIDE_DIRS
+override TOOL_BASE := $(TOOL_BASE)
+
+# ensure $(TOOL_BASE) is under $(BUILD)
+ifeq (,$(filter $(BUILD)/%,$(TOOL_BASE)))
+$(error TOOL_BASE=$(TOOL_BASE) is not a subdirectory of BUILD=$(BUILD))
+endif
+
+# where tools are built
+# $1 - $(TOOL_BASE)
+# $2 - $(TCPU)
+MK_TOOLS_DIR = $1/bin-TOOL-$2-$(TARGET)
+
+# get absolute paths to the tools executables
+# $1 - $(TOOL_BASE)
+# $2 - $(TCPU)
+# $3 - tool name(s)
+GET_TOOLS = $(addprefix $(MK_TOOLS_DIR)/,$(addsuffix $(TOOL_SUFFIX),$3))
+
+# get path to a tool $1 for current TOOL_BASE and TCPU
+GET_TOOL = $(call GET_TOOLS,$(TOOL_BASE),$(TCPU),$1)
+
+# code to eval to override default directories in tool mode (when TOOL_MODE has non-empty value)
+define TOOL_OVERRIDE_DIRS
+BIN_DIR:=$(TOOL_BASE)/bin-TOOL-$(TCPU)-$(TARGET)
+OBJ_DIR:=$(TOOL_BASE)/obj-TOOL-$(TCPU)-$(TARGET)
+LIB_DIR:=$(TOOL_BASE)/lib-TOOL-$(TCPU)-$(TARGET)
+GEN_DIR:=$(TOOL_BASE)/gen-TOOL-$(TCPU)-$(TARGET)
+$(call SET_GLOBAL1,BIN_DIR OBJ_DIR LIB_DIR GEN_DIR)
+endef
+TOOL_OVERRIDE_DIRS := $(TOOL_OVERRIDE_DIRS)
+
+# CLEAN - files/directories list to delete on $(MAKE) clean
+# note: CLEAN list is never cleared, only appended via TOCLEAN macro
+CLEAN:=
+
+# TOCLEAN - function to add values to CLEAN list
+# note: don't add values to CLEAN variable if not cleaning up
+ifeq (,$(filter clean,$(MAKECMDGOALS)))
+TOCLEAN:=
+else ifneq (,$(word 2,$(MAKECMDGOALS)))
+$(error clean goal must be specified alone, current goals: $(MAKECMDGOALS))
+else
+TOCLEAN = $(eval CLEAN+=$$1)
+endif
+
+ifndef TOCLEAN
+
+# order-only dependencies that are automatically added to all leaf prerequisites of the targets
+# note: should not be directly modified in target makefiles, use ADD_ORDER_DEPS to append value(s) to ORDER_DEPS list
+ORDER_DEPS:=
+
+# append value(s) to ORDER_DEPS list
+ADD_ORDER_DEPS = $(eval ORDER_DEPS+=$1)
+
+# standard target-specific variables
+# $1     - target file(s) to build (absolute paths)
+# $2     - directories of target file(s) (absolute paths)
+# $(TMD) - T if target is built in TOOL_MODE
+# note: postpone expansion of $(ORDER_DEPS) to optimize parsing
+define STD_TARGET_VARS1
+all:$1
+$1:TMD:=$(TMD)
+$1:| $2 $$(ORDER_DEPS)
+NEEDED_DIRS+=$2
+endef
+
+ifdef MDEBUG
+# print what makefile builds
+$(call define_append,STD_TARGET_VARS1,$$(info $$(if \
+  $$(TMD),[T]: )$$(patsubst $$(BUILD)/%,%,$$1)$$(if $$(ORDER_DEPS), | $$(ORDER_DEPS))))
+endif
+
+# standard target-specific variables
+# $1 - generated file(s) (absolute paths)
+STD_TARGET_VARS = $(call STD_TARGET_VARS1,$1,$(patsubst %/,%,$(sort $(dir $1))))
+
+# SET_MAKEFILE_INFO - for given target $1, define target-specific variables for printing makefile info:
+# $(MF)    - makefile which specifies how to build the target
+# $(MCONT) - number of section in makefile after a call to $(MAKE_CONTINUE)
+# note: $(MAKE_CONT) list is empty or 1 1 1 .. 1 2 (inside MAKE_CONTINUE) or 1 1 1 1... (before MAKE_CONTINUE):
+# MAKE_CONTINUE is equivalent of: MAKE_CONT:= $(HEAD) ... MAKE_CONT+=2 $(TAIL) MAKE_CONT=$(subst 2,1,$(MAKE_CONT)) $(HEAD) ...
+ifdef INFOMF
+define MAKEFILE_INFO_TEMPL
+$1:MF:=$(TARGET_MAKEFILE)
+$1:MCONT:=$(subst +0,,+$(words $(subst 2,,$(MAKE_CONT))))
+endef
+SET_MAKEFILE_INFO = $(eval $(MAKEFILE_INFO_TEMPL))
+else ifdef QUIET
+# remember $(TARGET_MAKEFILE) to properly update percents
+MAKEFILE_INFO_TEMPL = $1:MF:=$(TARGET_MAKEFILE)
+SET_MAKEFILE_INFO = $(eval $(MAKEFILE_INFO_TEMPL))
+else # verbose
+SET_MAKEFILE_INFO:=
+endif
+
+# define target-specific variables MF and MCONT for the target(s) $1
+ifdef SET_MAKEFILE_INFO
+$(call define_prepend,STD_TARGET_VARS1,$(value MAKEFILE_INFO_TEMPL)$(newline))
+endif
+
+else # clean
+
+# just cleanup target file(s) $1 (absolute paths)
+$(eval STD_TARGET_VARS = $(value TOCLEAN))
+
+# do nothing
+ADD_ORDER_DEPS:=
+SET_MAKEFILE_INFO:=
+
+endif # clean
+
+# add absolute path to directory of target makefile to given non-absolute paths
+# - we need absolute paths to sources to work with generated dependencies in .d files
+fixpath = $(abspath $(call nonrelpath,$(dir $(TARGET_MAKEFILE)),$1))
+
+# get target variants list or default variant R
+# $1 - EXE,LIB,...
+# $2 - variants list (may be empty)
+# $3 - variants filter function (VARIANTS_FILTER by default), must be defined at time of $(eval)
+# note: add R to filter pattern to not filter-out default variant R
+# note: if filter gives no variants, return default variant R (regular)
+FILTER_VARIANTS_LIST = $(patsubst ,R,$(filter R $($(firstword $3 VARIANTS_FILTER)),$2))
+
+# get target variants list or default variant R (if target may be specified with variants, like EXE := my_exe R S)
+# $1 - EXE,LIB,...
+# $2 - variants filter function (VARIANTS_FILTER by default), must be defined at time of $(eval)
+GET_VARIANTS = $(call FILTER_VARIANTS_LIST,$1,$(wordlist 2,999999,$($1)),$2)
+
+# get target name - first word, next words - variants
+# note: target file name (generated by FORM_TRG) may be different, depending on target variant
+# $1 - EXE,LIB,...
+GET_TARGET_NAME = $(firstword $($1))
+
+# form name of target objects directory
+# $1 - target to build (EXE,LIB,DLL,...)
+# $2 - target variant (may be empty for default variant)
+# add target-specific suffix (_EXE,_LIB,_DLL,...) to distinguish objects for the targets with equal names
+FORM_OBJ_DIR = $(OBJ_DIR)/$(GET_TARGET_NAME)$(if $(filter-out R,$2),_$2)_$1
+
+# add generated files $1 to build sequence
+# note: files must be generated in $(GEN_DIR),$(BIN_DIR),$(OBJ_DIR) or $(LIB_DIR)
+# note: directories for generated files will be auto-created
+ADD_GENERATED = $(eval $(STD_TARGET_VARS))
+
+ifdef MCHECK
+
+# check that files $1 are generated in $(GEN_DIR), $(BIN_DIR), $(OBJ_DIR) or $(LIB_DIR)
+CHECK_GENERATED = $(if $(filter-out $(GEN_DIR)/% $(BIN_DIR)/% $(OBJ_DIR)/% $(LIB_DIR)/%,$1),$(error \
+  these files are generated not under $$(GEN_DIR), $$(BIN_DIR), $$(OBJ_DIR) or $$(LIB_DIR): $(filter-out \
+  $(GEN_DIR)/% $(BIN_DIR)/% $(OBJ_DIR)/% $(LIB_DIR)/%,$1)))
+
+$(eval ADD_GENERATED = $$(CHECK_GENERATED)$(value ADD_GENERATED))
+
+endif # MCHECK
+
+# processed multi-target rules
+# note: MULTI_TARGETS is never cleared, only appended (in rules execution phase)
+MULTI_TARGETS:=
+
+# used to count each call of $(MULTI_TARGET)
+# note: MULTI_TARGET_NUM is never cleared, only appended (in makefiles parsing phase)
+MULTI_TARGET_NUM:=
+
+# when some tool (e.g. bison) generates many files, call the tool only once:
+# assign to each generated multi-target rule an unique number
+# and remember if rule with this number was already executed for one of multi-targets
+# $1 - list of generated files (absolute paths)
+# $2 - prerequisites (either absolute or makefile-related)
+# $3 - rule
+# $4 - $(words $(MULTI_TARGET_NUM))
+define MULTI_TARGET_RULE
+$(STD_TARGET_VARS)
+$1: $(call fixpath,$2)
+	$$(if $$(filter $4,$$(MULTI_TARGETS)),,$$(eval MULTI_TARGETS+=$4)$$(call SUP,MGEN,$1)$3)
+MULTI_TARGET_NUM+=1
+endef
+
+# if some tool generates multiple files at one call, it is needed to call
+#  the tool only once if any of generated files needs to be updated
+# $1 - list of generated files (absolute paths)
+# $2 - prerequisites (either absolute or makefile-related)
+# $3 - rule
+# note: directories for generated files will be auto-created
+# note: rule must update all targets
+MULTI_TARGET = $(eval $(call MULTI_TARGET_RULE,$1,$2,$3,$(words $(MULTI_TARGET_NUM))))
+
+ifdef MCHECK
+
+# must not use $@ in multi-target rule because it may have different values
+# (any target from multi-targets list), and rule must update all targets at once.
+# $1 - list of generated files (absolute paths)
+# $3 - rule
+CHECK_MULTI_RULE = $(CHECK_GENERATED)$(if $(findstring $$@,$3),$(error $$@ cannot be used in multi-target rule:$(newline)$3))
+
+$(eval MULTI_TARGET = $$(CHECK_MULTI_RULE)$(value MULTI_TARGET))
+
+endif # MCHECK
+
+# make chain of order-only dependent targets, so their rules will not be executed in parallel
+# $1 - NON_PARALEL_GROUP_$(group name)
+# $2 - target
+define NON_PARALLEL_EXECUTE_RULE
+ifneq (undefined,$(origin $1))
+$2:| $($1)
+endif
+$1:=$2
+endef
+
+# make chain of order-only dependent targets, so their rules will not be executed in parallel
+# for example:
+# $(call NON_PARALLEL_EXECUTE,my_group,target1)
+# $(call NON_PARALLEL_EXECUTE,my_group,target2)
+# $(call NON_PARALLEL_EXECUTE,my_group,target3)
+# ...
+# $1 - group name
+# $2 - target
+NON_PARALLEL_EXECUTE = $(eval $(call NON_PARALLEL_EXECUTE_RULE,NON_PARALEL_GROUP_$1,$2))
+
+
+
 
 
 
@@ -504,216 +731,7 @@ endif
 
 
 
-# to allow parallel builds for different combinations
-# of $(OS)/$(CPU)/$(KCPU)/$(TARGET) - tool dir must be unique for each such combination
-# (this is true for TOOL_BASE = $(DEF_GEN_DIR))
-TOOL_BASE := $(DEF_GEN_DIR)
 
-# TOOL_BASE should be non-recursive (simple) - it is used in TOOL_OVERRIDE_DIRS
-override TOOL_BASE := $(TOOL_BASE)
-
-ifeq (,$(filter $(BUILD)/%,$(TOOL_BASE)))
-$(error TOOL_BASE=$(TOOL_BASE) is not a subdirectory of BUILD=$(BUILD))
-endif
-
-# where tools are built
-# $1 - TOOL_BASE
-# $2 - TCPU
-MK_TOOLS_DIR = $1/bin-TOOL-$2-$(TARGET)
-
-# call with
-# $1 - TOOL_BASE
-# $2 - TCPU
-# $3 - tool name(s) to get paths to the tools executables
-GET_TOOLS = $(addsuffix $(TOOL_SUFFIX),$(addprefix $(MK_TOOLS_DIR)/,$3))
-
-# get path to a tool $1 for current $(TOOL_BASE) and $(TCPU)
-GET_TOOL = $(call GET_TOOLS,$(TOOL_BASE),$(TCPU),$1)
-
-# override default dirs in tool mode (when TOOL_MODE has non-empty value)
-define TOOL_OVERRIDE_DIRS
-BIN_DIR:=$(TOOL_BASE)/bin-TOOL-$(TCPU)-$(TARGET)
-OBJ_DIR:=$(TOOL_BASE)/obj-TOOL-$(TCPU)-$(TARGET)
-LIB_DIR:=$(TOOL_BASE)/lib-TOOL-$(TCPU)-$(TARGET)
-GEN_DIR:=$(TOOL_BASE)/gen-TOOL-$(TCPU)-$(TARGET)
-$(call CLEAN_BUILD_PROTECT_VARS1,BIN_DIR OBJ_DIR LIB_DIR GEN_DIR)
-endef
-TOOL_OVERRIDE_DIRS := $(TOOL_OVERRIDE_DIRS)
-
-# CLEAN - files/directories list to delete on $(MAKE) clean
-# note: CLEAN is never cleared, only appended
-CLEAN:=
-
-# TOCLEAN - function to add values to CLEAN variable
-# - don't add values to CLEAN variable if not cleaning up
-ifeq (,$(filter clean,$(MAKECMDGOALS)))
-TOCLEAN:=
-else ifneq (,$(word 2,$(MAKECMDGOALS)))
-$(error clean goal must be specified alone, current goals: $(MAKECMDGOALS))
-else
-TOCLEAN = $(eval CLEAN+=$$1)
-endif
-
-# makefiles (absolute paths) to add as order-only dependencies to all leaf prerequisites of the targets
-# NOTE: FIX_ORDER_DEPS may change ORDER_DEPS list by appending $(MDEPS) to it
-ORDER_DEPS:=
-
-# adds $(MDEPS) - list of makefiles that need to be maked before target makefile to ORDER_DEPS
-# note: overwritten in $(CLEAN_BUILD_DIR)/parallel.mk
-FIX_ORDER_DEPS:=
-
-ifdef TOCLEAN
-
-# just cleanup target file(s) $1 (absolute paths)
-$(eval STD_TARGET_VARS = $(value TOCLEAN))
-
-else # !clean
-
-# standard target-specific variables
-# $1     - target file(s) to build (absolute paths)
-# $2     - directories of target file(s) (absolute paths)
-# $(TMD) - T if target is built in TOOL_MODE
-# NOTE: expansion of FIX_ORDER_DEPS immediately changes ORDER_DEPS value,
-#  but postpone expansion of ORDER_DEPS until $(eval) - to optimize parsing
-define STD_TARGET_VARS1
-$1:TMD:=$(TMD)
-$1:| $2 $(FIX_ORDER_DEPS)$$(ORDER_DEPS)
-$(TARGET_MAKEFILE)-:$1
-NEEDED_DIRS+=$2
-endef
-
-ifdef MDEBUG
-# print what makefile builds
-$(call define_append,STD_TARGET_VARS1,$$(info $$(if \
-  $$(TMD),[T]: )$$(patsubst $$(BUILD)/%,%,$$1)$$(if $$(ORDER_DEPS), | $$(ORDER_DEPS:-=))))
-endif
-
-# standard target-specific variables
-# $1 - generated file(s) (absolute paths)
-STD_TARGET_VARS = $(call STD_TARGET_VARS1,$1,$(patsubst %/,%,$(sort $(dir $1))))
-
-endif # !clean
-
-# for given target $1
-# define target-specific variables for printing makefile info
-# $(MF)    - makefile which specifies how to build the target
-# $(MCONT) - number of section in makefile after a call to $(MAKE_CONTINUE)
-# NOTE: $(MAKE_CONT) list is empty or 1 1 1 .. 1 2 (inside MAKE_CONTINUE) or 1 1 1 1... (before MAKE_CONTINUE):
-# MAKE_CONTINUE is equivalent of: MAKE_CONT:= $(HEAD) ... MAKE_CONT+=2 $(TAIL) MAKE_CONT=$(subst 2,1,$(MAKE_CONT)) $(HEAD) ...
-ifdef INFOMF
-define MAKEFILE_INFO_TEMPL
-$1:MF:=$(TARGET_MAKEFILE)
-$1:MCONT:=$(subst +0,,+$(words $(subst 2,,$(MAKE_CONT))))
-endef
-SET_MAKEFILE_INFO = $(eval $(MAKEFILE_INFO_TEMPL))
-else ifdef QUIET
-# remember $(TARGET_MAKEFILE) to properly update percents
-MAKEFILE_INFO_TEMPL = $1:MF:=$(TARGET_MAKEFILE)
-SET_MAKEFILE_INFO = $(eval $(MAKEFILE_INFO_TEMPL))
-else
-SET_MAKEFILE_INFO:=
-endif
-
-# define target-specific variables MF and MCONT for the target(s) $1
-ifndef TOCLEAN
-ifdef SET_MAKEFILE_INFO
-$(call define_prepend,STD_TARGET_VARS1,$(value MAKEFILE_INFO_TEMPL)$(newline))
-endif
-endif
-
-# add absolute path to directory of currently processing makefile to non-absolute paths
-# - we need absolute paths to sources to work with generated dependencies in .d files
-fixpath = $(abspath $(call nonrelpath,$(dir $(TARGET_MAKEFILE)),$1))
-
-# get target variants list or default variant R
-# $1 - EXE,LIB,...
-# $2 - variants list (may be empty)
-# $3 - variants filter function (VARIANTS_FILTER by default), must be defined at time of $(eval)
-# NOTE: add R to filter pattern to not filter-out default variant R
-# NOTE: if filter gives no variants, return default variant R (regular)
-FILTER_VARIANTS_LIST = $(patsubst ,R,$(filter R $($(firstword $3 VARIANTS_FILTER)),$2))
-
-# get target variants list or default variant R
-# $1 - EXE,LIB,...
-# $2 - variants filter function (VARIANTS_FILTER by default), must be defined at time of $(eval)
-GET_VARIANTS = $(call FILTER_VARIANTS_LIST,$1,$(wordlist 2,999999,$($1)),$2)
-
-# get target name - first word, next words - variants
-# Note: target file name (generated by FORM_TRG) may be different, depending on target variant
-# $1 - EXE,LIB,...
-GET_TARGET_NAME = $(firstword $($1))
-
-# form name of target objects directory
-# $1 - target to build (EXE,LIB,DLL,...)
-# $2 - target variant (may be empty for default variant)
-# add target-specific suffix (_EXE,_LIB,_DLL,...) to distinguish objects for the targets with equal names
-FORM_OBJ_DIR = $(OBJ_DIR)/$(GET_TARGET_NAME)$(if $(filter-out R,$2),_$2)_$1
-
-# add generated files $1 to build sequence
-# note: files must be generated in $(GEN_DIR),$(BIN_DIR),$(OBJ_DIR) or $(LIB_DIR)
-# note: directories for generated files will be auto-created
-ADD_GENERATED = $(eval $(STD_TARGET_VARS))
-
-ifdef MCHECK
-
-# check that files $1 are generated in $(GEN_DIR), $(BIN_DIR), $(OBJ_DIR) or $(LIB_DIR)
-CHECK_GENERATED = $(if $(filter-out $(GEN_DIR)/% $(BIN_DIR)/% $(OBJ_DIR)/% $(LIB_DIR)/%,$1),$(error \
-  some files are generated not under $$(GEN_DIR), $$(BIN_DIR), $$(OBJ_DIR) or $$(LIB_DIR): $(filter-out \
-  $(GEN_DIR)/% $(BIN_DIR)/% $(OBJ_DIR)/% $(LIB_DIR)/%,$1)))
-
-$(eval ADD_GENERATED = $$(CHECK_GENERATED)$(value ADD_GENERATED))
-
-endif # MCHECK
-
-# processed multi-target rules
-# note: MULTI_TARGETS is never cleared, only appended
-MULTI_TARGETS:=
-
-# to count each call of $(MULTI_TARGET)
-# note: MULTI_TARGET_NUM is never cleared, only appended
-MULTI_TARGET_NUM:=
-
-# when some tool generates many files, call the tool only once:
-# assign to each generated multi-target rule an unique number
-# and remember if rule with this number was already executed for one of multi-targets
-# $1 - list of generated files (absolute paths)
-# $2 - prerequisites (either absolute or makefile-related)
-# $3 - rule
-# $4 - $(words $(MULTI_TARGET_NUM))
-define MULTI_TARGET_RULE
-$(STD_TARGET_VARS)
-$1: $(call fixpath,$2)
-	$$(if $$(filter $4,$$(MULTI_TARGETS)),,$$(eval MULTI_TARGETS += $4)$$(call SUP,MGEN,$1)$3)
-MULTI_TARGET_NUM+=1
-endef
-
-# make chain of dependencies of multi-targets on each other: 1 2 3 4 -> 2:| 1; 3:| 2; 4:| 3;
-# $1 - list of generated files (absolute paths without spaces)
-MULTI_TARGET_SEQ = $(subst ||,| ,$(subst $(space),$(newline),$(filter-out \
-  --%,$(join $(addsuffix :||,$(wordlist 2,999999,$1) --),$1))))$(newline)
-
-# if some tool generates multiple files at one call, it is needed to call
-#  the tool only once if any of generated files needs to be updated
-# $1 - list of generated files (absolute paths)
-# $2 - prerequisites
-# $3 - rule
-# note: directories for generated files will be auto-created
-# note: rule must update all targets
-MULTI_TARGET = $(eval $(MULTI_TARGET_SEQ)$(call MULTI_TARGET_RULE,$1,$2,$3,$(words $(MULTI_TARGET_NUM))))
-
-ifdef MCHECK
-
-# must not use $@ in multi-target rule because it may have different values (any target from multi-targets list)
-# must not use $| in multi-target rule because it may have different values (some targets from multi-targets list)
-# $1 - list of generated files (absolute paths)
-# $3 - rule
-CHECK_MULTI_RULE = $(CHECK_GENERATED)$(if \
-  $(findstring $$@,$3),$(warning please do not use $$@ in multi-target rule:$(newline)$3))$(if \
-  $(findstring $$|,$3),$(warning please do not use $$| in multi-target rule:$(newline)$3))
-
-$(eval MULTI_TARGET = $$(CHECK_MULTI_RULE)$(value MULTI_TARGET))
-
-endif # MCHECK
 
 # helper macro: make SDEPS list
 # example: $(call FORM_SDEPS,src1 src2,dep1 dep2 dep3) -> src1|dep1|dep2|dep3 src2|dep1|dep2|dep3
