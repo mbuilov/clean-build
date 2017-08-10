@@ -5,10 +5,10 @@
 #----------------------------------------------------------------------------------
 
 # configuration file generation:
-# if CONFIG is set, define conf/unconf goals
+# if CONFIG is set, define conf goal
 
 # note: CONFIG may be specified either in command line
-# or in project configuration makefile before including this file, via:
+#  or in project configuration makefile before including this file, for example:
 # CONFIG = $(BUILD)/conf.mk
 CONFIG:=
 
@@ -17,20 +17,17 @@ ifdef CONFIG
 # CONFIG variable should be simple
 override CONFIG := $(abspath $(CONFIG))
 
-# save $(CONFIG) in target-specific variable CF
-# - to be safe if CONFIG get overridden
-conf unconf: override CF := $(CONFIG)
-
 ifneq (,$(filter conf,$(MAKECMDGOALS)))
 
-ifneq (,$(filter unconf,$(MAKECMDGOALS)))
-$(error conf and unconf goals cannot be specified at the same time)
-endif
+# save $(CONFIG) in target-specific variable CF
+# - to be safe if CONFIG variable get overridden
+conf: override CF := $(CONFIG)
 
-# use of environment variables is discouraged,
-# generate text of $(CONFIG) file so that by including it
-# any variable specified there will be restored with saved value,
-# except for variables specified in command line
+# conf - is not a file
+.PHONY: conf
+
+# generate text of $(CONFIG) file so that by including it any variable specified there
+# will be restored with saved value, except for variables specified in command line
 # $v - variable name
 define OVERRIDE_VAR_TEMPLATE
 
@@ -54,7 +51,7 @@ conf: override CONFIG_TEXT := $(foreach v,$(filter-out \
 
 # generate configuration file
 # note: SUP - defined in $(CLEAN_BUILD_DIR)/defs.mk
-# note: WRITE - defined in $(OSDIR)/$(OS)/tools.mk
+# note: WRITE - defined in $(TOOLCHAINS_DIR)/utils/$(UTILS).mk
 # note: pass 1 as 4-th argument of SUP function to not update percents of executed target makefiles
 # note: CONFIG_TEXT was defined above as target-specific variable
 conf:| $(patsubst %/,%,$(dir $(CONFIG)))
@@ -69,20 +66,8 @@ $(patsubst %/,%,$(dir $(CONFIG))):
 	$(error config file directory '$@' does not exist, it is not under '$(BUILD)', so should be created manually)
 endif
 
-else ifneq (,$(filter unconf,$(MAKECMDGOALS)))
-
-# delete configuration file
-# note: DEL - defined in $(OSDIR)/$(OS)/tools.mk
-# note: pass 1 as 4-th argument of SUP function to not update percents of executed target makefiles
-unconf:
-	$(call SUP,RM,$(CF),,1)$(call DEL,$(CF))
-
-endif # unconf
-
-# conf/unconf - not a files
-.PHONY: conf unconf
-
-endif
+endif # conf
+endif # CONFIG
 
 # protect variables from modification in target makefiles
-$(call CLEAN_BUILD_PROTECT_VARS,CONFIG)
+$(call SET_GLOBAL,CONFIG)

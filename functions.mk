@@ -35,10 +35,10 @@ infofn = $(info $2<$(subst $(newline),>$(newline)$2<,$1)>)$1
 # $2 - optional prefix
 # $3 - optional pre-prefix
 # $(call dump,VAR1,prefix,Q) -> print 'Qdump: prefix: VAR1=xxx'
-dump = $(foreach dump=,$1,$(info $3dump: <$(2:=: )$(dump=)$(if $(findstring recursive,$(flavor $(dump=))),,:)=$(value $(dump=))>))
+dump = $(foreach dump=,$1,$(info $3dump: <$(2:=: )$(dump=)$(if $(findstring simple,$(flavor $(dump=))),:)=$(value $(dump=))>))
 
 # maximum number of arguments of any macro
-dump_max := 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30
+dump_max := 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40
 
 # set default values for unspecified functions parameters
 $(eval override $(subst $(space),:=$(newline)override ,$(dump_max)):=)
@@ -65,7 +65,7 @@ encode_traced_var_name = $(subst $(close_brace),^c@,$(subst $(open_brace),^o@,$(
 # $4 - names of variables to dump before traced call
 # $5 - names of variables to dump after traced call
 # $6 - if non-empty, then forcibly protect new values of traced macros
-# note: pass 0 as second parameter to CLEAN_BUILD_PROTECT_VARS1 to not try to trace already traced macro
+# note: pass 0 as second parameter to SET_GLOBAL1 to not try to trace already traced macro
 # note: first line must be empty
 define trace_calls_template
 
@@ -88,7 +88,7 @@ $$(foreach w=,$$(words $$(cb_trace_level^)),$$(warning $$(cb_trace_level^) $$$$(
 $(keyword_endef)
 endif
 endif
-$(call CLEAN_BUILD_PROTECT_VARS1,$2 $(if $6,$1,$(if $(filter $1,$(CLEAN_BUILD_PROTECTED_VARS)),$1)),0)
+$(call SET_GLOBAL1,$2 $(if $6,$1,$(if $(filter $1,$(CLEAN_BUILD_PROTECTED_VARS)),$1)),0)
 endef
 
 # replace _dump_params_ with: $(1),$(2),$(3...)
@@ -97,7 +97,8 @@ $(eval define trace_calls_template$(newline)$(subst _dump_params_,$$$$$(open_bra
 
 # replace macros with their trace equivalents
 # $1 - traced macros in form:
-#   name=b1;b2;b3=e1;e2
+#   name=b1;b2;b3;$$1=e1;e2
+# ($$1 - special case, when macro argument $1 is the name of another macro to dump its value)
 # $2 - if non-empty, then forcibly protect new values of traced macros
 # where
 #   name     - macro name
@@ -184,9 +185,11 @@ xcmd = $(call xargs,$1,$2,$3,$4,$5,$6,$7,$(newline))
 # return list $1 without last element
 trim = $(wordlist 2,$(words $1),x $1)
 
+# remove last path element
 # 1 2 3 -> 1 2, .. .. -> .. .. ..
 normp2 = $(if $(filter-out ..,$1),$(trim),$1 ..)
 
+# check last path element: if it is .. then trim it and element before it
 # 1 2 .. 3 4 .. -> 1 3
 normp1 = $(if $(word 2,$1),$(if $(filter ..,$(lastword $1)),$(call normp2,$(call \
   normp1,$(trim))),$(call normp1,$(trim)) $(lastword $1)), $1)
@@ -289,13 +292,13 @@ define_append = $(eval define $1$(newline)$(value $1)$2$(newline)endef)
 define_prepend = $(eval define $1$(newline)$2$(value $1)$(newline)endef)
 
 # protect variables from modification in target makefiles
-# note: do not try to trace calls to these macros, pass 0 as second parameter to CLEAN_BUILD_PROTECT_VARS
-TARGET_MAKEFILE = $(call CLEAN_BUILD_PROTECT_VARS, \
+# note: do not try to trace calls to these macros, pass 0 as second parameter to SET_GLOBAL
+TARGET_MAKEFILE = $(call SET_GLOBAL, \
   empty space tab comma newline comment open_brace close_brace keyword_override keyword_define keyword_endef backslash \
   infofn dump dump_max dump_args trace_params encode_traced_var_name trace_calls_template trace_calls,0)
 
 # protect variables from modification in target makefiles
-TARGET_MAKEFILE += $(call CLEAN_BUILD_PROTECT_VARS, \
+TARGET_MAKEFILE += $(call SET_GLOBAL, \
   unspaces ifaddq qpath tolower toupper repl09 repl09AZ padto1 padto \
   is_less1 is_less xargs1 xargs xcmd trim normp2 normp1 normp \
   cmn_path1 cmn_path back_prefix relpath2 relpath1 relpath join_with \

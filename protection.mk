@@ -36,7 +36,7 @@ CLEAN_BUILD_ENCODE_VAR_VALUE = <$(origin $1):$(if $(findstring undefined,$(origi
 # encode variable name $x so that it may be used in $(eval name=...)
 open_brace:= (
 close_brace:= )
-CLEAN_BUILD_ENCODE_VAR_NAME = $(subst $(close_brace),.^cl@,$(subst $(open_brace),.^op@,$(subst :,.^dc@,$(subst !,.^ex@,$x)))).^p
+CLEAN_BUILD_ENCODE_VAR_NAME = $(subst $(close_brace),^c@,$(subst $(open_brace),^o@,$(subst :,^d@,$(subst !,^e@,$x)))).^p
 
 # store values of clean-build protected variables which must not be changed in target makefiles
 define CLEAN_BUILD_PROTECT_VARS2
@@ -44,24 +44,35 @@ CLEAN_BUILD_PROTECTED_VARS := $$(sort $$(CLEAN_BUILD_PROTECTED_VARS) $1)
 $$(foreach x,CLEAN_BUILD_PROTECTED_VARS $1,$$(eval $$(CLEAN_BUILD_ENCODE_VAR_NAME):=$$$$(call CLEAN_BUILD_ENCODE_VAR_VALUE,$$x)))
 endef
 
-# $1 - list: AAA=b1;b2=e1;e2 BBB=b1;b2=e1;e2;...
+# $1 - list: AAA=b1;b2;$$1=e1;e2 BBB=b1;b2=e1;e2;...
 # $2 - if not empty, then do not trace calls for given macros (for example, if called from trace_calls_template)
 ifdef TRACE
-CLEAN_BUILD_PROTECT_VARS1 = $(if $2,$(CLEAN_BUILD_PROTECT_VARS2),$$(call trace_calls,$1,1))
+SET_GLOBAL1 = $(if $2,$(CLEAN_BUILD_PROTECT_VARS2),$$(call trace_calls,$1,1))
 else
-CLEAN_BUILD_PROTECT_VARS1 = $(call CLEAN_BUILD_PROTECT_VARS2,$(foreach v,$1,$(firstword $(subst =, ,$v))))
+SET_GLOBAL1 = $(call CLEAN_BUILD_PROTECT_VARS2,$(foreach v,$1,$(firstword $(subst =, ,$v))))
 endif
 
 # protect macros from modification in target makefiles
-# $1 - list of macros in form: AAA=b1;b2=e1;e2 BBB=b1;b2=e1;e2;...
+# $1 - list of macros in form: AAA=b1;b2;$$1=e1;e2 BBB=b1;b2=e1;e2;...
 # $2 - if not empty, then do not trace calls for given macros
-CLEAN_BUILD_PROTECT_VARS = $(eval $(CLEAN_BUILD_PROTECT_VARS1))
+SET_GLOBAL = $(eval $(SET_GLOBAL1))
 
-# check and set CLEAN_BUILD_NEED_TAIL_CODE - $(DEF_TAIL_CODE) must be evaluated after $(DEF_HEAD_CODE)
+# 1) only protected global and target-specific variables may be used in rules,
+#  so redefine non-protected global (i.e. "local") variables to produce access errors
+#  note: do not touch GNU Make automatic variable MAKEFILE_LIST
+# 2) check and set CLEAN_BUILD_NEED_TAIL_CODE - $(DEF_TAIL_CODE) must be evaluated after $(DEF_HEAD_CODE)
 define CLEAN_BUILD_CHECK_AT_HEAD
+$(foreach v,$(filter-out \
+  MAKEFILE_LIST $(CLEAN_BUILD_PROTECTED_VARS),$(.VARIABLES)),$(if \
+  $(filter file override environment,$(origin $v)),$(if \
+  $(filter-out !$$$(open_brace)error$(space)%,$(value $v)),$(if \
+  $(filter environment,$(origin $v)),$v=!$$(error \
+  using environment variable: $v, use of environment variables is discouraged, please use only file variables),$(findstring \
+  override,$(origin $v)) $v=!$$(error \
+  using local varaible: $v, please use target-specific or global ones))$(newline))))
 $(if $(CLEAN_BUILD_NEED_TAIL_CODE),$(error $$(DEFINE_TARGETS) was not evaluated at end of $(CLEAN_BUILD_NEED_TAIL_CODE)!))
 CLEAN_BUILD_NEED_TAIL_CODE := $(TARGET_MAKEFILE)
-$(call CLEAN_BUILD_PROTECT_VARS1,CLEAN_BUILD_NEED_TAIL_CODE)
+$(call SET_GLOBAL1,CLEAN_BUILD_NEED_TAIL_CODE)
 endef
 
 # macro to check if clean-build protected $x variable value was changed in target makefile
@@ -77,18 +88,10 @@ endif
 endif
 endef
 
-# only constant and target-specific variables may be used in rules,
-# so redefine non-protected global variables to produce access errors
-# note: do not touch GNU Make automatic variable MAKEFILE_LIST
-CLEAN_BUILD_REDEFINE_AT_TAIL = $(foreach v,$(filter-out \
-  MAKEFILE_LIST $(CLEAN_BUILD_PROTECTED_VARS),$(.VARIABLES)),$(if \
-  $(filter file override,$(origin $v)),$(findstring override,$(origin $v)) $v=$$(error \
-  using global varaible: $v, please use target-specific ones)$(newline)))
-
 # check that values of protected vars were not changed
-# note: error is suppressed (only once) if variable name is specified in $(CLEAN_BUILD_OVERRIDDEN_VARS) list
-# note: $(CLEAN_BUILD_OVERRIDDEN_VARS) list is cleared after checks
-# note: $(CLEAN_BUILD_NEED_TAIL_CODE) value is cleared after checks to mark that $(DEF_TAIL_CODE) was evaluated
+# note: error is suppressed (only once) if variable name is specified in $(CLEAN_BUILD_OVERRIDDEN_VARS)
+# note: CLEAN_BUILD_OVERRIDDEN_VARS is cleared after the checks
+# note: CLEAN_BUILD_NEED_TAIL_CODE is cleared after the checks to mark that $(DEF_TAIL_CODE) was evaluated
 # note: normally, $(CLEAN_BUILD_NEED_TAIL_CODE) is checked at head of next included by $(CLEAN_BUILD_DIR)/parallel.mk target makefile,
 #  but for the last included target makefile - need to check $(CLEAN_BUILD_NEED_TAIL_CODE) here
 #  - $(CLEAN_BUILD_DIR)/parallel.mk calls $(DEF_TAIL_CODE) with $1=@
@@ -96,14 +99,7 @@ CLEAN_BUILD_REDEFINE_AT_TAIL = $(foreach v,$(filter-out \
 define CLEAN_BUILD_CHECK_AT_TAIL
 $(if $(findstring @,$1),$(if $(CLEAN_BUILD_NEED_TAIL_CODE),$(error \
   $$(DEFINE_TARGETS) was not evaluated at end of $(CLEAN_BUILD_NEED_TAIL_CODE)!)))
-###########ifneq (x$(space)x,x x)
-###########$$(error $$$$(space) value was changed)
-###########endif
-###########ifneq (x$(tab)x,x	x)
-###########$$(error $$$$(tab) value was changed)
-###########endif
 $(foreach x,$(CLEAN_BUILD_PROTECTED_VARS),$(call CLEAN_BUILD_CHECK_PROTECTED_VAR,$(CLEAN_BUILD_ENCODE_VAR_NAME)))
-$(CLEAN_BUILD_REDEFINE_AT_TAIL)
 CLEAN_BUILD_OVERRIDDEN_VARS:=
 CLEAN_BUILD_NEED_TAIL_CODE:=
 
@@ -111,9 +107,9 @@ endef
 
 # protect variables from modifications in target makefiles
 # note: do not trace calls to these macros
-$(call CLEAN_BUILD_PROTECT_VARS,CLEAN_BUILD_PROTECTED_VARS MCHECK TRACE CLEAN_BUILD_ENCODE_VAR_VALUE CLEAN_BUILD_ENCODE_VAR_NAME \
-  CLEAN_BUILD_PROTECT_VARS2 CLEAN_BUILD_PROTECT_VARS1 CLEAN_BUILD_PROTECT_VARS CLEAN_BUILD_CHECK_AT_HEAD \
-  CLEAN_BUILD_CHECK_PROTECTED_VAR CLEAN_BUILD_CHECK_AT_TAIL CLEAN_BUILD_REDEFINE_AT_TAIL,0)
+$(call SET_GLOBAL,CLEAN_BUILD_PROTECTED_VARS MCHECK TRACE CLEAN_BUILD_ENCODE_VAR_VALUE CLEAN_BUILD_ENCODE_VAR_NAME \
+  CLEAN_BUILD_PROTECT_VARS2 SET_GLOBAL1 SET_GLOBAL CLEAN_BUILD_CHECK_AT_HEAD \
+  CLEAN_BUILD_CHECK_PROTECTED_VAR CLEAN_BUILD_CHECK_AT_TAIL,0)
 
 else # !MCHECK
 
@@ -124,20 +120,20 @@ CLEAN_BUILD_CHECK_AT_TAIL:=
 ifdef TRACE
 
 # trace calls to macros
-# $1 - list: AAA=b1;b2=e1;e2 BBB=b1;b2=e1;e2;...
+# $1 - list: AAA=b1;b2;$$1=e1;e2 BBB=b1;b2=e1;e2;...
 # $2 - if not empty, then do not trace calls for given macros (for example, if called from trace_calls_template)
-CLEAN_BUILD_PROTECT_VARS1 = $(if $2,,$$(call trace_calls,$1,))
+SET_GLOBAL1 = $(if $2,,$$(call trace_calls,$1,))
 
 # trace calls to macros
-# $1 - list of macros in form: AAA=b1;b2=e1;e2 BBB=b1;b2=e1;e2;...
+# $1 - list of macros in form: AAA=b1;b2;$$1=e1;e2 BBB=b1;b2=e1;e2;...
 # $2 - if not empty, then do not trace calls for given macros
-CLEAN_BUILD_PROTECT_VARS = $(eval $(CLEAN_BUILD_PROTECT_VARS1))
+SET_GLOBAL = $(eval $(SET_GLOBAL1))
 
 else # !TRACE
 
 # reset
-CLEAN_BUILD_PROTECT_VARS1:=
-CLEAN_BUILD_PROTECT_VARS:=
+SET_GLOBAL1:=
+SET_GLOBAL:=
 
 endif # !TRACE
 

@@ -20,35 +20,32 @@ $(eval $(call mk_dir_deps,$(NEEDED_DIRS),$(dir $(BUILD))))
 $(addprefix $(dir $(BUILD)),$(NEEDED_DIRS)):
 	$(call SUP,MKDIR,$@,,1)$(call MKDIR,$@)
 
-# default target
 # note: $(PROCESSED_MAKEFILES) - absolute paths of all processed target makefiles with '-' suffix
-# (without suffix, if real makefile names are used - make always wants to recreate makefiles, even before clean target)
+#  (without suffix, if real makefile names are used - make always wants to recreate makefiles, even for the clean target)
+# note: TARGET_MAKEFILES_COUNT - number of target makefiles - used to compute percents of executed makefiles
 ifdef ADD_SHOWN_PERCENTS
-# TARGET_MAKEFILES_COUNT - number of target makefiles - used to compute percents of executed makefiles
-# note: substract $(INTERMEDIATE_MAKEFILES) from $(PROCESSED_MAKEFILES)
-TARGET_MAKEFILES_COUNT := $(wordlist $(words 1 $(INTERMEDIATE_MAKEFILES)),999999,$(PROCESSED_MAKEFILES))
-TARGET_MAKEFILES_COUNT1 := $(words 1 $(TARGET_MAKEFILES_COUNT))
-TARGET_MAKEFILES_COUNT := $(words $(TARGET_MAKEFILES_COUNT))
 $(eval ADD_SHOWN_PERCENTS = $(subst \
-  $$(TARGET_MAKEFILES_COUNT),$(TARGET_MAKEFILES_COUNT),$(subst \
-  $$(TARGET_MAKEFILES_COUNT1),$(TARGET_MAKEFILES_COUNT1),$(value ADD_SHOWN_PERCENTS))))
+  $$(TARGET_MAKEFILES_COUNT),$(words $(PROCESSED_MAKEFILES)),$(subst \
+  $$(TARGET_MAKEFILES_COUNT1),$(words $(PROCESSED_MAKEFILES) 1),$(value ADD_SHOWN_PERCENTS))))
 endif
 
-ifdef MCHECK
-
 # check that target rules are defined and completed
+ifdef MCHECK
 $(PROCESSED_MAKEFILES):
 	$(foreach f,$(filter-out $(wildcard $^),$^),$(info $(@:-=): cannot build $f))
+endif
 
-endif # MCHECK
-
-all: $(PROCESSED_MAKEFILES)
+# define rule for default goal 'all'
+# note: suppress "Nothing to be done for 'all'"
+all:
 	@:
 
+# cleanup built files
 clean:
 	$(call RM,$(CLEAN))
 
 # build all to build or run tests
+# note: assume rules for 'check' and 'tests' goals are defined elsewhere
 check tests: all
 
 # define install/uninstall targets by default
@@ -65,5 +62,4 @@ uninstall:
 endif
 
 # note: don't try to update makefiles in $(MAKEFILE_LIST) - mark them as .PHONY targets
-# note: $(PROCESSED_MAKEFILES) - names of processed makefiles with '-' suffix
-.PHONY: all clean check tests install uninstall $(MAKEFILE_LIST) $(PROCESSED_MAKEFILES)
+.PHONY: all clean check tests install uninstall $(MAKEFILE_LIST)
