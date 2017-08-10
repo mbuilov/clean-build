@@ -863,8 +863,11 @@ $(info $(call PRINT_PERCENTS,use)$(call COLORIZE,CONF,$(CONFIG)))
 endif
 endif
 
-# protect variables from modifications in target makefiles
-$(call SET_GLOBAL,MAKEFLAGS PROJECT_VARS_NAMES PATH SHELL PASS_ENV_VARS $(PASS_ENV_VARS) \
+# protect macros from modifications in target makefiles, do not trace calls to these macros
+$(call SET_GLOBAL,MAKEFLAGS,0)
+
+# protect macros from modifications in target makefiles
+$(call SET_GLOBAL,PROJECT_VARS_NAMES PATH SHELL PASS_ENV_VARS $(PASS_ENV_VARS) \
   CLEAN_BUILD_VERSION CLEAN_BUILD_DIR CLEAN_BUILD_REQUIRED_VERSION NEEDED_DIRS \
   BUILD SUPPORTED_TARGETS TARGET OS UTILS COMPILERS CPU TCPU TOOLCHAINS_DIR \
   NO_CLEAN_BUILD_DISTCLEAN_TARGET DEBUG VERBOSE QUIET INFOMF MDEBUG TARGET_MAKEFILE \
