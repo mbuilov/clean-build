@@ -385,6 +385,9 @@ SHOWN_REMAINDER:=
 # note: TARGET_MAKEFILES_COUNT and TARGET_MAKEFILES_COUNT1 are defined in $(CLEAN_BUILD_DIR)/all.mk
 ADD_SHOWN_PERCENTS = $(if $(word $(TARGET_MAKEFILES_COUNT),$1),+ $(call \
   ADD_SHOWN_PERCENTS,$(wordlist $(TARGET_MAKEFILES_COUNT1),999999,$1)),$(eval SHOWN_REMAINDER:=$$1))
+ifdef SET_GLOBAL
+$(eval ADD_SHOWN_PERCENTS = $(value ADD_SHOWN_PERCENTS)$$(call SET_GLOBAL,SHOWN_REMAINDER))
+endif
 # prepare for printing percents of processed makefiles
 FORMAT_PERCENTS = $(subst |,,$(subst \
   |0%,00%,$(subst \
@@ -406,6 +409,9 @@ SHOWN_PERCENTS += $(call ADD_SHOWN_PERCENTS,$(SHOWN_REMAINDER) \
 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 \
 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1)
 endef
+ifdef MCHECK
+$(call define_append,REM_MAKEFILE,$(newline)$$(call SET_GLOBAL1,SHOWN_PERCENTS,0))
+endif
 ifdef INFOMF
 SUP = $(info $(call PRINT_PERCENTS,$(if $4,,$(if $(findstring undefined,$(origin \
   $(MF))),$(eval $(REM_MAKEFILE))))$(FORMAT_PERCENTS))$(MF)$(MCONT):$(COLORIZE))@
@@ -444,9 +450,12 @@ BIN_DIR:=$(DEF_BIN_DIR)
 OBJ_DIR:=$(DEF_OBJ_DIR)
 LIB_DIR:=$(DEF_LIB_DIR)
 GEN_DIR:=$(DEF_GEN_DIR)
-$(call SET_GLOBAL1,BIN_DIR OBJ_DIR LIB_DIR GEN_DIR)
 endef
 SET_DEFAULT_DIRS := $(SET_DEFAULT_DIRS)
+
+ifdef SET_GLOBAL1
+SET_DEFAULT_DIRS := $(SET_DEFAULT_DIRS)$(newline)$(call SET_GLOBAL1,BIN_DIR OBJ_DIR LIB_DIR GEN_DIR)
+endif
 
 # define BIN_DIR/OBJ_DIR/LIB_DIR/GEN_DIR
 $(eval $(SET_DEFAULT_DIRS))
@@ -482,11 +491,14 @@ BIN_DIR:=$(TOOL_BASE)/bin-TOOL-$(TCPU)-$(TARGET)
 OBJ_DIR:=$(TOOL_BASE)/obj-TOOL-$(TCPU)-$(TARGET)
 LIB_DIR:=$(TOOL_BASE)/lib-TOOL-$(TCPU)-$(TARGET)
 GEN_DIR:=$(TOOL_BASE)/gen-TOOL-$(TCPU)-$(TARGET)
-$(call SET_GLOBAL1,BIN_DIR OBJ_DIR LIB_DIR GEN_DIR)
 endef
 TOOL_OVERRIDE_DIRS := $(TOOL_OVERRIDE_DIRS)
 
-# CLEAN - files/directories list to delete on $(MAKE) clean
+ifdef SET_GLOBAL1
+TOOL_OVERRIDE_DIRS := $(TOOL_OVERRIDE_DIRS)$(newline)$(call SET_GLOBAL1,BIN_DIR OBJ_DIR LIB_DIR GEN_DIR)
+endif
+
+# CLEAN - list of files/directories to delete on $(MAKE) clean
 # note: CLEAN list is never cleared, only appended via TOCLEAN macro
 # note: should not be directly accessed/modified in target makefiles
 CLEAN:=
@@ -497,8 +509,10 @@ ifeq (,$(filter clean,$(MAKECMDGOALS)))
 TOCLEAN:=
 else ifneq (,$(word 2,$(MAKECMDGOALS)))
 $(error clean goal must be specified alone, current goals: $(MAKECMDGOALS))
-else
+else ifndef MCHECK
 TOCLEAN = $(eval CLEAN+=$$1)
+else
+TOCLEAN = $(eval CLEAN+=$$1$(newline)$(call SET_GLOBAL1,CLEAN,0))
 endif
 
 # append makefiles (really PHONY targets created from them) to ORDER_DEPS list
@@ -536,8 +550,12 @@ $(TARGET_MAKEFILE)-:$1
 NEEDED_DIRS+=$2
 endef
 
-ifdef MDEBUG
+ifdef MCHECK
+$(call define_append,STD_TARGET_VARS1,$(newline)$$(call SET_GLOBAL1,NEEDED_DIRS,0))
+endif
+
 # print what makefile builds
+ifdef MDEBUG
 $(call define_append,STD_TARGET_VARS1,$$(info $$(if \
   $$(TMD),[T]: )$$(patsubst $$(BUILD)/%,%,$$1)$$(if $$(ORDER_DEPS), | $$(ORDER_DEPS))))
 endif
@@ -863,23 +881,30 @@ $(info $(call PRINT_PERCENTS,use)$(call COLORIZE,CONF,$(CONFIG)))
 endif
 endif
 
-# protect macros from modifications in target makefiles, do not trace calls to these macros
-$(call SET_GLOBAL,MAKEFLAGS,0)
+# protect macros from modifications in target makefiles,
+# do not trace calls to macros used in ifdefs, passed in environment or modified via operator +=
+$(call SET_GLOBAL,MAKEFLAGS $(PASS_ENV_VARS) PATH SHELL NEEDED_DIRS \
+  NO_CLEAN_BUILD_DISTCLEAN_TARGET DEBUG VERBOSE QUIET INFOMF MDEBUG SHOWN_PERCENTS CLEAN ORDER_DEPS,0)
+  ........
 
-# protect macros from modifications in target makefiles
-$(call SET_GLOBAL,PROJECT_VARS_NAMES PATH SHELL PASS_ENV_VARS $(PASS_ENV_VARS) \
-  CLEAN_BUILD_VERSION CLEAN_BUILD_DIR CLEAN_BUILD_REQUIRED_VERSION NEEDED_DIRS \
+# protect macros from modifications in target makefiles, allow tracing calls to them
+$(call SET_GLOBAL,PROJECT_VARS_NAMES PASS_ENV_VARS \
+  CLEAN_BUILD_VERSION CLEAN_BUILD_DIR CLEAN_BUILD_REQUIRED_VERSION \
   BUILD SUPPORTED_TARGETS TARGET OS UTILS COMPILERS CPU TCPU TOOLCHAINS_DIR \
-  NO_CLEAN_BUILD_DISTCLEAN_TARGET DEBUG VERBOSE QUIET INFOMF MDEBUG TARGET_MAKEFILE \
-  ospath nonrelpath TOOL_SUFFIX PATHSEP DLL_PATH_VAR show_with_dll_path show_dll_path_end SED_MULTI_EXPR \
+  TARGET_MAKEFILE ospath nonrelpath TOOL_SUFFIX PATHSEP DLL_PATH_VAR show_with_dll_path show_dll_path_end SED_MULTI_EXPR \
   GEN_COLOR MGEN_COLOR CP_COLOR RM_COLOR DEL_COLOR LN_COLOR MKDIR_COLOR TOUCH_COLOR CAT_COLOR SED_COLOR \
-  PRINT_PERCENTS COLORIZE SHOWN_PERCENTS SHOWN_REMAINDER ADD_SHOWN_PERCENTS FORMAT_PERCENTS REM_MAKEFILE SUP \
+  PRINT_PERCENTS COLORIZE SHOWN_REMAINDER ADD_SHOWN_PERCENTS==SHOWN_REMAINDER \
+  FORMAT_PERCENTS=SHOWN_PERCENTS REM_MAKEFILE=SHOWN_PERCENTS=SHOWN_PERCENTS SUP \
   TARGET_TRIPLET DEF_BIN_DIR DEF_OBJ_DIR DEF_LIB_DIR DEF_GEN_DIR SET_DEFAULT_DIRS \
   TOOL_BASE MK_TOOLS_DIR GET_TOOLS GET_TOOL TOOL_OVERRIDE_DIRS \
-  CLEAN TOCLEAN ADD_MDEPS ORDER_DEPS ADD_ORDER_DEPS=ORDER_DEPS=ORDER_DEPS \
+  ADD_MDEPS ADD_ORDER_DEPS=ORDER_DEPS=ORDER_DEPS \
   STD_TARGET_VARS1 STD_TARGET_VARS MAKEFILE_INFO_TEMPL SET_MAKEFILE_INFO fixpath \
   FILTER_VARIANTS_LIST GET_VARIANTS GET_TARGET_NAME FORM_OBJ_DIR \
   ADD_GENERATED CHECK_GENERATED MULTI_TARGETS MULTI_TARGET_NUM MULTI_TARGET_RULE MULTI_TARGET CHECK_MULTI_RULE \
   NON_PARALLEL_EXECUTE_RULE NON_PARALLEL_EXECUTE FORM_SDEPS EXTRACT_SDEPS FIX_SDEPS RUN_WITH_DLL_PATH TMD TOOL_MODE \
   CB_INCLUDE_LEVEL DEF_HEAD_CODE_EVAL DEF_TAIL_CODE_EVAL DEFINE_TARGETS_EVAL_NAME MAKE_CONTINUE_EVAL_NAME PROCESSED_MAKEFILES \
   DEF_HEAD_CODE DEF_TAIL_CODE DEFINE_TARGETS=DEFINE_TARGETS_EVAL_NAME SAVE_VARS RESTORE_VARS MAKE_CONT MAKE_CONTINUE CONF_COLOR)
+
+# if TOCLEAN value is non-empty, allow tracing calls to it,
+# else - just protect TOCLEAN from changes, do not make it's value non-empty - because TOCLEAN is checked in ifdefs
+$(call SET_GLOBAL,TOCLEAN,$(if $(value TOCLEAN),,0))
