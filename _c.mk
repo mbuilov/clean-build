@@ -4,10 +4,29 @@
 # Licensed under GPL version 2 or any later version, see COPYING
 #----------------------------------------------------------------------------------
 
-# rules for building C/C++ libs, dlls, executables, kernel-mode libraries
+# rules for building C/C++ libs, dlls and executables
 
 ifeq (,$(filter-out undefined environment,$(origin DEF_HEAD_CODE)))
 include $(dir $(lastword $(MAKEFILE_LIST)))_defs.mk
+endif
+
+# list of known C-compilers
+# note: may be overridden in project configuration makefile
+KNOWN_C_COMPILERS := gcc msvc suncc
+
+# select C-compiler
+C_COMPILER := $(filter $(KNOWN_C_COMPILERS),$(COMPILERS))
+
+ifndef C_COMPILER
+$(error no known C compilers found in COMPILERS=$(COMPILERS), please select one from KNOWN_C_COMPILERS=$(KNOWN_C_COMPILERS))
+endif
+
+ifneq (,$(word 2,$(C_COMPILER)))
+$(error only one C compiler must be specified, but there are two or more: $(C_COMPILER))
+endif
+
+ifeq (,$(wildcard $(TOOLCHAINS_DIR)/compilers/$(C_COMPILER).mk))
+$(error file $(TOOLCHAINS_DIR)/compilers/$(C_COMPILER).mk does not exist)
 endif
 
 # build targets and variants:
@@ -27,18 +46,8 @@ endif
 # S - statically linked multithreaded libc          (for all targets) (only WINDOWS)
 
 # what we may build by including $(CLEAN_BUILD_DIR)/c.mk (for ex. LIB := my_lib)
-# note: DRV is $(OS)-specific, $(OSDIR)/$(OS)/c.mk should define DRV_TEMPLATE
-# note: $(OSDIR)/$(OS)/c.mk may append more target types to BLD_TARGETS
+# note: $(TOOLCHAINS_DIR)/compilers/$(compiler).mk may add more target types to BLD_TARGETS
 BLD_TARGETS := EXE LIB DLL
-
-ifdef DRIVERS_SUPPORT
-BLD_TARGETS += KLIB KDLL DRV
-else
-# reset by default
-KLIB:=
-KDLL:=
-DRV:=
-endif
 
 # do not process generated dependencies when cleaning up
 NO_DEPS := $(filter clean,$(MAKECMDGOALS))
@@ -56,7 +65,7 @@ ADD_OBJ_SDEPS = $(if $2,$(newline)$1/$(basename $(notdir $x))$(OBJ_SUFFIX): $2)
 # $6 - $t_$v_$1
 # $v - non-empty variant: R,P,S,...
 # $t - EXE,LIB,...
-# note: postpone expansion of ORDER_DEPS - $(FIX_ORDER_DEPS) from $(STD_TARGET_VARS) changes $(ORDER_DEPS) value
+# note: postpone expansion of ORDER_DEPS to optimize parsing
 define OBJ_RULES2
 $5
 $(subst $(space),$(newline),$(join $(addsuffix :,$5),$2))$(if \
@@ -88,47 +97,51 @@ endif
 # $4 - objdir
 # $v - non-empty variant: R,P,S,...
 # $t - EXE,LIB,...
-# note: $(CLEAN_BUILD_DIR)/WINXX/c.mk overrides OBJ_RULES
+# note: $(CLEAN_BUILD_DIR)/compilers/msvc.mk overrides OBJ_RULES
 OBJ_RULES = $(if $2,$(call OBJ_RULES1,$1,$2,$3,$4,$(addprefix $4/,$(basename $(notdir $2)))))
+
+# variants filter function - get possible variants for the target over than default variant R
+# $1 - LIB,EXE,DLL
+# R - default variant (position-dependent code for EXE, position-independent code for DLL)
+# D - position-independent code in shared libraries (for LIB)
+# note: $(CLEAN_BUILD_DIR)/compilers/gcc.mk defines own VARIANTS_FILTER
+# note: $(CLEAN_BUILD_DIR)/compilers/msvc.mk defines own VARIANTS_FILTER
+VARIANTS_FILTER = $(if $(filter LIB,$1),D)
 
 # get target name suffix for EXE,DRV... in case of multiple target variants
 # $1 - EXE,DRV...
 # $2 - target variant S,P,... but not R or <empty>
 # $3 - list of variants of target $1 to build (filtered by target platform specific $(VARIANTS_FILTER))
-# note: WINXX/c.mk defines own EXE_SUFFIX_GEN
-# note: LINUX/c.mk defines own EXE_SUFFIX_GEN
+# note: $(CLEAN_BUILD_DIR)/compilers/gcc.mk defines own EXE_SUFFIX_GEN
+# note: $(CLEAN_BUILD_DIR)/compilers/msvc.mk defines own EXE_SUFFIX_GEN
 EXE_SUFFIX_GEN = $(if $(word 2,$3),$(call tolower,$2))
 
 # determine target name suffix for EXE,DRV...
 # $1 - EXE,DRV...
 # $2 - target variant R,S,P,<empty>
 # $3 - list of variants of target $1 to build, by default $(wordlist 2,999999,$($1))
-# Note: no suffix if building R-variant
-# Note: variants list $3 may be not filtered by target platform specific $(VARIANTS_FILTER)
+# note: no suffix if building R-variant
+# note: variants list $3 may be not filtered by target platform specific $(VARIANTS_FILTER), so filter it here
 EXE_VAR_SUFFIX = $(if $(filter-out R,$2),$(call \
   EXE_SUFFIX_GEN,$1,$2,$(filter R $(VARIANTS_FILTER),$(if $3,$3,$(wordlist 2,999999,$($1))))))
 
-# determine suffix for static LIB or for implementation-library of DLL
+# determine suffix for static LIB or for import library of DLL
 # $1 - target variant R,P,D,S,<empty>
-# note: WINXX/c.mk defines own LIB_VAR_SUFFIX
+# note: $(CLEAN_BUILD_DIR)/compilers/gcc.mk defines own LIB_VAR_SUFFIX
+# note: $(CLEAN_BUILD_DIR)/compilers/suncc.mk defines own LIB_VAR_SUFFIX
+# note: $(CLEAN_BUILD_DIR)/compilers/msvc.mk defines own LIB_VAR_SUFFIX
 LIB_VAR_SUFFIX = $(if $(filter-out R,$1),_$1)
 
-# $(OSDIR)/$(OS)/c.mk may define more targets, for example, to define DDD:
-# OS_FORM_TRG = $(if $(filter DDD,$1),$(addprefix $(BIN_DIR)/$(DDD_PREFIX),$(GET_TARGET_NAME:=$(EXE_VAR_SUFFIX)$(DDD_SUFFIX))))
-OS_FORM_TRG:=
-
-# make target filename
+# make target file absoulte path
 # $1 - EXE,LIB,...
 # $2 - target variant R,P,D,S,<empty>
 # $3 - variants list, by default $(wordlist 2,999999,$($1))
-# note: gives empty result if $($1) is empty
+# note: use $(addprefix...) to return empty if $($1) is empty
 FORM_TRG = $(if \
   $(filter EXE,$1),$(addprefix $(BIN_DIR)/,$(GET_TARGET_NAME:=$(EXE_VAR_SUFFIX)$(EXE_SUFFIX))),$(if \
-  $(filter KDLL,$1),$(addprefix $(DLL_DIR)/$(KDLL_PREFIX),$(GET_TARGET_NAME:=$(call LIB_VAR_SUFFIX,$2)$(KDLL_SUFFIX))),$(if \
   $(filter DLL,$1),$(addprefix $(DLL_DIR)/$(DLL_PREFIX),$(GET_TARGET_NAME:=$(call LIB_VAR_SUFFIX,$2)$(DLL_SUFFIX))),$(if \
-  $(filter KLIB,$1),$(addprefix $(LIB_DIR)/$(KLIB_PREFIX),$(GET_TARGET_NAME:=$(call LIB_VAR_SUFFIX,$2)$(KLIB_SUFFIX))),$(if \
-  $(filter LIB,$1),$(addprefix $(LIB_DIR)/$(LIB_PREFIX),$(GET_TARGET_NAME:=$(call LIB_VAR_SUFFIX,$2)$(LIB_SUFFIX))),$(if \
-  $(filter DRV,$1),$(addprefix $(BIN_DIR)/$(DRV_PREFIX),$(GET_TARGET_NAME:=$(EXE_VAR_SUFFIX)$(DRV_SUFFIX))),$(OS_FORM_TRG)))))))
+  $(filter LIB,$1),$(addprefix $(LIB_DIR)/$(LIB_PREFIX),$(GET_TARGET_NAME:=$(call LIB_VAR_SUFFIX,$2)$(LIB_SUFFIX))),$(error \
+  unknown target type: $1))))
 
 # make target filenames for all variants of the target
 # $1 - EXE,LIB,DLL,...
@@ -144,7 +157,7 @@ TRG_COMPILER = $(if $(filter %.cpp,$2),CXX,CC)
 
 # make absolute paths to include directories - we need absolute paths to headers in generated .d dependency file
 # note: do not touch paths in $(SYSINCLUDE) - assume they are absolute,
-# note: $(SYSINCLUDE) paths are generally filtered-out while .d dependency file generation
+# note: $(SYSINCLUDE) paths are normally filtered-out while .d dependency file generation
 TRG_INCLUDE = $(call fixpath,$(INCLUDE)) $(SYSINCLUDE)
 
 # target flags
@@ -153,9 +166,9 @@ TRG_INCLUDE = $(call fixpath,$(INCLUDE)) $(SYSINCLUDE)
 # $(TMD) - T in tool mode, empty otherwise
 # note: these macros may be overridden in project configuration makefile, for example:
 # TRG_DEFINES = $(if $(DEBUG),_DEBUG) TARGET_$(TARGET:D=) $(foreach \
-#   c,$($(if $(filter DRV KLIB KDLL,$t),K,$(TMD))CPU),$(if \
-#   $(filter sparc% mips% ppc%,$c),B_ENDIAN,L_ENDIAN) $(if \
-#   $(filter arm% sparc% mips% ppc%,$c),ADDRESS_NEEDALIGN)) $(DEFINES)
+#   cpu,$($(if $(filter DRV KLIB KDLL,$t),K,$(TMD))CPU),$(if \
+#   $(filter sparc% mips% ppc%,$(cpu)),B_ENDIAN,L_ENDIAN) $(if \
+#   $(filter arm% sparc% mips% ppc%,$(cpu)),ADDRESS_NEEDALIGN)) $(DEFINES)
 TRG_DEFINES  = $(DEFINES)
 TRG_CFLAGS   = $(CFLAGS)
 TRG_CXXFLAGS = $(CXXFLAGS)
@@ -169,18 +182,29 @@ GET_SOURCES = $(SRC) $(WITH_PCH)
 # make absolute paths to sources - we need absolute path to source in generated .d dependency file
 TRG_SRC = $(call fixpath,$(GET_SOURCES))
 
-# make absolute paths for $(TRG_SDEPS)
+# make absolute paths of source dependencies
 TRG_SDEPS = $(call FIX_SDEPS,$(SDEPS))
 
 # objects to build for the target
 # $1 - sources to compile
 GET_OBJS = $(addsuffix $(OBJ_SUFFIX),$(basename $(notdir $1)))
 
-# VARIANT_LIB_MAP/VARIANT_IMP_MAP - functions that define which variant of
-#  static/dynamic library to link with EXE or DLL, defined in $(OSDIR)/$(OS)/c.mk
+# for DEP_LIB_SUFFIX, determine which variant of static library to link with EXE or DLL
 # $1 - target: EXE,DLL
-# $2 - variant of target EXE or DLL: R,P,S,<empty>
-# $3 - dependent static/dynamic library name
+# $2 - variant of target EXE or DLL: R,P,<empty>
+# $3 - dependent static library name
+# use the same variant (R or P) of static library as target EXE (for example for P-EXE use P-LIB)
+# always use D-variant of static library for DLL
+# note: $(TOOLCHAINS_DIR)/compilers/msvc.mk overrides VARIANT_LIB_MAP
+VARIANT_LIB_MAP = $(if $(filter DLL,$1),D,$2)
+
+# for DEP_IMP_SUFFIX, determine which variant of dynamic library to link with EXE or DLL
+# $1 - target: EXE,DLL
+# $2 - variant of target EXE or DLL: R,P,<empty>
+# $3 - dependent dynamic library name
+# the same one default variant (R) of DLL may be linked with any P- or R-EXE or R-DLL
+# note: $(TOOLCHAINS_DIR)/compilers/msvc.mk overrides VARIANT_IMP_MAP
+VARIANT_IMP_MAP := R
 
 # get suffix of dependent LIB
 # $1 - target: EXE,DLL
@@ -218,8 +242,8 @@ SUBST_DEFINES = $(eval SUBST_DEFINES_:=$(subst $(comment),$$(comment),$1))$(SUBS
 
 # helper macro for target makefiles to pass string define value to C-compiler
 # result of this macro will be processed by SUBST_DEFINES
-# note: WINXX/c.mk defines own STRING_DEFINE macro
-STRING_DEFINE = "$(subst ",\",$(subst $(tab),$$(tab),$(subst $(space),$$(space),$(subst $$,$$$$,$1))))"
+# note: $(TOOLCHAINS_DIR)/compilers/msvc.mk defines own STRING_DEFINE macro
+STRING_DEFINE = "$(subst ",$(backslash)",$(subst $(tab),$$(tab),$(subst $(space),$$(space),$(subst $$,$$$$,$1))))"
 
 # $1 - $(call FORM_TRG,$t,$v)
 # $2 - $(TRG_SRC)
@@ -229,7 +253,8 @@ STRING_DEFINE = "$(subst ",\",$(subst $(tab),$$(tab),$(subst $(space),$$(space),
 # $v - non-empty variant: R,P,S,...
 ifdef MCHECK
 # check that target template is defined
-C_RULES2 = $(if $(value $t_TEMPLATE),$($t_TEMPLATE),$(error $t_TEMPLATE not defined! (define it in $(OSDIR)/$(OS)/c.mk)))
+C_RULES2 = $(if $(value $t_TEMPLATE),$($t_TEMPLATE),$(error \
+  $t_TEMPLATE is not defined! (define it in appropriate $(TOOLCHAINS_DIR)/compilers/compiler.mk)))
 else
 C_RULES2 = $($t_TEMPLATE)
 endif
@@ -243,13 +268,15 @@ C_RULES1 = $(foreach v,$(call GET_VARIANTS,$t),$(newline)$(call C_RULES2,$(call 
 # $1 - $(BLD_TARGETS)
 C_RULES = $(foreach t,$1,$(if $($t),$(call C_RULES1,$(TRG_SRC),$(TRG_SDEPS))))
 
-# how to build executable, used by $(C_RULES)
+# how to build executable, used by C_RULES macro
 # $1 - target file: $(call FORM_TRG,$t,$v)
 # $2 - sources:     $(TRG_SRC)
 # $3 - sdeps:       $(TRG_SDEPS)
 # $4 - objdir:      $(call FORM_OBJ_DIR,$t,$v)
 # $t - EXE or DLL
 # $v - non-empty variant: R,P,S,...
+# note: target-specific variables are passed to dependencies, so templates for
+#  dependent libs/dlls must override INCLUDE, DEFINES, CFLAGS and other sensible variables
 define EXE_TEMPLATE
 NEEDED_DIRS+=$4
 $(STD_TARGET_VARS)
@@ -272,10 +299,10 @@ $1:$(addprefix $(LIB_DIR)/,$(call DEP_LIBS,$t,$v) $(call DEP_IMPS,$t,$v))
 	$$(call $t_$v_LD,$$@,$$(filter %$(OBJ_SUFFIX),$$^))
 endef
 
-# how to build dynamic (shared) library, used by $(C_RULES)
+# how to build dynamic (shared) library, used by C_RULES
 DLL_TEMPLATE = $(EXE_TEMPLATE)
 
-# how to build static library for EXE/DLL or static library for DLL only, used by $(C_RULES)
+# how to build static library for EXE/DLL or static library for DLL only, used by C_RULES
 # $1 - target file: $(call FORM_TRG,$t,$v)
 # $2 - sources:     $(TRG_SRC)
 # $3 - sdeps:       $(TRG_SDEPS)
@@ -299,78 +326,32 @@ $1:
 	$$(call $t_$v_LD,$$@,$$(filter %$(OBJ_SUFFIX),$$^))
 endef
 
-# how to build kernel-mode static library for driver, used by $(C_RULES)
-# $1 - target file: $(call FORM_TRG,$t,$v)
-# $2 - sources:     $(TRG_SRC)
-# $3 - sdeps:       $(TRG_SDEPS)
-# $4 - objdir:      $(call FORM_OBJ_DIR,$t,$v)
-# $t - KLIB
-# $v - non-empty variant: R
-define KLIB_TEMPLATE
-NEEDED_DIRS+=$4
-$(STD_TARGET_VARS)
-$1:$(call OBJ_RULES,CC,$(filter %.c,$2),$3,$4)
-$1:$(call OBJ_RULES,CXX,$(filter %.cpp,$2),$3,$4)
-$1:$(call OBJ_RULES,ASM,$(filter %.asm,$2),$3,$4)
-$1:COMPILER := $(TRG_COMPILER)
-$1:INCLUDE  := $(TRG_INCLUDE)
-$1:DEFINES  := $(TRG_DEFINES)
-$1:CFLAGS   := $(TRG_CFLAGS)
-$1:CXXFLAGS := $(TRG_CXXFLAGS)
-$1:ASMFLAGS := $(TRG_ASMFLAGS)
-$1:LDFLAGS  := $(TRG_LDFLAGS)
-$1:
-	$$(call $t_$v_LD,$$@,$$(filter %$(OBJ_SUFFIX),$$^))
-endef
-
 # tools colors
 CC_COLOR   := [1;31m
 CXX_COLOR  := [1;36m
 AR_COLOR   := [1;32m
 LD_COLOR   := [1;33m
 XLD_COLOR  := [1;37m
-ASM_COLOR  := [0;37m
-KCC_COLOR  := [0;31m
-KCXX_COLOR := [0;36m
-KLD_COLOR  := [0;33m
-TCC_COLOR  := [0;32m
-TCXX_COLOR := [0;32m
-TLD_COLOR  := [0;33m
+ASM_COLOR  := [37m
+KCC_COLOR  := [31m
+KCXX_COLOR := [36m
+KLD_COLOR  := [33m
+TCC_COLOR  := [32m
+TCXX_COLOR := [32m
+TLD_COLOR  := [33m
 TXLD_COLOR := [1;37m
 TAR_COLOR  := [1;32m
 
-# check that LIBS specified only when building EXE or DLL,
-# check that KLIBS specified only when building DRV
+# this code is normally evaluated at end of target makefile
+DEFINE_C_TARGETS_EVAL = $(eval $(call C_RULES,$(BLD_TARGETS)))$(DEF_TAIL_CODE_EVAL)
+
+# check that LIBS or DLLS are specified only when building EXE or DLL
 ifdef MCHECK
 CHECK_C_RULES = $(if \
-  $(TMD),$(if $(KDLL)$(KLIB)$(DRV),$(error cannot build drivers in tool mode)))$(if \
   $(if $(EXE)$(DLL),,$(LIBS)),$(warning LIBS = $(LIBS) is used only when building EXE or DLL))$(if \
-  $(if $(EXE)$(DLL),,$(DLLS)),$(warning DLLS = $(DLLS) is used only when building EXE or DLL))$(if \
-  $(if $(DRV)$(KDLL),,$(KLIBS)),$(warning KLIBS = $(KLIBS) is used only when building DRV or KDLL))$(if \
-  $(if $(DRV)$(KDLL),,$(KDLLS)),$(warning KDLLS = $(KDLLS) is used only when building DRV or KDLL))
-else
-CHECK_C_RULES:=
+  $(if $(EXE)$(DLL),,$(DLLS)),$(warning DLLS = $(DLLS) is used only when building EXE or DLL))
+$(eval DEFINE_C_TARGETS_EVAL = $$(CHECK_C_RULES)$(value DEFINE_C_TARGETS_EVAL))
 endif
-
-# auxiliary definitions possibly defined in $(OSDIR)/$(OS)/c.mk
-OS_DEFINE_TARGETS:=
-
-# this code is normally evaluated at end of target makefile
-# 1) print what we will build
-# 2) evaluate $(OS)-specific default targets before defining common default targets
-#   to allow additional $(OS)-specific dependencies on targets
-# 3) check and evaluate rules
-# 4) evaluate $(DEF_TAIL_CODE)
-define DEFINE_C_TARGETS_EVAL
-$(if $(MDEBUG),$(eval $(call DEBUG_TARGETS,$(BLD_TARGETS),FORM_TRG,VARIANTS_FILTER)))
-$(eval $(OS_DEFINE_TARGETS))
-$(eval $(CHECK_C_RULES)$(call C_RULES,$(BLD_TARGETS)))
-$(DEF_TAIL_CODE_EVAL)
-endef
-
-# product version in form major.minor or major.minor.patch
-# note: this is also default version for any built module (exe, dll or driver)
-PRODUCT_VER := 0.0.1
 
 # reset variables in from $(BLD_TARGETS) list
 BLD_TARGETS_RESET := $(subst $(space),:=$(newline),$(BLD_TARGETS)):=
@@ -403,10 +384,9 @@ endef
 
 # reset build targets, target-specific variables and variables modifiable in target makefiles
 # NOTE: expanded by $(CLEAN_BUILD_DIR)/c.mk
-CLEAN_BUILD_C_EVAL = $(eval $(DEF_HEAD_CODE)$(PREPARE_C_VARS))
+CLEAN_BUILD_C_EVAL = $(DEF_HEAD_CODE_EVAL)$(eval $(PREPARE_C_VARS))
 
-# note: $(OSDIR)/$(OS)/c.mk must define VARIANTS_FILTER
-include $(OSDIR)/$(OS)/c.mk
+include $(TOOLCHAINS_DIR)/compilers/$(C_COMPILER).mk
 
 # check if no new variables introduced in PREPARE_C_VARS
 ifeq (,$(findstring $$,$(subst \
@@ -425,8 +405,8 @@ endif # words
 endif # findstring
 
 # protect variables from modifications in target makefiles
-$(call CLEAN_BUILD_PROTECT_VARS,BLD_TARGETS NO_DEPS ADD_OBJ_SDEPS=x OBJ_RULES2=t;v OBJ_RULES1=t;v OBJ_RULES=t;v \
-  VARIANTS_FILTER EXE_SUFFIX_GEN EXE_VAR_SUFFIX LIB_VAR_SUFFIX DLL_DIR OS_FORM_TRG FORM_TRG ALL_TRG \
+$(call SET_GLOBAL,KNOWN_C_COMPILERS C_COMPILER BLD_TARGETS NO_DEPS ADD_OBJ_SDEPS=x OBJ_RULES2=t;v OBJ_RULES1=t;v OBJ_RULES=t;v \
+  VARIANTS_FILTER EXE_SUFFIX_GEN EXE_VAR_SUFFIX LIB_VAR_SUFFIX DLL_DIR FORM_TRG ALL_TRG \
   TRG_COMPILER=t;v TRG_INCLUDE=t;v;SYSINCLUDE TRG_DEFINES=t;v;DEFINES TRG_CFLAGS=t;v;CFLAGS \
   TRG_CXXFLAGS=t;v;CXXFLAGS TRG_ASMFLAGS=t;v;ASMFLAGS TRG_LDFLAGS=t;v;LDFLAGS \
   GET_SOURCES=SRC;WITH_PCH TRG_SRC TRG_SDEPS=SDEPS GET_OBJS VARIANT_LIB_MAP VARIANT_IMP_MAP \
@@ -436,5 +416,5 @@ $(call CLEAN_BUILD_PROTECT_VARS,BLD_TARGETS NO_DEPS ADD_OBJ_SDEPS=x OBJ_RULES2=t
   KLIB_PREFIX KLIB_SUFFIX DRV_PREFIX DRV_SUFFIX KDLL_PREFIX KDLL_SUFFIX \
   EXE_TEMPLATE=t;v;EXE;LIB_DIR;LIBS;DLLS;SYSLIBS;SYSLIBPATH LIB_TEMPLATE=t;v;LIB DLL_TEMPLATE=t;v;DLL KLIB_TEMPLATE=t;v;KLIB \
   CC_COLOR CXX_COLOR AR_COLOR LD_COLOR XLD_COLOR ASM_COLOR \
-  KCC_COLOR KCXX_COLOR KLD_COLOR TCC_COLOR TCXX_COLOR TLD_COLOR TXLD_COLOR TAR_COLOR CHECK_C_RULES \
-  OS_DEFINE_TARGETS DEFINE_C_TARGETS_EVAL PRODUCT_VER BLD_TARGETS_RESET PREPARE_C_VARS CLEAN_BUILD_C_EVAL)
+  KCC_COLOR KCXX_COLOR KLD_COLOR TCC_COLOR TCXX_COLOR TLD_COLOR TXLD_COLOR TAR_COLOR \
+  DEFINE_C_TARGETS_EVAL CHECK_C_RULES BLD_TARGETS_RESET PREPARE_C_VARS CLEAN_BUILD_C_EVAL)

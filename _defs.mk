@@ -125,16 +125,16 @@ ifneq (,$(findstring $(space),$(BUILD)))
 $(error BUILD=$(BUILD), path to generated files must not contain spaces)
 endif
 
+# list of project-specific target types
+# note: normally these defaults are overridden in project configuration makefile
+SUPPORTED_TARGETS := DEBUG RELEASE
+
 # standard variables that may be overridden:
 # TARGET    - one of project-specific $(SUPPORTED_TARGETS)
 # OS        - one of build system supported operating systems
 # UTILS     - one of build system supported shell utilities
 # COMPILERS - set of build system supported compilers toolchains
 # CPU, TCPU - values depend on selected compilers
-
-# list of project-specific target types
-# note: normally these defaults are be overridden either in project configuration makefile
-SUPPORTED_TARGETS := DEBUG RELEASE
 
 # what target type to build (DEBUG, RELEASE, TESTS, etc.)
 # note: normally TARGET get overridden by specifying it in command line
@@ -223,20 +223,7 @@ ifeq (,$(filter $(TARGET),$(SUPPORTED_TARGETS)))
 $(error unknown TARGET=$(TARGET), please pick one of: $(SUPPORTED_TARGETS))
 endif
 
-# OS - operating system we are building for
-ifndef OS
-$(error OS variable is not defined)
-endif
-
-ifeq (,$(wildcard $(TOOLCHAINS_DIR)/$(OS)/))
-$(error unknown OS=$(OS), directory $(TOOLCHAINS_DIR)/$(OS) does not exist)
-endif
-
 # COMPILERS - names of compilers to use for the build
-ifndef COMPILERS
-$(error COMPILERS variable is not defined)
-endif
-
 $(foreach c,$(COMPILERS),$(if $(wildcard $(TOOLCHAINS_DIR)/compilers/$c.mk),,$(error \
   unknown compiler in COMPILERS list: $c, file $(TOOLCHAINS_DIR)/compilers/$c.mk was not found)))
 
@@ -785,12 +772,17 @@ DEF_HEAD_CODE_EVAL = $(eval $(DEF_HEAD_CODE))
 #  calls DEF_TAIL_CODE with @ for the checks in CLEAN_BUILD_CHECK_AT_TAIL macro
 DEF_TAIL_CODE_EVAL = $(eval $(DEF_TAIL_CODE))
 
-# $(DEF_HEAD_CODE) must be evaluated before expanding $(DEFINE_TARGETS)
-DEFINE_TARGETS_EVAL_NAME = $(error $$(DEF_HEAD_CODE) was not evaluated at head of makefile!)
-
-# $(MAKE_CONTINUE_EVAL_NAME) - contains name of macro, that when expanded, evaluates some code for
-#  resetting variables and preparing to define more targets (at least, by evaluating $(DEF_HEAD_CODE))
+# $(MAKE_CONTINUE_EVAL_NAME) - contains name of macro (DEF_HEAD_CODE_EVAL by default),
+#  that when expanded, evaluates some code for resetting variables and
+#  preparing to define more targets (at least, by evaluating $(DEF_HEAD_CODE)),
+# example: MY_PREPARE = $(DEF_HEAD_CODE_EVAL)$(eval $(MY_PREPARE_CODE))
 #MAKE_CONTINUE_EVAL_NAME - will be defined while evaluating $(DEF_HEAD_CODE)
+
+# $(DEFINE_TARGETS_EVAL_NAME) - contains name of macro (DEF_TAIL_CODE_EVAL by default),
+#  that when expanded, evaluates some code that defines rules for the targets,
+# example: MY_DEFINE = $(eval $(MY_RULES_CODE))$(DEF_TAIL_CODE_EVAL)
+# check that $(DEF_HEAD_CODE) was evaluated before expanding $(DEFINE_TARGETS)
+DEFINE_TARGETS_EVAL_NAME = $(error $$(DEF_HEAD_CODE) was not evaluated at head of makefile!)
 
 # list of all processed target makefiles (absolute paths)
 # note: PROCESSED_MAKEFILES is never cleared, only appended (in DEF_HEAD_CODE)
@@ -798,36 +790,41 @@ ifneq (,$(MCHECK)$(value ADD_SHOWN_PERCENTS))
 PROCESSED_MAKEFILES:=
 endif
 
+# ***********************************************
 # code to $(eval) at beginning of each makefile
 # NOTE: $(MAKE_CONTINUE) before expanding $(DEF_HEAD_CODE) adds 2 to $(MAKE_CONT) list (which is normally empty or contains 1 1...)
 #  - so we know if $(DEF_HEAD_CODE) was expanded from $(MAKE_CONTINUE) - remove 2 from $(MAKE_CONT) in that case
 #  - if $(DEF_HEAD_CODE) was expanded not from $(MAKE_CONTINUE) - no 2 in $(MAKE_CONT) - reset MAKE_CONT
 # NOTE: set TMD to remember if we are in tool mode - TOOL_MODE variable may be changed before calling $(MAKE_CONTINUE)
-# NOTE: append empty line at end of $(DEF_HEAD_CODE) - to allow to join it and eval: $(eval $(DEF_HEAD_CODE)$(MY_PREPARE_CODE))
 define DEF_HEAD_CODE
 ifneq (,$(findstring 2,$(MAKE_CONT)))
 MAKE_CONT:=$$(subst 2,1,$$(MAKE_CONT))
 else
 MAKE_CONT:=
-DEFINE_TARGETS_EVAL_NAME:=DEF_TAIL_CODE_EVAL
 MAKE_CONTINUE_EVAL_NAME:=DEF_HEAD_CODE_EVAL
+DEFINE_TARGETS_EVAL_NAME:=DEF_TAIL_CODE_EVAL
 endif
 $(if $(TOOL_MODE),$(if \
   $(TMD),,$(TOOL_OVERRIDE_DIRS)$(newline)TMD:=T),$(if \
   $(TMD),$(SET_DEFAULT_DIRS)$(newline)TMD:=))
-
 endef
 
 # show debug info prior defining targets
 # note: $(MAKE_CONT) contains 2 if inside $(MAKE_CONTINUE)
 ifdef MDEBUG
-$(call define_prepend,DEF_HEAD_CODE,$$(info \
-  $$(CB_INCLUDE_LEVEL)$$(TARGET_MAKEFILE)$$(if $$(findstring 2,$$(MAKE_CONT)),+$$(words $$(MAKE_CONT)))))
+$(call define_prepend,DEF_HEAD_CODE,$$(info $$(subst \
+  $$(space),,$$(CB_INCLUDE_LEVEL))$$(TARGET_MAKEFILE)$$(if $$(findstring 2,$$(MAKE_CONT)),+$$(words $$(MAKE_CONT)))))
 endif
 
 # prepend DEF_HEAD_CODE with $(CLEAN_BUILD_CHECK_AT_HEAD), if it is defined in $(CLEAN_BUILD_DIR)/protection.mk
 ifdef CLEAN_BUILD_CHECK_AT_HEAD
 $(call define_prepend,DEF_HEAD_CODE,$$(CLEAN_BUILD_CHECK_AT_HEAD))
+endif
+
+# remember new value of PROCESSED_MAKEFILES variables (without tracing calls)
+ifdef MCHECK
+$(eval define DEF_HEAD_CODE$(newline)$(subst \
+  else,else$(newline)$(call SET_GLOBAL1,PROCESSED_MAKEFILES,0),$(value DEF_HEAD_CODE))$(newline)endef)
 endif
 
 # add $(TARGET_MAKEFILE) to list of processed target makefiles before first $(MAKE_CONTINUE)
@@ -843,14 +840,15 @@ $(eval define DEF_HEAD_CODE$(newline)$(subst \
   makefile $$(TARGET_MAKEFILE) was already processed!))),$(value DEF_HEAD_CODE))$(newline)endef)
 endif
 
-# remember new values of TMD,DEFINE_TARGETS_EVAL_NAME and MAKE_CONTINUE_EVAL_NAME
+# remember new values of TMD, MAKE_CONTINUE_EVAL_NAME and DEFINE_TARGETS_EVAL_NAME
 ifdef SET_GLOBAL1
 $(eval define DEF_HEAD_CODE$(newline)$(subst \
   TMD:=T,TMD:=T$$(newline)$$(call SET_GLOBAL1,TMD),$(subst \
   TMD:=$(close_brace),TMD:=$(close_brace)$$(newline)$$(call SET_GLOBAL1,TMD),$(subst \
-  endif,$(call SET_GLOBAL1,DEFINE_TARGETS_EVAL_NAME MAKE_CONTINUE_EVAL_NAME)$(newline)endif,$(value DEF_HEAD_CODE))))$(newline)endef)
+  endif,$(call SET_GLOBAL1,MAKE_CONTINUE_EVAL_NAME DEFINE_TARGETS_EVAL_NAME)$(newline)endif,$(value DEF_HEAD_CODE))))$(newline)endef)
 endif
 
+# ***********************************************
 # code to $(eval) at end of each makefile
 # include $(CLEAN_BUILD_DIR)/all.mk only if $(CB_INCLUDE_LEVEL) is empty and not inside the call of $(MAKE_CONTINUE)
 # note: $(MAKE_CONTINUE) before expanding $(DEF_TAIL_CODE) adds 2 to $(MAKE_CONT) list
@@ -859,7 +857,7 @@ DEF_TAIL_CODE = $(if $(CB_INCLUDE_LEVEL)$(findstring 2,$(MAKE_CONT)),,include $(
 
 # prepend DEF_TAIL_CODE with $(CLEAN_BUILD_CHECK_AT_TAIL), if it is defined in $(CLEAN_BUILD_DIR)/protection.mk
 ifdef CLEAN_BUILD_CHECK_AT_TAIL
-$(call define_prepend,DEF_TAIL_CODE,$$(CLEAN_BUILD_CHECK_AT_TAIL))
+$(call define_prepend,DEF_TAIL_CODE,$$(eval $$(CLEAN_BUILD_CHECK_AT_TAIL)))
 endif
 
 # define targets at end of makefile
@@ -916,12 +914,16 @@ $(info $(call PRINT_PERCENTS,use)$(call COLORIZE,CONF,$(CONFIG)))
 endif
 endif
 
+# product version in form major.minor or major.minor.patch
+# note: this is also default version for any built module (exe, dll or driver)
+PRODUCT_VER := 0.0.1
+
 # protect macros from modifications in target makefiles,
 # do not trace calls to macros used in ifdefs, passed to environment of called tools or modified via operator +=
 # note: do not trace calls to TARGET_MAKEFILE - it is used to form PHONY target names
 $(call SET_GLOBAL,MAKEFLAGS $(PASS_ENV_VARS) PATH SHELL NEEDED_DIRS \
   NO_CLEAN_BUILD_DISTCLEAN_TARGET DEBUG VERBOSE QUIET INFOMF MDEBUG TARGET_MAKEFILE SHOWN_PERCENTS \
-  CLEAN MAKEFILE_STD_TARGETS ORDER_DEPS MULTI_TARGETS MULTI_TARGET_NUM MAKE_CONT,0)
+  CLEAN MAKEFILE_STD_TARGETS ORDER_DEPS MULTI_TARGETS MULTI_TARGET_NUM CB_INCLUDE_LEVEL PROCESSED_MAKEFILES MAKE_CONT,0)
 
 # protect macros from modifications in target makefiles, allow tracing calls to them
 $(call SET_GLOBAL,PROJECT_VARS_NAMES PASS_ENV_VARS \
@@ -938,8 +940,8 @@ $(call SET_GLOBAL,PROJECT_VARS_NAMES PASS_ENV_VARS \
   FILTER_VARIANTS_LIST GET_VARIANTS GET_TARGET_NAME FORM_OBJ_DIR \
   ADD_GENERATED CHECK_GENERATED MULTI_TARGETS MULTI_TARGET_RULE=MULTI_TARGET_NUM=MULTI_TARGET_NUM MULTI_TARGET CHECK_MULTI_RULE \
   NON_PARALLEL_EXECUTE_RULE NON_PARALLEL_EXECUTE FORM_SDEPS EXTRACT_SDEPS FIX_SDEPS RUN_WITH_DLL_PATH TMD TOOL_MODE \
-  CB_INCLUDE_LEVEL DEF_HEAD_CODE_EVAL DEF_TAIL_CODE_EVAL DEFINE_TARGETS_EVAL_NAME MAKE_CONTINUE_EVAL_NAME PROCESSED_MAKEFILES \
-  DEF_HEAD_CODE DEF_TAIL_CODE DEFINE_TARGETS=DEFINE_TARGETS_EVAL_NAME SAVE_VARS RESTORE_VARS MAKE_CONTINUE CONF_COLOR)
+  DEF_HEAD_CODE_EVAL DEF_TAIL_CODE_EVAL MAKE_CONTINUE_EVAL_NAME DEFINE_TARGETS_EVAL_NAME \
+  DEF_HEAD_CODE DEF_TAIL_CODE DEFINE_TARGETS SAVE_VARS RESTORE_VARS MAKE_CONTINUE CONF_COLOR PRODUCT_VER)
 
 # if TOCLEAN value is non-empty, allow tracing calls to it,
 # else - just protect TOCLEAN from changes, do not make it's value non-empty - because TOCLEAN is checked in ifdefs

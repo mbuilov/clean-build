@@ -12,12 +12,10 @@ endif
 # add path to directory of $(TARGET_MAKEFILE) if makefile path is not absolute, add /Makefile if makefile path is a directory
 NORM_MAKEFILES = $(patsubst %.mk/Makefile$2,%.mk$2,$(addsuffix /Makefile$2,$(patsubst %/Makefile,%,$(call fixpath,$1))))
 
-# $2 - $(CB_INCLUDE_LEVEL).
 # $m - absolute path to makefile to include
 # note: TOOL_MODE value may be changed (set) in included makefile, so restore TOOL_MODE before including next makefile
 # note: last line must be empty to allow to join multiple $(CB_INCLUDE_TEMPLATE)s together
 define CB_INCLUDE_TEMPLATE
-CB_INCLUDE_LEVEL:=$2
 TARGET_MAKEFILE:=$m
 TOOL_MODE:=$(TOOL_MODE)
 include $m
@@ -25,20 +23,31 @@ include $m
 endef
 
 ifdef SET_GLOBAL1
-# remember new values of TOOL_MODE and CB_INCLUDE_LEVEL
+# remember new value of TOOL_MODE
 $(eval define CB_INCLUDE_TEMPLATE$(newline)$(subst include,$(call \
-  SET_GLOBAL1,TOOL_MODE CB_INCLUDE_LEVEL)$(newline)include)$(newline)endef)
+  SET_GLOBAL1,TOOL_MODE)$(newline)include)$(newline)endef)
+endif
+
 ifdef MCHECK
 # remember new value of TARGET_MAKEFILE (without tracing calls)
 $(eval define CB_INCLUDE_TEMPLATE$(newline)$(subst \
   include,$(call SET_GLOBAL1,TARGET_MAKEFILE,0)$(newline)include)$(newline)endef)
 endif
-endif
 
 # generate code for processing given list of makefiles
 # $1 - absolute path to makefiles to include
-# $2 - $(CB_INCLUDE_LEVEL).
-CLEAN_BUILD_PARALLEL = $(foreach m,$1,$(CB_INCLUDE_TEMPLATE))
+define CLEAN_BUILD_PARALLEL
+CB_INCLUDE_LEVEL+=.
+$(foreach m,$1,$(CB_INCLUDE_TEMPLATE))
+CB_INCLUDE_LEVEL:=$(CB_INCLUDE_LEVEL)
+endef
+
+# remember new values of CB_INCLUDE_LEVEL (without tracing calls)
+ifdef MCHECK
+$(eval define CLEAN_BUILD_PARALLEL$(newline)$(subst \
+  CB_INCLUDE_LEVEL+=.,CB_INCLUDE_LEVEL+=.$(newline)$(call SET_GLOBAL1,CB_INCLUDE_LEVEL,0),$(value \
+  CLEAN_BUILD_PARALLEL))$(newline)$(call SET_GLOBAL1,CB_INCLUDE_LEVEL,0)$(newline)endef)
+endif
 
 ifndef TOCLEAN
 
@@ -74,21 +83,17 @@ $(call define_prepend,CLEAN_BUILD_PARALLEL,.PHONY: $$(addsuffix \
 
 # show debug info
 ifdef MDEBUG
-$(call define_prepend,CLEAN_BUILD_PARALLEL,$$(info \
-  $$(CB_INCLUDE_LEVEL)$$(TARGET_MAKEFILE)$$(if $$(ORDER_DEPS), | $$(ORDER_DEPS))))
+$(call define_prepend,CLEAN_BUILD_PARALLEL,$$(info $$(subst \
+  $$(space),,$$(CB_INCLUDE_LEVEL))$$(TARGET_MAKEFILE)$$(if $$(ORDER_DEPS), | $$(ORDER_DEPS))))
 endif
 
 else ifdef MDEBUG
 
 # show debug info
-$(call define_prepend,CLEAN_BUILD_PARALLEL,$$(info $$(CB_INCLUDE_LEVEL)$$(TARGET_MAKEFILE)))
+$(call define_prepend,CLEAN_BUILD_PARALLEL,$$(info $$(subst \
+  $$(space),,$$(CB_INCLUDE_LEVEL))$$(TARGET_MAKEFILE)))
 
 endif # clean && MDEBUG
-
-# at last, check if need to include $(CLEAN_BUILD_DIR)/all.mk
-# NOTE: call DEF_TAIL_CODE with @ - for the checks in $(CLEAN_BUILD_CHECK_AT_TAIL) macro
-#  (which is defined in $(CLEAN_BUILD_DIR)/protection.mk)
-$(call define_append,CLEAN_BUILD_PARALLEL,$(newline)$$$$(eval $$$$(call DEF_TAIL_CODE,@)))
 
 # PROCESS_SUBMAKES normally called with non-empty first argument $1
 # to not define variable 1 for next processed makefiles,
@@ -97,9 +102,12 @@ PROCESS_SUBMAKES_EVAL = $(eval $(value CB_PARALLEL_CODE))
 
 # generate code for processing given makefiles - in $(CB_PARALLEL_CODE), then evaluate it
 #  via call without parameters - to hide $1 argument from included makefiles
+# at end, check if need to include $(CLEAN_BUILD_DIR)/all.mk
 # note: make absolute paths to makefiles $1 to include
+# note: call DEF_TAIL_CODE with @ - for the checks in CLEAN_BUILD_CHECK_AT_TAIL macro
+#  (which is defined in $(CLEAN_BUILD_DIR)/protection.mk)
 PROCESS_SUBMAKES = $(eval define CB_PARALLEL_CODE$(newline)$(call CLEAN_BUILD_PARALLEL,$(call \
-  NORM_MAKEFILES,$1,),$(CB_INCLUDE_LEVEL).)$(newline)endef)$(call PROCESS_SUBMAKES_EVAL)
+  NORM_MAKEFILES,$1,))$(newline)endef)$(call PROCESS_SUBMAKES_EVAL)$(eval $(call DEF_TAIL_CODE,@))
 
 # protect variables from modifications in target makefiles
 # note: don't complain about new ADD_MDEPS and ADD_ADEPS values
