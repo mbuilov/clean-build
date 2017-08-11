@@ -63,7 +63,7 @@ SET_GLOBAL = $(eval $(SET_GLOBAL1))
 # 2) check and set CLEAN_BUILD_NEED_TAIL_CODE - $(DEF_TAIL_CODE) must be evaluated after $(DEF_HEAD_CODE)
 define CLEAN_BUILD_CHECK_AT_HEAD
 $(foreach v,$(filter-out \
-  MAKEFILE_LIST $(CLEAN_BUILD_PROTECTED_VARS),$(.VARIABLES)),$(if \
+  MAKEFILE_LIST $(CLEAN_BUILD_PROTECTED_VARS) $^saved,$(.VARIABLES)),$(if \
   $(filter file override environment,$(origin $v)),$(if \
   $(filter-out !$$$(open_brace)error$(space)%,$(value $v)),$(if \
   $(filter environment,$(origin $v)),$v=!$$(error \

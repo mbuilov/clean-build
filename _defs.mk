@@ -386,6 +386,7 @@ SHOWN_REMAINDER:=
 ADD_SHOWN_PERCENTS = $(if $(word $(TARGET_MAKEFILES_COUNT),$1),+ $(call \
   ADD_SHOWN_PERCENTS,$(wordlist $(TARGET_MAKEFILES_COUNT1),999999,$1)),$(eval SHOWN_REMAINDER:=$$1))
 ifdef SET_GLOBAL
+# remember new value of SHOWN_REMAINDER
 $(eval ADD_SHOWN_PERCENTS = $(value ADD_SHOWN_PERCENTS)$$(call SET_GLOBAL,SHOWN_REMAINDER))
 endif
 # prepare for printing percents of processed makefiles
@@ -410,7 +411,8 @@ SHOWN_PERCENTS += $(call ADD_SHOWN_PERCENTS,$(SHOWN_REMAINDER) \
 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1)
 endef
 ifdef MCHECK
-$(call define_append,REM_MAKEFILE,$(newline)$$(call SET_GLOBAL1,SHOWN_PERCENTS,0))
+# remember new value of SHOWN_PERCENTS (without tracing calls)
+$(call define_append,REM_MAKEFILE,$(newline)$(call SET_GLOBAL1,SHOWN_PERCENTS,0))
 endif
 ifdef INFOMF
 SUP = $(info $(call PRINT_PERCENTS,$(if $4,,$(if $(findstring undefined,$(origin \
@@ -453,6 +455,7 @@ GEN_DIR:=$(DEF_GEN_DIR)
 endef
 SET_DEFAULT_DIRS := $(SET_DEFAULT_DIRS)
 
+# remember new values of standard directories
 ifdef SET_GLOBAL1
 SET_DEFAULT_DIRS := $(SET_DEFAULT_DIRS)$(newline)$(call SET_GLOBAL1,BIN_DIR OBJ_DIR LIB_DIR GEN_DIR)
 endif
@@ -494,6 +497,7 @@ GEN_DIR:=$(TOOL_BASE)/gen-TOOL-$(TCPU)-$(TARGET)
 endef
 TOOL_OVERRIDE_DIRS := $(TOOL_OVERRIDE_DIRS)
 
+# remember new values of standard directories
 ifdef SET_GLOBAL1
 TOOL_OVERRIDE_DIRS := $(TOOL_OVERRIDE_DIRS)$(newline)$(call SET_GLOBAL1,BIN_DIR OBJ_DIR LIB_DIR GEN_DIR)
 endif
@@ -509,35 +513,50 @@ ifeq (,$(filter clean,$(MAKECMDGOALS)))
 TOCLEAN:=
 else ifneq (,$(word 2,$(MAKECMDGOALS)))
 $(error clean goal must be specified alone, current goals: $(MAKECMDGOALS))
-else ifndef MCHECK
-TOCLEAN = $(eval CLEAN+=$$1)
-else
+else ifdef MCHECK
+# remember new value of CLEAN (without tracing calls)
 TOCLEAN = $(eval CLEAN+=$$1$(newline)$(call SET_GLOBAL1,CLEAN,0))
+else
+TOCLEAN = $(eval CLEAN+=$$1)
 endif
 
 # append makefiles (really PHONY targets created from them) to ORDER_DEPS list
 # note: this function is useful to specify dependency on all target files built by makefiles (a tree of makefiles)
-# note: argument - list of makefiles and/or directories, where Makefile is searched
+# note: argument - list of makefiles (or directories, where Makefile is searched)
 # note: overridden in $(CLEAN_BUILD_DIR)/parallel.mk
 ADD_MDEPS:=
 
+# same as ADD_MDEPS, but accepts aliases of makefiles
+# note: alias names are created via CREATE_MAKEFILE_ALIAS macro
+# note: overridden in $(CLEAN_BUILD_DIR)/parallel.mk
+ADD_ADEPS:=
+
 ifndef TOCLEAN
 
-# order-only dependencies that are automatically added to all leaf prerequisites of the targets
-# note: should not be directly modified in target makefiles, use ADD_ORDER_DEPS/ADD_MDEPS to append value(s) to ORDER_DEPS list
+# create a PHONY target aliasing current makefile
+# $1 - arbitrary alias name
+CREATE_MAKEFILE_ALIAS = $(eval .PHONY: MAKEFILE_ALIAS_$1-$(newline)MAKEFILE_ALIAS_$1-: $(TARGET_MAKEFILE)-)
+
+# order-only dependencies of all leaf makefile targets
+# note: ORDER_DEPS should not be directly modified in target makefiles,
+#  use ADD_ORDER_DEPS/ADD_MDEPS/ADD_ADEPS to append value(s) to ORDER_DEPS
 ORDER_DEPS:=
 
 # append value(s) to ORDER_DEPS list
+ifdef MCHECK
+# remember new value of ORDER_DEPS (without tracing calls)
+ADD_ORDER_DEPS = $(eval ORDER_DEPS+=$$1$(newline)$(call SET_GLOBAL1,ORDER_DEPS,0))
+else
 ADD_ORDER_DEPS = $(eval ORDER_DEPS+=$$1)
+endif
 
-# define PHONY target which will depend on most of the files (*) built by $(TARGET_MAKEFILE)
-# (*) intermediate files, like object files, are may be ignored
+# define a PHONY target which will depend on main makefile targets (registered via STD_TARGET_VARS macro)
 .PHONY: $(TARGET_MAKEFILE)-
 
-# default goal 'all' - depends on the root makefile
+# default goal 'all' - depends only on the root makefile
 all: $(TARGET_MAKEFILE)-
 
-# standard target-specific variables
+# register targets as main ones built by current makefile, add standard target-specific variables
 # $1     - target file(s) to build (absolute paths)
 # $2     - directories of target file(s) (absolute paths)
 # $(TMD) - T if target is built in TOOL_MODE
@@ -550,8 +569,9 @@ $(TARGET_MAKEFILE)-:$1
 NEEDED_DIRS+=$2
 endef
 
+# remember new value of NEEDED_DIRS (without tracing calls)
 ifdef MCHECK
-$(call define_append,STD_TARGET_VARS1,$(newline)$$(call SET_GLOBAL1,NEEDED_DIRS,0))
+$(call define_append,STD_TARGET_VARS1,$(newline)$(call SET_GLOBAL1,NEEDED_DIRS,0))
 endif
 
 # print what makefile builds
@@ -560,7 +580,7 @@ $(call define_append,STD_TARGET_VARS1,$$(info $$(if \
   $$(TMD),[T]: )$$(patsubst $$(BUILD)/%,%,$$1)$$(if $$(ORDER_DEPS), | $$(ORDER_DEPS))))
 endif
 
-# standard target-specific variables
+# register targets as main ones built by current makefile, add standard target-specific variables
 # $1 - generated file(s) (absolute paths)
 STD_TARGET_VARS = $(call STD_TARGET_VARS1,$1,$(patsubst %/,%,$(sort $(dir $1))))
 
@@ -594,6 +614,7 @@ else # clean
 $(eval STD_TARGET_VARS = $(value TOCLEAN))
 
 # do nothing
+CREATE_MAKEFILE_ALIAS:=
 ADD_ORDER_DEPS:=
 SET_MAKEFILE_INFO:=
 
@@ -664,6 +685,11 @@ $1: $(call fixpath,$2)
 	$$(if $$(filter $4,$$(MULTI_TARGETS)),,$$(eval MULTI_TARGETS+=$4)$$(call SUP,MGEN,$1)$3)
 MULTI_TARGET_NUM+=1
 endef
+
+# remember new value of MULTI_TARGET_NUM
+ifdef MCHECK
+$(call define_append,MULTI_TARGET_RULE,$(newline)$(call SET_GLOBAL1,MULTI_TARGET_NUM))
+endif
 
 # if some tool generates multiple files at one call, it is needed to call
 #  the tool only once if any of generated files needs to be updated
@@ -747,7 +773,7 @@ ifneq (file,$(origin TOOL_MODE))
 TOOL_MODE:=
 endif
 
-# variable used to remember makefiles include level
+# variable used to track makefiles include level
 CB_INCLUDE_LEVEL:=
 
 # expand this macro to evaluate default head code (called from $(CLEAN_BUILD_DIR)/defs.mk)
@@ -786,16 +812,17 @@ MAKE_CONT:=
 DEFINE_TARGETS_EVAL_NAME:=DEF_TAIL_CODE_EVAL
 MAKE_CONTINUE_EVAL_NAME:=DEF_HEAD_CODE_EVAL
 endif
-$(if $(TOOL_MODE),$(if $(TMD),,$(TOOL_OVERRIDE_DIRS)),$(if $(TMD),$(SET_DEFAULT_DIRS)))
-TMD:=$(if $(TOOL_MODE),T)
+$(if $(TOOL_MODE),$(if \
+  $(TMD),,$(TOOL_OVERRIDE_DIRS)$(newline)TMD:=T),$(if \
+  $(TMD),$(SET_DEFAULT_DIRS)$(newline)TMD:=))
 
 endef
 
 # show debug info prior defining targets
 # note: $(MAKE_CONT) contains 2 if inside $(MAKE_CONTINUE)
 ifdef MDEBUG
-$(call define_prepend,DEF_HEAD_CODE,$$(info $$(subst \
-  $$(space),,$$(CB_INCLUDE_LEVEL))$$(TARGET_MAKEFILE)$$(if $$(findstring 2,$$(MAKE_CONT)),+$$(words $$(MAKE_CONT)))))
+$(call define_prepend,DEF_HEAD_CODE,$$(info \
+  $$(CB_INCLUDE_LEVEL)$$(TARGET_MAKEFILE)$$(if $$(findstring 2,$$(MAKE_CONT)),+$$(words $$(MAKE_CONT)))))
 endif
 
 # prepend DEF_HEAD_CODE with $(CLEAN_BUILD_CHECK_AT_HEAD), if it is defined in $(CLEAN_BUILD_DIR)/protection.mk
@@ -814,6 +841,14 @@ ifdef MCHECK
 $(eval define DEF_HEAD_CODE$(newline)$(subst \
   else,else$(newline)$$(if $$(filter $$(TARGET_MAKEFILE),$$(PROCESSED_MAKEFILES),$$(error \
   makefile $$(TARGET_MAKEFILE) was already processed!))),$(value DEF_HEAD_CODE))$(newline)endef)
+endif
+
+# remember new values of TMD,DEFINE_TARGETS_EVAL_NAME and MAKE_CONTINUE_EVAL_NAME
+ifdef SET_GLOBAL1
+$(eval define DEF_HEAD_CODE$(newline)$(subst \
+  TMD:=T,TMD:=T$$(newline)$$(call SET_GLOBAL1,TMD),$(subst \
+  TMD:=$(close_brace),TMD:=$(close_brace)$$(newline)$$(call SET_GLOBAL1,TMD),$(subst \
+  endif,$(call SET_GLOBAL1,DEFINE_TARGETS_EVAL_NAME MAKE_CONTINUE_EVAL_NAME)$(newline)endif,$(value DEF_HEAD_CODE))))$(newline)endef)
 endif
 
 # code to $(eval) at end of each makefile
@@ -882,28 +917,29 @@ endif
 endif
 
 # protect macros from modifications in target makefiles,
-# do not trace calls to macros used in ifdefs, passed in environment or modified via operator +=
+# do not trace calls to macros used in ifdefs, passed to environment of called tools or modified via operator +=
+# note: do not trace calls to TARGET_MAKEFILE - it is used to form PHONY target names
 $(call SET_GLOBAL,MAKEFLAGS $(PASS_ENV_VARS) PATH SHELL NEEDED_DIRS \
-  NO_CLEAN_BUILD_DISTCLEAN_TARGET DEBUG VERBOSE QUIET INFOMF MDEBUG SHOWN_PERCENTS CLEAN ORDER_DEPS,0)
-  ........
+  NO_CLEAN_BUILD_DISTCLEAN_TARGET DEBUG VERBOSE QUIET INFOMF MDEBUG TARGET_MAKEFILE SHOWN_PERCENTS \
+  CLEAN MAKEFILE_STD_TARGETS ORDER_DEPS MULTI_TARGETS MULTI_TARGET_NUM MAKE_CONT,0)
 
 # protect macros from modifications in target makefiles, allow tracing calls to them
 $(call SET_GLOBAL,PROJECT_VARS_NAMES PASS_ENV_VARS \
   CLEAN_BUILD_VERSION CLEAN_BUILD_DIR CLEAN_BUILD_REQUIRED_VERSION \
   BUILD SUPPORTED_TARGETS TARGET OS UTILS COMPILERS CPU TCPU TOOLCHAINS_DIR \
-  TARGET_MAKEFILE ospath nonrelpath TOOL_SUFFIX PATHSEP DLL_PATH_VAR show_with_dll_path show_dll_path_end SED_MULTI_EXPR \
+  ospath nonrelpath TOOL_SUFFIX PATHSEP DLL_PATH_VAR show_with_dll_path show_dll_path_end SED_MULTI_EXPR \
   GEN_COLOR MGEN_COLOR CP_COLOR RM_COLOR DEL_COLOR LN_COLOR MKDIR_COLOR TOUCH_COLOR CAT_COLOR SED_COLOR \
   PRINT_PERCENTS COLORIZE SHOWN_REMAINDER ADD_SHOWN_PERCENTS==SHOWN_REMAINDER \
   FORMAT_PERCENTS=SHOWN_PERCENTS REM_MAKEFILE=SHOWN_PERCENTS=SHOWN_PERCENTS SUP \
   TARGET_TRIPLET DEF_BIN_DIR DEF_OBJ_DIR DEF_LIB_DIR DEF_GEN_DIR SET_DEFAULT_DIRS \
   TOOL_BASE MK_TOOLS_DIR GET_TOOLS GET_TOOL TOOL_OVERRIDE_DIRS \
-  ADD_MDEPS ADD_ORDER_DEPS=ORDER_DEPS=ORDER_DEPS \
+  ADD_MDEPS ADD_ADEPS CREATE_MAKEFILE_ALIAS ADD_ORDER_DEPS=ORDER_DEPS=ORDER_DEPS \
   STD_TARGET_VARS1 STD_TARGET_VARS MAKEFILE_INFO_TEMPL SET_MAKEFILE_INFO fixpath \
   FILTER_VARIANTS_LIST GET_VARIANTS GET_TARGET_NAME FORM_OBJ_DIR \
-  ADD_GENERATED CHECK_GENERATED MULTI_TARGETS MULTI_TARGET_NUM MULTI_TARGET_RULE MULTI_TARGET CHECK_MULTI_RULE \
+  ADD_GENERATED CHECK_GENERATED MULTI_TARGETS MULTI_TARGET_RULE=MULTI_TARGET_NUM=MULTI_TARGET_NUM MULTI_TARGET CHECK_MULTI_RULE \
   NON_PARALLEL_EXECUTE_RULE NON_PARALLEL_EXECUTE FORM_SDEPS EXTRACT_SDEPS FIX_SDEPS RUN_WITH_DLL_PATH TMD TOOL_MODE \
   CB_INCLUDE_LEVEL DEF_HEAD_CODE_EVAL DEF_TAIL_CODE_EVAL DEFINE_TARGETS_EVAL_NAME MAKE_CONTINUE_EVAL_NAME PROCESSED_MAKEFILES \
-  DEF_HEAD_CODE DEF_TAIL_CODE DEFINE_TARGETS=DEFINE_TARGETS_EVAL_NAME SAVE_VARS RESTORE_VARS MAKE_CONT MAKE_CONTINUE CONF_COLOR)
+  DEF_HEAD_CODE DEF_TAIL_CODE DEFINE_TARGETS=DEFINE_TARGETS_EVAL_NAME SAVE_VARS RESTORE_VARS MAKE_CONTINUE CONF_COLOR)
 
 # if TOCLEAN value is non-empty, allow tracing calls to it,
 # else - just protect TOCLEAN from changes, do not make it's value non-empty - because TOCLEAN is checked in ifdefs
