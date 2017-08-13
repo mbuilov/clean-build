@@ -4,9 +4,7 @@
 # Licensed under GPL version 2 or any later version, see COPYING
 #----------------------------------------------------------------------------------
 
-# this file included by $(CLEAN_BUILD_DIR)/defs.mk
-
-OSTYPE := WINDOWS
+# this file included by $(CLEAN_BUILD_DIR)/impl/_defs.mk
 
 # synchronize make output for parallel builds
 MAKEFLAGS += -O
@@ -126,6 +124,7 @@ CMP = FC /T $(call ospath,$1 $2)
 SED := sed.exe
 
 # escape command line argument to pass it to $(SED)
+# note: assume GNU sed is used, which understands \n and \t
 SED_EXPR = "$(subst %,%%,$1)"
 
 # print contents of given file (to stdout, for redirecting it to output file)
@@ -227,6 +226,6 @@ endif
 FILTER_OUTPUT = (($1 2>&1 && echo OK>&2)$2)3>&2 2>&1 1>&3|findstr /BC:OK>NUL
 
 # protect variables from modifications in target makefiles
-$(call CLEAN_BUILD_PROTECT_VARS,WIN_EXPORTED $(sort TMP PATHEXT SYSTEMROOT COMSPEC $(WIN_EXPORTED)) \
+$(call SET_GLOBAL,WIN_EXPORTED $(sort TMP PATHEXT SYSTEMROOT COMSPEC $(WIN_EXPORTED)) \
   PATH DEL_ARGS_LIMIT nonrelpath1 DEL DEL_DIR RM1 RM MKDIR CMP SED SED_EXPR \
   CAT ECHO_LINE ECHO_LINES ECHO WRITE NUL SUPPRESS_CP_OUTPUT CP TOUCH EXECIN DEL_ON_FAIL NO_RPATH FILTER_OUTPUT)

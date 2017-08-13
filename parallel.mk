@@ -5,5 +5,5 @@
 #----------------------------------------------------------------------------------
 
 ifeq (,$(filter-out undefined environment,$(origin PROCESS_SUBMAKES)))
-include $(dir $(lastword $(MAKEFILE_LIST)))_parallel.mk
+include $(dir $(lastword $(MAKEFILE_LIST)))impl/_parallel.mk
 endif

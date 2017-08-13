@@ -4,15 +4,15 @@
 # Licensed under GPL version 2 or any later version, see COPYING
 #----------------------------------------------------------------------------------
 
-# C-compiler, included by $(CLEAN_BUILD_DIR)/_c.mk
+# C-compiler, included by $(CLEAN_BUILD_DIR)/impl/_c.mk
 
 # INST_RPATH - location where external dependency libraries are installed: /opt/lib or $ORIGIN/../lib
 INST_RPATH:=
 
 # reset additional variables
-# RPATH - runtime path of external dependencies
+# RPATH - runtime path for dynamic linker to search for shared libraries
 # MAP   - linker map file (used mostly to list exported symbols)
-$(call define_append,PREPARE_C_VARS,$(newline)RPATH:=$(if $(findstring \
+$(call define_append,PREPARE_C_VARS_BODY,$(newline)RPATH:=$(if $(findstring \
   simple,$(flavor INST_RPATH)),$(INST_RPATH),$$(INST_RPATH))$(newline)MAP:=)
 
 # compilers/linkers
@@ -47,7 +47,7 @@ IMP_SUFFIX := $(DLL_SUFFIX)
 # NOTE: DLL_DIR must be recursive because $(LIB_DIR) have different values in TOOL-mode and non-TOOL mode
 DLL_DIR = $(LIB_DIR)
 
-# prefix to pass options to linker
+# prefix for passing options from gcc command line to the linker
 WLPREFIX := -Wl,
 
 # variants filter function - get possible variants for the target over than default variant R
@@ -89,7 +89,6 @@ VARIANT_LIB_MAP = $(if $(filter DLL,$1),D,$2)
 # the same one default variant (R) of DLL may be linked with any P- or R-EXE or R-DLL
 VARIANT_IMP_MAP := R
 
-....
 # default flags for shared objects (executables and shared libraries)
 DEF_SHARED_FLAGS := -Wl,--warn-common -Wl,--no-demangle
 
@@ -105,9 +104,6 @@ DEF_SO_FLAGS := -shared -Wl,--no-undefined
 # default flags for static library position-independent code linker (with -fpie or -fpic options)
 DEF_LD_FLAGS := -r --warn-common
 
-# default flags for kernel library linker
-DEF_KLD_FLAGS := -r --warn-common
-
 # default flags for objects archiver
 DEF_AR_FLAGS := -crs
 
@@ -117,14 +113,14 @@ DLL_EXPORTS_DEFINE := "__attribute__((visibility(\"default\")))"
 # how to mark imported symbols from a DLL
 DLL_IMPORTS_DEFINE:=
 
-# runtime-path option for EXE or DLL
+# option for passing dynamic linker runtime path for EXE or DLL
 # target-specific: RPATH
 RPATH_OPTION = $(addprefix $(WLPREFIX)-rpath=,$(strip $(RPATH)))
 
-# runtime path to search shared libraries
+# link-time path to search for shared libraries
 RPATH_LINK:=
 
-# linktime-path option for EXE or DLL
+# option for passing link-time path for EXE or DLL
 # target-specific: RPATH_LINK
 RPATH_LINK_OPTION = $(addprefix $(WLPREFIX)-rpath-link=,$(RPATH_LINK))
 
@@ -137,7 +133,7 @@ CMN_LIBS = -pipe -o $1 $2 $(DEF_SHARED_FLAGS) $(RPATH_OPTION) $(RPATH_LINK_OPTIO
   $(LIBS)$(DLLS)),-L$(LIB_DIR) $(addprefix -l,$(DLLS)) $(if $(LIBS),$(WLPREFIX)-Bstatic $(addprefix -l,$(addsuffix \
   $(call LIB_VAR_SUFFIX,$3),$(LIBS))) $(WLPREFIX)-Bdynamic)) $(addprefix -L,$(SYSLIBPATH)) $(SYSLIBS) $(DEF_SHARED_LIBS) $(LDFLAGS)
 
-# what to export from a dll
+# specify what symbols to export from a dll
 # target-specific: MAP
 VERSION_SCRIPT_OPTION = $(addprefix $(WLPREFIX)--version-script=,$(MAP))
 
@@ -147,8 +143,9 @@ VERSION_SCRIPT_OPTION = $(addprefix $(WLPREFIX)--version-script=,$(MAP))
 SONAME_OPTION = $(addprefix $(WLPREFIX)-soname=$(notdir $1).,$(firstword $(subst ., ,$(MODVER))))
 
 # different linkers
-# $1 - target EXE,DLL,LIB,KLIB
+# $1 - target EXE,DLL,LIB
 # $2 - objects
+# target variants: R,P,D
 # target-specific: TMD, COMPILER
 EXE_R_LD = $(call SUP,$(TMD)XLD,$1)$($(TMD)$(COMPILER)) $(DEF_EXE_FLAGS) $(call CMN_LIBS,$1,$2,R)
 EXE_P_LD = $(call SUP,$(TMD)XLD,$1)$($(TMD)$(COMPILER)) $(DEF_EXE_FLAGS) $(call CMN_LIBS,$1,$2,P) -pie
@@ -156,7 +153,6 @@ DLL_R_LD = $(call SUP,$(TMD)LD,$1)$($(TMD)$(COMPILER)) $(DEF_SO_FLAGS) $(VERSION
 LIB_R_LD = $(call SUP,$(TMD)AR,$1)$($(TMD)AR) $(DEF_AR_FLAGS) $1 $2
 LIB_P_LD = $(call SUP,$(TMD)LD,$1)$($(TMD)LD) $(DEF_LD_FLAGS) -o $1 $2 $(LDFLAGS)
 LIB_D_LD = $(LIB_P_LD)
-KLIB_R_LD = $(call SUP,KLD,$1)$(KLD) $(DEF_KLD_FLAGS) -o $1 $2 $(LDFLAGS)
 
 # flags for auto-dependencies generation
 AUTO_DEPS_FLAGS := $(if $(NO_DEPS),,-MMD -MP)
@@ -168,21 +164,25 @@ DEF_CXXFLAGS:=
 DEF_CFLAGS := -std=c99 -pedantic
 
 # flags for application-level C/C++-compiler
-OS_APP_FLAGS := -Wall -fvisibility=hidden
+GCC_APP_FLAGS := -Wall -fvisibility=hidden
 ifdef DEBUG
-OS_APP_FLAGS += -ggdb
+GCC_APP_FLAGS += -ggdb
 else
-OS_APP_FLAGS += -g -O2
+GCC_APP_FLAGS += -g -O2
 endif
 
 # APP_FLAGS may be overridden in project makefile
-APP_FLAGS := $(OS_APP_FLAGS)
+APP_FLAGS := $(GCC_APP_FLAGS)
 
 # application-level defines
-OS_APP_DEFINES := _GNU_SOURCE
+GCC_APP_DEFINES := _GNU_SOURCE
 
 # APP_DEFINES may be overridden in project makefile
 APP_DEFINES := $(OS_APP_DEFINES)
+
+
+
+......
 
 # common options for application-level C++ and C compilers
 # $1 - target object file

@@ -5,6 +5,6 @@
 #----------------------------------------------------------------------------------
 
 ifeq (,$(filter-out undefined environment,$(origin CLEAN_BUILD_JAVA_EVAL)))
-include $(dir $(lastword $(MAKEFILE_LIST)))_java.mk
+include $(dir $(lastword $(MAKEFILE_LIST)))impl/_java.mk
 endif
 $(CLEAN_BUILD_JAVA_EVAL)

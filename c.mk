@@ -5,6 +5,6 @@
 #-----------------------------------------------------------------------------------------
 
 ifeq (,$(filter-out undefined environment,$(origin CLEAN_BUILD_C_EVAL)))
-include $(dir $(lastword $(MAKEFILE_LIST)))_c.mk
+include $(dir $(lastword $(MAKEFILE_LIST)))impl/_c.mk
 endif
 $(CLEAN_BUILD_C_EVAL)

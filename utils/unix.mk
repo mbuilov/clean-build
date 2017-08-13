@@ -4,16 +4,12 @@
 # Licensed under GPL version 2 or any later version, see COPYING
 #----------------------------------------------------------------------------------
 
-# this file included by $(CLEAN_BUILD_DIR)/defs.mk
-
-OSTYPE := UNIX
+# this file included by $(CLEAN_BUILD_DIR)/impl/_defs.mk
 
 # print prepared environment in verbose mode
-ifdef VERBOSE
-$(info for v in `env | cut -d= -f1`; do $(foreach \
+PRINT_ENV = $(info for v in `env | cut -d= -f1`; do $(foreach \
   x,PATH SHELL $(PASS_ENV_VARS),[ "$x" = "$$v" ] ||) unset "$$v"; done$(foreach \
   v,PATH SHELL $(PASS_ENV_VARS),$(newline)$v='$($v)'$(newline)export $v))
-endif
 
 # delete files $1
 DEL = rm -f $1
@@ -74,4 +70,4 @@ EXECIN = pushd $1 >/dev/null && { $2 && popd >/dev/null || { popd >/dev/null; fa
 DEL_ON_FAIL = || { $(DEL); false; }
 
 # protect variables from modifications in target makefiles
-$(call CLEAN_BUILD_PROTECT_VARS,DEL RM MKDIR CMP SED SED_EXPR CAT ECHO WRITE NUL CP LN TOUCH CHMOD EXECIN DEL_ON_FAIL)
+$(call SET_GLOBAL,PRINT_ENV DEL RM MKDIR CMP SED SED_EXPR CAT ECHO WRITE NUL CP LN TOUCH CHMOD EXECIN DEL_ON_FAIL)
