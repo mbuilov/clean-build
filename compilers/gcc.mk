@@ -4,9 +4,10 @@
 # Licensed under GPL version 2 or any later version, see COPYING
 #----------------------------------------------------------------------------------
 
-# C-compiler, included by $(CLEAN_BUILD_DIR)/impl/_c.mk
+# gcc compiler toolchain, included by $(CLEAN_BUILD_DIR)/impl/_c.mk
 
-# INST_RPATH - location where external dependency libraries are installed: /opt/lib or $ORIGIN/../lib
+# global variable: INST_RPATH - location where external dependency libraries are installed: /opt/lib or $ORIGIN/../lib
+# note: INST_RPATH may be overridden either in project configuration makefile or in command line
 INST_RPATH:=
 
 # reset additional variables
@@ -164,25 +165,21 @@ DEF_CXXFLAGS:=
 DEF_CFLAGS := -std=c99 -pedantic
 
 # flags for application-level C/C++-compiler
-GCC_APP_FLAGS := -Wall -fvisibility=hidden
+DEF_APP_FLAGS := -Wall -fvisibility=hidden
 ifdef DEBUG
-GCC_APP_FLAGS += -ggdb
+DEF_APP_FLAGS += -ggdb
 else
-GCC_APP_FLAGS += -g -O2
+DEF_APP_FLAGS += -g -O2
 endif
 
 # APP_FLAGS may be overridden in project makefile
-APP_FLAGS := $(GCC_APP_FLAGS)
+APP_FLAGS := $(DEF_APP_FLAGS)
 
 # application-level defines
-GCC_APP_DEFINES := _GNU_SOURCE
+DEF_APP_DEFINES := _GNU_SOURCE
 
 # APP_DEFINES may be overridden in project makefile
-APP_DEFINES := $(OS_APP_DEFINES)
-
-
-
-......
+APP_DEFINES := $(DEF_APP_DEFINES)
 
 # common options for application-level C++ and C compilers
 # $1 - target object file
@@ -194,30 +191,16 @@ CC_PARAMS = -pipe -c $(APP_FLAGS) $(AUTO_DEPS_FLAGS) $(call \
 # C++ and C compilers
 # $1 - target object file
 # $2 - source
-# target-specific: WITH_PCH, TMD, PCH, CXXFLAGS, CFLAGS
-CMN_CXX = $(if $(filter $2,$(WITH_PCH)),$(call SUP,P$(TMD)CXX,$2)$($(TMD)CXX) -I$(dir $1) -include $(basename \
-  $(notdir $(PCH)))_pch_cxx.h,$(call SUP,$(TMD)CXX,$2)$($(TMD)CXX)) $(DEF_CXXFLAGS) $(CC_PARAMS) $(CXXFLAGS) -o $1 $2
-CMN_CC  = $(if $(filter $2,$(WITH_PCH)),$(call SUP,P$(TMD)CC,$2)$($(TMD)CC) -I$(dir $1) -include $(basename \
-  $(notdir $(PCH)))_pch_c.h,$(call SUP,$(TMD)CC,$2)$($(TMD)CC)) $(DEF_CFLAGS) $(CC_PARAMS) $(CFLAGS) -o $1 $2
-
-# C++ and C precompiled header compilers
-# $1 - target .gch
-# $2 - source
-# target-specific: CXXFLAGS, CFLAGS
-PCH_CXX = $(call SUP,$(TMD)PCHCXX,$2)$($(TMD)CXX) $(DEF_CXXFLAGS) $(CC_PARAMS) $(CXXFLAGS)
-PCH_CC  = $(call SUP,$(TMD)PCHCC,$2)$($(TMD)CC) $(DEF_CFLAGS) $(CC_PARAMS) $(CFLAGS)
-
-# tools colors
-PCHCC_COLOR   := $(CC_COLOR)
-PCHCXX_COLOR  := $(CXX_COLOR)
-TPCHCC_COLOR  := $(PCHCC_COLOR)
-TPCHCXX_COLOR := $(PCHCXX_COLOR)
+# $3 - compiler name
+# target-specific: TMD, CXXFLAGS, CFLAGS
+CMN_CXX = $(call SUP,$(TMD)CXX,$2)$($(TMD)CXX) $(DEF_CXXFLAGS) $(CC_PARAMS) $(CXXFLAGS) -o $1 $2
+CMN_CC  = $(call SUP,$(TMD)CC,$2)$($(TMD)CC) $(DEF_CFLAGS) $(CC_PARAMS) $(CFLAGS) -o $1 $2
 
 # position-independent code for executables/shared objects (dynamic libraries)
 PIE_OPTION := -fpie
 PIC_OPTION := -fpic
 
-# different compilers
+# different compilers for R,P and D target variants
 # $1 - target object file
 # $2 - source
 EXE_R_CXX = $(CMN_CXX)
@@ -233,7 +216,35 @@ DLL_R_CC  = $(CMN_CC) $(PIC_OPTION)
 LIB_D_CXX = $(DLL_R_CXX)
 LIB_D_CC  = $(DLL_R_CC)
 
-# different precompiler header compilers
+# compile with precompiled headers by default
+NO_PCH:=
+
+ifndef NO_PCH
+
+# override C++ and C compilers to support precompiled headers
+# $1 - target object file
+# $2 - source
+# $3 - compiler name
+# target-specific: WITH_PCH, TMD, PCH, CXXFLAGS, CFLAGS
+CMN_CXX = $(if $(filter $2,$(WITH_PCH)),$(call SUP,P$(TMD)CXX,$2)$($(TMD)CXX) -I$(dir $1) -include $(basename \
+  $(notdir $(PCH)))_pch_cxx.h,$(call SUP,$(TMD)CXX,$2)$($(TMD)CXX)) $(DEF_CXXFLAGS) $(CC_PARAMS) $(CXXFLAGS) -o $1 $2
+CMN_CC  = $(if $(filter $2,$(WITH_PCH)),$(call SUP,P$(TMD)CC,$2)$($(TMD)CC) -I$(dir $1) -include $(basename \
+  $(notdir $(PCH)))_pch_c.h,$(call SUP,$(TMD)CC,$2)$($(TMD)CC)) $(DEF_CFLAGS) $(CC_PARAMS) $(CFLAGS) -o $1 $2
+
+# compilers for C++ and C precompiled header
+# $1 - target .gch
+# $2 - source
+# target-specific: CXXFLAGS, CFLAGS
+PCH_CXX = $(call SUP,$(TMD)PCHCXX,$2)$($(TMD)CXX) $(DEF_CXXFLAGS) $(CC_PARAMS) $(CXXFLAGS) -o $1 $2
+PCH_CC  = $(call SUP,$(TMD)PCHCC,$2)$($(TMD)CC) $(DEF_CFLAGS) $(CC_PARAMS) $(CFLAGS) -o $1 $2
+
+# tools colors
+PCHCC_COLOR   := $(CC_COLOR)
+PCHCXX_COLOR  := $(CXX_COLOR)
+TPCHCC_COLOR  := $(PCHCC_COLOR)
+TPCHCXX_COLOR := $(PCHCXX_COLOR)
+
+# different precompiler header compilers for R,P and D target variants
 # $1 - target .gch
 # $2 - source header
 PCH_EXE_R_CXX = $(PCH_CXX)
@@ -249,98 +260,10 @@ PCH_DLL_R_CC  = $(PCH_CC) $(PIC_OPTION)
 PCH_LIB_D_CXX = $(PCH_DLL_R_CXX)
 PCH_LIB_D_CC  = $(PCH_DLL_R_CC)
 
-# flags for kernel-level C/C++-compiler
-OS_KRN_FLAGS:=
-
-# KRN_FLAGS may be overridden in project makefile
-KRN_FLAGS := $(OS_KRN_FLAGS)
-
-# kernel-level defines
-# note: recursive macro by default - to use $($t) dynamic value
-# $t - KLIB
-OS_KRN_DEFINES = KBUILD_STR\(s\)=\\\#s KBUILD_BASENAME=KBUILD_STR\($($t)\) KBUILD_MODNAME=KBUILD_STR\($($t)\)
-
-# KRN_DEFINES may be overridden in project makefile
-KRN_DEFINES = $(OS_KRN_DEFINES)
-
-# parameters for kernel-level static library
-# target-specific: DEFINES, INCLUDE, COMPILER
-KLIB_PARAMS = -pipe -c $(KRN_FLAGS) $(AUTO_DEPS_FLAGS) $(call \
-  SUBST_DEFINES,$(addprefix -D,$(KRN_DEFINES) $(DEFINES))) $(addprefix -I,$(INCLUDE))
-
-# kernel-level C compiler
-# $1 - target object file
-# $2 - source
-# target-specific: WITH_PCH, PCH, CFLAGS
-KLIB_R_CC = $(if $(filter $2,$(WITH_PCH)),$(call SUP,PKCC,$2)$(KCC) -I$(dir $1) -include $(basename \
-  $(notdir $(PCH)))_pch_c.h,$(call SUP,KCC,$2)$(KCC)) $(KLIB_PARAMS) $(CFLAGS) -o $1 $2
-
-# kernel-level precompiled header C compiler
-# $1 - target .gch
-# $2 - source header
-# target-specific: CFLAGS
-PCH_KLIB_R_CC = $(call SUP,PCHKLIB,$2)$(KCC) $(KLIB_PARAMS) $(CFLAGS) -o $1 $2
-
-# kernel-level assembler
-# $1 - target object file
-# $2 - asm-source
-# target-specific: ASMFLAGS
-KLIB_R_ASM = $(call SUP,ASM,$2)$(YASMC) $(YASM_FLAGS) $(ASMFLAGS) -o $1 $2
-
-# $1 - target
-# $2 - source
-BISON = $(call SUP,BISON,$2)$(BISONC) -o $1 -d --fixed-output-files $(abspath $2)
-FLEX  = $(call SUP,FLEX,$2)$(FLEXC) -o$1 $2
-
-# tools colors
-BISON_COLOR := $(GEN_COLOR)
-FLEX_COLOR  := $(GEN_COLOR)
-
-# compile with precompiled headers by default
-NO_PCH:=
-
-ifndef NO_PCH
-
-# NOTE: $(PCH) - makefile-related path to header to precompile
-
-# $1 - $(call FORM_TRG,$t,$v)
-# $2 - $(call FORM_OBJ_DIR,$t,$v)
-# $t - EXE,LIB,DLL,KLIB
-# $v - R,P
-define PCH_TEMPLATEv
-TRG_PCH := $(call fixpath,$(PCH))
-TRG_WITH_PCH := $(call fixpath,$(WITH_PCH))
-$1: PCH := $$(TRG_PCH)
-$1: WITH_PCH := $$(TRG_WITH_PCH)
-ifneq (,$$(filter %.c,$$(TRG_WITH_PCH)))
-C_GCH := $2/$$(basename $$(notdir $$(TRG_PCH)))_pch_c.h
-$$(C_GCH).gch: $$(TRG_PCH) | $2 $$(ORDER_DEPS)
-	$$(call PCH_$t_$v_CC,$$@,$$(PCH))
-ifndef NO_DEPS
--include $$(C_GCH).d)
-endif
-$$(addprefix $2/,$$(addsuffix $(OBJ_SUFFIX),$$(basename $$(notdir $$(filter %.c,$$(TRG_WITH_PCH)))))): $$(C_GCH).gch
-$$(call TOCLEAN,$$(C_GCH).gch $$(C_GCH).d)
-endif
-ifneq (,$$(filter %.cpp,$$(TRG_WITH_PCH)))
-CXX_GCH := $2/$$(basename $$(notdir $$(TRG_PCH)))_pch_cxx.h
-$$(CXX_GCH).gch: $$(TRG_PCH) | $2 $$(ORDER_DEPS)
-	$$(call PCH_$t_$v_CXX,$$@,$$(PCH))
-ifndef NO_DEPS
--include $$(CXX_GCH).d
-endif
-$$(addprefix $2/,$$(addsuffix $(OBJ_SUFFIX),$$(basename $$(notdir $$(filter %.cpp,$$(TRG_WITH_PCH)))))): $$(CXX_GCH).gch
-$$(call TOCLEAN,$$(CXX_GCH).gch $$(CXX_GCH).d)
-endif
-endef
-
-# code to eval to build with precompiled headers
-# $t - EXE,LIB,DLL,KLIB
-# note: must reset target-specific WITH_PCH if not using precompiled header,
-# otherwise DLL or LIB target may inherit WITH_PCH value from EXE, LIB target may inherit WITH_PCH value from DLL
-PCH_TEMPLATE = $(if $(word 2,$(PCH) $(firstword $(WITH_PCH))),$(foreach \
-  v,$(call GET_VARIANTS,$t),$(newline)$(call PCH_TEMPLATEv,$(call FORM_TRG,$t,$v),$(call \
-  FORM_OBJ_DIR,$t,$v))),$(call ALL_TRG,$t): WITH_PCH:=$(newline))
+# reset additional variables
+# PCH      - either absolute or makefile-related path to header to precompile
+# WITH_PCH - list of sources to compile with precompiled headers
+$(call define_append,PREPARE_C_VARS_BODY,$(newline)PCH:=$(newline)WITH_PCH:=)
 
 # set dependencies of objects compiled with pch header on .gch
 # $1 - $(filter %.c,$src)
@@ -348,8 +271,9 @@ PCH_TEMPLATE = $(if $(word 2,$(PCH) $(firstword $(WITH_PCH))),$(foreach \
 # $3 - pch header name
 # $4 - objdir
 # $v - R
+# note: first line must be empty
 define ADD_WITH_PCHv
-$(empty)
+
 $(if $1,$(addprefix $4/,$(addsuffix $(OBJ_SUFFIX),$(basename $(notdir $1)))): $4/$3_pch_c.h.gch)
 $(if $2,$(addprefix $4/,$(addsuffix $(OBJ_SUFFIX),$(basename $(notdir $2)))): $4/$3_pch_cxx.h.gch)
 endef
@@ -360,10 +284,69 @@ endef
 # $4 - $(basename $(notdir $(PCH)))
 ADD_WITH_PCH1 = $(foreach v,$(call GET_VARIANTS,$1),$(call ADD_WITH_PCHv,$2,$3,$4,$(call FORM_OBJ_DIR,$1,$v)))
 
-# function to add (generated?) sources to $({EXE,LIB,DLL,...}_WITH_PCH) list - to compile sources with pch header
+# function to add (generated?) sources to list of sources compiled with pch header
 # $1 - EXE,LIB,DLL,...
 # $2 - sources
-ADD_WITH_PCH = $(eval WITH_PCH += $2$(call ADD_WITH_PCH1,$1,$(filter %.c,$2),$(filter %.cpp,$2),$(basename $(notdir $(PCH)))))
+# note: override default implementation of $(CLEAN_BUILD_DIR)/impl/_c.mk
+# note: PCH header must be specified before expanding this macro
+ADD_WITH_PCH = $(eval WITH_PCH+=$2$(call ADD_WITH_PCH1,$1,$(filter %.c,$2),$(filter %.cpp,$2),$(basename $(notdir $(PCH)))))
+
+# check that PCH is defined before expanding ADD_WITH_PCH
+ifdef MCHECK
+$(eval ADD_WITH_PCH = $$(if $$(PCH),$(value ADD_WITH_PCH),$$(error PCH variable is not defined)))
+endif
+
+# make list of sources for the target, used by TRG_SRC
+# note: override default implementation of $(CLEAN_BUILD_DIR)/impl/_c.mk
+# note: WITH_PCH should not be accessed or modified directly in target makefiles,
+#  use ADD_WITH_PCH macro to add to build sources compiled with precompiled headers
+GET_SOURCES = $(SRC) $(WITH_PCH)
+
+# $1 - $(call FORM_TRG,$t,$v)
+# $2 - $(call FORM_OBJ_DIR,$t,$v)
+# $t - EXE,LIB,DLL,KLIB
+# $v - R,P
+# note: define target-specific variables: PCH and WITH_PCH 
+# note: last line must be empty
+define PCH_TEMPLATEv
+FIXED_PCH := $(call fixpath,$(PCH))
+FIXED_WITH_PCH := $(call fixpath,$(WITH_PCH))
+$1: PCH := $$(FIXED_PCH)
+$1: WITH_PCH := $$(FIXED_WITH_PCH)
+ifneq (,$$(filter %.c,$$(FIXED_WITH_PCH)))
+C_GCH := $2/$$(basename $$(notdir $$(FIXED_PCH)))_pch_c.h
+$$(C_GCH).gch: $$(FIXED_PCH) | $2 $$(ORDER_DEPS)
+	$$(call PCH_$t_$v_CC,$$@,$$(PCH))
+ifndef NO_DEPS
+-include $$(C_GCH).d)
+endif
+$$(addprefix $2/,$$(addsuffix $(OBJ_SUFFIX),$$(basename $$(notdir $$(filter %.c,$$(FIXED_WITH_PCH)))))): $$(C_GCH).gch
+$$(call TOCLEAN,$$(C_GCH).gch $$(C_GCH).d)
+endif
+ifneq (,$$(filter %.cpp,$$(FIXED_WITH_PCH)))
+CXX_GCH := $2/$$(basename $$(notdir $$(FIXED_PCH)))_pch_cxx.h
+$$(CXX_GCH).gch: $$(FIXED_PCH) | $2 $$(ORDER_DEPS)
+	$$(call PCH_$t_$v_CXX,$$@,$$(PCH))
+ifndef NO_DEPS
+-include $$(CXX_GCH).d
+endif
+$$(addprefix $2/,$$(addsuffix $(OBJ_SUFFIX),$$(basename $$(notdir $$(filter %.cpp,$$(FIXED_WITH_PCH)))))): $$(CXX_GCH).gch
+$$(call TOCLEAN,$$(CXX_GCH).gch $$(CXX_GCH).d)
+endif
+
+endef
+
+# code to eval to build with precompiled headers
+# $t - EXE,LIB,DLL,KLIB
+# note: must reset target-specific WITH_PCH if not using precompiled header,
+#  otherwise DLL or LIB target may inherit WITH_PCH value from EXE, LIB target may inherit WITH_PCH value from DLL
+PCH_TEMPLATEt = $(if $(word 2,$(PCH) $(firstword $(WITH_PCH))),$(foreach \
+  v,$(call GET_VARIANTS,$t),$(call PCH_TEMPLATEv,$(call FORM_TRG,$t,$v),$(call \
+  FORM_OBJ_DIR,$t,$v))),$(call ALL_TRG,$t): WITH_PCH:=$(newline))
+
+# for all targets: add support for precompiled headers
+$(call define_append,C_RULES_BODY,$$(foreach \
+  t,EXE DLL LIB,$$(if $$($$t),$$(PCH_TEMPLATEt))))
 
 endif # NO_PCH
 
@@ -372,10 +355,12 @@ endif # NO_PCH
 # $2 - $(call fixpath,$(MAP))
 # $t - EXE
 # $v - R
+# note: last line must be empty
 define EXE_AUX_TEMPLATEv
-$1: RPATH := $(subst $$,$$$$,$(RPATH))
+$1: RPATH := $$(RPATH)
 $1: MAP := $2
 $1: $2
+
 endef
 
 # auxiliary defines for DLL
@@ -383,91 +368,95 @@ endef
 # $2 - $(call fixpath,$(MAP))
 # $t - DLL
 # $v - R
+# note: last line must be empty
 define DLL_AUX_TEMPLATEv
 $1: MODVER := $(MODVER)
-$1: RPATH := $(subst $$,$$$$,$(RPATH))
+$1: RPATH := $$(RPATH)
 $1: MAP := $2
 $1: $2
+
 endef
 
 # auxiliary defines for EXE or DLL
+# $1 - $(call fixpath,$(MAP))
 # $t - EXE or DLL
-MOD_AUX_TEMPLATE1 = $(foreach v,$(call GET_VARIANTS,$t),$(call $t_AUX_TEMPLATEv,$(call FORM_TRG,$t,$v),$2))
-MOD_AUX_TEMPLATE  = $(call MOD_AUX_TEMPLATE1,$(call fixpath,$(MAP)))
+MOD_AUX_TEMPLATEt = $(foreach v,$(call GET_VARIANTS,$t),$(call $t_AUX_TEMPLATEv,$(call FORM_TRG,$t,$v),$1))
 
-# this code is evaluated from $(DEFINE_TARGETS)
-define OS_DEFINE_TARGETS
-$(foreach t,EXE LIB DLL KLIB,$(if $($t),$(PCH_TEMPLATE)))
-$(foreach t,EXE DLL,$(if $($t),$(MOD_AUX_TEMPLATE)))
-endef
-
-ifdef DRIVERS_SUPPORT
-
-# $1 - destination directory
-# $2 - file
-# $3 - aux dep
-define COPY_FILE_RULE
-$(empty)
-$1/$(notdir $2): $2 $3 | $1
-	$$(call SUP,CP,$$@)cp -f$(if $(VERBOSE),v) $$< $$@
-endef
-
-# defines, symbols and optional architecture for the driver
-# note: may be defined in project configuration makefile
-EXTRA_DRV_DEFINES:=
-KBUILD_EXTRA_SYMBOLS:=
-DRV_ARCH:=
-
-# $1 - target file: $(call FORM_TRG,DRV,$v)
-# $2 - sources:     $(TRG_SRC)
-# $3 - sdeps:       $(TRG_SDEPS)
-# $4 - objdir:      $(call FORM_OBJ_DIR,DRV,$v)
-# $5 - klibs:       $(addprefix $(KLIB_PREFIX),$(KLIBS:=$(KLIB_SUFFIX)))
-# 1) copy sources
-# 2) copy klibs
-# 3) generate Makefile for kbuild
-# 4) call kbuild
-define DRV_TEMPLATE1
-$(foreach x,$2,$(call COPY_FILE_RULE,$4,$x,$(call EXTRACT_SDEPS,$x,$3)))
-$(foreach x,$5,$(call COPY_FILE_RULE,$4,$(LIB_DIR)/$x))
-$4/Makefile: | $4
-	$$(call SUP,GEN,$$@)echo "obj-m += $(DRV_PREFIX)$(DRV).o" > $$@
-	$(QUIET)echo "$(DRV_PREFIX)$(DRV)-objs := $(notdir $(2:.c=.o)) $5" >> $$@
-	$(QUIET)echo "EXTRA_CFLAGS += $(addprefix -D,$(EXTRA_DRV_DEFINES)) $(addprefix -I,$(TRG_INCLUDE))" >> $$@
-$4/$(DRV_PREFIX)$(DRV)$(DRV_SUFFIX): $(addprefix $4/,$(notdir $2) $5) | $4/Makefile $$(ORDER_DEPS)
-	+$$(call SUP,KBUILD,$$@)$(KMAKE) V=$(if $(VERBOSE),1,0) CC="$(KCC)" LD="$(KLD)" AR="$(AR)" $(addprefix \
-  KBUILD_EXTRA_SYMBOLS=,$(KBUILD_EXTRA_SYMBOLS)) -C $(MODULES_PATH) M=$$(patsubst %/,%,$$(dir $$@)) $(addprefix ARCH=,$(DRV_ARCH))
-$1: $4/$(DRV_PREFIX)$(DRV)$(DRV_SUFFIX)
-	$$(call SUP,CP,$$@)cp -f$(if $(VERBOSE),v) $$< $$@
-endef
-
-# how to build driver, used by $(C_RULES)
-# $1 - target file: $(call FORM_TRG,$t,$v)
-# $2 - sources:     $(TRG_SRC)
-# $3 - sdeps:       $(TRG_SDEPS)
-# $4 - objdir:      $(call FORM_OBJ_DIR,$t,$v)
-# $t - DRV
-# $v - R
-define DRV_TEMPLATE
-NEEDED_DIRS += $4
-$(STD_TARGET_VARS)
-$(call DRV_TEMPLATE1,$1,$2,$3,$4,$(addprefix $(KLIB_PREFIX),$(KLIBS:=$(KLIB_SUFFIX))))
-$(call TOCLEAN,$4)
-endef
-
-endif # DRIVERS_SUPPORT
+# for DLL:         define target-specific variable MODVER
+# for DLL and EXE: define target-specific variables RPATH and MAP
+$(call define_append,C_RULES_BODY,$$(foreach \
+  t,EXE DLL,$$(if $$($$t),$$(call MOD_AUX_TEMPLATEt,$$(call fixpath,$$(MAP))))))
 
 # protect variables from modifications in target makefiles
-$(call CLEAN_BUILD_PROTECT_VARS,INST_RPATH CC CXX LD AR TCC TCXX TLD TAR KCC KLD KMAKE MODULES_PATH YASMC FLEXC BISONC YASM_FLAGS \
-  WLPREFIX DEF_SHARED_FLAGS DEF_SHARED_LIBS DEF_EXE_FLAGS DEF_SO_FLAGS DEF_LD_FLAGS DEF_KLD_FLAGS DEF_AR_FLAGS \
+$(call SET_GLOBAL,INST_RPATH CC CXX LD AR TCC TCXX TLD TAR \
+  WLPREFIX DEF_SHARED_FLAGS DEF_SHARED_LIBS DEF_EXE_FLAGS DEF_SO_FLAGS DEF_LD_FLAGS DEF_AR_FLAGS \
   DLL_EXPORTS_DEFINE DLL_IMPORTS_DEFINE RPATH_OPTION RPATH_LINK RPATH_LINK_OPTION CMN_LIBS VERSION_SCRIPT_OPTION SONAME_OPTION \
-  EXE_R_LD EXE_P_LD DLL_R_LD LIB_R_LD LIB_P_LD LIB_D_LD KLIB_R_LD AUTO_DEPS_FLAGS DEF_CXXFLAGS DEF_CFLAGS \
-  OS_APP_FLAGS APP_FLAGS OS_APP_DEFINES APP_DEFINES CC_PARAMS CMN_CXX CMN_CC PCH_CXX PCH_CC \
-  PCHCC_COLOR PCHCXX_COLOR TPCHCC_COLOR TPCHCXX_COLOR PIE_OPTION PIC_OPTION \
-  EXE_R_CXX EXE_R_CC EXE_P_CXX EXE_P_CC LIB_R_CXX LIB_R_CC LIB_P_CXX LIB_P_CC DLL_R_CXX DLL_R_CC \
-  LIB_D_CXX LIB_D_CC PCH_EXE_R_CXX PCH_EXE_R_CC PCH_EXE_P_CXX PCH_EXE_P_CC PCH_LIB_R_CXX PCH_LIB_R_CC PCH_LIB_P_CXX PCH_LIB_P_CC \
-  PCH_DLL_R_CXX PCH_DLL_R_CC PCH_LIB_D_CXX PCH_LIB_D_CC OS_KRN_FLAGS KRN_FLAGS OS_KRN_DEFINES KRN_DEFINES KLIB_PARAMS \
-  KLIB_R_CC PCH_KLIB_R_CC KLIB_R_ASM BISON FLEX BISON_COLOR FLEX_COLOR NO_PCH \
-  PCH_TEMPLATEv=t;v PCH_TEMPLATE=t ADD_WITH_PCHv=v ADD_WITH_PCH1 ADD_WITH_PCH \
-  EXE_AUX_TEMPLATEv=t;v DLL_AUX_TEMPLATEv=t;v MOD_AUX_TEMPLATE1=t MOD_AUX_TEMPLATE=t \
-  COPY_FILE_RULE EXTRA_DRV_DEFINES KBUILD_EXTRA_SYMBOLS DRV_ARCH DRV_TEMPLATE1 DRV_TEMPLATE=DRV;LIB_DIR;KLIBS;v)
+  EXE_R_LD EXE_P_LD DLL_R_LD LIB_R_LD LIB_P_LD LIB_D_LD AUTO_DEPS_FLAGS DEF_CXXFLAGS DEF_CFLAGS \
+  DEF_APP_FLAGS APP_FLAGS DEF_APP_DEFINES APP_DEFINES CC_PARAMS CMN_CXX CMN_CC PIE_OPTION PIC_OPTION \
+  EXE_R_CXX EXE_R_CC EXE_P_CXX EXE_P_CC LIB_R_CXX LIB_R_CC LIB_P_CXX LIB_P_CC DLL_R_CXX DLL_R_CC LIB_D_CXX LIB_D_CC \
+  NO_PCH PCH_CXX PCH_CC PCHCC_COLOR PCHCXX_COLOR TPCHCC_COLOR TPCHCXX_COLOR \
+  PCH_EXE_R_CXX PCH_EXE_R_CC PCH_EXE_P_CXX PCH_EXE_P_CC PCH_LIB_R_CXX PCH_LIB_R_CC PCH_LIB_P_CXX PCH_LIB_P_CC \
+  PCH_DLL_R_CXX PCH_DLL_R_CC PCH_LIB_D_CXX PCH_LIB_D_CC ADD_WITH_PCHv=v ADD_WITH_PCH1 \
+  PCH_TEMPLATEv=t;v PCH_TEMPLATEt=t EXE_AUX_TEMPLATEv=t;v DLL_AUX_TEMPLATEv=t;v MOD_AUX_TEMPLATEt=t)
+
+###  # make list of sources for the target, used by TRG_SRC
+###  # note: overridden in $(CLEAN_BUILD_DIR)/compilers/gcc.mk
+###  GET_SOURCES = $(SRC)
+###  
+###  # function to add (generated?) sources to list of sources compiled with pch header
+###  # $1 - EXE,LIB,DLL,...
+###  # $2 - sources
+###  # note: PCH header must be specified before expanding this macro
+###  # note: overridden in $(CLEAN_BUILD_DIR)/compilers/gcc.mk
+###  ADD_WITH_PCH = $(eval SRC+=$2)
+### 
+###  # code to be called at beginning of target makefile
+###  # $(MODVER) - module version (for dll, exe or driver) in form major.minor.patch (for example 1.2.3)
+###  define PREPARE_C_VARS_BODY
+###  MODVER:=$(PRODUCT_VER)
+###  EXE:=
+###  DLL:=
+###  LIB:=
+###  SRC:=
+###  SDEPS:=
+###  DEFINES:=
+###  INCLUDE:=
+###  CFLAGS:=
+###  CXXFLAGS:=
+###  LDFLAGS:=
+###  SYSLIBS:=
+###  SYSLIBPATH:=
+###  SYSINCLUDE:=
+###  LIBS:=
+###  DLLS:=
+###  DEFINE_TARGETS_EVAL_NAME:=DEFINE_C_TARGETS_EVAL
+###  MAKE_CONTINUE_EVAL_NAME:=CLEAN_BUILD_C_EVAL
+###  endef
+###  
+###  # $1 - $(call FORM_TRG,$t,$v)
+###  # $2 - $(TRG_SRC)
+###  # $3 - $(TRG_SDEPS)
+###  # $4 - $(call FORM_OBJ_DIR,$t,$v)
+###  # $t - EXE,DLL,...
+###  # $v - non-empty variant: R,P,S,...
+###  ifdef MCHECK
+###  # check that target template is defined
+###  C_RULESv = $(if $(value $t_TEMPLATE),$($t_TEMPLATE),$(error \
+###    $t_TEMPLATE is not defined! (define it in appropriate $(TOOLCHAINS_DIR)/compilers/compiler.mk)))
+###  else
+###  C_RULESv = $($t_TEMPLATE)
+###  endif
+###  
+###  # $1 - $(TRG_SRC)
+###  # $2 - $(TRG_SDEPS)
+###  # $t - EXE,DLL,...
+###  C_RULESt = $(foreach v,$(call GET_VARIANTS,$t),$(call C_RULESv,$(call FORM_TRG,$t,$v),$1,$2,$(call FORM_OBJ_DIR,$t,$v))$(newline))
+###  
+###  # expand target rules template $t_TEMPLATE, for example - see EXE_TEMPLATE
+###  # $1 - $(TRG_SRC)
+###  # $2 - $(TRG_SDEPS)
+###  # note: overridden in $(CLEAN_BUILD_C_EVAL)/compilers/gcc.mk
+###  C_RULES_BODY = $(foreach t,EXE DLL LIB,$(if $($t),$(C_RULESt)))
+###  
+###  # this code is normally evaluated at end of target makefile
+###  DEFINE_C_TARGETS_EVAL = $(eval $(call C_RULES_BODY,$(TRG_SRC),$(TRG_SDEPS)))$(DEF_TAIL_CODE_EVAL)
