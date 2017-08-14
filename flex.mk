@@ -26,3 +26,8 @@ FLEX_COLOR := $(GEN_COLOR)
 
 # protect variables from modifications in target makefiles
 $(call SET_GLOBAL,FLEX FLEX_FLAGS FLEXC FLEX_COLOR)
+
+# add generated files $1 to build sequence and return $1
+# note: files must be generated in $(GEN_DIR),$(BIN_DIR),$(OBJ_DIR) or $(LIB_DIR)
+# note: directories for generated files will be auto-created
+# ADD_GENERATED_RET = $(ADD_GENERATED)$1
