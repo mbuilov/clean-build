@@ -4,13 +4,16 @@
 # Licensed under GPL version 2 or any later version, see COPYING
 #----------------------------------------------------------------------------------
 
-# INST_RPATH - location where external dependency libraries are installed: /opt/lib or $ORIGIN/../lib
+# suncc compiler toolchain, included by $(CLEAN_BUILD_DIR)/impl/_c.mk
+
+# global variable: INST_RPATH - location where to search for external dependency libraries on runtime: /opt/lib or $ORIGIN/../lib
+# note: INST_RPATH may be overridden either in project configuration makefile or in command line
 INST_RPATH:=
 
 # reset additional variables
-# RPATH - runtime path of external dependencies
+# RPATH - runtime path for dynamic linker to search for shared libraries
 # MAP   - linker map file (used mostly to list exported symbols)
-$(call define_append,PREPARE_C_VARS,$(newline)RPATH:=$(if $(findstring \
+$(call define_append,PREPARE_C_VARS_BODY,$(newline)RPATH:=$(if $(findstring \
   simple,$(flavor INST_RPATH)),$(INST_RPATH),$$(INST_RPATH))$(newline)MAP:=)
 
 # compilers

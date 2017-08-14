@@ -6,7 +6,7 @@
 
 # gcc compiler toolchain, included by $(CLEAN_BUILD_DIR)/impl/_c.mk
 
-# global variable: INST_RPATH - location where external dependency libraries are installed: /opt/lib or $ORIGIN/../lib
+# global variable: INST_RPATH - location where to search for external dependency libraries on runtime: /opt/lib or $ORIGIN/../lib
 # note: INST_RPATH may be overridden either in project configuration makefile or in command line
 INST_RPATH:=
 
@@ -56,39 +56,24 @@ WLPREFIX := -Wl,
 # R - default variant (position-dependent code for EXE, position-independent code for DLL)
 # P - position-independent code in executables (for EXE and LIB)
 # D - position-independent code in shared libraries (for LIB)
-# note: overrides value from $(CLEAN_BUILD_DIR)/c.mk
+# note: overrides value from $(CLEAN_BUILD_DIR)/impl/_c.mk
 VARIANTS_FILTER = $(if \
                   $(filter EXE,$1),P,$(if \
                   $(filter LIB,$1),P D))
-
-# determine suffix for static LIB or for import library of DLL
-# $1 - target variant R,P,D,<empty>
-# note: overrides value from $(CLEAN_BUILD_DIR)/c.mk
-LIB_VAR_SUFFIX = $(if \
-                 $(filter P,$1),_pie,$(if \
-                 $(filter D,$1),_pic))
 
 # get target name suffix for EXE,DRV in case of multiple target variants
 # $1 - EXE,DRV
 # $2 - target variant P (not R or <empty>)
 # $3 - list of variants of target $1 to build (filtered by target platform specific $(VARIANTS_FILTER))
-# note: overrides value from $(CLEAN_BUILD_DIR)/c.mk
+# note: overrides value from $(CLEAN_BUILD_DIR)/impl/_c.mk
 EXE_SUFFIX_GEN = $(if $(word 2,$3),_pie)
 
-# for DEP_LIB_SUFFIX, determine which variant of static library to link with EXE or DLL
-# $1 - target: EXE,DLL
-# $2 - variant of target EXE or DLL: R,P,<empty>
-# $3 - dependent static library name
-# use the same variant (R or P) of static library as target EXE (for example for P-EXE use P-LIB)
-# always use D-variant of static library for DLL
-VARIANT_LIB_MAP = $(if $(filter DLL,$1),D,$2)
-
-# for DEP_IMP_SUFFIX, determine which variant of dynamic library to link with EXE or DLL
-# $1 - target: EXE,DLL
-# $2 - variant of target EXE or DLL: R,P,<empty>
-# $3 - dependent dynamic library name
-# the same one default variant (R) of DLL may be linked with any P- or R-EXE or R-DLL
-VARIANT_IMP_MAP := R
+# determine suffix for static LIB or for import library of DLL
+# $1 - target variant R,P,D,<empty>
+# note: overrides value from $(CLEAN_BUILD_DIR)/impl/_c.mk
+LIB_VAR_SUFFIX = $(if \
+                 $(filter P,$1),_pie,$(if \
+                 $(filter D,$1),_pic))
 
 # default flags for shared objects (executables and shared libraries)
 DEF_SHARED_FLAGS := -Wl,--warn-common -Wl,--no-demangle
@@ -143,7 +128,7 @@ VERSION_SCRIPT_OPTION = $(addprefix $(WLPREFIX)--version-script=,$(MAP))
 # target-specific: MODVER
 SONAME_OPTION = $(addprefix $(WLPREFIX)-soname=$(notdir $1).,$(firstword $(subst ., ,$(MODVER))))
 
-# different linkers
+# different linkers, used by EXE_TEMPLATE, DLL_TEMPLATE, LIB_TEMPLATE
 # $1 - target EXE,DLL,LIB
 # $2 - objects
 # target variants: R,P,D
@@ -200,7 +185,7 @@ CMN_CC  = $(call SUP,$(TMD)CC,$2)$($(TMD)CC) $(DEF_CFLAGS) $(CC_PARAMS) $(CFLAGS
 PIE_OPTION := -fpie
 PIC_OPTION := -fpic
 
-# different compilers for R,P and D target variants
+# different compilers for R,P and D target variants, used by OBJ_RULES
 # $1 - target object file
 # $2 - source
 EXE_R_CXX = $(CMN_CXX)
@@ -216,7 +201,7 @@ DLL_R_CC  = $(CMN_CC) $(PIC_OPTION)
 LIB_D_CXX = $(DLL_R_CXX)
 LIB_D_CC  = $(DLL_R_CC)
 
-# compile with precompiled headers by default
+# by default, enable compiling with precompiled headers
 NO_PCH:=
 
 ifndef NO_PCH
@@ -244,7 +229,7 @@ PCHCXX_COLOR  := $(CXX_COLOR)
 TPCHCC_COLOR  := $(PCHCC_COLOR)
 TPCHCXX_COLOR := $(PCHCXX_COLOR)
 
-# different precompiler header compilers for R,P and D target variants
+# different precompiler header compilers for R,P and D target variants, used by PCH_TEMPLATEv
 # $1 - target .gch
 # $2 - source header
 PCH_EXE_R_CXX = $(PCH_CXX)
@@ -297,9 +282,9 @@ $(eval ADD_WITH_PCH = $$(if $$(PCH),$(value ADD_WITH_PCH),$$(error PCH variable 
 endif
 
 # make list of sources for the target, used by TRG_SRC
-# note: override default implementation of $(CLEAN_BUILD_DIR)/impl/_c.mk
 # note: WITH_PCH should not be accessed or modified directly in target makefiles,
-#  use ADD_WITH_PCH macro to add to build sources compiled with precompiled headers
+#  use ADD_WITH_PCH macro to register sources that need to be compiled with precompiled headers
+# note: override default implementation of $(CLEAN_BUILD_DIR)/impl/_c.mk
 GET_SOURCES = $(SRC) $(WITH_PCH)
 
 # $1 - $(call FORM_TRG,$t,$v)
@@ -345,8 +330,7 @@ PCH_TEMPLATEt = $(if $(word 2,$(PCH) $(firstword $(WITH_PCH))),$(foreach \
   FORM_OBJ_DIR,$t,$v))),$(call ALL_TRG,$t): WITH_PCH:=$(newline))
 
 # for all targets: add support for precompiled headers
-$(call define_append,C_RULES_BODY,$$(foreach \
-  t,EXE DLL LIB,$$(if $$($$t),$$(PCH_TEMPLATEt))))
+$(call define_append,C_RULES,$$(foreach t,EXE DLL LIB,$$(if $$($$t),$$(PCH_TEMPLATEt))))
 
 endif # NO_PCH
 
@@ -384,7 +368,7 @@ MOD_AUX_TEMPLATEt = $(foreach v,$(call GET_VARIANTS,$t),$(call $t_AUX_TEMPLATEv,
 
 # for DLL:         define target-specific variable MODVER
 # for DLL and EXE: define target-specific variables RPATH and MAP
-$(call define_append,C_RULES_BODY,$$(foreach \
+$(call define_append,C_RULES,$$(foreach \
   t,EXE DLL,$$(if $$($$t),$$(call MOD_AUX_TEMPLATEt,$$(call fixpath,$$(MAP))))))
 
 # protect variables from modifications in target makefiles
@@ -398,65 +382,3 @@ $(call SET_GLOBAL,INST_RPATH CC CXX LD AR TCC TCXX TLD TAR \
   PCH_EXE_R_CXX PCH_EXE_R_CC PCH_EXE_P_CXX PCH_EXE_P_CC PCH_LIB_R_CXX PCH_LIB_R_CC PCH_LIB_P_CXX PCH_LIB_P_CC \
   PCH_DLL_R_CXX PCH_DLL_R_CC PCH_LIB_D_CXX PCH_LIB_D_CC ADD_WITH_PCHv=v ADD_WITH_PCH1 \
   PCH_TEMPLATEv=t;v PCH_TEMPLATEt=t EXE_AUX_TEMPLATEv=t;v DLL_AUX_TEMPLATEv=t;v MOD_AUX_TEMPLATEt=t)
-
-###  # make list of sources for the target, used by TRG_SRC
-###  # note: overridden in $(CLEAN_BUILD_DIR)/compilers/gcc.mk
-###  GET_SOURCES = $(SRC)
-###  
-###  # function to add (generated?) sources to list of sources compiled with pch header
-###  # $1 - EXE,LIB,DLL,...
-###  # $2 - sources
-###  # note: PCH header must be specified before expanding this macro
-###  # note: overridden in $(CLEAN_BUILD_DIR)/compilers/gcc.mk
-###  ADD_WITH_PCH = $(eval SRC+=$2)
-### 
-###  # code to be called at beginning of target makefile
-###  # $(MODVER) - module version (for dll, exe or driver) in form major.minor.patch (for example 1.2.3)
-###  define PREPARE_C_VARS_BODY
-###  MODVER:=$(PRODUCT_VER)
-###  EXE:=
-###  DLL:=
-###  LIB:=
-###  SRC:=
-###  SDEPS:=
-###  DEFINES:=
-###  INCLUDE:=
-###  CFLAGS:=
-###  CXXFLAGS:=
-###  LDFLAGS:=
-###  SYSLIBS:=
-###  SYSLIBPATH:=
-###  SYSINCLUDE:=
-###  LIBS:=
-###  DLLS:=
-###  DEFINE_TARGETS_EVAL_NAME:=DEFINE_C_TARGETS_EVAL
-###  MAKE_CONTINUE_EVAL_NAME:=CLEAN_BUILD_C_EVAL
-###  endef
-###  
-###  # $1 - $(call FORM_TRG,$t,$v)
-###  # $2 - $(TRG_SRC)
-###  # $3 - $(TRG_SDEPS)
-###  # $4 - $(call FORM_OBJ_DIR,$t,$v)
-###  # $t - EXE,DLL,...
-###  # $v - non-empty variant: R,P,S,...
-###  ifdef MCHECK
-###  # check that target template is defined
-###  C_RULESv = $(if $(value $t_TEMPLATE),$($t_TEMPLATE),$(error \
-###    $t_TEMPLATE is not defined! (define it in appropriate $(TOOLCHAINS_DIR)/compilers/compiler.mk)))
-###  else
-###  C_RULESv = $($t_TEMPLATE)
-###  endif
-###  
-###  # $1 - $(TRG_SRC)
-###  # $2 - $(TRG_SDEPS)
-###  # $t - EXE,DLL,...
-###  C_RULESt = $(foreach v,$(call GET_VARIANTS,$t),$(call C_RULESv,$(call FORM_TRG,$t,$v),$1,$2,$(call FORM_OBJ_DIR,$t,$v))$(newline))
-###  
-###  # expand target rules template $t_TEMPLATE, for example - see EXE_TEMPLATE
-###  # $1 - $(TRG_SRC)
-###  # $2 - $(TRG_SDEPS)
-###  # note: overridden in $(CLEAN_BUILD_C_EVAL)/compilers/gcc.mk
-###  C_RULES_BODY = $(foreach t,EXE DLL LIB,$(if $($t),$(C_RULESt)))
-###  
-###  # this code is normally evaluated at end of target makefile
-###  DEFINE_C_TARGETS_EVAL = $(eval $(call C_RULES_BODY,$(TRG_SRC),$(TRG_SDEPS)))$(DEF_TAIL_CODE_EVAL)
