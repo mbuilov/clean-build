@@ -18,8 +18,7 @@ FLEX_FLAGS:=
 # $1 - target
 # $2 - source
 # example:
-#  $(call ADD_GENERATED,$(GEN_DIR)/test/test.yy.c)
-#  $(GEN_SRC_DIR)/test.yy.c: $(call fixpath,test.l); $(call FLEXC,$@,$<)
+#  $(call ADD_GENERATED_RET,$(GEN_DIR)/test/test.yy.c): $(call fixpath,test.l); $(call FLEXC,$@,$<)
 FLEXC = $(call SUP,FLEX,$2)$(FLEX) $(FLEX_FLAGS) -o$(call ospath,$1 $2)
 
 # tool colors
