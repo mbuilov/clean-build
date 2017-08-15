@@ -284,7 +284,7 @@ C_RULES = $(foreach t,EXE DLL LIB,$(if $($t),$(C_RULESt)))
 # $4 - objdir:      $(call FORM_OBJ_DIR,$t,$v)
 # $t - EXE,DLL,LIB...
 # $v - non-empty variant: R,P,S,...
-define C_BASE_TEMPLATE_BODY
+define C_BASE_TEMPLATE
 NEEDED_DIRS+=$4
 $(STD_TARGET_VARS)
 $1:$(call OBJ_RULES,CC,$(filter %.c,$2),$3,$4)
@@ -296,9 +296,6 @@ $1:CFLAGS   := $(TRG_CFLAGS)
 $1:CXXFLAGS := $(TRG_CXXFLAGS)
 endef
 
-# to add more target-specific variables, just override C_BASE_TEMPLATE
-C_BASE_TEMPLATE = $(C_BASE_TEMPLATE_BODY)
-
 # template for building executables, used by C_RULES macro
 # $1 - target file: $(call FORM_TRG,$t,$v)
 # $2 - sources:     $(TRG_SRC)
@@ -308,7 +305,7 @@ C_BASE_TEMPLATE = $(C_BASE_TEMPLATE_BODY)
 # $v - non-empty variant: R,P,S,...
 # note: target-specific variables are passed to dependencies, so templates for
 #  dependent libs/dlls must override INCLUDE, DEFINES, CFLAGS and other sensible variables
-define EXE_TEMPLATE_BODY
+define EXE_TEMPLATE
 $(C_BASE_TEMPLATE)
 $1:LDFLAGS    := $(TRG_LDFLAGS)
 $1:LIB_DIR    := $(LIB_DIR)
@@ -320,9 +317,6 @@ $1:$(addprefix $(LIB_DIR)/,$(call DEP_LIBS,$t,$v) $(call DEP_IMPS,$t,$v))
 	$$(call $t_$v_LD,$$@,$$(filter %$(OBJ_SUFFIX),$$^))
 endef
 
-# to add more target-specific variables, just override EXE_TEMPLATE
-EXE_TEMPLATE = $(EXE_TEMPLATE_BODY)
-
 # template for building dynamic (shared) libraries, used by C_RULES
 DLL_TEMPLATE = $(EXE_TEMPLATE)
 
@@ -333,15 +327,12 @@ DLL_TEMPLATE = $(EXE_TEMPLATE)
 # $4 - objdir:      $(call FORM_OBJ_DIR,$t,$v)
 # $t - LIB
 # $v - non-empty variant: R,P,D,S
-define LIB_TEMPLATE_BODY
+define LIB_TEMPLATE
 $(C_BASE_TEMPLATE)
 $1:LDFLAGS := $(TRG_LDFLAGS)
 $1:
 	$$(call $t_$v_LD,$$@,$$(filter %$(OBJ_SUFFIX),$$^))
 endef
-
-# to add more target-specific variables, just override LIB_TEMPLATE
-LIB_TEMPLATE = $(LIB_TEMPLATE_BODY)
 
 # tools colors
 CC_COLOR   := [1;31m
@@ -355,9 +346,6 @@ TAR_COLOR  := [1;32m
 TLD_COLOR  := [33m
 TXLD_COLOR := [1;37m
 
-# this code is normally evaluated at end of target makefile
-DEFINE_C_TARGETS_EVAL = $(eval $(call C_RULES,$(TRG_SRC),$(TRG_SDEPS)))$(DEF_TAIL_CODE_EVAL)
-
 # check that LIBS or DLLS are specified only when building EXE or DLL
 ifdef MCHECK
 CHECK_C_RULES = $(if \
@@ -368,7 +356,7 @@ endif
 
 # code to be called at beginning of target makefile
 # $(MODVER) - module version (for dll, exe or driver) in form major.minor.patch (for example 1.2.3)
-define PREPARE_C_VARS_BODY
+define PREPARE_C_VARS
 MODVER:=$(PRODUCT_VER)
 EXE:=
 DLL:=
@@ -389,12 +377,16 @@ DEFINE_TARGETS_EVAL_NAME:=DEFINE_C_TARGETS_EVAL
 MAKE_CONTINUE_EVAL_NAME:=CLEAN_BUILD_C_EVAL
 endef
 
-# to reset more variables, just override PREPARE_C_VARS
-PREPARE_C_VARS = $(PREPARE_C_VARS_BODY)
-
 # reset build targets, target-specific variables and variables modifiable in target makefiles
 # NOTE: expanded by $(CLEAN_BUILD_DIR)/c.mk
 CLEAN_BUILD_C_EVAL = $(DEF_HEAD_CODE_EVAL)$(eval $(PREPARE_C_VARS))
+
+# this code is normally evaluated at end of target makefile
+DEFINE_C_TARGETS_EVAL = $(eval $(call C_RULES,$(TRG_SRC),$(TRG_SDEPS)))$(DEF_TAIL_CODE_EVAL)
+
+# protect variables from modifications in target makefiles
+# note: GET_SOURCES and ADD_WITH_PCH are may be overridden in next included $(C_COMPILER)
+$(call SET_GLOBAL,GET_SOURCES=SRC ADD_WITH_PCH=SRC=SRC)
 
 # ASM_COMPILER - assembler to use for the build (yasm, nasm, etc.)
 # note: ASM_COMPILER may be overridden by specifying either in in command line or in project configuration makefile
@@ -411,30 +403,20 @@ endif
 include $(C_COMPILER)
 
 # optimization
-$(call try_make_simple,PREPARE_C_VARS_BODY,PRODUCT_VER)
-$(call try_make_simple,PREPARE_C_VARS,PREPARE_C_VARS_BODY)
-$(call try_inline,C_BASE_TEMPLATE,C_BASE_TEMPLATE_BODY)
-$(call try_inline,EXE_TEMPLATE,EXE_TEMPLATE_BODY)
-$(call try_inline,DLL_TEMPLATE,EXE_TEMPLATE)
-$(call try_inline,LIB_TEMPLATE,LIB_TEMPLATE_BODY)
-
-ifneq (simple,$(flavor PREPARE_C_VARS))
-$(call try_inline,PREPARE_C_VARS,PREPARE_C_VARS_BODY)
-endif
+$(call try_make_simple,PREPARE_C_VARS,PRODUCT_VER)
 
 # protect variables from modifications in target makefiles
 $(call SET_GLOBAL,BLD_TARGETS NO_DEPS ADD_OBJ_SDEPS=x OBJ_RULES_BODY=t;v OBJ_RULES1=t;v OBJ_RULES=t;v \
   VARIANTS_FILTER EXE_SUFFIX_GEN EXE_VAR_SUFFIX LIB_VAR_SUFFIX DLL_DIR FORM_TRG ALL_TRG \
   TRG_COMPILER=t;v TRG_INCLUDE=t;v;SYSINCLUDE TRG_DEFINES=t;v;DEFINES TRG_CFLAGS=t;v;CFLAGS \
   TRG_CXXFLAGS=t;v;CXXFLAGS TRG_LDFLAGS=t;v;LDFLAGS \
-  GET_SOURCES=SRC ADD_WITH_PCH=SRC=SRC TRG_SRC TRG_SDEPS=SDEPS GET_OBJS VARIANT_LIB_MAP VARIANT_IMP_MAP \
+  TRG_SRC TRG_SDEPS=SDEPS GET_OBJS VARIANT_LIB_MAP VARIANT_IMP_MAP \
   DEP_LIB_SUFFIX DEP_IMP_SUFFIX MAKE_DEP_LIBS MAKE_DEP_IMPS DEP_LIBS=LIBS DEP_IMPS=DLLS \
   STRING_DEFINE SUBST_DEFINES C_RULESv=t;v C_RULESt=t C_RULES \
   EXE_SUFFIX OBJ_SUFFIX LIB_PREFIX LIB_SUFFIX IMP_PREFIX IMP_SUFFIX DLL_PREFIX DLL_SUFFIX \
-  C_BASE_TEMPLATE_BODY=t;v C_BASE_TEMPLATE EXE_TEMPLATE_BODY=t;v;EXE;LIB_DIR;LIBS;DLLS;SYSLIBS;SYSLIBPATH \
-  EXE_TEMPLATE DLL_TEMPLATE=t;v;DLL LIB_TEMPLATE_BODY=t;v;LIB LIB_TEMPLATE \
+  C_BASE_TEMPLATE=t;v EXE_TEMPLATE=t;v;EXE;LIB_DIR;LIBS;DLLS;SYSLIBS;SYSLIBPATH DLL_TEMPLATE=t;v;DLL LIB_TEMPLATE=t;v;LIB \
   CC_COLOR CXX_COLOR AR_COLOR LD_COLOR XLD_COLOR TCC_COLOR TCXX_COLOR TAR_COLOR TLD_COLOR TXLD_COLOR \
-  DEFINE_C_TARGETS_EVAL CHECK_C_RULES BLD_TARGETS_RESET PREPARE_C_VARS_BODY PREPARE_C_VARS CLEAN_BUILD_C_EVAL)
+  CHECK_C_RULES BLD_TARGETS_RESET PREPARE_C_VARS CLEAN_BUILD_C_EVAL DEFINE_C_TARGETS_EVAL)
 
 # protect variables from modifications in target makefiles
 # note: do not trace calls to C_COMPILER and ASM_COMPILER variables because they are used in ifdefs

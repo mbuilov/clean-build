@@ -295,8 +295,8 @@ show_dll_path_end:=
 # SED - stream editor executable - should be defined in $(UTILS) makefile
 # SED_EXPR - also should be defined in $(UTILS) makefile
 # helper macro: convert multi-line sed script $1 to multiple sed expressions - one expression for each script line
-SED_MULTI_EXPR = $(foreach s,$(subst $(newline), ,$(subst $(comment),$$(comment),$(subst $(space),$$(space),$(subst \
-  $$,$$$$,$1)))),-e $(call SED_EXPR,$(eval SED_MULTI_EXPR_:=$s)$(SED_MULTI_EXPR_)))
+SED_MULTI_EXPR = $(foreach s,$(subst $(newline), ,$(subst $(tab),$$(tab),$(subst $(space),$$(space),$(subst \
+  $$,$$$$,$1)))),-e $(call SED_EXPR,$(eval SED_MULTI_EXPR_:=$(subst $(comment),$$(comment),$s))$(SED_MULTI_EXPR_)))
 
 # utilities colors
 GEN_COLOR   := [1;32m
@@ -622,6 +622,11 @@ $(eval ADD_GENERATED = $$(CHECK_GENERATED)$(value ADD_GENERATED))
 
 endif # MCHECK
 
+# add generated files $1 to build sequence and return $1
+# note: files must be generated in $(GEN_DIR),$(BIN_DIR),$(OBJ_DIR) or $(LIB_DIR)
+# note: directories for generated files will be auto-created
+ADD_GENERATED_RET = $(ADD_GENERATED)$1
+
 # list of processed multi-target rules
 # note: MULTI_TARGETS is never cleared, only appended (in rules execution phase)
 MULTI_TARGETS:=
@@ -913,8 +918,8 @@ $(call SET_GLOBAL,PROJECT_VARS_NAMES PASS_ENV_VARS \
   TOOL_BASE MK_TOOLS_DIR GET_TOOLS GET_TOOL TOOL_OVERRIDE_DIRS \
   ADD_MDEPS ADD_ADEPS CREATE_MAKEFILE_ALIAS ADD_ORDER_DEPS=ORDER_DEPS=ORDER_DEPS \
   STD_TARGET_VARS1 STD_TARGET_VARS MAKEFILE_INFO_TEMPL SET_MAKEFILE_INFO fixpath \
-  FILTER_VARIANTS_LIST GET_VARIANTS GET_TARGET_NAME FORM_OBJ_DIR \
-  ADD_GENERATED CHECK_GENERATED MULTI_TARGETS MULTI_TARGET_RULE=MULTI_TARGET_NUM=MULTI_TARGET_NUM MULTI_TARGET CHECK_MULTI_RULE \
+  FILTER_VARIANTS_LIST GET_VARIANTS GET_TARGET_NAME FORM_OBJ_DIR ADD_GENERATED CHECK_GENERATED ADD_GENERATED_RET \
+  MULTI_TARGETS MULTI_TARGET_RULE=MULTI_TARGET_NUM=MULTI_TARGET_NUM MULTI_TARGET CHECK_MULTI_RULE \
   NON_PARALLEL_EXECUTE_RULE NON_PARALLEL_EXECUTE FORM_SDEPS EXTRACT_SDEPS FIX_SDEPS RUN_WITH_DLL_PATH TMD TOOL_MODE \
   DEF_HEAD_CODE_EVAL DEF_TAIL_CODE_EVAL MAKE_CONTINUE_EVAL_NAME DEFINE_TARGETS_EVAL_NAME \
   DEF_HEAD_CODE DEF_TAIL_CODE DEFINE_TARGETS SAVE_VARS RESTORE_VARS MAKE_CONTINUE CONF_COLOR PRODUCT_VER)

@@ -13,7 +13,7 @@ INST_RPATH:=
 # reset additional variables
 # RPATH - runtime path for dynamic linker to search for shared libraries
 # MAP   - linker map file (used mostly to list exported symbols)
-$(call define_append,PREPARE_C_VARS_BODY,$(newline)RPATH:=$(if $(findstring \
+$(call define_append,PREPARE_C_VARS,$(newline)RPATH:=$(if $(findstring \
   simple,$(flavor INST_RPATH)),$(INST_RPATH),$$(INST_RPATH))$(newline)MAP:=)
 
 # compilers/linkers
@@ -128,14 +128,15 @@ VERSION_SCRIPT_OPTION = $(addprefix $(WLPREFIX)--version-script=,$(MAP))
 # target-specific: MODVER
 SONAME_OPTION = $(addprefix $(WLPREFIX)-soname=$(notdir $1).,$(firstword $(subst ., ,$(MODVER))))
 
-# different linkers, used by EXE_TEMPLATE, DLL_TEMPLATE, LIB_TEMPLATE
+# linkers for each variant of EXE, DLL, LIB
 # $1 - target EXE,DLL,LIB
 # $2 - objects
 # target variants: R,P,D
 # target-specific: TMD, COMPILER
+# note: used by EXE_TEMPLATE, DLL_TEMPLATE, LIB_TEMPLATE from $(CLEAN_BUILD_DIR)/impl/_c.mk
 EXE_R_LD = $(call SUP,$(TMD)XLD,$1)$($(TMD)$(COMPILER)) $(DEF_EXE_FLAGS) $(call CMN_LIBS,$1,$2,R)
 EXE_P_LD = $(call SUP,$(TMD)XLD,$1)$($(TMD)$(COMPILER)) $(DEF_EXE_FLAGS) $(call CMN_LIBS,$1,$2,P) -pie
-DLL_R_LD = $(call SUP,$(TMD)LD,$1)$($(TMD)$(COMPILER)) $(DEF_SO_FLAGS) $(VERSION_SCRIPT_OPTION) $(SONAME_OPTION) $(call CMN_LIBS,$1,$2,D)
+DLL_R_LD = $(call SUP,$(TMD)SLD,$1)$($(TMD)$(COMPILER)) $(DEF_SO_FLAGS) $(VERSION_SCRIPT_OPTION) $(SONAME_OPTION) $(call CMN_LIBS,$1,$2,D)
 LIB_R_LD = $(call SUP,$(TMD)AR,$1)$($(TMD)AR) $(DEF_AR_FLAGS) $1 $2
 LIB_P_LD = $(call SUP,$(TMD)LD,$1)$($(TMD)LD) $(DEF_LD_FLAGS) -o $1 $2 $(LDFLAGS)
 LIB_D_LD = $(LIB_P_LD)
@@ -185,19 +186,21 @@ CMN_CC  = $(call SUP,$(TMD)CC,$2)$($(TMD)CC) $(DEF_CFLAGS) $(CC_PARAMS) $(CFLAGS
 PIE_OPTION := -fpie
 PIC_OPTION := -fpic
 
-# different compilers for R,P and D target variants, used by OBJ_RULES
+# compilers for each variant of EXE, DLL, LIB
 # $1 - target object file
 # $2 - source
+# target variants: R,P,D
+# note: used by OBJ_RULES from $(CLEAN_BUILD_DIR)/impl/_c.mk
 EXE_R_CXX = $(CMN_CXX)
 EXE_R_CC  = $(CMN_CC)
 EXE_P_CXX = $(EXE_R_CXX) $(PIE_OPTION)
 EXE_P_CC  = $(EXE_R_CC) $(PIE_OPTION)
+DLL_R_CXX = $(CMN_CXX) $(PIC_OPTION)
+DLL_R_CC  = $(CMN_CC) $(PIC_OPTION)
 LIB_R_CXX = $(EXE_R_CXX)
 LIB_R_CC  = $(EXE_R_CC)
 LIB_P_CXX = $(EXE_P_CXX)
 LIB_P_CC  = $(EXE_P_CC)
-DLL_R_CXX = $(CMN_CXX) $(PIC_OPTION)
-DLL_R_CC  = $(CMN_CC) $(PIC_OPTION)
 LIB_D_CXX = $(DLL_R_CXX)
 LIB_D_CC  = $(DLL_R_CC)
 
@@ -248,7 +251,7 @@ PCH_LIB_D_CC  = $(PCH_DLL_R_CC)
 # reset additional variables
 # PCH      - either absolute or makefile-related path to header to precompile
 # WITH_PCH - list of sources to compile with precompiled headers
-$(call define_append,PREPARE_C_VARS_BODY,$(newline)PCH:=$(newline)WITH_PCH:=)
+$(call define_append,PREPARE_C_VARS,$(newline)PCH:=$(newline)WITH_PCH:=)
 
 # set dependencies of objects compiled with pch header on .gch
 # $1 - $(filter %.c,$src)
@@ -285,7 +288,7 @@ endif
 # note: WITH_PCH should not be accessed or modified directly in target makefiles,
 #  use ADD_WITH_PCH macro to register sources that need to be compiled with precompiled headers
 # note: override default implementation of $(CLEAN_BUILD_DIR)/impl/_c.mk
-GET_SOURCES = $(SRC) $(WITH_PCH)
+GET_SOURCES += $(WITH_PCH)
 
 # $1 - $(call FORM_TRG,$t,$v)
 # $2 - $(call FORM_OBJ_DIR,$t,$v)
@@ -380,5 +383,5 @@ $(call SET_GLOBAL,INST_RPATH CC CXX LD AR TCC TCXX TLD TAR \
   EXE_R_CXX EXE_R_CC EXE_P_CXX EXE_P_CC LIB_R_CXX LIB_R_CC LIB_P_CXX LIB_P_CC DLL_R_CXX DLL_R_CC LIB_D_CXX LIB_D_CC \
   NO_PCH PCH_CXX PCH_CC PCHCC_COLOR PCHCXX_COLOR TPCHCC_COLOR TPCHCXX_COLOR \
   PCH_EXE_R_CXX PCH_EXE_R_CC PCH_EXE_P_CXX PCH_EXE_P_CC PCH_LIB_R_CXX PCH_LIB_R_CC PCH_LIB_P_CXX PCH_LIB_P_CC \
-  PCH_DLL_R_CXX PCH_DLL_R_CC PCH_LIB_D_CXX PCH_LIB_D_CC ADD_WITH_PCHv=v ADD_WITH_PCH1 \
-  PCH_TEMPLATEv=t;v PCH_TEMPLATEt=t EXE_AUX_TEMPLATEv=t;v DLL_AUX_TEMPLATEv=t;v MOD_AUX_TEMPLATEt=t)
+  PCH_DLL_R_CXX PCH_DLL_R_CC PCH_LIB_D_CXX PCH_LIB_D_CC ADD_WITH_PCHv=v ADD_WITH_PCH1 ADD_WITH_PCH=PCH;WITH_PCH=WITH_PCH \
+  GET_SOURCES=SRC;WITH_PCH PCH_TEMPLATEv=t;v PCH_TEMPLATEt=t EXE_AUX_TEMPLATEv=t;v DLL_AUX_TEMPLATEv=t;v MOD_AUX_TEMPLATEt=t)
