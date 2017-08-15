@@ -6,8 +6,8 @@
 
 # rules for building C/C++ libs, dlls and executables
 
-ifeq (,$(filter-out undefined environment,$(origin DEF_HEAD_CODE)))
-include $(dir $(lastword $(MAKEFILE_LIST)))_defs.mk
+ifeq (,$(filter-out undefined environment,$(origin DEF_HEAD_CODE_EVAL)))
+include $(dir $(lastword $(MAKEFILE_LIST)))../core/_defs.mk
 endif
 
 # C_COMPILER - compiler to use for the build (gcc, clang, msvc, etc.)
@@ -388,16 +388,25 @@ DEFINE_C_TARGETS_EVAL = $(eval $(call C_RULES,$(TRG_SRC),$(TRG_SDEPS)))$(DEF_TAI
 # note: GET_SOURCES and ADD_WITH_PCH are may be overridden in next included $(C_COMPILER)
 $(call SET_GLOBAL,GET_SOURCES=SRC ADD_WITH_PCH=SRC=SRC)
 
-# ASM_COMPILER - assembler to use for the build (yasm, nasm, etc.)
-# note: ASM_COMPILER may be overridden by specifying either in in command line or in project configuration makefile
-ASM_COMPILER:=
+# do not support assembler by default
+# note: ASSEMBLER_SUPPORT may be overridden in protect configuration makefile
+# note: if ASSEMBLER_SUPPORT is defined, then assemblers called from $(OBJ_RULES_BODY) must also be defined:
+#  EXE_R_ASM, LIB_R_ASM, LIB_D_ASM, etc. - for all supported target variants
+ASSEMBLER_SUPPORT:=
 
-# ensure ASM_COMPILER variable is non-recursive (simple)
-override ASM_COMPILER := $(ASM_COMPILER)
+# ensure ASSEMBLER_SUPPORT variable is non-recursive (simple)
+override ASSEMBLER_SUPPORT := $(ASSEMBLER_SUPPORT)
 
-ifdef ASM_COMPILER
+ifdef ASSEMBLER_SUPPORT
 include $(CLEAN_BUILD_DIR)/impl/_asm.mk
 endif
+
+# do not support building drivers by default
+# note: DRIVERS_SUPPORT may be overridden in protect configuration makefile
+DRIVERS_SUPPORT:=
+
+# ensure DRIVERS_SUPPORT variable is non-recursive (simple)
+override DRIVERS_SUPPORT := $(DRIVERS_SUPPORT)
 
 # add compiler-specific definitions
 include $(C_COMPILER)
@@ -419,5 +428,5 @@ $(call SET_GLOBAL,BLD_TARGETS NO_DEPS ADD_OBJ_SDEPS=x OBJ_RULES_BODY=t;v OBJ_RUL
   CHECK_C_RULES BLD_TARGETS_RESET PREPARE_C_VARS CLEAN_BUILD_C_EVAL DEFINE_C_TARGETS_EVAL)
 
 # protect variables from modifications in target makefiles
-# note: do not trace calls to C_COMPILER and ASM_COMPILER variables because they are used in ifdefs
-$(call SET_GLOBAL,C_COMPILER ASM_COMPILER,0)
+# note: do not trace calls to C_COMPILER, ASSEMBLER_SUPPORT and DRIVERS_SUPPORT variables because they are used in ifdefs
+$(call SET_GLOBAL,C_COMPILER ASSEMBLER_SUPPORT DRIVERS_SUPPORT,0)

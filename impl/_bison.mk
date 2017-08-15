@@ -5,7 +5,7 @@
 #----------------------------------------------------------------------------------
 
 ifeq (,$(filter-out undefined environment,$(origin DEF_HEAD_CODE)))
-include $(dir $(lastword $(MAKEFILE_LIST)))_defs.mk
+include $(dir $(lastword $(MAKEFILE_LIST)))../core/_defs.mk
 endif
 
 # bison compiler executable
@@ -23,7 +23,7 @@ BISON_FLAGS := -y -d
 #  $(call MULTI_TARGET,$(GEN_DIR)/test/y.tab.h $(GEN_DIR)/test/y.tab.c,test.y,$$(call BISON_COMPILER,$$(@:h=c),$$<))
 BISON_COMPILER = $(call SUP,BISON,$2)$(BISON) $(BISON_FLAGS) -o $(call ospath,$1 $2)
 
-# tool colors
+# tool color
 BISON_COLOR := $(GEN_COLOR)
 
 # protect variables from modifications in target makefiles

@@ -4,6 +4,7 @@
 # Licensed under GPL version 2 or any later version, see COPYING
 #----------------------------------------------------------------------------------
 
-ifeq (,$(filter-out undefined environment,$(origin PROCESS_SUBMAKES)))
-include $(dir $(lastword $(MAKEFILE_LIST)))impl/_parallel.mk
+ifeq (,$(filter-out undefined environment,$(origin CLEAN_BUILD_PARALLEL_EVAL)))
+include $(dir $(lastword $(MAKEFILE_LIST)))core/_parallel.mk
 endif
+$(CLEAN_BUILD_PARALLEL_EVAL)

@@ -5,6 +5,6 @@
 #----------------------------------------------------------------------------------
 
 ifeq (,$(filter-out undefined environment,$(origin DEF_HEAD_CODE_EVAL)))
-include $(dir $(lastword $(MAKEFILE_LIST)))impl/_defs.mk
+include $(dir $(lastword $(MAKEFILE_LIST)))core/_defs.mk
 endif
 $(DEF_HEAD_CODE_EVAL)

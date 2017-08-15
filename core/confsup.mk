@@ -50,7 +50,7 @@ conf: override CONFIG_TEXT := $(foreach v,$(filter-out \
   $v)),$(OVERRIDE_VAR_TEMPLATE)))$(foreach v,PATH SHELL $(PASS_ENV_VARS),$(OVERRIDE_VAR_TEMPLATE))
 
 # generate configuration file
-# note: SUP - defined in $(CLEAN_BUILD_DIR)/impl/_defs.mk
+# note: SUP - defined in $(CLEAN_BUILD_DIR)/core/_defs.mk
 # note: WRITE - defined in $(TOOLCHAINS_DIR)/utils/$(UTILS).mk
 # note: pass 1 as 4-th argument of SUP function to not update percents of executed target makefiles
 # note: CONFIG_TEXT was defined above as target-specific variable

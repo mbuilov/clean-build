@@ -7,7 +7,7 @@
 # rules for building java sources
 
 ifeq (,$(filter-out undefined environment,$(origin DEF_HEAD_CODE)))
-include $(dir $(lastword $(MAKEFILE_LIST)))_defs.mk
+include $(dir $(lastword $(MAKEFILE_LIST)))../core/_defs.mk
 endif
 
 # run via $(MAKE) L=1 to run java compiler with -Xlint

@@ -4,7 +4,7 @@
 # Licensed under GPL version 2 or any later version, see COPYING
 #----------------------------------------------------------------------------------
 
-ifeq (,$(filter-out undefined environment,$(origin DEF_HEAD_CODE)))
+ifeq (,$(filter-out undefined environment,$(origin DEF_TAIL_CODE)))
 include $(dir $(lastword $(MAKEFILE_LIST)))_defs.mk
 endif
 
@@ -79,7 +79,7 @@ ADD_ADEPS = $(call ADD_MDEPS1,$(filter-out $(ORDER_DEPS),$(patsubst %,MAKEFILE_A
 # $(TARGET_MAKEFILE) is built if all $1 makefiles are built
 # note: $(TARGET_MAKEFILE)- and other order-dependent makefile names - are .PHONY targets
 # note: use order-only dependency, so normal dependencies of $(TARGET_MAKEFILE)-
-#  will be only files - for the checks in $(CLEAN_BUILD_DIR)/impl/all.mk
+#  will be only files - for the checks in $(CLEAN_BUILD_DIR)/core/all.mk
 $(call define_prepend,CLEAN_BUILD_PARALLEL,.PHONY: $$(addsuffix \
   -,$$1)$(newline)$$(TARGET_MAKEFILE)-:| $$(addsuffix -,$$1)$(newline))
 
@@ -101,20 +101,32 @@ endif # clean && MDEBUG
 # to not define variable 1 for next processed makefiles, this macro must
 # be expanded by explicit $(call PROCESS_SUBMAKES_EVAL) without arguments
 # note: call DEF_TAIL_CODE with @ - for the checks in CLEAN_BUILD_CHECK_AT_TAIL macro
-#  (which is defined in $(CLEAN_BUILD_DIR)/impl/protection.mk)
+#  (which is defined in $(CLEAN_BUILD_DIR)/core/protection.mk)
 # note: process result of DEF_TAIL_CODE with separate $(eval) - for the checks performed while expanding $(eval argument)
 PROCESS_SUBMAKES_EVAL = $(eval $(value CB_PARALLEL_CODE))$(eval $(call DEF_TAIL_CODE,@))
 
 # generate code for including and processing given makefiles - in $(CB_PARALLEL_CODE),
 #  then evaluate it via call without parameters - to hide $1 argument from makefiles
-# at end, check if need to include $(CLEAN_BUILD_DIR)/impl/all.mk
+# at end, check if need to include $(CLEAN_BUILD_DIR)/core/all.mk
 # note: make absolute paths to makefiles $1 to include
 PROCESS_SUBMAKES = $(eval define CB_PARALLEL_CODE$(newline)$(call CLEAN_BUILD_PARALLEL,$(call \
   NORM_MAKEFILES,$1,))$(newline)endef)$(call PROCESS_SUBMAKES_EVAL)
 
+# set CLEAN_BUILD_NEED_PARALLEL before including sub-makefiles:
+# each of processed sub-makefiles must include $(CLEAN_BUILD_DIR)/parallel.mk or $(CLEAN_BUILD_DIR)/c.mk, etc...
+# by including $(CLEAN_BUILD_DIR)/parallel.mk, sub-makefile will reset CLEAN_BUILD_NEED_PARALLEL
+ifdef MCHECK
+CLEAN_BUILD_PARALLEL_EVAL = $(eval CLEAN_BUILD_NEED_PARALLEL:=)
+$(eval PROCESS_SUBMAKES = $$(if $$(CLEAN_BUILD_NEED_PARALLEL),$$(error \
+  $$$$(CLEAN_BUILD_DIR)/parallel.mk was not included at head of makefile!))$$(eval \
+  CLEAN_BUILD_NEED_PARALLEL:=1$(newline)$(call SET_GLOBAL1,CLEAN_BUILD_NEED_PARALLEL))$(value PROCESS_SUBMAKES))
+else
+CLEAN_BUILD_PARALLEL_EVAL:=
+endif
+
 # protect variables from modifications in target makefiles
-# note: don't complain about new ADD_MDEPS and ADD_ADEPS values
-# - replace ADD_MDEPS and ADD_ADEPS values defined in $(CLEAN_BUILD_DIR)/impl/_defs.mk with new ones
+# note: do not complain about new ADD_MDEPS and ADD_ADEPS values
+# - replace ADD_MDEPS and ADD_ADEPS values defined in $(CLEAN_BUILD_DIR)/core/_defs.mk with new ones
 $(call SET_GLOBAL,NORM_MAKEFILES CB_INCLUDE_TEMPLATE=ORDER_DEPS;TOOL_MODE CLEAN_BUILD_PARALLEL \
   ADD_MDEPS1 ADD_MDEPS=ORDER_DEPS=ORDER_DEPS ADD_ADEPS=ORDER_DEPS=ORDER_DEPS \
-  PROCESS_SUBMAKES_EVAL=CB_PARALLEL_CODE PROCESS_SUBMAKES)
+  PROCESS_SUBMAKES_EVAL=CB_PARALLEL_CODE PROCESS_SUBMAKES CLEAN_BUILD_PARALLEL_EVAL)

@@ -4,7 +4,7 @@
 # Licensed under GPL version 2 or any later version, see COPYING
 #----------------------------------------------------------------------------------
 
-# this file included by $(CLEAN_BUILD_DIR)/impl/_defs.mk after including $(CLEAN_BUILD_DIR)/impl/protection.mk
+# this file included by $(CLEAN_BUILD_DIR)/core/_defs.mk after including $(CLEAN_BUILD_DIR)/core/protection.mk
 
 empty:=
 space:= $(empty) $(empty)
@@ -64,7 +64,7 @@ encode_traced_var_name = $(subst $(close_brace),^c@,$(subst $(open_brace),^o@,$(
 # $3 - override or <empty>
 # $4 - names of variables to dump before traced call
 # $5 - names of variables to dump after traced call
-# $6 - if non-empty, then forcibly protect new values of traced macros (used by $(CLEAN_BUILD_DIR)/impl/protection.mk)
+# $6 - if non-empty, then forcibly protect new values of traced macros (used by $(CLEAN_BUILD_DIR)/core/protection.mk)
 # note: pass 0 as second parameter to SET_GLOBAL1 to not try to trace already traced macro
 # note: first line must be empty
 define trace_calls_template
@@ -99,7 +99,7 @@ $(eval define trace_calls_template$(newline)$(subst _dump_params_,$$$$$(open_bra
 # $1 - traced macros in form:
 #   name=b1;b2;b3;$$1=e1;e2
 # ($$1 - special case, when macro argument $1 is the name of another macro to dump its value)
-# $2 - if non-empty, then forcibly protect new values of traced macros (used by $(CLEAN_BUILD_DIR)/impl/protection.mk)
+# $2 - if non-empty, then forcibly protect new values of traced macros (used by $(CLEAN_BUILD_DIR)/core/protection.mk)
 # where
 #   name     - macro name
 #   b1;b2;b3 - names of variables to dump before traced call

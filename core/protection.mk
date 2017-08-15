@@ -4,7 +4,7 @@
 # Licensed under GPL version 2 or any later version, see COPYING
 #----------------------------------------------------------------------------------
 
-# this file included by $(CLEAN_BUILD_DIR)/impl/_defs.mk before including $(CLEAN_BUILD_DIR)/impl/functions.mk
+# this file included by $(CLEAN_BUILD_DIR)/core/_defs.mk before including $(CLEAN_BUILD_DIR)/core/functions.mk
 # variables protection from accidental changes in target makefiles
 
 # run via $(MAKE) C=1 to check makefiles
@@ -21,7 +21,7 @@ else
 TRACE:=
 endif
 
-# reset - this variable is checked in trace_calls function in $(CLEAN_BUILD_DIR)/impl/functions.mk
+# reset - this variable is checked in trace_calls function in $(CLEAN_BUILD_DIR)/core/functions.mk
 CLEAN_BUILD_PROTECTED_VARS:=
 
 ifdef MCHECK
@@ -94,12 +94,11 @@ endef
 # note: error is suppressed (only once) if variable name is specified in $(CLEAN_BUILD_OVERRIDDEN_VARS)
 # note: CLEAN_BUILD_OVERRIDDEN_VARS is cleared after the checks
 # note: CLEAN_BUILD_NEED_TAIL_CODE is cleared after the checks to mark that $(DEF_TAIL_CODE) was evaluated
-# note: normally, $(CLEAN_BUILD_NEED_TAIL_CODE) is checked at head of next included by
-#  $(CLEAN_BUILD_DIR)/impl/_parallel.mk target makefile, but for the last included target makefile
-#  - need to check $(CLEAN_BUILD_NEED_TAIL_CODE) here, $(CLEAN_BUILD_DIR)/impl/_parallel.mk calls $(DEF_TAIL_CODE) with $1=@
+# note: $(CLEAN_BUILD_DIR)/core/_parallel.mk calls $(DEF_TAIL_CODE) with $1=@
 define CLEAN_BUILD_CHECK_AT_TAIL
-$(if $(findstring @,$1),$(if $(CLEAN_BUILD_NEED_TAIL_CODE),$(error \
-  $$(DEFINE_TARGETS) was not evaluated at end of $(CLEAN_BUILD_NEED_TAIL_CODE)!)))
+$(if $(CLEAN_BUILD_NEED_TAIL_CODE),$(if $1,$(error \
+  $$(DEFINE_TARGETS) was not evaluated at end of $(CLEAN_BUILD_NEED_TAIL_CODE)!)),$(error \
+  $$(DEF_HEAD_CODE) was not evaluated at head of makefile!))
 $(foreach x,$(CLEAN_BUILD_PROTECTED_VARS),$(call CLEAN_BUILD_CHECK_PROTECTED_VAR,$(CLEAN_BUILD_ENCODE_VAR_NAME)))
 CLEAN_BUILD_OVERRIDDEN_VARS:=
 CLEAN_BUILD_NEED_TAIL_CODE:=

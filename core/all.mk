@@ -36,7 +36,7 @@ $(PROCESSED_MAKEFILES):
 endif
 
 # define rule for default goal 'all'
-# note: all depends on $(TARGET_MAKEFILE)- defined in $(CLEAN_BUILD_DIR)/impl/defs.mk
+# note: all depends on $(TARGET_MAKEFILE)- defined in $(CLEAN_BUILD_DIR)/core/_defs.mk
 # note: suppress "Nothing to be done for 'all'"
 all:
 	@:

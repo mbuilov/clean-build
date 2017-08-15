@@ -5,7 +5,7 @@
 #----------------------------------------------------------------------------------
 
 ifeq (,$(filter-out undefined environment,$(origin DEF_HEAD_CODE)))
-include $(dir $(lastword $(MAKEFILE_LIST)))_defs.mk
+include $(dir $(lastword $(MAKEFILE_LIST)))../core/_defs.mk
 endif
 
 # flex compiler executable
@@ -21,7 +21,7 @@ FLEX_FLAGS:=
 #  $(call ADD_GENERATED_RET,$(GEN_DIR)/test/test.yy.c): $(call fixpath,test.l); $(call FLEX_COMPILER,$@,$<)
 FLEX_COMPILER = $(call SUP,FLEX,$2)$(FLEX) $(FLEX_FLAGS) -o$(call ospath,$1 $2)
 
-# tool colors
+# tool color
 FLEX_COLOR := $(GEN_COLOR)
 
 # protect variables from modifications in target makefiles

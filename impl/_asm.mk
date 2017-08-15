@@ -6,11 +6,7 @@
 
 # add support for compiling assembler sources
 
-# included by $(CLEAN_BUILD_DIR)/impl/_c.mk if ASM_COMPLER is defined
-
-ifeq (,$(wildcard $(ASM_COMPILER)))
-$(error file $(ASM_COMPILER) was not found, check value of ASM_COMPILER variable)
-endif
+# included by $(CLEAN_BUILD_DIR)/impl/_c.mk if ASSEMBLER_SUPPORT is defined
 
 # target assembler flags
 # $t     - EXE,LIB,DLL,DRV,KLIB,KDLL,...
@@ -33,14 +29,11 @@ endef
 # patch C_BASE_TEMPLATE
 $(call define_append,C_BASE_TEMPLATE,$(newline)$$(ASM_TEMPLATE))
 
-# tools colors
+# tool color
 ASM_COLOR := [37m
 
 # reset ASMFLAGS at beginning of target makefile
 $(call define_append,PREPARE_C_VARS,$(newline)ASMFLAGS:=)
-
-# add assembler-specific definitions
-include $(ASM_COMPILER)
 
 # protect variables from modifications in target makefiles
 $(call SET_GLOBAL,TRG_ASMFLAGS ASM_TEMPLATE ASM_COLOR)

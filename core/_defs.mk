@@ -54,8 +54,8 @@ override CLEAN_BUILD_VERSION := 0.9.0
 override CLEAN_BUILD_DIR := $(abspath $(dir $(lastword $(MAKEFILE_LIST)))..)
 
 # include functions library
-include $(CLEAN_BUILD_DIR)/impl/protection.mk
-include $(CLEAN_BUILD_DIR)/impl/functions.mk
+include $(CLEAN_BUILD_DIR)/core/protection.mk
+include $(CLEAN_BUILD_DIR)/core/functions.mk
 
 # CLEAN_BUILD_REQUIRED_VERSION - clean-build version required by project makefiles
 #  it is normally defined in project configuration makefile like:
@@ -80,7 +80,7 @@ endif
 # delete target file if failed to execute any of commands to make it
 .DELETE_ON_ERROR:
 
-# specify default goal (defined in $(CLEAN_BUILD_DIR)/impl/all.mk)
+# specify default goal (defined in $(CLEAN_BUILD_DIR)/core/all.mk)
 .DEFAULT_GOAL := all
 
 # clean-build always sets default values for variables - to not inherit them from environment
@@ -92,7 +92,7 @@ $(eval $(foreach v,$(PROJECT_VARS_NAMES),override $(if $(findstring simple,$(fla
 # note: PASS_ENV_VARS may be set either in project makefile or in command line
 PASS_ENV_VARS:=
 
-# needed directories - we will create them in $(CLEAN_BUILD_DIR)/impl/all.mk
+# needed directories - we will create them in $(CLEAN_BUILD_DIR)/core/all.mk
 # note: NEEDED_DIRS is never cleared, only appended
 NEEDED_DIRS:=
 
@@ -100,9 +100,9 @@ NEEDED_DIRS:=
 # note: if $(CONFIG) file is generated under $(BUILD) directory,
 # (for example, CONFIG may be defined in project makefile as 'CONFIG = $(BUILD)/conf.mk'),
 # then it will be deleted together with $(BUILD) directory in clean-build implementation of 'distclean' goal
-include $(CLEAN_BUILD_DIR)/impl/confsup.mk
+include $(CLEAN_BUILD_DIR)/core/confsup.mk
 
-# protect from modification macros defined in $(CLEAN_BUILD_DIR)/impl/functions.mk
+# protect from modification macros defined in $(CLEAN_BUILD_DIR)/core/functions.mk
 # note: here TARGET_MAKEFILE variable is used temporary, it will be properly defined below
 $(TARGET_MAKEFILE)
 
@@ -327,7 +327,7 @@ COLORIZE = $($1_COLOR)$1[m$(padto)$(if $3,$2,$(join $(dir $2),$(addsuffix [m,$
 # $2 - tool arguments
 # $3 - if empty, then colorize argument of called tool
 # $4 - if empty, then try to update percents of executed makefiles
-# note: ADD_SHOWN_PERCENTS is checked in $(CLEAN_BUILD_DIR)/impl/all.mk, so must always be defined
+# note: ADD_SHOWN_PERCENTS is checked in $(CLEAN_BUILD_DIR)/core/all.mk, so must always be defined
 ifeq (,$(filter distclean clean,$(MAKECMDGOALS)))
 ifdef QUIET
 SHOWN_PERCENTS:=
@@ -340,7 +340,7 @@ SHOWN_REMAINDER:=
 # 3) current = 2, percents2 = percents1 + int((remainder1 + 100)/total), remainder2 = rem((remainder1 + 100)/total)
 # 4) current = 3, percents3 = percents2 + int((remainder2 + 100)/total), remainder3 = rem((remainder2 + 100)/total)
 # ...
-# note: TARGET_MAKEFILES_COUNT and TARGET_MAKEFILES_COUNT1 are defined in $(CLEAN_BUILD_DIR)/impl/all.mk
+# note: TARGET_MAKEFILES_COUNT and TARGET_MAKEFILES_COUNT1 are defined in $(CLEAN_BUILD_DIR)/core/all.mk
 ADD_SHOWN_PERCENTS = $(if $(word $(TARGET_MAKEFILES_COUNT),$1),+ $(call \
   ADD_SHOWN_PERCENTS,$(wordlist $(TARGET_MAKEFILES_COUNT1),999999,$1)),$(eval SHOWN_REMAINDER:=$$1))
 # remember new value of SHOWN_REMAINDER
@@ -481,12 +481,12 @@ endif
 # append makefiles (really PHONY targets created from them) to ORDER_DEPS list
 # note: this function is useful to specify dependency on all target files built by makefiles (a tree of makefiles)
 # note: argument - list of makefiles (or directories, where Makefile is searched)
-# note: overridden in $(CLEAN_BUILD_DIR)/impl/_parallel.mk
+# note: overridden in $(CLEAN_BUILD_DIR)/core/_parallel.mk
 ADD_MDEPS:=
 
 # same as ADD_MDEPS, but accepts aliases of makefiles
 # note: alias names are created via CREATE_MAKEFILE_ALIAS macro
-# note: overridden in $(CLEAN_BUILD_DIR)/impl/_parallel.mk
+# note: overridden in $(CLEAN_BUILD_DIR)/core/_parallel.mk
 ADD_ADEPS:=
 
 ifndef TOCLEAN
@@ -749,7 +749,7 @@ CB_INCLUDE_LEVEL:=
 DEF_HEAD_CODE_EVAL = $(eval $(DEF_HEAD_CODE))
 
 # expand this macro to evaluate default tail code
-# note: arguments list must be empty - only $(CLEAN_BUILD_DIR)/impl/_parallel.mk
+# note: arguments list must be empty - only $(CLEAN_BUILD_DIR)/core/_parallel.mk
 #  calls DEF_TAIL_CODE with @ for the checks in CLEAN_BUILD_CHECK_AT_TAIL macro
 DEF_TAIL_CODE_EVAL = $(eval $(DEF_TAIL_CODE))
 
@@ -797,7 +797,7 @@ $(call define_prepend,DEF_HEAD_CODE,$$(info $$(subst \
   $$(space),,$$(CB_INCLUDE_LEVEL))$$(TARGET_MAKEFILE)$$(if $$(findstring 2,$$(MAKE_CONT)),+$$(words $$(MAKE_CONT)))))
 endif
 
-# prepend DEF_HEAD_CODE with $(CLEAN_BUILD_CHECK_AT_HEAD), if it is defined in $(CLEAN_BUILD_DIR)/impl/protection.mk
+# prepend DEF_HEAD_CODE with $(CLEAN_BUILD_CHECK_AT_HEAD), if it is defined in $(CLEAN_BUILD_DIR)/core/protection.mk
 ifdef CLEAN_BUILD_CHECK_AT_HEAD
 $(call define_prepend,DEF_HEAD_CODE,$$(CLEAN_BUILD_CHECK_AT_HEAD)$(newline))
 endif
@@ -831,12 +831,12 @@ endif
 
 # ***********************************************
 # code to $(eval) at end of each makefile
-# include $(CLEAN_BUILD_DIR)/impl/all.mk only if $(CB_INCLUDE_LEVEL) is empty and not inside the call of $(MAKE_CONTINUE)
+# include $(CLEAN_BUILD_DIR)/core/all.mk only if $(CB_INCLUDE_LEVEL) is empty and not inside the call of $(MAKE_CONTINUE)
 # note: $(MAKE_CONTINUE) before expanding $(DEF_TAIL_CODE) adds 2 to $(MAKE_CONT) list
-# note: $(CLEAN_BUILD_DIR)/impl/_parallel.mk calls DEF_TAIL_CODE with @ as first argument - for the checks in $(CLEAN_BUILD_CHECK_AT_TAIL)
-DEF_TAIL_CODE = $(if $(CB_INCLUDE_LEVEL)$(findstring 2,$(MAKE_CONT)),,include $(CLEAN_BUILD_DIR)/impl/all.mk)
+# note: $(CLEAN_BUILD_DIR)/core/_parallel.mk calls DEF_TAIL_CODE with @ as first argument - for the checks in $(CLEAN_BUILD_CHECK_AT_TAIL)
+DEF_TAIL_CODE = $(if $(CB_INCLUDE_LEVEL)$(findstring 2,$(MAKE_CONT)),,include $(CLEAN_BUILD_DIR)/core/all.mk)
 
-# prepend DEF_TAIL_CODE with $(CLEAN_BUILD_CHECK_AT_TAIL), if it is defined in $(CLEAN_BUILD_DIR)/impl/protection.mk
+# prepend DEF_TAIL_CODE with $(CLEAN_BUILD_CHECK_AT_TAIL), if it is defined in $(CLEAN_BUILD_DIR)/core/protection.mk
 ifdef CLEAN_BUILD_CHECK_AT_TAIL
 $(call define_prepend,DEF_TAIL_CODE,$$(CLEAN_BUILD_CHECK_AT_TAIL)$(newline))
 endif
