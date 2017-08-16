@@ -26,9 +26,6 @@ endif
 # D - position-independent code in shared libraries (only for LIB)    (only UNIX)
 # S - statically linked multithreaded libc          (for all targets) (only WINDOWS)
 
-# do not process generated dependencies when cleaning up
-NO_DEPS := $(filter clean,$(MAKECMDGOALS))
-
 # add source-dependencies for an object file
 # $1 - objdir
 # $2 - source deps list
@@ -373,7 +370,7 @@ $(call try_make_simple,PREPARE_C_VARS,PRODUCT_VER)
 
 # protect variables from modifications in target makefiles
 # note: GET_SOURCES and ADD_WITH_PCH are may be overridden in next included $(C_COMPILER)
-$(call SET_GLOBAL,BLD_TARGETS NO_DEPS ADD_OBJ_SDEPS=x OBJ_RULES_BODY=t;v OBJ_RULES1=t;v OBJ_RULES=t;v \
+$(call SET_GLOBAL,BLD_TARGETS ADD_OBJ_SDEPS=x OBJ_RULES_BODY=t;v OBJ_RULES1=t;v OBJ_RULES=t;v \
   VARIANTS_FILTER EXE_SUFFIX_GEN EXE_VAR_SUFFIX LIB_VAR_SUFFIX DLL_DIR FORM_TRG ALL_TRG \
   TRG_COMPILER=t;v TRG_INCLUDE=t;v;SYSINCLUDE TRG_DEFINES=t;v;DEFINES TRG_CFLAGS=t;v;CFLAGS \
   TRG_CXXFLAGS=t;v;CXXFLAGS TRG_LDFLAGS=t;v;LDFLAGS GET_SOURCES=SRC ADD_WITH_PCH=SRC=SRC \
