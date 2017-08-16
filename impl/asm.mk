@@ -6,7 +6,7 @@
 
 # add support for compiling assembler sources
 
-# included by $(CLEAN_BUILD_DIR)/impl/_c.mk if ASSEMBLER_SUPPORT is defined
+# included by $(CLEAN_BUILD_DIR)/impl/c_defs.mk if ASSEMBLER_SUPPORT is defined
 
 # target assembler flags
 # $t     - EXE,LIB,DLL,DRV,KLIB,KDLL,...
@@ -27,7 +27,7 @@ $1:ASMFLAGS := $(TRG_ASMFLAGS)
 endef
 
 # patch C_BASE_TEMPLATE
-$(call define_append,C_BASE_TEMPLATE,$(newline)$$(ASM_TEMPLATE))
+$(call define_append,C_BASE_TEMPLATE,$(newline)$(value ASM_TEMPLATE))
 
 # tool color
 ASM_COLOR := [37m
