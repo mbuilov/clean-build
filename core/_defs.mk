@@ -899,12 +899,16 @@ endif
 # note: this is also default version for any built module (exe, dll or driver)
 PRODUCT_VER := 0.0.1
 
+# NO_DEPS - if defined, then do not generate auto-dependencies or process previously generated auto-dependencies
+# note: do not process dependencies when cleaning up
+NO_DEPS := $(filter clean,$(MAKECMDGOALS))
+
 # protect macros from modifications in target makefiles,
 # do not trace calls to macros used in ifdefs, passed to environment of called tools or modified via operator +=
 # note: do not trace calls to TARGET_MAKEFILE - it is used to form PHONY target names
 $(call SET_GLOBAL,MAKEFLAGS $(PASS_ENV_VARS) PATH SHELL NEEDED_DIRS \
   NO_CLEAN_BUILD_DISTCLEAN_TARGET DEBUG VERBOSE QUIET INFOMF MDEBUG TARGET_MAKEFILE SHOWN_PERCENTS \
-  CLEAN MAKEFILE_STD_TARGETS ORDER_DEPS MULTI_TARGETS MULTI_TARGET_NUM CB_INCLUDE_LEVEL PROCESSED_MAKEFILES MAKE_CONT,0)
+  CLEAN MAKEFILE_STD_TARGETS ORDER_DEPS MULTI_TARGETS MULTI_TARGET_NUM CB_INCLUDE_LEVEL PROCESSED_MAKEFILES MAKE_CONT NO_DEPS,0)
 
 # protect macros from modifications in target makefiles, allow tracing calls to them
 $(call SET_GLOBAL,PROJECT_VARS_NAMES PASS_ENV_VARS \
