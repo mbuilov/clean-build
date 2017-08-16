@@ -582,25 +582,31 @@ endif # clean
 # - we need absolute paths to sources to work with generated dependencies in .d files
 fixpath = $(abspath $(call nonrelpath,$(dir $(TARGET_MAKEFILE)),$1))
 
-# filter-out unsupported variants of the target
-# $1 - EXE,LIB,...
-# $2 - variants of the target (may be empty)
-# $3 - variants filter function (VARIANTS_FILTER by default), must be defined at time of $(eval)
+# function returning list of supported by selected compiler non-standard variants of given target type
+# $1 - target type: LIB,EXE,DLL,...
+OTHER_VARIANTS:=
+
+# filter-out unsupported variants of the target and return only supported ones
+# $1 - target: EXE,LIB,...
+# $2 - list of specified variants of the target (may be empty)
+# $3 - name of function which returns list of supported by selected compiler non-standard variants of given target type
+#  (OTHER_VARIANTS by default), function must be defined at time of $(eval)
 # note: add R to filter pattern to not filter-out default variant R
-# note: if filter gives no variants, return default variant R (regular)
-FILTER_VARIANTS_LIST = $(patsubst ,R,$(filter R $($(firstword $3 VARIANTS_FILTER)),$2))
+# note: if $(filter ...) gives no variants, return default variant R (regular), which is always supported
+FILTER_VARIANTS_LIST = $(patsubst ,R,$(filter R $($(firstword $3 OTHER_VARIANTS)),$2))
 
 # if target may be specified with variants, like EXE := my_exe R S
 # get variants of the target supported by selected compiler
 # note: returns non-empty variants list, containing at least R (regular) variant
-# $1 - EXE,LIB,...
-# $2 - variants filter function (VARIANTS_FILTER by default), must be defined at time of $(eval)
+# $1 - target: EXE,LIB,...
+# $2 - name of function which returns list of supported by selected compiler non-standard variants of given target type
+#  (OTHER_VARIANTS by default), function must be defined at time of $(eval)
 GET_VARIANTS = $(call FILTER_VARIANTS_LIST,$1,$(wordlist 2,999999,$($1)),$2)
 
 # get absolute path to target file
 # $1 - EXE,LIB,...
-# $2 - optional target variant: R,P,D,S..., <empty> if not specified
-# $3 - optional variants list, by default $(wordlist 2,999999,$($1))
+# $2 - optional target variant: R,P,D,S..., empty if not specified
+# $3 - optional list of variants of target $1, by default $(wordlist 2,999999,$($1))
 # note: use $(addprefix...) to return empty value if $($1) is empty
 # note: FORM_TRG must be redefined to return file for known target type, for example:
 #  FORM_TRG = $(if $(filter \
@@ -953,7 +959,7 @@ $(call SET_GLOBAL,PROJECT_VARS_NAMES PASS_ENV_VARS \
   TOOL_BASE MK_TOOLS_DIR GET_TOOLS GET_TOOL TOOL_OVERRIDE_DIRS \
   ADD_MDEPS ADD_ADEPS CREATE_MAKEFILE_ALIAS ADD_ORDER_DEPS=ORDER_DEPS=ORDER_DEPS \
   STD_TARGET_VARS1 STD_TARGET_VARS MAKEFILE_INFO_TEMPL SET_MAKEFILE_INFO fixpath \
-  FILTER_VARIANTS_LIST GET_VARIANTS FORM_TRG REGISTER_TRG ALL_TRG GET_TARGET_NAME FORM_OBJ_DIR \
+  OTHER_VARIANTS FILTER_VARIANTS_LIST GET_VARIANTS FORM_TRG REGISTER_TRG ALL_TRG GET_TARGET_NAME FORM_OBJ_DIR \
   ADD_GENERATED CHECK_GENERATED ADD_GENERATED_RET \
   MULTI_TARGETS MULTI_TARGET_RULE=MULTI_TARGET_NUM=MULTI_TARGET_NUM MULTI_TARGET CHECK_MULTI_RULE \
   NON_PARALLEL_EXECUTE_RULE NON_PARALLEL_EXECUTE FORM_SDEPS EXTRACT_SDEPS FIX_SDEPS RUN_WITH_DLL_PATH TMD TOOL_MODE \

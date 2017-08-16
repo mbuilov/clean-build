@@ -10,6 +10,9 @@ ifeq (,$(filter-out undefined environment,$(origin C_BASE_TEMPLATE_IMPL)))
 include $(dir $(lastword $(MAKEFILE_LIST)))c_base.mk
 endif
 
+# register application-level target types
+C_TARGETS += EXE LIB DLL
+
 # built targets and variants:
 # note: all variants have the same C-preprocessor defines, but are compiled with different C-compiler flags
 # EXE - executable, variants:      R,P,S
@@ -26,26 +29,28 @@ endif
 # D - position-independent code in shared libraries (only for LIB)    (only UNIX)
 # S - statically linked multithreaded libc          (for all targets) (only WINDOWS)
 
-# variants filter function - get possible variants for the target over than default variant R
-# $1 - LIB,EXE,DLL
+# function returning list of supported by selected compiler non-standard variants of given target type
+# $1 - target type: LIB,EXE,DLL,...
 # R - default variant (position-dependent code for EXE, position-independent code for DLL)
 # D - position-independent code in shared libraries (for LIB)
-# note: $(CLEAN_BUILD_DIR)/compilers/gcc.mk defines own VARIANTS_FILTER
-# note: $(CLEAN_BUILD_DIR)/compilers/msvc.mk defines own VARIANTS_FILTER
-VARIANTS_FILTER = $(if $(filter LIB,$1),D)
+# note: $(CLEAN_BUILD_DIR)/compilers/gcc.mk defines own OTHER_APP_VARIANTS
+# note: $(CLEAN_BUILD_DIR)/compilers/msvc.mk defines own OTHER_APP_VARIANTS
+OTHER_APP_VARIANTS = $(if $(filter LIB,$1),D)
+OTHER_VARIANTS
 
-# get target name suffix for EXE,DRV... in case of multiple target variants
-# $1 - EXE,DRV...
-# $2 - target variant S,P,... but not R or <empty>
+# get target name suffix for EXE in case of multiple target variants
+# $1 - EXE
+# $2 - non-empty target variant S,P,... but not R
 # $3 - list of variants of target $1 to build (filtered by target platform specific $(VARIANTS_FILTER))
 # note: $(CLEAN_BUILD_DIR)/compilers/gcc.mk defines own EXE_SUFFIX_GEN
 # note: $(CLEAN_BUILD_DIR)/compilers/msvc.mk defines own EXE_SUFFIX_GEN
 EXE_SUFFIX_GEN = $(if $(word 2,$3),$(call tolower,$2))
 
-# determine target name suffix for EXE,DRV...
-# $1 - EXE,DRV...
-# $2 - target variant R,S,P,<empty>
+# determine target name suffix for EXE
+# $1 - EXE
+# $2 - optional target variant R,S,P,<empty>
 # $3 - list of variants of target $1 to build, by default $(wordlist 2,999999,$($1))
+# $3 - optional variants list, by default $(wordlist 2,999999,$($1))
 # note: no suffix if building R-variant
 # note: variants list $3 may be not filtered by target platform specific $(VARIANTS_FILTER), so filter it here
 EXE_VAR_SUFFIX = $(if $(filter-out R,$2),$(call \

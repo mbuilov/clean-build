@@ -111,6 +111,9 @@ STRING_DEFINE = $(subst $(tab),$$(tab),$(subst $(space),$$(space),$(subst $$,$$$
 # called by macro that expands to C-complier call
 SUBST_DEFINES = $(eval SUBST_DEFINES_:=$(subst $(comment),$$(comment),$1))$(SUBST_DEFINES_)
 
+# list of target types that may be built from C/C++/Assembler sources
+C_TARGETS:=
+
 # $1 - $(call FORM_TRG,$t,$v)
 # $2 - $(TRG_SRC)
 # $3 - $(TRG_SDEPS)
@@ -127,7 +130,7 @@ C_RULESt = $(foreach v,$(call GET_VARIANTS,$t),$(call C_RULESv,$(call FORM_TRG,$
 # expand target rules template $t_TEMPLATE, for example - see EXE_TEMPLATE
 # $1 - $(TRG_SRC)
 # $2 - $(TRG_SDEPS)
-C_RULES = $(foreach t,EXE DLL LIB,$(if $($t),$(C_RULESt)))
+C_RULES = $(foreach t,$(C_TARGETS),$(if $($t),$(C_RULESt)))
 
 # base template for C/C++ targets
 # $1 - target file: $(call FORM_TRG,$t,$v)
@@ -149,7 +152,7 @@ $1:CXXFLAGS := $(TRG_CXXFLAGS)
 $1:LDFLAGS  := $(TRG_LDFLAGS)
 endef
 
-# this template may be subsequently patched
+# template C_BASE_TEMPLATE_IMPL may be subsequently patched
 $(eval define C_BASE_TEMPLATE_IMPL$(newline)$(value C_BASE_TEMPLATE)$(newline)endef)
 
 # tools colors: C, C++ compilers, library archiver, shared library and executable linkers
@@ -186,7 +189,7 @@ DEFINE_TARGETS_EVAL_NAME:=DEFINE_C_TARGETS_EVAL
 MAKE_CONTINUE_EVAL_NAME:=CLEAN_BUILD_C_EVAL
 endef
 
-# this template may be subsequently patched
+# template C_BASE_PREPARE_IMPL may be subsequently patched
 $(eval define C_BASE_PREPARE_IMPL$(newline)$(value C_BASE_PREPARE)$(newline)endef)
 
 # reset build targets, target-specific variables and variables modifiable in target makefiles
@@ -245,7 +248,7 @@ $(call try_make_simple,C_BASE_PREPARE_IMPL,PRODUCT_VER)
 $(call SET_GLOBAL,OBJ_SUFFIX ADD_OBJ_SDEPS=x OBJ_RULES_BODY=t;v OBJ_RULES1=t;v OBJ_RULES=t;v \
   TRG_COMPILER=t;v TRG_INCLUDE=t;v;SYSINCLUDE TRG_DEFINES=t;v;DEFINES TRG_CFLAGS=t;v;CFLAGS \
   TRG_CXXFLAGS=t;v;CXXFLAGS TRG_LDFLAGS=t;v;LDFLAGS GET_SOURCES=SRC;WITH_PCH \
-  TRG_SRC TRG_SDEPS=SDEPS STRING_DEFINE SUBST_DEFINES C_RULESv=t;v C_RULESt=t C_RULES \
+  TRG_SRC TRG_SDEPS=SDEPS STRING_DEFINE SUBST_DEFINES C_TARGETS C_RULESv=t;v C_RULESt=t C_RULES \
   C_BASE_TEMPLATE C_BASE_TEMPLATE_IMPL=t;v;$$t \
   CC_COLOR CXX_COLOR AR_COLOR LD_COLOR XLD_COLOR \
   TCC_COLOR TCXX_COLOR TAR_COLOR TLD_COLOR TXLD_COLOR 
