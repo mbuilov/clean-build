@@ -294,7 +294,7 @@ define_prepend = $(eval define $1$(newline)$2$(value $1)$(newline)endef)
 # remove references to variables from given text
 # $1 - text
 # $2 - names of variables
-subst_var_refs = $(if $2,$(call subst_variables,$(subst $$($(firstword $2)),,$1),$(wordlist 2,999999,$2)),$1)
+subst_var_refs = $(if $2,$(call subst_var_refs,$(subst $$($(firstword $2)),,$1),$(wordlist 2,999999,$2)),$1)
 
 # try to redefine macro as simple (non-recursive) variable
 # $1 - macro name
@@ -303,7 +303,7 @@ subst_var_refs = $(if $2,$(call subst_variables,$(subst $$($(firstword $2)),,$1)
 # 2) check that no other variables in the value of macro $1
 # 3) re-define macro $1 as simple (non-recursive) variable
 try_make_simple = $(if $(filter $(words $2),$(words $(filter simple,$(foreach v,$2,$(flavor $v))))),$(if \
-  $(findstring $$,$(call subst_variables,$(value $1),$2)),,$(eval $(filter override,$(origin $1)) $1:=$$($1))))
+  $(findstring $$,$(call subst_var_refs,$(value $1),$2)),,$(eval $(filter override,$(origin $1)) $1:=$$($1))))
 
 # template for try_inline function
 define try_inline_templ

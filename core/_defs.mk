@@ -368,7 +368,7 @@ SHOWN_PERCENTS += $(call ADD_SHOWN_PERCENTS,$(SHOWN_REMAINDER) \
 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 \
 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1)
 endef
-# remember new value of SHOWN_PERCENTS (without tracing calls)
+# remember new value of SHOWN_PERCENTS, without tracing calls to it because it is incremented
 ifdef MCHECK
 $(call define_append,REM_MAKEFILE,$(newline)$(call SET_GLOBAL1,SHOWN_PERCENTS,0))
 endif
@@ -472,7 +472,7 @@ TOCLEAN:=
 else ifneq (,$(word 2,$(MAKECMDGOALS)))
 $(error clean goal must be specified alone, current goals: $(MAKECMDGOALS))
 else ifdef MCHECK
-# remember new value of CLEAN (without tracing calls)
+# remember new value of CLEAN, without tracing calls to it because it is incremented
 TOCLEAN = $(eval CLEAN+=$$1$(newline)$(call SET_GLOBAL1,CLEAN,0))
 else
 TOCLEAN = $(eval CLEAN+=$$1)
@@ -493,7 +493,7 @@ ifndef TOCLEAN
 
 # create a PHONY target aliasing current makefile
 # $1 - arbitrary alias name
-CREATE_MAKEFILE_ALIAS = $(eval .PHONY: MAKEFILE_ALIAS_$1-$(newline)MAKEFILE_ALIAS_$1-: $(TARGET_MAKEFILE)-)
+CREATE_MAKEFILE_ALIAS = $(eval .PHONY: $1_MAKEFILE_ALIAS-$(newline)$1_MAKEFILE_ALIAS-: $(TARGET_MAKEFILE)-)
 
 # order-only dependencies of all leaf makefile targets
 # note: ORDER_DEPS should not be directly modified in target makefiles,
@@ -502,7 +502,7 @@ ORDER_DEPS:=
 
 # append value(s) to ORDER_DEPS list
 ifdef MCHECK
-# remember new value of ORDER_DEPS (without tracing calls)
+# remember new value of ORDER_DEPS, without tracing calls to it because it is incremented
 ADD_ORDER_DEPS = $(eval ORDER_DEPS+=$$1$(newline)$(call SET_GLOBAL1,ORDER_DEPS,0))
 else
 ADD_ORDER_DEPS = $(eval ORDER_DEPS+=$$1)
@@ -527,7 +527,7 @@ $(TARGET_MAKEFILE)-:$1
 NEEDED_DIRS+=$2
 endef
 
-# remember new value of NEEDED_DIRS (without tracing calls)
+# remember new value of NEEDED_DIRS, without tracing calls to it because it is incremented
 ifdef MCHECK
 $(call define_append,STD_TARGET_VARS1,$(newline)$(call SET_GLOBAL1,NEEDED_DIRS,0))
 endif
@@ -582,64 +582,73 @@ endif # clean
 # - we need absolute paths to sources to work with generated dependencies in .d files
 fixpath = $(abspath $(call nonrelpath,$(dir $(TARGET_MAKEFILE)),$1))
 
-# function returning list of supported by selected compiler non-standard variants of given target type
-# $1 - target type: LIB,EXE,DLL,...
-OTHER_VARIANTS:=
-
-# filter-out unsupported variants of the target and return only supported ones
-# $1 - target: EXE,LIB,...
-# $2 - list of specified variants of the target (may be empty)
-# $3 - name of function which returns list of supported by selected compiler non-standard variants of given target type
-#  (OTHER_VARIANTS by default), function must be defined at time of $(eval)
-# note: add R to filter pattern to not filter-out default variant R
-# note: if $(filter ...) gives no variants, return default variant R (regular), which is always supported
-FILTER_VARIANTS_LIST = $(patsubst ,R,$(filter R $($(firstword $3 OTHER_VARIANTS)),$2))
-
-# if target may be specified with variants, like EXE := my_exe R S
-# get variants of the target supported by selected compiler
-# note: returns non-empty variants list, containing at least R (regular) variant
-# $1 - target: EXE,LIB,...
-# $2 - name of function which returns list of supported by selected compiler non-standard variants of given target type
-#  (OTHER_VARIANTS by default), function must be defined at time of $(eval)
-GET_VARIANTS = $(call FILTER_VARIANTS_LIST,$1,$(wordlist 2,999999,$($1)),$2)
-
-# get absolute path to target file
-# $1 - EXE,LIB,...
-# $2 - optional target variant: R,P,D,S..., empty if not specified
-# $3 - optional list of variants of target $1, by default $(wordlist 2,999999,$($1))
-# note: use $(addprefix...) to return empty value if $($1) is empty
-# note: FORM_TRG must be redefined to return file for known target type, for example:
-#  FORM_TRG = $(if $(filter \
-#    EXE,$1),$(addprefix $(BIN_DIR)/,$(GET_TARGET_NAME:=$(EXE_SUFFIX))),$(if $(filter \
-#    LIB,$1),$(addprefix $(LIB_DIR)/$(LIB_PREFIX),$(GET_TARGET_NAME:=$(LIB_SUFFIX))),$(error \
-#    unknown target type: $1)))
-FORM_TRG = $(error unknown target type: $1)
-
-# register one more target type handled by FORM_TRG macro
-# $1 - target type, such as EXE,LIB,DLL,etc.
-# $2 - code that defines hot to form target file name, see FORM_TRG for parameters available in the code
-# example:
-#  FORM_EXE_TRG = $(addprefix $(BIN_DIR)/,$(GET_TARGET_NAME:=$(EXE_SUFFIX)))
-#  $(call REGISTER_TRG,EXE,$(value FORM_EXE_TRG))
-REGISTER_TRG = $(eval FORM_TRG=$(subst error,if $$(filter $1,$$1)$(comma)$2$(comma)$$$(open_brace)error,$(value FORM_TRG))$(close_brace))
-
-# protect from modifications changed FORM_TRG
-ifdef SET_GLOBAL
-$(eval REGISTER_TRG = $(value REGISTER_TRG)$$(call SET_GLOBAL,FORM_TRG))
-endif
-
-# get filenames of all variants of the target
-# $1 - EXE,LIB,DLL,...
-ALL_TRG = $(foreach v,$(call GET_VARIANTS,$1),$(call FORM_TRG,$1,$v))
-
 # get target name - first word, next words - variants
 # note: target file name (generated by FORM_TRG) may be different, depending on target variant
 # $1 - EXE,LIB,...
 GET_TARGET_NAME = $(firstword $($1))
 
+# function returning list of supported by selected toolchain non-regular variants of given target type
+# $1 - target type: LIB,EXE,DLL,...
+# example:
+#  EXE_NON_REGULAR_VARIANTS := P
+#  LIB_NON_REGULAR_VARIANTS := P D
+#  ...
+NON_REGULAR_VARIANTS = $($1_NON_REGULAR_VARIANTS)
+
+# filter-out unsupported variants of the target and return only supported ones
+# $1 - target: EXE,LIB,...
+# $2 - list of specified variants of the target (may be empty)
+# $3 - optional name of function which returns list of supported by selected toolchain non-regular variants of given target type
+#  (NON_REGULAR_VARIANTS by default), function must be defined at time of $(eval)
+# note: add R to filter pattern to not filter-out default variant R, if it was specified for the target
+# note: if $(filter ...) gives no variants, return default variant R (regular), which is always supported
+FILTER_VARIANTS_LIST = $(patsubst ,R,$(filter R $($(firstword $3 NON_REGULAR_VARIANTS)),$2))
+
+# if target may be specified with variants, like EXE := my_exe R S
+# then get variants of the target supported by selected toolchain
+# note: returns non-empty variants list, containing at least R (regular) variant
+# $1 - target: EXE,LIB,...
+# $2 - optional name of function which returns list of supported by selected toolchain non-regular variants of given target type
+#  (NON_REGULAR_VARIANTS by default), function must be defined at time of $(eval)
+GET_VARIANTS = $(call FILTER_VARIANTS_LIST,$1,$(wordlist 2,999999,$($1)),$2)
+
+# determine target name suffix (in case if building multiple variants of the target, each variant should have unique file name)
+# $1 - target: EXE,LIB,...
+# $2 - target variant: R,P,D,S... (one of variants supported by selected toolchain, may be empty)
+# note: no suffix if building R (regular) variant or variant is not specified (then assume R variant)
+# example:
+#  LIB_VARIANT_SUFFIX = _$2
+#  note: $2 - non-empty, not R
+VARIANT_SUFFIX = $(if $(filter-out R,$2),$($1_VARIANT_SUFFIX))
+
+# get absolute path to target file - call appropriate FORM_TRG_... macro
+# $1 - EXE,LIB,...
+# $2 - target variant: R,P,D,S... (one of variants supported by selected toolchain, may be empty)
+# example:
+#  EXE_FORM_TRG = $(GET_TARGET_NAME:%=$(BIN_DIR)/%$(VARIANT_SUFFIX)$(EXE_SUFFIX))
+#  LIB_FORM_TRG = $(GET_TARGET_NAME:%=$(LIB_DIR)/$(LIB_PREFIX)%$(VARIANT_SUFFIX)$(LIB_SUFFIX))
+#  ...
+#  note: use $(patsubst...) to return empty value if $($1) is empty
+FORM_TRG = $($1_FORM_TRG)
+
+# get filenames of all variants of the target
+# $1 - EXE,LIB,DLL,...
+ALL_TRG = $(foreach v,$(call GET_VARIANTS,$1),$(call FORM_TRG,$1,$v))
+
+# get suffix of dependent library
+# $1 - target: EXE,DLL,...
+# $2 - variant of target EXE,DLL,...: R,P,S,... (if empty, assume R)
+# $3 - dependency type: LIB,DLL,...
+# $4 - dependent library name
+# example:
+#  use the same variant (R or P) of static library as target EXE (for example for P-EXE use P-LIB)
+#  always use D-variant of static library for DLL
+#  LIB_DEPENDENCY_MAP = $(if $(filter DLL,$1),D,$2)
+DEPENDENCY_SUFFIX = $(call VARIANT_SUFFIX,$3,$($3_DEPENDENCY_MAP))
+
 # form name of target objects directory
 # $1 - target to build (EXE,LIB,DLL,...)
-# $2 - target variant (may be empty for default variant)
+# $2 - target variant (may be empty for regular variant R)
 # add target-specific suffix (_EXE,_LIB,_DLL,...) to distinguish objects for the targets with equal names
 FORM_OBJ_DIR = $(OBJ_DIR)/$(GET_TARGET_NAME)$(if $(filter-out R,$2),_$2)_$1
 
@@ -686,9 +695,9 @@ $1: $(call fixpath,$2)
 MULTI_TARGET_NUM+=1
 endef
 
-# remember new value of MULTI_TARGET_NUM
+# remember new value of MULTI_TARGET_NUM, without tracing calls to it because it is incremented
 ifdef MCHECK
-$(call define_append,MULTI_TARGET_RULE,$(newline)$(call SET_GLOBAL1,MULTI_TARGET_NUM))
+$(call define_append,MULTI_TARGET_RULE,$(newline)$(call SET_GLOBAL1,MULTI_TARGET_NUM,0))
 endif
 
 # if some tool generates multiple files at one call, it is needed to call
@@ -724,7 +733,7 @@ $1:=$2
 endef
 
 # remember new value of NON_PARALEL_GROUP_$(group_name)
-ifdef MCHECK
+ifdef SET_GLOBAL1
 $(call define_append,NON_PARALLEL_EXECUTE_RULE,$(newline)$(call SET_GLOBAL1,$$1))
 endif
 
@@ -738,7 +747,7 @@ endif
 # $2 - target
 # note: standard .NOTPARALLEL target, if defined, globally disables parallel execution of all rules,
 #  NON_PARALLEL_EXECUTE macro allows to define a group of targets those rules must not be executed in parallel
-NON_PARALLEL_EXECUTE = $(eval $(call NON_PARALLEL_EXECUTE_RULE,NON_PARALEL_GROUP_$1,$2))
+NON_PARALLEL_EXECUTE = $(eval $(call NON_PARALLEL_EXECUTE_RULE,$1_NON_PARALEL_GROUP,$2))
 
 # helper macro: make source dependencies list
 # $1 - sources
@@ -839,7 +848,7 @@ ifdef CLEAN_BUILD_CHECK_AT_HEAD
 $(call define_prepend,DEF_HEAD_CODE,$$(CLEAN_BUILD_CHECK_AT_HEAD)$(newline))
 endif
 
-# remember new value of PROCESSED_MAKEFILES variables (without tracing calls)
+# remember new value of PROCESSED_MAKEFILES variables, without tracing calls to it because it is incremented
 ifdef MCHECK
 $(eval define DEF_HEAD_CODE$(newline)$(subst \
   else,else$(newline)$(call SET_GLOBAL1,PROCESSED_MAKEFILES,0),$(value DEF_HEAD_CODE))$(newline)endef)
@@ -942,15 +951,14 @@ NO_DEPS := $(filter clean,$(MAKECMDGOALS))
 
 # protect macros from modifications in target makefiles,
 # do not trace calls to macros used in ifdefs, passed to environment of called tools or modified via operator +=
-# note: do not trace calls to TARGET_MAKEFILE - it is used to form PHONY target names
 $(call SET_GLOBAL,MAKEFLAGS $(PASS_ENV_VARS) PATH SHELL NEEDED_DIRS \
-  NO_CLEAN_BUILD_DISTCLEAN_TARGET DEBUG VERBOSE QUIET INFOMF MDEBUG TARGET_MAKEFILE SHOWN_PERCENTS \
-  CLEAN MAKEFILE_STD_TARGETS ORDER_DEPS MULTI_TARGETS MULTI_TARGET_NUM CB_INCLUDE_LEVEL PROCESSED_MAKEFILES MAKE_CONT NO_DEPS,0)
+  NO_CLEAN_BUILD_DISTCLEAN_TARGET DEBUG VERBOSE QUIET INFOMF MDEBUG SHOWN_PERCENTS CLEAN \
+  ORDER_DEPS MULTI_TARGETS MULTI_TARGET_NUM CB_INCLUDE_LEVEL PROCESSED_MAKEFILES MAKE_CONT NO_DEPS,0)
 
 # protect macros from modifications in target makefiles, allow tracing calls to them
 $(call SET_GLOBAL,PROJECT_VARS_NAMES PASS_ENV_VARS \
   CLEAN_BUILD_VERSION CLEAN_BUILD_DIR CLEAN_BUILD_REQUIRED_VERSION \
-  BUILD SUPPORTED_TARGETS TARGET OS UTILS CPU TCPU \
+  BUILD SUPPORTED_TARGETS TARGET OS UTILS CPU TCPU TARGET_MAKEFILE \
   ospath nonrelpath TOOL_SUFFIX PATHSEP DLL_PATH_VAR show_with_dll_path show_dll_path_end SED_MULTI_EXPR \
   GEN_COLOR MGEN_COLOR CP_COLOR RM_COLOR DEL_COLOR LN_COLOR MKDIR_COLOR TOUCH_COLOR CAT_COLOR SED_COLOR \
   PRINT_PERCENTS COLORIZE SHOWN_REMAINDER ADD_SHOWN_PERCENTS==SHOWN_REMAINDER \
@@ -959,9 +967,9 @@ $(call SET_GLOBAL,PROJECT_VARS_NAMES PASS_ENV_VARS \
   TOOL_BASE MK_TOOLS_DIR GET_TOOLS GET_TOOL TOOL_OVERRIDE_DIRS \
   ADD_MDEPS ADD_ADEPS CREATE_MAKEFILE_ALIAS ADD_ORDER_DEPS=ORDER_DEPS=ORDER_DEPS \
   STD_TARGET_VARS1 STD_TARGET_VARS MAKEFILE_INFO_TEMPL SET_MAKEFILE_INFO fixpath \
-  OTHER_VARIANTS FILTER_VARIANTS_LIST GET_VARIANTS FORM_TRG REGISTER_TRG ALL_TRG GET_TARGET_NAME FORM_OBJ_DIR \
-  ADD_GENERATED CHECK_GENERATED ADD_GENERATED_RET \
-  MULTI_TARGETS MULTI_TARGET_RULE=MULTI_TARGET_NUM=MULTI_TARGET_NUM MULTI_TARGET CHECK_MULTI_RULE \
+  GET_TARGET_NAME NON_REGULAR_VARIANTS FILTER_VARIANTS_LIST GET_VARIANTS VARIANT_SUFFIX FORM_TRG ALL_TRG DEPENDENCY_SUFFIX \
+  FORM_OBJ_DIR ADD_GENERATED CHECK_GENERATED ADD_GENERATED_RET \
+  MULTI_TARGET_RULE=MULTI_TARGET_NUM=MULTI_TARGET_NUM MULTI_TARGET CHECK_MULTI_RULE \
   NON_PARALLEL_EXECUTE_RULE NON_PARALLEL_EXECUTE FORM_SDEPS EXTRACT_SDEPS FIX_SDEPS RUN_WITH_DLL_PATH TMD TOOL_MODE \
   DEF_HEAD_CODE_EVAL DEF_TAIL_CODE_EVAL MAKE_CONTINUE_EVAL_NAME DEFINE_TARGETS_EVAL_NAME \
   DEF_HEAD_CODE DEF_TAIL_CODE DEFINE_TARGETS SAVE_VARS RESTORE_VARS MAKE_CONTINUE CONF_COLOR PRODUCT_VER)

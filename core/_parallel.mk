@@ -42,7 +42,7 @@ $(foreach m,$1,$(CB_INCLUDE_TEMPLATE))
 CB_INCLUDE_LEVEL:=$(CB_INCLUDE_LEVEL)
 endef
 
-# remember new value of CB_INCLUDE_LEVEL (without tracing calls)
+# remember new value of CB_INCLUDE_LEVEL, without tracing calls to it because it is incremented
 ifdef MCHECK
 $(eval define CLEAN_BUILD_PARALLEL$(newline)$(subst \
   CB_INCLUDE_LEVEL+=.,CB_INCLUDE_LEVEL+=.$(newline)$(call SET_GLOBAL1,CB_INCLUDE_LEVEL,0),$(value \
@@ -54,7 +54,7 @@ ifndef TOCLEAN
 # note: ORDER_DEPS value may be changed in included makefile, so restore ORDER_DEPS before including next makefile
 $(call define_prepend,CB_INCLUDE_TEMPLATE,ORDER_DEPS:=$$(ORDER_DEPS)$(newline))
 
-# remember new value of ORDER_DEPS (without tracing calls)
+# remember new value of ORDER_DEPS, without tracing calls to it because it is incremented
 ifdef MCHECK
 $(eval define CB_INCLUDE_TEMPLATE$(newline)$(subst \
   include,$(call SET_GLOBAL1,ORDER_DEPS,0)$(newline)include)$(newline)endef)
@@ -67,7 +67,7 @@ endif
 ADD_MDEPS1 = $(if $1,$(eval $1:$(newline)ORDER_DEPS+=$1))
 ADD_MDEPS = $(call ADD_MDEPS1,$(filter-out $(ORDER_DEPS),$(call NORM_MAKEFILES,$1,-)))
 
-# remember new value of ORDER_DEPS (without tracing calls)
+# remember new value of ORDER_DEPS, without tracing calls to it because it is incremented
 ifdef MCHECK
 $(eval ADD_MDEPS1 = $(subst +=$$1,+=$$1$$(newline)$$(call SET_GLOBAL1,ORDER_DEPS,0),$(value ADD_MDEPS1)))
 endif

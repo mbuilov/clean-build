@@ -6,11 +6,16 @@
 
 # generic rules for compiling C/C++/Assembler files
 
+# included by:
+#  $(CLEAN_BUILD_DIR)/impl/_c.mk
+#  $(CLEAN_BUILD_DIR)/impl/_kc.mk 
+
 ifeq (,$(filter-out undefined environment,$(origin EXTRACT_SDEPS)))
 include $(dir $(lastword $(MAKEFILE_LIST)))../core/_defs.mk
 endif
 
 # object file suffix
+# note: may overridded in makefile which defines C/C++ compiler
 OBJ_SUFFIX := .o
 
 # add source-dependencies for an object file
@@ -112,6 +117,7 @@ STRING_DEFINE = $(subst $(tab),$$(tab),$(subst $(space),$$(space),$(subst $$,$$$
 SUBST_DEFINES = $(eval SUBST_DEFINES_:=$(subst $(comment),$$(comment),$1))$(SUBST_DEFINES_)
 
 # list of target types that may be built from C/C++/Assembler sources
+# note: should be appended in makefile implementing target templates
 C_TARGETS:=
 
 # $1 - $(call FORM_TRG,$t,$v)
@@ -152,29 +158,9 @@ $1:CXXFLAGS := $(TRG_CXXFLAGS)
 $1:LDFLAGS  := $(TRG_LDFLAGS)
 endef
 
-# template C_BASE_TEMPLATE_IMPL may be subsequently patched
-$(eval define C_BASE_TEMPLATE_IMPL$(newline)$(value C_BASE_TEMPLATE)$(newline)endef)
-
-# tools colors: C, C++ compilers, library archiver, shared library and executable linkers
-CC_COLOR   := [1;31m
-CXX_COLOR  := [1;36m
-AR_COLOR   := [1;32m
-LD_COLOR   := [1;33m
-XLD_COLOR  := [1;37m
-TCC_COLOR  := [32m
-TCXX_COLOR := [32m
-TAR_COLOR  := [1;32m
-TLD_COLOR  := [33m
-TXLD_COLOR := [1;37m
-KCC_COLOR  := [31m
-KCXX_COLOR := [36m
-KAR_COLOR  := [32m
-KLD_COLOR  := [33m
-KXLD_COLOR := [37m
-
 # code to be called at beginning of target makefile
 # $(MODVER) - module version (for dll, exe or driver) in form major.minor.patch (for example 1.2.3)
-define C_BASE_PREPARE
+define C_PREPARE_BASE_VARS
 MODVER:=$(PRODUCT_VER)
 SRC:=
 WITH_PCH:=
@@ -185,15 +171,22 @@ CFLAGS:=
 CXXFLAGS:=
 LDFLAGS:=
 SYSINCLUDE:=
+SYSLIBS:=
+SYSLIBPATH:=
+LIBS:=
+DLLS:=
 DEFINE_TARGETS_EVAL_NAME:=DEFINE_C_TARGETS_EVAL
 MAKE_CONTINUE_EVAL_NAME:=CLEAN_BUILD_C_EVAL
 endef
 
-# template C_BASE_PREPARE_IMPL may be subsequently patched
-$(eval define C_BASE_PREPARE_IMPL$(newline)$(value C_BASE_PREPARE)$(newline)endef)
+# template C_BASE_TEMPLATE_IMPL may be subsequently patched
+$(eval define C_BASE_TEMPLATE_IMPL$(newline)$(value C_BASE_TEMPLATE)$(newline)endef)
+
+# template C_PREPARE_VARS_IMPL may be subsequently patched
+$(eval define C_PREPARE_VARS_IMPL$(newline)$(value C_PREPARE_BASE_VARS)$(newline)endef)
 
 # reset build targets, target-specific variables and variables modifiable in target makefiles
-CLEAN_BUILD_C_EVAL = $(DEF_HEAD_CODE_EVAL)$(eval $(C_BASE_PREPARE_IMPL))
+CLEAN_BUILD_C_EVAL = $(DEF_HEAD_CODE_EVAL)$(eval $(C_PREPARE_VARS_IMPL))
 
 # this code is normally evaluated at end of target makefile
 DEFINE_C_TARGETS_EVAL = $(eval $(call C_RULES,$(TRG_SRC),$(TRG_SDEPS)))$(DEF_TAIL_CODE_EVAL)
@@ -234,28 +227,35 @@ $(call define_append,C_BASE_TEMPLATE_IMPL,$(newline)$(value ASM_TEMPLATE))
 ASM_COLOR := [37m
 
 # reset ASMFLAGS at beginning of target makefile
-$(call define_append,C_BASE_PREPARE_IMPL,$(newline)ASMFLAGS:=)
-
-# protect variables from modifications in target makefiles
-$(call SET_GLOBAL,TRG_ASMFLAGS ASM_TEMPLATE ASM_COLOR)
+$(call define_append,C_PREPARE_VARS_IMPL,$(newline)ASMFLAGS:=)
 
 endif # ASSEMBLER_SUPPORT
 
 # optimization
-$(call try_make_simple,C_BASE_PREPARE_IMPL,PRODUCT_VER)
+$(call try_make_simple,C_PREPARE_VARS_IMPL,PRODUCT_VER)
 
 # protect variables from modifications in target makefiles
 $(call SET_GLOBAL,OBJ_SUFFIX ADD_OBJ_SDEPS=x OBJ_RULES_BODY=t;v OBJ_RULES1=t;v OBJ_RULES=t;v \
-  TRG_COMPILER=t;v TRG_INCLUDE=t;v;SYSINCLUDE TRG_DEFINES=t;v;DEFINES TRG_CFLAGS=t;v;CFLAGS \
+  TRG_COMPILER=t;v TRG_INCLUDE=t;v;INCLUDE;SYSINCLUDE TRG_DEFINES=t;v;DEFINES TRG_CFLAGS=t;v;CFLAGS \
   TRG_CXXFLAGS=t;v;CXXFLAGS TRG_LDFLAGS=t;v;LDFLAGS GET_SOURCES=SRC;WITH_PCH \
   TRG_SRC TRG_SDEPS=SDEPS STRING_DEFINE SUBST_DEFINES C_TARGETS C_RULESv=t;v C_RULESt=t C_RULES \
-  C_BASE_TEMPLATE C_BASE_TEMPLATE_IMPL=t;v;$$t \
-  CC_COLOR CXX_COLOR AR_COLOR LD_COLOR XLD_COLOR \
-  TCC_COLOR TCXX_COLOR TAR_COLOR TLD_COLOR TXLD_COLOR 
-  KCC_COLOR KCXX_COLOR KAR_COLOR KLD_COLOR KXLD_COLOR \
-  C_BASE_PREPARE C_BASE_PREPARE_IMPL CLEAN_BUILD_C_EVAL DEFINE_C_TARGETS_EVAL \
-  CHECK_C_RULES TRG_ASMFLAGS=t;v;ASMFLAGS ASM_TEMPLATE ASM_COLOR)
+  C_BASE_TEMPLATE=t;v C_PREPARE_BASE_VARS C_BASE_TEMPLATE_IMPL=t;v;$$t \
+  TRG_ASMFLAGS=t;v;ASMFLAGS ASM_TEMPLATE ASM_COLOR)
 
 # protect variables from modifications in target makefiles
 # note: do not trace calls to ASSEMBLER_SUPPORT variable because it is used in ifdefs
-$(call SET_GLOBAL,ASSEMBLER_SUPPORT,0)
+# note: do not trace calls to C_PREPARE_VARS_IMPL variable because its $(value) is subsequently taken
+# note: do not trace calls to CLEAN_BUILD_C_EVAL variable because its $(value) is subsequently taken
+# note: do not trace calls to DEFINE_C_TARGETS_EVAL variable because its $(value) is subsequently taken
+$(call SET_GLOBAL,ASSEMBLER_SUPPORT C_PREPARE_VARS_IMPL CLEAN_BUILD_C_EVAL DEFINE_C_TARGETS_EVAL,0)
+
+
+## 
+## # tools colors: C, C++ compilers, library archiver, shared library and executable linkers
+## KCC_COLOR  := [31m
+## KCXX_COLOR := [36m
+## KAR_COLOR  := [32m
+## KLD_COLOR  := [33m
+## KXLD_COLOR := [37m
+## 
+## KCC_COLOR KCXX_COLOR KAR_COLOR KLD_COLOR KXLD_COLOR \

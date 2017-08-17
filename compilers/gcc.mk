@@ -10,11 +10,19 @@
 # note: INST_RPATH may be overridden either in project configuration makefile or in command line
 INST_RPATH:=
 
-# reset additional variables
+# reset additional variables at beginning of target makefile
 # RPATH - runtime path for dynamic linker to search for shared libraries
 # MAP   - linker map file (used mostly to list exported symbols)
-$(call define_append,PREPARE_C_VARS,$(newline)RPATH:=$(if $(findstring \
-  simple,$(flavor INST_RPATH)),$(INST_RPATH),$$(INST_RPATH))$(newline)MAP:=)
+define C_PREPARE_GCC_VARS
+RPATH := $(INST_RPATH)
+MAP:=
+endef
+
+# optimization
+$(call try_make_simple,C_PREPARE_GCC_VARS,INST_RPATH)
+
+# patch code executed at beginning of target makefile
+$(call define_append,C_PREPARE_VARS_IMPL,$(newline)$(value C_PREPARE_GCC_VARS))
 
 # compilers/linkers
 CC   := gcc -m$(if $(CPU:%64=),32,64)
@@ -26,78 +34,52 @@ TCXX := g++ -m$(if $(TCPU:%64=),32,64)
 TLD  := ld$(if $(TCPU:x86%=),, -m$(if $(TCPU:%64=),elf_i386,elf_x86_64))
 TAR  := ar
 
-# exe file suffix
-EXE_SUFFIX:=
-
-# object file suffix
-OBJ_SUFFIX := .o
-
-# static library (archive) prefix/suffix
-LIB_PREFIX := lib
-LIB_SUFFIX := .a
-
-# dynamically loaded library (shared object) prefix/suffix
-DLL_PREFIX := lib
-DLL_SUFFIX := .so
-
-# import library for dll prefix/suffix
-IMP_PREFIX := $(DLL_PREFIX)
-IMP_SUFFIX := $(DLL_SUFFIX)
-
-# import library and dll - the same file
-# NOTE: DLL_DIR must be recursive because $(LIB_DIR) have different values in TOOL-mode and non-TOOL mode
-DLL_DIR = $(LIB_DIR)
-
 # prefix for passing options from gcc command line to the linker
 WLPREFIX := -Wl,
 
-# variants filter function - get possible variants for the target over than default variant R
-# $1 - LIB,EXE,DLL
+# supported variants:
 # R - default variant (position-dependent code for EXE, position-independent code for DLL)
 # P - position-independent code in executables (for EXE and LIB)
 # D - position-independent code in shared libraries (for LIB)
-# note: overrides value from $(CLEAN_BUILD_DIR)/impl/_c.mk
-VARIANTS_FILTER = $(if \
-                  $(filter EXE,$1),P,$(if \
-                  $(filter LIB,$1),P D))
+# note: override defaults from $(CLEAN_BUILD_DIR)/impl/_c.mk
+EXE_NON_REGULAR_VARIANTS := P
+LIB_NON_REGULAR_VARIANTS := P D
 
-# get target name suffix for EXE,DRV in case of multiple target variants
-# $1 - EXE,DRV
-# $2 - target variant P (not R or <empty>)
-# $3 - list of variants of target $1 to build (filtered by target platform specific $(VARIANTS_FILTER))
-# note: overrides value from $(CLEAN_BUILD_DIR)/impl/_c.mk
-EXE_SUFFIX_GEN = $(if $(word 2,$3),_pie)
+# only one non-regular variant of EXE is supported - P
+# $1 - target: EXE
+# $2 - P
+# note: override defaults from $(CLEAN_BUILD_DIR)/impl/_c.mk
+EXE_VARIANT_SUFFIX = _pie
 
-# determine suffix for static LIB or for import library of DLL
-# $1 - target variant R,P,D,<empty>
-# note: overrides value from $(CLEAN_BUILD_DIR)/impl/_c.mk
-LIB_VAR_SUFFIX = $(if \
-                 $(filter P,$1),_pie,$(if \
-                 $(filter D,$1),_pic))
-
-# default flags for shared objects (executables and shared libraries)
-DEF_SHARED_FLAGS := -Wl,--warn-common -Wl,--no-demangle
+# two non-regular variants of LIB are supported: P and D
+# $1 - target: LIB
+# $2 - P or D
+# note: override defaults from $(CLEAN_BUILD_DIR)/impl/_c.mk
+LIB_VARIANT_SUFFIX = $(if $(filter P,$2),_pie,_pic)
 
 # default shared libs for target executables and shared libraries
-DEF_SHARED_LIBS:=
+SHARED_DEF_LIBS:=
+
+# default flags for shared objects (executables and shared libraries)
+SHARED_DEF_FLAGS := -Wl,--warn-common -Wl,--no-demangle
 
 # default flags for EXE-target linker
-DEF_EXE_FLAGS:=
+EXE_DEF_FLAGS:=
 
 # default flags for SO-target linker
-DEF_SO_FLAGS := -shared -Wl,--no-undefined
+SO_DEF_FLAGS := -shared -Wl,--no-undefined
 
 # default flags for static library position-independent code linker (with -fpie or -fpic options)
-DEF_LD_FLAGS := -r --warn-common
+LD_DEF_FLAGS := -r --warn-common
 
 # default flags for objects archiver
-DEF_AR_FLAGS := -crs
+AR_DEF_FLAGS := -crs
 
 # how to mark exported symbols from a DLL
-DLL_EXPORTS_DEFINE := "__attribute__((visibility(\"default\")))"
+EXPORTS_DLL_DEFINE := "__attribute__((visibility(\"default\")))"
 
 # how to mark imported symbols from a DLL
-DLL_IMPORTS_DEFINE:=
+IMPORTS_DLL_DEFINE:=
 
 # option for passing dynamic linker runtime path for EXE or DLL
 # target-specific: RPATH
@@ -115,9 +97,9 @@ RPATH_LINK_OPTION = $(addprefix $(WLPREFIX)-rpath-link=,$(RPATH_LINK))
 # $2 - objects
 # $3 - variant
 # target-specific: LIBS, DLLS, LIB_DIR, SYSLIBPATH, SYSLIBS, LDFLAGS
-CMN_LIBS = -pipe -o $1 $2 $(DEF_SHARED_FLAGS) $(RPATH_OPTION) $(RPATH_LINK_OPTION) $(if $(strip \
+CMN_LIBS = -pipe -o $1 $2 $(SHARED_DEF_FLAGS) $(RPATH_OPTION) $(RPATH_LINK_OPTION) $(if $(strip \
   $(LIBS)$(DLLS)),-L$(LIB_DIR) $(addprefix -l,$(DLLS)) $(if $(LIBS),$(WLPREFIX)-Bstatic $(addprefix -l,$(addsuffix \
-  $(call LIB_VAR_SUFFIX,$3),$(LIBS))) $(WLPREFIX)-Bdynamic)) $(addprefix -L,$(SYSLIBPATH)) $(SYSLIBS) $(DEF_SHARED_LIBS) $(LDFLAGS)
+  $(call LIB_VAR_SUFFIX,$3),$(LIBS))) $(WLPREFIX)-Bdynamic)) $(addprefix -L,$(SYSLIBPATH)) $(SYSLIBS) $(SHARED_DEF_LIBS) $(LDFLAGS)
 
 # specify what symbols to export from a dll
 # target-specific: MAP
@@ -134,11 +116,11 @@ SONAME_OPTION = $(addprefix $(WLPREFIX)-soname=$(notdir $1).,$(firstword $(subst
 # target variants: R,P,D
 # target-specific: TMD, COMPILER
 # note: used by EXE_TEMPLATE, DLL_TEMPLATE, LIB_TEMPLATE from $(CLEAN_BUILD_DIR)/impl/_c.mk
-EXE_R_LD = $(call SUP,$(TMD)XLD,$1)$($(TMD)$(COMPILER)) $(DEF_EXE_FLAGS) $(call CMN_LIBS,$1,$2,R)
-EXE_P_LD = $(call SUP,$(TMD)XLD,$1)$($(TMD)$(COMPILER)) $(DEF_EXE_FLAGS) $(call CMN_LIBS,$1,$2,P) -pie
-DLL_R_LD = $(call SUP,$(TMD)SLD,$1)$($(TMD)$(COMPILER)) $(DEF_SO_FLAGS) $(VERSION_SCRIPT_OPTION) $(SONAME_OPTION) $(call CMN_LIBS,$1,$2,D)
-LIB_R_LD = $(call SUP,$(TMD)AR,$1)$($(TMD)AR) $(DEF_AR_FLAGS) $1 $2
-LIB_P_LD = $(call SUP,$(TMD)LD,$1)$($(TMD)LD) $(DEF_LD_FLAGS) -o $1 $2 $(LDFLAGS)
+EXE_R_LD = $(call SUP,$(TMD)XLD,$1)$($(TMD)$(COMPILER)) $(EXE_DEF_FLAGS) $(call CMN_LIBS,$1,$2,R)
+EXE_P_LD = $(call SUP,$(TMD)XLD,$1)$($(TMD)$(COMPILER)) $(EXE_DEF_FLAGS) $(call CMN_LIBS,$1,$2,P) -pie
+DLL_R_LD = $(call SUP,$(TMD)SLD,$1)$($(TMD)$(COMPILER)) $(SO_DEF_FLAGS) $(VERSION_SCRIPT_OPTION) $(SONAME_OPTION) $(call CMN_LIBS,$1,$2,D)
+LIB_R_LD = $(call SUP,$(TMD)AR,$1)$($(TMD)AR) $(AR_DEF_FLAGS) $1 $2
+LIB_P_LD = $(call SUP,$(TMD)LD,$1)$($(TMD)LD) $(LD_DEF_FLAGS) -o $1 $2 $(LDFLAGS)
 LIB_D_LD = $(LIB_P_LD)
 
 # flags for auto-dependencies generation
@@ -162,17 +144,17 @@ endif
 APP_FLAGS := $(DEF_APP_FLAGS)
 
 # application-level defines
-DEF_APP_DEFINES := _GNU_SOURCE
+APP_DEF_DEFINES := _GNU_SOURCE
 
-# APP_DEFINES may be overridden in project makefile
-APP_DEFINES := $(DEF_APP_DEFINES)
+# DEFINES_APP may be overridden in project makefile
+DEFINES_APP := $(APP_DEF_DEFINES)
 
 # common options for application-level C++ and C compilers
 # $1 - target object file
 # $2 - source
 # target-specific: DEFINES, INCLUDE, COMPILER
 CC_PARAMS = -pipe -c $(APP_FLAGS) $(AUTO_DEPS_FLAGS) $(call \
-  SUBST_DEFINES,$(addprefix -D,$(APP_DEFINES) $(DEFINES))) $(addprefix -I,$(INCLUDE))
+  SUBST_DEFINES,$(addprefix -D,$(DEFINES_APP) $(DEFINES))) $(addprefix -I,$(INCLUDE))
 
 # C++ and C compilers
 # $1 - target object file
@@ -376,10 +358,10 @@ $(call define_append,C_RULES,$$(foreach \
 
 # protect variables from modifications in target makefiles
 $(call SET_GLOBAL,INST_RPATH CC CXX LD AR TCC TCXX TLD TAR \
-  WLPREFIX DEF_SHARED_FLAGS DEF_SHARED_LIBS DEF_EXE_FLAGS DEF_SO_FLAGS DEF_LD_FLAGS DEF_AR_FLAGS \
-  DLL_EXPORTS_DEFINE DLL_IMPORTS_DEFINE RPATH_OPTION RPATH_LINK RPATH_LINK_OPTION CMN_LIBS VERSION_SCRIPT_OPTION SONAME_OPTION \
+  WLPREFIX SHARED_DEF_LIBS SHARED_DEF_FLAGS EXE_DEF_FLAGS SO_DEF_FLAGS LD_DEF_FLAGS AR_DEF_FLAGS \
+  EXPORTS_DLL_DEFINE IMPORTS_DLL_DEFINE RPATH_OPTION RPATH_LINK RPATH_LINK_OPTION CMN_LIBS VERSION_SCRIPT_OPTION SONAME_OPTION \
   EXE_R_LD EXE_P_LD DLL_R_LD LIB_R_LD LIB_P_LD LIB_D_LD AUTO_DEPS_FLAGS DEF_CXXFLAGS DEF_CFLAGS \
-  DEF_APP_FLAGS APP_FLAGS DEF_APP_DEFINES APP_DEFINES CC_PARAMS CMN_CXX CMN_CC PIE_OPTION PIC_OPTION \
+  DEF_APP_FLAGS APP_FLAGS APP_DEF_DEFINES DEFINES_APP CC_PARAMS CMN_CXX CMN_CC PIE_OPTION PIC_OPTION \
   EXE_R_CXX EXE_R_CC EXE_P_CXX EXE_P_CC LIB_R_CXX LIB_R_CC LIB_P_CXX LIB_P_CC DLL_R_CXX DLL_R_CC LIB_D_CXX LIB_D_CC \
   NO_PCH PCH_CXX PCH_CC PCHCC_COLOR PCHCXX_COLOR TPCHCC_COLOR TPCHCXX_COLOR \
   PCH_EXE_R_CXX PCH_EXE_R_CC PCH_EXE_P_CXX PCH_EXE_P_CC PCH_LIB_R_CXX PCH_LIB_R_CC PCH_LIB_P_CXX PCH_LIB_P_CC \
