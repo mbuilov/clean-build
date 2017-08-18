@@ -15,8 +15,13 @@ include $(dir $(lastword $(MAKEFILE_LIST)))../core/_defs.mk
 endif
 
 # object file suffix
-# note: may overridded in makefile which defines C/C++ compiler
+# note: may overridden by selected C/C++ compiler
 OBJ_SUFFIX := .o
+
+# C/C++/Assembler sources masks
+CC_MASK  := %.c
+CXX_MASK := %.cpp
+ASM_MASK := %.asm
 
 # add source-dependencies for an object file
 # $1 - objdir
@@ -30,8 +35,8 @@ ADD_OBJ_SDEPS = $(if $2,$(newline)$1/$(basename $(notdir $x))$(OBJ_SUFFIX): $2)
 # $4 - objdir
 # $5 - $(addsuffix $(OBJ_SUFFIX),$(addprefix $4/,$(basename $(notdir $2))))
 # $6 - compiler: $t_$v_$1
-# $v - non-empty variant: R,P,S,...
 # $t - target type: EXE,LIB,...
+# $v - non-empty variant: R,P,S,...
 # returns: list of object files
 # note: postpone expansion of ORDER_DEPS to optimize parsing
 define OBJ_RULES_BODY
@@ -47,8 +52,8 @@ endef
 # $3 - sdeps (result of FIX_SDEPS)
 # $4 - objdir
 # $5 - $(addprefix $4/,$(basename $(notdir $2)))
-# $v - non-empty variant: R,P,S,...
 # $t - target type: EXE,LIB,...
+# $v - non-empty variant: R,P,S,...
 # returns: list of object files
 # note: cleanup auto-generated dependencies
 ifdef TOCLEAN
@@ -65,8 +70,8 @@ endif
 # $2 - sources to compile
 # $3 - sdeps (result of FIX_SDEPS)
 # $4 - objdir
-# $v - non-empty variant: R,P,S,...
 # $t - target type: EXE,LIB,...
+# $v - non-empty variant: R,P,S,...
 # returns: list of object files
 OBJ_RULES = $(if $2,$(call OBJ_RULES1,$1,$2,$3,$4,$(addprefix $4/,$(basename $(notdir $2)))))
 
@@ -77,7 +82,10 @@ OBJ_RULES = $(if $2,$(call OBJ_RULES1,$1,$2,$3,$4,$(addprefix $4/,$(basename $(n
 # $t     - EXE,LIB,DLL,DRV,KLIB,KDLL,...
 # $v     - non-empty variant: R,P,S,...
 # $(TMD) - T in tool mode, empty otherwise
-TRG_COMPILER = $(if $(filter %.cpp,$2),CXX,CC)
+TRG_COMPILER = $(if $(filter $(CXX_MASK),$2),CXX,CC)
+
+# optimization
+$(call subst_simple,TRG_COMPILER,CXX_MASK)
 
 # make absolute paths to include directories - we need absolute paths to headers in generated .d dependency file
 # note: do not touch paths in $(SYSINCLUDE) - assume they are absolute
@@ -148,8 +156,8 @@ C_RULES = $(foreach t,$(C_TARGETS),$(if $($t),$(C_RULESt)))
 define C_BASE_TEMPLATE
 NEEDED_DIRS+=$4
 $(STD_TARGET_VARS)
-$1:$(call OBJ_RULES,CC,$(filter %.c,$2),$3,$4)
-$1:$(call OBJ_RULES,CXX,$(filter %.cpp,$2),$3,$4)
+$1:$(call OBJ_RULES,CC,$(filter $(CC_MASK),$2),$3,$4)
+$1:$(call OBJ_RULES,CXX,$(filter $(CXX_MASK),$2),$3,$4)
 $1:COMPILER := $(TRG_COMPILER)
 $1:INCLUDE  := $(TRG_INCLUDE)
 $1:DEFINES  := $(TRG_DEFINES)
@@ -157,6 +165,9 @@ $1:CFLAGS   := $(TRG_CFLAGS)
 $1:CXXFLAGS := $(TRG_CXXFLAGS)
 $1:LDFLAGS  := $(TRG_LDFLAGS)
 endef
+
+# optimization
+$(call subst_simple,C_BASE_TEMPLATE,CC_MASK CXX_MASK)
 
 # code to be called at beginning of target makefile
 # $(MODVER) - module version (for dll, exe or driver) in form major.minor.patch (for example 1.2.3)
@@ -216,9 +227,12 @@ TRG_ASMFLAGS = $(ASMFLAGS)
 # $t - EXE,DLL,LIB...
 # $v - non-empty variant: R,P,S,...
 define ASM_TEMPLATE
-$1:$(call OBJ_RULES,ASM,$(filter %.asm,$2),$3,$4)
+$1:$(call OBJ_RULES,ASM,$(filter $(ASM_MASK),$2),$3,$4)
 $1:ASMFLAGS := $(TRG_ASMFLAGS)
 endef
+
+# optimization
+$(call subst_simple,ASM_TEMPLATE,ASM_MASK)
 
 # patch C_BASE_TEMPLATE_IMPL
 $(call define_append,C_BASE_TEMPLATE_IMPL,$(newline)$(value ASM_TEMPLATE))
@@ -235,7 +249,7 @@ endif # ASSEMBLER_SUPPORT
 $(call try_make_simple,C_PREPARE_VARS_IMPL,PRODUCT_VER)
 
 # protect variables from modifications in target makefiles
-$(call SET_GLOBAL,OBJ_SUFFIX ADD_OBJ_SDEPS=x OBJ_RULES_BODY=t;v OBJ_RULES1=t;v OBJ_RULES=t;v \
+$(call SET_GLOBAL,OBJ_SUFFIX CC_MASK CXX_MASK ASM_MASK ADD_OBJ_SDEPS=x OBJ_RULES_BODY=t;v OBJ_RULES1=t;v OBJ_RULES=t;v \
   TRG_COMPILER=t;v TRG_INCLUDE=t;v;INCLUDE;SYSINCLUDE TRG_DEFINES=t;v;DEFINES TRG_CFLAGS=t;v;CFLAGS \
   TRG_CXXFLAGS=t;v;CXXFLAGS TRG_LDFLAGS=t;v;LDFLAGS GET_SOURCES=SRC;WITH_PCH \
   TRG_SRC TRG_SDEPS=SDEPS STRING_DEFINE SUBST_DEFINES C_TARGETS C_RULESv=t;v C_RULESt=t C_RULES \

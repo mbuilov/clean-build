@@ -595,7 +595,7 @@ GET_TARGET_NAME = $(firstword $($1))
 #  ...
 NON_REGULAR_VARIANTS = $($1_NON_REGULAR_VARIANTS)
 
-# filter-out unsupported variants of the target and return only supported ones
+# filter-out unsupported variants of the target and return only supported ones (at least R)
 # $1 - target: EXE,LIB,...
 # $2 - list of specified variants of the target (may be empty)
 # $3 - optional name of function which returns list of supported by selected toolchain non-regular variants of given target type
@@ -604,26 +604,26 @@ NON_REGULAR_VARIANTS = $($1_NON_REGULAR_VARIANTS)
 # note: if $(filter ...) gives no variants, return default variant R (regular), which is always supported
 FILTER_VARIANTS_LIST = $(patsubst ,R,$(filter R $($(firstword $3 NON_REGULAR_VARIANTS)),$2))
 
-# if target may be specified with variants, like EXE := my_exe R S
-# then get variants of the target supported by selected toolchain
+# if target may be specified with variants, like LIB := my_lib R S
+#  then get variants of the target supported by selected toolchain
 # note: returns non-empty variants list, containing at least R (regular) variant
 # $1 - target: EXE,LIB,...
 # $2 - optional name of function which returns list of supported by selected toolchain non-regular variants of given target type
 #  (NON_REGULAR_VARIANTS by default), function must be defined at time of $(eval)
 GET_VARIANTS = $(call FILTER_VARIANTS_LIST,$1,$(wordlist 2,999999,$($1)),$2)
 
-# determine target name suffix (in case if building multiple variants of the target, each variant should have unique file name)
+# determine target name suffix (in case if building multiple variants of the target, each variant must have unique file name)
 # $1 - target: EXE,LIB,...
-# $2 - target variant: R,P,D,S... (one of variants supported by selected toolchain, may be empty)
+# $2 - target variant: R,P,D,S... (one of variants supported by selected toolchain - result of $(GET_VARIANTS), may be empty)
 # note: no suffix if building R (regular) variant or variant is not specified (then assume R variant)
 # example:
 #  LIB_VARIANT_SUFFIX = _$2
 #  note: $2 - non-empty, not R
 VARIANT_SUFFIX = $(if $(filter-out R,$2),$($1_VARIANT_SUFFIX))
 
-# get absolute path to target file - call appropriate FORM_TRG_... macro
+# get absolute path to target file - call appropriate .._FORM_TRG macro
 # $1 - EXE,LIB,...
-# $2 - target variant: R,P,D,S... (one of variants supported by selected toolchain, may be empty)
+# $2 - target variant: R,P,D,S... (one of variants supported by selected toolchain - result of $(GET_VARIANTS), may be empty)
 # example:
 #  EXE_FORM_TRG = $(GET_TARGET_NAME:%=$(BIN_DIR)/%$(VARIANT_SUFFIX)$(EXE_SUFFIX))
 #  LIB_FORM_TRG = $(GET_TARGET_NAME:%=$(LIB_DIR)/$(LIB_PREFIX)%$(VARIANT_SUFFIX)$(LIB_SUFFIX))

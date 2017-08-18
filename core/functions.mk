@@ -308,12 +308,24 @@ try_make_simple = $(if $(filter $(words $2),$(words $(filter simple,$(foreach v,
 # template for try_inline function
 define try_inline_templ
 ifeq ($(value $1),$$($2))
-$(eval $(filter override,$(origin $1)) define $1$(newline)$(value $2)$(newline)endef)
+$(eval $(filter override,$(origin $1)) $(keyword_define) $1$(newline)$(value $2)$(newline)$(keyword_endef))
 endif
 endef
 
 # if macro $1 just calls macro $2, redefine $1 as $(value $2)
 try_inline = $(eval $(value try_inline_templ))
+
+# template for subst_simple function
+define subst_simple_templ
+ifeq (simple,$(flavor $v))
+$(eval $(filter override,$(origin $1)) $(keyword_define) $1$(newline)$(subst $$($v),$($v),$(value $1))$(newline)$(keyword_endef))
+endif
+endef
+
+# substitute references to simple variables with values of those variables in the body of given macro 
+# $1 - macro to redefine
+# $2 - list of variables to try to substitute with their values
+subst_simple = $(foreach v,$2,$(eval $(value subst_simple_templ)))
 
 # protect variables from modification in target makefiles
 # note: do not try to trace calls to these macros, pass 0 as second parameter to SET_GLOBAL
@@ -328,4 +340,4 @@ TARGET_MAKEFILE += $(call SET_GLOBAL, \
   cmn_path1 cmn_path back_prefix relpath2 relpath1 relpath join_with \
   ver_major ver_minor ver_patch ver_compatible1 ver_compatible \
   get_dir split_dirs1 split_dirs mk_dir_deps lazy_simple define_append=$$1=$$1 define_prepend=$$1=$$1 \
-  subst_var_refs try_make_simple try_inline_templ try_inline)
+  subst_var_refs try_make_simple try_inline_templ try_inline subst_simple_templ subst_simple)
