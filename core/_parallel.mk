@@ -25,13 +25,13 @@ endef
 # remember new value of TOOL_MODE
 ifdef SET_GLOBAL1
 $(eval define CB_INCLUDE_TEMPLATE$(newline)$(subst include,$(call \
-  SET_GLOBAL1,TOOL_MODE)$(newline)include)$(newline)endef)
+  SET_GLOBAL1,TOOL_MODE)$(newline)include,$(value CB_INCLUDE_TEMPLATE))$(newline)endef)
 endif
 
 # remember new value of TARGET_MAKEFILE (without tracing calls)
 ifdef MCHECK
-$(eval define CB_INCLUDE_TEMPLATE$(newline)$(subst \
-  include,$(call SET_GLOBAL1,TARGET_MAKEFILE,0)$(newline)include)$(newline)endef)
+$(eval define CB_INCLUDE_TEMPLATE$(newline)$(subst include,$(call \
+  SET_GLOBAL1,TARGET_MAKEFILE,0)$(newline)include,$(value CB_INCLUDE_TEMPLATE))$(newline)endef)
 endif
 
 # generate code for processing given list of makefiles
@@ -56,8 +56,8 @@ $(call define_prepend,CB_INCLUDE_TEMPLATE,ORDER_DEPS:=$$(ORDER_DEPS)$(newline))
 
 # remember new value of ORDER_DEPS, without tracing calls to it because it is incremented
 ifdef MCHECK
-$(eval define CB_INCLUDE_TEMPLATE$(newline)$(subst \
-  include,$(call SET_GLOBAL1,ORDER_DEPS,0)$(newline)include)$(newline)endef)
+$(eval define CB_INCLUDE_TEMPLATE$(newline)$(subst include,$(call \
+  SET_GLOBAL1,ORDER_DEPS,0)$(newline)include,$(value CB_INCLUDE_TEMPLATE))$(newline)endef)
 endif
 
 # append makefiles (really PHONY targets created from them) to ORDER_DEPS list

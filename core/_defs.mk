@@ -186,7 +186,7 @@ ifndef UTILS
 $(error UTILS variable is not defined)
 endif
 
-ifeq (,$(wildcard $(UTILS))
+ifeq (,$(wildcard $(UTILS)))
 $(error file $(UTILS) was not found, check value of UTILS variable)
 endif
 

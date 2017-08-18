@@ -4,7 +4,7 @@
 # Licensed under GPL version 2 or any later version, see COPYING
 #-----------------------------------------------------------------------------------------
 
-ifeq (,$(filter-out undefined environment,$(origin CLEAN_BUILD_APP_C_EVAL)))
+ifeq (,$(filter-out undefined environment,$(origin CLEAN_BUILD_C_APP_EVAL)))
 include $(dir $(lastword $(MAKEFILE_LIST)))impl/_c.mk
 endif
-$(CLEAN_BUILD_APP_C_EVAL)
+$(CLEAN_BUILD_C_APP_EVAL)

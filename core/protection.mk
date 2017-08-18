@@ -96,9 +96,9 @@ endef
 # note: CLEAN_BUILD_NEED_TAIL_CODE is cleared after the checks to mark that $(DEF_TAIL_CODE) was evaluated
 # note: $(CLEAN_BUILD_DIR)/core/_parallel.mk calls $(DEF_TAIL_CODE) with $1=@
 define CLEAN_BUILD_CHECK_AT_TAIL
-$(if $(CLEAN_BUILD_NEED_TAIL_CODE),$(if $1,$(error \
-  $$(DEFINE_TARGETS) was not evaluated at end of $(CLEAN_BUILD_NEED_TAIL_CODE)!)),$(error \
-  $$(DEF_HEAD_CODE) was not evaluated at head of makefile!))
+$(if $1,$$(if $$(CLEAN_BUILD_NEED_TAIL_CODE),$$(error \
+  $$$$(DEFINE_TARGETS) was not evaluated at end of $$(CLEAN_BUILD_NEED_TAIL_CODE))),$(if \
+  $(CLEAN_BUILD_NEED_TAIL_CODE),,$(error $$(DEF_HEAD_CODE) was not evaluated at head of makefile!)))
 $(foreach x,$(CLEAN_BUILD_PROTECTED_VARS),$(call CLEAN_BUILD_CHECK_PROTECTED_VAR,$(CLEAN_BUILD_ENCODE_VAR_NAME)))
 CLEAN_BUILD_OVERRIDDEN_VARS:=
 CLEAN_BUILD_NEED_TAIL_CODE:=

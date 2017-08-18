@@ -4,7 +4,7 @@
 # Licensed under GPL version 2 or any later version, see COPYING
 #----------------------------------------------------------------------------------
 
-# this file included by $(CLEAN_BUILD_DIR)/impl/_defs.mk
+# this file included by $(CLEAN_BUILD_DIR)/core/_defs.mk
 
 # define unix utilities, then override some of them
 include $(dir $(lastword $(MAKEFILE_LIST)))unix.mk
