@@ -98,13 +98,12 @@ $(eval define trace_calls_template$(newline)$(subst _dump_params_,$$$$$(open_bra
 # replace macros with their trace equivalents
 # $1 - traced macros in form:
 #   name=b1;b2;b3;$$1=e1;e2
-# ($$1 - special case, when macro argument $1 is the name of another macro to dump its value)
+# ($$1 - special case, when macro argument $1 is the name of another macro - dump its value)
 # $2 - if non-empty, then forcibly protect new values of traced macros (used by $(CLEAN_BUILD_DIR)/core/protection.mk)
 # where
-#   name     - macro name
-#   b1;b2;b3 - names of variables to dump before traced call
-#   e1;e2    - names of variables to dump after traced call
-# note: may also be used for simple variables, for example: $(call trace_calls,Macro=VarPre=VarPost)
+#   name         - macro name
+#   b1;b2;b3;$$1 - names of variables to dump before traced call
+#   e1;e2        - names of variables to dump after traced call
 trace_calls = $(eval $(foreach f,$1,$(foreach v,$(firstword $(subst =, ,$f)),$(if $(findstring undefined,$(origin $v)),,$(if $(findstring \
   ^.$$$(open_brace)foreach w=$(comma)$$(words $$(cb_trace_level^))$(comma)$$(warning $$(cb_trace_level^) $$$$($v) $$(w=){),^.$(value \
   $v)),,$(call trace_calls_template,$v,$(encode_traced_var_name),$(if $(findstring command line,$(origin $v)),override,$(findstring \
@@ -291,6 +290,16 @@ lazy_simple = $(eval $(findstring override,$(origin $1)) $1:=$$2)$($1)
 define_append = $(eval define $1$(newline)$(value $1)$2$(newline)endef)
 define_prepend = $(eval define $1$(newline)$2$(value $1)$(newline)endef)
 
+# template for try_deref function
+define try_deref_templ
+ifeq ($(value $1),$$($2))
+$(eval $(keyword_define) $1$(newline)$(value $2)$(newline)$(keyword_endef))
+endif
+endef
+
+# if macro $1 just calls macro $2, redefine $1 as $(value $2)
+try_deref = $(eval $(value try_deref_templ))
+
 # remove references to variables from given text
 # $1 - text
 # $2 - names of variables
@@ -298,34 +307,13 @@ subst_var_refs = $(if $2,$(call subst_var_refs,$(subst $$($(firstword $2)),,$1),
 
 # try to redefine macro as simple (non-recursive) variable
 # $1 - macro name
+# $2 - list of variables to try to substitute with their values
 # $2 - names of known variables in $(value $1)
 # 1) check that variables in $2 are all simple
 # 2) check that no other variables in the value of macro $1
 # 3) re-define macro $1 as simple (non-recursive) variable
 try_make_simple = $(if $(filter $(words $2),$(words $(filter simple,$(foreach v,$2,$(flavor $v))))),$(if \
-  $(findstring $$,$(call subst_var_refs,$(value $1),$2)),,$(eval $(filter override,$(origin $1)) $1:=$$($1))))
-
-# template for try_inline function
-define try_inline_templ
-ifeq ($(value $1),$$($2))
-$(eval $(filter override,$(origin $1)) $(keyword_define) $1$(newline)$(value $2)$(newline)$(keyword_endef))
-endif
-endef
-
-# if macro $1 just calls macro $2, redefine $1 as $(value $2)
-try_inline = $(eval $(value try_inline_templ))
-
-# template for subst_simple function
-define subst_simple_templ
-ifeq (simple,$(flavor $v))
-$(eval $(filter override,$(origin $1)) $(keyword_define) $1$(newline)$(subst $$($v),$($v),$(value $1))$(newline)$(keyword_endef))
-endif
-endef
-
-# substitute references to simple variables with values of those variables in the body of given macro 
-# $1 - macro to redefine
-# $2 - list of variables to try to substitute with their values
-subst_simple = $(foreach v,$2,$(eval $(value subst_simple_templ)))
+  $(findstring $$,$(call subst_var_refs,$(value $1),$2)),,$(eval $1:=$$($1))))
 
 # protect variables from modification in target makefiles
 # note: do not try to trace calls to these macros, pass 0 as second parameter to SET_GLOBAL
@@ -340,4 +328,4 @@ TARGET_MAKEFILE += $(call SET_GLOBAL, \
   cmn_path1 cmn_path back_prefix relpath2 relpath1 relpath join_with \
   ver_major ver_minor ver_patch ver_compatible1 ver_compatible \
   get_dir split_dirs1 split_dirs mk_dir_deps lazy_simple define_append=$$1=$$1 define_prepend=$$1=$$1 \
-  subst_var_refs try_make_simple try_inline_templ try_inline subst_simple_templ subst_simple)
+  try_deref_templ try_deref subst_var_refs try_make_simple)

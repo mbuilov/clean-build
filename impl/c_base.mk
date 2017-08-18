@@ -14,6 +14,9 @@ ifeq (,$(filter-out undefined environment,$(origin EXTRACT_SDEPS)))
 include $(dir $(lastword $(MAKEFILE_LIST)))../core/_defs.mk
 endif
 
+# by default, enable compiling with precompiled headers
+NO_PCH:=
+
 # object file suffix
 # note: may overridden by selected C/C++ compiler
 OBJ_SUFFIX := .o
@@ -61,7 +64,7 @@ OBJ_RULES1 = $(call TOCLEAN,$(addsuffix .d,$5) $(addsuffix $(OBJ_SUFFIX),$5))
 else
 OBJ_RULES1 = $(call OBJ_RULES_BODY,$1,$2,$3,$4,$(addsuffix $(OBJ_SUFFIX),$5),$t_$v_$1)
 ifndef NO_DEPS
-OBJ_RULES1 += $(newline)-include $(addsuffix .d,$5)
+$(call define_append,OBJ_RULES1,$(newline)-include $$(addsuffix .d,$$5))
 endif
 endif
 
@@ -83,9 +86,6 @@ OBJ_RULES = $(if $2,$(call OBJ_RULES1,$1,$2,$3,$4,$(addprefix $4/,$(basename $(n
 # $v     - non-empty variant: R,P,S,...
 # $(TMD) - T in tool mode, empty otherwise
 TRG_COMPILER = $(if $(filter $(CXX_MASK),$2),CXX,CC)
-
-# optimization
-$(call subst_simple,TRG_COMPILER,CXX_MASK)
 
 # make absolute paths to include directories - we need absolute paths to headers in generated .d dependency file
 # note: do not touch paths in $(SYSINCLUDE) - assume they are absolute
@@ -124,8 +124,22 @@ STRING_DEFINE = $(subst $(tab),$$(tab),$(subst $(space),$$(space),$(subst $$,$$$
 # called by macro that expands to C-complier call
 SUBST_DEFINES = $(eval SUBST_DEFINES_:=$(subst $(comment),$$(comment),$1))$(SUBST_DEFINES_)
 
+# escape characters in string value of define
+# $1 - define name
+# $d - $1="1$(space)2"
+DEFINE_ESCAPE_STRING = $1=$(call ESCAPE_STRING,$(call SUBST_DEFINES,$(patsubst $1=%,%,$d)))
+
+# escape characters in string values of defines
+# $1 - list of defines
+# example: A=1 B="b" C="1$(space)2"
+# returns: A=1 B="\"b\"" C="\"1$(space)2\""
+DEFINES_ESCAPE_STRING = $(if $(findstring ",$1),$(foreach d,$1,$(if $(findstring \
+  =",$d),$(call DEFINE_ESCAPE_STRING,$(firstword $(subst =", ,$d))),$d)),$1)
+
 # list of target types that may be built from C/C++/Assembler sources
-# note: should be appended in makefile implementing target templates
+# note: appended in:
+#  $(CLEAN_BUILD_DIR)/impl/_c.mk
+#  $(CLEAN_BUILD_DIR)/impl/_kc.mk
 C_TARGETS:=
 
 # $1 - $(call FORM_TRG,$t,$v)
@@ -166,9 +180,6 @@ $1:CXXFLAGS := $(TRG_CXXFLAGS)
 $1:LDFLAGS  := $(TRG_LDFLAGS)
 endef
 
-# optimization
-$(call subst_simple,C_BASE_TEMPLATE,CC_MASK CXX_MASK)
-
 # code to be called at beginning of target makefile
 # $(MODVER) - module version (for dll, exe or driver) in form major.minor.patch (for example 1.2.3)
 define C_PREPARE_BASE_VARS
@@ -186,21 +197,10 @@ SYSLIBS:=
 SYSLIBPATH:=
 LIBS:=
 DLLS:=
-DEFINE_TARGETS_EVAL_NAME:=DEFINE_C_TARGETS_EVAL
-MAKE_CONTINUE_EVAL_NAME:=CLEAN_BUILD_C_EVAL
 endef
 
-# template C_BASE_TEMPLATE_IMPL may be subsequently patched
-$(eval define C_BASE_TEMPLATE_IMPL$(newline)$(value C_BASE_TEMPLATE)$(newline)endef)
-
-# template C_PREPARE_VARS_IMPL may be subsequently patched
-$(eval define C_PREPARE_VARS_IMPL$(newline)$(value C_PREPARE_BASE_VARS)$(newline)endef)
-
-# reset build targets, target-specific variables and variables modifiable in target makefiles
-CLEAN_BUILD_C_EVAL = $(DEF_HEAD_CODE_EVAL)$(eval $(C_PREPARE_VARS_IMPL))
-
 # this code is normally evaluated at end of target makefile
-DEFINE_C_TARGETS_EVAL = $(eval $(call C_RULES,$(TRG_SRC),$(TRG_SDEPS)))$(DEF_TAIL_CODE_EVAL)
+C_RULES_EVAL = $(eval $(call C_RULES,$(TRG_SRC),$(TRG_SDEPS)))
 
 # do not support assembler by default
 # note: ASSEMBLER_SUPPORT may be overridden in protect configuration makefile
@@ -231,37 +231,36 @@ $1:$(call OBJ_RULES,ASM,$(filter $(ASM_MASK),$2),$3,$4)
 $1:ASMFLAGS := $(TRG_ASMFLAGS)
 endef
 
-# optimization
-$(call subst_simple,ASM_TEMPLATE,ASM_MASK)
-
-# patch C_BASE_TEMPLATE_IMPL
-$(call define_append,C_BASE_TEMPLATE_IMPL,$(newline)$(value ASM_TEMPLATE))
+# patch C_BASE_TEMPLATE
+$(call define_append,C_BASE_TEMPLATE,$(newline)$(value ASM_TEMPLATE))
 
 # tool color
 ASM_COLOR := [37m
 
 # reset ASMFLAGS at beginning of target makefile
-$(call define_append,C_PREPARE_VARS_IMPL,$(newline)ASMFLAGS:=)
+$(call define_append,C_PREPARE_BASE_VARS,$(newline)ASMFLAGS:=)
 
 endif # ASSEMBLER_SUPPORT
 
 # optimization
-$(call try_make_simple,C_PREPARE_VARS_IMPL,PRODUCT_VER)
+$(call try_make_simple,C_PREPARE_BASE_VARS,PRODUCT_VER)
 
 # protect variables from modifications in target makefiles
-$(call SET_GLOBAL,OBJ_SUFFIX CC_MASK CXX_MASK ASM_MASK ADD_OBJ_SDEPS=x OBJ_RULES_BODY=t;v OBJ_RULES1=t;v OBJ_RULES=t;v \
+$(call SET_GLOBAL,NO_PCH OBJ_SUFFIX CC_MASK CXX_MASK ASM_MASK ADD_OBJ_SDEPS=x OBJ_RULES_BODY=t;v OBJ_RULES1=t;v OBJ_RULES=t;v \
   TRG_COMPILER=t;v TRG_INCLUDE=t;v;INCLUDE;SYSINCLUDE TRG_DEFINES=t;v;DEFINES TRG_CFLAGS=t;v;CFLAGS \
-  TRG_CXXFLAGS=t;v;CXXFLAGS TRG_LDFLAGS=t;v;LDFLAGS GET_SOURCES=SRC;WITH_PCH \
-  TRG_SRC TRG_SDEPS=SDEPS STRING_DEFINE SUBST_DEFINES C_TARGETS C_RULESv=t;v C_RULESt=t C_RULES \
-  C_BASE_TEMPLATE=t;v C_PREPARE_BASE_VARS C_BASE_TEMPLATE_IMPL=t;v;$$t \
-  TRG_ASMFLAGS=t;v;ASMFLAGS ASM_TEMPLATE ASM_COLOR)
+  TRG_CXXFLAGS=t;v;CXXFLAGS TRG_LDFLAGS=t;v;LDFLAGS GET_SOURCES=SRC;WITH_PCH TRG_SRC TRG_SDEPS=SDEPS \
+  STRING_DEFINE SUBST_DEFINES DEFINE_ESCAPE_STRING DEFINES_ESCAPE_STRING C_TARGETS C_RULESv=t;v C_RULESt=t C_RULES \
+  C_BASE_TEMPLATE=t;v;$$t C_PREPARE_BASE_VARS C_RULES_EVAL TRG_ASMFLAGS=t;v;ASMFLAGS ASM_TEMPLATE ASM_COLOR)
 
 # protect variables from modifications in target makefiles
 # note: do not trace calls to ASSEMBLER_SUPPORT variable because it is used in ifdefs
-# note: do not trace calls to C_PREPARE_VARS_IMPL variable because its $(value) is subsequently taken
-# note: do not trace calls to CLEAN_BUILD_C_EVAL variable because its $(value) is subsequently taken
-# note: do not trace calls to DEFINE_C_TARGETS_EVAL variable because its $(value) is subsequently taken
-$(call SET_GLOBAL,ASSEMBLER_SUPPORT C_PREPARE_VARS_IMPL CLEAN_BUILD_C_EVAL DEFINE_C_TARGETS_EVAL,0)
+$(call SET_GLOBAL,ASSEMBLER_SUPPORT,0)
+
+
+
+
+
+
 
 
 ## 

@@ -37,6 +37,9 @@ SED_EXPR = '$(subst \n,\$(newline),$(subst \t,\$(tab),$1))'
 # print contents of given file (to stdout, for redirecting it to output file)
 CAT = cat $1
 
+# escape string to be passed as program argument: "1 2" -> '"1 2"'
+ESCAPE_STRING = '$(subst ','"'"',$1)'
+
 # print lines of text (to stdout, for redirecting it to output file)
 # note: each line will be ended with LF
 ECHO = printf '$(subst ','"'"',$(subst $(newline),\n,$(subst \,\\,$(subst %,%%,$1))))\n'
@@ -70,4 +73,4 @@ EXECIN = pushd $1 >/dev/null && { $2 && popd >/dev/null || { popd >/dev/null; fa
 DEL_ON_FAIL = || { $(DEL); false; }
 
 # protect variables from modifications in target makefiles
-$(call SET_GLOBAL,PRINT_ENV DEL RM MKDIR CMP SED SED_EXPR CAT ECHO WRITE NUL CP LN TOUCH CHMOD EXECIN DEL_ON_FAIL)
+$(call SET_GLOBAL,PRINT_ENV DEL RM MKDIR CMP SED SED_EXPR CAT ESCAPE_STRING ECHO WRITE NUL CP LN TOUCH CHMOD EXECIN DEL_ON_FAIL)

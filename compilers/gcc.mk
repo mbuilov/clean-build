@@ -13,22 +13,27 @@ INST_RPATH:=
 # reset additional variables at beginning of target makefile
 # RPATH - runtime path for dynamic linker to search for shared libraries
 # MAP   - linker map file (used mostly to list exported symbols)
-define C_PREPARE_GCC_VARS
+define C_PREPARE_GCC_APP_VARS
 RPATH := $(INST_RPATH)
 MAP:=
 endef
 
 # optimization
-$(call try_make_simple,C_PREPARE_GCC_VARS,INST_RPATH)
+$(call try_make_simple,C_PREPARE_GCC_APP_VARS,INST_RPATH)
 
 # patch code executed at beginning of target makefile
-$(call define_append,C_PREPARE_VARS_IMPL,$(newline)$(value C_PREPARE_GCC_VARS))
+$(call define_append,C_PREPARE_APP_VARS,$(newline)$$(C_PREPARE_GCC_APP_VARS))
+
+# optimization
+$(call try_make_simple,C_PREPARE_APP_VARS,C_PREPARE_GCC_APP_VARS)
 
 # compilers/linkers
 CC   := gcc -m$(if $(CPU:%64=),32,64)
 CXX  := g++ -m$(if $(CPU:%64=),32,64)
 LD   := ld$(if $(CPU:x86%=),, -m$(if $(CPU:%64=),elf_i386,elf_x86_64))
 AR   := ar
+
+# tools compilers/linkers
 TCC  := gcc -m$(if $(TCPU:%64=),32,64)
 TCXX := g++ -m$(if $(TCPU:%64=),32,64)
 TLD  := ld$(if $(TCPU:x86%=),, -m$(if $(TCPU:%64=),elf_i386,elf_x86_64))
@@ -76,10 +81,10 @@ LD_DEF_FLAGS := -r --warn-common
 AR_DEF_FLAGS := -crs
 
 # how to mark exported symbols from a DLL
-EXPORTS_DLL_DEFINE := "__attribute__((visibility(\"default\")))"
+DLL_EXPORTS_DEFINE := "__attribute__((visibility(\"default\")))"
 
 # how to mark imported symbols from a DLL
-IMPORTS_DLL_DEFINE:=
+DLL_IMPORTS_DEFINE:=
 
 # option for passing dynamic linker runtime path for EXE or DLL
 # target-specific: RPATH
@@ -95,11 +100,12 @@ RPATH_LINK_OPTION = $(addprefix $(WLPREFIX)-rpath-link=,$(RPATH_LINK))
 # common linker options for EXE or DLL
 # $1 - target EXE or DLL
 # $2 - objects
-# $3 - variant
+# $3 - variant of the target
 # target-specific: LIBS, DLLS, LIB_DIR, SYSLIBPATH, SYSLIBS, LDFLAGS
 CMN_LIBS = -pipe -o $1 $2 $(SHARED_DEF_FLAGS) $(RPATH_OPTION) $(RPATH_LINK_OPTION) $(if $(strip \
   $(LIBS)$(DLLS)),-L$(LIB_DIR) $(addprefix -l,$(DLLS)) $(if $(LIBS),$(WLPREFIX)-Bstatic $(addprefix -l,$(addsuffix \
-  $(call LIB_VAR_SUFFIX,$3),$(LIBS))) $(WLPREFIX)-Bdynamic)) $(addprefix -L,$(SYSLIBPATH)) $(SYSLIBS) $(SHARED_DEF_LIBS) $(LDFLAGS)
+  $(call DEPENDENCY_SUFFIX,$1,$3,LIB),$(LIBS))) $(WLPREFIX)-Bdynamic)) $(addprefix \
+  -L,$(SYSLIBPATH)) $(SYSLIBS) $(SHARED_DEF_LIBS) $(LDFLAGS)
 
 # specify what symbols to export from a dll
 # target-specific: MAP
@@ -118,7 +124,7 @@ SONAME_OPTION = $(addprefix $(WLPREFIX)-soname=$(notdir $1).,$(firstword $(subst
 # note: used by EXE_TEMPLATE, DLL_TEMPLATE, LIB_TEMPLATE from $(CLEAN_BUILD_DIR)/impl/_c.mk
 EXE_R_LD = $(call SUP,$(TMD)XLD,$1)$($(TMD)$(COMPILER)) $(EXE_DEF_FLAGS) $(call CMN_LIBS,$1,$2,R)
 EXE_P_LD = $(call SUP,$(TMD)XLD,$1)$($(TMD)$(COMPILER)) $(EXE_DEF_FLAGS) $(call CMN_LIBS,$1,$2,P) -pie
-DLL_R_LD = $(call SUP,$(TMD)SLD,$1)$($(TMD)$(COMPILER)) $(SO_DEF_FLAGS) $(VERSION_SCRIPT_OPTION) $(SONAME_OPTION) $(call CMN_LIBS,$1,$2,D)
+DLL_R_LD = $(call SUP,$(TMD)SLD,$1)$($(TMD)$(COMPILER)) $(SO_DEF_FLAGS) $(VERSION_SCRIPT_OPTION) $(SONAME_OPTION) $(call CMN_LIBS,$1,$2,R)
 LIB_R_LD = $(call SUP,$(TMD)AR,$1)$($(TMD)AR) $(AR_DEF_FLAGS) $1 $2
 LIB_P_LD = $(call SUP,$(TMD)LD,$1)$($(TMD)LD) $(LD_DEF_FLAGS) -o $1 $2 $(LDFLAGS)
 LIB_D_LD = $(LIB_P_LD)
@@ -144,17 +150,17 @@ endif
 APP_FLAGS := $(DEF_APP_FLAGS)
 
 # application-level defines
-APP_DEF_DEFINES := _GNU_SOURCE
+DEF_APP_DEFINES := _GNU_SOURCE
 
-# DEFINES_APP may be overridden in project makefile
-DEFINES_APP := $(APP_DEF_DEFINES)
+# APP_DEFINES may be overridden in project makefile
+APP_DEFINES := $(DEF_APP_DEFINES)
 
 # common options for application-level C++ and C compilers
 # $1 - target object file
 # $2 - source
 # target-specific: DEFINES, INCLUDE, COMPILER
 CC_PARAMS = -pipe -c $(APP_FLAGS) $(AUTO_DEPS_FLAGS) $(call \
-  SUBST_DEFINES,$(addprefix -D,$(DEFINES_APP) $(DEFINES))) $(addprefix -I,$(INCLUDE))
+  DEFINES_ESCAPE_STRING,$(addprefix -D,$(APP_DEFINES) $(DEFINES))) $(addprefix -I,$(INCLUDE))
 
 # C++ and C compilers
 # $1 - target object file
@@ -165,8 +171,8 @@ CMN_CXX = $(call SUP,$(TMD)CXX,$2)$($(TMD)CXX) $(DEF_CXXFLAGS) $(CC_PARAMS) $(CX
 CMN_CC  = $(call SUP,$(TMD)CC,$2)$($(TMD)CC) $(DEF_CFLAGS) $(CC_PARAMS) $(CFLAGS) -o $1 $2
 
 # position-independent code for executables/shared objects (dynamic libraries)
-PIE_OPTION := -fpie
-PIC_OPTION := -fpic
+PIE_CC_OPTION := -fpie
+PIC_CC_OPTION := -fpic
 
 # compilers for each variant of EXE, DLL, LIB
 # $1 - target object file
@@ -175,10 +181,10 @@ PIC_OPTION := -fpic
 # note: used by OBJ_RULES from $(CLEAN_BUILD_DIR)/impl/_c.mk
 EXE_R_CXX = $(CMN_CXX)
 EXE_R_CC  = $(CMN_CC)
-EXE_P_CXX = $(EXE_R_CXX) $(PIE_OPTION)
-EXE_P_CC  = $(EXE_R_CC) $(PIE_OPTION)
-DLL_R_CXX = $(CMN_CXX) $(PIC_OPTION)
-DLL_R_CC  = $(CMN_CC) $(PIC_OPTION)
+EXE_P_CXX = $(EXE_R_CXX) $(PIE_CC_OPTION)
+EXE_P_CC  = $(EXE_R_CC) $(PIE_CC_OPTION)
+DLL_R_CXX = $(CMN_CXX) $(PIC_CC_OPTION)
+DLL_R_CC  = $(CMN_CC) $(PIC_CC_OPTION)
 LIB_R_CXX = $(EXE_R_CXX)
 LIB_R_CC  = $(EXE_R_CC)
 LIB_P_CXX = $(EXE_P_CXX)
@@ -186,19 +192,22 @@ LIB_P_CC  = $(EXE_P_CC)
 LIB_D_CXX = $(DLL_R_CXX)
 LIB_D_CC  = $(DLL_R_CC)
 
-# by default, enable compiling with precompiled headers
-NO_PCH:=
-
 ifndef NO_PCH
+
+# add support for precompiled headers
+
+ifeq (,$(filter-out undefined environment,$(origin GCC_PCH_TEMPLATEt)))
+include $(dir $(lastword $(MAKEFILE_LIST)))gcc_pch.mk
+endif
 
 # override C++ and C compilers to support precompiled headers
 # $1 - target object file
 # $2 - source
 # $3 - compiler name
-# target-specific: WITH_PCH, TMD, PCH, CXXFLAGS, CFLAGS
-CMN_CXX = $(if $(filter $2,$(WITH_PCH)),$(call SUP,P$(TMD)CXX,$2)$($(TMD)CXX) -I$(dir $1) -include $(basename \
+# target-specific: CXX_WITH_PCH, CC_WITH_PCH, TMD, PCH, CXXFLAGS, CFLAGS
+CMN_CXX = $(if $(filter $2,$(CXX_WITH_PCH)),$(call SUP,P$(TMD)CXX,$2)$($(TMD)CXX) -I$(dir $1) -include $(basename \
   $(notdir $(PCH)))_pch_cxx.h,$(call SUP,$(TMD)CXX,$2)$($(TMD)CXX)) $(DEF_CXXFLAGS) $(CC_PARAMS) $(CXXFLAGS) -o $1 $2
-CMN_CC  = $(if $(filter $2,$(WITH_PCH)),$(call SUP,P$(TMD)CC,$2)$($(TMD)CC) -I$(dir $1) -include $(basename \
+CMN_CC  = $(if $(filter $2,$(CC_WITH_PCH)),$(call SUP,P$(TMD)CC,$2)$($(TMD)CC) -I$(dir $1) -include $(basename \
   $(notdir $(PCH)))_pch_c.h,$(call SUP,$(TMD)CC,$2)$($(TMD)CC)) $(DEF_CFLAGS) $(CC_PARAMS) $(CFLAGS) -o $1 $2
 
 # compilers for C++ and C precompiled header
@@ -219,103 +228,27 @@ TPCHCXX_COLOR := $(PCHCXX_COLOR)
 # $2 - source header
 PCH_EXE_R_CXX = $(PCH_CXX)
 PCH_EXE_R_CC  = $(PCH_CC)
-PCH_EXE_P_CXX = $(PCH_EXE_R_CXX) $(PIE_OPTION)
-PCH_EXE_P_CC  = $(PCH_EXE_R_CC) $(PIE_OPTION)
+PCH_EXE_P_CXX = $(PCH_EXE_R_CXX) $(PIE_CC_OPTION)
+PCH_EXE_P_CC  = $(PCH_EXE_R_CC) $(PIE_CC_OPTION)
+PCH_DLL_R_CXX = $(PCH_CXX) $(PIC_CC_OPTION)
+PCH_DLL_R_CC  = $(PCH_CC) $(PIC_CC_OPTION)
 PCH_LIB_R_CXX = $(PCH_EXE_R_CXX)
 PCH_LIB_R_CC  = $(PCH_EXE_R_CC)
 PCH_LIB_P_CXX = $(PCH_EXE_P_CXX)
 PCH_LIB_P_CC  = $(PCH_EXE_P_CC)
-PCH_DLL_R_CXX = $(PCH_CXX) $(PIC_OPTION)
-PCH_DLL_R_CC  = $(PCH_CC) $(PIC_OPTION)
 PCH_LIB_D_CXX = $(PCH_DLL_R_CXX)
 PCH_LIB_D_CC  = $(PCH_DLL_R_CC)
 
 # reset additional variables
-# PCH      - either absolute or makefile-related path to header to precompile
-# WITH_PCH - list of sources to compile with precompiled headers
-$(call define_append,PREPARE_C_VARS,$(newline)PCH:=$(newline)WITH_PCH:=)
-
-# set dependencies of objects compiled with pch header on .gch
-# $1 - $(filter %.c,$src)
-# $2 - $(filter %.cpp,$src)
-# $3 - pch header name
-# $4 - objdir
-# $v - R
-# note: first line must be empty
-define ADD_WITH_PCHv
-
-$(if $1,$(addprefix $4/,$(addsuffix $(OBJ_SUFFIX),$(basename $(notdir $1)))): $4/$3_pch_c.h.gch)
-$(if $2,$(addprefix $4/,$(addsuffix $(OBJ_SUFFIX),$(basename $(notdir $2)))): $4/$3_pch_cxx.h.gch)
-endef
-
-# $1 - EXE,LIB,DLL,...
-# $2 - C-sources
-# $3 - C++-sources
-# $4 - $(basename $(notdir $(PCH)))
-ADD_WITH_PCH1 = $(foreach v,$(call GET_VARIANTS,$1),$(call ADD_WITH_PCHv,$2,$3,$4,$(call FORM_OBJ_DIR,$1,$v)))
-
-# function to add (generated?) sources to list of sources compiled with pch header
-# $1 - EXE,LIB,DLL,...
-# $2 - sources
-# note: override default implementation of $(CLEAN_BUILD_DIR)/impl/_c.mk
-# note: PCH header must be specified before expanding this macro
-ADD_WITH_PCH = $(eval WITH_PCH+=$2$(call ADD_WITH_PCH1,$1,$(filter %.c,$2),$(filter %.cpp,$2),$(basename $(notdir $(PCH)))))
-
-# check that PCH is defined before expanding ADD_WITH_PCH
-ifdef MCHECK
-$(eval ADD_WITH_PCH = $$(if $$(PCH),$(value ADD_WITH_PCH),$$(error PCH variable is not defined)))
+# PCH - either absolute or makefile-related path to header to precompile
+ifeq (simple,$(flavor C_PREPARE_APP_VARS))
+$(eval C_PREPARE_APP_VARS := $$(value C_PREPARE_APP_VARS)$$(newline)PCH:=)
+else
+$(call define_append,C_PREPARE_APP_VARS,$(newline)PCH:=)
 endif
-
-# make list of sources for the target, used by TRG_SRC
-# note: WITH_PCH should not be accessed or modified directly in target makefiles,
-#  use ADD_WITH_PCH macro to register sources that need to be compiled with precompiled headers
-# note: override default implementation of $(CLEAN_BUILD_DIR)/impl/_c.mk
-GET_SOURCES += $(WITH_PCH)
-
-# $1 - $(call FORM_TRG,$t,$v)
-# $2 - $(call FORM_OBJ_DIR,$t,$v)
-# $t - EXE,LIB,DLL,KLIB
-# $v - R,P
-# note: define target-specific variables: PCH and WITH_PCH 
-# note: last line must be empty
-define PCH_TEMPLATEv
-FIXED_PCH := $(call fixpath,$(PCH))
-FIXED_WITH_PCH := $(call fixpath,$(WITH_PCH))
-$1: PCH := $$(FIXED_PCH)
-$1: WITH_PCH := $$(FIXED_WITH_PCH)
-ifneq (,$$(filter %.c,$$(FIXED_WITH_PCH)))
-C_GCH := $2/$$(basename $$(notdir $$(FIXED_PCH)))_pch_c.h
-$$(C_GCH).gch: $$(FIXED_PCH) | $2 $$(ORDER_DEPS)
-	$$(call PCH_$t_$v_CC,$$@,$$(PCH))
-ifndef NO_DEPS
--include $$(C_GCH).d)
-endif
-$$(addprefix $2/,$$(addsuffix $(OBJ_SUFFIX),$$(basename $$(notdir $$(filter %.c,$$(FIXED_WITH_PCH)))))): $$(C_GCH).gch
-$$(call TOCLEAN,$$(C_GCH).gch $$(C_GCH).d)
-endif
-ifneq (,$$(filter %.cpp,$$(FIXED_WITH_PCH)))
-CXX_GCH := $2/$$(basename $$(notdir $$(FIXED_PCH)))_pch_cxx.h
-$$(CXX_GCH).gch: $$(FIXED_PCH) | $2 $$(ORDER_DEPS)
-	$$(call PCH_$t_$v_CXX,$$@,$$(PCH))
-ifndef NO_DEPS
--include $$(CXX_GCH).d
-endif
-$$(addprefix $2/,$$(addsuffix $(OBJ_SUFFIX),$$(basename $$(notdir $$(filter %.cpp,$$(FIXED_WITH_PCH)))))): $$(CXX_GCH).gch
-$$(call TOCLEAN,$$(CXX_GCH).gch $$(CXX_GCH).d)
-endif
-
-endef
-
-# code to eval to build with precompiled headers
-# $t - EXE,LIB,DLL,KLIB
-# note: must reset target-specific WITH_PCH if not using precompiled header,
-#  otherwise DLL or LIB target may inherit WITH_PCH value from EXE, LIB target may inherit WITH_PCH value from DLL
-PCH_TEMPLATEt = $(if $(word 2,$(PCH) $(firstword $(WITH_PCH))),$(foreach \
-  v,$(call GET_VARIANTS,$t),$(call PCH_TEMPLATEv,$(call FORM_TRG,$t,$v),$(call \
-  FORM_OBJ_DIR,$t,$v))),$(call ALL_TRG,$t): WITH_PCH:=$(newline))
 
 # for all targets: add support for precompiled headers
-$(call define_append,C_RULES,$$(foreach t,EXE DLL LIB,$$(if $$($$t),$$(PCH_TEMPLATEt))))
+$(call define_prepend,DEFINE_C_APP_EVAL,$$(eval $$(foreach t,$(C_APP_TARGETS),$$(if $$($$t),$$(GCC_PCH_TEMPLATEt)))))
 
 endif # NO_PCH
 
@@ -326,9 +259,9 @@ endif # NO_PCH
 # $v - R
 # note: last line must be empty
 define EXE_AUX_TEMPLATEv
-$1: RPATH := $$(RPATH)
-$1: MAP := $2
-$1: $2
+$1:RPATH := $$(RPATH)
+$1:MAP := $2
+$1:$2
 
 endef
 
@@ -339,31 +272,29 @@ endef
 # $v - R
 # note: last line must be empty
 define DLL_AUX_TEMPLATEv
-$1: MODVER := $(MODVER)
-$1: RPATH := $$(RPATH)
-$1: MAP := $2
-$1: $2
+$1:MODVER := $(MODVER)
+$1:RPATH := $$(RPATH)
+$1:MAP := $2
+$1:$2
 
 endef
 
 # auxiliary defines for EXE or DLL
 # $1 - $(call fixpath,$(MAP))
 # $t - EXE or DLL
-MOD_AUX_TEMPLATEt = $(foreach v,$(call GET_VARIANTS,$t),$(call $t_AUX_TEMPLATEv,$(call FORM_TRG,$t,$v),$1))
+MOD_AUX_APPt = $(foreach v,$(call GET_VARIANTS,$t),$(call $t_AUX_TEMPLATEv,$(call FORM_TRG,$t,$v),$1))
 
 # for DLL:         define target-specific variable MODVER
 # for DLL and EXE: define target-specific variables RPATH and MAP
-$(call define_append,C_RULES,$$(foreach \
-  t,EXE DLL,$$(if $$($$t),$$(call MOD_AUX_TEMPLATEt,$$(call fixpath,$$(MAP))))))
+$(call define_prepend,DEFINE_C_APP_EVAL,$$(eval $$(foreach t,EXE DLL,$$(if $$($$t),$$(call MOD_AUX_APPt,$$(call fixpath,$$(MAP)))))))
 
 # protect variables from modifications in target makefiles
-$(call SET_GLOBAL,INST_RPATH CC CXX LD AR TCC TCXX TLD TAR \
+$(call SET_GLOBAL,INST_RPATH C_PREPARE_GCC_APP_VARS CC CXX LD AR TCC TCXX TLD TAR \
   WLPREFIX SHARED_DEF_LIBS SHARED_DEF_FLAGS EXE_DEF_FLAGS SO_DEF_FLAGS LD_DEF_FLAGS AR_DEF_FLAGS \
-  EXPORTS_DLL_DEFINE IMPORTS_DLL_DEFINE RPATH_OPTION RPATH_LINK RPATH_LINK_OPTION CMN_LIBS VERSION_SCRIPT_OPTION SONAME_OPTION \
+  DLL_EXPORTS_DEFINE DLL_IMPORTS_DEFINE RPATH_OPTION RPATH_LINK RPATH_LINK_OPTION CMN_LIBS VERSION_SCRIPT_OPTION SONAME_OPTION \
   EXE_R_LD EXE_P_LD DLL_R_LD LIB_R_LD LIB_P_LD LIB_D_LD AUTO_DEPS_FLAGS DEF_CXXFLAGS DEF_CFLAGS \
-  DEF_APP_FLAGS APP_FLAGS APP_DEF_DEFINES DEFINES_APP CC_PARAMS CMN_CXX CMN_CC PIE_OPTION PIC_OPTION \
-  EXE_R_CXX EXE_R_CC EXE_P_CXX EXE_P_CC LIB_R_CXX LIB_R_CC LIB_P_CXX LIB_P_CC DLL_R_CXX DLL_R_CC LIB_D_CXX LIB_D_CC \
-  NO_PCH PCH_CXX PCH_CC PCHCC_COLOR PCHCXX_COLOR TPCHCC_COLOR TPCHCXX_COLOR \
-  PCH_EXE_R_CXX PCH_EXE_R_CC PCH_EXE_P_CXX PCH_EXE_P_CC PCH_LIB_R_CXX PCH_LIB_R_CC PCH_LIB_P_CXX PCH_LIB_P_CC \
-  PCH_DLL_R_CXX PCH_DLL_R_CC PCH_LIB_D_CXX PCH_LIB_D_CC ADD_WITH_PCHv=v ADD_WITH_PCH1 ADD_WITH_PCH=PCH;WITH_PCH=WITH_PCH \
-  GET_SOURCES=SRC;WITH_PCH PCH_TEMPLATEv=t;v PCH_TEMPLATEt=t EXE_AUX_TEMPLATEv=t;v DLL_AUX_TEMPLATEv=t;v MOD_AUX_TEMPLATEt=t)
+  DEF_APP_FLAGS APP_FLAGS DEF_APP_DEFINES APP_DEFINES CC_PARAMS CMN_CXX CMN_CC PIE_CC_OPTION PIC_CC_OPTION \
+  EXE_R_CXX EXE_R_CC EXE_P_CXX EXE_P_CC DLL_R_CXX DLL_R_CC LIB_R_CXX LIB_R_CC LIB_P_CXX LIB_P_CC LIB_D_CXX LIB_D_CC \
+  NO_PCH PCH_CXX PCH_CC PCHCC_COLOR PCHCXX_COLOR TPCHCC_COLOR TPCHCXX_COLOR PCH_EXE_R_CXX PCH_EXE_R_CC PCH_EXE_P_CXX \
+  PCH_EXE_P_CC PCH_DLL_R_CXX PCH_DLL_R_CC PCH_LIB_R_CXX PCH_LIB_R_CC PCH_LIB_P_CXX PCH_LIB_P_CC \
+  PCH_LIB_D_CXX PCH_LIB_D_CC EXE_AUX_TEMPLATEv=t;v DLL_AUX_TEMPLATEv=t;v MOD_AUX_APPt=t)

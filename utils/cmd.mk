@@ -130,6 +130,9 @@ SED_EXPR = "$(subst %,%%,$1)"
 # print contents of given file (to stdout, for redirecting it to output file)
 CAT = type $(ospath)
 
+# escape string to be passed as program argument: "1 ^ 2" -> "\"1 ^^ 2\""
+ESCAPE_STRING = "$(subst %,%%,$(subst <,^<,$(subst >,^>,$(subst |,^|,$(subst &,^&,$(subst ",\",$(subst ^,^^,$1)))))))"
+
 # print one line of text (to stdout, for redirecting it to output file)
 # note: line will be ended with CRLF
 # NOTE: ECHO_LINE may be not defined for other OSes, use ECHO in platform-independent code
@@ -228,4 +231,4 @@ FILTER_OUTPUT = (($1 2>&1 && echo OK>&2)$2)3>&2 2>&1 1>&3|findstr /BC:OK>NUL
 # protect variables from modifications in target makefiles
 $(call SET_GLOBAL,WIN_EXPORTED $(sort TMP PATHEXT SYSTEMROOT COMSPEC $(WIN_EXPORTED)) \
   PATH DEL_ARGS_LIMIT nonrelpath1 DEL DEL_DIR RM1 RM MKDIR CMP SED SED_EXPR \
-  CAT ECHO_LINE ECHO_LINES ECHO WRITE NUL SUPPRESS_CP_OUTPUT CP TOUCH EXECIN DEL_ON_FAIL NO_RPATH FILTER_OUTPUT)
+  CAT ESCAPE_STRING ECHO_LINE ECHO_LINES ECHO WRITE NUL SUPPRESS_CP_OUTPUT CP TOUCH EXECIN DEL_ON_FAIL NO_RPATH FILTER_OUTPUT)
