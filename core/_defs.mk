@@ -850,7 +850,7 @@ endif
 # remember new value of PROCESSED_MAKEFILES variables, without tracing calls to it because it is incremented
 ifdef MCHECK
 $(eval define DEF_HEAD_CODE$(newline)$(subst \
-  else,else$(newline)$(call SET_GLOBAL1,PROCESSED_MAKEFILES,0),$(value DEF_HEAD_CODE))$(newline)endef)
+  else,else$(newline)$$(call SET_GLOBAL1,PROCESSED_MAKEFILES,0),$(value DEF_HEAD_CODE))$(newline)endef)
 endif
 
 # add $(TARGET_MAKEFILE) to list of processed target makefiles (note: before first $(MAKE_CONTINUE))
@@ -862,8 +862,8 @@ endif
 # check that $(TARGET_MAKEFILE) was not already processed (note: before first $(MAKE_CONTINUE))
 ifdef MCHECK
 $(eval define DEF_HEAD_CODE$(newline)$(subst \
-  else,else$(newline)$$$$(if $$$$(filter $$$$(TARGET_MAKEFILE),$$$$(PROCESSED_MAKEFILES),$$$$(error \
-  makefile $$$$(TARGET_MAKEFILE) was already processed!))),$(value DEF_HEAD_CODE))$(newline)endef)
+  else,else$(newline)$$$$(if $$$$(filter $$$$(TARGET_MAKEFILE),$$$$(PROCESSED_MAKEFILES)),$$$$(error \
+  makefile $$$$(TARGET_MAKEFILE) was already processed!)),$(value DEF_HEAD_CODE))$(newline)endef)
 endif
 
 # remember new values of TMD, MAKE_CONTINUE_EVAL_NAME and DEFINE_TARGETS_EVAL_NAME

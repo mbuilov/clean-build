@@ -35,7 +35,10 @@ infofn = $(info $2<$(subst $(newline),>$(newline)$2<,$1)>)$1
 # $2 - optional prefix
 # $3 - optional pre-prefix
 # $(call dump,VAR1,prefix,Q) -> print 'Qdump: prefix: VAR1=xxx'
-dump = $(foreach dump=,$1,$(info $3dump: <$(2:=: )$(dump=)$(if $(findstring simple,$(flavor $(dump=))),:)=$(value $(dump=))>))
+# note: surround dump with fake $(if) to avoid any text in result of $(dump)
+dump = $(if $(foreach dump=,$1,$(info $3dump: $(2:=: )$(dump=)$(if $(findstring \
+  simple,$(flavor $(dump=))),:)=$(if $(findstring $(newline),$(value $(dump=))),\$(newline)d<$(subst \
+  $(newline),>$(newline)d<,$(value $(dump=)))>,<$(value $(dump=))>))),)
 
 # maximum number of arguments of any macro
 dump_max := 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40
@@ -44,7 +47,8 @@ dump_max := 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26
 $(eval override $(subst $(space),:=$(newline)override ,$(dump_max)):=)
 
 # dump function arguments
-dump_args := $(foreach i,$(dump_max),:$$(if $$($i),$$(info <$$$$$i=$$($i)>)))
+dump_args := $(foreach i,$(dump_max),:$$(if $$($i),$$(info \
+  $$$$$i=$$(if $$(findstring $$(newline),$$($i)),\$$(newline)<$$(subst $$(newline),>$$(newline)<,$$($i))>,<$$($i)>))))
 $(eval dump_args = $(subst $(space):,, $(dump_args)))
 
 # trace function call parameters - print function name and parameter values
@@ -66,6 +70,7 @@ encode_traced_var_name = $(subst $(close_brace),^c@,$(subst $(open_brace),^o@,$(
 # $5 - names of variables to dump after traced call
 # $6 - if non-empty, then forcibly protect new values of traced macros (used by $(CLEAN_BUILD_DIR)/core/protection.mk)
 # note: pass 0 as second parameter to SET_GLOBAL1 to not try to trace already traced macro
+# note: must use $$(call $2,_dump_params_): Gnu Make does not allows recursive calls: $(call a)->$(b)->$(call a)->$(b)->...
 # note: first line must be empty
 define trace_calls_template
 
@@ -74,7 +79,7 @@ ifeq (simple,$(flavor $1))
 $2:=$$($1)
 $3 $(keyword_define) $1
 $$(foreach w=,$$(words $$(cb_trace_level^)),$$(warning $$(cb_trace_level^) $$$$($1) $$(w=){)$$(call \
-  infofn,$$($2),$$(w=))$$(info end: }$$(w=) $$$$($1)))
+  infofn,$$($2),$$(w=))$$(info <------- }$$(w=) $$$$($1)))
 $(keyword_endef)
 else
 $(keyword_define) $2
@@ -82,9 +87,9 @@ $(value $1)
 $(keyword_endef)
 $3 $(keyword_define) $1
 $$(foreach w=,$$(words $$(cb_trace_level^)),$$(warning $$(cb_trace_level^) $$$$($1) $$(w=){)$$(dump_args)$$(call dump,$4,,$1: )$$(info \
-  ------$1 value---->)$$(info <$$(subst $$(newline),>$$(newline)<,$$(value $2))>)$$(eval cb_trace_level^+=$1->)$$(info \
-  ------$1 result--->)$$(call infofn,$$(call $2,_dump_params_),$$(w=))$$(call dump,$5,,$1: )$$(eval \
-  cb_trace_level^:=$$(wordlist 2,$$(words $$(cb_trace_level^)),x $$(cb_trace_level^)))$$(info end: }$$(w=) $$$$($1)))
+  --- $1 value---->)$$(info <$$(subst $$(newline),>$$(newline)<,$$(value $2))>)$$(eval cb_trace_level^+=$1->)$$(info \
+  --- $1 result--->)$$(call infofn,$$(call $2,_dump_params_),$$(w=))$$(call dump,$5,,$1: )$$(eval \
+  cb_trace_level^:=$$(wordlist 2,$$(words $$(cb_trace_level^)),x $$(cb_trace_level^)))$$(info <------- }$$(w=) $$$$($1)))
 $(keyword_endef)
 endif
 endif
@@ -98,7 +103,7 @@ $(eval define trace_calls_template$(newline)$(subst _dump_params_,$$$$$(open_bra
 # replace macros with their trace equivalents
 # $1 - traced macros in form:
 #   name=b1;b2;b3;$$1=e1;e2
-# ($$1 - special case, when macro argument $1 is the name of another macro - dump its value)
+# ($$1 - special case, when macro argument $1 is the names of another macros - dump their values)
 # $2 - if non-empty, then forcibly protect new values of traced macros (used by $(CLEAN_BUILD_DIR)/core/protection.mk)
 # where
 #   name         - macro name
@@ -328,4 +333,4 @@ TARGET_MAKEFILE += $(call SET_GLOBAL, \
   cmn_path1 cmn_path back_prefix relpath2 relpath1 relpath join_with \
   ver_major ver_minor ver_patch ver_compatible1 ver_compatible \
   get_dir split_dirs1 split_dirs mk_dir_deps lazy_simple define_append=$$1=$$1 define_prepend=$$1=$$1 \
-  try_deref_templ try_deref subst_var_refs try_make_simple)
+  try_deref_templ=$$1 try_deref=$$1=$$1 subst_var_refs try_make_simple=$$1;$$2=$$1)

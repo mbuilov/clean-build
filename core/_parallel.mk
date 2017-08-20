@@ -22,16 +22,10 @@ include $m
 
 endef
 
-# remember new value of TOOL_MODE
+# remember new values of TARGET_MAKEFILE and TOOL_MODE
 ifdef SET_GLOBAL1
-$(eval define CB_INCLUDE_TEMPLATE$(newline)$(subst include,$(call \
-  SET_GLOBAL1,TOOL_MODE)$(newline)include,$(value CB_INCLUDE_TEMPLATE))$(newline)endef)
-endif
-
-# remember new value of TARGET_MAKEFILE (without tracing calls)
-ifdef MCHECK
-$(eval define CB_INCLUDE_TEMPLATE$(newline)$(subst include,$(call \
-  SET_GLOBAL1,TARGET_MAKEFILE,0)$(newline)include,$(value CB_INCLUDE_TEMPLATE))$(newline)endef)
+$(eval define CB_INCLUDE_TEMPLATE$(newline)$(subst include,$$(call \
+  SET_GLOBAL1,TARGET_MAKEFILE TOOL_MODE)$(newline)include,$(value CB_INCLUDE_TEMPLATE))$(newline)endef)
 endif
 
 # generate code for processing given list of makefiles
@@ -45,8 +39,8 @@ endef
 # remember new value of CB_INCLUDE_LEVEL, without tracing calls to it because it is incremented
 ifdef MCHECK
 $(eval define CLEAN_BUILD_PARALLEL$(newline)$(subst \
-  CB_INCLUDE_LEVEL+=.,CB_INCLUDE_LEVEL+=.$(newline)$(call SET_GLOBAL1,CB_INCLUDE_LEVEL,0),$(value \
-  CLEAN_BUILD_PARALLEL))$(newline)$(call SET_GLOBAL1,CB_INCLUDE_LEVEL,0)$(newline)endef)
+  CB_INCLUDE_LEVEL+=.,CB_INCLUDE_LEVEL+=.$(newline)$$(call SET_GLOBAL1,CB_INCLUDE_LEVEL,0),$(value \
+  CLEAN_BUILD_PARALLEL))$(newline)$$(call SET_GLOBAL1,CB_INCLUDE_LEVEL,0)$(newline)endef)
 endif
 
 ifndef TOCLEAN
@@ -56,7 +50,7 @@ $(call define_prepend,CB_INCLUDE_TEMPLATE,ORDER_DEPS:=$$(ORDER_DEPS)$(newline))
 
 # remember new value of ORDER_DEPS, without tracing calls to it because it is incremented
 ifdef MCHECK
-$(eval define CB_INCLUDE_TEMPLATE$(newline)$(subst include,$(call \
+$(eval define CB_INCLUDE_TEMPLATE$(newline)$(subst include,$$(call \
   SET_GLOBAL1,ORDER_DEPS,0)$(newline)include,$(value CB_INCLUDE_TEMPLATE))$(newline)endef)
 endif
 
@@ -118,8 +112,9 @@ PROCESS_SUBMAKES = $(eval define CB_PARALLEL_CODE$(newline)$(call CLEAN_BUILD_PA
 ifdef MCHECK
 CLEAN_BUILD_PARALLEL_EVAL = $(eval CLEAN_BUILD_NEED_PARALLEL:=)
 $(eval PROCESS_SUBMAKES = $$(if $$(CLEAN_BUILD_NEED_PARALLEL),$$(error \
-  $$$$(CLEAN_BUILD_DIR)/parallel.mk was not included at head of makefile!))$$(eval \
-  CLEAN_BUILD_NEED_PARALLEL:=1$(newline)$(call SET_GLOBAL1,CLEAN_BUILD_NEED_PARALLEL))$(value PROCESS_SUBMAKES))
+  $$$$(CLEAN_BUILD_DIR)/parallel.mk was not included at head of makefile!))$(subst \
+  eval ,eval CLEAN_BUILD_NEED_PARALLEL:=1$$(newline)$$(call \
+  SET_GLOBAL1,CLEAN_BUILD_NEED_PARALLEL)$$(newline),$(value PROCESS_SUBMAKES)))
 else
 CLEAN_BUILD_PARALLEL_EVAL:=
 endif
