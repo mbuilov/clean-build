@@ -291,9 +291,14 @@ mk_dir_deps = $(subst :|,:| $2,$(addprefix $(newline)$2,$(filter-out %:|,$(join 
 lazy_simple = $(eval $(findstring override,$(origin $1)) $1:=$$2)$($1)
 
 # append/prepend text $2 to value of variable $1
-# note: do not adds a space between joined $1 and $2
+# note: do not adds a space between joined $1 and $2, like operator += does
 define_append = $(eval define $1$(newline)$(value $1)$2$(newline)endef)
 define_prepend = $(eval define $1$(newline)$2$(value $1)$(newline)endef)
+
+# append/prepend simple (already expanded) text $2 to value of variable $1
+# note: do not adds a space between joined $1 and $2, like operator += does
+append_simple = $(if $(findstring simple,$(flavor $1)),$(eval $1:=$$($1)$$2),$(define_append))
+prepend_simple = $(if $(findstring simple,$(flavor $1)),$(eval $1:=$$2$$($1)),$(define_prepend))
 
 # template for try_deref function
 define try_deref_templ
@@ -322,15 +327,18 @@ try_make_simple = $(if $(filter $(words $2),$(words $(filter simple,$(foreach v,
 
 # protect variables from modification in target makefiles
 # note: do not try to trace calls to these macros, pass 0 as second parameter to SET_GLOBAL
-TARGET_MAKEFILE = $(call SET_GLOBAL, \
+# note: TARGET_MAKEFILE variable is used here temporary and will be redefined later
+TARGET_MAKEFILE += $(call SET_GLOBAL, \
   empty space tab comma newline comment open_brace close_brace keyword_override keyword_define keyword_endef backslash \
   infofn dump dump_max dump_args trace_params encode_traced_var_name trace_calls_template trace_calls,0)
 
 # protect variables from modification in target makefiles
+# note: TARGET_MAKEFILE variable is used here temporary and will be redefined later
 TARGET_MAKEFILE += $(call SET_GLOBAL, \
   unspaces ifaddq qpath tolower toupper repl09 repl09AZ padto1 padto \
   is_less1 is_less xargs1 xargs xcmd trim normp2 normp1 normp \
   cmn_path1 cmn_path back_prefix relpath2 relpath1 relpath join_with \
   ver_major ver_minor ver_patch ver_compatible1 ver_compatible \
-  get_dir split_dirs1 split_dirs mk_dir_deps lazy_simple define_append=$$1=$$1 define_prepend=$$1=$$1 \
+  get_dir split_dirs1 split_dirs mk_dir_deps lazy_simple \
+  define_append=$$1=$$1 define_prepend=$$1=$$1 append_simple=$$1=$$1 prepend_simple=$$1=$$1 \
   try_deref_templ=$$1 try_deref=$$1=$$1 subst_var_refs try_make_simple=$$1;$$2=$$1)

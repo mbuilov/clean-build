@@ -342,10 +342,10 @@ SHOWN_REMAINDER:=
 # ...
 # note: TARGET_MAKEFILES_COUNT and TARGET_MAKEFILES_COUNT1 are defined in $(CLEAN_BUILD_DIR)/core/all.mk
 ADD_SHOWN_PERCENTS = $(if $(word $(TARGET_MAKEFILES_COUNT),$1),+ $(call \
-  ADD_SHOWN_PERCENTS,$(wordlist $(TARGET_MAKEFILES_COUNT1),999999,$1)),$(eval SHOWN_REMAINDER:=$$1))
+  ADD_SHOWN_PERCENTS,$(wordlist $(TARGET_MAKEFILES_COUNT1),999999,$1)),$(newline)SHOWN_REMAINDER:=$1)
 # remember new value of SHOWN_REMAINDER
-ifdef SET_GLOBAL
-$(eval ADD_SHOWN_PERCENTS = $(value ADD_SHOWN_PERCENTS)$$(call SET_GLOBAL,SHOWN_REMAINDER))
+ifdef SET_GLOBAL1
+$(call define_append,ADD_SHOWN_PERCENTS,$(newline)$$(call SET_GLOBAL1,SHOWN_REMAINDER))
 endif
 # prepare for printing percents of processed makefiles
 FORMAT_PERCENTS = $(subst |,,$(subst \
@@ -370,7 +370,7 @@ SHOWN_PERCENTS += $(call ADD_SHOWN_PERCENTS,$(SHOWN_REMAINDER) \
 endef
 # remember new value of SHOWN_PERCENTS, without tracing calls to it because it is incremented
 ifdef MCHECK
-$(call define_append,REM_MAKEFILE,$(newline)$(call SET_GLOBAL1,SHOWN_PERCENTS,0))
+$(call define_append,REM_MAKEFILE,$(newline)$$(call SET_GLOBAL1,SHOWN_PERCENTS,0))
 endif
 ifdef INFOMF
 SUP = $(info $(call PRINT_PERCENTS,$(if $4,,$(if $(findstring undefined,$(origin \
@@ -529,7 +529,7 @@ endef
 
 # remember new value of NEEDED_DIRS, without tracing calls to it because it is incremented
 ifdef MCHECK
-$(call define_append,STD_TARGET_VARS1,$(newline)$(call SET_GLOBAL1,NEEDED_DIRS,0))
+$(call define_append,STD_TARGET_VARS1,$(newline)$$(call SET_GLOBAL1,NEEDED_DIRS,0))
 endif
 
 # print what makefile builds
@@ -696,7 +696,7 @@ endef
 
 # remember new value of MULTI_TARGET_NUM, without tracing calls to it because it is incremented
 ifdef MCHECK
-$(call define_append,MULTI_TARGET_RULE,$(newline)$(call SET_GLOBAL1,MULTI_TARGET_NUM,0))
+$(call define_append,MULTI_TARGET_RULE,$(newline)$$(call SET_GLOBAL1,MULTI_TARGET_NUM,0))
 endif
 
 # if some tool generates multiple files at one call, it is needed to call
@@ -733,7 +733,7 @@ endef
 
 # remember new value of NON_PARALEL_GROUP_$(group_name)
 ifdef SET_GLOBAL1
-$(call define_append,NON_PARALLEL_EXECUTE_RULE,$(newline)$(call SET_GLOBAL1,$$1))
+$(call define_append,NON_PARALLEL_EXECUTE_RULE,$(newline)$$(call SET_GLOBAL1,$$1))
 endif
 
 # create a chain of order-only dependent targets, so their rules will be executed after each other
@@ -850,7 +850,7 @@ endif
 # remember new value of PROCESSED_MAKEFILES variables, without tracing calls to it because it is incremented
 ifdef MCHECK
 $(eval define DEF_HEAD_CODE$(newline)$(subst \
-  else,else$(newline)$$(call SET_GLOBAL1,PROCESSED_MAKEFILES,0),$(value DEF_HEAD_CODE))$(newline)endef)
+  MAKE_CONT:=$(newline),$$(call SET_GLOBAL1,PROCESSED_MAKEFILES,0)MAKE_CONT:=$(newline),$(value DEF_HEAD_CODE))$(newline)endef)
 endif
 
 # add $(TARGET_MAKEFILE) to list of processed target makefiles (note: before first $(MAKE_CONTINUE))
@@ -870,8 +870,8 @@ endif
 ifdef SET_GLOBAL1
 $(eval define DEF_HEAD_CODE$(newline)$(subst \
   TMD:=T,TMD:=T$$(newline)$$(call SET_GLOBAL1,TMD),$(subst \
-  TMD:=$(close_brace),TMD:=$(close_brace)$$(newline)$$(call SET_GLOBAL1,TMD),$(subst \
-  endif,$(call SET_GLOBAL1,MAKE_CONTINUE_EVAL_NAME DEFINE_TARGETS_EVAL_NAME)$(newline)endif,$(value DEF_HEAD_CODE))))$(newline)endef)
+  TMD:=$(close_brace),TMD:=$$(newline)$$(call SET_GLOBAL1,TMD)$(close_brace),$(subst \
+  endif,$$(call SET_GLOBAL1,MAKE_CONTINUE_EVAL_NAME DEFINE_TARGETS_EVAL_NAME)$(newline)endif,$(value DEF_HEAD_CODE))))$(newline)endef)
 endif
 
 # ***********************************************

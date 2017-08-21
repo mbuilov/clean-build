@@ -4,7 +4,7 @@
 # Licensed under GPL version 2 or any later version, see COPYING
 #----------------------------------------------------------------------------------
 
-# gcc compiler toolchain, included by $(CLEAN_BUILD_DIR)/impl/_c.mk
+# gcc compiler toolchain (app-level), included by $(CLEAN_BUILD_DIR)/impl/_c.mk
 
 # global variable: INST_RPATH - location where to search for external dependency libraries on runtime: /opt/lib or $ORIGIN/../lib
 # note: INST_RPATH may be overridden either in project configuration makefile or in command line
@@ -54,7 +54,7 @@ LIB_NON_REGULAR_VARIANTS := P D
 # $1 - target: EXE
 # $2 - P
 # note: override defaults from $(CLEAN_BUILD_DIR)/impl/_c.mk
-EXE_VARIANT_SUFFIX = _pie
+EXE_VARIANT_SUFFIX := _pie
 
 # two non-regular variants of LIB are supported: P and D
 # $1 - target: LIB
@@ -241,11 +241,7 @@ PCH_LIB_D_CC  = $(PCH_DLL_R_CC)
 
 # reset additional variables
 # PCH - either absolute or makefile-related path to header to precompile
-ifeq (simple,$(flavor C_PREPARE_APP_VARS))
-$(eval C_PREPARE_APP_VARS := $$(value C_PREPARE_APP_VARS)$$(newline)PCH:=)
-else
-$(call define_append,C_PREPARE_APP_VARS,$(newline)PCH:=)
-endif
+$(call append_simple,C_PREPARE_APP_VARS,$(newline)PCH:=)
 
 # for all targets: add support for precompiled headers
 $(call define_prepend,DEFINE_C_APP_EVAL,$$(eval $$(foreach t,$(C_APP_TARGETS),$$(if $$($$t),$$(GCC_PCH_TEMPLATEt)))))

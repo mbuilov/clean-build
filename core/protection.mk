@@ -34,14 +34,12 @@ CLEAN_BUILD_NEED_TAIL_CODE:=
 CLEAN_BUILD_ENCODE_VAR_VALUE = <$(origin $1):$(if $(findstring undefined,$(origin $1)),,$(flavor $1):$(value $1))>
 
 # encode variable name $x so that it may be used in $(eval name=...)
-open_brace:= (
-close_brace:= )
 CLEAN_BUILD_ENCODE_VAR_NAME = $(subst $(close_brace),^c@,$(subst $(open_brace),^o@,$(subst :,^d@,$(subst !,^e@,$x)))).^p
 
 # store values of clean-build protected variables which must not be changed in target makefiles
 define CLEAN_BUILD_PROTECT_VARS2
 CLEAN_BUILD_PROTECTED_VARS := $$(sort $$(CLEAN_BUILD_PROTECTED_VARS) $1)
-$$(foreach x,CLEAN_BUILD_PROTECTED_VARS $1,$$(eval $$(CLEAN_BUILD_ENCODE_VAR_NAME):=$$$$(call CLEAN_BUILD_ENCODE_VAR_VALUE,$$x)))
+$(foreach x,CLEAN_BUILD_PROTECTED_VARS $1,$(CLEAN_BUILD_ENCODE_VAR_NAME):=$$(call CLEAN_BUILD_ENCODE_VAR_VALUE,$x)$(newline))
 endef
 
 # $1 - list: AAA=b1;b2;$$1=e1;e2 BBB=b1;b2=e1;e2;...
@@ -61,21 +59,19 @@ SET_GLOBAL = $(eval $(SET_GLOBAL1))
 #  so redefine non-protected global (i.e. "local") variables to produce access errors
 #  note: do not touch GNU Make automatic variable MAKEFILE_LIST
 # 2) check and set CLEAN_BUILD_NEED_TAIL_CODE - $(DEF_TAIL_CODE) must be evaluated after $(DEF_HEAD_CODE)
+# 3) remember new value of CLEAN_BUILD_NEED_TAIL_CODE
 define CLEAN_BUILD_CHECK_AT_HEAD
-$(foreach v,$(filter-out \
+$(if $(foreach v,$(filter-out \
   MAKEFILE_LIST $(CLEAN_BUILD_PROTECTED_VARS) $^saved,$(.VARIABLES)),$(if \
   $(filter file override environment,$(origin $v)),$(if \
   $(filter-out !$$$(open_brace)error$(space)%,$(value $v)),$(if \
   $(filter environment,$(origin $v)),$v=!$$(error \
   using environment variable: $v, use of environment variables is discouraged, please use only file variables),$(findstring \
   override,$(origin $v)) $v=!$$(error \
-  using local varaible: $v, please use target-specific or global ones))$(newline))))
-$(if $(CLEAN_BUILD_NEED_TAIL_CODE),$(error $$(DEFINE_TARGETS) was not evaluated at end of $(CLEAN_BUILD_NEED_TAIL_CODE)!))
-CLEAN_BUILD_NEED_TAIL_CODE := $(TARGET_MAKEFILE)
+  using local varaible: $v, please use target-specific or global ones))$(newline))))$(if $(CLEAN_BUILD_NEED_TAIL_CODE),$(error \
+  $$(DEFINE_TARGETS) was not evaluated at end of $(CLEAN_BUILD_NEED_TAIL_CODE)!)),)CLEAN_BUILD_NEED_TAIL_CODE := $(TARGET_MAKEFILE)
+$(call SET_GLOBAL1,CLEAN_BUILD_NEED_TAIL_CODE)
 endef
-
-# remember new value of CLEAN_BUILD_NEED_TAIL_CODE
-$(call define_append,CLEAN_BUILD_CHECK_AT_HEAD,$(newline)$(call SET_GLOBAL1,CLEAN_BUILD_NEED_TAIL_CODE))
 
 # macro to check if clean-build protected $x variable value was changed in target makefile
 # $1 - encoded name of variable $x
@@ -95,24 +91,25 @@ endef
 # note: CLEAN_BUILD_OVERRIDDEN_VARS is cleared after the checks
 # note: CLEAN_BUILD_NEED_TAIL_CODE is cleared after the checks to mark that $(DEF_TAIL_CODE) was evaluated
 # note: $(CLEAN_BUILD_DIR)/core/_parallel.mk calls $(DEF_TAIL_CODE) with $1=@
+# remember new values of CLEAN_BUILD_OVERRIDDEN_VARS and CLEAN_BUILD_NEED_TAIL_CODE
 define CLEAN_BUILD_CHECK_AT_TAIL
 $(if $1,$$(if $$(CLEAN_BUILD_NEED_TAIL_CODE),$$(error \
   $$$$(DEFINE_TARGETS) was not evaluated at end of $$(CLEAN_BUILD_NEED_TAIL_CODE))),$(if \
-  $(CLEAN_BUILD_NEED_TAIL_CODE),,$(error $$(DEF_HEAD_CODE) was not evaluated at head of makefile!)))
-$(foreach x,$(CLEAN_BUILD_PROTECTED_VARS),$(call CLEAN_BUILD_CHECK_PROTECTED_VAR,$(CLEAN_BUILD_ENCODE_VAR_NAME)))
+  $(CLEAN_BUILD_NEED_TAIL_CODE),,$(error $$(DEF_HEAD_CODE) was not evaluated at head of makefile!)))$(foreach \
+  x,$(CLEAN_BUILD_PROTECTED_VARS),$(call CLEAN_BUILD_CHECK_PROTECTED_VAR,$(CLEAN_BUILD_ENCODE_VAR_NAME)))
 CLEAN_BUILD_OVERRIDDEN_VARS:=
 CLEAN_BUILD_NEED_TAIL_CODE:=
+$(call SET_GLOBAL1,CLEAN_BUILD_OVERRIDDEN_VARS CLEAN_BUILD_NEED_TAIL_CODE)
 endef
 
-# remember new values of CLEAN_BUILD_OVERRIDDEN_VARS and CLEAN_BUILD_NEED_TAIL_CODE
-$(call define_append,CLEAN_BUILD_CHECK_AT_TAIL,$(newline)$(call SET_GLOBAL1,CLEAN_BUILD_OVERRIDDEN_VARS CLEAN_BUILD_NEED_TAIL_CODE))
-
 # protect variables from modifications in target makefiles
-$(call SET_GLOBAL,CLEAN_BUILD_OVERRIDDEN_VARS CLEAN_BUILD_NEED_TAIL_CODE)
+# note: TARGET_MAKEFILE variable is used here temporary and will be redefined later
+TARGET_MAKEFILE = $(call SET_GLOBAL,CLEAN_BUILD_OVERRIDDEN_VARS CLEAN_BUILD_NEED_TAIL_CODE)
 
 # protect variables from modifications in target makefiles
 # note: do not trace calls to these macros
-$(call SET_GLOBAL,CLEAN_BUILD_PROTECTED_VARS \
+# note: TARGET_MAKEFILE variable is used here temporary and will be redefined later
+TARGET_MAKEFILE += $(call SET_GLOBAL,CLEAN_BUILD_PROTECTED_VARS \
   MCHECK TRACE CLEAN_BUILD_ENCODE_VAR_VALUE CLEAN_BUILD_ENCODE_VAR_NAME \
   CLEAN_BUILD_PROTECT_VARS2 SET_GLOBAL1 SET_GLOBAL CLEAN_BUILD_CHECK_AT_HEAD \
   CLEAN_BUILD_CHECK_PROTECTED_VAR CLEAN_BUILD_CHECK_AT_TAIL,0)

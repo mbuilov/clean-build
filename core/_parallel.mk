@@ -16,16 +16,16 @@ NORM_MAKEFILES = $(patsubst %.mk/Makefile$2,%.mk$2,$(addsuffix /Makefile$2,$(pat
 # note: TOOL_MODE value may be changed (set) in included makefile, so restore TOOL_MODE before including next makefile
 # note: last line must be empty to allow to join multiple $(CB_INCLUDE_TEMPLATE)s together
 define CB_INCLUDE_TEMPLATE
-TARGET_MAKEFILE:=$m
 TOOL_MODE:=$(TOOL_MODE)
+TARGET_MAKEFILE:=$m
 include $m
 
 endef
 
-# remember new values of TARGET_MAKEFILE and TOOL_MODE
+# remember new values of TOOL_MODE and TARGET_MAKEFILE
 ifdef SET_GLOBAL1
 $(eval define CB_INCLUDE_TEMPLATE$(newline)$(subst include,$$(call \
-  SET_GLOBAL1,TARGET_MAKEFILE TOOL_MODE)$(newline)include,$(value CB_INCLUDE_TEMPLATE))$(newline)endef)
+  SET_GLOBAL1,TOOL_MODE TARGET_MAKEFILE)$(newline)include,$(value CB_INCLUDE_TEMPLATE))$(newline)endef)
 endif
 
 # generate code for processing given list of makefiles
@@ -39,7 +39,7 @@ endef
 # remember new value of CB_INCLUDE_LEVEL, without tracing calls to it because it is incremented
 ifdef MCHECK
 $(eval define CLEAN_BUILD_PARALLEL$(newline)$(subst \
-  CB_INCLUDE_LEVEL+=.,CB_INCLUDE_LEVEL+=.$(newline)$$(call SET_GLOBAL1,CB_INCLUDE_LEVEL,0),$(value \
+  CB_INCLUDE_LEVEL+=.$(newline),CB_INCLUDE_LEVEL+=.$(newline)$$(call SET_GLOBAL1,CB_INCLUDE_LEVEL,0),$(value \
   CLEAN_BUILD_PARALLEL))$(newline)$$(call SET_GLOBAL1,CB_INCLUDE_LEVEL,0)$(newline)endef)
 endif
 
@@ -51,7 +51,7 @@ $(call define_prepend,CB_INCLUDE_TEMPLATE,ORDER_DEPS:=$$(ORDER_DEPS)$(newline))
 # remember new value of ORDER_DEPS, without tracing calls to it because it is incremented
 ifdef MCHECK
 $(eval define CB_INCLUDE_TEMPLATE$(newline)$(subst include,$$(call \
-  SET_GLOBAL1,ORDER_DEPS,0)$(newline)include,$(value CB_INCLUDE_TEMPLATE))$(newline)endef)
+  SET_GLOBAL1,ORDER_DEPS,0)include,$(value CB_INCLUDE_TEMPLATE))$(newline)endef)
 endif
 
 # append makefiles (really PHONY targets created from them) to ORDER_DEPS list
@@ -122,6 +122,6 @@ endif
 # protect variables from modifications in target makefiles
 # note: do not complain about new ADD_MDEPS and ADD_ADEPS values
 # - replace ADD_MDEPS and ADD_ADEPS values defined in $(CLEAN_BUILD_DIR)/core/_defs.mk with new ones
-$(call SET_GLOBAL,NORM_MAKEFILES CB_INCLUDE_TEMPLATE=ORDER_DEPS;TOOL_MODE CLEAN_BUILD_PARALLEL \
+$(call SET_GLOBAL,NORM_MAKEFILES CB_INCLUDE_TEMPLATE=ORDER_DEPS;TOOL_MODE;m CLEAN_BUILD_PARALLEL \
   ADD_MDEPS1 ADD_MDEPS=ORDER_DEPS=ORDER_DEPS ADD_ADEPS=ORDER_DEPS=ORDER_DEPS \
   PROCESS_SUBMAKES_EVAL=CB_PARALLEL_CODE PROCESS_SUBMAKES CLEAN_BUILD_PARALLEL_EVAL)

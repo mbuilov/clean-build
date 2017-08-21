@@ -70,4 +70,5 @@ endif # conf
 endif # CONFIG
 
 # protect variables from modification in target makefiles
-$(call SET_GLOBAL,CONFIG)
+# note: TARGET_MAKEFILE variable is used here temporary and will be redefined later
+TARGET_MAKEFILE += $(call SET_GLOBAL,CONFIG)
