@@ -882,8 +882,13 @@ endif
 DEF_TAIL_CODE = $(if $(CB_INCLUDE_LEVEL)$(findstring 2,$(MAKE_CONT)),,include $(CLEAN_BUILD_DIR)/core/all.mk)
 
 # prepend DEF_TAIL_CODE with $(CLEAN_BUILD_CHECK_AT_TAIL), if it is defined in $(CLEAN_BUILD_DIR)/core/protection.mk
+# note: if tracing, do not show value of $(CLEAN_BUILD_CHECK_AT_TAIL) - it's too noisy
 ifdef CLEAN_BUILD_CHECK_AT_TAIL
+ifdef TRACE
+$(call define_prepend,DEF_TAIL_CODE,$$(eval $$(CLEAN_BUILD_CHECK_AT_TAIL)))
+else
 $(call define_prepend,DEF_TAIL_CODE,$$(CLEAN_BUILD_CHECK_AT_TAIL)$(newline))
+endif
 endif
 
 # define targets at end of makefile
