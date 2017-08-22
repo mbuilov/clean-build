@@ -20,10 +20,9 @@ CMP_COLOR := [1;36m
 # $3 - absolute path to file to compare outputs with
 define DO_CMP_OUT_TEMPLATE
 $(ADD_GENERATED)
-$1: CMP_WITH := $3
 $(subst $(space),$(newline),$(join $(addsuffix :,$1),$2))
 $1:
-	$$(call SUP,CMP,$$@)$$(call CMP,$$<,$$(CMP_WITH)) > $$@ 2>&1
+	$$(call SUP,CMP,$$@)$$(call CMP,$$<,$3) > $$@ 2>&1
 endef
 
 # for 'check' goal, compare tested executable(s) outputs with given file;

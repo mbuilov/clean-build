@@ -37,6 +37,7 @@ CB_INCLUDE_LEVEL:=$(CB_INCLUDE_LEVEL)
 endef
 
 # remember new value of CB_INCLUDE_LEVEL, without tracing calls to it because it is incremented
+# note: assume result of $(call SET_GLOBAL1,...,0) will give an empty line at end of expansion
 ifdef MCHECK
 $(eval define CLEAN_BUILD_PARALLEL$(newline)$(subst \
   CB_INCLUDE_LEVEL+=.$(newline),CB_INCLUDE_LEVEL+=.$(newline)$$(call SET_GLOBAL1,CB_INCLUDE_LEVEL,0),$(value \

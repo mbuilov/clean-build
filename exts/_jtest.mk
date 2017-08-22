@@ -6,18 +6,18 @@
 
 # should be included after $(CLEAN_BUILD_DIR)/java.mk
 
-# rule for running test java archive, for 'check' target
+# rule for running test java archive, for 'check' goal
 
 ifeq (,$(filter check clean,$(MAKECMDGOALS)))
 
-# do something only for check or clean goal
+# do something only for 'check' or 'clean' goals
 DO_TEST_JAR:=
 
 else # check or clean
 
-TEST_COLOR := [0;36m
+TEST_COLOR := [36m
 
-# run $(JAR) and send its stderr to $(JAR).out
+# run $(JAR) and send its stdout to $(JAR).out
 # $1 - $(call FORM_JTRG,JAR)
 # $2 - main class name, for example com.mycomp.myproj.MyMainClass
 # $3 - $(call FORM_BUILT_JARS,$(JARS)) + class paths/jars needed to run the test
@@ -30,7 +30,7 @@ $1.out: $1
 	$$(call SUP,TEST,$$@)$(JAVA) $5 $$(call FORM_CLASS_PATH,$3 $$<) $2 $4 > $$@
 endef
 
-# for 'check' target, run built jar(s)
+# for 'check' goal, run built jar(s)
 # $1 - main class name, for example com.mycomp.myproj.MyMainClass
 # $2 - class paths/jars needed to run the test
 # $3 - auxiliary parameters to pass to executed jar
@@ -40,4 +40,4 @@ DO_TEST_JAR = $(eval $(call DO_TEST_JAR_TEMPLATE,$(call FORM_JTRG,JAR),$1,$(call
 endif # check or clean
 
 # protect variables from modifications in target makefiles
-$(call CLEAN_BUILD_PROTECT_VARS,TEST_COLOR DO_TEST_JAR_TEMPLATE DO_TEST_JAR)
+$(call SET_GLOBAL,DO_TEST_JAR TEST_COLOR DO_TEST_JAR_TEMPLATE)

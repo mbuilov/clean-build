@@ -43,7 +43,7 @@ all:
 
 # cleanup built files
 clean:
-	$(call RM,$(CLEAN))
+	$(QUIET)$(call RM,$(CLEAN))
 
 # build all to build or run tests
 # note: assume rules for 'check' and 'tests' goals are defined elsewhere

@@ -15,9 +15,9 @@ DO_TEST_EXE:=
 
 else # check or clean
 
-TEST_COLOR := [0;36m
+TEST_COLOR := [36m
 
-# run $(EXE) and dump its stderr to $(EXE).out
+# run $(EXE) and send its stdout to $(EXE).out
 # $1 - auxiliary parameters to pass to executable
 # $2 - built shared libraries needed by executable, in form <library_name>.<major_number>
 # $3 - dlls search paths: appended to PATH (for WINDOWS) or LD_LIBRARY_PATH (for UNIX-like OS) environment variable to run executable
@@ -27,11 +27,8 @@ TEST_COLOR := [0;36m
 # note: last line must be empty
 define DO_TEST_EXE_TEMPLATE
 $(call ADD_GENERATED,$r.out)
-$r.out: TEST_AUX_PARAMS := $1
-$r.out: TEST_AUX_PATH   := $3
-$r.out: TEST_AUX_VARS   := $(subst $$,$$$$,$4)
 $r.out: $r
-	$$(call SUP,TEST,$$@)$$(call RUN_WITH_DLL_PATH,$$< $$(TEST_AUX_PARAMS) > $$@,$$(TEST_AUX_PATH),$$(TEST_AUX_VARS))
+	$$(call SUP,TEST,$$@)$$(call RUN_WITH_DLL_PATH,$$< $1 > $$@,$3,$(subst $$,$$$$,$4))
 
 endef
 
@@ -87,7 +84,7 @@ $(call define_prepend,DO_TEST_EXE_TEMPLATE,$$(call TEST_EXE_SOFTLINKS,$$2)$(newl
 
 endif # TEST_NEEDS_SIMLINKS
 
-# for 'check' target, run built executable(s)
+# for 'check' goal, run built executable(s)
 # $1 - auxiliary parameters to pass to executable
 # $2 - built shared libraries needed by executable, in form <library_name>.<major_number>
 # $3 - dlls search paths: appended to PATH (for WINDOWS) or LD_LIBRARY_PATH (for UNIX-like OS) environment variable to run executable

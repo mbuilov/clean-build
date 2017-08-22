@@ -99,8 +99,8 @@ DEL = for %%f in ($(ospath)) do if exist %%f del /F/Q %%f
 DEL_DIR = for %%f in ($(ospath)) do if exist %%f rd /S/Q %%f
 
 # delete files and directories
-# note: do not need to add $(QUIET) before $(RM)
-RM1 = $(QUIET)for %%f in ($(ospath)) do if exist %%f\* (rd /S/Q %%f) else if exist %%f (del /F/Q %%f)
+# note: $6 - <empty> on first call of RM1, $(newline) on next calls
+RM1 = $(if $6,$(QUIET))for %%f in ($(ospath)) do if exist %%f\* (rd /S/Q %%f) else if exist %%f (del /F/Q %%f)
 RM  = $(call xcmd,RM1,$1,$(DEL_ARGS_LIMIT),,,,)
 
 # NOTE! there are races in MKDIR - if make spawns two parallel jobs:

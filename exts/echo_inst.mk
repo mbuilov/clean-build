@@ -18,6 +18,6 @@ $(call SUP,CHMOD,$2,1,1)$(call CHMOD,$3,$2)
 endef
 
 # protect variables from modifications in target makefiles
-$(call CLEAN_BUILD_PROTECT_VARS,CHMOD_COLOR ECHO_INSTALL)
+$(call SET_GLOBAL,CHMOD_COLOR ECHO_INSTALL)
 
 endif

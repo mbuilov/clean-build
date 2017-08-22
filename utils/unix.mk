@@ -15,8 +15,7 @@ PRINT_ENV = $(info for v in `env | cut -d= -f1`; do $(foreach \
 DEL = rm -f $1
 
 # delete files and directories
-# note: do not need to add $(QUIET) before $(RM)
-RM = $(QUIET)rm -rf $1
+RM = rm -rf $1
 
 # to avoid races, MKDIR must be called only if destination directory does not exist
 # note: MKDIR should create intermediate parent directories of destination directory
@@ -28,7 +27,7 @@ CMP = cmp $1 $2
 
 # stream-editor executable
 # note: SED value may be overridden either in command line or in project configuration file, like:
-# override SED := /usr/local/bin/sed
+# SED := /usr/local/bin/sed
 SED := sed
 
 # escape command line argument to pass it to $(SED)

@@ -19,8 +19,7 @@ PRINT_ENV = $(info for v in `env | cut -d= -f1`; do $(foreach \
 DEL = rm -f$(if $(VERBOSE),v) $1$(if $(VERBOSE), >&2)
 
 # delete files and directories
-# note: do not need to add $(QUIET) before $(RM)
-RM = $(QUIET)rm -rf$(if $(VERBOSE),v) $1$(if $(VERBOSE), >&2)
+RM = rm -rf$(if $(VERBOSE),v) $1$(if $(VERBOSE), >&2)
 
 # to avoid races, MKDIR must be called only if destination directory does not exist
 # note: MKDIR should create intermediate parent directories of destination directory

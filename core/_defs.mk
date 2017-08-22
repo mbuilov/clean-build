@@ -212,7 +212,7 @@ ifndef NO_CLEAN_BUILD_DISTCLEAN_TARGET
 # define distclean goal
 # note: RM macro must be defined below in included $(UTILS) file
 distclean:
-	$(call RM,$(BUILD))
+	$(QUIET)$(call RM,$(BUILD))
 
 # fake target - delete all built artifacts, including directories
 .PHONY: distclean
@@ -768,12 +768,13 @@ FIX_SDEPS = $(subst | ,|,$(call fixpath,$(subst |,| ,$1)))
 # run executable with modified $(DLL_PATH_VAR) environment variable
 # $1 - command to run (with parameters)
 # $2 - additional paths to append to $(DLL_PATH_VAR)
-# $3 - environment variables to set to run executable, in form VAR=value
+# $3 - environment variables to set to run executable, in form VAR=value,
+#  where 'VAR' and 'value' are expanded before setting environment variable
 # note: this function should be used for rule body, where automatic variable $@ is defined
 RUN_WITH_DLL_PATH = $(if $2$3,$(if $2,$(eval \
   $$@:export $(DLL_PATH_VAR):=$(addsuffix $(PATHSEP),$($(DLL_PATH_VAR)))$$2))$(foreach \
   v,$3,$(foreach g,$(firstword $(subst =, ,$v)),$(eval \
-  $$@:export $$g:=$(patsubst $g=%,%,$v))))$(if $(VERBOSE),$(show_with_dll_path)@))$1$(if \
+  $$@:export $g:=$(patsubst $g=%,%,$v))))$(if $(VERBOSE),$(show_with_dll_path)@))$1$(if \
   $2$3,$(if $(VERBOSE),$(show_dll_path_end)))
 
 # current value of $(TOOL_MODE)
@@ -848,6 +849,7 @@ $(call define_prepend,DEF_HEAD_CODE,$$(CLEAN_BUILD_CHECK_AT_HEAD)$(newline))
 endif
 
 # remember new value of PROCESSED_MAKEFILES variables, without tracing calls to it because it is incremented
+# note: assume result of $(call SET_GLOBAL1,...,0) will give an empty line at end of expansion
 ifdef MCHECK
 $(eval define DEF_HEAD_CODE$(newline)$(subst \
   MAKE_CONT:=$(newline),$$(call SET_GLOBAL1,PROCESSED_MAKEFILES,0)MAKE_CONT:=$(newline),$(value DEF_HEAD_CODE))$(newline)endef)
