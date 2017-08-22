@@ -6,7 +6,7 @@
 
 # auxiliary templates to simplify installation of libraries
 
-ifeq (,$(filter-out undefined environment,$(origin INSTALL_LIBS_TEMPLATE)))
+ifeq (,$(filter-out undefined environment,$(origin INSTALL_LIBS)))
 include $(dir $(lastword $(MAKEFILE_LIST)))_install_lib.mk
 endif
 
@@ -14,9 +14,9 @@ endif
 # LIB - static library name (with variants)
 # DLL - dynamic library name (with variants)
 
-# anyway, LIB and DLL variables are _must_ be defined before expanding INSTALL_LIBS_TEMPLATE
+# anyway, LIB and DLL variables are _must_ be defined before expanding INSTALL_LIBS
 
-# reset variables - they may be redefined in target makefile before expanding INSTALL_LIBS_TEMPLATE
+# reset variables - they may be redefined in target makefile before expanding INSTALL_LIBS
 LIBRARY_NO_DEVEL           := $(NO_DEVEL)
 LIBRARY_NO_INSTALL_HEADERS  = $(NO_INSTALL_HEADERS)
 LIBRARY_NO_INSTALL_LA       = $(NO_INSTALL_LA)
@@ -31,3 +31,5 @@ LIBRARY_HDIR:=
 
 # name of pkg-config file generator macro, must be defined if $(LIBRARY_NO_INSTALL_PC) is empty
 LIBRARY_PC_GEN:=
+
+# after (re-)defining above variables, expand INSTALL_LIBS macro via just $(INSTALL_LIBS)

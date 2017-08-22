@@ -11,10 +11,13 @@ PRINT_ENV = $(info for v in `env | cut -d= -f1`; do $(foreach \
   x,PATH SHELL $(PASS_ENV_VARS),[ "$x" = "$$v" ] ||) unset "$$v"; done$(foreach \
   v,PATH SHELL $(PASS_ENV_VARS),$(newline)$v='$($v)'$(newline)export $v))
 
-# delete files $1
+# delete files $1 (short list)
 DEL = rm -f $1
 
-# delete files and directories
+# delete directories $1 (short list)
+DEL_DIR = $(RM)
+
+# delete files and directories (long list)
 RM = rm -rf $1
 
 # to avoid races, MKDIR must be called only if destination directory does not exist
@@ -72,4 +75,4 @@ EXECIN = pushd $1 >/dev/null && { $2 && popd >/dev/null || { popd >/dev/null; fa
 DEL_ON_FAIL = || { $(DEL); false; }
 
 # protect variables from modifications in target makefiles
-$(call SET_GLOBAL,PRINT_ENV DEL RM MKDIR CMP SED SED_EXPR CAT ESCAPE_STRING ECHO WRITE NUL CP LN TOUCH CHMOD EXECIN DEL_ON_FAIL)
+$(call SET_GLOBAL,PRINT_ENV DEL DEL_DIR RM MKDIR CMP SED SED_EXPR CAT ESCAPE_STRING ECHO WRITE NUL CP LN TOUCH CHMOD EXECIN DEL_ON_FAIL)

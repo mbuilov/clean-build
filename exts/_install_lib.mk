@@ -4,25 +4,27 @@
 # Licensed under GPL version 2 or any later version, see COPYING
 #----------------------------------------------------------------------------------
 
-# non-empty if do not install development files and headers
-# by default, install development files
-# note: normally overridden in command line
-NO_DEVEL:=
+ifeq (,$(filter-out undefined environment,$(origin NEEDED_INSTALL_DIRS)))
+include $(dir $(lastword $(MAKEFILE_LIST)))inst_vars.mk
+endif
 
-# next macros a used to support per-library installation configuration
+# next NO_... macros are used to form default configuration of libraries installation,
+# for example, setting NO_INSTALL_HEADERS:=1 in command line prevents installation of headers for all libraries
 # $1 - library name (mylib for libmylib.a)
-# note: a macro may be overridden in command line to apply a setting for all libraries, for example: NO_INSTALL_HEADERS:=1
-# ---------------------------------------------------------
+
 # non-empty if do not install/uninstall header files
 NO_INSTALL_HEADERS = $($1_LIBRARY_NO_DEVEL)
+
 # non-empty if do not install/uninstall libtool .la-files (UNIX)
 NO_INSTALL_LA      = $($1_LIBRARY_NO_DEVEL)
+
 # non-empty if do not install/uninstall pkg-config .pc-files (UNIX)
 NO_INSTALL_PC      = $($1_LIBRARY_NO_DEVEL)
+
 # non-empty if do not install/uninstall dll import libraries (WINDOWS)
 NO_INSTALL_IMPS    = $($1_LIBRARY_NO_DEVEL)
 
-# template for defining variables for use in installation rules template
+# template for defining variables for use in library installation rules template
 # $1 - library name (mylib for libmylib.a)
 # note: assume LIB and DLL variables are defined before expanding this template
 # note: variables LIBRARY_NO_DEVEL, LIBRARY_NO_INSTALL_HEADERS, LIBRARY_NO_INSTALL_LA, LIBRARY_NO_INSTALL_PC, LIBRARY_NO_INSTALL_IMPS
@@ -45,6 +47,22 @@ uninstall: uninstall_$1
 .PHONY: install_$1_headers uninstall_$1_headers install_$1 uninstall_$1
 $(call SET_MAKEFILE_INFO,install_$1_headers uninstall_$1_headers install_$1 uninstall_$1)
 endef
+
+# $(INSTALL_OS)-specific install-libs template
+OS_INSTALL_LIBS_TEMPLATE := $(dir $(lastword $(MAKEFILE_LIST)))$(if \
+  $(filter WINDOWS,$(INSTALL_OS)),install_lib_windows.mk,install_lib_unix.mk)
+
+include $(OS_INSTALL_LIBS_TEMPLATE)
+
+# protect variables from modifications in target makefiles
+$(call SET_GLOBAL,NO_INSTALL_HEADERS NO_INSTALL_LA NO_INSTALL_PC NO_INSTALL_IMPS DEFINE_INSTALL_LIB_VARIABLES OS_INSTALL_LIBS_TEMPLATE)
+
+
+
+
+
+
+
 
 #=========================================================
 ifeq (WINDOWS,$(OS))

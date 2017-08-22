@@ -91,14 +91,13 @@ nonrelpath1 = $(if $2,$(call nonrelpath1,$1,$(wordlist 2,999999,$2),$(patsubst $
 # note: override nonrelpath from $(CLEAN_BUILD_DIR)/defs.mk
 nonrelpath = $(if $(findstring :,$2),$(call nonrelpath1,$1,$(sort $(filter %:,$(subst :,: ,$2))),$(addprefix $1,$2)),$(addprefix $1,$2))
 
-# delete files $1
+# delete files $1 (short list)
 DEL = for %%f in ($(ospath)) do if exist %%f del /F/Q %%f
 
-# delete directories $1
-# note: DEL_DIR may be not defined for other OSes, use RM in platform-independent code
+# delete directories $1 (short list)
 DEL_DIR = for %%f in ($(ospath)) do if exist %%f rd /S/Q %%f
 
-# delete files and directories
+# delete files and directories (long list)
 # note: $6 - <empty> on first call of RM1, $(newline) on next calls
 RM1 = $(if $6,$(QUIET))for %%f in ($(ospath)) do if exist %%f\* (rd /S/Q %%f) else if exist %%f (del /F/Q %%f)
 RM  = $(call xcmd,RM1,$1,$(DEL_ARGS_LIMIT),,,,)

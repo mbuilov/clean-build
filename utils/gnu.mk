@@ -15,10 +15,10 @@ PRINT_ENV = $(info for v in `env | cut -d= -f1`; do $(foreach \
   x,PATH SHELL $(PASS_ENV_VARS) CommonProgramFiles(x86) ProgramFiles(x86) !::,[ "$x" = "$$v" ] ||) unset "$$v"; done$(foreach \
   v,PATH SHELL $(PASS_ENV_VARS),$(newline)export $v='$($v)'))
 
-# delete files $1
+# delete files $1 (short list)
 DEL = rm -f$(if $(VERBOSE),v) $1$(if $(VERBOSE), >&2)
 
-# delete files and directories
+# delete files and directories (long list)
 RM = rm -rf$(if $(VERBOSE),v) $1$(if $(VERBOSE), >&2)
 
 # to avoid races, MKDIR must be called only if destination directory does not exist

@@ -11,94 +11,99 @@
 # type of the operating system on which installation is performed
 INSTALL_OS := $(OS)
 
+# non-empty if do not install development files and headers
+# by default, install development files
+# note: normally overridden in command line
+NO_DEVEL:=
+
 # prefix for installed directories
 # note: normally overridden by specifying DESTDIR in command line
 DESTDIR:=
 
 # defaults, may be overridden either in command line or in project configuration makefile
 # note: assume installation paths _may_ contain spaces
-# note: use STD_... macros to get $(DESTDIR)-prefixed paths
+# note: use D_... macros to get $(DESTDIR)-prefixed paths
 
 # root of program installation directory
 PREFIX := $(if $(filter WINDOWS,$(INSTALL_OS)),artifacts,/usr/local)
-DEST_PREFIX = $(DESTDIR)$(PREFIX)
+D_PREFIX = $(DESTDIR)$(PREFIX)
 
 # directory for executables
 EXEC_PREFIX := $(PREFIX)
-DEST_EXEC_PREFIX = $(DESTDIR)$(EXEC_PREFIX)
+D_EXEC_PREFIX = $(DESTDIR)$(EXEC_PREFIX)
 
 # directory for non-superuser executables
 BINDIR := $(EXEC_PREFIX)/bin
-DEST_BINDIR = $(DESTDIR)$(BINDIR)
+D_BINDIR = $(DESTDIR)$(BINDIR)
 
 # directory for superuser executables
 SBINDIR := $(EXEC_PREFIX)/sbin
-DEST_SBINDIR = $(DESTDIR)$(SBINDIR)
+D_SBINDIR = $(DESTDIR)$(SBINDIR)
 
 # directory for support executables not run by user
 LIBEXECDIR := $(EXEC_PREFIX)/libexec
-DEST_LIBEXECDIR = $(DESTDIR)$(LIBEXECDIR)
+D_LIBEXECDIR = $(DESTDIR)$(LIBEXECDIR)
 
 # root of data directories
 DATAROOTDIR := $(PREFIX)/share
-DEST_DATAROOTDIR = $(DESTDIR)$(DATAROOTDIR)
+D_DATAROOTDIR = $(DESTDIR)$(DATAROOTDIR)
 
 # directory for read-only program data (package should install files to $(DATADIR)/package-name/)
 DATADIR := $(DATAROOTDIR)
-DEST_DATADIR = $(DESTDIR)$(DATADIR)
+D_DATADIR = $(DESTDIR)$(DATADIR)
 
 # directory for text configurations
 SYSCONFDIR := $(PREFIX)/etc
-DEST_SYSCONFDIR = $(DESTDIR)$(SYSCONFDIR)
+D_SYSCONFDIR = $(DESTDIR)$(SYSCONFDIR)
 
 # shared directory for program state files (modified while program is run)
 SHAREDSTATEDIR := $(PREFIX)/com
-DEST_SHAREDSTATEDIR = $(DESTDIR)$(SHAREDSTATEDIR)
+D_SHAREDSTATEDIR = $(DESTDIR)$(SHAREDSTATEDIR)
 
 # machine-local directory for program state files (modified while program is run)
 LOCALSTATEDIR := $(PREFIX)/var
-DEST_LOCALSTATEDIR = $(DESTDIR)$(LOCALSTATEDIR)
+D_LOCALSTATEDIR = $(DESTDIR)$(LOCALSTATEDIR)
 
 # directory for program state files persisting no more than program lifetime (such as PIDs)
 RUNSTATEDIR := $(LOCALSTATEDIR)/run
-DEST_RUNSTATEDIR = $(DESTDIR)$(RUNSTATEDIR)
+D_RUNSTATEDIR = $(DESTDIR)$(RUNSTATEDIR)
 
 # directory for header files
 INCLUDEDIR := $(PREFIX)/include
-DEST_INCLUDEDIR = $(DESTDIR)$(INCLUDEDIR)
+D_INCLUDEDIR = $(DESTDIR)$(INCLUDEDIR)
 
 # name of the package
 PACKAGE_NAME = $(error PACKAGE_NAME is not defined - define it in project configuration makefile)
 
 # directory for documentation files
 DOCDIR = $(DATAROOTDIR)/doc/$(PACKAGE_NAME)
-DEST_DOCDIR = $(DESTDIR)$(DOCDIR)
+D_DOCDIR = $(DESTDIR)$(DOCDIR)
 
 # directory for documentation files in the particular format
 HTMLDIR = $(DOCDIR)
 DVIDIR  = $(DOCDIR)
 PDFDIR  = $(DOCDIR)
 PSDIR   = $(DOCDIR)
-DEST_HTMLDIR = $(DESTDIR)$(HTMLDIR)
-DEST_DVIDIR  = $(DESTDIR)$(DVIDIR)
-DEST_PDFDIR  = $(DESTDIR)$(PDFDIR)
-DEST_PSDIR   = $(DESTDIR)$(PSDIR)
+D_HTMLDIR = $(DESTDIR)$(HTMLDIR)
+D_DVIDIR  = $(DESTDIR)$(DVIDIR)
+D_PDFDIR  = $(DESTDIR)$(PDFDIR)
+D_PSDIR   = $(DESTDIR)$(PSDIR)
 
 # directory where to install libraries
 LIBDIR := $(EXEC_PREFIX)/lib
-DEST_LIBDIR = $(DESTDIR)$(LIBDIR)
+D_LIBDIR = $(DESTDIR)$(LIBDIR)
 
 # directory for locale-specific message catalogs
 LOCALEDIR := $(DATAROOTDIR)/locale
-DEST_LOCALEDIR = $(DESTDIR)$(LOCALEDIR)
+D_LOCALEDIR = $(DESTDIR)$(LOCALEDIR)
 
 # directory for info files
 INFODIR := $(DATAROOTDIR)/info
-DEST_INFODIR = $(DESTDIR)$(INFODIR)
+D_INFODIR = $(DESTDIR)$(INFODIR)
 
 # top-level directory for installing the man pages
 MANDIR := $(DATAROOTDIR)/man
-DEST_MANDIR = $(DESTDIR)$(MANDIR)
+D_MANDIR = $(DESTDIR)$(MANDIR)
 
 # directories for manual pages
 MAN1DIR := $(MANDIR)/man1
@@ -109,18 +114,18 @@ MAN5DIR := $(MANDIR)/man5
 MAN6DIR := $(MANDIR)/man6
 MAN7DIR := $(MANDIR)/man7
 MAN8DIR := $(MANDIR)/man8
-DEST_MAN1DIR = $(DESTDIR)$(MAN1DIR)
-DEST_MAN2DIR = $(DESTDIR)$(MAN2DIR)
-DEST_MAN3DIR = $(DESTDIR)$(MAN3DIR)
-DEST_MAN4DIR = $(DESTDIR)$(MAN4DIR)
-DEST_MAN5DIR = $(DESTDIR)$(MAN5DIR)
-DEST_MAN6DIR = $(DESTDIR)$(MAN6DIR)
-DEST_MAN7DIR = $(DESTDIR)$(MAN7DIR)
-DEST_MAN8DIR = $(DESTDIR)$(MAN8DIR)
+D_MAN1DIR = $(DESTDIR)$(MAN1DIR)
+D_MAN2DIR = $(DESTDIR)$(MAN2DIR)
+D_MAN3DIR = $(DESTDIR)$(MAN3DIR)
+D_MAN4DIR = $(DESTDIR)$(MAN4DIR)
+D_MAN5DIR = $(DESTDIR)$(MAN5DIR)
+D_MAN6DIR = $(DESTDIR)$(MAN6DIR)
+D_MAN7DIR = $(DESTDIR)$(MAN7DIR)
+D_MAN8DIR = $(DESTDIR)$(MAN8DIR)
 
 # directory where to install pkg-config files
 PKG_CONFIG_DIR := $(LIBDIR)/pkgconfig
-DEST_PKG_CONFIG_DIR = $(DESTDIR)$(PKG_CONFIG_DIR)
+D_PKG_CONFIG_DIR = $(DESTDIR)$(PKG_CONFIG_DIR)
 
 # installation tools
 ifneq (WINDOWS,$(INSTALL_OS))
@@ -129,7 +134,7 @@ LDCONFIG := $(if $(filter LINUX,$(OS)),/sbin/ldconfig)
 endif
 
 # create directory while installing things
-# $1 - "$(subst \ , ,$@)", such as: "C:/Program Files/AcmeCorp"
+# $1 - $(call ifaddq,$(subst \ , ,$@)), such as: "C:/Program Files/AcmeCorp"
 # note: pass non-empty 4-th argument to SUP function to not update percents of executed makefiles
 INSTALL_MKDIR = $(call SUP,MKDIR,$(ospath),,1)$(MKDIR)
 
@@ -143,14 +148,10 @@ define ADD_INSTALL_DIRS_TEMPL
 ifneq (,$1)
 $(subst ?,\ ,$(call mk_dir_deps,$1))
 $(subst ?,\ ,$1):
-	$$(call INSTALL_MKDIR,'$$(subst \ , ,$$@)')
+	$$(call INSTALL_MKDIR,$$(call ifaddq,$$(subst \ , ,$$@)))
 NEEDED_INSTALL_DIRS += $1
 endif
 endef
-
-ifeq (WINDOWS,$(INSTALL_OS))
-$(eval define ADD_INSTALL_DIRS_TEMPL$(newline)$(subst ',",$(value ADD_INSTALL_DIRS_TEMPL))$(newline)endef)
-endif
 
 # remember new value of NEEDED_INSTALL_DIRS
 # note: do not trace calls to NEEDED_INSTALL_DIRS because its value is incremented
@@ -169,12 +170,12 @@ ADD_INSTALL_DIR = $(eval $(call ADD_INSTALL_DIRS_TEMPL,$(filter-out $(NEEDED_INS
 $(call SET_GLOBAL1,NEEDED_INSTALL_DIRS,0)
 
 # protect variables from modifications in target makefiles
-$(call SET_GLOBAL,INSTALL_OS DESTDIR \
-  PREFIX DEST_PREFIX EXEC_PREFIX DEST_EXEC_PREFIX BINDIR DEST_BINDIR SBINDIR DEST_SBINDIR LIBEXECDIR DEST_LIBEXECDIR \
-  DATAROOTDIR DEST_DATAROOTDIR DATADIR DEST_DATADIR SYSCONFDIR DEST_SYSCONFDIR SHAREDSTATEDIR DEST_SHAREDSTATEDIR \
-  LOCALSTATEDIR DEST_LOCALSTATEDIR RUNSTATEDIR DEST_RUNSTATEDIR INCLUDEDIR DEST_INCLUDEDIR PACKAGE_NAME DOCDIR DEST_DOCDIR \
-  HTMLDIR DVIDIR PDFDIR PSDIR DEST_HTMLDIR DEST_DVIDIR DEST_PDFDIR DEST_PSDIR \
-  LIBDIR DEST_LIBDIR LOCALEDIR DEST_LOCALEDIR INFODIR DEST_INFODIR MANDIR DEST_MANDIR \
+$(call SET_GLOBAL,INSTALL_OS NO_DEVEL DESTDIR \
+  PREFIX D_PREFIX EXEC_PREFIX D_EXEC_PREFIX BINDIR D_BINDIR SBINDIR D_SBINDIR LIBEXECDIR D_LIBEXECDIR \
+  DATAROOTDIR D_DATAROOTDIR DATADIR D_DATADIR SYSCONFDIR D_SYSCONFDIR SHAREDSTATEDIR D_SHAREDSTATEDIR \
+  LOCALSTATEDIR D_LOCALSTATEDIR RUNSTATEDIR D_RUNSTATEDIR INCLUDEDIR D_INCLUDEDIR PACKAGE_NAME DOCDIR D_DOCDIR \
+  HTMLDIR DVIDIR PDFDIR PSDIR D_HTMLDIR D_DVIDIR D_PDFDIR D_PSDIR \
+  LIBDIR D_LIBDIR LOCALEDIR D_LOCALEDIR INFODIR D_INFODIR MANDIR D_MANDIR \
   MAN1DIR MAN2DIR MAN3DIR MAN4DIR MAN5DIR MAN6DIR MAN7DIR MAN8DIR \
-  DEST_MAN1DIR DEST_MAN2DIR DEST_MAN3DIR DEST_MAN4DIR DEST_MAN5DIR DEST_MAN6DIR DEST_MAN7DIR DEST_MAN8DIR \
-  PKG_CONFIG_DIR DEST_PKG_CONFIG_DIR INSTALL LDCONFIG INSTALL_MKDIR ADD_INSTALL_DIRS_TEMPL ADD_INSTALL_DIR)
+  D_MAN1DIR D_MAN2DIR D_MAN3DIR D_MAN4DIR D_MAN5DIR D_MAN6DIR D_MAN7DIR D_MAN8DIR \
+  PKG_CONFIG_DIR D_PKG_CONFIG_DIR INSTALL LDCONFIG INSTALL_MKDIR ADD_INSTALL_DIRS_TEMPL ADD_INSTALL_DIR)
