@@ -127,7 +127,7 @@ SUBST_DEFINES = $(eval SUBST_DEFINES_:=$(subst $(comment),$$(comment),$1))$(SUBS
 # escape characters in string value of define
 # $1 - define name
 # $d - $1="1$(space)2"
-DEFINE_ESCAPE_STRING = $1=$(call ESCAPE_STRING,$(call SUBST_DEFINES,$(patsubst $1=%,%,$d)))
+DEFINE_ESCAPE_STRING = $1=$(call SHELL_ESCAPE,$(call SUBST_DEFINES,$(patsubst $1=%,%,$d)))
 
 # escape characters in string values of defines
 # $1 - list of defines

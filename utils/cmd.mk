@@ -91,17 +91,19 @@ nonrelpath1 = $(if $2,$(call nonrelpath1,$1,$(wordlist 2,999999,$2),$(patsubst $
 # note: override nonrelpath from $(CLEAN_BUILD_DIR)/defs.mk
 nonrelpath = $(if $(findstring :,$2),$(call nonrelpath1,$1,$(sort $(filter %:,$(subst :,: ,$2))),$(addprefix $1,$2)),$(addprefix $1,$2))
 
-# delete files $1 (short list)
+# delete files $1 (short list), files may contain spaces: "1 2\3 4" "5 6\7 8\9" ...
 DEL = for %%f in ($(ospath)) do if exist %%f del /F/Q %%f
 
-# delete directories $1 (short list)
+# delete directories $1 (short list), directories may contain spaces: "1 2\3 4" "5 6\7 8\9" ...
 DEL_DIR = for %%f in ($(ospath)) do if exist %%f rd /S/Q %%f
 
-# delete files and directories (long list)
+# delete files and directories (long list), paths _must_ be without spaces
 # note: $6 - <empty> on first call of RM1, $(newline) on next calls
 RM1 = $(if $6,$(QUIET))for %%f in ($(ospath)) do if exist %%f\* (rd /S/Q %%f) else if exist %%f (del /F/Q %%f)
 RM  = $(call xcmd,RM1,$1,$(DEL_ARGS_LIMIT),,,,)
 
+# create directory, path may contain spaces: '1 2\3 4'
+#
 # NOTE! there are races in MKDIR - if make spawns two parallel jobs:
 #
 # if not exist aaa
@@ -109,13 +111,16 @@ RM  = $(call xcmd,RM1,$1,$(DEL_ARGS_LIMIT),,,,)
 #                        mkdir aaa/bbb
 # mkdir aaa - fail
 #
-# MKDIR must be called only if destination directory does not exist
+# to avoid races, MKDIR must be called only if it's known that destination directory does not exist
 # note: MKDIR must create intermediate parent directories of destination directory
 MKDIR = mkdir $(ospath)
 
 # compare content of two text files: $1 and $2
 # return an error if they are differ
 CMP = FC /T $(call ospath,$1 $2)
+
+# escape program argument to pass it via shell: "1 ^ 2" -> "\"1 ^^ 2\""
+SHELL_ESCAPE = "$(subst %,%%,$(subst <,^<,$(subst >,^>,$(subst |,^|,$(subst &,^&,$(subst ",\",$(subst ^,^^,$1)))))))"
 
 # stream-editor executable
 # note: SED value may be overridden either in command line or in project configuration makefile, like:
@@ -124,13 +129,10 @@ SED := sed.exe
 
 # escape command line argument to pass it to $(SED)
 # note: assume GNU sed is used, which understands \n and \t
-SED_EXPR = "$(subst %,%%,$1)"
+SED_EXPR = $(SHELL_ESCAPE)
 
 # print contents of given file (to stdout, for redirecting it to output file)
 CAT = type $(ospath)
-
-# escape string to be passed as program argument: "1 ^ 2" -> "\"1 ^^ 2\""
-ESCAPE_STRING = "$(subst %,%%,$(subst <,^<,$(subst >,^>,$(subst |,^|,$(subst &,^&,$(subst ",\",$(subst ^,^^,$1)))))))"
 
 # print one line of text (to stdout, for redirecting it to output file)
 # note: line will be ended with CRLF
@@ -229,5 +231,5 @@ FILTER_OUTPUT = (($1 2>&1 && echo OK>&2)$2)3>&2 2>&1 1>&3|findstr /BC:OK>NUL
 
 # protect variables from modifications in target makefiles
 $(call SET_GLOBAL,WIN_EXPORTED $(sort TMP PATHEXT SYSTEMROOT COMSPEC $(WIN_EXPORTED)) \
-  PATH DEL_ARGS_LIMIT nonrelpath1 DEL DEL_DIR RM1 RM MKDIR CMP SED SED_EXPR \
-  CAT ESCAPE_STRING ECHO_LINE ECHO_LINES ECHO WRITE NUL SUPPRESS_CP_OUTPUT CP TOUCH EXECIN DEL_ON_FAIL NO_RPATH FILTER_OUTPUT)
+  PATH DEL_ARGS_LIMIT nonrelpath1 DEL DEL_DIR RM1 RM MKDIR CMP SHELL_ESCAPE SED SED_EXPR \
+  CAT ECHO_LINE ECHO_LINES ECHO WRITE NUL SUPPRESS_CP_OUTPUT CP TOUCH EXECIN DEL_ON_FAIL NO_RPATH FILTER_OUTPUT)

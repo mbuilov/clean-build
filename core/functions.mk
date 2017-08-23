@@ -114,16 +114,17 @@ trace_calls = $(eval $(foreach f,$1,$(foreach v,$(firstword $(subst =, ,$f)),$(i
   $v)),,$(call trace_calls_template,$v,$(encode_traced_var_name),$(if $(findstring command line,$(origin $v)),override,$(findstring \
   override,$(origin $v))),$(subst ;, ,$(word 2,$(subst =, ,$f))),$(subst ;, ,$(word 3,$(subst =, ,$f))),$2))))))
 
-# replace spaces with ?
+# replace spaces in path with ?
 unspaces = $(subst $(space),?,$1)
 
-# add quotes if argument has embedded space
-# if called like $(call ifaddq,a b) gives "a b"
-# if called like $(call ifaddq,ab) gives ab
+# add quotes if path has an embedded space:
+# $(call ifaddq,a b) -> "a b"
+# $(call ifaddq,ab)  -> ab
+# note: overridden in $(CLEAN_BUILD_DIR)/utils/unix.mk
 ifaddq = $(if $(findstring $(space),$1),"$1",$1)
 
-# convert back ? to spaces in paths adding some prefix
-# if called like $(call qpath,a?b cd,-I) gives -I"a b" -Icd
+# convert back ? to spaces in paths adding some prefix:
+# $(call qpath,a?b cd,-I) -> -I"a b" -Icd
 qpath = $(foreach x,$1,$2$(call ifaddq,$(subst ?, ,$x)))
 
 # map [A-Z] -> [a-z]

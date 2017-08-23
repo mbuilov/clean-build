@@ -15,19 +15,20 @@ PRINT_ENV = $(info for v in `env | cut -d= -f1`; do $(foreach \
   x,PATH SHELL $(PASS_ENV_VARS) CommonProgramFiles(x86) ProgramFiles(x86) !::,[ "$x" = "$$v" ] ||) unset "$$v"; done$(foreach \
   v,PATH SHELL $(PASS_ENV_VARS),$(newline)export $v='$($v)'))
 
-# delete files $1 (short list)
+# delete files $1 (short list), files may contain spaces: '1 2\3 4' '5 6\7 8\9' ...
 DEL = rm -f$(if $(VERBOSE),v) $1$(if $(VERBOSE), >&2)
 
-# delete files and directories (long list)
+# delete files and directories (long list), to support long list, paths _must_ be without spaces
 RM = rm -rf$(if $(VERBOSE),v) $1$(if $(VERBOSE), >&2)
 
-# to avoid races, MKDIR must be called only if destination directory does not exist
-# note: MKDIR should create intermediate parent directories of destination directory
+# create directory, path may contain spaces: '1 2\3 4'
+# to avoid races, MKDIR must be called only if it's known that destination directory does not exist
+# note: MKDIR must create intermediate parent directories of destination directory
 MKDIR = mkdir -p$(if $(VERBOSE),v) $1$(if $(VERBOSE), >&2)
 
 # escape command line argument to pass it to $(SED)
 # note: assume GNU sed is used, which understands \n and \t
-SED_EXPR = '$1'
+SED_EXPR = $(SHELL_ESCAPE)
 
 # copy preserving modification date, ownership and mode:
 # - file(s) $1 to directory $2 or

@@ -37,7 +37,7 @@ CLEAN_BUILD_ENCODE_VAR_VALUE = <$(origin $1):$(if $(findstring undefined,$(origi
 CLEAN_BUILD_ENCODE_VAR_NAME = $(subst $(close_brace),^c@,$(subst $(open_brace),^o@,$(subst :,^d@,$(subst !,^e@,$x)))).^p
 
 # store values of clean-build protected variables which must not be changed in target makefiles
-# note: after expansion, last line must be empty - callers of $(call SET_GLOBAL1,...,0) accounts on this
+# note: after expansion, last line must be empty - callers of $(call SET_GLOBAL1,...,0) account on this
 define CLEAN_BUILD_PROTECT_VARS2
 CLEAN_BUILD_PROTECTED_VARS := $$(sort $$(CLEAN_BUILD_PROTECTED_VARS) $1)
 $(foreach x,CLEAN_BUILD_PROTECTED_VARS $1,$(CLEAN_BUILD_ENCODE_VAR_NAME):=$$(call CLEAN_BUILD_ENCODE_VAR_VALUE,$x)$(newline))
@@ -48,7 +48,8 @@ endef
 # $2 - if not empty, then do not trace calls for given macros (for example, if called from trace_calls_template)
 # note: if $2 is not empty, expansion of $(call SET_GLOBAL1,...,0) will give an empty line at end of expansion
 ifdef TRACE
-SET_GLOBAL1 = $(if $2,$(CLEAN_BUILD_PROTECT_VARS2),$$(call trace_calls,$1,1))
+SET_GLOBAL1 = $(if $2,$(foreach x=,$(filter $1,$(CLEAN_BUILD_PROTECTED_VARS)),$(info \
+  override global: $(x=)))$(CLEAN_BUILD_PROTECT_VARS2),$$(call trace_calls,$1,1))
 else
 SET_GLOBAL1 = $(call CLEAN_BUILD_PROTECT_VARS2,$(foreach v,$1,$(firstword $(subst =, ,$v))))
 endif

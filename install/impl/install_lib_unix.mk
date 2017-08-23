@@ -4,26 +4,17 @@
 # Licensed under GPL version 2 or any later version, see COPYING
 #----------------------------------------------------------------------------------
 
-# define unix-specific INSTALL_LIBS_TEMPLATE macro
+# define unix-specific INSTALL_LIB macro
 
-# included by $(CLEAN_BUILD_DIR)/exts/_install_lib.mk
-
-# defaults, may be overridden either in command line or in project configuration makefile
-# note: assume PREFIX, EXEC_PREFIX, LIBDIR, INCLUDEDIR and PKG_CONFIG_DIR _may_ contain spaces
-PREFIX         := /usr/local
-EXEC_PREFIX    := $(PREFIX)
-LIBDIR         := $(EXEC_PREFIX)/lib
-INCLUDEDIR     := $(PREFIX)/include
-PKG_CONFIG_DIR := $(LIBDIR)/pkgconfig
-INSTALL        := $(if $(filter SOLARIS,$(OS)),/usr/ucb/install,install)
-LDCONFIG       := $(if $(filter LINUX,$(OS)),/sbin/ldconfig)
+# included by $(CLEAN_BUILD_DIR)/install/impl/_install_lib.mk
+# after including $(CLEAN_BUILD_DIR)/install/impl/inst_vars.mk
 
 # uninstall files
 # $1 - files to delete
-# $2 - r (to delete recursively) or <empty>
+# $2 - DEL to delete one file, DEL_DIR to delete directory RM to delete files/directories recursively, DEL to delete only one file, DEL_DIR to delete directory
 # note: pass non-empty 3-d argument to SUP function to not colorize tool arguments
 # note: pass non-empty 4-th argument to SUP function to not update percents of executed makefiles
-UNINSTALL_RM = $(call SUP,$(if $2,RM,DEL),$1,1,1)$(call $(if $2,RM,DEL),$1)
+UNINSTALL_RM = $(call SUP,$2,$1,1,1)$(call $2,$1)
 
 # create symbolic link while installing files
 # $1 - target

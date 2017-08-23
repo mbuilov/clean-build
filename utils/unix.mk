@@ -11,22 +11,26 @@ PRINT_ENV = $(info for v in `env | cut -d= -f1`; do $(foreach \
   x,PATH SHELL $(PASS_ENV_VARS),[ "$x" = "$$v" ] ||) unset "$$v"; done$(foreach \
   v,PATH SHELL $(PASS_ENV_VARS),$(newline)$v='$($v)'$(newline)export $v))
 
-# delete files $1 (short list)
+# delete files $1 (short list), files may contain spaces: '1 2\3 4' '5 6\7 8\9' ...
 DEL = rm -f $1
 
-# delete directories $1 (short list)
+# delete directories $1 (short list), directories may contain spaces: '1 2\3 4' '5 6\7 8\9' ...
 DEL_DIR = $(RM)
 
-# delete files and directories (long list)
+# delete files and directories (long list), to support long list, paths _must_ be without spaces
 RM = rm -rf $1
 
-# to avoid races, MKDIR must be called only if destination directory does not exist
-# note: MKDIR should create intermediate parent directories of destination directory
+# create directory, path may contain spaces: '1 2\3 4'
+# to avoid races, MKDIR must be called only if it's known that destination directory does not exist
+# note: MKDIR must create intermediate parent directories of destination directory
 MKDIR = mkdir -p $1
 
 # compare content of two text files: $1 and $2
 # return an error if they are differ
 CMP = cmp $1 $2
+
+# escape program argument to pass it via shell: "1 2" -> '"1 2"'
+SHELL_ESCAPE = '$(subst ','"'"',$1)'
 
 # stream-editor executable
 # note: SED value may be overridden either in command line or in project configuration file, like:
@@ -34,13 +38,10 @@ CMP = cmp $1 $2
 SED := sed
 
 # escape command line argument to pass it to $(SED)
-SED_EXPR = '$(subst \n,\$(newline),$(subst \t,\$(tab),$1))'
+SED_EXPR = $(call SHELL_ESCAPE,$(subst \n,\$(newline),$(subst \t,\$(tab),$1)))
 
 # print contents of given file (to stdout, for redirecting it to output file)
 CAT = cat $1
-
-# escape string to be passed as program argument: "1 2" -> '"1 2"'
-ESCAPE_STRING = '$(subst ','"'"',$1)'
 
 # print lines of text (to stdout, for redirecting it to output file)
 # note: each line will be ended with LF
@@ -74,5 +75,12 @@ EXECIN = pushd $1 >/dev/null && { $2 && popd >/dev/null || { popd >/dev/null; fa
 # delete target file(s) if failed to build them and exit shell with error code 1
 DEL_ON_FAIL = || { $(DEL); false; }
 
+# add quotes if path has an embedded space:
+# $(call ifaddq,a b) -> 'a b'
+# $(call ifaddq,ab)  -> ab
+# note: override default implementation in $(CLEAN_BUILD_DIR)/core/functions.mk
+ifaddq = $(if $(findstring $(space),$1),'$1',$1)
+
 # protect variables from modifications in target makefiles
-$(call SET_GLOBAL,PRINT_ENV DEL DEL_DIR RM MKDIR CMP SED SED_EXPR CAT ESCAPE_STRING ECHO WRITE NUL CP LN TOUCH CHMOD EXECIN DEL_ON_FAIL)
+$(call SET_GLOBAL,PRINT_ENV DEL DEL_DIR RM MKDIR CMP SHELL_ESCAPE SED SED_EXPR CAT \
+  ECHO WRITE NUL CP LN TOUCH CHMOD EXECIN DEL_ON_FAIL ifaddq)
