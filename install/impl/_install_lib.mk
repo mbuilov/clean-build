@@ -33,6 +33,7 @@ NO_INSTALL_IMPS    = $($1_LIBRARY_NO_DEVEL)
 #  may be set in target makefile before expanding INSTALL_LIB to specify per-library installation configuration
 # note: it is possible to override library-specific options either in command line or in project configuration makefile,
 #  for example: mylib_LIBRARY_NO_DEVEL:=1 prevents installing development files for library 'mylib'
+# note: use $(addprefix /) to get empty $($1_LIBRARY_HDIR) if $(LIBRARY_HDIR) is empty
 # note: define target-specific variables: BUILT_LIBS, BUILT_DLLS, HEADERS
 define DEFINE_INSTALL_LIB_VARS
 
@@ -41,7 +42,7 @@ $1_BUILT_DLL_VARIANTS         := $(if $(DLL),$(call GET_VARIANTS,DLL))
 $1_BUILT_LIBS                 := $$(foreach v,$$($1_BUILT_LIB_VARIANTS),$$(call FORM_TRG,LIB,$$v))
 $1_BUILT_DLLS                 := $$(foreach v,$$($1_BUILT_DLL_VARIANTS),$$(call FORM_TRG,DLL,$$v))
 $1_LIBRARY_HEADERS            := $$(call fixpath,$$(LIBRARY_HEADERS))
-$1_LIBRARY_HDIR               := $$(LIBRARY_HDIR)
+$1_LIBRARY_HDIR               := $$(addprefix /,$$(LIBRARY_HDIR))
 $1_LIBRARY_NO_DEVEL           := $$(LIBRARY_NO_DEVEL)
 $1_LIBRARY_NO_INSTALL_HEADERS := $$(LIBRARY_NO_INSTALL_HEADERS)
 $1_LIBRARY_NO_INSTALL_LA      := $$(LIBRARY_NO_INSTALL_LA)
@@ -59,7 +60,7 @@ endif
 
 ifeq (,$$($1_LIBRARY_NO_INSTALL_HEADERS))
 ifneq (,$$($1_LIBRARY_HEADERS))
-install_$1_headers: $$($1_LIBRARY_HEADERS) | $$(call NEED_INSTALL_DIR_RET,$$(subst $$(space),\ ,$$(D_INCLUDEDIR)/$$($1_LIBRARY_HDIR)))
+install_$1_headers: $$($1_LIBRARY_HEADERS) | $$(call NEED_INSTALL_DIR_RET,$$(subst $$(space),\ ,$$(D_INCLUDEDIR)$$($1_LIBRARY_HDIR)))
 install_$1: install_$1_headers
 uninstall_$1: uninstall_$1_headers
 endif
@@ -74,12 +75,11 @@ $(call SET_MAKEFILE_INFO,install_$1_headers uninstall_$1_headers install_$1 unin
 
 endef
 
-# choose $(INSTALL_OS)-specific install-lib template
-# note: INSTALL_OS - defined in included above inst_vars.mk
+# choose $(OS)-specific install-lib template
 OS_INSTALL_LIB_MK := $(dir $(lastword $(MAKEFILE_LIST)))$(if \
-  $(filter WINDOWS,$(INSTALL_OS)),install_lib_windows.mk,install_lib_unix.mk)
+  $(filter WINDOWS,$(OS)),install_lib_windows.mk,install_lib_unix.mk)
 
-# define $(INSTALL_OS)-specific INSTALL_LIB macro
+# define $(OS)-specific INSTALL_LIB macro
 include $(OS_INSTALL_LIB_MK)
 
 # protect variables from modifications in target makefiles

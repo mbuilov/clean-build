@@ -8,9 +8,6 @@
 
 # included by $(CLEAN_BUILD_DIR)/install/impl/inst_utils.mk
 
-# type of the operating system on which installation is performed
-INSTALL_OS := $(OS)
-
 # non-empty if do not install development files and headers
 # by default, install development files
 # note: normally overridden in command line
@@ -28,7 +25,7 @@ DESTDIR:=
 DESTDIR_NORMALIZE = $(subst ?, ,$(subst $(space),/,$(strip $(subst \, ,$(subst /, ,$(subst $(space),?,$(DESTDIR)$($1)))))))
 
 # root of program installation directory
-PREFIX := $(if $(filter WINDOWS,$(INSTALL_OS)),artifacts,/usr/local)
+PREFIX := $(if $(filter WINDOWS,$(OS)),artifacts,/usr/local)
 D_PREFIX = $(call DESTDIR_NORMALIZE,PREFIX)
 
 # directory for executables
@@ -131,7 +128,7 @@ PKG_CONFIG_DIR := $(LIBDIR)/pkgconfig
 D_PKG_CONFIG_DIR = $(call DESTDIR_NORMALIZE,PKG_CONFIG_DIR)
 
 # protect variables from modifications in target makefiles
-$(call SET_GLOBAL,INSTALL_OS NO_DEVEL DESTDIR DESTDIR_NORMALIZE \
+$(call SET_GLOBAL,NO_DEVEL DESTDIR DESTDIR_NORMALIZE \
   PREFIX D_PREFIX EXEC_PREFIX D_EXEC_PREFIX BINDIR D_BINDIR SBINDIR D_SBINDIR LIBEXECDIR D_LIBEXECDIR \
   DATAROOTDIR D_DATAROOTDIR DATADIR D_DATADIR SYSCONFDIR D_SYSCONFDIR SHAREDSTATEDIR D_SHAREDSTATEDIR \
   LOCALSTATEDIR D_LOCALSTATEDIR RUNSTATEDIR D_RUNSTATEDIR INCLUDEDIR D_INCLUDEDIR PACKAGE_NAME DOCDIR D_DOCDIR \

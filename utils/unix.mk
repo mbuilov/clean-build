@@ -11,14 +11,26 @@ PRINT_ENV = $(info for v in `env | cut -d= -f1`; do $(foreach \
   x,PATH SHELL $(PASS_ENV_VARS),[ "$x" = "$$v" ] ||) unset "$$v"; done$(foreach \
   v,PATH SHELL $(PASS_ENV_VARS),$(newline)$v='$($v)'$(newline)export $v))
 
-# delete files $1 (short list), files may contain spaces: '1 2\3 4' '5 6\7 8\9' ...
+# delete files $1 (short list), paths may contain spaces: '1 2\3 4' '5 6\7 8\9' ...
 DEL = rm -f $1
 
-# delete directories $1 (short list), directories may contain spaces: '1 2\3 4' '5 6\7 8\9' ...
-DEL_DIR = $(RM)
+# delete directories $1 (short list), paths may contain spaces: '1 2\3 4' '5 6\7 8\9' ...
+RMDIR = $(RM)
+
+# in directory $1 (path may contain spaces), delete files $2 (long list), to support long list, paths _must_ be without spaces
+DELIN = pushd $1 >/dev/null && { $(call RM,$2) && popd >/dev/null || { popd >/dev/null; false; } }
 
 # delete files and directories (long list), to support long list, paths _must_ be without spaces
 RM = rm -rf $1
+
+# copy preserving modification date, ownership and mode:
+# - file(s) $1 to directory $2 (paths to files $1 _must_ be without spaces, but path to directory $2 may contain spaces) or
+# - file $1 to file $2         (path to file $1 _must_ be without spaces, but path to file $2 may contain spaces)
+CP = cp -p $1 $2
+
+# update modification date of given file(s) or create file(s) if they do not exist
+# note: paths may contain spaces, but list of files should be short
+TOUCH = touch $1
 
 # create directory, path may contain spaces: '1 2\3 4'
 # to avoid races, MKDIR must be called only if it's known that destination directory does not exist
@@ -53,19 +65,12 @@ WRITE = $(ECHO) > $2
 # null device for redirecting output into
 NUL := /dev/null
 
-# copy preserving modification date, ownership and mode:
-# - file(s) $1 to directory $2 or
-# - file $1 to file $2
-CP = cp -p $1 $2
-
 # create symbolic link
 # note: this tool is UNIX-specific and may be not defined for other OSes
 LN = ln -sf $1 $2
 
-# update modification date of given file(s) or create file(s) if they do not exist
-TOUCH = touch $1
-
 # set mode $1 of given file(s) $2
+# note: paths may contain spaces, but list of files should be short
 # note: this tool is UNIX-specific and may be not defined for other OSes
 CHMOD = chmod $1 $2
 
@@ -82,5 +87,5 @@ DEL_ON_FAIL = || { $(DEL); false; }
 ifaddq = $(if $(findstring $(space),$1),'$1',$1)
 
 # protect variables from modifications in target makefiles
-$(call SET_GLOBAL,PRINT_ENV DEL DEL_DIR RM MKDIR CMP SHELL_ESCAPE SED SED_EXPR CAT \
-  ECHO WRITE NUL CP LN TOUCH CHMOD EXECIN DEL_ON_FAIL ifaddq)
+$(call SET_GLOBAL,PRINT_ENV DEL RMDIR DELIN RM CP TOUCH MKDIR CMP SHELL_ESCAPE SED SED_EXPR CAT \
+  ECHO WRITE NUL LN CHMOD EXECIN DEL_ON_FAIL ifaddq)

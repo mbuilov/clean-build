@@ -91,18 +91,35 @@ nonrelpath1 = $(if $2,$(call nonrelpath1,$1,$(wordlist 2,999999,$2),$(patsubst $
 # note: override nonrelpath from $(CLEAN_BUILD_DIR)/defs.mk
 nonrelpath = $(if $(findstring :,$2),$(call nonrelpath1,$1,$(sort $(filter %:,$(subst :,: ,$2))),$(addprefix $1,$2)),$(addprefix $1,$2))
 
-# delete files $1 (short list), files may contain spaces: "1 2\3 4" "5 6\7 8\9" ...
+# delete files $1 (short list), paths may contain spaces: "1 2\3 4" "5 6\7 8\9" ...
 DEL = for %%f in ($(ospath)) do if exist %%f del /F/Q %%f
 
-# delete directories $1 (short list), directories may contain spaces: "1 2\3 4" "5 6\7 8\9" ...
-DEL_DIR = for %%f in ($(ospath)) do if exist %%f rd /S/Q %%f
+# delete directories $1 (short list), paths may contain spaces: "1 2\3 4" "5 6\7 8\9" ...
+RMDIR = for %%f in ($(ospath)) do if exist %%f rd /S/Q %%f
 
-# delete files and directories (long list), paths _must_ be without spaces
+# in directory $1 (path may contain spaces), delete files $2 (long list), to support long list, paths _must_ be without spaces
 # note: $6 - <empty> on first call of RM1, $(newline) on next calls
-RM1 = $(if $6,$(QUIET))for %%f in ($(ospath)) do if exist %%f\* (rd /S/Q %%f) else if exist %%f (del /F/Q %%f)
-RM  = $(call xcmd,RM1,$1,$(DEL_ARGS_LIMIT),,,,)
+DELIN1 = $(if $6,$(QUIET))for %%d in ($2) do for %%f in ($1) do if exist %%d\%%f (del /F/Q %%d\%%f)
+DELIN  = $(call xcmd,DELIN1,$(call ospath,$2),$(DEL_ARGS_LIMIT),$(ospath),,,)
 
-# create directory, path may contain spaces: '1 2\3 4'
+# delete files and directories (long list), to support long list, paths _must_ be without spaces
+# note: $6 - <empty> on first call of RM1, $(newline) on next calls
+RM1 = $(if $6,$(QUIET))for %%f in ($1) do if exist %%f\* (rd /S/Q %%f) else if exist %%f (del /F/Q %%f)
+RM  = $(call xcmd,RM1,$(ospath),$(DEL_ARGS_LIMIT),,,,)
+
+# copy file(s) preserving modification date:
+# - file(s) $1 to directory $2 (paths to files $1 _must_ be without spaces, but path to directory $2 may contain spaces) or
+# - file $1 to file $2         (path to file $1 _must_ be without spaces, but path to file $2 may contain spaces)
+# note: $6 - <empty> on first call of CP1, $(newline) on next calls
+CP1 = $(if $6,$(QUIET))for %%f in ($1) do copy /Y /B %%f $2$(SUPPRESS_CP_OUTPUT)
+CP  = $(if $(word 2,$1),$(call xcmd,CP1,$(ospath),$(DEL_ARGS_LIMIT),$(call \
+  ospath,$2),,,),copy /Y /B $(call ospath,$1 $2)$(SUPPRESS_CP_OUTPUT))
+
+# update modification date of given file(s) or create file(s) if they do not exist
+# note: paths may contain spaces, but list of files should be short
+TOUCH = for %%f in ($(ospath)) do if exist %%f (copy /Y /B %%f+,, %%f$(SUPPRESS_CP_OUTPUT)) else (rem. > %%f)
+
+# create directory, path may contain spaces: "1 2\3 4"
 #
 # NOTE! there are races in MKDIR - if make spawns two parallel jobs:
 #
@@ -171,14 +188,6 @@ NUL := NUL
 # "Скопировано файлов:         1."
 SUPPRESS_CP_OUTPUT := | findstr /VC:"        1" & if errorlevel 1 (cmd /c exit 0) else (cmd /c exit 1)
 
-# copy preserving modification date:
-# - file(s) $1 to directory $2 or
-# - file $1 to file $2
-CP = $(if $(word 2,$1),for %%f in ($(ospath)) do copy /Y /B %%f,copy /Y /B $(ospath)) $(call ospath,$2)$(SUPPRESS_CP_OUTPUT)
-
-# update modification date of given file(s) or create file(s) if they do not exist
-TOUCH = for %%f in ($(ospath)) do if exist %%f (copy /Y /B %%f+,, %%f$(SUPPRESS_CP_OUTPUT)) else (rem. > %%f)
-
 # execute command $2 in directory $1
 EXECIN = pushd $(ospath) && ($2 && popd || (popd & cmd /c exit 1))
 
@@ -231,5 +240,5 @@ FILTER_OUTPUT = (($1 2>&1 && echo OK>&2)$2)3>&2 2>&1 1>&3|findstr /BC:OK>NUL
 
 # protect variables from modifications in target makefiles
 $(call SET_GLOBAL,WIN_EXPORTED $(sort TMP PATHEXT SYSTEMROOT COMSPEC $(WIN_EXPORTED)) \
-  PATH DEL_ARGS_LIMIT nonrelpath1 DEL DEL_DIR RM1 RM MKDIR CMP SHELL_ESCAPE SED SED_EXPR \
-  CAT ECHO_LINE ECHO_LINES ECHO WRITE NUL SUPPRESS_CP_OUTPUT CP TOUCH EXECIN DEL_ON_FAIL NO_RPATH FILTER_OUTPUT)
+  PATH DEL_ARGS_LIMIT nonrelpath1 DEL RMDIR DELIN1 DELIN RM1 RM CP1 CP TOUCH MKDIR CMP SHELL_ESCAPE SED SED_EXPR \
+  CAT ECHO_LINE ECHO_LINES ECHO WRITE NUL SUPPRESS_CP_OUTPUT EXECIN DEL_ON_FAIL NO_RPATH FILTER_OUTPUT)
