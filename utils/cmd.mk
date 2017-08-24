@@ -10,8 +10,9 @@
 MAKEFLAGS += -O
 
 ifneq (,$(filter /cygdrive/%,$(CURDIR)))
-$(error cygwin gnu make is used for WINDOWS build - this configuration is not supported, please use native windows tools,\
- for example, under cygwin start build with: /cygdrive/c/tools/gnumake-4.2.1.exe SED=C:/tools/sed.exe <args>)
+$(error Cygwin version of Gnu Make is used for WINDOWS build - this configuration is not supported,\
+ either start build from cmd.exe or use native windows tools, for example,\
+ under Cygwin start build with: /cygdrive/c/tools/gnumake-4.2.1.exe SED=C:/tools/sed.exe <args>)
 endif
 
 # Windows needs TMP, PATHEXT, SYSTEMROOT and COMSPEC variables to be defined in environment of calling executables
@@ -62,21 +63,19 @@ override PATH := $(subst ?, ,$(subst $(space),;,$(strip $(foreach p,$(subst \
   ;, ,$(subst $(space),?,$(PATH))),$(if $(findstring cygwin,$p),,$p)))))
 
 # print prepared environment in verbose mode
-ifdef VERBOSE
-$(info setlocal$(newline)FOR /F "delims==" %%V IN ('SET') DO $(foreach \
+PRINT_ENV = $(info setlocal$(newline)FOR /F "delims==" %%V IN ('SET') DO $(foreach \
   x,PATH TMP PATHEXT SYSTEMROOT COMSPEC $(PASS_ENV_VARS),IF /I NOT "$x"=="%%V") SET "%%V="$(foreach \
   v,PATH $(filter TMP PATHEXT SYSTEMROOT COMSPEC,$(WIN_EXPORTED)) $(PASS_ENV_VARS),$(newline)SET "$v=$($v)"))
-endif
 
-# maximum command line length
-# for Windows 95 and later   - 127 chars;
-# for Windows 2000 and later - 2047 chars;
-# for Windows XP and later   - 8191 chars (max 31 path arguments of 260 chars length each);
-# determine maximum number of arguments passed via command line:
-# for Windows XP and later, assuming that maximum length of each argument is 115 chars
-DEL_ARGS_LIMIT := 70
+# command line length of cmd.exe is limited:
+# for Windows 95   - 127 chars;
+# for Windows 2000 - 2047 chars;
+# for Windows XP   - 8191 chars (max 31 path arguments of 260 chars length each);
+# define maximum number of path arguments that may be passed via command line:
+# assume we use Windows XP or later and paths are not exceed 120 chars:
+PATH_ARGS_LIMIT := 68
 
-# convert slashes
+# convert forward slashes used by Gnu Make to backward ones accepted by windows utilities
 # note: override ospath from $(CLEAN_BUILD_DIR)/defs.mk
 ospath = $(subst /,\,$1)
 
@@ -85,39 +84,46 @@ ospath = $(subst /,\,$1)
 # $3 - list of files prefixed with $1
 nonrelpath1 = $(if $2,$(call nonrelpath1,$1,$(wordlist 2,999999,$2),$(patsubst $1$(firstword $2)%,$(firstword $2)%,$3)),$3)
 
-# add $1 only to non-absolute paths in $2
-# note: $1 must end with /
+# make path not relative: add $1 only to non-absolute paths in $2
+# note: path $1 must end with /
 # a/b c:/1 -> xxx/a/b xxx/c:/1 -> xxx/a/b c:/1
 # note: override nonrelpath from $(CLEAN_BUILD_DIR)/defs.mk
 nonrelpath = $(if $(findstring :,$2),$(call nonrelpath1,$1,$(sort $(filter %:,$(subst :,: ,$2))),$(addprefix $1,$2)),$(addprefix $1,$2))
 
-# delete files $1 (short list), paths may contain spaces: "1 2\3 4" "5 6\7 8\9" ...
-DEL = for %%f in ($(ospath)) do if exist %%f del /F/Q %%f
+# delete file(s) $1 (short list, no more than PATH_ARGS_LIMIT), paths may contain spaces: "1 2\3 4" "5 6\7 8\9" ...
+DELETE_FILES = for %%f in ($(ospath)) do if exist %%f del /F/Q %%f
 
-# delete directories $1 (short list), paths may contain spaces: "1 2\3 4" "5 6\7 8\9" ...
-RMDIR = for %%f in ($(ospath)) do if exist %%f rd /S/Q %%f
+# delete directories $1 (short list, no more than PATH_ARGS_LIMIT), paths may contain spaces: "1 2\3 4" "5 6\7 8\9" ...
+DELETE_DIRS = for %%f in ($(ospath)) do if exist %%f rd /S/Q %%f
 
 # in directory $1 (path may contain spaces), delete files $2 (long list), to support long list, paths _must_ be without spaces
-# note: $6 - <empty> on first call of RM1, $(newline) on next calls
-DELIN1 = $(if $6,$(QUIET))for %%d in ($2) do for %%f in ($1) do if exist %%d\%%f (del /F/Q %%d\%%f)
-DELIN  = $(call xcmd,DELIN1,$(call ospath,$2),$(DEL_ARGS_LIMIT),$(ospath),,,)
+# note: $6 - <empty> on first call, $(newline) on next calls
+DELETE_FILES_IN1 = $(if $6,$(QUIET))for %%d in ($2) do for %%f in ($1) do if exist %%d\%%f (del /F/Q %%d\%%f)
+DELETE_FILES_IN  = $(call xcmd,DELETE_FILES_IN1,$(call ospath,$2),$(PATH_ARGS_LIMIT),$(ospath),,,)
 
 # delete files and directories (long list), to support long list, paths _must_ be without spaces
-# note: $6 - <empty> on first call of RM1, $(newline) on next calls
-RM1 = $(if $6,$(QUIET))for %%f in ($1) do if exist %%f\* (rd /S/Q %%f) else if exist %%f (del /F/Q %%f)
-RM  = $(call xcmd,RM1,$(ospath),$(DEL_ARGS_LIMIT),,,,)
+# note: $6 - <empty> on first call, $(newline) on next calls
+DEL_FILES_OR_DIRS1 = $(if $6,$(QUIET))for %%f in ($1) do if exist %%f\* (rd /S/Q %%f) else if exist %%f (del /F/Q %%f)
+DEL_FILES_OR_DIRS = $(call xcmd,DEL_FILES_OR_DIRS1,$(ospath),$(PATH_ARGS_LIMIT),,,,)
+
+# code for suppressing output of copy command, like
+# "        1 file(s) copied."
+# "Скопировано файлов:         1."
+SUPPRESS_CP_OUTPUT := | findstr /VC:"        1" & if errorlevel 1 (cmd /c exit 0) else (cmd /c exit 1)
 
 # copy file(s) preserving modification date:
 # - file(s) $1 to directory $2 (paths to files $1 _must_ be without spaces, but path to directory $2 may contain spaces) or
 # - file $1 to file $2         (path to file $1 _must_ be without spaces, but path to file $2 may contain spaces)
-# note: $6 - <empty> on first call of CP1, $(newline) on next calls
-CP1 = $(if $6,$(QUIET))for %%f in ($1) do copy /Y /B %%f $2$(SUPPRESS_CP_OUTPUT)
-CP  = $(if $(word 2,$1),$(call xcmd,CP1,$(ospath),$(DEL_ARGS_LIMIT),$(call \
+# note: $6 - <empty> on first call, $(newline) on next calls
+COPY_FILES1 = $(if $6,$(QUIET))for %%f in ($1) do copy /Y /B %%f $2$(SUPPRESS_CP_OUTPUT)
+COPY_FILES  = $(if $(word 2,$1),$(call xcmd,COPY_FILES1,$(ospath),$(PATH_ARGS_LIMIT),$(call \
   ospath,$2),,,),copy /Y /B $(call ospath,$1 $2)$(SUPPRESS_CP_OUTPUT))
 
 # update modification date of given file(s) or create file(s) if they do not exist
-# note: paths may contain spaces, but list of files should be short
-TOUCH = for %%f in ($(ospath)) do if exist %%f (copy /Y /B %%f+,, %%f$(SUPPRESS_CP_OUTPUT)) else (rem. > %%f)
+# note: to support long list, paths _must_ be without spaces
+# note: $6 - <empty> on first call, $(newline) on next calls
+TOUCH_FILES1 = $(if $6,$(QUIET))for %%f in ($1) do if exist %%f (copy /Y /B %%f+,, %%f$(SUPPRESS_CP_OUTPUT)) else (rem. > %%f)
+TOUCH_FILES  = $(call xcmd,TOUCH_FILES1,$(ospath),$(PATH_ARGS_LIMIT),,,,)
 
 # create directory, path may contain spaces: "1 2\3 4"
 #
@@ -128,13 +134,14 @@ TOUCH = for %%f in ($(ospath)) do if exist %%f (copy /Y /B %%f+,, %%f$(SUPPRESS_
 #                        mkdir aaa/bbb
 # mkdir aaa - fail
 #
-# to avoid races, MKDIR must be called only if it's known that destination directory does not exist
-# note: MKDIR must create intermediate parent directories of destination directory
-MKDIR = mkdir $(ospath)
+# to avoid races, CREATE_DIR must be called only if it's known that destination directory does not exist
+# note: CREATE_DIR must create intermediate parent directories of destination directory
+CREATE_DIR = mkdir $(ospath)
 
 # compare content of two text files: $1 and $2
 # return an error if they are differ
-CMP = FC /T $(call ospath,$1 $2)
+# note: paths to files may contain spaces
+COMPARE_FILES = FC /T $(call ospath,$1 $2)
 
 # escape program argument to pass it via shell: "1 ^ 2" -> "\"1 ^^ 2\""
 SHELL_ESCAPE = "$(subst %,%%,$(subst <,^<,$(subst >,^>,$(subst |,^|,$(subst &,^&,$(subst ",\",$(subst ^,^^,$1)))))))"
@@ -149,7 +156,7 @@ SED := sed.exe
 SED_EXPR = $(SHELL_ESCAPE)
 
 # print contents of given file (to stdout, for redirecting it to output file)
-CAT = type $(ospath)
+CAT_FILE = type $(ospath)
 
 # print one line of text (to stdout, for redirecting it to output file)
 # note: line will be ended with CRLF
@@ -172,27 +179,22 @@ ECHO_LINES = $(if $6,$3,$4)($(foreach x,$1,$(eval ECHO_LINES_:=$(subst \
 # print lines of text (to stdout, for redirecting it to output file)
 # note: each line will be ended with CRLF
 # NOTE: total text length must not exceed maximum command line length (8191 characters)
-ECHO = $(if $(findstring $(newline),$1),$(call ECHO_LINES,$(subst $(newline),$$(empty) ,$(subst \
+ECHO_TEXT = $(if $(findstring $(newline),$1),$(call ECHO_LINES,$(subst $(newline),$$(empty) ,$(subst \
   $(tab),$$(tab),$(subst $(space),$$(space),$(subst $$,$$$$,$1))))),$(ECHO_LINE))
 
 # write lines of text $1 to file $2 by $3 lines at one time
 # NOTE: echoed at one time text length must not exceed maximum command line length (8191 characters)
-WRITE = $(call xargs,ECHO_LINES,$(subst $(newline),$$(empty) ,$(subst \
+WRITE_TEXT = $(call xargs,ECHO_LINES,$(subst $(newline),$$(empty) ,$(subst \
   $(tab),$$(tab),$(subst $(space),$$(space),$(subst $$,$$$$,$1)))),$3,$2,$(QUIET),,,$(newline))
 
 # null device for redirecting output into
 NUL := NUL
 
-# code for suppressing output of copy command, like
-# "        1 file(s) copied."
-# "Скопировано файлов:         1."
-SUPPRESS_CP_OUTPUT := | findstr /VC:"        1" & if errorlevel 1 (cmd /c exit 0) else (cmd /c exit 1)
-
 # execute command $2 in directory $1
-EXECIN = pushd $(ospath) && ($2 && popd || (popd & cmd /c exit 1))
+EXECUTE_IN = pushd $(ospath) && ($2 && popd || (popd & cmd /c exit 1))
 
-# delete target file(s) if failed to build them and exit shell with error code 1
-DEL_ON_FAIL = || (($(DEL)) & cmd /c exit 1)
+# delete target file(s) (short list, no more than PATH_ARGS_LIMIT) if failed to build them and exit shell with error code 1
+DEL_ON_FAIL = || (($(DELETE_FILES)) & cmd /c exit 1)
 
 # suffix of built tool executables
 # note: override TOOL_SUFFIX from $(CLEAN_BUILD_DIR)/defs.mk
@@ -239,6 +241,12 @@ endif
 FILTER_OUTPUT = (($1 2>&1 && echo OK>&2)$2)3>&2 2>&1 1>&3|findstr /BC:OK>NUL
 
 # protect variables from modifications in target makefiles
-$(call SET_GLOBAL,WIN_EXPORTED $(sort TMP PATHEXT SYSTEMROOT COMSPEC $(WIN_EXPORTED)) \
-  PATH DEL_ARGS_LIMIT nonrelpath1 DEL RMDIR DELIN1 DELIN RM1 RM CP1 CP TOUCH MKDIR CMP SHELL_ESCAPE SED SED_EXPR \
-  CAT ECHO_LINE ECHO_LINES ECHO WRITE NUL SUPPRESS_CP_OUTPUT EXECIN DEL_ON_FAIL NO_RPATH FILTER_OUTPUT)
+# note: do not trace calls to this variables because they either exported or used in ifdefs
+$(call SET_GLOBAL,$(sort TMP PATHEXT SYSTEMROOT COMSPEC $(WIN_EXPORTED)) PATH NO_RPATH,0)
+
+# protect variables from modifications in target makefiles
+# note: caller will protect variables: MAKEFLAGS SHELL PATH ospath nonrelpath1 nonrelpath
+#  TOOL_SUFFIX PATHSEP DLL_PATH_VAR show_with_dll_path, show_dll_path_end, PRINT_PERCENTS, COLORIZE
+$(call SET_GLOBAL,WIN_EXPORTED PRINT_ENV PATH_ARGS_LIMIT nonrelpath1 DELETE_FILES DELETE_DIRS DELETE_FILES_IN1 DELETE_FILES_IN \
+  DEL_FILES_OR_DIRS1 DEL_FILES_OR_DIRS SUPPRESS_CP_OUTPUT COPY_FILES1 COPY_FILES TOUCH_FILES1 TOUCH_FILES CREATE_DIR COMPARE_FILES \
+  SHELL_ESCAPE SED SED_EXPR CAT_FILE ECHO_LINE ECHO_LINES ECHO_TEXT WRITE_TEXT NUL EXECUTE_IN DEL_ON_FAIL FILTER_OUTPUT)

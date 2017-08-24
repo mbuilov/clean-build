@@ -6,7 +6,7 @@
 
 # define variables used in installation templates
 
-# included by $(CLEAN_BUILD_DIR)/install/impl/inst_utils.mk
+# included by $(CLEAN_BUILD_DIR)/install/impl/inst_defs.mk
 
 # non-empty if do not install development files and headers
 # by default, install development files

@@ -15,6 +15,9 @@
 # note: define target-specific variable BUILT_IMPS
 # note: MAKE_IMP_PATH macro defined in $(CLEAN_BUILD_DIR)/compilers/msvc.mk
 # note: use target-specific variables defined by DEFINE_INSTALL_LIB_VARS: BUILT_LIBS, BUILT_DLLS, HEADERS
+
+todo: install pkg-config files
+
 define INSTALL_LIB_WINDOWS
 
 install_$1 uninstall_$1: BUILT_IMPS := $(if $($1_LIBRARY_NO_INSTALL_IMPS),,$(foreach \
@@ -27,21 +30,20 @@ install_$1_headers:
 
 uninstall_$1_headers:
 	$(if $($1_LIBRARY_HDIR),$$(call UNINSTALL_RMDIR,$$(D_INCLUDEDIR)$($1_LIBRARY_HDIR)),$$(call \
-	UNINSTALL_DELIN,$$(D_INCLUDEDIR),$$(notdir $$(HEADERS))))
+  UNINSTALL_DELIN,$$(D_INCLUDEDIR),$$(notdir $$(HEADERS))))
 
 endif
 
 ifneq (,$($1_BUILT_LIBS)$($1_BUILT_DLLS))
 
 install_$1:$(if \
-  $($1_BUILT_LIBS),$(newline)$(tab)$$(call INSTALL_FILES,$$(BUILT_LIBS),$$(D_LIBDIR),644))$(if \
-  $($1_BUILT_DLLS),$(newline)$(tab)$$(call INSTALL_FILES,$$(BUILT_DLLS),$$(D_LIBDIR),755)$(if \
-  $($1_LIBRARY_NO_INSTALL_IMPS),,$(newline)$(tab)$$(call INSTALL_FILES,$$(BUILT_IMPS),$$(D_LIBDIR),644)))
+  $($1_BUILT_LIBS)$(if $($1_LIBRARY_NO_INSTALL_IMPS),,$($1_BUILT_DLLS)),$(newline)$(tab)$$(call \
+   INSTALL_FILES,$$(BUILT_LIBS) $$(BUILT_IMPS),$$(D_LIBDIR),644))$(if \
+  $($1_BUILT_DLLS),$(newline)$(tab)$$(call \
+   INSTALL_FILES,$$(BUILT_DLLS),$$(D_LIBDIR),755))
 
-uninstall_$1:$(if \
-  $($1_BUILT_LIBS),$(newline)$(tab)$$(call UNINSTALL_DELIN,$$(D_LIBDIR),$$(notdir $$(BUILT_LIBS)))$(if \
-  $($1_BUILT_DLLS),$(newline)$(tab)$$(call UNINSTALL_DELIN,$$(D_LIBDIR),$$(notdir $$(BUILT_DLLS)))$(if \
-  $($1_LIBRARY_NO_INSTALL_IMPS),,$(newline)$(tab)$$(call UNINSTALL_DELIN,$$(D_LIBDIR),$$(notdir $$(BUILT_IMPS))))
+uninstall_$1:
+	$$(call UNINSTALL_DELIN,$$(D_LIBDIR),$$(notdir $$(BUILT_LIBS) $$(BUILT_DLLS) $$(BUILT_IMPS)))
 
 endif
 

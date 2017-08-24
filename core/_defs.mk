@@ -114,15 +114,16 @@ $(call SET_GLOBAL,$(PROJECT_VARS_NAMES))
 # BUILD := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))/build
 BUILD:=
 
-# ensure that BUILD is non-recursive (simple), also normalize path
+# ensure that BUILD is non-recursive (simple), because it is used to create simple variables DEF_BIN_DIR, DEF_LIB_DIR, etc.
+# also normalize path and make it absolute
 override BUILD := $(abspath $(BUILD))
 
 ifndef BUILD
-$(error BUILD undefined, example: C:/opt/project/build or /home/oper/project/build)
+$(error BUILD - path to built artifacts is not defined, example: C:/opt/project/build or /home/oper/project/build)
 endif
 
 ifneq (,$(findstring $(space),$(BUILD)))
-$(error BUILD=$(BUILD), path to generated files must not contain spaces)
+$(error BUILD=$(BUILD), path to built artifacts must not contain spaces)
 endif
 
 # list of project-supported target types
@@ -133,7 +134,10 @@ SUPPORTED_TARGETS := DEBUG RELEASE
 # note: normally TARGET get overridden by specifying it in command line
 TARGET := RELEASE
 
-# operating system we are building for (LINUX, WINDOWS, SOLARIS, FREEBSD, etc.)
+# TARGET must be non-recursive (simple), because it is used to create simple variable TARGET_TRIPLET
+override TARGET := $(TARGET)
+
+# operating system we are building for (WIN7, DEBIAN6, SOLARIS10, etc.)
 # note: normally OS get overridden by specifying it in command line
 ifneq (environment,$(origin OS))
 OS := LINUX
@@ -143,15 +147,8 @@ else
 OS:=
 endif
 
-# UTILS - flavor of system shell utilities (such as cp, mv, rm, etc.)
-# note: normally UTILS get overridden by specifying it in command line
-ifeq (LINUX,$(OS))
-UTILS := $(CLEAN_BUILD_DIR)/utils/gnu.mk
-else ifeq (WINDOWS,$(OS))
-UTILS := $(CLEAN_BUILD_DIR)/utils/cmd.mk
-else
-UTILS := $(CLEAN_BUILD_DIR)/utils/unix.mk
-endif
+# OS must be non-recursive (simple), because it is used to create simple variable TARGET_TRIPLET
+override OS := $(OS)
 
 # CPU - processor architecture we are building applications for (x86, sparc64, armv5, mips24k, etc.)
 # note: equivalent of '--host' Gnu Autoconf configure script option
@@ -165,32 +162,33 @@ else
 CPU := x86_64
 endif
 
+# CPU must be non-recursive (simple), because it is used to create simple variable TARGET_TRIPLET
+override CPU := $(CPU)
+
 # TCPU - processor architecture for build tools (may be different from $(CPU) if cross-compiling)
 # note: equivalent of '--build' Gnu Autoconf configure script option
 # note: TCPU specification may also encode format of executable files, e.g. CPU=m68k-coff, it is checked by the C compiler
 # note: normally TCPU get overridden by specifying it in command line
 TCPU := $(CPU)
 
-# fix variables - make them non-recursive (simple)
-# note: these variables are used to create simple variables
-override TARGET := $(TARGET)
-override OS     := $(OS)
-override CPU    := $(CPU)
-override TCPU   := $(TCPU)
-override UTILS  := $(UTILS)
+# TCPU must be non-recursive (simple), because it is used to create simple variable TOOL_OVERRIDE_DIRS
+override TCPU := $(TCPU)
 
-# check that needed variables are correctly defined
+# UTILS - flavor of system shell utilities (such as cp, mv, rm, etc.)
+# note: normally UTILS get overridden by specifying it in command line, for example: UTILS:=gnu
+UTILS := $(if \
+  $(filter WIN%,$(OS)),$(if \
+    $(filter /cygdrive/%,$(CURDIR)),gnu,cmd),$(if \
+  $(filter SOL%,$(OS)),unix,gnu))
 
-# UTILS - flavor of system shell utilities
-ifndef UTILS
-$(error UTILS variable is not defined)
+# UTILS_MK - makefile with definitions of shell utilities
+UTILS_MK := $(CLEAN_BUILD_DIR)/utils/$(UTILS).mk
+
+ifeq (,$(wildcard $(UTILS_MK)))
+$(error file $(UTILS_MK) was not found, check value of UTILS_MK variable)
 endif
 
-ifeq (,$(wildcard $(UTILS)))
-$(error file $(UTILS) was not found, check value of UTILS variable)
-endif
-
-# check other variables only if goal is not distclean
+# check that TARGET is correctly defined only if goal is not distclean
 ifeq (,$(filter distclean,$(MAKECMDGOALS)))
 
 # what target type to build
@@ -210,7 +208,7 @@ NO_CLEAN_BUILD_DISTCLEAN_TARGET:=
 ifndef NO_CLEAN_BUILD_DISTCLEAN_TARGET
 
 # define distclean goal
-# note: RM macro must be defined below in included $(UTILS) file
+# note: RM macro must be defined in included below $(UTILS_MK) file
 distclean:
 	$(QUIET)$(call RM,$(BUILD))
 
@@ -253,18 +251,18 @@ MDEBUG:=
 endif
 
 ifdef MDEBUG
-$(call dump,CLEAN_BUILD_DIR BUILD CONFIG TARGET OS UTILS CPU TCPU,,)
+$(call dump,CLEAN_BUILD_DIR BUILD CONFIG TARGET OS CPU TCPU UTILS,,)
 endif
 
 # absolute path to target makefile
 TARGET_MAKEFILE := $(abspath $(firstword $(MAKEFILE_LIST)))
 
-# for UNIX: don't change paths when converting from make internal file path to path accepted by $(UTILS)
+# for UNIX: don't change paths when converting from make internal file path to path accepted by $(UTILS_MK)
 # note: $(CLEAN_BUILD_DIR)/utils/cmd.mk defines own ospath
 ospath = $1
 
-# add $1 only to non-absolute paths in $2
-# note: $1 must end with /
+# make path not relative: add $1 only to non-absolute paths in $2
+# note: path $1 must end with /
 # note: $(CLEAN_BUILD_DIR)/utils/cmd.mk defines own nonrelpath
 nonrelpath = $(patsubst $1/%,/%,$(addprefix $1,$2))
 
@@ -292,8 +290,8 @@ show_with_dll_path = $(info $(if $2,$(DLL_PATH_VAR)="$($(DLL_PATH_VAR))" )$(fore
 # note: $(CLEAN_BUILD_DIR)/utils/cmd.mk defines own show_dll_path_end
 show_dll_path_end:=
 
-# SED - stream editor executable - should be defined in $(UTILS) makefile
-# SED_EXPR - also should be defined in $(UTILS) makefile
+# SED - stream editor executable - should be defined in $(UTILS_MK) makefile
+# SED_EXPR - also should be defined in $(UTILS_MK) makefile
 # helper macro: convert multi-line sed script $1 to multiple sed expressions - one expression for each script line
 SED_MULTI_EXPR = $(foreach s,$(subst $(newline), ,$(subst $(tab),$$(tab),$(subst $(space),$$(space),$(subst \
   $$,$$$$,$1)))),-e $(call SED_EXPR,$(eval SED_MULTI_EXPR_:=$(subst $(comment),$$(comment),$s))$(SED_MULTI_EXPR_)))
@@ -304,7 +302,6 @@ MGEN_COLOR  := [1;32m
 CP_COLOR    := [1;36m
 RM_COLOR    := [1;31m
 DEL_COLOR   := [1;31m
-DELIN_COLOR := [1;31m
 RMDIR_COLOR := [1;31m
 TOUCH_COLOR := [36m
 LN_COLOR    := [36m
@@ -939,7 +936,7 @@ MAKE_CONTINUE = $(if $(if $1,$(SAVE_VARS))$(eval MAKE_CONT+=2)$(DEFINE_TARGETS)$
   $(MAKE_CONTINUE_EVAL_NAME))$(if $1,$(RESTORE_VARS)),)
 
 # define shell utilities
-include $(UTILS)
+include $(UTILS_MK)
 
 # if $(CONFIG) was included, show it
 ifndef VERBOSE
@@ -966,9 +963,9 @@ $(call SET_GLOBAL,MAKEFLAGS $(PASS_ENV_VARS) PATH SHELL NEEDED_DIRS \
 # protect macros from modifications in target makefiles, allow tracing calls to them
 $(call SET_GLOBAL,PROJECT_VARS_NAMES PASS_ENV_VARS \
   CLEAN_BUILD_VERSION CLEAN_BUILD_DIR CLEAN_BUILD_REQUIRED_VERSION \
-  BUILD SUPPORTED_TARGETS TARGET OS UTILS CPU TCPU TARGET_MAKEFILE \
+  BUILD SUPPORTED_TARGETS TARGET OS CPU TCPU UTILS UTILS_MK TARGET_MAKEFILE \
   ospath nonrelpath TOOL_SUFFIX PATHSEP DLL_PATH_VAR show_with_dll_path show_dll_path_end SED_MULTI_EXPR \
-  GEN_COLOR MGEN_COLOR CP_COLOR RM_COLOR DEL_COLOR DELIN_COLOR RMDIR_COLOR TOUCH_COLOR LN_COLOR MKDIR_COLOR CAT_COLOR SED_COLOR \
+  GEN_COLOR MGEN_COLOR CP_COLOR RM_COLOR DEL_COLOR RMDIR_COLOR TOUCH_COLOR LN_COLOR MKDIR_COLOR CAT_COLOR SED_COLOR \
   PRINT_PERCENTS COLORIZE SHOWN_REMAINDER ADD_SHOWN_PERCENTS==SHOWN_REMAINDER \
   FORMAT_PERCENTS=SHOWN_PERCENTS REM_MAKEFILE=SHOWN_PERCENTS=SHOWN_PERCENTS SUP \
   TARGET_TRIPLET DEF_BIN_DIR DEF_OBJ_DIR DEF_LIB_DIR DEF_GEN_DIR SET_DEFAULT_DIRS \

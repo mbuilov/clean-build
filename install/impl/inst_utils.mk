@@ -6,19 +6,26 @@
 
 # installation utilities
 
-# included by $(CLEAN_BUILD_DIR)/install/impl/_install_lib.mk
+# included by $(CLEAN_BUILD_DIR)/install/impl/inst_defs.mk
 
-ifeq (,$(filter-out undefined environment,$(origin D_PKG_CONFIG_DIR)))
-include $(dir $(lastword $(MAKEFILE_LIST)))inst_dirs.mk
-endif
+# 'install' executable, not available in cmd shell
+INSTALL := $(if $(filter-out cmd,$(UTILS)),install)
 
-# type of utilities to use for installation: cmd, unix, gnu, etc...
-INSTALL_UTILS_TYPE := $(basename $(notdir $(UTILS)))
 
-ifneq (cmd,$(INSTALL_UTILS_TYPE))
+ifeq (cmd,$(UTILS))
+INSTALL :=
+LDCONFIG :=
+else ifeq (gnu,$(UTILS))
+INSTALL := install
+
+
 INSTALL  := $(if $(filter SOLARIS,$(OS)),/usr/ucb/install,install)
 LDCONFIG := $(if $(filter LINUX,$(OS)),/sbin/ldconfig)
-endif
+
+INSTALL_COLOR := [1;31m
+LDCONF_COLOR  := [1;33m
+
+endif # !cmd
 
 # create directory (with intermediate parent directories) while installing things
 # $1 - path to directory to create, such as: "C:/Program Files/AcmeCorp", path may contain spaces
@@ -51,7 +58,7 @@ INSTALL_MKDIR = $(call INSTALL_MKDIRq,$(ifaddq))
 # $3 - optional access mode, such as 644 (rw--r--r-) or 755 (rwxr-xr-x)
 # note: pass non-empty 3-d argument to SUP function to not colorize tool arguments
 # note: pass non-empty 4-th argument to SUP function to not update percents of executed makefiles
-INSTALL_FILESq = $(call SUP,COPY,$(ospath) -> $(call ospath,$2),1,1)$(INSTALL_FILES_COMMAND)
+INSTALL_FILESq = $(call SUP,CP,$(ospath) -> $(call ospath,$2),1,1)$(INSTALL_FILES_COMMAND)
 INSTALL_FILES = $(call INSTALL_FILESq,$1,$(call ifaddq,$2))
 
 ifneq (WINDOWS,$(OS))
@@ -76,7 +83,7 @@ UNINSTALL_DEL = $(call UNINSTALL_DELq,$(ifaddq))
 # $2 - files to delete, without spaces in path
 # note: pass non-empty 3-d argument to SUP function to not colorize tool arguments
 # note: pass non-empty 4-th argument to SUP function to not update percents of executed makefiles
-UNINSTALL_DELINq = $(call SUP,DELIN,$(ospath): $(call ospath,$2),1,1)$(DELIN)
+UNINSTALL_DELINq = $(call SUP,DEL,$(ospath) -> $(call ospath,$2),1,1)$(DELIN)
 UNINSTALL_DELIN = $(call UNINSTALL_DELINq,$(ifaddq),$2)
 
 # recursively delete one directory while uninstalling things
@@ -132,6 +139,6 @@ NEED_INSTALL_DIR_RET = $(NEED_INSTALL_DIR)$1
 $(call SET_GLOBAL1,NEEDED_INSTALL_DIRS,0)
 
 # protect variables from modifications in target makefiles
-$(call SET_GLOBAL,INSTALL LDCONFIG INSTALL_DIR_COMMAND INSTALL_FILES_COMMAND INSTALL_MKDIRq INSTALL_MKDIR \
-  INSTALL_FILESq INSTALL_FILES INSTALL_LNqq INSTALL_LN UNINSTALL_DELq UNINSTALL_DEL UNINSTALL_DELINq UNINSTALL_DELIN \
-  UNINSTALL_RMDIRq UNINSTALL_RMDIR ADD_INSTALL_DIRS_TEMPL NEED_INSTALL_DIR NEED_INSTALL_DIR_RET)
+$(call SET_GLOBAL,INSTALL LDCONFIG INSTALL_COLOR LDCONF_COLOR INSTALL_DIR_COMMAND INSTALL_FILES_COMMAND \
+  INSTALL_MKDIRq INSTALL_MKDIR INSTALL_FILESq INSTALL_FILES INSTALL_LNqq INSTALL_LN UNINSTALL_DELq UNINSTALL_DEL \
+  UNINSTALL_DELINq UNINSTALL_DELIN UNINSTALL_RMDIRq UNINSTALL_RMDIR ADD_INSTALL_DIRS_TEMPL NEED_INSTALL_DIR NEED_INSTALL_DIR_RET)

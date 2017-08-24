@@ -46,7 +46,7 @@ C_TARGETS += $(C_APP_TARGETS)
 #  S (for linking with S-variant of EXE or DLL)
 
 # no non-regular target variants are supported by default
-# note: $(C_COMPILER) included below may override ..._NON_REGULAR_VARIANTS definitions
+# note: $(C_COMPILER_MK) included below may override ..._NON_REGULAR_VARIANTS definitions
 EXE_NON_REGULAR_VARIANTS:=
 LIB_NON_REGULAR_VARIANTS:=
 DLL_NON_REGULAR_VARIANTS:=
@@ -209,33 +209,20 @@ endif
 
 # C_COMPILER - application-level compiler to use for the build (gcc, clang, msvc, etc.)
 # note: C_COMPILER may be overridden by specifying either in in command line or in project configuration makefile
-ifeq (LINUX,$(OS))
-C_COMPILER := $(CLEAN_BUILD_DIR)/compilers/gcc.mk
-else ifneq (WINDOWS,$(OS))
-C_COMPILER:=
-else ifneq (,$(filter /cygdrive/%,$(CURDIR)))
-C_COMPILER := $(CLEAN_BUILD_DIR)/compilers/gcc.mk
-else
-C_COMPILER := $(CLEAN_BUILD_DIR)/compilers/msvc.mk
-endif
+C_COMPILER := $(if \
+  $(filter WIN%,$(OS)),$(if \
+    $(filter /cygdrive/%,$(CURDIR)),gcc,msvc),$(if \
+  $(filter SOL%,$(OS)),suncc,gcc))
 
-# ensure C_COMPILER variable is non-recursive (simple)
-override C_COMPILER := $(C_COMPILER)
+# C_COMPILER_MK - makefile with definition of C/C++ compiler
+C_COMPILER_MK := $(CLEAN_BUILD_DIR)/compilers/$(C_COMPILER).mk
 
-ifndef C_COMPILER
-$(error C_COMPILER - application-level C/C++ complier is not defined)
-endif
-
-ifeq (,$(wildcard $(C_COMPILER)))
-$(error file $(C_COMPILER) was not found, check value of C_COMPILER variable)
+ifeq (,$(wildcard $(C_COMPILER_MK)))
+$(error file $(C_COMPILER_MK) was not found, check value of C_COMPILER_MK variable)
 endif
 
 # add compiler-specific definitions
-include $(C_COMPILER)
-
-# protect variables from modifications in target makefiles
-# note: do not trace calls to C_COMPILER variable because it is used in ifdefs
-$(call SET_GLOBAL,C_COMPILER,0)
+include $(C_COMPILER_MK)
 
 # protect variables from modifications in target makefiles
 $(call SET_GLOBAL,C_APP_TARGETS C_TARGETS \
@@ -245,4 +232,4 @@ $(call SET_GLOBAL,C_APP_TARGETS C_TARGETS \
   LIB_DEPENDENCY_MAP DLL_DEPENDENCY_MAP IMP_PREFIX IMP_SUFFIX DEP_LIBS=LIBS DEP_IMPS=DLLS \
   EXE_TEMPLATE=t;v;EXE;LIB_DIR;LIBS;DLLS;SYSLIBS;SYSLIBPATH DLL_TEMPLATE=t;v;DLL LIB_TEMPLATE=t;v;LIB \
   CC_COLOR CXX_COLOR AR_COLOR LD_COLOR XLD_COLOR SLD_COLOR TCC_COLOR TCXX_COLOR TAR_COLOR TLD_COLOR TXLD_COLOR TSLD_COLOR \
-  C_PREPARE_APP_VARS CLEAN_BUILD_C_APP_EVAL DEFINE_C_APP_EVAL CHECK_C_APP_RULES)
+  C_PREPARE_APP_VARS CLEAN_BUILD_C_APP_EVAL DEFINE_C_APP_EVAL CHECK_C_APP_RULES C_COMPILER C_COMPILER_MK)

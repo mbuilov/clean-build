@@ -11,14 +11,32 @@ PRINT_ENV = $(info for v in `env | cut -d= -f1`; do $(foreach \
   x,PATH SHELL $(PASS_ENV_VARS),[ "$x" = "$$v" ] ||) unset "$$v"; done$(foreach \
   v,PATH SHELL $(PASS_ENV_VARS),$(newline)$v='$($v)'$(newline)export $v))
 
-# delete files $1 (short list), paths may contain spaces: '1 2\3 4' '5 6\7 8\9' ...
-DEL = rm -f $1
+# command line length is limited:
+# POSIX smallest allowable upper limit on argument length (all systems): 4096
+# define maximum number of path arguments that may be passed via command line:
+# assume we limit is 20000 chars and paths not exceed 120 chars:
+PATH_ARGS_LIMIT := 166
 
-# delete directories $1 (short list), paths may contain spaces: '1 2\3 4' '5 6\7 8\9' ...
-RMDIR = $(RM)
+# standard utilities
+RM    := rm
+PUSHD := pushd
+POPD  := popd
+
+# delete file(s) $1 (short list, no more than PATH_ARGS_LIMIT), paths may contain spaces: '1 2/3 4' '5 6/7 8/9' ...
+DELETE_FILES = $(RM) -f $1
+
+# delete directories $1 (short list, no more than PATH_ARGS_LIMIT), paths may contain spaces: '1 2/3 4' '5 6/7 8/9' ...
+DELETE_DIRS = $(RM) -rf $1
 
 # in directory $1 (path may contain spaces), delete files $2 (long list), to support long list, paths _must_ be without spaces
-DELIN = pushd $1 >/dev/null && { $(call RM,$2) && popd >/dev/null || { popd >/dev/null; false; } }
+# note: $6 - <empty> on first call, $(newline) on next calls
+DELETE_FILES_IN1 = $(if $6,$(QUIET))$(PUSHD) $1 >/dev/null && { $(call DELETE_FILES,$2) && popd >/dev/null || { popd >/dev/null; false; } }
+DELETE_FILES_IN  = $(call xcmd,DELETE_FILES_IN1,$2,$(PATH_ARGS_LIMIT),$1,,,)
+
+# delete files and directories (long list), to support long list, paths _must_ be without spaces
+# note: $6 - <empty> on first call, $(newline) on next calls
+DEL_FILES_OR_DIRS1 = $(if $6,$(QUIET))$(RM) -rf $1
+DEL_FILES_OR_DIRS = $(call xcmd,DEL_FILES_OR_DIRS1,$1,$(PATH_ARGS_LIMIT),,,,)
 
 # delete files and directories (long list), to support long list, paths _must_ be without spaces
 RM = rm -rf $1
@@ -29,7 +47,7 @@ RM = rm -rf $1
 CP = cp -p $1 $2
 
 # update modification date of given file(s) or create file(s) if they do not exist
-# note: paths may contain spaces, but list of files should be short
+# note: to support long list, paths _must_ be without spaces
 TOUCH = touch $1
 
 # create directory, path may contain spaces: '1 2\3 4'

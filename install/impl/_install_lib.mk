@@ -6,8 +6,8 @@
 
 # included by $(CLEAN_BUILD_DIR)/install/install_lib.mk
 
-ifeq (,$(filter-out undefined environment,$(origin NEEDED_INSTALL_DIRS)))
-include $(dir $(lastword $(MAKEFILE_LIST)))inst_utils.mk
+ifeq (,$(filter-out undefined environment,$(origin NEED_INSTALL_DIR)))
+include $(dir $(lastword $(MAKEFILE_LIST)))inst_defs.mk
 endif
 
 # next NO_... macros are used to form default configuration of libraries installation,
@@ -75,12 +75,20 @@ $(call SET_MAKEFILE_INFO,install_$1_headers uninstall_$1_headers install_$1 unin
 
 endef
 
-# choose $(OS)-specific install-lib template
-OS_INSTALL_LIB_MK := $(dir $(lastword $(MAKEFILE_LIST)))$(if \
-  $(filter WINDOWS,$(OS)),install_lib_windows.mk,install_lib_unix.mk)
+# OS_INSTALL_LIB - type of library installation
+# note: normally OS_INSTALL_LIB get overridden by specifying it in command line
+OS_INSTALL_LIB := $(if $(filter WIN%,$(OS)),windows,unix)
+
+# OS_INSTALL_LIB_MK - makefile with definition of $(OS)-specific INSTALL_LIB macro
+OS_INSTALL_LIB_MK := $(dir $(lastword $(MAKEFILE_LIST)))install_lib_$(OS_INSTALL_LIB).mk
+
+ifeq (,$(wildcard $(OS_INSTALL_LIB_MK)))
+$(error file $(OS_INSTALL_LIB_MK) was not found, check value of OS_INSTALL_LIB_MK variable)
+endif
 
 # define $(OS)-specific INSTALL_LIB macro
 include $(OS_INSTALL_LIB_MK)
 
 # protect variables from modifications in target makefiles
-$(call SET_GLOBAL,NO_INSTALL_HEADERS NO_INSTALL_LA NO_INSTALL_PC NO_INSTALL_IMPS DEFINE_INSTALL_LIB_VARS OS_INSTALL_LIB_MK)
+$(call SET_GLOBAL,NO_INSTALL_HEADERS NO_INSTALL_LA NO_INSTALL_PC NO_INSTALL_IMPS \
+  DEFINE_INSTALL_LIB_VARS OS_INSTALL_LIB OS_INSTALL_LIB_MK)
