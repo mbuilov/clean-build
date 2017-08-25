@@ -18,7 +18,7 @@ $(eval $(call mk_dir_deps,$(NEEDED_DIRS),$(dir $(BUILD))))
 # define rules to create $(BUILD)-relative needed directories
 # note: do not update percents of executed makefiles, so pass 1 as 4-th argument of SUP function
 $(addprefix $(dir $(BUILD)),$(NEEDED_DIRS)):
-	$(call SUP,MKDIR,$@,,1)$(call MKDIR,$@)
+	$(call SUP,MKDIR,$@,,1)$(call CREATE_DIR,$@)
 
 # note: $(PROCESSED_MAKEFILES) - absolute paths of all processed target makefiles with '-' suffix
 #  (without suffix, if real makefile names are used - make always wants to recreate makefiles, even for the clean target)
@@ -43,7 +43,7 @@ all:
 
 # cleanup built files
 clean:
-	$(QUIET)$(call RM,$(CLEAN))
+	$(QUIET)$(call DEL_FILES_OR_DIRS,$(CLEAN))
 
 # build all to build or run tests
 # note: assume rules for 'check' and 'tests' goals are defined elsewhere

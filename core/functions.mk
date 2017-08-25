@@ -117,7 +117,7 @@ trace_calls = $(eval $(foreach f,$1,$(foreach v,$(firstword $(subst =, ,$f)),$(i
 # replace spaces in path with ?
 unspaces = $(subst $(space),?,$1)
 
-# add quotes if path has an embedded space:
+# add quotes if path has an embedded space(s):
 # $(call ifaddq,a b) -> "a b"
 # $(call ifaddq,ab)  -> ab
 # note: overridden in $(CLEAN_BUILD_DIR)/utils/unix.mk

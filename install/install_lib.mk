@@ -4,8 +4,7 @@
 # Licensed under GPL version 2 or any later version, see COPYING
 #----------------------------------------------------------------------------------
 
-# auxiliary templates to simplify installation of libraries
-# defines INSTALL_LIB macro
+# auxiliary templates to simplify installation of libraries, defines INSTALL_LIB macro
 
 ifeq (,$(filter-out undefined environment,$(origin INSTALL_LIB)))
 include $(dir $(lastword $(MAKEFILE_LIST)))/impl/_install_lib.mk

@@ -4,53 +4,29 @@
 # Licensed under GPL version 2 or any later version, see COPYING
 #----------------------------------------------------------------------------------
 
-# installation utilities
+# installation utility macros
 
-# included by $(CLEAN_BUILD_DIR)/install/impl/inst_defs.mk
+# included by $(CLEAN_BUILD_DIR)/install/impl/_install_lib.mk
 
-# 'install' executable, not available in cmd shell
-INSTALL := $(if $(filter-out cmd,$(UTILS)),install)
-
-
-ifeq (cmd,$(UTILS))
-INSTALL :=
-LDCONFIG :=
-else ifeq (gnu,$(UTILS))
-INSTALL := install
-
-
-INSTALL  := $(if $(filter SOLARIS,$(OS)),/usr/ucb/install,install)
-LDCONFIG := $(if $(filter LINUX,$(OS)),/sbin/ldconfig)
-
-INSTALL_COLOR := [1;31m
-LDCONF_COLOR  := [1;33m
-
-endif # !cmd
+# source definitions of standard installation directories, such as DESTDIR, PREFIX, BINDIR, LIBDIR, INCLUDEDIR, etc.
+include $(dir $(lastword $(MAKEFILE_LIST)))inst_dirs.mk
 
 # create directory (with intermediate parent directories) while installing things
-# $1 - path to directory to create, such as: "C:/Program Files/AcmeCorp", path may contain spaces
-ifneq (cmd,$(INSTALL_UTILS_TYPE))
-INSTALL_DIR_COMMAND = $(INSTALL) -d $1
-else
-INSTALL_DIR_COMMAND = $(MKDIR)
-endif
-
-# install (copy) file(s) to directory
-# $1 - file(s) to install, without spaces in path
-# $2 - destination directory, path may contain spaces
-# $3 - optional access mode, such as 644 (rw--r--r-) or 755 (rwxr-xr-x)
-ifneq (cmd,$(INSTALL_UTILS_TYPE))
-INSTALL_FILES_COMMAND = $(INSTALL) $(addprefix -m ,$3) $1 $2
-else
-INSTALL_FILES_COMMAND = $(CP)
-endif
+# $1 - path to directory to create, such as: '/opt/a b c', path may contain spaces
 
 # create directory (with intermediate parent directories) while installing things
 # $1 - path to directory to create, such as: "C:/Program Files/AcmeCorp", path may contain spaces
 # note: pass non-empty 3-d argument to SUP function to not colorize tool arguments
 # note: pass non-empty 4-th argument to SUP function to not update percents of executed makefiles
-INSTALL_MKDIRq = $(call SUP,MKDIR,$(ospath),1,1)$(INSTALL_DIR_COMMAND)
-INSTALL_MKDIR = $(call INSTALL_MKDIRq,$(ifaddq))
+DO_INSTALL_DIRq = $(call SUP,MKDIR,$(ospath),1,1)$(INSTALL_DIR)
+DO_INSTALL_DIR  = $(call DO_INSTALL_DIRq,$(ifaddq))
+
+# install file(s) (long list) to directory or file to file
+# $1 - file(s) to install (to support long list, paths _must_ be without spaces)
+# $2 - destination directory or file, path may contain spaces
+# $3 - optional access mode, such as 644 (rw--r--r-) or 755 (rwxr-xr-x)
+# note: $6 - <empty> on first call, $(newline) on next calls
+# note: $(CLEAN_BUILD_DIR)/utils/gnu.mk overrides INSTALL_FILES2
 
 # install (copy) file(s) to directory or file to file while installing things
 # $1 - file(s) to install, without spaces in path

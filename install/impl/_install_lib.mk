@@ -7,7 +7,7 @@
 # included by $(CLEAN_BUILD_DIR)/install/install_lib.mk
 
 ifeq (,$(filter-out undefined environment,$(origin NEED_INSTALL_DIR)))
-include $(dir $(lastword $(MAKEFILE_LIST)))inst_defs.mk
+include $(dir $(lastword $(MAKEFILE_LIST)))inst_utils.mk
 endif
 
 # next NO_... macros are used to form default configuration of libraries installation,

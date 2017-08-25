@@ -25,7 +25,7 @@ DESTDIR:=
 DESTDIR_NORMALIZE = $(subst ?, ,$(subst $(space),/,$(strip $(subst \, ,$(subst /, ,$(subst $(space),?,$(DESTDIR)$($1)))))))
 
 # root of program installation directory
-PREFIX := $(if $(filter WINDOWS,$(OS)),artifacts,/usr/local)
+PREFIX := $(if $(filter WIN%,$(OS)),artifacts,/usr/local)
 D_PREFIX = $(call DESTDIR_NORMALIZE,PREFIX)
 
 # directory for executables
