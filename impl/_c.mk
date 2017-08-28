@@ -46,11 +46,11 @@ C_TARGETS += $(C_APP_TARGETS)
 #  S (for linking with S-variant of EXE or DLL)
 
 # no non-regular target variants are supported by default
-# note: for NON_REGULAR_VARIANTS macro from $(CLEAN_BUILD_DIR)/core/_defs.mk
-# note: $(C_COMPILER_MK) included below may override ..._NON_REGULAR_VARIANTS definitions
-EXE_NON_REGULAR_VARIANTS:=
-LIB_NON_REGULAR_VARIANTS:=
-DLL_NON_REGULAR_VARIANTS:=
+# note: for SUPPORTED_VARIANTS macro from $(CLEAN_BUILD_DIR)/core/_defs.mk
+# note: $(C_COMPILER_MK) included below may override ..._SUPPORTED_VARIANTS definitions
+EXE_SUPPORTED_VARIANTS:=
+LIB_SUPPORTED_VARIANTS:=
+DLL_SUPPORTED_VARIANTS:=
 
 # determine target name suffix (in case if building multiple variants of the target, each variant must have unique file name)
 # $1 - target: EXE,LIB,DLL,...
@@ -59,6 +59,33 @@ DLL_NON_REGULAR_VARIANTS:=
 EXE_VARIANT_SUFFIX = _$2
 LIB_VARIANT_SUFFIX = _$2
 DLL_VARIANT_SUFFIX = _$2
+
+# define target variant flags, empty by default
+# $1 - target: EXE
+# $2 - variant
+EXE_VARIANT_INCLUDE:=
+EXE_VARIANT_DEFINES:=
+EXE_VARIANT_CFLAGS:=
+EXE_VARIANT_CXXFLAGS:=
+EXE_VARIANT_LDFLAGS:=
+
+# define target variant flags, empty by default
+# $1 - target: LIB
+# $2 - variant
+LIB_VARIANT_INCLUDE:=
+LIB_VARIANT_DEFINES:=
+LIB_VARIANT_CFLAGS:=
+LIB_VARIANT_CXXFLAGS:=
+LIB_VARIANT_LDFLAGS:=
+
+# define target variant flags, empty by default
+# $1 - target: DLL
+# $2 - variant
+DLL_VARIANT_INCLUDE:=
+DLL_VARIANT_DEFINES:=
+DLL_VARIANT_CFLAGS:=
+DLL_VARIANT_CXXFLAGS:=
+DLL_VARIANT_LDFLAGS:=
 
 # executable file suffix
 EXE_SUFFIX:=
@@ -96,24 +123,24 @@ DLL_DIR = $(LIB_DIR)
 # note: for FORM_TRG macro from $(CLEAN_BUILD_DIR)/core/_defs.mk
 DLL_FORM_TRG = $(GET_TARGET_NAME:%=$(DLL_DIR)/$(DLL_PREFIX)%$(VARIANT_SUFFIX)$(DLL_SUFFIX))
 
-# for DEPENDENCY_SUFFIX, determine which variant of static library to link with EXE or DLL
+# determine which variant of static library to link with EXE or DLL
 # $1 - target: EXE,DLL
 # $2 - variant of target EXE or DLL: R,P,<empty>
 # $3 - dependency type: LIB
 # use the same variant (R or P) of static library as target EXE (for example for P-EXE use P-LIB)
 # always use D-variant of static library for DLL
-# note: for DEPENDENCY_SUFFIX macro from $(CLEAN_BUILD_DIR)/core/_defs.mk
-# note: $(CLEAN_BUILD_DIR)/compilers/msvc.mk overrides LIB_DEPENDENCY_MAP
-LIB_DEPENDENCY_MAP = $(if $(filter DLL,$1),D,$2)
+# note: for DEP_SUFFIX macro from $(CLEAN_BUILD_DIR)/impl/c_base.mk
+# note: $(CLEAN_BUILD_DIR)/compilers/msvc.mk overrides LIB_DEP_MAP
+LIB_DEP_MAP = $(if $(filter DLL,$1),D,$2)
 
-# for DEPENDENCY_SUFFIX, determine which variant of dynamic library to link with EXE or DLL
+# determine which variant of dynamic library to link with EXE or DLL
 # $1 - target: EXE,DLL
 # $2 - variant of target EXE or DLL: R,P,<empty>
 # $3 - dependency type: DLL
 # the same one default variant (R) of DLL may be linked with any P- or R-EXE or R-DLL
-# note: for DEPENDENCY_SUFFIX macro from $(CLEAN_BUILD_DIR)/core/_defs.mk
-# note: $(CLEAN_BUILD_DIR)/compilers/msvc.mk overrides DLL_DEPENDENCY_MAP
-DLL_DEPENDENCY_MAP := R
+# note: for DEP_SUFFIX macro from $(CLEAN_BUILD_DIR)/impl/c_base.mk
+# note: $(CLEAN_BUILD_DIR)/compilers/msvc.mk overrides DLL_DEP_MAP
+DLL_DEP_MAP := R
 
 # prefix/suffix of import library of a dll
 # by default, assume dll and import library of it is the same one file
@@ -124,13 +151,13 @@ IMP_SUFFIX := $(DLL_SUFFIX)
 # make file names of static libraries target depends on
 # $1 - target: EXE,DLL
 # $2 - variant of target EXE or DLL: R,P,S,<empty>
-DEP_LIBS = $(foreach l,$(LIBS),$(LIB_PREFIX)$l$(call DEPENDENCY_SUFFIX,$1,$2,LIB,$l)$(LIB_SUFFIX))
+DEP_LIBS = $(foreach l,$(LIBS),$(LIB_PREFIX)$l$(call DEP_SUFFIX,$1,$2,LIB,$l)$(LIB_SUFFIX))
 
 # make file names of implementation libraries of dynamic libraries target depends on
 # $1 - target: EXE,DLL
 # $2 - variant of target EXE or DLL: R,P,S,<empty>
 # note: assume when building DLL, $(DLL_LD) generates implementation library for DLL in $(LIB_DIR) and DLL itself in $(DLL_DIR)
-DEP_IMPS = $(foreach d,$(DLLS),$(IMP_PREFIX)$d$(call DEPENDENCY_SUFFIX,$1,$2,DLL,$l)$(IMP_SUFFIX))
+DEP_IMPS = $(foreach d,$(DLLS),$(IMP_PREFIX)$d$(call DEP_SUFFIX,$1,$2,DLL,$l)$(IMP_SUFFIX))
 
 # template for building executables, used by C_RULES macro
 # $1 - target file: $(call FORM_TRG,$t,$v)
@@ -149,7 +176,7 @@ $1:DLLS       := $(DLLS)
 $1:SYSLIBS    := $(SYSLIBS)
 $1:SYSLIBPATH := $(SYSLIBPATH)
 $1:$(addprefix $(LIB_DIR)/,$(call DEP_LIBS,$t,$v) $(call DEP_IMPS,$t,$v))
-	$$(call $t_$v_LD,$$@,$$(filter %$(OBJ_SUFFIX),$$^))
+	$$(call $t_LD,$$@,$$(filter %$(OBJ_SUFFIX),$$^),$v)
 endef
 
 # template for building dynamic (shared) libraries, used by C_RULES
@@ -165,16 +192,18 @@ DLL_TEMPLATE = $(EXE_TEMPLATE)
 define LIB_TEMPLATE
 $(C_BASE_TEMPLATE)
 $1:
-	$$(call $t_$v_LD,$$@,$$(filter %$(OBJ_SUFFIX),$$^))
+	$$(call $t_LD,$$@,$$(filter %$(OBJ_SUFFIX),$$^),$v)
 endef
 
-# tools colors: C, C++ compilers, library archiver, shared library and executable linkers
+# tools colors: C, C++ compilers, library archiver, executable and shared library linkers
 CC_COLOR   := [1;31m
 CXX_COLOR  := [1;36m
 AR_COLOR   := [1;32m
 LD_COLOR   := [1;33m
 XLD_COLOR  := [1;37m
 SLD_COLOR  := [1;37m
+
+# the tool mode
 TCC_COLOR  := [32m
 TCXX_COLOR := [32m
 TAR_COLOR  := [1;32m
@@ -233,10 +262,13 @@ include $(C_COMPILER_MK)
 
 # protect variables from modifications in target makefiles
 $(call SET_GLOBAL,C_APP_TARGETS C_TARGETS \
-  EXE_NON_REGULAR_VARIANTS LIB_NON_REGULAR_VARIANTS DLL_NON_REGULAR_VARIANTS \
+  EXE_SUPPORTED_VARIANTS LIB_SUPPORTED_VARIANTS DLL_SUPPORTED_VARIANTS \
   EXE_VARIANT_SUFFIX LIB_VARIANT_SUFFIX DLL_VARIANT_SUFFIX \
+  EXE_VARIANT_INCLUDE EXE_VARIANT_DEFINES EXE_VARIANT_CFLAGS EXE_VARIANT_CXXFLAGS EXE_VARIANT_LDFLAGS \
+  LIB_VARIANT_INCLUDE LIB_VARIANT_DEFINES LIB_VARIANT_CFLAGS LIB_VARIANT_CXXFLAGS LIB_VARIANT_LDFLAGS \
+  DLL_VARIANT_INCLUDE DLL_VARIANT_DEFINES DLL_VARIANT_CFLAGS DLL_VARIANT_CXXFLAGS DLL_VARIANT_LDFLAGS \
   EXE_SUFFIX EXE_FORM_TRG LIB_PREFIX LIB_SUFFIX LIB_FORM_TRG DLL_PREFIX DLL_SUFFIX DLL_DIR DLL_FORM_TRG \
-  LIB_DEPENDENCY_MAP DLL_DEPENDENCY_MAP IMP_PREFIX IMP_SUFFIX DEP_LIBS=LIBS DEP_IMPS=DLLS \
+  LIB_DEP_MAP DLL_DEP_MAP IMP_PREFIX IMP_SUFFIX DEP_LIBS=LIBS DEP_IMPS=DLLS \
   EXE_TEMPLATE=t;v;EXE;LIB_DIR;LIBS;DLLS;SYSLIBS;SYSLIBPATH DLL_TEMPLATE=t;v;DLL LIB_TEMPLATE=t;v;LIB \
   CC_COLOR CXX_COLOR AR_COLOR LD_COLOR XLD_COLOR SLD_COLOR TCC_COLOR TCXX_COLOR TAR_COLOR TLD_COLOR TXLD_COLOR TSLD_COLOR \
   C_PREPARE_APP_VARS CLEAN_BUILD_C_APP_EVAL DEFINE_C_APP_EVAL CHECK_C_APP_RULES C_COMPILER C_COMPILER_MK)

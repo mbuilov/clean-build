@@ -586,29 +586,29 @@ fixpath = $(abspath $(call nonrelpath,$(dir $(TARGET_MAKEFILE)),$1))
 # $1 - EXE,LIB,...
 GET_TARGET_NAME = $(firstword $($1))
 
-# function returning list of supported by selected toolchain non-regular variants of given target type
+# list of supported by selected toolchain non-regular variants of given target type
 # $1 - target type: LIB,EXE,DLL,...
 # example:
-#  EXE_NON_REGULAR_VARIANTS := P
-#  LIB_NON_REGULAR_VARIANTS := P D
+#  EXE_SUPPORTED_VARIANTS := P
+#  LIB_SUPPORTED_VARIANTS := P D
 #  ...
-NON_REGULAR_VARIANTS = $($1_NON_REGULAR_VARIANTS)
+SUPPORTED_VARIANTS = $($1_SUPPORTED_VARIANTS)
 
 # filter-out unsupported variants of the target and return only supported ones (at least R)
 # $1 - target: EXE,LIB,...
 # $2 - list of specified variants of the target (may be empty)
 # $3 - optional name of function which returns list of supported by selected toolchain non-regular variants of given target type
-#  (NON_REGULAR_VARIANTS by default), function must be defined at time of $(eval)
+#  (SUPPORTED_VARIANTS by default), function must be defined at time of $(eval)
 # note: add R to filter pattern to not filter-out default variant R, if it was specified for the target
 # note: if $(filter ...) gives no variants, return default variant R (regular), which is always supported
-FILTER_VARIANTS_LIST = $(patsubst ,R,$(filter R $($(firstword $3 NON_REGULAR_VARIANTS)),$2))
+FILTER_VARIANTS_LIST = $(patsubst ,R,$(filter R $($(firstword $3 SUPPORTED_VARIANTS)),$2))
 
 # if target may be specified with variants, like LIB := my_lib R S
 #  then get variants of the target supported by selected toolchain
 # note: returns non-empty variants list, containing at least R (regular) variant
 # $1 - target: EXE,LIB,...
 # $2 - optional name of function which returns list of supported by selected toolchain non-regular variants of given target type
-#  (NON_REGULAR_VARIANTS by default), function must be defined at time of $(eval)
+#  (SUPPORTED_VARIANTS by default), function must be defined at time of $(eval)
 GET_VARIANTS = $(call FILTER_VARIANTS_LIST,$1,$(wordlist 2,999999,$($1)),$2)
 
 # determine target name suffix (in case if building multiple variants of the target, each variant must have unique file name)
@@ -617,7 +617,7 @@ GET_VARIANTS = $(call FILTER_VARIANTS_LIST,$1,$(wordlist 2,999999,$($1)),$2)
 # note: no suffix if building R (regular) variant or variant is not specified (then assume R variant)
 # example:
 #  LIB_VARIANT_SUFFIX = _$2
-#  note: $2 - non-empty, not R
+#  where: argument $2 - non-empty, not R
 VARIANT_SUFFIX = $(if $(filter-out R,$2),$($1_VARIANT_SUFFIX))
 
 # get absolute path to target file - call appropriate .._FORM_TRG macro
@@ -632,17 +632,7 @@ FORM_TRG = $($1_FORM_TRG)
 
 # get filenames of all variants of the target
 # $1 - EXE,LIB,DLL,...
-ALL_TRG = $(foreach v,$(call GET_VARIANTS,$1),$(call FORM_TRG,$1,$v))
-
-# get suffix of dependent library for given variant of the target
-# $1 - target: EXE,DLL,...
-# $2 - variant of target EXE,DLL,...: R,P,S,... (if empty, assume R)
-# $3 - dependency type: LIB,DLL,...
-# example:
-#  use the same variant (R or P) of static library as target EXE (for example for P-EXE use P-LIB)
-#  always use D-variant of static library for DLL
-#  LIB_DEPENDENCY_MAP = $(if $(filter DLL,$1),D,$2)
-DEPENDENCY_SUFFIX = $(call VARIANT_SUFFIX,$3,$($3_DEPENDENCY_MAP))
+ALL_TARGETS = $(foreach v,$(call GET_VARIANTS,$1),$(call FORM_TRG,$1,$v))
 
 # form name of target objects directory
 # $1 - target to build (EXE,LIB,DLL,...)
@@ -972,7 +962,7 @@ $(call SET_GLOBAL,PROJECT_VARS_NAMES PASS_ENV_VARS \
   TOOL_BASE MK_TOOLS_DIR GET_TOOLS GET_TOOL TOOL_OVERRIDE_DIRS \
   ADD_MDEPS ADD_ADEPS CREATE_MAKEFILE_ALIAS ADD_ORDER_DEPS=ORDER_DEPS=ORDER_DEPS \
   STD_TARGET_VARS1 STD_TARGET_VARS MAKEFILE_INFO_TEMPL SET_MAKEFILE_INFO fixpath \
-  GET_TARGET_NAME NON_REGULAR_VARIANTS FILTER_VARIANTS_LIST GET_VARIANTS VARIANT_SUFFIX FORM_TRG ALL_TRG DEPENDENCY_SUFFIX \
+  GET_TARGET_NAME SUPPORTED_VARIANTS FILTER_VARIANTS_LIST GET_VARIANTS VARIANT_SUFFIX FORM_TRG ALL_TARGETS \
   FORM_OBJ_DIR ADD_GENERATED CHECK_GENERATED ADD_GENERATED_RET \
   MULTI_TARGET_RULE=MULTI_TARGET_NUM=MULTI_TARGET_NUM MULTI_TARGET CHECK_MULTI_RULE \
   NON_PARALLEL_EXECUTE_RULE NON_PARALLEL_EXECUTE FORM_SDEPS EXTRACT_SDEPS FIX_SDEPS RUN_WITH_DLL_PATH TMD TOOL_MODE \

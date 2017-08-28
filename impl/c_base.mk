@@ -21,10 +21,19 @@ NO_PCH:=
 # note: may overridden by selected C/C++ compiler
 OBJ_SUFFIX := .o
 
-# C/C++/Assembler sources masks
+# C/C++ sources masks
 CC_MASK  := %.c
 CXX_MASK := %.cpp
-ASM_MASK := %.asm
+
+# get suffix of dependent library for given variant of the target
+# $1 - target: EXE,DLL,...
+# $2 - variant of target EXE,DLL,...: R,P,S,... (if empty, assume R)
+# $3 - dependency type: LIB,DLL,...
+# example:
+#  always use D-variant of static library for DLL
+#  else use the same variant (R or P) of static library as target (EXE) (for example for P-EXE use P-LIB)
+#  LIB_DEP_MAP = $(if $(filter DLL,$1),D,$2)
+DEP_SUFFIX = $(call VARIANT_SUFFIX,$3,$($3_DEP_MAP))
 
 # add source-dependencies for an object file
 # $1 - objdir
@@ -37,7 +46,6 @@ ADD_OBJ_SDEPS = $(if $2,$(newline)$1/$(basename $(notdir $x))$(OBJ_SUFFIX): $2)
 # $3 - sdeps (result of FIX_SDEPS)
 # $4 - objdir
 # $5 - $(addsuffix $(OBJ_SUFFIX),$(addprefix $4/,$(basename $(notdir $2))))
-# $6 - compiler: $t_$v_$1
 # $t - target type: EXE,LIB,...
 # $v - non-empty variant: R,P,S,...
 # returns: list of object files
@@ -47,7 +55,7 @@ $5
 $(subst $(space),$(newline),$(join $(addsuffix :,$5),$2))$(if \
   $3,$(foreach x,$2,$(call ADD_OBJ_SDEPS,$4,$(call EXTRACT_SDEPS,$x,$3))))
 $5:| $4 $$(ORDER_DEPS)
-	$$(call $6,$$@,$$<)
+	$$(call $t_$1,$$@,$$<,$v)
 endef
 
 # $1 - sources type: CXX,CC,ASM,...
@@ -62,7 +70,7 @@ endef
 ifdef TOCLEAN
 OBJ_RULES1 = $(call TOCLEAN,$(addsuffix .d,$5) $(addsuffix $(OBJ_SUFFIX),$5))
 else
-OBJ_RULES1 = $(call OBJ_RULES_BODY,$1,$2,$3,$4,$(addsuffix $(OBJ_SUFFIX),$5),$t_$v_$1)
+OBJ_RULES1 = $(call OBJ_RULES_BODY,$1,$2,$3,$4,$(addsuffix $(OBJ_SUFFIX),$5))
 ifndef NO_DEPS
 $(call define_append,OBJ_RULES1,$(newline)-include $$(addsuffix .d,$$5))
 endif
@@ -88,19 +96,12 @@ OBJ_RULES = $(if $2,$(call OBJ_RULES1,$1,$2,$3,$4,$(addprefix $4/,$(basename $(n
 TRG_COMPILER = $(if $(filter $(CXX_MASK),$2),CXX,CC)
 
 # make absolute paths to include directories - we need absolute paths to headers in generated .d dependency file
-# note: do not touch paths in $(SYSINCLUDE) - assume they are absolute
-# note: $(SYSINCLUDE) paths are normally filtered-out while .d dependency file generation
-TRG_INCLUDE = $(call fixpath,$(INCLUDE)) $(SYSINCLUDE)
-
-# choose DEFINES/CFLAGS/CXXFLAGS/LDFLAGS for specific target variant
 # $t     - EXE,LIB,DLL,DRV,KLIB,KDLL,...
 # $v     - non-empty variant: R,P,S,...
 # $(TMD) - T in tool mode, empty otherwise
-# note: these macros are likely overridden in included next C/C++ compiler definitions makefile
-VARIANT_DEFINES:=
-VARIANT_CFLAGS:=
-VARIANT_CXXFLAGS:=
-VARIANT_LDFLAGS:=
+# note: do not touch paths in $(SYSINCLUDE) - assume they are absolute
+# note: $(SYSINCLUDE) paths are normally filtered-out while .d dependency file generation
+TRG_INCLUDE = $(call fixpath,$(INCLUDE)) $(SYSINCLUDE)
 
 # target flags
 # $t     - EXE,LIB,DLL,DRV,KLIB,KDLL,...
@@ -111,10 +112,20 @@ VARIANT_LDFLAGS:=
 #   cpu,$($(if $(filter DRV KLIB KDLL,$t),K,$(TMD))CPU),$(if \
 #   $(filter sparc% mips% ppc%,$(cpu)),B_ENDIAN,L_ENDIAN) $(if \
 #   $(filter arm% sparc% mips% ppc%,$(cpu)),ADDRESS_NEEDALIGN)) $(DEFINES)
-TRG_DEFINES  = $(VARIANT_DEFINES) $(DEFINES)
-TRG_CFLAGS   = $(VARIANT_CFLAGS) $(CFLAGS)
-TRG_CXXFLAGS = $(VARIANT_CXXFLAGS) $(CXXFLAGS)
-TRG_LDFLAGS  = $(VARIANT_LDFLAGS) $(LDFLAGS)
+TRG_DEFINES  = $(DEFINES)
+TRG_CFLAGS   = $(CFLAGS)
+TRG_CXXFLAGS = $(CXXFLAGS)
+TRG_LDFLAGS  = $(LDFLAGS)
+
+# choose INCLUDE/DEFINES/CFLAGS/CXXFLAGS/LDFLAGS for non-regilar target variant
+# $1 - EXE,LIB,DLL,DRV,KLIB,KDLL,...
+# $2 - non-empty variant: R,P,S,...
+# note: $t_VARIANT_... macros should be defined in C/C++ compiler definitions makefile
+VARIANT_INCLUDE  = $(if $(filter-out R,$2),$($1_VARIANT_INCLUDE))
+VARIANT_DEFINES  = $(if $(filter-out R,$2),$($1_VARIANT_DEFINES))
+VARIANT_CFLAGS   = $(if $(filter-out R,$2),$($1_VARIANT_CFLAGS))
+VARIANT_CXXFLAGS = $(if $(filter-out R,$2),$($1_VARIANT_CXXFLAGS))
+VARIANT_LDFLAGS  = $(if $(filter-out R,$2),$($1_VARIANT_LDFLAGS))
 
 # make list of sources for the target, used by TRG_SRC
 GET_SOURCES = $(SRC) $(WITH_PCH)
@@ -183,11 +194,11 @@ $(STD_TARGET_VARS)
 $1:$(call OBJ_RULES,CC,$(filter $(CC_MASK),$2),$3,$4)
 $1:$(call OBJ_RULES,CXX,$(filter $(CXX_MASK),$2),$3,$4)
 $1:COMPILER := $(TRG_COMPILER)
-$1:INCLUDE  := $(TRG_INCLUDE)
-$1:DEFINES  := $(TRG_DEFINES)
-$1:CFLAGS   := $(TRG_CFLAGS)
-$1:CXXFLAGS := $(TRG_CXXFLAGS)
-$1:LDFLAGS  := $(TRG_LDFLAGS)
+$1:INCLUDE  := $(TRG_INCLUDE) $(call VARIANT_INCLUDE,$t,$v)
+$1:DEFINES  := $(TRG_DEFINES) $(call VARIANT_DEFINES,$t,$v)
+$1:CFLAGS   := $(TRG_CFLAGS) $(call VARIANT_CFLAGS,$t,$v)
+$1:CXXFLAGS := $(TRG_CXXFLAGS) $(call VARIANT_CXXFLAGS,$t,$v)
+$1:LDFLAGS  := $(TRG_LDFLAGS) $(call VARIANT_LDFLAGS,$t,$v)
 endef
 
 # code to be called at beginning of target makefile
@@ -223,6 +234,9 @@ override ASSEMBLER_SUPPORT := $(ASSEMBLER_SUPPORT)
 
 ifdef ASSEMBLER_SUPPORT
 
+# Assembler sources mask
+ASM_MASK := %.asm
+
 # target assembler flags
 # $t     - EXE,LIB,DLL,DRV,KLIB,KDLL,...
 # $v     - non-empty variant: R,P,S,...
@@ -256,11 +270,13 @@ endif # ASSEMBLER_SUPPORT
 $(call try_make_simple,C_PREPARE_BASE_VARS,PRODUCT_VER)
 
 # protect variables from modifications in target makefiles
-$(call SET_GLOBAL,NO_PCH OBJ_SUFFIX CC_MASK CXX_MASK ASM_MASK ADD_OBJ_SDEPS=x OBJ_RULES_BODY=t;v OBJ_RULES1=t;v OBJ_RULES=t;v \
+$(call SET_GLOBAL,NO_PCH OBJ_SUFFIX CC_MASK CXX_MASK DEP_SUFFIX ADD_OBJ_SDEPS=x OBJ_RULES_BODY=t;v OBJ_RULES1=t;v OBJ_RULES=t;v \
   TRG_COMPILER=t;v TRG_INCLUDE=t;v;INCLUDE;SYSINCLUDE VARIANT_DEFINES=t;v VARIANT_CFLAGS=t;v VARIANT_CXXFLAGS=t;v VARIANT_LDFLAGS=t;v \
-  TRG_DEFINES=t;v;DEFINES TRG_CFLAGS=t;v;CFLAGS TRG_CXXFLAGS=t;v;CXXFLAGS TRG_LDFLAGS=t;v;LDFLAGS GET_SOURCES=SRC;WITH_PCH \
-  TRG_SRC TRG_SDEPS=SDEPS STRING_DEFINE DEFINE_ESCAPE_STRING DEFINES_ESCAPE_STRING C_TARGETS C_RULESv=t;v C_RULESt=t C_RULES \
-  C_BASE_TEMPLATE=t;v;$$t C_PREPARE_BASE_VARS C_RULES_EVAL TRG_ASMFLAGS=t;v;ASMFLAGS ASM_TEMPLATE ASM_COLOR)
+  TRG_DEFINES=t;v;DEFINES TRG_CFLAGS=t;v;CFLAGS TRG_CXXFLAGS=t;v;CXXFLAGS TRG_LDFLAGS=t;v;LDFLAGS \
+  VARIANT_INCLUDE=t;v VARIANT_DEFINES=t;v VARIANT_CFLAGS=t;v VARIANT_CXXFLAGS=t;v VARIANT_LDFLAGS=t;v \
+  GET_SOURCES=SRC;WITH_PCH TRG_SRC TRG_SDEPS=SDEPS STRING_DEFINE DEFINE_ESCAPE_STRING DEFINES_ESCAPE_STRING \
+  C_TARGETS C_RULESv=t;v C_RULESt=t C_RULES C_BASE_TEMPLATE=t;v;$$t C_PREPARE_BASE_VARS C_RULES_EVAL \
+  ASM_MASK TRG_ASMFLAGS=t;v;ASMFLAGS ASM_TEMPLATE ASM_COLOR)
 
 # protect variables from modifications in target makefiles
 # note: do not trace calls to ASSEMBLER_SUPPORT variable because it is used in ifdefs

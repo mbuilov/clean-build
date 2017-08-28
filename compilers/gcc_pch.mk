@@ -19,7 +19,7 @@ endif
 # $2 - $(filter $(CC_MASK),$(call fixpath,$(WITH_PCH))) or $(filter $(CXX_MASK),$(call fixpath,$(WITH_PCH)))
 # $3 - $(call FORM_OBJ_DIR,$t,$v)
 # $4 - $3/$(basename $(notdir $1))_pch_c.h or $3/$(basename $(notdir $1))_pch_cxx.h
-# $5 - pch compiler: PCH_$t_$v_CC or PCH_$t_$v_CXX
+# $5 - pch compiler type: CC or CXX
 # $t - EXE,LIB,DLL,KLIB
 # $v - R,P
 # target-specific: PCH
@@ -27,7 +27,7 @@ endif
 define GCC_PCH_RULE_TEMPL
 $(addprefix $3/,$(addsuffix $(OBJ_SUFFIX),$(basename $(notdir $2)))): $4.gch
 $4.gch: $1 | $3 $$(ORDER_DEPS)
-	$$(call $5,$$@,$$(PCH))
+	$$(call PCH_$t_$5,$$@,$$(PCH),$v)
 
 endef
 ifndef NO_DEPS
@@ -44,8 +44,8 @@ endif
 # $t - EXE,LIB,DLL,KLIB
 # $v - R,P
 GCC_PCH_TEMPLATEv = $(PCH_VARS_TEMPL)$(if \
-  $3,$(call GCC_PCH_RULE_TEMPL,$2,$3,$5,$5/$(basename $(notdir $2))_pch_c.h,PCH_$t_$v_CC))$(if \
-  $4,$(call GCC_PCH_RULE_TEMPL,$2,$4,$5,$5/$(basename $(notdir $2))_pch_cxx.h,PCH_$t_$v_CXX))
+  $3,$(call GCC_PCH_RULE_TEMPL,$2,$3,$5,$5/$(basename $(notdir $2))_pch_c.h,CC))$(if \
+  $4,$(call GCC_PCH_RULE_TEMPL,$2,$4,$5,$5/$(basename $(notdir $2))_pch_cxx.h,CXX))
 
 # $1 - $(call fixpath,$(PCH))
 # $2 - $(filter $(CC_MASK),$(call fixpath,$(WITH_PCH)))
@@ -63,7 +63,7 @@ GCC_PCH_TEMPLATEt1 = $(call GCC_PCH_TEMPLATEt2,$(call fixpath,$(PCH)),$(filter $
 # note: must reset target-specific variables CC_WITH_PCH and CXX_WITH_PCH if not using precompiled header
 #  for the target, otherwise dependent DLL or LIB target may inherit these values from EXE or DLL
 GCC_PCH_TEMPLATEt = $(if $(and $(PCH),$(WITH_PCH)),$(call \
-  GCC_PCH_TEMPLATEt1,$(call fixpath,$(WITH_PCH))),$(call WITH_PCH_RESET,$(call ALL_TRG,$t)))
+  GCC_PCH_TEMPLATEt1,$(call fixpath,$(WITH_PCH))),$(call WITH_PCH_RESET,$(call ALL_TARGETS,$t)))
 
 else # clean
 

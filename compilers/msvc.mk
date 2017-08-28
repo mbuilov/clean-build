@@ -966,7 +966,7 @@ PCH_TEMPLATE3 = $(PCH_TEMPLATEt)$(foreach v,$(call GET_VARIANTS,$t),$(newline)$(
 # - DLL or LIB target may inherit WITH_PCH value from EXE,
 # - LIB target may inherit WITH_PCH value from DLL
 PCH_TEMPLATE = $(if $(word 2,$(PCH) $(WITH_PCH)),$(call PCH_TEMPLATE3,$(call GET_TARGET_NAME,$t),$$(basename \
-  $$(notdir $$(TRG_PCH))),$(if $(filter DRV KLIB KDLL,$t),K)),$(call ALL_TRG,$t): WITH_PCH:=)
+  $$(notdir $$(TRG_PCH))),$(if $(filter DRV KLIB KDLL,$t),K)),$(call ALL_TARGETS,$t): WITH_PCH:=)
 
 endif # !SEQ_BUILD
 

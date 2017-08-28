@@ -361,7 +361,7 @@ endef
 # otherwise DLL or LIB target may inherit WITH_PCH value from EXE, LIB target may inherit WITH_PCH value from DLL
 PCH_TEMPLATE = $(if $(word 2,$(PCH) $(firstword $(WITH_PCH))),$(foreach \
   v,$(call GET_VARIANTS,$t),$(newline)$(call PCH_TEMPLATEv,$(call FORM_TRG,$t,$v),$(call \
-  FORM_OBJ_DIR,$t,$v))),$(call ALL_TRG,$t): WITH_PCH:=$(newline))
+  FORM_OBJ_DIR,$t,$v))),$(call ALL_TARGETS,$t): WITH_PCH:=$(newline))
 
 # set dependencies of objects compiled with pch header on .gch
 # $1 - $(filter %.c,$src)

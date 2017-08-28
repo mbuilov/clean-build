@@ -145,7 +145,7 @@ FORM_TRG = $(if \
 
 # make target filenames for all variants of the target
 # $1 - EXE,LIB,DLL,...
-ALL_TRG = $(foreach v,$(call GET_VARIANTS,$1),$(call FORM_TRG,$1,$v))
+ALL_TARGETS = $(foreach v,$(call GET_VARIANTS,$1),$(call FORM_TRG,$1,$v))
 
 # compiler for the target
 # $1     - target file: $(call FORM_TRG,$t,$v)
@@ -406,7 +406,7 @@ endif # findstring
 
 # protect variables from modifications in target makefiles
 $(call SET_GLOBAL,KNOWN_C_COMPILERS C_COMPILER BLD_TARGETS NO_DEPS ADD_OBJ_SDEPS=x OBJ_RULES2=t;v OBJ_RULES1=t;v OBJ_RULES=t;v \
-  VARIANTS_FILTER EXE_SUFFIX_GEN EXE_VAR_SUFFIX LIB_VAR_SUFFIX DLL_DIR FORM_TRG ALL_TRG \
+  VARIANTS_FILTER EXE_SUFFIX_GEN EXE_VAR_SUFFIX LIB_VAR_SUFFIX DLL_DIR FORM_TRG ALL_TARGETS \
   TRG_COMPILER=t;v TRG_INCLUDE=t;v;SYSINCLUDE TRG_DEFINES=t;v;DEFINES TRG_CFLAGS=t;v;CFLAGS \
   TRG_CXXFLAGS=t;v;CXXFLAGS TRG_ASMFLAGS=t;v;ASMFLAGS TRG_LDFLAGS=t;v;LDFLAGS \
   GET_SOURCES=SRC;WITH_PCH TRG_SRC TRG_SDEPS=SDEPS GET_OBJS VARIANT_LIB_MAP VARIANT_IMP_MAP \
