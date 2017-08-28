@@ -7,8 +7,9 @@
 # define unix-specific INSTALL_LIB macro
 
 # included by $(CLEAN_BUILD_DIR)/install/impl/_install_lib.mk
-# after including $(CLEAN_BUILD_DIR)/install/impl/inst_utils.mk
-# and $(CLEAN_BUILD_DIR)/install/impl/inst_dirs.mk
+
+
+
 
 # post-install/uninstall shared libraries
 # $1 - inst/uninst

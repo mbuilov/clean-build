@@ -62,9 +62,10 @@ endif
 # strip off Cygwin paths - to use only native windows tools
 # for example, sed.exe from Cygwin handles quotes in format string differently than C:/GnuWin32/bin/sed.exe
 # note: Cygwin paths may look like: C:\cygwin64\usr\local\bin;C:\cygwin64\bin
+# note: assume paths separated with ; and there is no ; inside paths
 CYGWIN_STRING := cygwin
-override PATH := $(subst ?, ,$(subst $(space),;,$(strip $(foreach p,$(subst \
-  ;, ,$(subst $(space),?,$(PATH))),$(if $(findstring $(CYGWIN_STRING),$p),,$p)))))
+override PATH := $(call tospaces,$(subst $(space),;,$(strip $(foreach p,$(subst \
+  ;, ,$(call unspaces,$(PATH))),$(if $(findstring $(CYGWIN_STRING),$p),,$p)))))
 
 # print prepared environment in verbose mode (used for generating one-big-build instructions batch file)
 PRINT_ENV = $(info setlocal$(newline)FOR /F "delims==" %%V IN ('SET') DO $(foreach \
@@ -177,26 +178,24 @@ ECHO_LINE_ESCAPE = $(subst $(open_brace),^$(open_brace),$(subst $(close_brace),^
 ECHO_LINE = echo.$(ECHO_LINE_ESCAPE)
 
 # print lines of text to output file or to stdout (for redirecting it to output file)
-# $1 - non-empty lines list, where $(tab) replaced with $$(tab) and $(space) replaced with $$(space)
+# $1 - non-empty lines list, where entries are processed by $(unescape)
 # $2 - if not empty, then file to print to
 # $3 - text to prepend before the command when $6 is non-empty
 # $4 - text to prepend before the command when $6 is empty
 # $6 - empty if overwrite file $2, non-empty if append text to it
 # NOTE: total text length must not exceed maximum command line length (8191 characters)
-ECHO_LINES = $(if $6,$3,$4)$(eval ECHO_LINES_:=$(subst $(comment),$$(comment),(echo.$(subst \
-  $(space),$(close_brace)&&$(open_brace)echo.,$(ECHO_LINE_ESCAPE)))))($(ECHO_LINES_))$(if $2,>$(if $6,>) $2)
+ECHO_LINES = $(if $6,$3,$4)$(call tospaces,(echo.$(subst \
+  $(space),$(close_brace)&&$(open_brace)echo.,$(ECHO_LINE_ESCAPE))))$(if $2,>$(if $6,>) $2)
 
 # print lines of text (to stdout, for redirecting it to output file)
 # note: each line will be ended with CRLF
 # NOTE: total text length must not exceed maximum command line length (8191 characters)
-ECHO_TEXT = $(if $(findstring $(newline),$1),$(call ECHO_LINES,$(subst $(newline),$$(empty) $$(empty),$(subst \
-  $(tab),$$(tab),$(subst $(space),$$(space),$(subst $$,$$$$,$1))))),$(ECHO_LINE))
+ECHO_TEXT = $(if $(findstring $(newline),$1),$(call ECHO_LINES,$(subst $(newline),$$(empty) $$(empty),$(unspaces))),$(ECHO_LINE))
 
 # write lines of text $1 to file $2 by $3 lines at one time
 # NOTE: any line must be less than maximum command length (8191 characters)
 # NOTE: number $3 must be adjusted so echoed at one time text length will not exceed maximum command length (8191 characters)
-WRITE_TEXT = $(call xargs,ECHO_LINES,$(subst $(newline),$$(empty) $$(empty),$(subst \
-  $(tab),$$(tab),$(subst $(space),$$(space),$(subst $$,$$$$,$1)))),$3,$2,$(QUIET),,,$(newline))
+WRITE_TEXT = $(call xargs,ECHO_LINES,$(subst $(newline),$$(empty) $$(empty),$(unspaces)),$3,$2,$(QUIET),,,$(newline))
 
 # execute command $2 in directory $1
 EXECUTE_IN = pushd $(ospath) && ($2 && popd || (popd & cmd /c exit 1))
@@ -208,10 +207,10 @@ DEL_ON_FAIL = || (($(DELETE_FILES)) & cmd /c exit 1)
 INSTALL:=
 
 # create directory (with intermediate parent directories) while installing things
-# $1 - path to directory to create, such as: "C:/Program Files/AcmeCorp", path may contain spaces
+# $1 - path to directory to create, path may contain spaces, such as: "C:/Program Files/AcmeCorp"
 INSTALL_DIR = $(CREATE_DIR)
 
-# install file(s) (long list) to directory or file to file
+# install file(s) (long list) to directory or copy file to file
 # $1 - file(s) to install (to support long list, paths _must_ be without spaces)
 # $2 - destination directory or file, path may contain spaces
 # $3 - optional access mode, such as 644 (rw--r--r-) or 755 (rwxr-xr-x)

@@ -6,14 +6,14 @@
 
 ifeq (,$(filter-out undefined environment,$(origin GET_ALL_LIBS)))
 
-# get all built variants of static and dynamic libraries in form <name>?<variant>
+# get all built variants of static and dynamic libraries in form <name>/<variant>
 # $1 - built static libraries
 # $2 - variants of built static libraries
 # $3 - built dynamic libraries
 # $4 - variants of built dynamic libraries
 GET_ALL_LIBS = $(sort $(join \
-  $(patsubst $(LIB_PREFIX)%$(LIB_SUFFIX),%?,$(notdir $1)),$2) $(join \
-  $(patsubst $(DLL_PREFIX)%$(DLL_SUFFIX),%?,$(notdir $3)),$4))
+  $(patsubst $(LIB_PREFIX)%$(LIB_SUFFIX),%/,$(notdir $1)),$2) $(join \
+  $(patsubst $(DLL_PREFIX)%$(DLL_SUFFIX),%/,$(notdir $3)),$4))
 
 # protect variables from modifications in target makefiles
 $(call SET_GLOBAL,GET_ALL_LIBS)

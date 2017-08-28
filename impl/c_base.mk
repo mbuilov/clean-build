@@ -92,6 +92,16 @@ TRG_COMPILER = $(if $(filter $(CXX_MASK),$2),CXX,CC)
 # note: $(SYSINCLUDE) paths are normally filtered-out while .d dependency file generation
 TRG_INCLUDE = $(call fixpath,$(INCLUDE)) $(SYSINCLUDE)
 
+# choose DEFINES/CFLAGS/CXXFLAGS/LDFLAGS for specific target variant
+# $t     - EXE,LIB,DLL,DRV,KLIB,KDLL,...
+# $v     - non-empty variant: R,P,S,...
+# $(TMD) - T in tool mode, empty otherwise
+# note: these macros are likely overridden in included next C/C++ compiler definitions makefile
+VARIANT_DEFINES:=
+VARIANT_CFLAGS:=
+VARIANT_CXXFLAGS:=
+VARIANT_LDFLAGS:=
+
 # target flags
 # $t     - EXE,LIB,DLL,DRV,KLIB,KDLL,...
 # $v     - non-empty variant: R,P,S,...
@@ -101,10 +111,10 @@ TRG_INCLUDE = $(call fixpath,$(INCLUDE)) $(SYSINCLUDE)
 #   cpu,$($(if $(filter DRV KLIB KDLL,$t),K,$(TMD))CPU),$(if \
 #   $(filter sparc% mips% ppc%,$(cpu)),B_ENDIAN,L_ENDIAN) $(if \
 #   $(filter arm% sparc% mips% ppc%,$(cpu)),ADDRESS_NEEDALIGN)) $(DEFINES)
-TRG_DEFINES  = $(DEFINES)
-TRG_CFLAGS   = $(CFLAGS)
-TRG_CXXFLAGS = $(CXXFLAGS)
-TRG_LDFLAGS  = $(LDFLAGS)
+TRG_DEFINES  = $(VARIANT_DEFINES) $(DEFINES)
+TRG_CFLAGS   = $(VARIANT_CFLAGS) $(CFLAGS)
+TRG_CXXFLAGS = $(VARIANT_CXXFLAGS) $(CXXFLAGS)
+TRG_LDFLAGS  = $(VARIANT_LDFLAGS) $(LDFLAGS)
 
 # make list of sources for the target, used by TRG_SRC
 GET_SOURCES = $(SRC) $(WITH_PCH)
@@ -116,23 +126,23 @@ TRG_SRC = $(call fixpath,$(GET_SOURCES))
 TRG_SDEPS = $(call FIX_SDEPS,$(SDEPS))
 
 # helper macro for target makefiles to pass string define value to C-compiler
-# result of this macro will be processed by SUBST_DEFINES
+# result of this macro will be processed by DEFINE_ESCAPE_STRING
 # example: DEFINES := MY_MESSAGE=$(call STRING_DEFINE,"my message")
-STRING_DEFINE = $(subst $(tab),$$(tab),$(subst $(space),$$(space),$(subst $$,$$$$,$1)))
+STRING_DEFINE = $(unspaces)
 
-# process result of STRING_DEFINE to make values of defines passed to C-compiler
-# called by macro that expands to C-complier call
-SUBST_DEFINES = $(eval SUBST_DEFINES_:=$(subst $(comment),$$(comment),$1))$(SUBST_DEFINES_)
-
-# escape characters in string value of define
-# $1 - define name
+# process result of STRING_DEFINE to make value of define for passing it to C-compiler
+# escape characters in string value of define for passing it via shell
+# $1 - define_name
 # $d - $1="1$(space)2"
-DEFINE_ESCAPE_STRING = $1=$(call SHELL_ESCAPE,$(call SUBST_DEFINES,$(patsubst $1=%,%,$d)))
+# returns: define_name="\"1 2\""
+DEFINE_ESCAPE_STRING = $1=$(call SHELL_ESCAPE,$(call tospaces,$(patsubst $1=%,%,$d)))
 
-# escape characters in string values of defines
+# process result of STRING_DEFINE to make values of defines for passing them to C-compiler
+# escape characters in string values of defines for passing them via shell
 # $1 - list of defines
 # example: A=1 B="b" C="1$(space)2"
-# returns: A=1 B="\"b\"" C="\"1$(space)2\""
+# returns: A=1 B="\"b\"" C="\"1 2\""
+# note: called by macro that expands to C-complier call
 DEFINES_ESCAPE_STRING = $(if $(findstring ",$1),$(foreach d,$1,$(if $(findstring \
   =",$d),$(call DEFINE_ESCAPE_STRING,$(firstword $(subst =", ,$d))),$d)),$1)
 
@@ -247,9 +257,9 @@ $(call try_make_simple,C_PREPARE_BASE_VARS,PRODUCT_VER)
 
 # protect variables from modifications in target makefiles
 $(call SET_GLOBAL,NO_PCH OBJ_SUFFIX CC_MASK CXX_MASK ASM_MASK ADD_OBJ_SDEPS=x OBJ_RULES_BODY=t;v OBJ_RULES1=t;v OBJ_RULES=t;v \
-  TRG_COMPILER=t;v TRG_INCLUDE=t;v;INCLUDE;SYSINCLUDE TRG_DEFINES=t;v;DEFINES TRG_CFLAGS=t;v;CFLAGS \
-  TRG_CXXFLAGS=t;v;CXXFLAGS TRG_LDFLAGS=t;v;LDFLAGS GET_SOURCES=SRC;WITH_PCH TRG_SRC TRG_SDEPS=SDEPS \
-  STRING_DEFINE SUBST_DEFINES DEFINE_ESCAPE_STRING DEFINES_ESCAPE_STRING C_TARGETS C_RULESv=t;v C_RULESt=t C_RULES \
+  TRG_COMPILER=t;v TRG_INCLUDE=t;v;INCLUDE;SYSINCLUDE VARIANT_DEFINES=t;v VARIANT_CFLAGS=t;v VARIANT_CXXFLAGS=t;v VARIANT_LDFLAGS=t;v \
+  TRG_DEFINES=t;v;DEFINES TRG_CFLAGS=t;v;CFLAGS TRG_CXXFLAGS=t;v;CXXFLAGS TRG_LDFLAGS=t;v;LDFLAGS GET_SOURCES=SRC;WITH_PCH \
+  TRG_SRC TRG_SDEPS=SDEPS STRING_DEFINE DEFINE_ESCAPE_STRING DEFINES_ESCAPE_STRING C_TARGETS C_RULESv=t;v C_RULESt=t C_RULES \
   C_BASE_TEMPLATE=t;v;$$t C_PREPARE_BASE_VARS C_RULES_EVAL TRG_ASMFLAGS=t;v;ASMFLAGS ASM_TEMPLATE ASM_COLOR)
 
 # protect variables from modifications in target makefiles

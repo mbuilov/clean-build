@@ -114,8 +114,11 @@ trace_calls = $(eval $(foreach f,$1,$(foreach v,$(firstword $(subst =, ,$f)),$(i
   $v)),,$(call trace_calls_template,$v,$(encode_traced_var_name),$(if $(findstring command line,$(origin $v)),override,$(findstring \
   override,$(origin $v))),$(subst ;, ,$(word 2,$(subst =, ,$f))),$(subst ;, ,$(word 3,$(subst =, ,$f))),$2))))))
 
-# replace spaces in path with ?
-unspaces = $(subst $(space),?,$1)
+# hide spaces in string
+unspaces = $(subst $(space),$$(space),$(subst $(tab),$$(tab),$(subst $$,$$$$,$1)))
+
+# unhide spaces in string
+tospaces = $(eval tospaces_:=$(subst $(comment),$$(comment),$1))$(tospaces_)
 
 # add quotes if path has an embedded space(s):
 # $(call ifaddq,a b) -> "a b"
@@ -123,9 +126,9 @@ unspaces = $(subst $(space),?,$1)
 # note: overridden in $(CLEAN_BUILD_DIR)/utils/unix.mk
 ifaddq = $(if $(findstring $(space),$1),"$1",$1)
 
-# convert back ? to spaces in paths adding some prefix:
-# $(call qpath,a?b cd,-I) -> -I"a b" -Icd
-qpath = $(foreach x,$1,$2$(call ifaddq,$(subst ?, ,$x)))
+# unhide spaces in paths adding some prefix:
+# $(call qpath,a$(space)b cd,-I) -> -I"a b" -Icd
+qpath = $(foreach x,$1,$2$(call ifaddq,$(call unspaces,$x)))
 
 # map [A-Z] -> [a-z]
 tolower = $(subst \
@@ -278,8 +281,8 @@ split_dirs = $(sort $(split_dirs1))
 # 1 1/2 1/2/3
 #
 # - produce:
-# 1/2: |1
-# 1/2/3: |1/2
+# 1/2:| 1
+# 1/2/3:| 1/2
 #
 # $1 - list of directories - result of $(split_dirs)
 # $2 - prefix to add to all directories
@@ -336,7 +339,7 @@ TARGET_MAKEFILE += $(call SET_GLOBAL, \
 # protect variables from modification in target makefiles
 # note: TARGET_MAKEFILE variable is used here temporary and will be redefined later
 TARGET_MAKEFILE += $(call SET_GLOBAL, \
-  unspaces ifaddq qpath tolower toupper repl09 repl09AZ padto1 padto \
+  unspaces tospaces ifaddq qpath tolower toupper repl09 repl09AZ padto1 padto \
   is_less1 is_less xargs1 xargs xcmd trim normp2 normp1 normp \
   cmn_path1 cmn_path back_prefix relpath2 relpath1 relpath join_with \
   ver_major ver_minor ver_patch ver_compatible1 ver_compatible \

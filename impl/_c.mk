@@ -46,6 +46,7 @@ C_TARGETS += $(C_APP_TARGETS)
 #  S (for linking with S-variant of EXE or DLL)
 
 # no non-regular target variants are supported by default
+# note: for NON_REGULAR_VARIANTS macro from $(CLEAN_BUILD_DIR)/core/_defs.mk
 # note: $(C_COMPILER_MK) included below may override ..._NON_REGULAR_VARIANTS definitions
 EXE_NON_REGULAR_VARIANTS:=
 LIB_NON_REGULAR_VARIANTS:=
@@ -54,6 +55,7 @@ DLL_NON_REGULAR_VARIANTS:=
 # determine target name suffix (in case if building multiple variants of the target, each variant must have unique file name)
 # $1 - target: EXE,LIB,DLL,...
 # $2 - non-empty target variant: P,D,S... (cannot be R - regular - it was filtered out)
+# note: for VARIANT_SUFFIX macro from $(CLEAN_BUILD_DIR)/core/_defs.mk
 EXE_VARIANT_SUFFIX = _$2
 LIB_VARIANT_SUFFIX = _$2
 DLL_VARIANT_SUFFIX = _$2
@@ -65,6 +67,7 @@ EXE_SUFFIX:=
 # $1 - EXE
 # $2 - target variant: R,P,D,S... (one of variants supported by selected toolchain, may be empty)
 # note: use $(patsubst...) to return empty value if $($1) is empty
+# note: for FORM_TRG macro from $(CLEAN_BUILD_DIR)/core/_defs.mk
 EXE_FORM_TRG = $(GET_TARGET_NAME:%=$(BIN_DIR)/%$(VARIANT_SUFFIX)$(EXE_SUFFIX))
 
 # static library (archive) prefix/suffix
@@ -75,6 +78,7 @@ LIB_SUFFIX := .a
 # $1 - LIB
 # $2 - target variant: R,P,D,S... (one of variants supported by selected toolchain, may be empty)
 # note: use $(patsubst...) to return empty value if $($1) is empty
+# note: for FORM_TRG macro from $(CLEAN_BUILD_DIR)/core/_defs.mk
 LIB_FORM_TRG = $(GET_TARGET_NAME:%=$(LIB_DIR)/$(LIB_PREFIX)%$(VARIANT_SUFFIX)$(LIB_SUFFIX))
 
 # dynamically loaded library (shared object) prefix/suffix
@@ -89,6 +93,7 @@ DLL_DIR = $(LIB_DIR)
 # $1 - DLL
 # $2 - target variant: R,P,D,S... (one of variants supported by selected toolchain, may be empty)
 # note: use $(patsubst...) to return empty value if $($1) is empty
+# note: for FORM_TRG macro from $(CLEAN_BUILD_DIR)/core/_defs.mk
 DLL_FORM_TRG = $(GET_TARGET_NAME:%=$(DLL_DIR)/$(DLL_PREFIX)%$(VARIANT_SUFFIX)$(DLL_SUFFIX))
 
 # for DEPENDENCY_SUFFIX, determine which variant of static library to link with EXE or DLL
@@ -97,6 +102,7 @@ DLL_FORM_TRG = $(GET_TARGET_NAME:%=$(DLL_DIR)/$(DLL_PREFIX)%$(VARIANT_SUFFIX)$(D
 # $3 - dependency type: LIB
 # use the same variant (R or P) of static library as target EXE (for example for P-EXE use P-LIB)
 # always use D-variant of static library for DLL
+# note: for DEPENDENCY_SUFFIX macro from $(CLEAN_BUILD_DIR)/core/_defs.mk
 # note: $(CLEAN_BUILD_DIR)/compilers/msvc.mk overrides LIB_DEPENDENCY_MAP
 LIB_DEPENDENCY_MAP = $(if $(filter DLL,$1),D,$2)
 
@@ -105,6 +111,7 @@ LIB_DEPENDENCY_MAP = $(if $(filter DLL,$1),D,$2)
 # $2 - variant of target EXE or DLL: R,P,<empty>
 # $3 - dependency type: DLL
 # the same one default variant (R) of DLL may be linked with any P- or R-EXE or R-DLL
+# note: for DEPENDENCY_SUFFIX macro from $(CLEAN_BUILD_DIR)/core/_defs.mk
 # note: $(CLEAN_BUILD_DIR)/compilers/msvc.mk overrides DLL_DEPENDENCY_MAP
 DLL_DEPENDENCY_MAP := R
 
@@ -208,10 +215,10 @@ $(call define_prepend,DEFINE_C_APP_EVAL,$$(CHECK_C_APP_RULES))
 endif
 
 # C_COMPILER - application-level compiler to use for the build (gcc, clang, msvc, etc.)
+# note: $(C_COMPILER) value is used only to form name of standard makefile with definitions of C/C++ compiler
 # note: C_COMPILER may be overridden by specifying either in in command line or in project configuration makefile
 C_COMPILER := $(if \
-  $(filter WIN%,$(OS)),$(if \
-    $(filter /cygdrive/%,$(CURDIR)),gcc,msvc),$(if \
+  $(filter WIN%,$(OS)),msvc,$(if \
   $(filter SOL%,$(OS)),suncc,gcc))
 
 # C_COMPILER_MK - makefile with definition of C/C++ compiler

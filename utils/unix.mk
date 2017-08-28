@@ -16,8 +16,8 @@ PRINT_ENV = $(info for v in `env | cut -d= -f1`; do $(foreach \
 # command line length is limited:
 # POSIX smallest allowable upper limit on argument length (all systems): 4096
 # define maximum number of path arguments that may be passed via command line,
-# assumin the limit is 20000 chars and paths do not exceed 120 chars:
-PATH_ARGS_LIMIT := 166
+# assuming the limit is 20000 chars (on Cygwin, on Unix it's generally much larger) and paths do not exceed 120 chars:
+PATH_ARGS_LIMIT := $(if $(filter CYGWIN,$(OS)),166,1000)
 
 # null device for redirecting output into
 NUL := /dev/null
@@ -56,14 +56,6 @@ TOUCH_FILES1 = $(if $6,$(QUIET))touch $1
 TOUCH_FILES  = $(call xcmd,TOUCH_FILES1,$1,$(PATH_ARGS_LIMIT),,,,)
 
 # create directory, path may contain spaces: '1 2/3 4'
-#
-# NOTE! there are races in mkdir - if make spawns two parallel jobs:
-#
-# if not exist aaa
-#                        if not exist aaa/bbb
-#                        mkdir aaa/bbb
-# mkdir aaa - fail
-#
 # to avoid races, CREATE_DIR must be called only if it's known that destination directory does not exist
 # note: CREATE_DIR must create intermediate parent directories of destination directory
 # note: $(CLEAN_BUILD_DIR)/utils/gnu.mk overrides CREATE_DIR
@@ -100,14 +92,13 @@ ECHO_LINE_ESCAPE = $(call SHELL_ESCAPE,$(subst \,\\,$(subst %,%%,$1))\n)
 ECHO_LINE = printf $(ECHO_LINE_ESCAPE)
 
 # print lines of text to output file or to stdout (for redirecting it to output file)
-# $1 - non-empty lines list, where $(tab) replaced with $$(tab) and $(space) replaced with $$(space)
+# $1 - non-empty lines list, where entries are processed by $(unescape)
 # $2 - if not empty, then file to print to
 # $3 - text to prepend before the command when $6 is non-empty
 # $4 - text to prepend before the command when $6 is empty
 # $6 - empty if overwrite file $2, non-empty if append text to it
 # NOTE: total text length must not exceed maximum command line length (at least 4096 characters)
-ECHO_LINES = $(if $6,$3,$4)$(eval ECHO_LINES_:=$(subst $(space),\n,$(subst \
-  $(comment),$$(comment),$1)))$(call ECHO_LINE,$(ECHO_LINES_))$(if $2,>$(if $6,>) $2)
+ECHO_LINES = $(if $6,$3,$4)$(call ECHO_LINE,$(call tospaces,$(subst $(space),\n,$1)))$(if $2,>$(if $6,>) $2)
 
 # print lines of text (to stdout, for redirecting it to output file)
 # note: each line will be ended with LF
@@ -117,10 +108,9 @@ ECHO_TEXT = printf $(call ECHO_LINE_ESCAPE,$(subst $(newline),\n,$1))
 # write lines of text $1 to file $2 by $3 lines at one time
 # NOTE: any line must be less than maximum command length (at least 4096 characters)
 # NOTE: number $3 must be adjusted so echoed at one time text length will not exceed maximum command length (at least 4096 characters)
-WRITE_TEXT = $(call xargs,ECHO_LINES,$(subst $(newline),$$(empty) $$(empty),$(subst \
-  $(tab),$$(tab),$(subst $(space),$$(space),$(subst $$,$$$$,$1)))),$3,$2,$(QUIET),,,$(newline))
+WRITE_TEXT = $(call xargs,ECHO_LINES,$(subst $(newline),$$(empty) $$(empty),$(unspaces)),$3,$2,$(QUIET),,,$(newline))
 
-# create symbolic link $2 -> $1, paths may contain spaces
+# create symbolic link $2 -> $1, paths may contain spaces: '/opt/bin/my app' -> '../x y z/n m'
 # note: UNIX-specific
 # note: $(CLEAN_BUILD_DIR)/utils/gnu.mk overrides CREATE_SIMLINK
 CREATE_SIMLINK = ln -sf $1 $2
@@ -141,11 +131,11 @@ DEL_ON_FAIL = || { $(DELETE_FILES); false; }
 INSTALL := install
 
 # create directory (with intermediate parent directories) while installing things
-# $1 - path to directory to create, such as: '/opt/a b c', path may contain spaces
+# $1 - path to directory to create, path may contain spaces, such as: '/opt/a b c'
 # note: $(CLEAN_BUILD_DIR)/utils/gnu.mk overrides INSTALL_DIR
 INSTALL_DIR = $(INSTALL) -d $1
 
-# install file(s) (long list) to directory or file to file
+# install file(s) (long list) to directory or copy file to file
 # $1 - file(s) to install (to support long list, paths _must_ be without spaces)
 # $2 - destination directory or file, path may contain spaces
 # $3 - optional access mode, such as 644 (rw--r--r-) or 755 (rwxr-xr-x)

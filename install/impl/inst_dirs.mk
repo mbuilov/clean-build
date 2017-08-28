@@ -17,12 +17,17 @@ NO_DEVEL:=
 # note: normally overridden by specifying DESTDIR in command line
 DESTDIR:=
 
+# INSTALL_OS_TYPE - type of operating system on which to install
+# note: $(INSTALL_OS_TYPE) value is used only to form names of standard makefiles with definitions of installation templates
+# note: normally INSTALL_OS_TYPE get overridden by specifying it in command line
+INSTALL_OS_TYPE := $(if $(filter WIN%,$(OS)),windows,unix)
+
 # defaults, may be overridden either in command line or in project configuration makefile
 # note: assume installation paths _may_ contain spaces
 # note: use D_... macros to get $(DESTDIR)-prefixed paths
 
 # normalize path: prepend it with $(DESTDIR), convert backslashes to forward ones, remove trailing and excessive slashes
-DESTDIR_NORMALIZE = $(subst ?, ,$(subst $(space),/,$(strip $(subst \, ,$(subst /, ,$(subst $(space),?,$(DESTDIR)$($1)))))))
+DESTDIR_NORMALIZE = $(call tospaces,$(subst $(space),/,$(strip $(subst \, ,$(subst /, ,$(call unspaces,$(DESTDIR)$($1)))))))
 
 # root of program installation directory
 PREFIX := $(if $(filter WIN%,$(OS)),artifacts,/usr/local)
@@ -128,7 +133,7 @@ PKG_CONFIG_DIR := $(LIBDIR)/pkgconfig
 D_PKG_CONFIG_DIR = $(call DESTDIR_NORMALIZE,PKG_CONFIG_DIR)
 
 # protect variables from modifications in target makefiles
-$(call SET_GLOBAL,NO_DEVEL DESTDIR DESTDIR_NORMALIZE \
+$(call SET_GLOBAL,NO_DEVEL DESTDIR INSTALL_OS_TYPE DESTDIR_NORMALIZE \
   PREFIX D_PREFIX EXEC_PREFIX D_EXEC_PREFIX BINDIR D_BINDIR SBINDIR D_SBINDIR LIBEXECDIR D_LIBEXECDIR \
   DATAROOTDIR D_DATAROOTDIR DATADIR D_DATADIR SYSCONFDIR D_SYSCONFDIR SHAREDSTATEDIR D_SHAREDSTATEDIR \
   LOCALSTATEDIR D_LOCALSTATEDIR RUNSTATEDIR D_RUNSTATEDIR INCLUDEDIR D_INCLUDEDIR PACKAGE_NAME DOCDIR D_DOCDIR \

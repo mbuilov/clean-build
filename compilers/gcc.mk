@@ -42,6 +42,11 @@ TAR  := ar
 # prefix for passing options from gcc command line to the linker
 WLPREFIX := -Wl,
 
+# position-independent code for executables/shared objects (dynamic libraries)
+PIC_CC_OPTION := -fpic
+PIE_CC_OPTION := -fpie
+PIE_LD_OPTION := -pie
+
 # supported variants:
 # R - default variant (position-dependent code for EXE, position-independent code for DLL)
 # P - position-independent code in executables (for EXE and LIB)
@@ -61,6 +66,22 @@ EXE_VARIANT_SUFFIX := _pie
 # $2 - P or D
 # note: override defaults from $(CLEAN_BUILD_DIR)/impl/_c.mk
 LIB_VARIANT_SUFFIX = $(if $(filter P,$2),_pie,_pic)
+
+# only one non-regular variant of EXE is supported - P
+# $1 - target: EXE
+# $2 - P
+EXE_VARIANT_DEFINES  :=
+EXE_VARIANT_CFLAGS   := $(PIE_CC_OPTION)
+EXE_VARIANT_CXXFLAGS := $(PIE_CC_OPTION)
+EXE_VARIANT_LDFLAGS  := $(PIE_LD_OPTION)
+
+# two non-regular variants of LIB are supported: P and D
+# $1 - target: EXE
+# $2 - P or D
+LIB_VARIANT_DEFINES  :=
+LIB_VARIANT_CFLAGS   = $(if $(filter P,$2),$(PIE_CC_OPTION),$(PIC_CC_OPTION))
+LIB_VARIANT_CXXFLAGS = $(if $(filter P,$2),$(PIE_CC_OPTION),$(PIC_CC_OPTION))
+LIB_VARIANT_LDFLAGS  :=
 
 # default shared libs for target executables and shared libraries
 SHARED_DEF_LIBS:=
@@ -123,7 +144,7 @@ SONAME_OPTION = $(addprefix $(WLPREFIX)-soname=$(notdir $1).,$(firstword $(subst
 # target-specific: TMD, COMPILER
 # note: used by EXE_TEMPLATE, DLL_TEMPLATE, LIB_TEMPLATE from $(CLEAN_BUILD_DIR)/impl/_c.mk
 EXE_R_LD = $(call SUP,$(TMD)XLD,$1)$($(TMD)$(COMPILER)) $(EXE_DEF_FLAGS) $(call CMN_LIBS,$1,$2,R)
-EXE_P_LD = $(call SUP,$(TMD)XLD,$1)$($(TMD)$(COMPILER)) $(EXE_DEF_FLAGS) $(call CMN_LIBS,$1,$2,P) -pie
+EXE_P_LD = $(call SUP,$(TMD)XLD,$1)$($(TMD)$(COMPILER)) $(EXE_DEF_FLAGS) $(call CMN_LIBS,$1,$2,P)
 DLL_R_LD = $(call SUP,$(TMD)SLD,$1)$($(TMD)$(COMPILER)) $(SO_DEF_FLAGS) $(VERSION_SCRIPT_OPTION) $(SONAME_OPTION) $(call CMN_LIBS,$1,$2,R)
 LIB_R_LD = $(call SUP,$(TMD)AR,$1)$($(TMD)AR) $(AR_DEF_FLAGS) $1 $2
 LIB_P_LD = $(call SUP,$(TMD)LD,$1)$($(TMD)LD) $(LD_DEF_FLAGS) -o $1 $2 $(LDFLAGS)
@@ -170,10 +191,6 @@ CC_PARAMS = -pipe -c $(APP_FLAGS) $(AUTO_DEPS_FLAGS) $(call \
 CMN_CXX = $(call SUP,$(TMD)CXX,$2)$($(TMD)CXX) $(DEF_CXXFLAGS) $(CC_PARAMS) $(CXXFLAGS) -o $1 $2
 CMN_CC  = $(call SUP,$(TMD)CC,$2)$($(TMD)CC) $(DEF_CFLAGS) $(CC_PARAMS) $(CFLAGS) -o $1 $2
 
-# position-independent code for executables/shared objects (dynamic libraries)
-PIE_CC_OPTION := -fpie
-PIC_CC_OPTION := -fpic
-
 # compilers for each variant of EXE, DLL, LIB
 # $1 - target object file
 # $2 - source
@@ -181,11 +198,11 @@ PIC_CC_OPTION := -fpic
 # note: used by OBJ_RULES from $(CLEAN_BUILD_DIR)/impl/_c.mk
 EXE_R_CXX = $(CMN_CXX)
 EXE_R_CC  = $(CMN_CC)
-EXE_P_CXX = $(EXE_R_CXX) $(PIE_CC_OPTION)
-EXE_P_CC  = $(EXE_R_CC) $(PIE_CC_OPTION)
+EXE_P_CXX = $(CMN_CXX)
+EXE_P_CC  = $(CMN_CC)
 DLL_R_CXX = $(CMN_CXX) $(PIC_CC_OPTION)
 DLL_R_CC  = $(CMN_CC) $(PIC_CC_OPTION)
-LIB_R_CXX = $(EXE_R_CXX)
+LIB_R_CXX = $(EXE_R_CXX) ??????????
 LIB_R_CC  = $(EXE_R_CC)
 LIB_P_CXX = $(EXE_P_CXX)
 LIB_P_CC  = $(EXE_P_CC)
@@ -286,10 +303,10 @@ $(call define_prepend,DEFINE_C_APP_EVAL,$$(eval $$(foreach t,EXE DLL,$$(if $$($$
 
 # protect variables from modifications in target makefiles
 $(call SET_GLOBAL,INST_RPATH C_PREPARE_GCC_APP_VARS CC CXX LD AR TCC TCXX TLD TAR \
-  WLPREFIX SHARED_DEF_LIBS SHARED_DEF_FLAGS EXE_DEF_FLAGS SO_DEF_FLAGS LD_DEF_FLAGS AR_DEF_FLAGS \
+  WLPREFIX PIE_CC_OPTION PIC_CC_OPTION SHARED_DEF_LIBS SHARED_DEF_FLAGS EXE_DEF_FLAGS SO_DEF_FLAGS LD_DEF_FLAGS AR_DEF_FLAGS \
   DLL_EXPORTS_DEFINE DLL_IMPORTS_DEFINE RPATH_OPTION RPATH_LINK RPATH_LINK_OPTION CMN_LIBS VERSION_SCRIPT_OPTION SONAME_OPTION \
   EXE_R_LD EXE_P_LD DLL_R_LD LIB_R_LD LIB_P_LD LIB_D_LD AUTO_DEPS_FLAGS DEF_CXXFLAGS DEF_CFLAGS \
-  DEF_APP_FLAGS APP_FLAGS DEF_APP_DEFINES APP_DEFINES CC_PARAMS CMN_CXX CMN_CC PIE_CC_OPTION PIC_CC_OPTION \
+  DEF_APP_FLAGS APP_FLAGS DEF_APP_DEFINES APP_DEFINES CC_PARAMS CMN_CXX CMN_CC \
   EXE_R_CXX EXE_R_CC EXE_P_CXX EXE_P_CC DLL_R_CXX DLL_R_CC LIB_R_CXX LIB_R_CC LIB_P_CXX LIB_P_CC LIB_D_CXX LIB_D_CC \
   NO_PCH PCH_CXX PCH_CC PCHCC_COLOR PCHCXX_COLOR TPCHCC_COLOR TPCHCXX_COLOR PCH_EXE_R_CXX PCH_EXE_R_CC PCH_EXE_P_CXX \
   PCH_EXE_P_CC PCH_DLL_R_CXX PCH_DLL_R_CC PCH_LIB_R_CXX PCH_LIB_R_CC PCH_LIB_P_CXX PCH_LIB_P_CC \

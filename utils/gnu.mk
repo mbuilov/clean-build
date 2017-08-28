@@ -11,9 +11,10 @@
 # define unix utilities, then override some of them
 include $(dir $(lastword $(MAKEFILE_LIST)))unix.mk
 
-# print prepared environment in verbose mode (used for generating one-big-build instructions shell file)
 # note: cannot unset some variables (under Cygwin) such as "!::" or "CommonProgramFiles(x86)", so filter them out
-CYGWIN_FILTERED_ENV := CommonProgramFiles(x86) ProgramFiles(x86) !::
+CYGWIN_FILTERED_ENV := $(if $(filter CYGWIN,$(OS)),CommonProgramFiles(x86) ProgramFiles(x86) !::)
+
+# print prepared environment in verbose mode (used for generating one-big-build instructions shell file)
 PRINT_ENV = $(info for v in `env | cut -d= -f1`; do $(foreach \
   x,PATH SHELL $(PASS_ENV_VARS) $(CYGWIN_FILTERED_ENV),[ "$x" = "$$v" ] ||) unset "$$v"; done$(foreach \
   v,PATH SHELL $(PASS_ENV_VARS),$(newline)export $v='$($v)'))
@@ -38,9 +39,8 @@ CREATE_DIR = mkdir -p$(if $(VERBOSE),v) $1$(if $(VERBOSE), >&2)
 # note: assume GNU sed is used, which understands \n and \t
 SED_EXPR = $(SHELL_ESCAPE)
 
-# create symbolic link $2 -> $1, paths may contain spaces
+# create symbolic link $2 -> $1, paths may contain spaces: '/opt/bin/my app' -> '../x y z/n m'
 # note: UNIX-specific
-# note: $(CLEAN_BUILD_DIR)/utils/gnu.mk overrides CREATE_SIMLINK
 CREATE_SIMLINK = ln -sf$(if $(VERBOSE),v) $1 $2$(if $(VERBOSE), >&2)
 
 # set mode $1 of given file(s) $2 (short list, no more than PATH_ARGS_LIMIT), paths may contain spaces: '1 2/3 4' '5 6/7 8/9' ...
@@ -51,10 +51,10 @@ CHANGE_MODE = chmod$(if $(VERBOSE), -v) $1 $2$(if $(VERBOSE), >&2)
 EXECUTE_IN = pushd $1 >/dev/null && { $2 && popd >/dev/null || { popd >/dev/null; false; } }
 
 # create directory (with intermediate parent directories) while installing things
-# $1 - path to directory to create, such as: '/opt/a b c', path may contain spaces
+# $1 - path to directory to create, path may contain spaces, such as: '/opt/a b c'
 INSTALL_DIR = $(INSTALL) -d$(if $(VERBOSE),v) $1$(if $(VERBOSE), >&2)
 
-# install file(s) (long list) to directory or file to file
+# install file(s) (long list) to directory or copy file to file
 # $1 - file(s) to install (to support long list, paths _must_ be without spaces)
 # $2 - destination directory or file, path may contain spaces
 # $3 - optional access mode, such as -m644 (rw--r--r-) or -m755 (rwxr-xr-x)

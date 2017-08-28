@@ -139,7 +139,9 @@ override TARGET := $(TARGET)
 
 # operating system we are building for (WIN7, DEBIAN6, SOLARIS10, etc.)
 # note: normally OS get overridden by specifying it in command line
-ifneq (environment,$(origin OS))
+ifneq (,$(filter /cygdrive/%,$(CURDIR)))
+OS := CYGWIN
+else ifneq (environment,$(origin OS))
 OS := LINUX
 else ifeq (Windows_NT,$(OS))
 OS := WINDOWS
@@ -154,12 +156,12 @@ override OS := $(OS)
 # note: equivalent of '--host' Gnu Autoconf configure script option
 # note: CPU specification may also encode format of executable files, e.g. CPU=m68k-coff, it is checked by the C compiler
 # note: normally CPU get overridden by specifying it in command line
-ifneq (WINDOWS,$(OS))
+ifeq (,$(filter CYGWIN WINDOWS,$(OS)))
 CPU := x86
-else ifneq (AMD64,$(PROCESSOR_ARCHITECTURE))
-CPU := x86
-else
+else ifeq (AMD64,$(PROCESSOR_ARCHITECTURE))
 CPU := x86_64
+else
+CPU := x86
 endif
 
 # CPU must be non-recursive (simple), because it is used to create simple variable TARGET_TRIPLET
@@ -175,10 +177,10 @@ TCPU := $(CPU)
 override TCPU := $(TCPU)
 
 # UTILS - flavor of system shell utilities (such as cp, mv, rm, etc.)
+# note: $(UTILS) value is used only to form name of standard makefile with definitions of shell utilities
 # note: normally UTILS get overridden by specifying it in command line, for example: UTILS:=gnu
 UTILS := $(if \
-  $(filter WIN%,$(OS)),$(if \
-    $(filter /cygdrive/%,$(CURDIR)),gnu,cmd),$(if \
+  $(filter WIN%,$(OS)),cmd,$(if \
   $(filter SOL%,$(OS)),unix,gnu))
 
 # UTILS_MK - makefile with definitions of shell utilities
@@ -251,7 +253,7 @@ MDEBUG:=
 endif
 
 ifdef MDEBUG
-$(call dump,CLEAN_BUILD_DIR BUILD CONFIG TARGET OS CPU TCPU UTILS,,)
+$(call dump,CLEAN_BUILD_DIR BUILD CONFIG TARGET OS CPU TCPU UTILS_MK,,)
 endif
 
 # absolute path to target makefile
@@ -293,8 +295,7 @@ show_dll_path_end:=
 # SED - stream editor executable - should be defined in $(UTILS_MK) makefile
 # SED_EXPR - also should be defined in $(UTILS_MK) makefile
 # helper macro: convert multi-line sed script $1 to multiple sed expressions - one expression for each script line
-SED_MULTI_EXPR = $(foreach s,$(subst $(newline), ,$(subst $(tab),$$(tab),$(subst $(space),$$(space),$(subst \
-  $$,$$$$,$1)))),-e $(call SED_EXPR,$(eval SED_MULTI_EXPR_:=$(subst $(comment),$$(comment),$s))$(SED_MULTI_EXPR_)))
+SED_MULTI_EXPR = $(foreach s,$(subst $(newline), ,$(unspaces)),-e $(call SED_EXPR,$(call tospaces,$s)))
 
 # utilities colors
 GEN_COLOR   := [1;32m
