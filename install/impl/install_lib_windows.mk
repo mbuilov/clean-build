@@ -5,8 +5,6 @@
 #----------------------------------------------------------------------------------
 
 
-todo: install pkg-config files
-
 # define windows-specific INSTALL_LIB macro
 
 # included by $(CLEAN_BUILD_DIR)/install/impl/_install_lib.mk
@@ -58,7 +56,23 @@ uninstall_lib_$1_import:
 endif
 endif
 
+ifeq (,$$($1_LIBRARY_NO_INSTALL_PKGCONF))
+ifneq (,$$($1_BUILT_LIBS)$$($1_BUILT_DLLS))
+install_lib_$1_pkgconf:
+install_lib_$1_pkgconf:
+	$$(call INSTALL_TEXT,$$(call
+	LIBRARY_PKGCONF_GEN
+	$$(call PKGCONF_GEN,
+
+	$$(call INSTALL_FILES,$$(BUILT_IMPS),$$(D_LIBDIR),644)
+uninstall_lib_$1_import:
+	$$(call DO_UNINSTALL_FILES_IN,$$(D_LIBDIR),$$(notdir $$(BUILT_IMPS)))
+endif
+endif
+
 endef
+
+todo: install pkg-config files
 
 # define rules for installing/uninstalling library and its headers
 # $1 - library name (mylib for libmylib.a)

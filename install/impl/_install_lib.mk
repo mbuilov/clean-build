@@ -10,6 +10,18 @@ ifeq (,$(filter-out undefined environment,$(origin NEED_INSTALL_DIR)))
 include $(dir $(lastword $(MAKEFILE_LIST)))inst_utils.mk
 endif
 
+ifeq (,$(filter-out undefined environment,$(origin INSTALL_TEXT)))
+include $(dir $(lastword $(MAKEFILE_LIST)))inst_text.mk
+endif
+
+ifeq (,$(filter-out undefined environment,$(origin PKGCONF_GEN)))
+include $(dir $(lastword $(MAKEFILE_LIST)))pkgconf_gen.mk
+endif
+
+ifeq (,$(filter-out undefined environment,$(origin LIBTOOL_GEN)))
+include $(dir $(lastword $(MAKEFILE_LIST)))libtool_gen.mk
+endif
+
 # next NO_... macros are used to form default configuration of libraries installation,
 # for example, setting NO_INSTALL_HEADERS:=1 in command line prevents installation of headers for all libraries
 # $1 - library name (mylib for libmylib.a)
@@ -27,10 +39,10 @@ NO_INSTALL_SHARED  = $($1_LIBRARY_NO_DEVEL)
 NO_INSTALL_IMPORT  = $($1_LIBRARY_NO_DEVEL)
 
 # non-empty if do not install/uninstall libtool .la-files (UNIX)
-NO_INSTALL_LA      = $($1_LIBRARY_NO_DEVEL)
+NO_INSTALL_LIBTOOL = $($1_LIBRARY_NO_DEVEL)
 
 # non-empty if do not install/uninstall pkg-config .pc-files
-NO_INSTALL_PC      = $($1_LIBRARY_NO_DEVEL)
+NO_INSTALL_PKGCONF = $($1_LIBRARY_NO_DEVEL)
 
 # define library-specific variables for use in installation templates
 # $1 - library name (mylib for libmylib.a)
@@ -50,8 +62,8 @@ $1_LIBRARY_NO_INSTALL_HEADERS := $$(LIBRARY_NO_INSTALL_HEADERS)
 $1_LIBRARY_NO_INSTALL_STATIC  := $$(LIBRARY_NO_INSTALL_STATIC)
 $1_LIBRARY_NO_INSTALL_SHARED  := $$(LIBRARY_NO_INSTALL_SHARED)
 $1_LIBRARY_NO_INSTALL_IMPORT  := $$(LIBRARY_NO_INSTALL_IMPORT)
-$1_LIBRARY_NO_INSTALL_LA      := $$(LIBRARY_NO_INSTALL_LA)
-$1_LIBRARY_NO_INSTALL_PC      := $$(LIBRARY_NO_INSTALL_PC)
+$1_LIBRARY_NO_INSTALL_LIBTOOL := $$(LIBRARY_NO_INSTALL_LIBTOOL)
+$1_LIBRARY_NO_INSTALL_PKGCONF := $$(LIBRARY_NO_INSTALL_PKGCONF)
 ifeq (,$$($1_LIBRARY_NO_INSTALL_HEADERS))
 $1_LIBRARY_HEADERS            := $$(call fixpath,$$(LIBRARY_HEADERS))
 $1_LIBRARY_HDIR               := $$(addprefix /,$$(LIBRARY_HDIR))
@@ -149,5 +161,5 @@ endif
 include $(INSTALL_LIB_MK)
 
 # protect variables from modifications in target makefiles
-$(call SET_GLOBAL,NO_INSTALL_HEADERS NO_INSTALL_LA NO_INSTALL_PC NO_INSTALL_IMPS \
+$(call SET_GLOBAL,NO_INSTALL_HEADERS NO_INSTALL_LIBTOOL NO_INSTALL_PKGCONF NO_INSTALL_IMPS \
   DEFINE_INSTALL_LIB_VARS INSTALL_LIB_BASE INSTALL_LIB_HEADERS INSTALL_LIB_MK)

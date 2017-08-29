@@ -10,6 +10,20 @@ ifeq (,$(filter-out undefined environment,$(origin INSTALL_LIB)))
 include $(dir $(lastword $(MAKEFILE_LIST)))/impl/_install_lib.mk
 endif
 
+# install/install_lib.mk
+#         |
+#         +-impl/_install_lib.mk
+#                |
+#                +-inst_utils.mk
+#                | |
+#                | +-inst_dirs.mk
+#                |
+#                +-inst_text.mk
+#                |
+#                +-pkgconf_gen.mk
+#                |
+#                +-libtool_gen.mk
+
 # this file is likely included in target makefile after $(DEFINE_TARGETS) which builds (and/or):
 # LIB - static library name (with variants)
 # DLL - dynamic library name (with variants)
@@ -22,8 +36,8 @@ LIBRARY_NO_INSTALL_HEADERS  = $(NO_INSTALL_HEADERS)
 LIBRARY_NO_INSTALL_STATIC   = $(NO_INSTALL_STATIC)
 LIBRARY_NO_INSTALL_SHARED   = $(NO_INSTALL_SHARED)
 LIBRARY_NO_INSTALL_IMPORT   = $(NO_INSTALL_IMPORT)
-LIBRARY_NO_INSTALL_LA       = $(NO_INSTALL_LA)
-LIBRARY_NO_INSTALL_PC       = $(NO_INSTALL_PC)
+LIBRARY_NO_INSTALL_LIBTOOL  = $(NO_INSTALL_LIBTOOL)
+LIBRARY_NO_INSTALL_PKGCONF  = $(NO_INSTALL_PKGCONF)
 
 # list of header files to install, may be empty
 LIBRARY_HEADERS:=
@@ -31,7 +45,7 @@ LIBRARY_HEADERS:=
 # name of installed headers directory, may be empty, must not contain spaces
 LIBRARY_HDIR:=
 
-# name of pkg-config file generator macro, must be defined if $(LIBRARY_NO_INSTALL_PC) is empty
-LIBRARY_PC_GEN:=
+# name of pkg-config file generator macro, must be defined if $(LIBRARY_NO_INSTALL_PKGCONF) is empty
+LIBRARY_PKGCONF_GEN:=
 
 # after (re-)defining above variables, expand INSTALL_LIB macro via just $(INSTALL_LIB)

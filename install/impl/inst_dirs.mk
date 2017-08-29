@@ -6,7 +6,7 @@
 
 # define variables used in installation templates
 
-# included by $(CLEAN_BUILD_DIR)/install/impl/inst_defs.mk
+# included by $(CLEAN_BUILD_DIR)/install/impl/inst_utils.mk
 
 # non-empty if do not install development files and headers
 # by default, install development files
@@ -27,7 +27,7 @@ INSTALL_OS_TYPE := $(if $(filter WIN%,$(OS)),windows,unix)
 # note: use D_... macros to get $(DESTDIR)-prefixed paths
 
 # normalize path: prepend it with $(DESTDIR), convert backslashes to forward ones, remove trailing and excessive slashes
-DESTDIR_NORMALIZE = $(call tospaces,$(subst $(space),/,$(strip $(subst \, ,$(subst /, ,$(call unspaces,$(DESTDIR)$($1)))))))
+DESTDIR_NORMALIZE = $(patsubst %/,%,$(subst //,/,$(subst \,/,$(DESTDIR)$($1))))
 
 # root of program installation directory
 PREFIX := $(if $(filter WIN%,$(OS)),artifacts,/usr/local)
@@ -128,9 +128,13 @@ D_MAN6DIR = $(call DESTDIR_NORMALIZE,MAN6DIR)
 D_MAN7DIR = $(call DESTDIR_NORMALIZE,MAN7DIR)
 D_MAN8DIR = $(call DESTDIR_NORMALIZE,MAN8DIR)
 
-# directory where to install pkg-config files
-PKG_CONFIG_DIR := $(LIBDIR)/pkgconfig
-D_PKG_CONFIG_DIR = $(call DESTDIR_NORMALIZE,PKG_CONFIG_DIR)
+# directory where to install pkg-config files for a library
+PKG_LIBDIR := $(LIBDIR)/pkgconfig
+D_PKG_LIBDIR = $(call DESTDIR_NORMALIZE,PKG_LIBDIR)
+
+# directory where to install pkg-config files for header-only library
+PKG_DATADIR := $(DATAROOTDIR)/pkgconfig
+D_PKG_DATADIR = $(call DESTDIR_NORMALIZE,PKG_DATADIR)
 
 # protect variables from modifications in target makefiles
 $(call SET_GLOBAL,NO_DEVEL DESTDIR INSTALL_OS_TYPE DESTDIR_NORMALIZE \
@@ -141,4 +145,4 @@ $(call SET_GLOBAL,NO_DEVEL DESTDIR INSTALL_OS_TYPE DESTDIR_NORMALIZE \
   LIBDIR D_LIBDIR LOCALEDIR D_LOCALEDIR INFODIR D_INFODIR MANDIR D_MANDIR \
   MAN1DIR MAN2DIR MAN3DIR MAN4DIR MAN5DIR MAN6DIR MAN7DIR MAN8DIR \
   D_MAN1DIR D_MAN2DIR D_MAN3DIR D_MAN4DIR D_MAN5DIR D_MAN6DIR D_MAN7DIR D_MAN8DIR \
-  PKG_CONFIG_DIR D_PKG_CONFIG_DIR)
+  PKG_LIBDIR D_PKG_LIBDIR PKG_DATADIR D_PKG_DATADIR)
