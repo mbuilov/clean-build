@@ -82,17 +82,14 @@ EXE_VARIANT_LDFLAGS  := $(PIE_LD_OPTION)
 LIB_VARIANT_CFLAGS   = $(if $(filter P,$2),$(PIE_CC_OPTION),$(PIC_CC_OPTION))
 LIB_VARIANT_CXXFLAGS = $(if $(filter P,$2),$(PIE_CC_OPTION),$(PIC_CC_OPTION))
 
-# default gcc flags/libs for linking executables and shared libraries
+# default gcc flags for linking executables and shared libraries
 LD_DEF_FLAGS := -Wl,--no-demangle -Wl,--warn-common
-LD_DEF_LIBS:=
 
-# default gcc flags/libs for linking an EXE
+# default gcc flags for linking an EXE
 EXE_DEF_FLAGS:=
-EXE_DEF_LIBS:=
 
-# default gcc flags/libs for linking a DLL
+# default gcc flags for linking a DLL
 SO_DEF_FLAGS := -shared -Wl,--no-undefined
-SO_DEF_LIBS:=
 
 # default flags for objects archiver
 AR_DEF_FLAGS := -crs
@@ -119,9 +116,9 @@ RPATH_LINK_OPTION = $(addprefix $(WLPREFIX)-rpath-link=,$(RPATH_LINK))
 # $2 - objects
 # $3 - non-empty variant: R,P,D
 # target-specific: LIBS, DLLS, LIB_DIR, SYSLIBPATH, SYSLIBS, LDFLAGS
-CMN_LIBS = -pipe -o $1 $2 $(LD_DEF_FLAGS) $(RPATH_OPTION) $(RPATH_LINK_OPTION) $(if $(strip \
+CMN_LIBS = -pipe -o $1 $2 $(RPATH_OPTION) $(RPATH_LINK_OPTION) $(if $(strip \
   $(LIBS)$(DLLS)),-L$(LIB_DIR) $(addprefix -l,$(DLLS)) $(if $(LIBS),$(WLPREFIX)-Bstatic $(addprefix -l,$(addsuffix \
-  $(call DEP_SUFFIX,$1,$3,LIB),$(LIBS))) $(WLPREFIX)-Bdynamic)) $(addprefix -L,$(SYSLIBPATH)) $(SYSLIBS) $(LD_DEF_LIBS)
+  $(call DEP_SUFFIX,$1,$3,LIB),$(LIBS))) $(WLPREFIX)-Bdynamic)) $(addprefix -L,$(SYSLIBPATH)) $(SYSLIBS) $(LD_DEF_FLAGS)
 
 # specify what symbols to export from a dll
 # target-specific: MAP
@@ -138,9 +135,8 @@ SONAME_OPTION = $(addprefix $(WLPREFIX)-soname=$(notdir $1).,$(firstword $(subst
 # $3 - non-empty variant: R,P,D
 # target-specific: TMD, COMPILER
 # note: used by EXE_TEMPLATE, DLL_TEMPLATE, LIB_TEMPLATE from $(CLEAN_BUILD_DIR)/impl/_c.mk
-EXE_LD = $(call SUP,$(TMD)XLD,$1)$($(TMD)$(COMPILER)) $(EXE_DEF_FLAGS) $(CMN_LIBS) $(EXE_DEF_LIBS) $(LDFLAGS)
-DLL_LD = $(call SUP,$(TMD)SLD,$1)$($(TMD)$(COMPILER)) $(VERSION_SCRIPT_OPTION) $(SONAME_OPTION) \
-  $(SO_DEF_FLAGS) $(CMN_LIBS) $(SO_DEF_LIBS) $(LDFLAGS)
+EXE_LD = $(call SUP,$(TMD)XLD,$1)$($(TMD)$(COMPILER)) $(CMN_LIBS) $(EXE_DEF_FLAGS) $(LDFLAGS)
+DLL_LD = $(call SUP,$(TMD)SLD,$1)$($(TMD)$(COMPILER)) $(VERSION_SCRIPT_OPTION) $(SONAME_OPTION) $(CMN_LIBS) $(SO_DEF_FLAGS) $(LDFLAGS)
 LIB_LD = $(call SUP,$(TMD)AR,$1)$($(TMD)AR) $(AR_DEF_FLAGS) $1 $2
 
 # flags for auto-dependencies generation
@@ -287,10 +283,8 @@ MOD_AUX_APPt = $(foreach v,$(call GET_VARIANTS,$t),$(call $t_AUX_TEMPLATEv,$(cal
 $(call define_prepend,DEFINE_C_APP_EVAL,$$(eval $$(foreach t,EXE DLL,$$(if $$($$t),$$(call MOD_AUX_APPt,$$(call fixpath,$$(MAP)))))))
 
 # protect variables from modifications in target makefiles
-$(call SET_GLOBAL,INST_RPATH C_PREPARE_GCC_APP_VARS \
-  CC CXX LD AR TCC TCXX TLD TAR WLPREFIX \
-  PIC_CC_OPTION PIE_CC_OPTION PIE_LD_OPTION \
-  LD_DEF_FLAGS LD_DEF_LIBS EXE_DEF_FLAGS EXE_DEF_LIBS SO_DEF_FLAGS SO_DEF_LIBS AR_DEF_FLAGS \
+$(call SET_GLOBAL,INST_RPATH C_PREPARE_GCC_APP_VARS CC CXX LD AR TCC TCXX TLD TAR WLPREFIX \
+  PIC_CC_OPTION PIE_CC_OPTION PIE_LD_OPTION LD_DEF_FLAGS EXE_DEF_FLAGS SO_DEF_FLAGS AR_DEF_FLAGS \
   DLL_EXPORTS_DEFINE DLL_IMPORTS_DEFINE RPATH_OPTION RPATH_LINK RPATH_LINK_OPTION CMN_LIBS VERSION_SCRIPT_OPTION SONAME_OPTION \
   EXE_LD DLL_LD LIB_LD AUTO_DEPS_FLAGS DEF_CXXFLAGS DEF_CFLAGS DEF_APP_FLAGS APP_FLAGS DEF_APP_DEFINES APP_DEFINES \
   CC_PARAMS CMN_CXX CMN_CC EXE_CXX EXE_CC DLL_CXX DLL_CC LIB_CXX LIB_CC \

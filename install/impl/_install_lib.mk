@@ -63,7 +63,9 @@ endef
 # note: defines target-specific variables: BUILT_LIBS BUILT_DLLS
 # note: do not try to install $(D_LIBDIR) if no LIBS/DLLS were built
 define INSTALL_LIB_BASE
+
 $(DEFINE_INSTALL_LIB_VARS)
+
 ifeq (,$$($1_LIBRARY_NO_INSTALL_STATIC))
 ifneq (,$$($1_BUILT_LIBS))
 install_lib_$1_static uninstall_lib_$1_static: BUILT_LIBS := $$($1_BUILT_LIBS)
@@ -73,6 +75,7 @@ uninstall_lib_$1: uninstall_lib_$1_static
 $(call SET_MAKEFILE_INFO,install_lib_$1_static uninstall_lib_$1_static)
 endif
 endif
+
 ifeq (,$$($1_LIBRARY_NO_INSTALL_SHARED))
 ifneq (,$$($1_BUILT_DLLS))
 install_lib_$1_shared uninstall_lib_$1_shared: BUILT_DLLS := $$($1_BUILT_DLLS)
@@ -82,6 +85,7 @@ uninstall_lib_$1: uninstall_lib_$1_shared
 $(call SET_MAKEFILE_INFO,install_lib_$1_shared uninstall_lib_$1_shared)
 endif
 endif
+
 ifneq (,$$(if \
   $$($1_LIBRARY_NO_INSTALL_STATIC),,$$(if $$($1_BUILT_LIBS),$$(if \
   $$($1_LIBRARY_NO_INSTALL_SHARED),,$$($1_BUILT_DLLS)))))
@@ -93,12 +97,15 @@ else ifneq (,$$(if \
   $$($1_LIBRARY_NO_INSTALL_SHARED),,$$($1_BUILT_DLLS)))
 install_lib_$1_shared:| $$(call NEED_INSTALL_DIR_RET,$$(D_LIBDIR))
 endif
+
 .PHONY: \
   install_lib_$1_static uninstall_lib_$1_static \
   install_lib_$1_shared uninstall_lib_$1_shared \
   install_lib_$1 uninstall_lib_$1
+
 install:   install_lib_$1
 uninstall: uninstall_lib_$1
+
 endef
 
 # library headers installation template
@@ -106,6 +113,7 @@ endef
 # note: $(INSTALL_LIB_BASE) must be evaluated before expanding this template, so $1_LIBRARY_HDIR is defined
 # note: defines target-specific variable: HEADERS
 define INSTALL_LIB_HEADERS
+
 ifeq (,$$($1_LIBRARY_NO_INSTALL_HEADERS))
 ifneq (,$$($1_LIBRARY_HEADERS))
 
@@ -124,8 +132,10 @@ endif
 endif
 
 .PHONY: install_lib_$1_headers uninstall_lib_$1_headers
+
 install_$1:   install_lib_$1_headers
 uninstall_$1: uninstall_lib_$1_headers
+
 endef
 
 # INSTALL_LIB_MK - makefile with definition of $(OS)-specific INSTALL_LIB macro

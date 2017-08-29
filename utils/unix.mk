@@ -26,7 +26,7 @@ NUL := /dev/null
 # note: $(CLEAN_BUILD_DIR)/utils/gnu.mk overrides DELETE_FILES
 DELETE_FILES = rm -f $1
 
-# delete directories $1 (short list, no more than PATH_ARGS_LIMIT), paths may contain spaces: '1 2/3 4' '5 6/7 8/9' ...
+# delete directories $1 (recursively) (short list, no more than PATH_ARGS_LIMIT), paths may contain spaces: '1 2/3 4' '5 6/7 8/9' ...
 # note: $(CLEAN_BUILD_DIR)/utils/gnu.mk overrides DELETE_DIRS
 DELETE_DIRS = rm -rf $1
 
@@ -122,7 +122,7 @@ CHANGE_MODE = chmod $1 $2
 
 # execute command $2 in directory $1
 # note: $(CLEAN_BUILD_DIR)/utils/gnu.mk overrides EXECUTE_IN
-EXECUTE_IN = ( cd $1 && $2; )
+EXECUTE_IN = ( cd $1 && $2 )
 
 # delete target file(s) (short list, no more than PATH_ARGS_LIMIT) if failed to build them and exit shell with error code 1
 DEL_ON_FAIL = || { $(DELETE_FILES); false; }
@@ -151,8 +151,13 @@ INSTALL_FILES  = $(call xcmd,INSTALL_FILES1,$1,$(PATH_ARGS_LIMIT),$2,$(addprefix
 # note: override default implementation in $(CLEAN_BUILD_DIR)/core/functions.mk
 ifaddq = $(if $(findstring $(space),$1),'$1',$1)
 
+# tools colors
+LN_COLOR    := [36m
+CHMOD_COLOR := [1;35m
+
 # protect variables from modifications in target makefiles
 $(call SET_GLOBAL,PRINT_ENV PATH_ARGS_LIMIT NUL DELETE_FILES DELETE_DIRS DELETE_FILES_IN1 DELETE_FILES_IN \
   DEL_FILES_OR_DIRS1 DEL_FILES_OR_DIRS COPY_FILES2 COPY_FILES1 COPY_FILES TOUCH_FILES1 TOUCH_FILES CREATE_DIR \
   COMPARE_FILES SHELL_ESCAPE SED SED_EXPR CAT_FILE ECHO_LINE_ESCAPE ECHO_LINE ECHO_LINES ECHO_TEXT WRITE_TEXT \
-  CREATE_SIMLINK CHANGE_MODE EXECUTE_IN DEL_ON_FAIL INSTALL INSTALL_DIR INSTALL_FILES2 INSTALL_FILES1 INSTALL_FILES ifaddq)
+  CREATE_SIMLINK CHANGE_MODE EXECUTE_IN DEL_ON_FAIL INSTALL INSTALL_DIR INSTALL_FILES2 INSTALL_FILES1 INSTALL_FILES \
+  LN_COLOR CHMOD_COLOR ifaddq)

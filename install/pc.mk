@@ -10,23 +10,23 @@ ifeq (,$(filter-out undefined environment,$(origin PKGCONF_DEF_TEMPLATE)))
 
 include $(CLEAN_BUILD_DIR)/exts/echo_inst.mk
 
-# $1   - Library name (human-readable)
-# $2   - Version
-# $3   - Description
-# $4   - Comment (author, description, etc.)
-# $5   - Project URL
-# $6   - Requires
-# $7   - Requires.private
-# $8   - Conflicts
-# $9   - Cflags
-# $10  - dependency libraries
-# $11  - private dependency libs
-# $12  - ${includedir}
-# $13  - ${libdir}
-# $14  - ${exec_prefix}
-# $15  - ${prefix}
-# note: PKGCONF_TEMPLATE may be overridden in project configuration makefile before including this file
-define PKGCONF_TEMPLATE
+# $1  - Library name (human-readable)
+# $2  - Version
+# $3  - Description
+# $4  - Comment (author, description, etc.)
+# $5  - Project URL
+# $6  - Requires
+# $7  - Requires.private
+# $8  - Conflicts
+# $9  - Cflags
+# $10 - dependency libraries
+# $11 - private dependency libs
+# $12 - ${includedir}
+# $13 - ${libdir}
+# $14 - ${exec_prefix}
+# $15 - ${prefix}
+# note: PKGCONF_TEXT_TEMPLATE may be overridden in project configuration makefile before including this file
+define PKGCONF_TEXT_TEMPLATE
 $(if $4,# $(subst $(newline),$(newline)# ,$4)$(newline))
 prefix=$(15)
 exec_prefix=$(14)
@@ -77,7 +77,7 @@ PKGCONF_LIBS        = -L$${libdir}
 # $(13) - ${libdir},      if not specified, then $(PKGCONF_LIBDIR)
 # $(14) - ${exec_prefix}, if not specified, then $(PKGCONF_EXEC_PREFIX)
 # $(14) - ${prefix},      if not specified, then $(PKGCONF_PREFIX)
-PKGCONF_DEF_TEMPLATE = $(call PKGCONF_TEMPLATE,$1,$2,$3,$4,$5,$6,$7,$8,$(PKGCONF_CFLAGS)$(if \
+PKGCONF_DEF_TEMPLATE = $(call PKGCONF_TEXT_TEMPLATE,$1,$2,$3,$4,$5,$6,$7,$8,$(PKGCONF_CFLAGS)$(if \
   $9, $9),$(PKGCONF_LIBS) -l$1$(if $(10), $(10)),$(11),$(if $(12),$(12),$(PKGCONF_INCLUDEDIR)),$(if \
   $(13),$(13),$(PKGCONF_LIBDIR)),$(if $(14),$(14),$(PKGCONF_EXEC_PREFIX)),$(if $(15),$(15),$(PKGCONF_PREFIX)))
 
@@ -92,17 +92,17 @@ INSTALLED_PKGCONFS = $(foreach r,$1,$(call INSTALLED_PKGCONF,$(firstword $(subst
 # install .pc-file
 # $1 - <lib> <variant>
 # $2 - .pc-file contents generator, called with parameters: <lib>,<variant>
-# Note: .pc-file contents generator generally expands $(PKGCONF_TEMPLATE) or $(PKGCONF_DEF_TEMPLATE)
+# Note: .pc-file contents generator generally expands $(PKGCONF_TEXT_TEMPLATE) or $(PKGCONF_DEF_TEMPLATE)
 INSTALL_PKGCONF = $(foreach l,$(firstword $1),$(call ECHO_INSTALL,$(call $2,$l,$(word 2,$1)),$(call INSTALLED_PKGCONF,$l),644))
 
 # install .pc-files
 # $1 - all built libraries (result of $(GET_ALL_LIBS))
 # $2 - .pc-file contents generator, called witch parameters: <lib>,<variant>
-# Note: .pc-file contents generator generally expands $(PKGCONF_TEMPLATE) or $(PKGCONF_DEF_TEMPLATE)
+# Note: .pc-file contents generator generally expands $(PKGCONF_TEXT_TEMPLATE) or $(PKGCONF_DEF_TEMPLATE)
 INSTALL_PKGCONFS = $(foreach r,$1,$(newline)$(call INSTALL_PKGCONF,$(subst ?, ,$r),$2))
 
 # protect variables from modifications in target makefiles
-$(call CLEAN_BUILD_PROTECT_VARS,PKGCONF_TEMPLATE pc_escape pc_unescape pc_nchoose \
+$(call CLEAN_BUILD_PROTECT_VARS,PKGCONF_TEXT_TEMPLATE pc_escape pc_unescape pc_nchoose \
   PKGCONF_PREFIX PKGCONF_EXEC_PREFIX PKGCONF_INCLUDEDIR PKGCONF_LIBDIR PKGCONF_CFLAGS PKGCONF_LIBS PKGCONF_DEF_TEMPLATE \
   INSTALLED_PKGCONF INSTALLED_PKGCONFS INSTALL_PKGCONF INSTALL_PKGCONFS)
 

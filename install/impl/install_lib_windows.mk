@@ -17,6 +17,7 @@ todo: install pkg-config files
 # note: use target-specific variables defined in INSTALL_LIB_BASE: BUILT_LIBS, BUILT_DLLS
 # note: define target-specific variable: BUILT_IMPS
 define INSTALL_LIB_WINDOWS
+
 $(INSTALL_LIB_HEADERS)
 
 ifeq (,$$($1_LIBRARY_NO_INSTALL_IMPORT))
