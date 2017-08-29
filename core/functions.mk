@@ -25,6 +25,7 @@ keyword_override:= override
 keyword_define:= define
 keyword_endef:= endef
 backslash:= \$(empty)
+percent:= %
 
 # print result $1 and return $1
 # add prefix $2 before printed lines
@@ -333,7 +334,7 @@ try_make_simple = $(if $(filter $(words $2),$(words $(filter simple,$(foreach v,
 # note: do not try to trace calls to these macros, pass 0 as second parameter to SET_GLOBAL
 # note: TARGET_MAKEFILE variable is used here temporary and will be redefined later
 TARGET_MAKEFILE += $(call SET_GLOBAL, \
-  empty space tab comma newline comment open_brace close_brace keyword_override keyword_define keyword_endef backslash \
+  empty space tab comma newline comment open_brace close_brace keyword_override keyword_define keyword_endef backslash percent \
   infofn dump dump_max dump_args trace_params encode_traced_var_name trace_calls_template trace_calls,0)
 
 # protect variables from modification in target makefiles
