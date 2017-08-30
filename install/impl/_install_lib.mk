@@ -46,6 +46,11 @@ NO_INSTALL_LIBTOOL = $($1_LIBRARY_NO_DEVEL)
 # non-empty if do not install/uninstall pkg-config .pc-files
 NO_INSTALL_PKGCONF = $($1_LIBRARY_NO_DEVEL)
 
+# write result of $(LIBRARY_PKGCONF_GEN) by that number of lines at a time
+# note: command line length is limited (by 8191 chars on Windows),
+#  if each line is less than 100 chars, then will write no more than 3500 chars at a time
+PKG_CONF_WRITE_TEXT_BY_LINES := 35
+
 # define library-specific variables for use in installation templates
 # $1 - library name (mylib for libmylib.a)
 # note: assume LIB and DLL variables are defined before expanding this template
@@ -102,6 +107,14 @@ $(call SET_MAKEFILE_INFO,install_lib_$1_shared uninstall_lib_$1_shared)
 endif
 endif
 
+ifeq (,$$($1_LIBRARY_NO_INSTALL_PKGCONF))
+install_lib_$1_pkgconf uninstall_lib_$1_pkgconf: PKG_PATH := $$(call DESTDIR_NORMALIZE,$$(LIBRARY_PKGCONF_DIR))/$1.pc
+install_lib_$1_pkgconf: PKG_TEXT := $$(LIBRARY_PKGCONF_GEN)
+	$$(if $$(PKG_TEXT),$$(call INSTALL_TEXT,$$(PKG_TEXT),$$(PKG_PATH),$(PKG_CONF_WRITE_TEXT_BY_LINES),644))
+uninstall_lib_$1_pkgconf:
+	$$(call DO_UNINSTALL_FILE,$$(PKG_PATH))
+endif
+
 .PHONY: \
   install_lib_$1_static uninstall_lib_$1_static \
   install_lib_$1_shared uninstall_lib_$1_shared \
@@ -142,6 +155,7 @@ endif
 endef # INSTALL_LIB_HEADERS
 
 # INSTALL_LIB_MK - makefile with definition of $(OS)-specific INSTALL_LIB macro
+# note: INSTALL_OS_TYPE defined in $(CLEAN_BUILD_DIR)/install/impl/inst_dirs.mk
 INSTALL_LIB_MK := $(dir $(lastword $(MAKEFILE_LIST)))install_lib_$(INSTALL_OS_TYPE).mk
 
 ifeq (,$(wildcard $(INSTALL_LIB_MK)))
@@ -152,5 +166,5 @@ endif
 include $(INSTALL_LIB_MK)
 
 # protect variables from modifications in target makefiles
-$(call SET_GLOBAL,NO_INSTALL_HEADERS NO_INSTALL_LIBTOOL NO_INSTALL_PKGCONF NO_INSTALL_IMPS \
-  DEFINE_INSTALL_LIB_VARS INSTALL_LIB_BASE INSTALL_LIB_HEADERS INSTALL_LIB_MK)
+$(call SET_GLOBAL,NO_INSTALL_HEADERS NO_INSTALL_STATIC NO_INSTALL_SHARED NO_INSTALL_IMPORT NO_INSTALL_LIBTOOL NO_INSTALL_PKGCONF \
+  PKG_CONF_WRITE_TEXT_BY_LINES DEFINE_INSTALL_LIB_VARS INSTALL_LIB_BASE INSTALL_LIB_HEADERS INSTALL_LIB_MK)

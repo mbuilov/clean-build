@@ -9,7 +9,7 @@
 # included by $(CLEAN_BUILD_DIR)/install/impl/_install_lib.mk
 
 # $1 - library name (mylib for libmylib.a)
-# note: $(INSTALL_LIB_BASE) is evaluated before expanding this macro, so $1_BUILT_DLL_VARIANTS is defined
+# note: $(INSTALL_LIB_BASE) was evaluated before expanding this macro, so $1_BUILT_DLL_VARIANTS is defined
 # note: MAKE_IMP_PATH macro defined in $(CLEAN_BUILD_DIR)/compilers/msvc.mk
 # note: use target-specific variables defined in INSTALL_LIB_BASE: BUILT_LIBS, BUILT_DLLS
 # note: define target-specific variable: BUILT_IMPS
@@ -55,14 +55,13 @@ uninstall_lib_$1_import:
 endif
 endif
 
-ifeq (,$$($1_LIBRARY_NO_INSTALL_PKGCONF))
+ifeq (,$$($1_LIBRARY_NO_INSTALL_LIBTOOL))
 ifneq (,$$(if \
   $$($1_LIBRARY_NO_INSTALL_STATIC),,$$($1_BUILT_LIBS))$$(if \
-  $$($1_LIBRARY_NO_INSTALL_IMPORT),,$$($1_BUILT_IMPS))$$(if \
-  $$($1_LIBRARY_NO_INSTALL_HEADERS),,$$($1_LIBRARY_HEADERS)))
+  $$($1_LIBRARY_NO_INSTALL_IMPORT),,$$($1_BUILT_IMPS)))
 install_lib_$1_pkgconf uninstall_lib_$1_pkgconf: PKG_PATH := $$(call DESTDIR_NORMALIZE,$$(LIBRARY_PKGCONF_DIR))/$1.pc
 install_lib_$1_pkgconf: PKG_TEXT := $$(LIBRARY_PKGCONF_GEN)
-	$$(call INSTALL_TEXT,$$(PKG_TEXT),$$(PKG_PATH),50,644)
+	$$(call INSTALL_TEXT,$$(PKG_TEXT),$$(PKG_PATH),35,644)
 uninstall_lib_$1_pkgconf:
 	$$(call DO_UNINSTALL_FILE,$$(PKG_PATH))
 endif
@@ -70,11 +69,10 @@ endif
 
 endef
 
-todo: install pkg-config files
-
 # define rules for installing/uninstalling library and its headers
 # $1 - library name (mylib for libmylib.a)
 # note: assume LIB and DLL variables are defined before expanding this template
+# note: install LIBs to $(D_LIBDIR), DLLs - to $(D_BINDIR)
 INSTALL_LIB = $(eval $(call INSTALL_LIB_BASE,$1,$$(D_LIBDIR),$$(D_BINDIR)))$(eval $(INSTALL_LIB_WINDOWS))
 
 # protect variables from modifications in target makefiles

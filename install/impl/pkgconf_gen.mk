@@ -41,12 +41,14 @@ $(10),$(newline)Libs: $(10))$(if \
 $(11),$(newline)Libs.private: $(11))
 endef
 
-# normalize path: replace backward slashes with forward ones, remove trailing slash
-pc_path = $(patsubst %/,%,$(subst \,/,$1))
+# normalize path: replace backward slashes with forward ones (for Windows), remove trailing slash
+# note: assume no backslashes are used in pkg-config paths on Unix
+# note: on Windows, paths must use forward slashes to not confuse pkg-config executable
+pkgconf_path = $(patsubst %/,%,$(subst \,/,$1))
 
-# try to replace in $1 prefix $2 with $3, make $(OS)-specific path
-# note: paths $1 and $2 are previously processed by pc_path, so there are no backslashes in them
-pc_replace = $(call ospath,$(patsubst \%/,%,$(subst \$2/,\$3/,\$1/)))
+# try to replace in $1 prefix $2 with $3
+# note: paths $1 and $2 are previously processed by pkgconf_path, so there are no backslashes in them
+pkgconf_replace_path_prefix = $(patsubst \%/,%,$(subst \$2/,\$3/,\$1/))
 
 # try to replace:
 # $(12) - $(PREFIX)
@@ -54,9 +56,9 @@ pc_replace = $(call ospath,$(patsubst \%/,%,$(subst \$2/,\$3/,\$1/)))
 # $(14) - $(LIBDIR)      -> ${exec_prefix}/lib/x86_64-linux-gnu
 # $(15) - $(INCLUDEDIR)  -> ${prefix}/include
 PKGCONF_GEN1 = $(call PKGCONFIG_LIBRARY_TEXT,$1,$2,$3,$4,$5,$6,$7,$8,$9,$(10),$(11),$(12),$(call \
-  pc_replace,$(13),$(12),$${prefix}),$(call \
-  pc_replace,$(14),$(13),$${exec_prefix}),$(call \
-  pc_replace,$(15),$(12),$${prefix}))
+  pkgconf_replace_path_prefix,$(13),$(12),$${prefix}),$(call \
+  pkgconf_replace_path_prefix,$(14),$(13),$${exec_prefix}),$(call \
+  pkgconf_replace_path_prefix,$(15),$(12),$${prefix}))
 
 # generate pkg-config file contents for the library
 # $1    - library name (human-readable), e.g. my library
@@ -75,10 +77,10 @@ PKGCONF_GEN1 = $(call PKGCONFIG_LIBRARY_TEXT,$1,$2,$3,$4,$5,$6,$7,$8,$9,$(10),$(
 # $(14) - ${libdir},      e.g. $(LIBDIR)/x86_64-linux-gnu
 # $(15) - ${includedir},  e.g. $(INCLUDEDIR)
 PKGCONF_GEN = $(call PKGCONF_GEN1,$1,$2,$3,$4,$5,$6,$7,$8,$9,$(10),$(11),$(call \
-  pc_path,$(12)),$(call pc_path,$(13)),$(call pc_path,$(14)),$(call pc_path,$(15)))
+  pkgconf_path,$(12)),$(call pkgconf_path,$(13)),$(call pkgconf_path,$(14)),$(call pkgconf_path,$(15)))
 
 # protect variables from modifications in target makefiles
-$(call SET_GLOBAL,PKGCONFIG_LIBRARY_TEXT pc_path pc_replace PKGCONF_GEN1 PKGCONF_GEN)
+$(call SET_GLOBAL,PKGCONFIG_LIBRARY_TEXT pkgconf_path pkgconf_replace_path_prefix PKGCONF_GEN1 PKGCONF_GEN)
 
 ## get path to installed .pc-file
 ## $1 - static or dynamic library name
