@@ -63,6 +63,7 @@ DLL_VARIANT_SUFFIX = _$2
 # define target variant flags, empty by default
 # $1 - target: EXE
 # $2 - variant
+# note: for VARIANT_INCLUDE and other VARIANT_... macros from $(CLEAN_BUILD_DIR)/impl/c_base.mk
 EXE_VARIANT_INCLUDE:=
 EXE_VARIANT_DEFINES:=
 EXE_VARIANT_CFLAGS:=
@@ -72,6 +73,7 @@ EXE_VARIANT_LDFLAGS:=
 # define target variant flags, empty by default
 # $1 - target: LIB
 # $2 - variant
+# note: for VARIANT_INCLUDE and other VARIANT_... macros from $(CLEAN_BUILD_DIR)/impl/c_base.mk
 LIB_VARIANT_INCLUDE:=
 LIB_VARIANT_DEFINES:=
 LIB_VARIANT_CFLAGS:=
@@ -81,11 +83,30 @@ LIB_VARIANT_LDFLAGS:=
 # define target variant flags, empty by default
 # $1 - target: DLL
 # $2 - variant
+# note: for VARIANT_INCLUDE and other VARIANT_... macros from $(CLEAN_BUILD_DIR)/impl/c_base.mk
 DLL_VARIANT_INCLUDE:=
 DLL_VARIANT_DEFINES:=
 DLL_VARIANT_CFLAGS:=
 DLL_VARIANT_CXXFLAGS:=
 DLL_VARIANT_LDFLAGS:=
+
+# when building both types of the same library - static and dynamic (shared)
+# and having multiple variants of static and dynamic types,
+# select which dynamic variant of the library should be used for shared linking of given static variant
+#
+# for example, if we have 3 static variants (R,X,Y) and 2 dynamic variants (R,Z) of library mylib:
+#  libmylib.a libmylib_X.a libmylib_Y.a and libmylib.so libmylib_Z.so
+#
+#  use libmylib.so for shared linking of libmylib.a and
+#  use libmylib_Z.so for shared linking any of libmylib_X.a or libmylib_Y.a
+#
+#  STATIC_LIB_SELECT_DYNAMIC = $(if $1,Z)
+#
+# $1 - static variant of the library, <empty> for R (regular) variant
+# returns: dynamic variant or <empty> for R (regular) variant of the library
+#
+# by default, use the same R (regular) dynamic variant of the library for shared linking
+STATIC_LIB_SELECT_DYNAMIC:=
 
 # executable file suffix
 EXE_SUFFIX:=
@@ -267,8 +288,8 @@ $(call SET_GLOBAL,C_APP_TARGETS C_TARGETS \
   EXE_VARIANT_INCLUDE EXE_VARIANT_DEFINES EXE_VARIANT_CFLAGS EXE_VARIANT_CXXFLAGS EXE_VARIANT_LDFLAGS \
   LIB_VARIANT_INCLUDE LIB_VARIANT_DEFINES LIB_VARIANT_CFLAGS LIB_VARIANT_CXXFLAGS LIB_VARIANT_LDFLAGS \
   DLL_VARIANT_INCLUDE DLL_VARIANT_DEFINES DLL_VARIANT_CFLAGS DLL_VARIANT_CXXFLAGS DLL_VARIANT_LDFLAGS \
-  EXE_SUFFIX EXE_FORM_TRG LIB_PREFIX LIB_SUFFIX LIB_FORM_TRG DLL_PREFIX DLL_SUFFIX DLL_DIR DLL_FORM_TRG \
-  LIB_DEP_MAP DLL_DEP_MAP IMP_PREFIX IMP_SUFFIX DEP_LIBS=LIBS DEP_IMPS=DLLS \
+  STATIC_LIB_SELECT_DYNAMIC EXE_SUFFIX EXE_FORM_TRG LIB_PREFIX LIB_SUFFIX LIB_FORM_TRG DLL_PREFIX DLL_SUFFIX \
+  DLL_DIR DLL_FORM_TRG LIB_DEP_MAP DLL_DEP_MAP IMP_PREFIX IMP_SUFFIX DEP_LIBS=LIBS DEP_IMPS=DLLS \
   EXE_TEMPLATE=t;v;EXE;LIB_DIR;LIBS;DLLS;SYSLIBS;SYSLIBPATH DLL_TEMPLATE=t;v;DLL LIB_TEMPLATE=t;v;LIB \
   CC_COLOR CXX_COLOR AR_COLOR LD_COLOR XLD_COLOR SLD_COLOR TCC_COLOR TCXX_COLOR TAR_COLOR TLD_COLOR TXLD_COLOR TSLD_COLOR \
   C_PREPARE_APP_VARS CLEAN_BUILD_C_APP_EVAL DEFINE_C_APP_EVAL CHECK_C_APP_RULES C_COMPILER C_COMPILER_MK)

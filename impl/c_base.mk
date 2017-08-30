@@ -86,8 +86,8 @@ endif
 # returns: list of object files
 OBJ_RULES = $(if $2,$(call OBJ_RULES1,$1,$2,$3,$4,$(addprefix $4/,$(basename $(notdir $2)))))
 
-# which compiler type to use for the target? CXX or CC?
-# note: CXX compiler may compile C sources, but also links standard C++ library (libstdc++.so)
+# which compiler type to use for the target: CXX or CC?
+# note: CXX compiler may compile C sources, but also links standard C++ libraries (like libstdc++)
 # $1     - target file: $(call FORM_TRG,$t,$v)
 # $2     - sources: $(TRG_SRC)
 # $t     - EXE,LIB,DLL,DRV,KLIB,KDLL,...

@@ -7,7 +7,7 @@
 # pkg-config file generation
 
 # text of generated .pc file
-# $1  - library name (abbreviated)
+# $1  - library name (human-readable)
 # $2  - Version: major.minor.patch
 # $3  - Description (arbitrary text)
 # $4  - Comment (author, description, etc.)
@@ -22,7 +22,7 @@
 # $13 - ${exec_prefix}
 # $14 - ${libdir}
 # $15 - ${includedir}
-define PKGCONF_TEXT
+define PKGCONFIG_LIBRARY_TEXT
 $(if $4,# $(subst $(newline),$(newline)# ,$4)$(newline))
 prefix=$(12)
 exec_prefix=$(13)
@@ -49,14 +49,17 @@ pc_path = $(patsubst %/,%,$(subst \,/,$1))
 pc_replace = $(call ospath,$(patsubst \%/,%,$(subst \$2/,\$3/,\$1/)))
 
 # try to replace:
-# $(EXEC_PREFIX) -> ${prefix}
-# $(LIBDIR)      -> ${exec_prefix}/lib/x86_64-linux-gnu
-# $(INCLUDEDIR)  -> ${prefix}/include
-PKGCONF_GEN1 = $(call PKGCONF_TEXT,$1,$2,$3,$4,$5,$6,$7,$8,$9,$(10),$(11),$(12),$(call \
-  pc_replace,$(13),$(12),$${prefix}),$(call pc_replace,$(14),$(13),$${exec_prefix}),$(call pc_replace,$(15),$(12),$${prefix}))
+# $(12) - $(PREFIX)
+# $(13) - $(EXEC_PREFIX) -> ${prefix}
+# $(14) - $(LIBDIR)      -> ${exec_prefix}/lib/x86_64-linux-gnu
+# $(15) - $(INCLUDEDIR)  -> ${prefix}/include
+PKGCONF_GEN1 = $(call PKGCONFIG_LIBRARY_TEXT,$1,$2,$3,$4,$5,$6,$7,$8,$9,$(10),$(11),$(12),$(call \
+  pc_replace,$(13),$(12),$${prefix}),$(call \
+  pc_replace,$(14),$(13),$${exec_prefix}),$(call \
+  pc_replace,$(15),$(12),$${prefix}))
 
 # generate pkg-config file contents for the library
-# $1    - library name (abbreviated), e.g. mylib
+# $1    - library name (human-readable), e.g. my library
 # $2    - library version, e.g. $(MODVER)
 # $3    - library description (arbitrary text)
 # $4    - library comment (author, description, etc.)
@@ -75,7 +78,7 @@ PKGCONF_GEN = $(call PKGCONF_GEN1,$1,$2,$3,$4,$5,$6,$7,$8,$9,$(10),$(11),$(call 
   pc_path,$(12)),$(call pc_path,$(13)),$(call pc_path,$(14)),$(call pc_path,$(15)))
 
 # protect variables from modifications in target makefiles
-$(call SET_GLOBAL,PKGCONF_TEXT pc_path pc_replace PKGCONF_GEN1 PKGCONF_GEN)
+$(call SET_GLOBAL,PKGCONFIG_LIBRARY_TEXT pc_path pc_replace PKGCONF_GEN1 PKGCONF_GEN)
 
 ## get path to installed .pc-file
 ## $1 - static or dynamic library name

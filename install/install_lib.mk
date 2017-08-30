@@ -23,6 +23,8 @@ endif
 #                +-pkgconf_gen.mk
 #                |
 #                +-libtool_gen.mk
+#                |
+#                +-install_lib_windows.mk
 
 # this file is likely included in target makefile after $(DEFINE_TARGETS) which builds (and/or):
 # LIB - static library name (with variants)
@@ -45,7 +47,12 @@ LIBRARY_HEADERS:=
 # name of installed headers directory, may be empty, must not contain spaces
 LIBRARY_HDIR:=
 
-# name of pkg-config file generator macro, must be defined if $(LIBRARY_NO_INSTALL_PKGCONF) is empty
+# pkg-config file generator macro, must be defined if $(LIBRARY_NO_INSTALL_PKGCONF) is empty
 LIBRARY_PKGCONF_GEN:=
+
+# directory where to generate pkg-config file:
+# $(PKG_LIBDIR)  - for ordinary libraries
+# $(PKG_DATADIR) - for header-only libraries
+LIBRARY_PKGCONF_DIR = $(PKG_LIBDIR)
 
 # after (re-)defining above variables, expand INSTALL_LIB macro via just $(INSTALL_LIB)

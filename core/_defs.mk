@@ -660,6 +660,35 @@ endif # MCHECK
 # note: directories for generated files will be auto-created
 ADD_GENERATED_RET = $(ADD_GENERATED)$1
 
+ifndef TOCLEAN
+
+# create a chain of order-only dependent targets, so their rules will be executed after each other
+# $1 - NON_PARALEL_GROUP_$(group_name)
+# $2 - target
+define NON_PARALLEL_EXECUTE_RULE
+ifneq (undefined,$(origin $1))
+$2:| $($1)
+endif
+$1:=$2
+endef
+
+# remember new value of NON_PARALEL_GROUP_$(group_name)
+ifdef SET_GLOBAL1
+$(call define_append,NON_PARALLEL_EXECUTE_RULE,$(newline)$$(call SET_GLOBAL1,$$1))
+endif
+
+# create a chain of order-only dependent targets, so their rules will be executed after each other
+# for example:
+# $(call NON_PARALLEL_EXECUTE,my_group,target1)
+# $(call NON_PARALLEL_EXECUTE,my_group,target2)
+# $(call NON_PARALLEL_EXECUTE,my_group,target3)
+# ...
+# $1 - group name
+# $2 - target
+# note: standard .NOTPARALLEL target, if defined, globally disables parallel execution of all rules,
+#  NON_PARALLEL_EXECUTE macro allows to define a group of targets those rules must not be executed in parallel
+NON_PARALLEL_EXECUTE = $(eval $(call NON_PARALLEL_EXECUTE_RULE,$1_NON_PARALEL_GROUP,$2))
+
 # list of processed multi-target rules
 # note: MULTI_TARGETS is never cleared, only appended (in rules execution phase)
 MULTI_TARGETS:=
@@ -668,14 +697,41 @@ MULTI_TARGETS:=
 # note: MULTI_TARGET_NUM is never cleared, only appended (in makefiles parsing phase)
 MULTI_TARGET_NUM:=
 
+# make a chain of dependencies of multi-targets on each other: 1 2 3 4 -> 2:| 1; 3:| 2; 4:| 3;
+# $1 - list of generated files (absolute paths without spaces)
+# note: because all multi-target files are generated at once - when need to update one of them
+#  and target file timestamp is updated only after executing a rule, rule execution must be
+#  delayed until files are really generated.
+MULTI_TARGET_SEQ = $(subst |,:| ,$(subst $(space),$(newline),$(filter-out \
+  ||%,$(join $(addsuffix |,$(wordlist 2,999999,$1) |),$1))))
+
 # when some tool (e.g. bison) generates many files, call the tool only once:
 #  assign to each generated multi-target rule an unique number
 #  and remember if rule with this number was already executed for one of multi-targets
+#
 # $1 - list of generated files (absolute paths)
 # $2 - prerequisites (either absolute or makefile-related)
 # $3 - rule
 # $4 - $(words $(MULTI_TARGET_NUM))
+#
+# note: all generated files must depend on prerequisites, making a chain of
+#  order-only dependencies between generated files is not enough - a target
+#  that depends on existing generated file will be rebuilt as result of changes
+#  in prerequisites only if generated file also depends on prerequisites, e.g.
+#
+#     [good]                     [bad]
+#   gen1:| gen2                gen1:| gen2
+#   gen1 gen2: prereq     vs   gen2: prereq
+#       touch gen1 gen2            touch gen1 gen2
+#   trg1: gen1                 trg1: gen1
+#   trg2: gen2                 trg2: gen2
+#
+# note: do not delete some of generated files manually, do 'make clean' to delete them all,
+#  otherwise, missing files will be generated correctly, but as side effect up-to-date files are
+#  also will be re-generated, this may lead to unexpected rebuilds on second make invocation.
+#
 define MULTI_TARGET_RULE
+$(MULTI_TARGET_SEQ)
 $(STD_TARGET_VARS)
 $1: $(call fixpath,$2)
 	$$(if $$(filter $4,$$(MULTI_TARGETS)),,$$(eval MULTI_TARGETS+=$4)$$(call SUP,MGEN,$1)$3)
@@ -709,32 +765,13 @@ $(eval MULTI_TARGET = $$(CHECK_MULTI_RULE)$(value MULTI_TARGET))
 
 endif # MCHECK
 
-# create a chain of order-only dependent targets, so their rules will be executed after each other
-# $1 - NON_PARALEL_GROUP_$(group_name)
-# $2 - target
-define NON_PARALLEL_EXECUTE_RULE
-ifneq (undefined,$(origin $1))
-$2:| $($1)
-endif
-$1:=$2
-endef
+else # clean
 
-# remember new value of NON_PARALEL_GROUP_$(group_name)
-ifdef SET_GLOBAL1
-$(call define_append,NON_PARALLEL_EXECUTE_RULE,$(newline)$$(call SET_GLOBAL1,$$1))
-endif
+# just delete files on 'clean'
+NON_PARALLEL_EXECUTE:=
+MULTI_TARGET = $(eval $(STD_TARGET_VARS))
 
-# create a chain of order-only dependent targets, so their rules will be executed after each other
-# for example:
-# $(call NON_PARALLEL_EXECUTE,my_group,target1)
-# $(call NON_PARALLEL_EXECUTE,my_group,target2)
-# $(call NON_PARALLEL_EXECUTE,my_group,target3)
-# ...
-# $1 - group name
-# $2 - target
-# note: standard .NOTPARALLEL target, if defined, globally disables parallel execution of all rules,
-#  NON_PARALLEL_EXECUTE macro allows to define a group of targets those rules must not be executed in parallel
-NON_PARALLEL_EXECUTE = $(eval $(call NON_PARALLEL_EXECUTE_RULE,$1_NON_PARALEL_GROUP,$2))
+endif # clean
 
 # helper macro: make source dependencies list
 # $1 - sources
@@ -962,9 +999,9 @@ $(call SET_GLOBAL,PROJECT_VARS_NAMES PASS_ENV_VARS \
   ADD_MDEPS ADD_ADEPS CREATE_MAKEFILE_ALIAS ADD_ORDER_DEPS=ORDER_DEPS=ORDER_DEPS \
   STD_TARGET_VARS1 STD_TARGET_VARS MAKEFILE_INFO_TEMPL SET_MAKEFILE_INFO fixpath \
   GET_TARGET_NAME SUPPORTED_VARIANTS FILTER_VARIANTS_LIST GET_VARIANTS VARIANT_SUFFIX FORM_TRG ALL_TARGETS \
-  FORM_OBJ_DIR ADD_GENERATED CHECK_GENERATED ADD_GENERATED_RET \
-  MULTI_TARGET_RULE=MULTI_TARGET_NUM=MULTI_TARGET_NUM MULTI_TARGET CHECK_MULTI_RULE \
-  NON_PARALLEL_EXECUTE_RULE NON_PARALLEL_EXECUTE FORM_SDEPS EXTRACT_SDEPS FIX_SDEPS RUN_WITH_DLL_PATH TMD TOOL_MODE \
+  FORM_OBJ_DIR ADD_GENERATED CHECK_GENERATED ADD_GENERATED_RET NON_PARALLEL_EXECUTE_RULE NON_PARALLEL_EXECUTE \
+  MULTI_TARGET_SEQ MULTI_TARGET_RULE=MULTI_TARGET_NUM=MULTI_TARGET_NUM MULTI_TARGET CHECK_MULTI_RULE \
+  FORM_SDEPS EXTRACT_SDEPS FIX_SDEPS RUN_WITH_DLL_PATH TMD TOOL_MODE \
   DEF_HEAD_CODE_EVAL DEF_TAIL_CODE_EVAL MAKE_CONTINUE_EVAL_NAME DEFINE_TARGETS_EVAL_NAME \
   DEF_HEAD_CODE DEF_TAIL_CODE DEFINE_TARGETS SAVE_VARS RESTORE_VARS MAKE_CONTINUE CONF_COLOR PRODUCT_VER)
 

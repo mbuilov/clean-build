@@ -30,10 +30,12 @@ endif
 NO_INSTALL_HEADERS = $($1_LIBRARY_NO_DEVEL)
 
 # non-empty if do not install/uninstall static libraries
+# note: by default, do not install static libraries
 NO_INSTALL_STATIC  = $($1_LIBRARY_NO_DEVEL)
 
 # non-empty if do not install/uninstall shared libraries
-NO_INSTALL_SHARED  = $($1_LIBRARY_NO_DEVEL)
+# note: by default, install shared libraries if they are built (e.g. NO_SHARED is not set)
+NO_INSTALL_SHARED:=
 
 # non-empty if do not install/uninstall dll import libraries (WINDOWS)
 NO_INSTALL_IMPORT  = $($1_LIBRARY_NO_DEVEL)
@@ -72,6 +74,8 @@ endef
 
 # library base installation template
 # $1 - library name (mylib for libmylib.a)
+# $2 - where to install static libraries, should be $$(D_LIBDIR)
+# $3 - where to install shared libraries, may be $$(D_LIBDIR) or $$(D_BINDIR)
 # note: defines target-specific variables: BUILT_LIBS BUILT_DLLS
 # note: do not try to install $(D_LIBDIR) if no LIBS/DLLS were built
 define INSTALL_LIB_BASE
@@ -81,7 +85,7 @@ $(DEFINE_INSTALL_LIB_VARS)
 ifeq (,$$($1_LIBRARY_NO_INSTALL_STATIC))
 ifneq (,$$($1_BUILT_LIBS))
 install_lib_$1_static uninstall_lib_$1_static: BUILT_LIBS := $$($1_BUILT_LIBS)
-install_lib_$1_static: $$($1_BUILT_LIBS)
+install_lib_$1_static: $$($1_BUILT_LIBS) | $$(call NEED_INSTALL_DIR_RET,$2)
 install_lib_$1:   install_lib_$1_static
 uninstall_lib_$1: uninstall_lib_$1_static
 $(call SET_MAKEFILE_INFO,install_lib_$1_static uninstall_lib_$1_static)
@@ -91,23 +95,11 @@ endif
 ifeq (,$$($1_LIBRARY_NO_INSTALL_SHARED))
 ifneq (,$$($1_BUILT_DLLS))
 install_lib_$1_shared uninstall_lib_$1_shared: BUILT_DLLS := $$($1_BUILT_DLLS)
-install_lib_$1_shared: $$($1_BUILT_DLLS)
+install_lib_$1_shared: $$($1_BUILT_DLLS) | $$(call NEED_INSTALL_DIR_RET,$3)
 install_lib_$1:   install_lib_$1_shared
 uninstall_lib_$1: uninstall_lib_$1_shared
 $(call SET_MAKEFILE_INFO,install_lib_$1_shared uninstall_lib_$1_shared)
 endif
-endif
-
-ifneq (,$$(if \
-  $$($1_LIBRARY_NO_INSTALL_STATIC),,$$(if $$($1_BUILT_LIBS),$$(if \
-  $$($1_LIBRARY_NO_INSTALL_SHARED),,$$($1_BUILT_DLLS)))))
-install_lib_$1_static install_lib_$1_shared:| $$(call NEED_INSTALL_DIR_RET,$$(D_LIBDIR))
-else ifneq (,$$(if \
-  $$($1_LIBRARY_NO_INSTALL_STATIC),,$$($1_BUILT_LIBS)))
-install_lib_$1_static:| $$(call NEED_INSTALL_DIR_RET,$$(D_LIBDIR))
-else ifneq (,$$(if \
-  $$($1_LIBRARY_NO_INSTALL_SHARED),,$$($1_BUILT_DLLS)))
-install_lib_$1_shared:| $$(call NEED_INSTALL_DIR_RET,$$(D_LIBDIR))
 endif
 
 .PHONY: \
@@ -118,7 +110,7 @@ endif
 install:   install_lib_$1
 uninstall: uninstall_lib_$1
 
-endef
+endef # INSTALL_LIB_BASE
 
 # library headers installation template
 # $1 - library name (mylib for libmylib.a)
@@ -135,8 +127,10 @@ install_lib_$1_headers: $$($1_LIBRARY_HEADERS) | $$(call NEED_INSTALL_DIR_RET,$$
 	$$(call DO_INSTALL_FILES,$$(HEADERS),$$(D_INCLUDEDIR)$($1_LIBRARY_HDIR),644)
 
 uninstall_lib_$1_headers:
-	$(if $($1_LIBRARY_HDIR),$$(call DO_UNINSTALL_DIR,$$(D_INCLUDEDIR)$($1_LIBRARY_HDIR)),$$(call \
-  DO_UNINSTALL_FILES_IN,$$(D_INCLUDEDIR),$$(notdir $$(HEADERS))))
+	$$(call DO_UNINSTALL_FILES_IN,$$(D_INCLUDEDIR)$($1_LIBRARY_HDIR),$$(notdir $$(HEADERS)))
+
+install_lib_$1:   install_lib_$1_headers
+uninstall_lib_$1: uninstall_lib_$1_headers
 
 $(call SET_MAKEFILE_INFO,install_lib_$1_headers uninstall_lib_$1_headers)
 
@@ -145,10 +139,7 @@ endif
 
 .PHONY: install_lib_$1_headers uninstall_lib_$1_headers
 
-install_$1:   install_lib_$1_headers
-uninstall_$1: uninstall_lib_$1_headers
-
-endef
+endef # INSTALL_LIB_HEADERS
 
 # INSTALL_LIB_MK - makefile with definition of $(OS)-specific INSTALL_LIB macro
 INSTALL_LIB_MK := $(dir $(lastword $(MAKEFILE_LIST)))install_lib_$(INSTALL_OS_TYPE).mk
