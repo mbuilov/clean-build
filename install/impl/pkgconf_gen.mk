@@ -22,7 +22,7 @@
 # $13 - ${exec_prefix}
 # $14 - ${libdir}
 # $15 - ${includedir}
-define PKGCONFIG_LIBRARY_TEXT
+define PKGCONF_LIB_TEMPLATE
 $(if $4,# $(subst $(newline),$(newline)# ,$4)$(newline))
 prefix=$(12)
 exec_prefix=$(13)
@@ -48,17 +48,17 @@ pkgconf_path = $(patsubst %/,%,$(subst \,/,$1))
 
 # try to replace in $1 prefix $2 with $3
 # note: paths $1 and $2 are previously processed by pkgconf_path, so there are no backslashes in them
-pkgconf_replace_path_prefix = $(patsubst \%/,%,$(subst \$2/,\$3/,\$1/))
+pkgconf_replace_prefix = $(patsubst \%/,%,$(subst \$2/,\$3/,\$1/))
 
 # try to replace:
 # $(12) - $(PREFIX)
 # $(13) - $(EXEC_PREFIX) -> ${prefix}
 # $(14) - $(LIBDIR)      -> ${exec_prefix}/lib/x86_64-linux-gnu
 # $(15) - $(INCLUDEDIR)  -> ${prefix}/include
-PKGCONF_GEN1 = $(call PKGCONFIG_LIBRARY_TEXT,$1,$2,$3,$4,$5,$6,$7,$8,$9,$(10),$(11),$(12),$(call \
-  pkgconf_replace_path_prefix,$(13),$(12),$${prefix}),$(call \
-  pkgconf_replace_path_prefix,$(14),$(13),$${exec_prefix}),$(call \
-  pkgconf_replace_path_prefix,$(15),$(12),$${prefix}))
+PKGCONF_LIB_GENERATE1 = $(call PKGCONF_LIB_TEMPLATE,$1,$2,$3,$4,$5,$6,$7,$8,$9,$(10),$(11),$(12),$(call \
+  pkgconf_replace_prefix,$(13),$(12),$${prefix}),$(call \
+  pkgconf_replace_prefix,$(14),$(13),$${exec_prefix}),$(call \
+  pkgconf_replace_prefix,$(15),$(12),$${prefix}))
 
 # generate pkg-config file contents for the library
 # $1    - library name (human-readable), e.g. my library
@@ -76,28 +76,8 @@ PKGCONF_GEN1 = $(call PKGCONFIG_LIBRARY_TEXT,$1,$2,$3,$4,$5,$6,$7,$8,$9,$(10),$(
 # $(13) - ${exec_prefix}, e.g. $(EXEC_PREFIX)
 # $(14) - ${libdir},      e.g. $(LIBDIR)/x86_64-linux-gnu
 # $(15) - ${includedir},  e.g. $(INCLUDEDIR)
-PKGCONF_GEN = $(call PKGCONF_GEN1,$1,$2,$3,$4,$5,$6,$7,$8,$9,$(10),$(11),$(call \
+PKGCONF_LIB_GENERATE = $(call PKGCONF_LIB_GENERATE1,$1,$2,$3,$4,$5,$6,$7,$8,$9,$(10),$(11),$(call \
   pkgconf_path,$(12)),$(call pkgconf_path,$(13)),$(call pkgconf_path,$(14)),$(call pkgconf_path,$(15)))
 
 # protect variables from modifications in target makefiles
-$(call SET_GLOBAL,PKGCONFIG_LIBRARY_TEXT pkgconf_path pkgconf_replace_path_prefix PKGCONF_GEN1 PKGCONF_GEN)
-
-## get path to installed .pc-file
-## $1 - static or dynamic library name
-#INSTALLED_PKGCONF = '$(DESTDIR)$(PKG_CONFIG_DIR)/$1.pc'
-#
-## get paths to installed .pc-files
-## $1 - all built libraries (result of $(GET_ALL_LIBS))
-#INSTALLED_PKGCONFS = $(foreach r,$1,$(call INSTALLED_PKGCONF,$(firstword $(subst ?, ,$r))))
-#
-## install .pc-file
-## $1 - <lib> <variant>
-## $2 - .pc-file contents generator, called with parameters: <lib>,<variant>
-## Note: .pc-file contents generator generally expands $(PKGCONF_TEXT_TEMPLATE) or $(PKGCONF_DEF_TEMPLATE)
-#INSTALL_PKGCONF = $(foreach l,$(firstword $1),$(call ECHO_INSTALL,$(call $2,$l,$(word 2,$1)),$(call INSTALLED_PKGCONF,$l),644))
-#
-## install .pc-files
-## $1 - all built libraries (result of $(GET_ALL_LIBS))
-## $2 - .pc-file contents generator, called witch parameters: <lib>,<variant>
-## Note: .pc-file contents generator generally expands $(PKGCONF_TEXT_TEMPLATE) or $(PKGCONF_DEF_TEMPLATE)
-#INSTALL_PKGCONFS = $(foreach r,$1,$(newline)$(call INSTALL_PKGCONF,$(subst ?, ,$r),$2))
+$(call SET_GLOBAL,PKGCONF_LIB_TEMPLATE pkgconf_path pkgconf_replace_prefix PKGCONF_LIB_GENERATE1 PKGCONF_LIB_GENERATE)

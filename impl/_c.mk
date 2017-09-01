@@ -91,8 +91,8 @@ DLL_VARIANT_CXXFLAGS:=
 DLL_VARIANT_LDFLAGS:=
 
 # when building both types of the same library - static and dynamic (shared)
-# and having multiple variants of static and dynamic types,
-# select which dynamic variant of the library should be used for shared linking of given static variant
+#  and having multiple variants of static and dynamic types,
+#  select which dynamic variant of the library should be used for shared linking of given static variant
 #
 # for example, if we have 3 static variants (R,X,Y) and 2 dynamic variants (R,Z) of library mylib:
 #  libmylib.a libmylib_X.a libmylib_Y.a and libmylib.so libmylib_Z.so
@@ -105,7 +105,8 @@ DLL_VARIANT_LDFLAGS:=
 # $1 - static variant of the library, <empty> for R (regular) variant
 # returns: dynamic variant or <empty> for R (regular) variant of the library
 #
-# by default, use the same R (regular) dynamic variant of the library for shared linking
+# by default, use R (regular) dynamic variant of the library for shared linking of any static variant
+# note: normally overridden by selected toolchain
 STATIC_LIB_SELECT_DYNAMIC:=
 
 # executable file suffix
