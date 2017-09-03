@@ -30,6 +30,10 @@ DELETE_FILES = rm -f $1
 # note: $(CLEAN_BUILD_DIR)/utils/gnu.mk overrides DELETE_DIRS
 DELETE_DIRS = rm -rf $1
 
+# delete directories $1 (non-recursively) if they are empty (short list, no more than PATH_ARGS_LIMIT), paths may contain spaces
+# note: $(CLEAN_BUILD_DIR)/utils/gnu.mk overrides DELETE_DIRS_IF_EMPTY
+DELETE_DIRS_IF_EMPTY = rmdir $1 2>/dev/null || true
+
 # in directory $1 (path may contain spaces), delete files $2 (long list), to support long list, paths _must_ be without spaces
 # note: $6 - <empty> on first call, $(newline) on next calls
 DELETE_FILES_IN1 = $(if $6,$(QUIET))cd $2 && $(DELETE_FILES)
@@ -156,7 +160,7 @@ LN_COLOR    := [36m
 CHMOD_COLOR := [1;35m
 
 # protect variables from modifications in target makefiles
-$(call SET_GLOBAL,PRINT_ENV PATH_ARGS_LIMIT NUL DELETE_FILES DELETE_DIRS DELETE_FILES_IN1 DELETE_FILES_IN \
+$(call SET_GLOBAL,PRINT_ENV PATH_ARGS_LIMIT NUL DELETE_FILES DELETE_DIRS DELETE_DIRS_IF_EMPTY DELETE_FILES_IN1 DELETE_FILES_IN \
   DEL_FILES_OR_DIRS1 DEL_FILES_OR_DIRS COPY_FILES2 COPY_FILES1 COPY_FILES TOUCH_FILES1 TOUCH_FILES CREATE_DIR \
   COMPARE_FILES SHELL_ESCAPE SED SED_EXPR CAT_FILE ECHO_LINE_ESCAPE ECHO_LINE ECHO_LINES ECHO_TEXT WRITE_TEXT \
   CREATE_SIMLINK CHANGE_MODE EXECUTE_IN DEL_ON_FAIL INSTALL INSTALL_DIR INSTALL_FILES2 INSTALL_FILES1 INSTALL_FILES \

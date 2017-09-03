@@ -51,12 +51,19 @@ DO_UNINSTALL_FILE  = $(call DO_UNINSTALL_FILEq,$(ifaddq))
 DO_UNINSTALL_FILES_INq = $(call SUP,RM,$(ospath) -> $(call ospath,$2),1,1)$(DELETE_FILES_IN)
 DO_UNINSTALL_FILES_IN  = $(call DO_UNINSTALL_FILES_INq,$(ifaddq),$2)
 
-# recursively delete directory while uninstalling things
+# recursively delete directory (with files in it) while uninstalling things
 # $1 - directory to delete, path may contain spaces, such as: "C:/Program Files/AcmeCorp"
 # note: pass non-empty 3-d argument to SUP function to not colorize tool arguments
 # note: pass non-empty 4-th argument to SUP function to not update percents of executed makefiles
 DO_UNINSTALL_DIRq = $(call SUP,RMDIR,$(ospath),1,1)$(DELETE_DIRS)
 DO_UNINSTALL_DIR  = $(call DO_UNINSTALL_DIRq,$(ifaddq))
+
+# try to non-recursively delete directory if it is empty while uninstalling things
+# $1 - directory to delete, path may contain spaces, such as: "C:/Program Files/AcmeCorp"
+# note: pass non-empty 3-d argument to SUP function to not colorize tool arguments
+# note: pass non-empty 4-th argument to SUP function to not update percents of executed makefiles
+DO_UNINSTALL_DIR_IF_EMPTYq = $(call SUP,RMDIR,$(ospath),1,1)$(DELETE_DIRS_IF_EMPTY)
+DO_UNINSTALL_DIR_IF_EMPTY  = $(call DO_UNINSTALL_DIR_IF_EMPTYq,$(ifaddq))
 
 # global list of directories to install
 NEEDED_INSTALL_DIRS:=
@@ -102,7 +109,6 @@ NEED_INSTALL_DIR_RET = $(NEED_INSTALL_DIR)$(subst $(space),\ ,$1)
 $(call SET_GLOBAL1,NEEDED_INSTALL_DIRS,0)
 
 # protect variables from modifications in target makefiles
-$(call SET_GLOBAL,INSTALL LDCONFIG INSTALL_COLOR LDCONF_COLOR INSTALL_DIR_COMMAND INSTALL_FILES_COMMAND \
-  INSTALL_MKDIRq INSTALL_MKDIR INSTALL_FILESq INSTALL_FILES INSTALL_LNqq INSTALL_LN UNINSTALL_DELq UNINSTALL_DEL \
-  UNINSTALL_DELINq UNINSTALL_DELIN UNINSTALL_RMDIRq UNINSTALL_RMDIR ADD_INSTALL_DIRS_TEMPL1 ADD_INSTALL_DIRS_TEMPL \
-  NEED_INSTALL_DIR NEED_INSTALL_DIR_RET)
+$(call SET_GLOBAL,DO_INSTALL_DIRq DO_INSTALL_DIR DO_INSTALL_FILESq DO_INSTALL_FILES DO_INSTALL_SIMLINKqq DO_INSTALL_SIMLINK \
+  DO_UNINSTALL_FILEq DO_UNINSTALL_FILE DO_UNINSTALL_FILES_INq DO_UNINSTALL_FILES_IN DO_UNINSTALL_DIRq DO_UNINSTALL_DIR \
+  DO_UNINSTALL_DIR_IF_EMPTYq DO_UNINSTALL_DIR_IF_EMPTY ADD_INSTALL_DIRS_TEMPL NEED_INSTALL_DIR NEED_INSTALL_DIR_RET)

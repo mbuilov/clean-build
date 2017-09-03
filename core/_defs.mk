@@ -540,7 +540,7 @@ endif
 # $1 - generated file(s) (absolute paths)
 STD_TARGET_VARS = $(call STD_TARGET_VARS1,$1,$(patsubst %/,%,$(sort $(dir $1))))
 
-# SET_MAKEFILE_INFO - for given target $1, define target-specific variables for printing makefile info:
+# MAKEFILE_INFO_TEMPL - for given target(s) $1, define target-specific variables for printing makefile info:
 # $(MF)    - makefile which specifies how to build the target
 # $(MCONT) - number of section in makefile after a call to $(MAKE_CONTINUE)
 # note: $(MAKE_CONT) list is empty or 1 1 1 .. 1 2 (inside MAKE_CONTINUE) or 1 1 1 1... (before MAKE_CONTINUE):
@@ -550,17 +550,15 @@ define MAKEFILE_INFO_TEMPL
 $1:MF:=$(TARGET_MAKEFILE)
 $1:MCONT:=$(subst +0,,+$(words $(subst 2,,$(MAKE_CONT))))
 endef
-SET_MAKEFILE_INFO = $(eval $(MAKEFILE_INFO_TEMPL))
 else ifdef QUIET
 # remember $(TARGET_MAKEFILE) to properly update percents
 MAKEFILE_INFO_TEMPL = $1:MF:=$(TARGET_MAKEFILE)
-SET_MAKEFILE_INFO = $(eval $(MAKEFILE_INFO_TEMPL))
 else # verbose
-SET_MAKEFILE_INFO:=
+MAKEFILE_INFO_TEMPL:=
 endif
 
 # define target-specific variables MF and MCONT for the target(s) $1
-ifdef SET_MAKEFILE_INFO
+ifdef MAKEFILE_INFO_TEMPL
 $(call define_prepend,STD_TARGET_VARS1,$(value MAKEFILE_INFO_TEMPL)$(newline))
 endif
 
@@ -569,12 +567,19 @@ else # clean
 # just cleanup target file(s) $1 (absolute paths)
 $(eval STD_TARGET_VARS = $(value TOCLEAN))
 
-# do nothing
+# do nothing if cleaning up
 CREATE_MAKEFILE_ALIAS:=
 ADD_ORDER_DEPS:=
-SET_MAKEFILE_INFO:=
+MAKEFILE_INFO_TEMPL:=
 
 endif # clean
+
+# SET_MAKEFILE_INFO - for given target(s) $1, define target-specific variables needed for printing makefile info
+ifdef MAKEFILE_INFO_TEMPL
+SET_MAKEFILE_INFO = $(eval $(MAKEFILE_INFO_TEMPL))
+else
+SET_MAKEFILE_INFO:=
+endif
 
 # add absolute path to directory of target makefile to given non-absolute paths
 # - we need absolute paths to sources to work with generated dependencies in .d files

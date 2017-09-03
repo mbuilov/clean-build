@@ -5,15 +5,15 @@
 #----------------------------------------------------------------------------------
 
 # write lines of text $1 to file $2 by $3 lines at one time,
+#  then set access mode of written file $2 to $4
 # note: pass non-empty 3-d argument to SUP function to not colorize tool arguments
 # note: pass non-empty 4-th argument to SUP function to not update percents of executed makefiles
-define INSTALL_TEXT
-$(call SUP,GEN,$2,1,1)$(WRITE_TEXT)
-endef
+INSTALL_TEXT = $(call SUP,GEN,$2,1,1)$(WRITE_TEXT)
 
-# then set access mode of written file $2 to $4
-ifneq (cmd,$(UTILS))
-$(call define_append,INSTALL_TEXT,$$(call SUP,CHMOD,$$2,1,1)$$(call CHANGE_MODE,$$4,$$2))
+# set access mode of file $2 to $4
+# note: CHANGE_MODE defined for $(CLEAN_BUILD_DIR)/utils/unix.mk
+ifdef CHANGE_MODE
+$(call define_append,INSTALL_TEXT,$(newline)$$(call SUP,CHMOD,$$2,1,1)$$(call CHANGE_MODE,$$4,$$2))
 endif
 
 # protect variables from modifications in target makefiles

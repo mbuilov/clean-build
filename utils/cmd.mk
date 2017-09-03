@@ -104,6 +104,9 @@ DELETE_FILES = for %%f in ($(ospath)) do if exist %%f del /F/Q %%f
 # delete directories $1 (recursively) (short list, no more than PATH_ARGS_LIMIT), paths may contain spaces: "1 2\3 4" "5 6\7 8\9" ...
 DELETE_DIRS = for %%f in ($(ospath)) do if exist %%f rd /S/Q %%f
 
+# delete directories $1 (non-recursively) if they are empty (short list, no more than PATH_ARGS_LIMIT), paths may contain spaces
+DELETE_DIRS_IF_EMPTY = rd $(ospath) 2>NUL
+
 # in directory $1 (path may contain spaces), delete files $2 (long list), to support long list, paths _must_ be without spaces
 # note: $6 - <empty> on first call, $(newline) on next calls
 DELETE_FILES_IN1 = $(if $6,$(QUIET))cd $2 && for %%f in ($1) do if exist %%f (del /F/Q %%f)
@@ -197,6 +200,14 @@ ECHO_TEXT = $(if $(findstring $(newline),$1),$(call ECHO_LINES,$(subst $(newline
 # NOTE: number $3 must be adjusted so echoed at one time text length will not exceed maximum command length (8191 characters)
 WRITE_TEXT = $(call xargs,ECHO_LINES,$(subst $(newline),$$(empty) $$(empty),$(unspaces)),$3,$2,$(QUIET),,,$(newline))
 
+# create symbolic link $2 -> $1, paths may contain spaces: '/opt/bin/my app' -> '../x y z/n m'
+# note: UNIX-specific, so not defined for Windows
+CREATE_SIMLINK:=
+
+# set mode $1 of given file(s) $2 (short list, no more than PATH_ARGS_LIMIT), paths may contain spaces: '1 2/3 4' '5 6/7 8/9' ...
+# note: UNIX-specific, so not defined for Windows
+CHANGE_MODE:=
+
 # execute command $2 in directory $1
 EXECUTE_IN = pushd $(ospath) && ($2 && popd || (popd & cmd /c exit 1))
 
@@ -267,8 +278,8 @@ $(call SET_GLOBAL,$(sort TMP PATHEXT SYSTEMROOT COMSPEC $(WIN_EXPORTED)) PATH NO
 # protect variables from modifications in target makefiles
 # note: caller will protect variables: MAKEFLAGS SHELL PATH ospath nonrelpath1 nonrelpath
 #  TOOL_SUFFIX PATHSEP DLL_PATH_VAR show_with_dll_path, show_dll_path_end, PRINT_PERCENTS, COLORIZE
-$(call SET_GLOBAL,WIN_EXPORTED PRINT_ENV PATH_ARGS_LIMIT nonrelpath1 NUL DELETE_FILES DELETE_DIRS \
+$(call SET_GLOBAL,WIN_EXPORTED PRINT_ENV PATH_ARGS_LIMIT nonrelpath1 NUL DELETE_FILES DELETE_DIRS DELETE_DIRS_IF_EMPTY \
   DELETE_FILES_IN1 DELETE_FILES_IN DEL_FILES_OR_DIRS1 DEL_FILES_OR_DIRS SUPPRESS_CP_OUTPUT \
   COPY_FILES1 COPY_FILES TOUCH_FILES1 TOUCH_FILES CREATE_DIR COMPARE_FILES SHELL_ESCAPE SED SED_EXPR \
-  CAT_FILE ECHO_LINE_ESCAPE ECHO_LINE ECHO_LINES ECHO_TEXT WRITE_TEXT EXECUTE_IN DEL_ON_FAIL \
-  INSTALL INSTALL_DIR INSTALL_FILES FILTER_OUTPUT)
+  CAT_FILE ECHO_LINE_ESCAPE ECHO_LINE ECHO_LINES ECHO_TEXT WRITE_TEXT CREATE_SIMLINK CHANGE_MODE \
+  EXECUTE_IN DEL_ON_FAIL INSTALL INSTALL_DIR INSTALL_FILES FILTER_OUTPUT)

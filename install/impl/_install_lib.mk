@@ -22,7 +22,6 @@ endif
 NO_INSTALL_HEADERS = $($1_LIBRARY_NO_DEVEL)
 
 # non-empty if do not install/uninstall static libraries
-# note: by default, do not install static libraries
 NO_INSTALL_STATIC  = $($1_LIBRARY_NO_DEVEL)
 
 # non-empty if do not install/uninstall shared libraries
@@ -32,16 +31,25 @@ NO_INSTALL_SHARED:=
 # non-empty if do not install/uninstall dll import libraries (WINDOWS)
 NO_INSTALL_IMPORT  = $($1_LIBRARY_NO_DEVEL)
 
-# non-empty if do not install/uninstall libtool .la-files (UNIX)
-NO_INSTALL_LIBTOOL = $($1_LIBRARY_NO_DEVEL)
-
 # non-empty if do not install/uninstall pkg-config .pc-files
 NO_INSTALL_PKGCONF = $($1_LIBRARY_NO_DEVEL)
 
-# write result of $(LIBRARY_PC_GENERATOR)/$(LIBRARY_LA_GENERATOR) by fixed number of lines at a time
+# write result of $(LIBRARY_PC_GENERATOR) by fixed number of lines at a time
 # note: command line length is limited (by 8191 chars on Windows),
 #  so must not write more than that number of chars (lines * max_chars_in_line) at a time.
 CONF_WRITE_BY_LINES := 35
+
+# file access mode of installed static libraries (rw-r--r--)
+STATIC_LIB_FILE_ACCESS_MODE := 644
+
+# file access mode of installed shared libraries (rwxr-xr-x)
+SHARED_LIB_FILE_ACCESS_MODE := 755
+
+# file access mode of installed library headers (rw-r--r--)
+LIB_HEADERS_FILE_ACCESS_MODE := 644
+
+# file access mode of installed library descriptions (rw-r--r--)
+LIB_CONF_FILE_ACCESS_MODE := 644
 
 # define library-specific variables for use in installation templates
 # $1 - library name without variant suffix (mylib for libmylib_pie.a)
@@ -62,7 +70,6 @@ $1_LIBRARY_NO_INSTALL_STATIC  := $$(LIBRARY_NO_INSTALL_STATIC)
 $1_LIBRARY_NO_INSTALL_SHARED  := $$(LIBRARY_NO_INSTALL_SHARED)
 $1_LIBRARY_NO_INSTALL_IMPORT  := $$(LIBRARY_NO_INSTALL_IMPORT)
 $1_LIBRARY_NO_INSTALL_PKGCONF := $$(LIBRARY_NO_INSTALL_PKGCONF)
-$1_LIBRARY_NO_INSTALL_LIBTOOL := $$(LIBRARY_NO_INSTALL_LIBTOOL)
 ifeq (,$$($1_LIBRARY_NO_INSTALL_HEADERS))
 $1_LIBRARY_HEADERS            := $$(call fixpath,$$(LIBRARY_HEADERS))
 $1_LIBRARY_HDIR               := $$(addprefix /,$$(LIBRARY_HDIR))
@@ -75,12 +82,12 @@ endef
 define INSTALL_LIB_STATIC
 install_lib_$1_static uninstall_lib_$1_static: BUILT_LIBS := $$($1_BUILT_LIBS)
 install_lib_$1_static: $$($1_BUILT_LIBS) | $$(call NEED_INSTALL_DIR_RET,$2)
-	$$(call DO_INSTALL_FILES,$$(BUILT_LIBS),$2,644)
+	$$(call DO_INSTALL_FILES,$$(BUILT_LIBS),$2,$(STATIC_LIB_FILE_ACCESS_MODE))
 uninstall_lib_$1_static:
 	$$(call DO_UNINSTALL_FILES_IN,$2,$$(notdir $$(BUILT_LIBS)))
 install_lib_$1:   install_lib_$1_static
 uninstall_lib_$1: uninstall_lib_$1_static
-$(call SET_MAKEFILE_INFO,install_lib_$1_static uninstall_lib_$1_static)
+$(call MAKEFILE_INFO_TEMPL,install_lib_$1_static uninstall_lib_$1_static)
 endef
 
 # install shared libs
@@ -89,12 +96,12 @@ endef
 define INSTALL_LIB_SHARED
 install_lib_$1_shared uninstall_lib_$1_shared: BUILT_DLLS := $$($1_BUILT_DLLS)
 install_lib_$1_shared: $$($1_BUILT_DLLS) | $$(call NEED_INSTALL_DIR_RET,$3)
-	$$(call DO_INSTALL_FILES,$$(BUILT_DLLS),$3,755)
+	$$(call DO_INSTALL_FILES,$$(BUILT_DLLS),$3,$(SHARED_LIB_FILE_ACCESS_MODE))
 uninstall_lib_$1_shared:
 	$$(call DO_UNINSTALL_FILES_IN,$3,$$(notdir $$(BUILT_DLLS)))
 install_lib_$1:   install_lib_$1_shared
 uninstall_lib_$1: uninstall_lib_$1_shared
-$(call SET_MAKEFILE_INFO,install_lib_$1_shared uninstall_lib_$1_shared)
+$(call MAKEFILE_INFO_TEMPL,install_lib_$1_shared uninstall_lib_$1_shared)
 endef
 
 # library headers installation template
@@ -103,49 +110,37 @@ endef
 define INSTALL_LIB_HEADERS
 install_lib_$1_headers uninstall_lib_$1_headers: HEADERS := $$($1_LIBRARY_HEADERS)
 install_lib_$1_headers: $$($1_LIBRARY_HEADERS) | $$(call NEED_INSTALL_DIR_RET,$$(D_INCLUDEDIR)$($1_LIBRARY_HDIR))
-	$$(call DO_INSTALL_FILES,$$(HEADERS),$$(D_INCLUDEDIR)$($1_LIBRARY_HDIR),644)
+	$$(call DO_INSTALL_FILES,$$(HEADERS),$$(D_INCLUDEDIR)$($1_LIBRARY_HDIR),$(LIB_HEADERS_FILE_ACCESS_MODE))
 uninstall_lib_$1_headers:
-	$$(call DO_UNINSTALL_FILES_IN,$$(D_INCLUDEDIR)$($1_LIBRARY_HDIR),$$(notdir $$(HEADERS)))
+	$$(call DO_UNINSTALL_FILES_IN,$$(D_INCLUDEDIR)$($1_LIBRARY_HDIR),$$(notdir $$(HEADERS)))$(if \
+  $($1_LIBRARY_HDIR),$(newline)$(tab)$$(call DO_UNINSTALL_DIR_IF_EMPTY,$$(D_INCLUDEDIR)$($1_LIBRARY_HDIR)))
 install_lib_$1:   install_lib_$1_headers
 uninstall_lib_$1: uninstall_lib_$1_headers
-$(call SET_MAKEFILE_INFO,install_lib_$1_headers uninstall_lib_$1_headers)
+$(call MAKEFILE_INFO_TEMPL,install_lib_$1_headers uninstall_lib_$1_headers)
 endef
-
-# select dynamic variant of the library which may be specified together with given static variant
-# $1 - static variant, in form name/variant, e.g. mylib_pie/P
-# $2 - list of dynamic variants, in form name/variant, e.g. mylib_st/S
-# note: STATIC_LIB_SELECT_DYNAMIC defined in $(CLEAN_BUILD_DIR)/impl/_c.mk
-INSTALL_LIB_SELECT_DYN = $(filter %/$(patsubst ,R,$(call \
-  STATIC_LIB_SELECT_DYNAMIC,$(filter-out R,$(word 2,$(subst /, ,$1))))),$2)
-
-# $1 - library name without variant suffix (mylib for libmylib_pie.a)
-# $2 - name of configuration template
-# $3 - parameter for configuration template $2
-# $4 - static variant of the library in form name/variant, e.g. mylib_pie/P ($4 may be empty, if $5 is not empty)
-# $5 - dynamic variant of the library in form name/variant, e.g. mylib_st/S ($5 may be empty, if $4 is not empty)
-# call template $2 with parameters:
-#  $1 - library name without variant suffix (mylib for libmylib_pie.a)
-#  $2 - static variant of the library in form name/variant, e.g. mylib_pie/P ($2 may be empty, if $3 is not empty)
-#  $3 - dynamic variant of the library in form name/variant, e.g. mylib_st/S ($3 may be empty, if $2 is not empty)
-#  $4 - base name of generating configuration file, e.g. mylib_pie for mylib_pie/P+mylib/R
-#  $5 - parameter
-INSTALL_LIB_CONFIGS2 = $(call $2,$1,$4,$5,$(firstword $(subst /, ,$(firstword $4 $5))),$3)$(newline)
 
 # $1 - library name without variant suffix (mylib for libmylib_pie.a)
 # $2 - name of configuration template
 # $3 - parameter for configuration template $2
 # $4 - list of built libs+variants, in form name/variant, e.g. mylib_pie/P
 # $5 - list of built dlls+variants, in form name/variant, e.g. mylib_st/S
-# 1) call template $2 for each built static variant of the library with selected dynamic variant 
-# 2) call template $2 for each built dynamic variant of the library with empty static variant
-INSTALL_LIB_CONFIGS1 = $(foreach l,$4,$(call INSTALL_LIB_CONFIGS2,$1,$2,$3,$l,$(call \
-  INSTALL_LIB_SELECT_DYN,$l,$5)))$(foreach d,$(filter-out $4,$5),$(call INSTALL_LIB_CONFIGS2,$1,$2,$3,,$d))
+# 1) call template $2 for each built static variant of the library with selected dynamic variant, e.g. mylib_pie/P/P
+# 2) call template $2 for each built dynamic variant of the library with empty static variant, e.g. mylib_pie//P
+# note: assume even if file names of static and dynamic variants are the same, variant names may be different,
+#  for example: mylib_st/X (static variant) and mylib_st/Y (dynamic variant) -> combine as mylib_st/X/Y
+# note: template $2 called with parameters:
+#  $1 - library name without variant suffix (mylib for libmylib_pie.a)
+#  $2 - library name with variant suffix and names of static/dynamic variants, e.g. mylib_pie/P/P
+#  $3 - parameter
+INSTALL_LIB_CONFIGS1 = $(foreach l,$4,$(call $2,$1,$l/$(lastword $(subst /, ,$(filter $(firstword \
+  $(subst /, ,$l))/%,$5))),$3)$(newline))$(foreach d,$(filter-out $(foreach l,$4,$(firstword \
+  $(subst /, ,$l))/%),$5),$(call $2,$1,$(subst /,//,$d),$3)$(newline))
 
 # helper for generating library configurations
 # $1 - library name without variant suffix (mylib for libmylib_pie.a)
 # $2 - name of configuration template
 # $3 - parameter for configuration template $2
-# note: $(INSTALL_LIB_BASE) must be evaluated before expanding this macro, so
+# note: $(DEFINE_INSTALL_LIB_VARS) must be evaluated before expanding this macro, so
 #  $1_BUILT_LIB_VARIANTS, $1_BUILT_DLL_VARIANTS, $1_BUILT_LIBS and $1_BUILT_DLLS are defined
 INSTALL_LIB_CONFIGS = $(call INSTALL_LIB_CONFIGS1,$1,$2,$3,$(join \
   $(patsubst $(LIB_PREFIX)%$(LIB_SUFFIX),%/,$(notdir $($1_BUILT_LIBS))),$($1_BUILT_LIB_VARIANTS)),$(join \
@@ -153,78 +148,59 @@ INSTALL_LIB_CONFIGS = $(call INSTALL_LIB_CONFIGS1,$1,$2,$3,$(join \
 
 # generate configuration file for a combination of static+dynamic variants of the library $1
 # $1 - library name without variant suffix (mylib for libmylib_pie.a)
-# $2 - static variant of the library in form name/variant, e.g. mylib_pie/P ($2 may be empty, if $3 is not empty)
-# $3 - dynamic variant of the library in form name/variant, e.g. mylib_st/S ($3 may be empty, if $2 is not empty)
-# $4 - full name of generating configuration file, e.g. libmylib_pie.pc for mylib_pie/P+mylib/R
-# $5 - where to generate configuration file, may be $$(D_LIBDIR), $$(D_PKG_LIBDIR) or $$(D_PKG_DATADIR)
-# $6 - target suffix, e.g pkfconf or libtool
-# $7 - name of configuration generator macro, e.g. LIBRARY_PC_GENERATOR or LIBRARY_LA_GENERATOR
+# $2 - library name with variant suffix and names of static/dynamic variants, e.g. mylib_pie/P/P
+# $3 - name of generating configuration file, e.g. mylib_pie.pc for mylib_pie/P/P
+# $4 - where to install configuration file, should be $(D_PKG_LIBDIR) or $(D_PKG_DATADIR)
+# $5 - target suffix, e.g pkfconf
+# $6 - name of configuration generator macro, e.g. LIBRARY_PC_GENERATOR
 define INSTALL_LIB_CONFIG_ONE
-tmp_CONF_TEXT := $$($7)
+tmp_CONF_TEXT := $$($6)
 ifdef tmp_CONF_TEXT
-install_lib_$1_$6_$4 uninstall_lib_$1_$6_$4: CONF_TEXT := $$(tmp_CONF_TEXT)
-install_lib_$1_$6_$4 uninstall_lib_$1_$6_$4: CONF_FILE := $5/$4
-install_lib_$1_$6_$4:| $$(call NEED_INSTALL_DIR_RET,$5)
-	$$(call INSTALL_TEXT,$$(CONF_TEXT),$$(CONF_FILE),$(CONF_WRITE_BY_LINES),644)
-uninstall_lib_$1_$6_$4:
+install_lib_$1_$3 uninstall_lib_$1_$3: CONF_TEXT := $$(tmp_CONF_TEXT)
+install_lib_$1_$3 uninstall_lib_$1_$3: CONF_FILE := $4/$3
+install_lib_$1_$3:| $$(call NEED_INSTALL_DIR_RET,$4)
+	$$(call INSTALL_TEXT,$$(CONF_TEXT),$$(CONF_FILE),$(CONF_WRITE_BY_LINES),$(LIB_CONF_FILE_ACCESS_MODE))
+uninstall_lib_$1_$3:
 	$$(call DO_UNINSTALL_FILE,$$(CONF_FILE))
-install_lib_$1_$6:   install_lib_$1_$6_$4
-uninstall_lib_$1_$6: uninstall_lib_$1_$6_$4
-.PHONY: install_lib_$1_$6_$4 uninstall_lib_$1_$6_$4
+install_lib_$1_$5:   install_lib_$1_$3
+uninstall_lib_$1_$5: uninstall_lib_$1_$3
+.PHONY: install_lib_$1_$3 uninstall_lib_$1_$3
 endif
 endef
 
-# called from INSTALL_LIB_CONFIGS2 with parameters:
+# called from INSTALL_LIB_CONFIGS1 with parameters:
 # $1 - library name without variant suffix (mylib for libmylib_pie.a)
-# $2 - static variant of the library in form name/variant, e.g. mylib_pie/P ($2 may be empty, if $3 is not empty)
-# $3 - dynamic variant of the library in form name/variant, e.g. mylib_st/S ($3 may be empty, if $2 is not empty)
-# $4 - base name of generating configuration file, e.g. mylib_pie for mylib_pie/P+mylib/R
-# $5 - parameter, should be $$(D_PKG_LIBDIR) or $$(D_PKG_DATADIR)
-INSTALL_LIB_PKGCONF_ONE = $(call INSTALL_LIB_CONFIG_ONE,$1,$2,$3,$4.pc,$5,pkgconf,LIBRARY_PC_GENERATOR)
-
-# called from INSTALL_LIB_CONFIGS2 with parameters:
-# $1 - library name without variant suffix (mylib for libmylib_pie.a)
-# $2 - static variant of the library in form name/variant, e.g. mylib_pie/P ($2 may be empty, if $3 is not empty)
-# $3 - dynamic variant of the library in form name/variant, e.g. mylib_st/S ($3 may be empty, if $2 is not empty)
-# $4 - base name of generating configuration file, e.g. mylib_pie for mylib_pie/P+mylib/R
-# $5 - parameter, should be $$(D_LIBDIR)
-INSTALL_LIB_LIBTOOL_ONE = $(call INSTALL_LIB_CONFIG_ONE,$1,$2,$3,lib$4.la,$5,libtool,LIBRARY_LA_GENERATOR)
+# $2 - library name with variant suffix and names of static/dynamic variants, e.g. mylib_pie/P/P
+# $3 - parameter, should be $(D_PKG_LIBDIR) or $(D_PKG_DATADIR)
+INSTALL_LIB_PKGCONF_ONE = $(call INSTALL_LIB_CONFIG_ONE,$1,$2,$(firstword $(subst /, ,$2)).pc,$3,pkgconf,LIBRARY_PC_GENERATOR)
 
 # install pkg-config files
 # $1 - library name without variant suffix (mylib for libmylib_pie.a)
-# $4 - where to install pkg-configs, should be $$(D_PKG_LIBDIR) or $$(D_PKG_DATADIR)
-INSTALL_LIB_PKGCONF = $(call INSTALL_LIB_CONFIGS,$1,INSTALL_LIB_PKGCONF_ONE,$4)
-
-# install libtool archive files
-# $1 - library name without variant suffix (mylib for libmylib_pie.a)
-# $5 - where to install libtool archives, should be $$(D_LIBDIR)
-INSTALL_LIB_LIBTOOL = $(call INSTALL_LIB_CONFIGS,$1,INSTALL_LIB_LIBTOOL_ONE,$5)
+# $4 - where to install pkg-configs, should be $(D_PKG_LIBDIR) or $(D_PKG_DATADIR)
+define INSTALL_LIB_PKGCONF
+$(call INSTALL_LIB_CONFIGS,$1,INSTALL_LIB_PKGCONF_ONE,$4)
+install_lib_$1:   install_lib_$1_pkgconf
+uninstall_lib_$1: uninstall_lib_$1_pkgconf
+$(call MAKEFILE_INFO_TEMPL,install_lib_$1_pkgconf uninstall_lib_$1_pkgconf)
+endef
 
 # library base installation template
 # $1 - library name (mylib for libmylib.a)
 # $2 - where to install static libraries, should be $$(D_LIBDIR)
 # $3 - where to install shared libraries, may be $$(D_LIBDIR) or $$(D_BINDIR)
-# $4 - where to install pkg-configs, should be $$(D_PKG_LIBDIR) or $$(D_PKG_DATADIR)
-# $5 - where to install libtool archives, should be $$(D_LIBDIR)
+# $4 - where to install pkg-configs, should be $(D_PKG_LIBDIR) or $(D_PKG_DATADIR)
 # note: $(DEFINE_INSTALL_LIB_VARS) must be evaluated before expanding this template, so some of $1_... macros are defined
 define INSTALL_LIB_BASE
 $(if $($1_LIBRARY_NO_INSTALL_STATIC),,$(if $($1_BUILT_LIBS),$(INSTALL_LIB_STATIC)))
 $(if $($1_LIBRARY_NO_INSTALL_SHARED),,$(if $($1_BUILT_DLLS),$(INSTALL_LIB_SHARED)))
 $(if $($1_LIBRARY_NO_INSTALL_HEADERS),,$(if $($1_LIBRARY_HEADERS),$(INSTALL_LIB_HEADERS)))
 $(if $($1_LIBRARY_NO_INSTALL_PKGCONF),,$(INSTALL_LIB_PKGCONF))
-$(if $($1_LIBRARY_NO_INSTALL_LIBTOOL),,$(INSTALL_LIB_LIBTOOL))
 .PHONY: \
   install_lib_$1_static uninstall_lib_$1_static \
   install_lib_$1_shared uninstall_lib_$1_shared \
   install_lib_$1_headers uninstall_lib_$1_headers \
   install_lib_$1_pkgconf uninstall_lib_$1_pkgconf \
-  install_lib_$1_libtool uninstall_lib_$1_libtool \
   install_lib_$1 uninstall_lib_$1
-install_lib_$1:   install_lib_$1_pkgconf   install_lib_$1_libtool
-uninstall_lib_$1: uninstall_lib_$1_pkgconf uninstall_lib_$1_libtool
-$(call SET_MAKEFILE_INFO, \
-  install_lib_$1_pkgconf uninstall_lib_$1_pkgconf \
-  install_lib_$1_libtool uninstall_lib_$1_libtool)
 install:   install_lib_$1
 uninstall: uninstall_lib_$1
 endef
@@ -241,7 +217,7 @@ endif
 include $(INSTALL_LIB_MK)
 
 # protect variables from modifications in target makefiles
-$(call SET_GLOBAL,NO_INSTALL_HEADERS NO_INSTALL_STATIC NO_INSTALL_SHARED NO_INSTALL_IMPORT NO_INSTALL_LIBTOOL NO_INSTALL_PKGCONF \
-  CONF_WRITE_BY_LINES DEFINE_INSTALL_LIB_VARS INSTALL_LIB_STATIC INSTALL_LIB_SHARED INSTALL_LIB_HEADERS INSTALL_LIB_SELECT_DYN \
-  INSTALL_LIB_CONFIGS2 INSTALL_LIB_CONFIGS1 INSTALL_LIB_CONFIGS INSTALL_LIB_CONFIG_ONE INSTALL_LIB_PKGCONF_ONE INSTALL_LIB_LIBTOOL_ONE \
-  INSTALL_LIB_PKGCONF INSTALL_LIB_LIBTOOL INSTALL_LIB_BASE INSTALL_LIB_MK)
+$(call SET_GLOBAL,NO_INSTALL_HEADERS NO_INSTALL_STATIC NO_INSTALL_SHARED NO_INSTALL_IMPORT NO_INSTALL_PKGCONF CONF_WRITE_BY_LINES \
+  STATIC_LIB_FILE_ACCESS_MODE SHARED_LIB_FILE_ACCESS_MODE LIB_HEADERS_FILE_ACCESS_MODE LIB_CONF_FILE_ACCESS_MODE \
+  DEFINE_INSTALL_LIB_VARS INSTALL_LIB_STATIC INSTALL_LIB_SHARED INSTALL_LIB_HEADERS INSTALL_LIB_CONFIGS1 INSTALL_LIB_CONFIGS \
+  INSTALL_LIB_CONFIG_ONE INSTALL_LIB_PKGCONF_ONE INSTALL_LIB_PKGCONF INSTALL_LIB_BASE INSTALL_LIB_MK)
