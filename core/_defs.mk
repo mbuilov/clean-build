@@ -156,7 +156,7 @@ override OS := $(OS)
 # note: equivalent of '--host' Gnu Autoconf configure script option
 # note: CPU specification may also encode format of executable files, e.g. CPU=m68k-coff, it is checked by the C compiler
 # note: normally CPU get overridden by specifying it in command line
-ifeq (,$(filter CYGWIN WINDOWS,$(OS)))
+ifeq (,$(filter CYGWIN WIN%,$(OS)))
 CPU := x86
 else ifeq (AMD64,$(PROCESSOR_ARCHITECTURE))
 CPU := x86_64
