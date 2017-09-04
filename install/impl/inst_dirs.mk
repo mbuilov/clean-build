@@ -20,7 +20,7 @@ DESTDIR:=
 # INSTALL_OS_TYPE - type of operating system on which to install
 # note: $(INSTALL_OS_TYPE) value is used only to form names of standard makefiles with definitions of installation templates
 # note: normally INSTALL_OS_TYPE get overridden by specifying it in command line
-INSTALL_OS_TYPE := $(if $(filter WIN%,$(OS)),windows,unix)
+INSTALL_OS_TYPE := $(if $(filter CYGWIN WIN%,$(OS)),windows,unix)
 
 # defaults, may be overridden either in command line or in project configuration makefile
 # note: assume installation paths _may_ contain spaces
@@ -94,9 +94,13 @@ D_DVIDIR  = $(call DESTDIR_NORMALIZE,$(DVIDIR))
 D_PDFDIR  = $(call DESTDIR_NORMALIZE,$(PDFDIR))
 D_PSDIR   = $(call DESTDIR_NORMALIZE,$(PSDIR))
 
-# directory where to install libraries
+# directory where to install shared libraries
 LIBDIR := $(EXEC_PREFIX)/lib
 D_LIBDIR = $(call DESTDIR_NORMALIZE,$(LIBDIR))
+
+# directory where to install development libraries
+DEVLIBDIR := $(LIBDIR)
+D_DEVLIBDIR = $(call DESTDIR_NORMALIZE,$(DEVLIBDIR))
 
 # directory for locale-specific message catalogs
 LOCALEDIR := $(DATAROOTDIR)/locale
@@ -129,7 +133,7 @@ D_MAN7DIR = $(call DESTDIR_NORMALIZE,$(MAN7DIR))
 D_MAN8DIR = $(call DESTDIR_NORMALIZE,$(MAN8DIR))
 
 # directory where to install pkg-config files for a library
-PKG_LIBDIR := $(LIBDIR)/pkgconfig
+PKG_LIBDIR := $(DEVLIBDIR)/pkgconfig
 D_PKG_LIBDIR = $(call DESTDIR_NORMALIZE,$(PKG_LIBDIR))
 
 # directory where to install pkg-config files for header-only library
@@ -142,7 +146,7 @@ $(call SET_GLOBAL,NO_DEVEL DESTDIR INSTALL_OS_TYPE DESTDIR_NORMALIZE \
   DATAROOTDIR D_DATAROOTDIR DATADIR D_DATADIR SYSCONFDIR D_SYSCONFDIR SHAREDSTATEDIR D_SHAREDSTATEDIR \
   LOCALSTATEDIR D_LOCALSTATEDIR RUNSTATEDIR D_RUNSTATEDIR INCLUDEDIR D_INCLUDEDIR PACKAGE_NAME DOCDIR D_DOCDIR \
   HTMLDIR DVIDIR PDFDIR PSDIR D_HTMLDIR D_DVIDIR D_PDFDIR D_PSDIR \
-  LIBDIR D_LIBDIR LOCALEDIR D_LOCALEDIR INFODIR D_INFODIR MANDIR D_MANDIR \
+  LIBDIR D_LIBDIR DEVLIBDIR D_DEVLIBDIR LOCALEDIR D_LOCALEDIR INFODIR D_INFODIR MANDIR D_MANDIR \
   MAN1DIR MAN2DIR MAN3DIR MAN4DIR MAN5DIR MAN6DIR MAN7DIR MAN8DIR \
   D_MAN1DIR D_MAN2DIR D_MAN3DIR D_MAN4DIR D_MAN5DIR D_MAN6DIR D_MAN7DIR D_MAN8DIR \
   PKG_LIBDIR D_PKG_LIBDIR PKG_DATADIR D_PKG_DATADIR)
