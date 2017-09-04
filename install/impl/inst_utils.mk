@@ -98,8 +98,9 @@ endif
 
 # add rule for creating directory while installing things
 # $1 - directory to install, absolute unix path, may contain spaces: C:/Program Files/AcmeCorp
+# note: assume directory path does not contain % symbols
 NEED_INSTALL_DIR1 = $(if $1,$(eval $(call ADD_INSTALL_DIRS_TEMPL,$1,$(subst $(space),\ ,$(tospaces)))))
-NEED_INSTALL_DIR = $(call NEED_INSTALL_DIR1,$(filter-out $(NEEDED_INSTALL_DIRS),$(call split_dirs,$(unspaces))))
+NEED_INSTALL_DIR  = $(call NEED_INSTALL_DIR1,$(filter-out $(NEEDED_INSTALL_DIRS),$(call split_dirs,$(unspaces))))
 
 # same as NEED_INSTALL_DIR, but return needed directory with spaces prefixed with slash: C:/Program\ Files/AcmeCorp
 NEED_INSTALL_DIR_RET = $(NEED_INSTALL_DIR)$(subst $(space),\ ,$1)
