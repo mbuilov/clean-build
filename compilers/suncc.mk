@@ -4,17 +4,10 @@
 # Licensed under GPL version 2 or any later version, see COPYING
 #----------------------------------------------------------------------------------
 
-# suncc compiler toolchain, included by $(CLEAN_BUILD_DIR)/impl/_c.mk
+# suncc compiler toolchain (app-level), included by $(CLEAN_BUILD_DIR)/impl/_c.mk
 
-# global variable: INST_RPATH - location where to search for external dependency libraries on runtime: /opt/lib or $ORIGIN/../lib
-# note: INST_RPATH may be overridden either in project configuration makefile or in command line
-INST_RPATH:=
-
-# reset additional variables
-# RPATH - runtime path for dynamic linker to search for shared libraries
-# MAP   - linker map file (used mostly to list exported symbols)
-$(call define_append,PREPARE_C_VARS_BODY,$(newline)RPATH:=$(if $(findstring \
-  simple,$(flavor INST_RPATH)),$(INST_RPATH),$$(INST_RPATH))$(newline)MAP:=)
+# define INST_RPATH, RPATH and MAP variables
+include $(dir $(lastword $(MAKEFILE_LIST)))unixcc.mk
 
 # compilers
 CC   := cc -m$(if $(CPU:%64=),32,64)
@@ -24,56 +17,31 @@ TCXX := CC -m$(if $(TCPU:%64=),32,64 -xport64)
 
 # static library archiver
 # target-specific: COMPILER
-AR  = $(if $(COMPILER:CXX=),/usr/ccs/bin$(if $(CPU:x86_64=),,/amd64)/ar,$(CXX))
+# note: use CXX compiler for creating static library archives - for adding necessary C++ templates to the archives
+AR  = $(if $(COMPILER:CXX=),/usr/ccs/bin$(if $(TCPU:x86_64=),,/amd64)/ar,$(CXX))
 TAR = $(if $(COMPILER:CXX=),/usr/ccs/bin$(if $(TCPU:x86_64=),,/amd64)/ar,$(TCXX))
 
-# sparc64: KCC="cc -xregs=no%appl -m64 -xmodel=kernel
-# sparc32: KCC="cc -xregs=no%appl -m32
-# intel64: KCC="cc -m64 -xmodel=kernel
-# intel32: KCC="cc -m32
-KCC := cc -m$(if $(KCPU:%64=),32,64 -xmodel=kernel)$(if $(KCPU:sparc%=),, -xregs=no%appl)
+# supported variants:
+# R - default variant (position-dependent code for EXE, position-independent code for DLL)
+# P - position-independent code in executables (for EXE)
+# D - position-independent code in executables or shared libraries (for LIB)
+# note: override defaults from $(CLEAN_BUILD_DIR)/impl/_c.mk
+EXE_SUPPORTED_VARIANTS := P
+LIB_SUPPORTED_VARIANTS := D
 
-# 64-bit arch: KLD="ld -64"
-KLD := /usr/ccs/bin$(if $(KCPU:x86_64=),,/amd64)/ld$(if $(KCPU:%64=),, -64)
+# only one non-regular variant of EXE is supported - P
+# $1 - target: EXE
+# $2 - P
+# note: override defaults from $(CLEAN_BUILD_DIR)/impl/_c.mk
+EXE_VARIANT_SUFFIX := _pie
 
-# yasm/flex/bison compilers
-YASMC  := yasm
-FLEXC  := flex
-BISONC := bison
+# only one non-regular variant of LIB is supported - D
+# $1 - target: LIB
+# $2 - D
+# note: override defaults from $(CLEAN_BUILD_DIR)/impl/_c.mk
+LIB_VARIANT_SUFFIX := _pic
 
-# note: assume yasm used only for drivers
-YASM_FLAGS := -f $(if $(KCPU:%64=),elf32,elf64)$(if $(KCPU:x86%=),, -m $(if $(KCPU:%64=),x86,amd64))
 
-# exe file suffix
-EXE_SUFFIX:=
-
-# object file suffix
-OBJ_SUFFIX := .o
-
-# static library (archive) prefix/suffix
-LIB_PREFIX := lib
-LIB_SUFFIX := .a
-
-# dynamically loaded library (shared object) prefix/suffix
-DLL_PREFIX := lib
-DLL_SUFFIX := .so
-
-# import library for dll prefix/suffix
-IMP_PREFIX := $(DLL_PREFIX)
-IMP_SUFFIX := $(DLL_SUFFIX)
-
-# kernel-mode static library prefix/suffix
-KLIB_NAME_PREFIX := k_
-KLIB_PREFIX := lib$(KLIB_NAME_PREFIX)
-KLIB_SUFFIX := .a
-
-# kernel module (driver) prefix/suffix
-DRV_PREFIX:=
-DRV_SUFFIX:=
-
-# import library and dll - the same file
-# NOTE: DLL_DIR must be recursive because $(LIB_DIR) have different values in TOOL-mode and non-TOOL mode
-DLL_DIR = $(LIB_DIR)
 
 # variants filter function - get possible variants for the target, needed by $(CLEAN_BUILD_DIR)/c.mk
 # $1 - LIB,EXE,DLL
@@ -371,7 +339,7 @@ endef
 endif # DRIVERS_SUPPORT
 
 # protect variables from modifications in target makefiles
-$(call CLEAN_BUILD_PROTECT_VARS,INST_RPATH CC CXX TCC TCXX AR TAR KCC KLD YASMC FLEXC BISONC YASM_FLAGS \
+$(call CLEAN_BUILD_PROTECT_VARS,CC CXX TCC TCXX AR TAR KCC KLD YASMC FLEXC BISONC YASM_FLAGS \
   KLIB_NAME_PREFIX DEF_SHARED_FLAGS DEF_SHARED_LIBS DEF_EXE_FLAGS DEF_SO_FLAGS DEF_KLD_FLAGS DEF_AR_FLAGS \
   DLL_EXPORTS_DEFINE DLL_IMPORTS_DEFINE RPATH_OPTION DEF_C_LIBS DEF_CXX_LIBS CMN_LIBS VERSION_SCRIPT_OPTION SONAME_OPTION \
   EXE_R_LD DLL_R_LD LIB_R_LD LIB_D_LD KLIB_R_LD DRV_R_LD \
