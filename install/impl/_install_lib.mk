@@ -34,7 +34,7 @@ NO_INSTALL_IMPORT  = $($1_LIBRARY_NO_DEVEL)
 # non-empty if do not install/uninstall pkg-config .pc-files
 NO_INSTALL_PKGCONF = $($1_LIBRARY_NO_DEVEL)
 
-# write result of $(LIBRARY_PC_GENERATOR) by fixed number of lines at a time
+# write result of $(LIBRARY_PKGCONF_GENERATOR) by fixed number of lines at a time
 # note: command line length is limited (by 8191 chars on Windows),
 #  so must not write more than that number of chars (lines * max_chars_in_line) at a time.
 CONF_WRITE_BY_LINES := 35
@@ -78,7 +78,7 @@ endef
 
 # install static libs
 # $1 - library name without variant suffix (mylib for libmylib_pie.a)
-# $2 - where to install static libraries, should be $$(D_LIBDIR)
+# $2 - where to install static libraries, should be $$(D_DEVLIBDIR)
 define INSTALL_LIB_STATIC
 install_lib_$1_static uninstall_lib_$1_static: BUILT_LIBS := $$($1_BUILT_LIBS)
 install_lib_$1_static: $$($1_BUILT_LIBS) | $$(call NEED_INSTALL_DIR_RET,$2)
@@ -93,6 +93,7 @@ endef
 # install shared libs
 # $1 - library name without variant suffix (mylib for libmylib_pie.a)
 # $3 - where to install shared libraries, may be $$(D_LIBDIR) (Unix) or $$(D_BINDIR) (Windows)
+# note: this template is overridden in $(CLEAN_BUILD_DIR)/install/impl/install_lib_unix.mk
 define INSTALL_LIB_SHARED
 install_lib_$1_shared uninstall_lib_$1_shared: BUILT_DLLS := $$($1_BUILT_DLLS)
 install_lib_$1_shared: $$($1_BUILT_DLLS) | $$(call NEED_INSTALL_DIR_RET,$3)
@@ -152,7 +153,7 @@ INSTALL_LIB_CONFIGS = $(call INSTALL_LIB_CONFIGS1,$1,$2,$3,$(join \
 # $3 - name of generating configuration file, e.g. mylib_pie.pc for mylib_pie/P/P
 # $4 - where to install configuration file, should be $(D_PKG_LIBDIR) or $(D_PKG_DATADIR)
 # $5 - target suffix, e.g pkfconf
-# $6 - name of configuration generator macro, e.g. LIBRARY_PC_GENERATOR
+# $6 - name of configuration generator macro, e.g. LIBRARY_PKGCONF_GENERATOR
 define INSTALL_LIB_CONFIG_ONE
 tmp_CONF_TEXT := $$($6)
 ifdef tmp_CONF_TEXT
@@ -172,7 +173,7 @@ endef
 # $1 - library name without variant suffix (mylib for libmylib_pie.a)
 # $2 - library name with variant suffix and names of static/dynamic variants, e.g. mylib_pie/P/P
 # $3 - parameter, should be $(D_PKG_LIBDIR) or $(D_PKG_DATADIR)
-INSTALL_LIB_PKGCONF_ONE = $(call INSTALL_LIB_CONFIG_ONE,$1,$2,$(firstword $(subst /, ,$2)).pc,$3,pkgconf,LIBRARY_PC_GENERATOR)
+INSTALL_LIB_PKGCONF_ONE = $(call INSTALL_LIB_CONFIG_ONE,$1,$2,$(firstword $(subst /, ,$2)).pc,$3,pkgconf,LIBRARY_PKGCONF_GENERATOR)
 
 # install pkg-config files
 # $1 - library name without variant suffix (mylib for libmylib_pie.a)
@@ -186,7 +187,7 @@ endef
 
 # library base installation template
 # $1 - library name (mylib for libmylib.a)
-# $2 - where to install static libraries, should be $$(D_LIBDIR)
+# $2 - where to install static libraries, should be $$(D_DEVLIBDIR)
 # $3 - where to install shared libraries, may be $$(D_LIBDIR) or $$(D_BINDIR)
 # $4 - where to install pkg-configs, should be $(D_PKG_LIBDIR) or $(D_PKG_DATADIR)
 # note: $(DEFINE_INSTALL_LIB_VARS) must be evaluated before expanding this template, so some of $1_... macros are defined
