@@ -90,25 +90,6 @@ DLL_VARIANT_CFLAGS:=
 DLL_VARIANT_CXXFLAGS:=
 DLL_VARIANT_LDFLAGS:=
 
-# when building both types of the same library - static and dynamic (shared)
-#  and having multiple variants of static and dynamic types,
-#  select which dynamic variant of the library should be used for shared linking of given static variant
-#
-# for example, if we have 3 static variants (R,X,Y) and 2 dynamic variants (R,Z) of library mylib:
-#  libmylib.a libmylib_X.a libmylib_Y.a and libmylib.so libmylib_Z.so
-#
-#  use libmylib.so for shared linking of libmylib.a and
-#  use libmylib_Z.so for shared linking any of libmylib_X.a or libmylib_Y.a
-#
-#  STATIC_LIB_SELECT_DYNAMIC = $(if $1,Z)
-#
-# $1 - static variant of the library, <empty> for R (regular) variant
-# returns: dynamic variant or <empty> for R (regular) variant of the library
-#
-# by default, use R (regular) dynamic variant of the library for shared linking of any static variant
-# note: normally overridden by selected toolchain
-STATIC_LIB_SELECT_DYNAMIC:=
-
 # executable file suffix
 EXE_SUFFIX:=
 
@@ -289,7 +270,7 @@ $(call SET_GLOBAL,C_APP_TARGETS C_TARGETS \
   EXE_VARIANT_INCLUDE EXE_VARIANT_DEFINES EXE_VARIANT_CFLAGS EXE_VARIANT_CXXFLAGS EXE_VARIANT_LDFLAGS \
   LIB_VARIANT_INCLUDE LIB_VARIANT_DEFINES LIB_VARIANT_CFLAGS LIB_VARIANT_CXXFLAGS LIB_VARIANT_LDFLAGS \
   DLL_VARIANT_INCLUDE DLL_VARIANT_DEFINES DLL_VARIANT_CFLAGS DLL_VARIANT_CXXFLAGS DLL_VARIANT_LDFLAGS \
-  STATIC_LIB_SELECT_DYNAMIC EXE_SUFFIX EXE_FORM_TRG LIB_PREFIX LIB_SUFFIX LIB_FORM_TRG DLL_PREFIX DLL_SUFFIX \
+  EXE_SUFFIX EXE_FORM_TRG LIB_PREFIX LIB_SUFFIX LIB_FORM_TRG DLL_PREFIX DLL_SUFFIX \
   DLL_DIR DLL_FORM_TRG LIB_DEP_MAP DLL_DEP_MAP IMP_PREFIX IMP_SUFFIX DEP_LIBS=LIBS DEP_IMPS=DLLS \
   EXE_TEMPLATE=t;v;EXE;LIB_DIR;LIBS;DLLS;SYSLIBS;SYSLIBPATH DLL_TEMPLATE=t;v;DLL LIB_TEMPLATE=t;v;LIB \
   CC_COLOR CXX_COLOR AR_COLOR LD_COLOR XLD_COLOR SLD_COLOR TCC_COLOR TCXX_COLOR TAR_COLOR TLD_COLOR TXLD_COLOR TSLD_COLOR \
