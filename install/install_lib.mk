@@ -40,13 +40,13 @@ LIBRARY_HDIR:=
 #   mylib_pie/P/P - both static variant P and dynamic variant P of the library were built.
 # $3 - name of generating configuration file, e.g. mylib_pie.pc for mylib_pie/P/P
 # $4 - directory where to install configuration file, should be $(D_PKG_LIBDIR) or $(D_PKG_DATADIR)
-# note: for implementing this macro use helper macros from $(CLEAN_BUILD_DIR)/install/pkgconf_gen.mk
-LIBRARY_PC_GENERATOR:=
+# note: for implementing this macro use helper macro PKGCONF_LIB_GENERATE from $(CLEAN_BUILD_DIR)/install/pkgconf_gen.mk
+LIBRARY_PKGCONF_GENERATOR:=
 
 # directory where to install pkg-config files:
 # $$(PKG_LIBDIR)  - for ordinary libraries
 # $$(PKG_DATADIR) - for header-only libraries
-LIBRARY_PC_DIR := $$(PKG_LIBDIR)
+LIBRARY_PKGCONF_DIR := $$(PKG_LIBDIR)
 
 # after (re-)defining above variables, just expand $(INSTALL_LIB) to define next targets based on values of $(LIB) and $(DLL):
 #
