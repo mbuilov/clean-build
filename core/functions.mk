@@ -208,15 +208,15 @@ normp = $(if $(filter /%,$1),/)$(subst $(space),/,$(strip $(call normp1,$(filter
 
 # find common part of two paths
 # note: if returns non-empty result, it will be prefixed by leading /
-cmn_path1 = $(if $(filter $(firstword $1),$(firstword $2)),/$(firstword $1)$(call \
-  cmn_path1,$(wordlist 2,999999,$1),$(wordlist 2,999999,$2)))
+cmn_path1 = $(if $1,$(if $(subst /$(firstword $1)/,,/$(firstword $2)/),,/$(firstword $1)$(call \
+  cmn_path1,$(wordlist 2,999999,$1),$(wordlist 2,999999,$2))))
 
 # find common part of two paths
 # $1:     aa/bb/cc/
 # $2:     aa/dd/qq/
 # result: aa/
-# note: add | before $1 and $2 paths - to not strip off leading /
-cmn_path = $(patsubst /|%,%/,$(call cmn_path1,$(subst /, ,|$1),$(subst /, ,|$2)))
+# note: add / before $1 and $2 paths - to not strip off leading /
+cmn_path = $(patsubst //%,%/,$(call cmn_path1,/$(subst /, ,$1),/$(subst /, ,$2)))
 
 # convert "a/b/c/" -> "../../../"
 back_prefix = $(addsuffix /,$(subst $(space),/,$(foreach x,$(subst /, ,$1),..)))
@@ -226,9 +226,10 @@ back_prefix = $(addsuffix /,$(subst $(space),/,$(foreach x,$(subst /, ,$1),..)))
 # $2:     /aa/dd/qq/    - path to destination file or directory
 # result: ../../dd/qq/  - relative path to destination file or directory from current directory
 # note: ensure that $1 and $2 are ended with /
+# note: result is empty if $1 and $2 are match exactly
 relpath2 = $(call back_prefix,$(1:$3%=%))$(2:$3%=%)
 relpath1 = $(call relpath2,$1,$2,$(call cmn_path,$1,$2))
-relpath = $(call relpath1,$(1:/=)/,$(2:/=)/)
+relpath  = $(call relpath1,$(1:/=)/,$(2:/=)/)
 
 # join elements of list $1 with $2
 # example: $(call join_with,a b c,|) -> a|b|c
