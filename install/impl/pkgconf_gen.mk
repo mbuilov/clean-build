@@ -53,7 +53,7 @@ pkgconf_replace_prefix = $(patsubst \%/,%,$(subst \$2/,\$3/,\$1/))
 # try to replace:
 # $(12) - $(PREFIX)
 # $(13) - $(EXEC_PREFIX) -> ${prefix}
-# $(14) - $(LIBDIR)      -> ${exec_prefix}/lib/x86_64-linux-gnu
+# $(14) - $(DEVLIBDIR)   -> ${exec_prefix}/lib/x86_64-linux-gnu
 # $(15) - $(INCLUDEDIR)  -> ${prefix}/include
 PKGCONF_LIB_GENERATE1 = $(call PKGCONF_LIB_TEMPLATE,$1,$2,$3,$4,$5,$6,$7,$8,$9,$(10),$(11),$(12),$(call \
   pkgconf_replace_prefix,$(13),$(12),$${prefix}),$(call \
@@ -74,7 +74,7 @@ PKGCONF_LIB_GENERATE1 = $(call PKGCONF_LIB_TEMPLATE,$1,$2,$3,$4,$5,$6,$7,$8,$9,$
 # $(11) - Libs.private section
 # $(12) - ${prefix},      e.g. $(PREFIX)
 # $(13) - ${exec_prefix}, e.g. $(EXEC_PREFIX)
-# $(14) - ${libdir},      e.g. $(LIBDIR)/x86_64-linux-gnu
+# $(14) - ${libdir},      e.g. $(DEVLIBDIR)
 # $(15) - ${includedir},  e.g. $(INCLUDEDIR)
 PKGCONF_LIB_GENERATE = $(call PKGCONF_LIB_GENERATE1,$1,$2,$3,$4,$5,$6,$7,$8,$9,$(10),$(11),$(call \
   pkgconf_path,$(12)),$(call pkgconf_path,$(13)),$(call pkgconf_path,$(14)),$(call pkgconf_path,$(15)))
