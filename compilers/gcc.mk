@@ -6,26 +6,8 @@
 
 # gcc compiler toolchain (app-level), included by $(CLEAN_BUILD_DIR)/impl/_c.mk
 
-# global variable: INST_RPATH - location where to search for external dependency libraries on runtime: /opt/lib or $ORIGIN/../lib
-# note: INST_RPATH may be overridden either in project configuration makefile or in command line
-INST_RPATH:=
-
-# reset additional variables at beginning of target makefile
-# RPATH - runtime path for dynamic linker to search for shared libraries
-# MAP   - linker map file (used mostly to list exported symbols)
-define C_PREPARE_GCC_APP_VARS
-RPATH := $(INST_RPATH)
-MAP:=
-endef
-
-# optimization
-$(call try_make_simple,C_PREPARE_GCC_APP_VARS,INST_RPATH)
-
-# patch code executed at beginning of target makefile
-$(call define_append,C_PREPARE_APP_VARS,$(newline)$$(C_PREPARE_GCC_APP_VARS))
-
-# optimization
-$(call try_make_simple,C_PREPARE_APP_VARS,C_PREPARE_GCC_APP_VARS)
+# define INST_RPATH, RPATH and MAP variables
+include $(dir $(lastword $(MAKEFILE_LIST)))unixcc.mk
 
 # compilers/linkers
 CC   := gcc -m$(if $(CPU:%64=),32,64)
@@ -283,7 +265,7 @@ MOD_AUX_APPt = $(foreach v,$(call GET_VARIANTS,$t),$(call $t_AUX_TEMPLATEv,$(cal
 $(call define_prepend,DEFINE_C_APP_EVAL,$$(eval $$(foreach t,EXE DLL,$$(if $$($$t),$$(call MOD_AUX_APPt,$$(call fixpath,$$(MAP)))))))
 
 # protect variables from modifications in target makefiles
-$(call SET_GLOBAL,INST_RPATH C_PREPARE_GCC_APP_VARS CC CXX LD AR TCC TCXX TLD TAR WLPREFIX \
+$(call SET_GLOBAL,CC CXX LD AR TCC TCXX TLD TAR WLPREFIX \
   PIC_CC_OPTION PIE_CC_OPTION PIE_LD_OPTION LD_DEF_FLAGS EXE_DEF_FLAGS SO_DEF_FLAGS AR_DEF_FLAGS \
   DLL_EXPORTS_DEFINE DLL_IMPORTS_DEFINE RPATH_OPTION RPATH_LINK RPATH_LINK_OPTION CMN_LIBS VERSION_SCRIPT_OPTION SONAME_OPTION \
   EXE_LD DLL_LD LIB_LD AUTO_DEPS_FLAGS DEF_CXXFLAGS DEF_CFLAGS DEF_APP_FLAGS APP_FLAGS DEF_APP_DEFINES APP_DEFINES \
