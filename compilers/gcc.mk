@@ -99,11 +99,12 @@ RPATH_LINK_OPTION = $(addprefix $(WLPREFIX)-rpath-link=,$(RPATH_LINK))
 # common linker options for EXE or DLL
 # $1 - path to target EXE or DLL
 # $2 - objects
-# $3 - non-empty variant: R,P,D
+# $3 - target: EXE,DLL,LIB
+# $4 - non-empty variant: R,P,D
 # target-specific: LIBS, DLLS, LIB_DIR, SYSLIBPATH, SYSLIBS, LDOPTS
 CMN_LIBS = -pipe -o $1 $2 $(RPATH_OPTION) $(RPATH_LINK_OPTION) $(if $(strip \
   $(LIBS)$(DLLS)),-L$(LIB_DIR) $(addprefix -l,$(DLLS)) $(if $(LIBS),$(WLPREFIX)-Bstatic $(addprefix -l,$(addsuffix \
-  $(call DEP_SUFFIX,$1??????,$3,LIB),$(LIBS))) $(WLPREFIX)-Bdynamic)) $(addprefix -L,$(SYSLIBPATH)) $(SYSLIBS) $(CMN_LDFLAGS)
+  $(call DEP_SUFFIX,$3,$4,LIB),$(LIBS))) $(WLPREFIX)-Bdynamic)) $(addprefix -L,$(SYSLIBPATH)) $(SYSLIBS) $(CMN_LDFLAGS)
 
 # specify what symbols to export from a dll
 # target-specific: MAP
@@ -117,12 +118,13 @@ SONAME_OPTION = $(addprefix $(WLPREFIX)-soname=$(notdir $1).,$(firstword $(subst
 # linkers for each variant of EXE, DLL, LIB
 # $1 - path to target EXE,DLL,LIB
 # $2 - objects for linking the target
-# $3 - non-empty variant: R,P,D
+# $3 - target: EXE,DLL,LIB
+# $4 - non-empty variant: R,P,D
 # target-specific: TMD, COMPILER
 # note: used by EXE_TEMPLATE, DLL_TEMPLATE, LIB_TEMPLATE from $(CLEAN_BUILD_DIR)/impl/_c.mk
-EXE_LD = $(call SUP,$(TMD)XLD,$1)$($(TMD)$(COMPILER)) $(CMN_LIBS) $(EXE_LDFLAGS) $(LDOPTS) $(LDFLAGS)
-DLL_LD = $(call SUP,$(TMD)SLD,$1)$($(TMD)$(COMPILER)) $(VERSION_SCRIPT) $(SONAME_OPTION) $(CMN_LIBS) $(SO_LDFLAGS) $(LDOPTS) $(LDFLAGS)
-LIB_LD = $(call SUP,$(TMD)AR,$1)$($(TMD)AR) $(ARFLAGS) $1 $2
+EXE_LD = $(call SUP,$(TMD)EXE,$1)$($(TMD)$(COMPILER)) $(CMN_LIBS) $(EXE_LDFLAGS) $(LDOPTS) $(LDFLAGS)
+DLL_LD = $(call SUP,$(TMD)DLL,$1)$($(TMD)$(COMPILER)) $(VERSION_SCRIPT) $(SONAME_OPTION) $(CMN_LIBS) $(SO_LDFLAGS) $(LDOPTS) $(LDFLAGS)
+LIB_LD = $(call SUP,$(TMD)LIB,$1)$($(TMD)AR) $(ARFLAGS) $1 $2
 
 # flags for auto-dependencies generation
 AUTO_DEPS_FLAGS := $(if $(NO_DEPS),,-MMD -MP)
@@ -132,12 +134,12 @@ CFLAGS   := $(if $(DEBUG),-ggdb,-g -O2)
 CXXFLAGS := $(CFLAGS)
 
 # default flags for application-level C compiler
-DEF_CCOPTS := -std=c99 -pedantic
+DEF_CFLAGS := -std=c99 -pedantic
 
 # default flags for application-level C++ compiler
-DEF_CXXOPTS:=
+DEF_CXXFLAGS:=
 
-# flags for application-level C/C++-compiler
+# flags for application-level C/C++-compilers
 APP_FLAGS := -Wall -fvisibility=hidden
 
 # application-level defines
@@ -156,8 +158,8 @@ CC_PARAMS = -pipe -c $(APP_FLAGS) $(AUTO_DEPS_FLAGS) $(call \
 # $2 - source
 # $3 - non-empty variant: R,P,D
 # target-specific: TMD, CXXOPTS, CCOPTS
-CMN_CXX = $(call SUP,$(TMD)CXX,$2)$($(TMD)CXX) $(DEF_CXXOPTS) $(CC_PARAMS) $(CXXOPTS) -o $1 $2 $(CXXFLAGS)
-CMN_CC  = $(call SUP,$(TMD)CC,$2)$($(TMD)CC) $(DEF_CCOPTS) $(CC_PARAMS) $(CCOPTS) -o $1 $2 $(CFLAGS)
+CMN_CXX = $(call SUP,$(TMD)CXX,$2)$($(TMD)CXX) $(DEF_CXXFLAGS) $(CC_PARAMS) $(CXXOPTS) -o $1 $2 $(CXXFLAGS)
+CMN_CC  = $(call SUP,$(TMD)CC,$2)$($(TMD)CC) $(DEF_CFLAGS) $(CC_PARAMS) $(CCOPTS) -o $1 $2 $(CFLAGS)
 
 # compilers for each variant of EXE, DLL, LIB
 # $1 - target object file
@@ -185,17 +187,17 @@ endif
 # $3 - non-empty variant: R,P,D
 # target-specific: CXX_WITH_PCH, CC_WITH_PCH, TMD, PCH, CXXOPTS, CCOPTS
 CMN_CXX = $(if $(filter $2,$(CXX_WITH_PCH)),$(call SUP,P$(TMD)CXX,$2)$($(TMD)CXX) -I$(dir $1) -include $(basename \
-  $(notdir $(PCH)))_pch_cxx.h,$(call SUP,$(TMD)CXX,$2)$($(TMD)CXX)) $(DEF_CXXOPTS) $(CC_PARAMS) $(CXXOPTS) -o $1 $2 $(CXXFLAGS)
+  $(notdir $(PCH)))_pch_cxx.h,$(call SUP,$(TMD)CXX,$2)$($(TMD)CXX)) $(DEF_CXXFLAGS) $(CC_PARAMS) $(CXXOPTS) -o $1 $2 $(CXXFLAGS)
 CMN_CC  = $(if $(filter $2,$(CC_WITH_PCH)),$(call SUP,P$(TMD)CC,$2)$($(TMD)CC) -I$(dir $1) -include $(basename \
-  $(notdir $(PCH)))_pch_c.h,$(call SUP,$(TMD)CC,$2)$($(TMD)CC)) $(DEF_CCOPTS) $(CC_PARAMS) $(CCOPTS) -o $1 $2 $(CFLAGS)
+  $(notdir $(PCH)))_pch_c.h,$(call SUP,$(TMD)CC,$2)$($(TMD)CC)) $(DEF_CFLAGS) $(CC_PARAMS) $(CCOPTS) -o $1 $2 $(CFLAGS)
 
 # compilers for C++ and C precompiled header
 # $1 - target .gch
 # $2 - source pch header
 # $3 - non-empty variant: R,P,D
 # target-specific: CXXOPTS, CCOPTS
-PCH_CXX = $(call SUP,$(TMD)PCHCXX,$2)$($(TMD)CXX) $(DEF_CXXOPTS) $(CC_PARAMS) $(CXXOPTS) -o $1 $2 $(CXXFLAGS)
-PCH_CC  = $(call SUP,$(TMD)PCHCC,$2)$($(TMD)CC) $(DEF_CCOPTS) $(CC_PARAMS) $(CCOPTS) -o $1 $2 $(CFLAGS)
+PCH_CXX = $(call SUP,$(TMD)PCHCXX,$2)$($(TMD)CXX) $(DEF_CXXFLAGS) $(CC_PARAMS) $(CXXOPTS) -o $1 $2 $(CXXFLAGS)
+PCH_CC  = $(call SUP,$(TMD)PCHCC,$2)$($(TMD)CC) $(DEF_CFLAGS) $(CC_PARAMS) $(CCOPTS) -o $1 $2 $(CFLAGS)
 
 # tools colors
 PCHCC_COLOR   := $(CC_COLOR)
@@ -264,7 +266,7 @@ $(call define_prepend,DEFINE_C_APP_EVAL,$$(eval $$(foreach t,EXE DLL,$$(if $$($$
 $(call SET_GLOBAL,CC CXX LD AR TCC TCXX TLD TAR WLPREFIX \
   PIC_CC_OPTION PIE_CC_OPTION PIE_LD_OPTION LDFLAGS CMN_LDFLAGS EXE_LDFLAGS SO_LDFLAGS ARFLAGS \
   DLL_EXPORTS_DEFINE DLL_IMPORTS_DEFINE RPATH_OPTION RPATH_LINK RPATH_LINK_OPTION CMN_LIBS VERSION_SCRIPT SONAME_OPTION \
-  EXE_LD DLL_LD LIB_LD AUTO_DEPS_FLAGS DEF_CXXOPTS DEF_CCOPTS APP_FLAGS APP_DEFINES \
+  EXE_LD DLL_LD LIB_LD AUTO_DEPS_FLAGS DEF_CXXFLAGS DEF_CFLAGS APP_FLAGS APP_DEFINES \
   CC_PARAMS CMN_CXX CMN_CC EXE_CXX EXE_CC DLL_CXX DLL_CC LIB_CXX LIB_CC \
   PCH_CXX PCH_CC PCHCC_COLOR PCHCXX_COLOR TPCHCC_COLOR TPCHCXX_COLOR \
   PCH_EXE_CXX PCH_EXE_CC PCH_DLL_CXX PCH_DLL_CC PCH_LIB_CXX PCH_LIB_CC \
