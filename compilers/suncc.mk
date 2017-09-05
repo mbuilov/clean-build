@@ -6,20 +6,38 @@
 
 # suncc compiler toolchain (app-level), included by $(CLEAN_BUILD_DIR)/impl/_c.mk
 
+-xc99=%all
+-xlang=c99
+-xldscope=hidden
+–xsafe=mem (sparc only)
+–fast (both compile and link phases)
+-i Tells the linker, ld, to ignore any LD_LIBRARY_PATH setting.
+–norunpath Does not build a runtime search path for shared libraries into the executable.
+–O The -O macro now expands to -xO3 instead of -xO2.
+–xO5
+
+
 # define INST_RPATH, RPATH and MAP variables
 include $(dir $(lastword $(MAKEFILE_LIST)))unixcc.mk
 
 # compilers
-CC   := cc -m$(if $(CPU:%64=),32,64)
-CXX  := CC -m$(if $(CPU:%64=),32,64 -xport64)
-TCC  := cc -m$(if $(TCPU:%64=),32,64)
-TCXX := CC -m$(if $(TCPU:%64=),32,64 -xport64)
+# note: for -xport64 option see https://docs.oracle.com/cd/E19205-01/819-5267/bkbgj/index.html
+CC   := cc -m$(if $(CPU:%64=),32,64 -xarch=sse2)
+CXX  := CC -m$(if $(CPU:%64=),32,64 -xarch=sse2 -xport64)
+TCC  := cc -m$(if $(TCPU:%64=),32,64 -xarch=sse2)
+TCXX := CC -m$(if $(TCPU:%64=),32,64 -xarch=sse2 -xport64)
 
 # static library archiver
 # target-specific: COMPILER
-# note: use CXX compiler for creating static library archives - for adding necessary C++ templates to the archives
+# note: use CXX compiler instead of ar for creating C++ static library archives
+#  - for adding necessary C++ templates to the archives,
+#  see https://docs.oracle.com/cd/E19205-01/819-5267/bkamp/index.html
 AR  = $(if $(COMPILER:CXX=),/usr/ccs/bin$(if $(TCPU:x86_64=),,/amd64)/ar,$(CXX))
 TAR = $(if $(COMPILER:CXX=),/usr/ccs/bin$(if $(TCPU:x86_64=),,/amd64)/ar,$(TCXX))
+
+# position-independent code for executables/shared objects (dynamic libraries)
+PIC_CC_OPTION := -Kpic
+PIE_LD_OPTION := –ztype=pie
 
 # supported variants:
 # R - default variant (position-dependent code for EXE, position-independent code for DLL)
@@ -29,68 +47,64 @@ TAR = $(if $(COMPILER:CXX=),/usr/ccs/bin$(if $(TCPU:x86_64=),,/amd64)/ar,$(TCXX)
 EXE_SUPPORTED_VARIANTS := P
 LIB_SUPPORTED_VARIANTS := D
 
-# only one non-regular variant of EXE is supported - P
+# only one non-regular variant of EXE is supported - P - see $(EXE_SUPPORTED_VARIANTS)
 # $1 - target: EXE
 # $2 - P
 # note: override defaults from $(CLEAN_BUILD_DIR)/impl/_c.mk
 EXE_VARIANT_SUFFIX := _pie
 
-# only one non-regular variant of LIB is supported - D
+# only one non-regular variant of LIB is supported - D - see $(LIB_SUPPORTED_VARIANTS)
 # $1 - target: LIB
 # $2 - D
 # note: override defaults from $(CLEAN_BUILD_DIR)/impl/_c.mk
 LIB_VARIANT_SUFFIX := _pic
 
+# only one non-regular variant of EXE is supported - P - see $(EXE_SUPPORTED_VARIANTS)
+# $1 - target: EXE
+# $2 - P
+# note: override defaults from $(CLEAN_BUILD_DIR)/impl/_c.mk
+EXE_VARIANT_CCOPTS  := $(PIC_CC_OPTION)
+EXE_VARIANT_CXXOPTS := $(PIC_CC_OPTION)
+EXE_VARIANT_LDOPTS  := $(PIE_LD_OPTION)
 
+# only one non-regular variant of LIB is supported - D - see $(LIB_SUPPORTED_VARIANTS)
+# $1 - target: LIB
+# $2 - D
+# note: override defaults from $(CLEAN_BUILD_DIR)/impl/_c.mk
+LIB_VARIANT_CCOPTS  := $(PIC_CC_OPTION)
+LIB_VARIANT_CXXOPTS := $(PIC_CC_OPTION)
 
-# variants filter function - get possible variants for the target, needed by $(CLEAN_BUILD_DIR)/c.mk
-# $1 - LIB,EXE,DLL
-# R - default variant (position-dependent code for EXE, position-independent code for DLL)
-# D - position-independent code in shared libraries (for LIB)
-VARIANTS_FILTER = $(if $(filter LIB,$1),D)
-
-# determine suffix for static LIB or for import library of DLL
-# $1 - target variant R,D,<empty>
-# note: overrides value from $(CLEAN_BUILD_DIR)/c.mk
-LIB_VAR_SUFFIX = $(if \
-                 $(filter D,$1),_pic)
-
-# for $(DEP_LIB_SUFFIX) from $(CLEAN_BUILD_DIR)/c.mk:
+# determine which variant of static library to link with EXE or DLL
 # $1 - target: EXE,DLL
-# $2 - variant of target EXE or DLL: R,<empty>
-# $3 - dependent static library name
-# use the same variant (R) of static library as target EXE (R)
-# always use D-variant of static library for DLL
-VARIANT_LIB_MAP = $(if $(filter DLL,$1),D,$2)
+# $2 - variant of target EXE or DLL: R,P, if empty, then assume R
+# $3 - dependency type: LIB
+# note: if returns empty value - then assume it's default variant R
+# use D-variant of static library for pie-EXE or DLL
+# note: override defaults from $(CLEAN_BUILD_DIR)/impl/_c.mk
+LIB_DEP_MAP = $(if $(filter DLL,$1)$(filter P,$2),D)
 
-# for $(DEP_IMP_SUFFIX) from $(CLEAN_BUILD_DIR)/c.mk:
-# $1 - target: EXE,DLL
-# $2 - variant of target EXE or DLL: R,<empty>
-# $3 - dependent dynamic library name
-# the same one default variant (R) of DLL may be linked with R-EXE or R-DLL
-VARIANT_IMP_MAP := R
+# ld flags that may be modified by user
+# note: '–xs' - allows debugging by dbx without object (.o) files
+LDFLAGS := $(if $(DEBUG),-g -xs,-fast)
 
-# default flags for shared objects (executables and shared libraries)
-DEF_SHARED_FLAGS := -ztext -xnolib
+# common cc flags for linking executables and shared libraries
+# note: may use -filt=%none to not demangle C++ names
+# note: use '-xlang=c99' to link appropriate c99 system libraries for sources compiled with '-xc99=%all'
+CMN_LDFLAGS := -ztext -xlang=c99
 
-# default shared libs for target executables and shared libraries
-DEF_SHARED_LIBS:=
+# cc flags for linking an EXE
+EXE_LDFLAGS:=
 
-# default flags for EXE-target linker
-DEF_EXE_FLAGS:=
+# cc flags for linking a DLL
+SO_LDFLAGS := -zdefs -G
 
-# default flags for SO-target linker
-DEF_SO_FLAGS := -zdefs -G
-
-# default flags for kernel library linker
-DEF_KLD_FLAGS := -r
-
-# default flags for static library archiver
+# flags for objects archiver
 # target-specific: COMPILER
-DEF_AR_FLAGS = $(if $(COMPILER:CXX=),-c -r,-xar -o)
+# note: to handle C++ templates, CC compiler is used to create C++ static libraries
+ARFLAGS = $(if $(COMPILER:CXX=),-c -r,-xar -o)
 
 # how to mark exported symbols from a DLL
-DLL_EXPORTS_DEFINE:=
+DLL_EXPORTS_DEFINE := "__attribute__((visibility(\"default\")))"
 
 # how to mark imported symbols from a DLL
 DLL_IMPORTS_DEFINE:=
@@ -99,35 +113,38 @@ DLL_IMPORTS_DEFINE:=
 # target-specific: RPATH
 RPATH_OPTION = $(addprefix -R,$(strip $(RPATH)))
 
-# standard C libraries
-DEF_C_LIBS := -lc
-
-# standard C++ libraries
-DEF_CXX_LIBS := -lCstd -lCrun
+# for '-xnolib':
+# standard C libraries: -lc
+# standard C++ libraries: -lCstd -lCrun
 
 # common linker options for EXE or DLL
-# $1 - target
+# $1 - path to target EXE or DLL
 # $2 - objects
-# $3 - variant
-# target-specific: LIBS, DLLS, LIB_DIR, SYSLIBPATH, SYSLIBS, COMPILER, LDFLAGS
-CMN_LIBS = -o $1 $2 $(DEF_SHARED_FLAGS) $(RPATH_OPTION) $(if $(strip \
+# $3 - non-empty variant: R,P,D
+# target-specific: LIBS, DLLS, LIB_DIR, SYSLIBPATH, SYSLIBS, COMPILER, LDOPTS
+CMN_LIBS = -o $1 $2 $(RPATH_OPTION) $(if $(strip \
   $(LIBS)$(DLLS)),-L$(LIB_DIR) $(addprefix -l,$(DLLS)) $(if $(LIBS),-Bstatic $(addprefix -l,$(addsuffix \
-  $(call LIB_VAR_SUFFIX,$3),$(LIBS))) -Bdynamic)) $(addprefix -L,$(SYSLIBPATH)) $(SYSLIBS) $(if \
-  $(COMPILER:CXX=),,$(DEF_CXX_LIBS)) $(DEF_C_LIBS) $(DEF_SHARED_LIBS) $(LDFLAGS)
+  $(call DEP_SUFFIX,$1,$3,LIB),$(LIBS))) -Bdynamic)) $(addprefix -L,$(SYSLIBPATH)) $(SYSLIBS) $(CMN_LDFLAGS)
 
-# what to export from a dll
+# specify what symbols to export from a dll
 # target-specific: MAP
-VERSION_SCRIPT_OPTION = $(addprefix -M,$(MAP))
+VERSION_SCRIPT = $(addprefix -M,$(MAP))
 
 # append soname option if target shared library have version info (some number after .so)
 # $1 - full path to target shared library, for ex. /aa/bb/cc/libmy_lib.so, if MODVER=1.2.3 then soname will be libmy_lib.so.1
 # target-specific: MODVER
 SONAME_OPTION = $(addprefix -h $(notdir $1).,$(firstword $(subst ., ,$(MODVER))))
 
-# different linkers
-# $1 - target
+# linkers for each variant of EXE, DLL, LIB
+# $1 - path to target EXE,DLL,LIB
 # $2 - objects
+# $3 - non-empty variant: R,P,D
 # target-specific: TMD, COMPILER
+# note: used by EXE_TEMPLATE, DLL_TEMPLATE, LIB_TEMPLATE from $(CLEAN_BUILD_DIR)/impl/_c.mk
+# note: use CXX compiler instead of ld for creating shared libraries
+#  - for calling C++ constructors of static objects when loading the libraries,
+#  see https://docs.oracle.com/cd/E19205-01/819-5267/bkamq/index.html
+.........................
 EXE_R_LD = $(call SUP,$(TMD)XLD,$1)$($(TMD)$(COMPILER)) $(DEF_EXE_FLAGS) $(call CMN_LIBS,$1,$2,R)
 DLL_R_LD = $(call SUP,$(TMD)LD,$1)$($(TMD)$(COMPILER)) $(DEF_SO_FLAGS) $(VERSION_SCRIPT_OPTION) $(SONAME_OPTION) $(call CMN_LIBS,$1,$2,D)
 LIB_R_LD = $(call SUP,$(TMD)AR,$1)$($(TMD)AR) $(DEF_AR_FLAGS) $1 $2
