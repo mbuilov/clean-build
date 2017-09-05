@@ -21,7 +21,7 @@
 include $(dir $(lastword $(MAKEFILE_LIST)))unixcc.mk
 
 # compilers
-# note: for -xport64 option see https://docs.oracle.com/cd/E19205-01/819-5267/bkbgj/index.html
+# note: about '-xport64' option see https://docs.oracle.com/cd/E19205-01/819-5267/bkbgj/index.html
 CC   := cc -m$(if $(CPU:%64=),32,64 -xarch=sse2)
 CXX  := CC -m$(if $(CPU:%64=),32,64 -xarch=sse2 -xport64)
 TCC  := cc -m$(if $(TCPU:%64=),32,64 -xarch=sse2)
@@ -29,7 +29,7 @@ TCXX := CC -m$(if $(TCPU:%64=),32,64 -xarch=sse2 -xport64)
 
 # static library archiver
 # target-specific: COMPILER
-# note: use CXX compiler instead of ar for creating C++ static library archives
+# note: use CXX compiler instead of ar to create C++ static library archives
 #  - for adding necessary C++ templates to the archives,
 #  see https://docs.oracle.com/cd/E19205-01/819-5267/bkamp/index.html
 AR  = $(if $(COMPILER:CXX=),/usr/ccs/bin$(if $(TCPU:x86_64=),,/amd64)/ar,$(CXX))
@@ -37,7 +37,7 @@ TAR = $(if $(COMPILER:CXX=),/usr/ccs/bin$(if $(TCPU:x86_64=),,/amd64)/ar,$(TCXX)
 
 # position-independent code for executables/shared objects (dynamic libraries)
 PIC_CC_OPTION := -Kpic
-PIE_LD_OPTION := –ztype=pie
+PIE_LD_OPTION := -ztype=pie
 
 # supported variants:
 # R - default variant (position-dependent code for EXE, position-independent code for DLL)
@@ -84,11 +84,11 @@ LIB_VARIANT_CXXOPTS := $(PIC_CC_OPTION)
 LIB_DEP_MAP = $(if $(filter DLL,$1)$(filter P,$2),D)
 
 # ld flags that may be modified by user
-# note: '–xs' - allows debugging by dbx without object (.o) files
+# note: '-xs' - allows debugging by dbx without object (.o) files
 LDFLAGS := $(if $(DEBUG),-g -xs,-fast)
 
 # common cc flags for linking executables and shared libraries
-# note: may use -filt=%none to not demangle C++ names
+# tip: may use -filt=%none to not demangle C++ names
 # note: use '-xlang=c99' to link appropriate c99 system libraries for sources compiled with '-xc99=%all'
 CMN_LDFLAGS := -ztext -xlang=c99
 
@@ -99,9 +99,9 @@ EXE_LDFLAGS:=
 SO_LDFLAGS := -zdefs -G
 
 # flags for objects archiver
-# target-specific: COMPILER
 # note: to handle C++ templates, CC compiler is used to create C++ static libraries
-ARFLAGS = $(if $(COMPILER:CXX=),-c -r,-xar -o)
+ARFLAGS     := -c -r
+CXX_ARFLAGS := -xar
 
 # how to mark exported symbols from a DLL
 DLL_EXPORTS_DEFINE := "__attribute__((visibility(\"default\")))"
@@ -113,18 +113,15 @@ DLL_IMPORTS_DEFINE:=
 # target-specific: RPATH
 RPATH_OPTION = $(addprefix -R,$(strip $(RPATH)))
 
-# for '-xnolib':
-# standard C libraries: -lc
-# standard C++ libraries: -lCstd -lCrun
-
 # common linker options for EXE or DLL
 # $1 - path to target EXE or DLL
 # $2 - objects
-# $3 - non-empty variant: R,P,D
+# $3 - target: EXE,DLL,LIB
+# $4 - non-empty variant: R,P,D
 # target-specific: LIBS, DLLS, LIB_DIR, SYSLIBPATH, SYSLIBS, COMPILER, LDOPTS
 CMN_LIBS = -o $1 $2 $(RPATH_OPTION) $(if $(strip \
   $(LIBS)$(DLLS)),-L$(LIB_DIR) $(addprefix -l,$(DLLS)) $(if $(LIBS),-Bstatic $(addprefix -l,$(addsuffix \
-  $(call DEP_SUFFIX,$1,$3,LIB),$(LIBS))) -Bdynamic)) $(addprefix -L,$(SYSLIBPATH)) $(SYSLIBS) $(CMN_LDFLAGS)
+  $(call DEP_SUFFIX,$3,$4,LIB),$(LIBS))) -Bdynamic)) $(addprefix -L,$(SYSLIBPATH)) $(SYSLIBS) $(CMN_LDFLAGS)
 
 # specify what symbols to export from a dll
 # target-specific: MAP
@@ -138,20 +135,16 @@ SONAME_OPTION = $(addprefix -h $(notdir $1).,$(firstword $(subst ., ,$(MODVER)))
 # linkers for each variant of EXE, DLL, LIB
 # $1 - path to target EXE,DLL,LIB
 # $2 - objects
-# $3 - non-empty variant: R,P,D
+# $3 - target: EXE,DLL,LIB
+# $4 - non-empty variant: R,P,D
 # target-specific: TMD, COMPILER
 # note: used by EXE_TEMPLATE, DLL_TEMPLATE, LIB_TEMPLATE from $(CLEAN_BUILD_DIR)/impl/_c.mk
-# note: use CXX compiler instead of ld for creating shared libraries
+# note: use CXX compiler instead of ld to create shared libraries
 #  - for calling C++ constructors of static objects when loading the libraries,
 #  see https://docs.oracle.com/cd/E19205-01/819-5267/bkamq/index.html
-.........................
-EXE_R_LD = $(call SUP,$(TMD)XLD,$1)$($(TMD)$(COMPILER)) $(DEF_EXE_FLAGS) $(call CMN_LIBS,$1,$2,R)
-DLL_R_LD = $(call SUP,$(TMD)LD,$1)$($(TMD)$(COMPILER)) $(DEF_SO_FLAGS) $(VERSION_SCRIPT_OPTION) $(SONAME_OPTION) $(call CMN_LIBS,$1,$2,D)
-LIB_R_LD = $(call SUP,$(TMD)AR,$1)$($(TMD)AR) $(DEF_AR_FLAGS) $1 $2
-LIB_D_LD = $(LIB_R_LD)
-KLIB_R_LD = $(call SUP,KLD,$1)$(KLD) $(DEF_KLD_FLAGS) -o $1 $2 $(LDFLAGS)
-DRV_R_LD = $(call SUP,KLD,$1)$(KLD) $(DEF_KLD_FLAGS) -o $1 $2 $(if \
-  $(KLIBS),-L$(LIB_DIR) $(addprefix -l$(KLIB_NAME_PREFIX),$(KLIBS))) $(LDFLAGS)
+EXE_LD = $(call SUP,$(TMD)EXE,$1)$($(TMD)$(COMPILER)) $(CMN_LIBS) $(EXE_LDFLAGS) $(LDOPTS) $(LDFLAGS)
+DLL_LD = $(call SUP,$(TMD)DLL,$1)$($(TMD)$(COMPILER)) $(VERSION_SCRIPT) $(SONAME_OPTION) $(CMN_LIBS) $(SO_LDFLAGS) $(LDOPTS) $(LDFLAGS)
+LIB_LD = $(call SUP,$(TMD)LIB,$1)$(if $(COMPILER:CXX=),$($(TMD)AR) $(ARFLAGS) $1 $2,$($(TMD)$(COMPILER)) $(CXX_ARFLAGS) -o $1 $2)
 
 # $(SED) expression to filter-out system files while dependencies generation
 UDEPS_INCLUDE_FILTER := /usr/include/
@@ -171,49 +164,46 @@ SED_DEPS_SCRIPT = \
 -e '/^$(tab)*\//!{p;d;}' \
 -e 's/^\$(tab)*//;$(foreach x,$5,\@^$x.*@d;)s@.*@&:\$(newline)$2: &@;w $4'
 
-# WRAP_CC_COMPILER - either just call compiler or call compiler and auto-generate dependencies
+# either just call compiler or call compiler and auto-generate dependencies
 # $1 - compiler with options
 # $2 - target object file
 # $3 - source
 # $4 - $(basename $2).d
 # $5 - prefixes of system includes
 ifdef NO_DEPS
-WRAP_CC_COMPILER = $1
+WRAP_C_COMPILER = $1
 else
-WRAP_CC_COMPILER = { { $1 -H 2>&1 && echo OK >&2; } | sed -n $(SED_DEPS_SCRIPT) 2>&1; } 3>&2 2>&1 1>&3 3>&- | grep OK > /dev/null
+WRAP_C_COMPILER = { { $1 -H 2>&1 && echo OK >&2; } | sed -n $(SED_DEPS_SCRIPT) 2>&1; } 3>&2 2>&1 1>&3 3>&- | grep OK > /dev/null
 endif
 
-# default flags for C++ compiler
+# C/C++ compiler flags that may be modified by user
+CFLAGS   := $(if $(DEBUG),-g,-fast)
+CXXFLAGS := $(CFLAGS)
+
+# default flags for application-level C compiler
+DEF_CFLAGS := -xc99=%all
+
+# default flags for application-level C++ compiler
 # disable some C++ warnings:
 # badargtype2w - (Anachronism) when passing pointers to functions
 # wbadasg      - (Anachronism) assigning extern "C" ...
 DEF_CXXFLAGS := -erroff=badargtype2w,wbadasg
 
-# default flags for C compiler
-DEF_CFLAGS:=
-
-# flags for applications- level C/C++-compiler
-ifdef DEBUG
-OS_APP_FLAGS := -g
-else
-OS_APP_FLAGS := -O
-endif
-
-# APP_FLAGS may be overridden in project makefile
-APP_FLAGS := $(OS_APP_FLAGS)
+# flags for application-level C/C++-compilers
+APP_FLAGS:=
 
 # application-level defines
-OS_APP_DEFINES:=
-
-# APP_DEFINES may be overridden in project makefile
-APP_DEFINES := $(OS_APP_DEFINES)
+APP_DEFINES:=
 
 # common options for application-level C++ and C compilers
 # $1 - target object file
 # $2 - source
+# $3 - non-empty variant: R,P,D
 # target-specific: DEFINES, INCLUDE, COMPILER
 CC_PARAMS = -c $(APP_FLAGS) $(call \
-  SUBST_DEFINES,$(addprefix -D,$(APP_DEFINES) $(DEFINES))) $(addprefix -I,$(INCLUDE))
+  DEFINES_ESCAPE_STRING,$(addprefix -D,$(APP_DEFINES) $(DEFINES))) $(addprefix -I,$(INCLUDE))
+
+................
 
 # C++ and C compilers
 # $1 - target object file
