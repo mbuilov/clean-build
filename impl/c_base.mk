@@ -113,19 +113,19 @@ TRG_INCLUDE = $(call fixpath,$(INCLUDE)) $(SYSINCLUDE)
 #   $(filter sparc% mips% ppc%,$(cpu)),B_ENDIAN,L_ENDIAN) $(if \
 #   $(filter arm% sparc% mips% ppc%,$(cpu)),ADDRESS_NEEDALIGN)) $(DEFINES)
 TRG_DEFINES = $(DEFINES)
-TRG_CCOPTS  = $(CCOPTS)
+TRG_COPTS   = $(COPTS)
 TRG_CXXOPTS = $(CXXOPTS)
-TRG_LDOPTS  = $(LDOPTS)
+TRG_LOPTS   = $(LOPTS)
 
-# choose INCLUDE/DEFINES/CCOPTS/CXXOPTS/LDOPTS for non-regilar target variant
+# choose INCLUDE/DEFINES/COPTS/CXXOPTS/LOPTS for non-regilar target variant
 # $1 - EXE,LIB,DLL,DRV,KLIB,KDLL,...
 # $2 - non-empty variant: R,P,S,...
 # note: $t_VARIANT_... macros should be defined in C/C++ compiler definitions makefile
 VARIANT_INCLUDE = $(if $(filter-out R,$2),$($1_VARIANT_INCLUDE))
 VARIANT_DEFINES = $(if $(filter-out R,$2),$($1_VARIANT_DEFINES))
-VARIANT_CCOPTS  = $(if $(filter-out R,$2),$($1_VARIANT_CCOPTS))
+VARIANT_COPTS   = $(if $(filter-out R,$2),$($1_VARIANT_COPTS))
 VARIANT_CXXOPTS = $(if $(filter-out R,$2),$($1_VARIANT_CXXOPTS))
-VARIANT_LDOPTS  = $(if $(filter-out R,$2),$($1_VARIANT_LDOPTS))
+VARIANT_LOPTS   = $(if $(filter-out R,$2),$($1_VARIANT_LOPTS))
 
 # make list of sources for the target, used by TRG_SRC
 GET_SOURCES = $(SRC) $(WITH_PCH)
@@ -196,9 +196,9 @@ $1:$(call OBJ_RULES,CXX,$(filter $(CXX_MASK),$2),$3,$4)
 $1:COMPILER := $(TRG_COMPILER)
 $1:INCLUDE  := $(TRG_INCLUDE) $(call VARIANT_INCLUDE,$t,$v)
 $1:DEFINES  := $(TRG_DEFINES) $(call VARIANT_DEFINES,$t,$v)
-$1:CCOPTS   := $(TRG_CCOPTS) $(call VARIANT_CCOPTS,$t,$v)
+$1:COPTS    := $(TRG_COPTS) $(call VARIANT_COPTS,$t,$v)
 $1:CXXOPTS  := $(TRG_CXXOPTS) $(call VARIANT_CXXOPTS,$t,$v)
-$1:LDOPTS   := $(TRG_LDOPTS) $(call VARIANT_LDOPTS,$t,$v)
+$1:LOPTS    := $(TRG_LOPTS) $(call VARIANT_LOPTS,$t,$v)
 endef
 
 # code to be called at beginning of target makefile
@@ -215,9 +215,9 @@ SYSLIBS:=
 SYSLIBPATH:=
 LIBS:=
 DLLS:=
-CCOPTS:=
+COPTS:=
 CXXOPTS:=
-LDOPTS:=
+LOPTS:=
 endef
 
 # this code is normally evaluated at end of target makefile
@@ -271,9 +271,9 @@ $(call try_make_simple,C_PREPARE_BASE_VARS,PRODUCT_VER)
 
 # protect variables from modifications in target makefiles
 $(call SET_GLOBAL,NO_PCH OBJ_SUFFIX CC_MASK CXX_MASK DEP_SUFFIX ADD_OBJ_SDEPS=x OBJ_RULES_BODY=t;v OBJ_RULES1=t;v OBJ_RULES=t;v \
-  TRG_COMPILER=t;v TRG_INCLUDE=t;v;INCLUDE;SYSINCLUDE VARIANT_DEFINES=t;v VARIANT_CCOPTS=t;v VARIANT_CXXOPTS=t;v VARIANT_LDOPTS=t;v \
-  TRG_DEFINES=t;v;DEFINES TRG_CCOPTS=t;v;CCOPTS TRG_CXXOPTS=t;v;CXXOPTS TRG_LDOPTS=t;v;LDOPTS \
-  VARIANT_INCLUDE=t;v VARIANT_DEFINES=t;v VARIANT_CCOPTS=t;v VARIANT_CXXOPTS=t;v VARIANT_LDOPTS=t;v \
+  TRG_COMPILER=t;v TRG_INCLUDE=t;v;INCLUDE;SYSINCLUDE VARIANT_DEFINES=t;v VARIANT_COPTS=t;v VARIANT_CXXOPTS=t;v VARIANT_LOPTS=t;v \
+  TRG_DEFINES=t;v;DEFINES TRG_COPTS=t;v;COPTS TRG_CXXOPTS=t;v;CXXOPTS TRG_LOPTS=t;v;LOPTS \
+  VARIANT_INCLUDE=t;v VARIANT_DEFINES=t;v VARIANT_COPTS=t;v VARIANT_CXXOPTS=t;v VARIANT_LOPTS=t;v \
   GET_SOURCES=SRC;WITH_PCH TRG_SRC TRG_SDEPS=SDEPS STRING_DEFINE DEFINE_ESCAPE_STRING DEFINES_ESCAPE_STRING \
   C_TARGETS C_RULESv=t;v C_RULESt=t C_RULES C_BASE_TEMPLATE=t;v;$$t C_PREPARE_BASE_VARS C_RULES_EVAL \
   ASM_MASK TRG_ASMFLAGS=t;v;ASMFLAGS ASM_TEMPLATE ASM_COLOR)
