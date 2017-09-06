@@ -6,38 +6,23 @@
 
 # suncc compiler toolchain (app-level), included by $(CLEAN_BUILD_DIR)/impl/_c.mk
 
--xc99=%all
--xlang=c99
--xldscope=hidden
-–xsafe=mem (sparc only)
-–fast (both compile and link phases)
--i Tells the linker, ld, to ignore any LD_LIBRARY_PATH setting.
-–norunpath Does not build a runtime search path for shared libraries into the executable.
-–O The -O macro now expands to -xO3 instead of -xO2.
-–xO5
-
-
 # define INST_RPATH, RPATH and MAP variables
 include $(dir $(lastword $(MAKEFILE_LIST)))unixcc.mk
 
-# compilers
+# compilers/linkers
 # note: about '-xport64' option see https://docs.oracle.com/cd/E19205-01/819-5267/bkbgj/index.html
-CC   := cc -m$(if $(CPU:%64=),32,64 -xarch=sse2)
-CXX  := CC -m$(if $(CPU:%64=),32,64 -xarch=sse2 -xport64)
+CC  := cc -m$(if $(CPU:%64=),32,64 -xarch=sse2)
+CXX := CC -m$(if $(CPU:%64=),32,64 -xarch=sse2 -xport64)
+AR  := /usr/ccs/bin$(if $(TCPU:x86_64=),,/amd64)/ar
+
+# tools compilers/linkers
 TCC  := cc -m$(if $(TCPU:%64=),32,64 -xarch=sse2)
 TCXX := CC -m$(if $(TCPU:%64=),32,64 -xarch=sse2 -xport64)
-
-# static library archiver
-# target-specific: COMPILER
-# note: use CXX compiler instead of ar to create C++ static library archives
-#  - for adding necessary C++ templates to the archives,
-#  see https://docs.oracle.com/cd/E19205-01/819-5267/bkamp/index.html
-AR  = $(if $(COMPILER:CXX=),/usr/ccs/bin$(if $(TCPU:x86_64=),,/amd64)/ar,$(CXX))
-TAR = $(if $(COMPILER:CXX=),/usr/ccs/bin$(if $(TCPU:x86_64=),,/amd64)/ar,$(TCXX))
+TAR  := $(AR)
 
 # position-independent code for executables/shared objects (dynamic libraries)
-PIC_CC_OPTION := -Kpic
-PIE_LD_OPTION := -ztype=pie
+PIC_COPTION := -Kpic
+PIE_LOPTION := -ztype=pie
 
 # supported variants:
 # R - default variant (position-dependent code for EXE, position-independent code for DLL)
@@ -63,16 +48,16 @@ LIB_VARIANT_SUFFIX := _pic
 # $1 - target: EXE
 # $2 - P
 # note: override defaults from $(CLEAN_BUILD_DIR)/impl/_c.mk
-EXE_VARIANT_CCOPTS  := $(PIC_CC_OPTION)
-EXE_VARIANT_CXXOPTS := $(PIC_CC_OPTION)
-EXE_VARIANT_LDOPTS  := $(PIE_LD_OPTION)
+EXE_VARIANT_COPTS   := $(PIC_COPTION)
+EXE_VARIANT_CXXOPTS := $(PIC_COPTION)
+EXE_VARIANT_LOPTS   := $(PIE_LOPTION)
 
 # only one non-regular variant of LIB is supported - D - see $(LIB_SUPPORTED_VARIANTS)
 # $1 - target: LIB
 # $2 - D
 # note: override defaults from $(CLEAN_BUILD_DIR)/impl/_c.mk
-LIB_VARIANT_CCOPTS  := $(PIC_CC_OPTION)
-LIB_VARIANT_CXXOPTS := $(PIC_CC_OPTION)
+LIB_VARIANT_COPTS   := $(PIC_COPTION)
+LIB_VARIANT_CXXOPTS := $(PIC_COPTION)
 
 # determine which variant of static library to link with EXE or DLL
 # $1 - target: EXE,DLL
@@ -89,36 +74,35 @@ LDFLAGS := $(if $(DEBUG),-g -xs,-fast)
 
 # common cc flags for linking executables and shared libraries
 # tip: may use -filt=%none to not demangle C++ names
-# note: use '-xlang=c99' to link appropriate c99 system libraries for sources compiled with '-xc99=%all'
-CMN_LDFLAGS := -ztext -xlang=c99
+CMN_LDFLAGS := -ztext
 
 # cc flags for linking an EXE
 EXE_LDFLAGS:=
 
 # cc flags for linking a DLL
-SO_LDFLAGS := -zdefs -G
+DLL_LDFLAGS := -G -zdefs
 
 # flags for objects archiver
-# note: to handle C++ templates, CC compiler is used to create C++ static libraries
+# note: for handling C++ templates, CC compiler is used to create C++ static libraries
 ARFLAGS     := -c -r
 CXX_ARFLAGS := -xar
 
-# how to mark exported symbols from a DLL
+# how to mark symbols exported from a DLL
 DLL_EXPORTS_DEFINE := "__attribute__((visibility(\"default\")))"
 
-# how to mark imported symbols from a DLL
+# how to mark symbols imported from a DLL
 DLL_IMPORTS_DEFINE:=
 
-# runtime-path option for EXE or DLL
+# option for specifying dynamic linker runtime search path for EXE or DLL
 # target-specific: RPATH
 RPATH_OPTION = $(addprefix -R,$(strip $(RPATH)))
 
 # common linker options for EXE or DLL
 # $1 - path to target EXE or DLL
 # $2 - objects
-# $3 - target: EXE,DLL,LIB
+# $3 - target: EXE or DLL
 # $4 - non-empty variant: R,P,D
-# target-specific: LIBS, DLLS, LIB_DIR, SYSLIBPATH, SYSLIBS, COMPILER, LDOPTS
+# target-specific: LIBS, DLLS, LIB_DIR, SYSLIBPATH, SYSLIBS, COMPILER, LOPTS
 CMN_LIBS = -o $1 $2 $(RPATH_OPTION) $(if $(strip \
   $(LIBS)$(DLLS)),-L$(LIB_DIR) $(addprefix -l,$(DLLS)) $(if $(LIBS),-Bstatic $(addprefix -l,$(addsuffix \
   $(call DEP_SUFFIX,$3,$4,LIB),$(LIBS))) -Bdynamic)) $(addprefix -L,$(SYSLIBPATH)) $(SYSLIBS) $(CMN_LDFLAGS)
@@ -134,7 +118,7 @@ SONAME_OPTION = $(addprefix -h $(notdir $1).,$(firstword $(subst ., ,$(MODVER)))
 
 # linkers for each variant of EXE, DLL, LIB
 # $1 - path to target EXE,DLL,LIB
-# $2 - objects
+# $2 - objects for linking the target
 # $3 - target: EXE,DLL,LIB
 # $4 - non-empty variant: R,P,D
 # target-specific: TMD, COMPILER
@@ -142,14 +126,23 @@ SONAME_OPTION = $(addprefix -h $(notdir $1).,$(firstword $(subst ., ,$(MODVER)))
 # note: use CXX compiler instead of ld to create shared libraries
 #  - for calling C++ constructors of static objects when loading the libraries,
 #  see https://docs.oracle.com/cd/E19205-01/819-5267/bkamq/index.html
-EXE_LD = $(call SUP,$(TMD)EXE,$1)$($(TMD)$(COMPILER)) $(CMN_LIBS) $(EXE_LDFLAGS) $(LDOPTS) $(LDFLAGS)
-DLL_LD = $(call SUP,$(TMD)DLL,$1)$($(TMD)$(COMPILER)) $(VERSION_SCRIPT) $(SONAME_OPTION) $(CMN_LIBS) $(SO_LDFLAGS) $(LDOPTS) $(LDFLAGS)
+EXE_LD = $(call SUP,$(TMD)EXE,$1)$($(TMD)$(COMPILER)) $(CMN_LIBS) $(EXE_LDFLAGS) $(LOPTS) $(LDFLAGS)
+DLL_LD = $(call SUP,$(TMD)DLL,$1)$($(TMD)$(COMPILER)) $(VERSION_SCRIPT) $(SONAME_OPTION) $(CMN_LIBS) $(DLL_LDFLAGS) $(LOPTS) $(LDFLAGS)
 LIB_LD = $(call SUP,$(TMD)LIB,$1)$(if $(COMPILER:CXX=),$($(TMD)AR) $(ARFLAGS) $1 $2,$($(TMD)$(COMPILER)) $(CXX_ARFLAGS) -o $1 $2)
 
-# $(SED) expression to filter-out system files while dependencies generation
+# prefix of system headers to filter-out while dependencies generation
+# note: used as $(SED) expression
 UDEPS_INCLUDE_FILTER := /usr/include/
 
 # $(SED) script to generate dependencies file from C compiler output
+#
+# note: '-xMD' cc option generates only partial makefile-dependency .d file
+#  - it doesn't include empty targets for dependency headers:
+#
+#  e.o: e.c
+#  e.o: e.h
+#  e.h:      <--- missing in generated .d file
+#
 # $2 - target object file
 # $3 - source
 # $4 - $(basename $2).d
@@ -169,28 +162,28 @@ SED_DEPS_SCRIPT = \
 # $2 - target object file
 # $3 - source
 # $4 - $(basename $2).d
-# $5 - prefixes of system includes
+# $5 - prefixes of system includes to filter out
 ifdef NO_DEPS
-WRAP_C_COMPILER = $1
+WRAP_CC = $1
 else
-WRAP_C_COMPILER = { { $1 -H 2>&1 && echo OK >&2; } | sed -n $(SED_DEPS_SCRIPT) 2>&1; } 3>&2 2>&1 1>&3 3>&- | grep OK > /dev/null
+WRAP_CC = { { $1 -H 2>&1 && echo OK >&2; } | sed -n $(SED_DEPS_SCRIPT) 2>&1; } 3>&2 2>&1 1>&3 3>&- | grep OK > /dev/null
 endif
 
 # C/C++ compiler flags that may be modified by user
 CFLAGS   := $(if $(DEBUG),-g,-fast)
 CXXFLAGS := $(CFLAGS)
 
+# common flags for application-level C/C++-compilers
+CMN_CFLAGS := -v -xldscope=hidden
+
 # default flags for application-level C compiler
-DEF_CFLAGS := -xc99=%all
+DEF_CFLAGS := $(CMN_CFLAGS)
 
 # default flags for application-level C++ compiler
 # disable some C++ warnings:
 # badargtype2w - (Anachronism) when passing pointers to functions
 # wbadasg      - (Anachronism) assigning extern "C" ...
-DEF_CXXFLAGS := -erroff=badargtype2w,wbadasg
-
-# flags for application-level C/C++-compilers
-APP_FLAGS:=
+DEF_CXXFLAGS := -erroff=badargtype2w,wbadasg $(CMN_CFLAGS)
 
 # application-level defines
 APP_DEFINES:=
@@ -200,85 +193,82 @@ APP_DEFINES:=
 # $2 - source
 # $3 - non-empty variant: R,P,D
 # target-specific: DEFINES, INCLUDE, COMPILER
-CC_PARAMS = -c $(APP_FLAGS) $(call \
+CC_PARAMS = -c $(call \
   DEFINES_ESCAPE_STRING,$(addprefix -D,$(APP_DEFINES) $(DEFINES))) $(addprefix -I,$(INCLUDE))
-
-................
 
 # C++ and C compilers
 # $1 - target object file
 # $2 - source
-# $3 - aux flags
-# target-specific: TMD, CXXFLAGS, CFLAGS
+# $3 - non-empty variant: R,P,D
+# target-specific: TMD, CXXOPTS, COPTS
 CMN_CXX = $(call SUP,$(TMD)CXX,$2)$(call \
-  WRAP_CC_COMPILER,$($(TMD)CXX) $(DEF_CXXFLAGS) $(CC_PARAMS) $(CXXFLAGS) $3 -o $1 $2,$1,$2,$(basename $1).d,$(UDEPS_INCLUDE_FILTER))
+  WRAP_CC,$($(TMD)CXX) $(DEF_CXXFLAGS) $(CC_PARAMS) $(CXXOPTS) -o $1 $2 $(CXXFLAGS),$1,$2,$(basename $1).d,$(UDEPS_INCLUDE_FILTER))
 CMN_CC  = $(call SUP,$(TMD)CC,$2)$(call \
-  WRAP_CC_COMPILER,$($(TMD)CC) $(DEF_CFLAGS) $(CC_PARAMS) $(CFLAGS) $3 -o $1 $2,$1,$2,$(basename $1).d,$(UDEPS_INCLUDE_FILTER))
+  WRAP_CC,$($(TMD)CC) $(DEF_CFLAGS) $(CC_PARAMS) $(COPTS) -o $1 $2 $(CFLAGS),$1,$2,$(basename $1).d,$(UDEPS_INCLUDE_FILTER))
 
-# position-independent code for shared objects (dynamic libraries)
-PIC_OPTION := -KPIC
-
-# different compilers
+# compilers for each variant of EXE, DLL, LIB
 # $1 - target object file
 # $2 - source
-EXE_R_CXX = $(CMN_CXX)
-EXE_R_CC  = $(CMN_CC)
-LIB_R_CXX = $(EXE_R_CXX)
-LIB_R_CC  = $(EXE_R_CC)
-DLL_R_CXX = $(call CMN_CXX,$1,$2,$(PIC_OPTION))
-DLL_R_CC  = $(call CMN_CC,$1,$2,$(PIC_OPTION))
-LIB_D_CXX = $(DLL_R_CXX)
-LIB_D_CC  = $(DLL_R_CC)
+# $3 - non-empty variant: R,P,D
+# note: used by OBJ_RULES_BODY macro from $(CLEAN_BUILD_DIR)/impl/c_base.mk
+EXE_CXX = $(CMN_CXX)
+EXE_CC  = $(CMN_CC)
+DLL_CXX = $(CMN_CXX)
+DLL_CC  = $(CMN_CC)
+LIB_CXX = $(CMN_CXX)
+LIB_CC  = $(CMN_CC)
 
-# $(SED) expression to filter-out system files while dependencies generation
-KDEPS_INCLUDE_FILTER := /usr/include/
+ifndef NO_PCH
 
-# flags for kernel-level C-compiler
-ifdef DEBUG
-OS_KRN_FLAGS := -g
-else
-OS_KRN_FLAGS := -O
+# add support for precompiled headers
+
+ifeq (,$(filter-out undefined environment,$(origin SUNCC_PCH_TEMPLATEt)))
+include $(dir $(lastword $(MAKEFILE_LIST)))suncc_pch.mk
 endif
 
-# KRN_FLAGS may be overridden in project makefile
-KRN_FLAGS := $(OS_KRN_FLAGS)
+# C/C++ compilers for compiling without precompiled header
+$(eval CMN_NCXX = $(value CMN_CXX))
+$(eval CMN_NCC  = $(value CMN_CC))
 
-# kernel-level defines
-OS_KRN_DEFINES:=
-
-# KRN_DEFINES may be overridden in project makefile
-KRN_DEFINES = $(OS_KRN_DEFINES)
-
-# common options for kernel-level C compiler
+# C/C++ compilers for compiling using precompiled header
 # $1 - target object file
 # $2 - source
-# target-specific: DEFINES, INCLUDE, COMPILER
-KCC_PARAMS = -c $(KRN_FLAGS) $(call \
-  SUBST_DEFINES,$(addprefix -D,$(KRN_DEFINES) $(DEFINES))) $(addprefix -I,$(INCLUDE))
+# $3 - non-empty variant: R,P,D
+# target-specific: TMD, PCH, CXXOPTS, COPTS
+CMN_PCXX = $(call SUP,P$(TMD)CXX,$2)$(call WRAP_CC,$($(TMD)CXX) -xpch=use:$(dir $1)$(basename $(notdir $(PCH)))_cxx.Cpch \
+  -include $(PCH) $(DEF_CXXFLAGS) $(CC_PARAMS) $(CXXOPTS) -o $1 $2 $(CXXFLAGS),$1,$2,$(basename $1).d,$(UDEPS_INCLUDE_FILTER))
+CMN_PCC  = $(call SUP,P$(TMD)CC,$2)$(call WRAP_CC,$($(TMD)CC) -xpch=use:$(dir $1)$(basename $(notdir $(PCH)))_c.cpch \
+  -include $(PCH) $(DEF_CFLAGS) $(CC_PARAMS) $(COPTS) -o $1 $2 $(CFLAGS),$1,$2,$(basename $1).d,$(UDEPS_INCLUDE_FILTER))
 
-# kernel-level C compilers
-# $1 - targets object file
-# $2 - source
-# target-specific: CFLAGS
-KLIB_R_CC = $(call SUP,KCC,$2)$(call \
-  WRAP_CC_COMPILER,$(KCC) $(DEF_CFLAGS) $(KCC_PARAMS) $(CFLAGS) -o $1 $2,$1,$2,$(basename $1).d,$(KDEPS_INCLUDE_FILTER))
-DRV_R_CC  = $(KLIB_R_CC)
-
-# kernel-level assembler
+# override C++ and C compilers to support compiling with precompiled header
 # $1 - target object file
-# $2 - asm-source
-# target-specific: ASMFLAGS
-KLIB_R_ASM = $(call SUP,ASM,$2)$(YASMC) $(YASM_FLAGS) $(ASMFLAGS) -o $1 $2
-DRV_R_ASM  = $(KLIB_R_ASM)
-
-# $1 - target
 # $2 - source
-BISON = $(call SUP,BISON,$2)$(BISONC) -o $1 -d --fixed-output-files $(abspath $2)
-FLEX  = $(call SUP,FLEX,$2)$(FLEXC) -o$1 $2
+# $3 - non-empty variant: R,P,D
+# target-specific: CXX_WITH_PCH, CC_WITH_PCH
+CMN_CXX = $(if $(filter $2,$(CXX_WITH_PCH)),$(CMN_PCXX),$(CMN_NCXX))
+CMN_CC  = $(if $(filter $2,$(CC_WITH_PCH)),$(CMN_PCC),$(CMN_NCC))
 
-# tools colors
-BISON_COLOR := $(GEN_COLOR)
-FLEX_COLOR  := $(GEN_COLOR)
+# compilers for C++ and C precompiled header
+# $1 - target .cpch (xxx_c.cpch or xxx_cxx.cpch)
+# $2 - source pch header (xxx.h)
+# $3 - non-empty variant: R,P,D
+# target-specific: CXXOPTS, COPTS
+
+1) create fake source gg/1.c:
+  #include "../ff/../1.h"
+  #pragma hdrstop
+2) compile it 
+  cc -xpch=collect:ff/1_c -c -o ff/1.o gg/1.c
+3) generate source gg/2.tmp.c:
+  #include "../ff/../1.h"
+  #pragma hdrstop
+  #include "../2.c"
+4) compile it
+  cc -xpch=use:ff/1_c -c -o ff/2.o gg/2.tmp.c
+
+PCH_CXX = $(call SUP,$(TMD)PCHCXX,$2)$(call WRAP_CC,$($(TMD)CXX) $(DEF_CXXFLAGS) $(CC_PARAMS) $(CXXOPTS) -o $1 $2 $(CXXFLAGS)
+PCH_CC  = $(call SUP,$(TMD)PCHCC,$2)$($(TMD)CC) $(DEF_CFLAGS) $(CC_PARAMS) $(COPTS) -o $1 $2 $(CFLAGS)
+
 
 # auxiliary defines for EXE
 # $1 - $(call FORM_TRG,$t,$v)
@@ -356,3 +346,12 @@ $(call CLEAN_BUILD_PROTECT_VARS,CC CXX TCC TCXX AR TAR KCC KLD YASMC FLEXC BISON
   KDEPS_INCLUDE_FILTER OS_KRN_FLAGS KRN_FLAGS OS_KRN_DEFINES KRN_DEFINES \
   KCC_PARAMS KLIB_R_CC DRV_R_CC KLIB_R_ASM DRV_R_ASM BISON FLEX BISON_COLOR FLEX_COLOR \
   EXE_AUX_TEMPLATEv=t;v DLL_AUX_TEMPLATEv=t;v MOD_AUX_TEMPLATE1=t MOD_AUX_TEMPLATE=t DRV_TEMPLATE=DRV;LIB_DIR;KLIBS;SYSLIBS;SYSLIBPATH;v)
+
+# static library archiver
+# target-specific: COMPILER
+# note: use CXX compiler instead of ar to create C++ static library archives
+#  - for adding necessary C++ templates to the archives,
+#  see https://docs.oracle.com/cd/E19205-01/819-5267/bkamp/index.html
+AR  = $(if $(COMPILER:CXX=),/usr/ccs/bin$(if $(TCPU:x86_64=),,/amd64)/ar,$(CXX))
+TAR = $(if $(COMPILER:CXX=),/usr/ccs/bin$(if $(TCPU:x86_64=),,/amd64)/ar,$(TCXX))
+
