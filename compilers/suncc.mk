@@ -224,6 +224,72 @@ ifndef NO_PCH
 
 ifeq (,$(filter-out undefined environment,$(origin SUNCC_PCH_TEMPLATEt)))
 include $(dir $(lastword $(MAKEFILE_LIST)))suncc_pch.mk
+
+#.........
+# suncc compiler precompiled headers support
+
+# included by $(CLEAN_BUILD_DIR)/compilers/suncc.mk
+
+ifndef TOCLEAN
+
+ifeq (,$(filter-out undefined environment,$(origin PCH_VARS_TEMPL)))
+include $(CLEAN_BUILD_DIR)/impl/pch.mk
+endif
+
+# define rule for building precompiled header
+# $1 - $(call fixpath,$(PCH))
+# $2 - $(filter $(CC_MASK),$(call fixpath,$(WITH_PCH))) or $(filter $(CXX_MASK),$(call fixpath,$(WITH_PCH)))
+# $3 - $(call FORM_OBJ_DIR,$t,$v)
+# $4 - $3/$(basename $(notdir $1))_pch_c.h or $3/$(basename $(notdir $1))_pch_cxx.h
+# $5 - pch compiler type: CC or CXX
+# $t - EXE,LIB,DLL,KLIB
+# $v - R,P
+# target-specific: PCH
+# note: last line must be empty
+define GCC_PCH_RULE_TEMPL
+$(addprefix $3/,$(addsuffix $(OBJ_SUFFIX),$(basename $(notdir $2)))): $4.gch
+$4.gch: $1 | $3 $$(ORDER_DEPS)
+	$$(call PCH_$t_$5,$$@,$$(PCH),$v)
+
+endef
+ifndef NO_DEPS
+$(call define_prepend,GCC_PCH_RULE_TEMPL,-include $$4.d$(newline))
+endif
+
+# define rule for building C/C++ precompiled header
+# define target-specific variables: PCH, CC_WITH_PCH and CXX_WITH_PCH
+# $1 - $(call FORM_TRG,$t,$v)
+# $2 - $(call fixpath,$(PCH))
+# $3 - $(filter $(CC_MASK),$(call fixpath,$(WITH_PCH)))
+# $4 - $(filter $(CXX_MASK),$(call fixpath,$(WITH_PCH)))
+# $5 - $(call FORM_OBJ_DIR,$t,$v)
+# $t - EXE,LIB,DLL,KLIB
+# $v - R,P
+GCC_PCH_TEMPLATEv = $(PCH_VARS_TEMPL)$(if \
+  $3,$(call GCC_PCH_RULE_TEMPL,$2,$3,$5,$5/$(basename $(notdir $2))_pch_c.h,CC))$(if \
+  $4,$(call GCC_PCH_RULE_TEMPL,$2,$4,$5,$5/$(basename $(notdir $2))_pch_cxx.h,CXX))
+
+# $1 - $(call fixpath,$(PCH))
+# $2 - $(filter $(CC_MASK),$(call fixpath,$(WITH_PCH)))
+# $3 - $(filter $(CXX_MASK),$(call fixpath,$(WITH_PCH)))
+# $t - EXE,LIB,DLL,KLIB
+GCC_PCH_TEMPLATEt2 = $(foreach v,$(call GET_VARIANTS,$t),$(call \
+  GCC_PCH_TEMPLATEv,$(call FORM_TRG,$t,$v),$1,$2,$3,$(call FORM_OBJ_DIR,$t,$v)))
+
+# $1 - $(call fixpath,$(WITH_PCH))
+# $t - EXE,LIB,DLL,KLIB
+SUNCC_PCH_TEMPLATEt1 = $(call GCC_PCH_TEMPLATEt2,$(call fixpath,$(PCH)),$(filter $(CC_MASK),$1),$(filter $(CXX_MASK),$1))
+
+# code to eval to build with precompiled headers
+# $t - EXE,LIB,DLL,KLIB
+# note: must reset target-specific variables CC_WITH_PCH and CXX_WITH_PCH if not using precompiled header
+#  for the target, otherwise dependent DLL or LIB target may inherit these values from EXE or DLL
+SUNCC_PCH_TEMPLATEt = $(if $(and $(PCH),$(WITH_PCH)),$(call \
+  SUNCC_PCH_TEMPLATEt1,$(call fixpath,$(WITH_PCH))),$(call WITH_PCH_RESET,$(call ALL_TARGETS,$t)))
+
+
+
+
 endif
 
 # C/C++ compilers for compiling without precompiled header
@@ -235,10 +301,10 @@ $(eval CMN_NCC  = $(value CMN_CC))
 # $2 - source
 # $3 - non-empty variant: R,P,D
 # target-specific: TMD, PCH, CXXOPTS, COPTS
-CMN_PCXX = $(call SUP,P$(TMD)CXX,$2)$(call WRAP_CC,$($(TMD)CXX) -xpch=use:$(dir $1)$(basename $(notdir $(PCH)))_cxx.Cpch \
-  -include $(PCH) $(DEF_CXXFLAGS) $(CC_PARAMS) $(CXXOPTS) -o $1 $2 $(CXXFLAGS),$1,$2,$(basename $1).d,$(UDEPS_INCLUDE_FILTER))
-CMN_PCC  = $(call SUP,P$(TMD)CC,$2)$(call WRAP_CC,$($(TMD)CC) -xpch=use:$(dir $1)$(basename $(notdir $(PCH)))_c.cpch \
-  -include $(PCH) $(DEF_CFLAGS) $(CC_PARAMS) $(COPTS) -o $1 $2 $(CFLAGS),$1,$2,$(basename $1).d,$(UDEPS_INCLUDE_FILTER))
+CMN_PCXX = $(call SUP,P$(TMD)CXX,$2)$(call WRAP_CC,$($(TMD)CXX) -xpch=use:$(dir $1)$(basename $(notdir \
+  $(PCH)))_cxx $(DEF_CXXFLAGS) $(CC_PARAMS) $(CXXOPTS) -o $1 $2 $(CXXFLAGS),$1,$2,$(basename $1).d,$(UDEPS_INCLUDE_FILTER))
+CMN_PCC  = $(call SUP,P$(TMD)CC,$2)$(call WRAP_CC,$($(TMD)CC) -xpch=use:$(dir $1)$(basename $(notdir \
+  $(PCH)))_c $(DEF_CFLAGS) $(CC_PARAMS) $(COPTS) -o $1 $2 $(CFLAGS),$1,$2,$(basename $1).d,$(UDEPS_INCLUDE_FILTER))
 
 # override C++ and C compilers to support compiling with precompiled header
 # $1 - target object file
@@ -249,10 +315,11 @@ CMN_CXX = $(if $(filter $2,$(CXX_WITH_PCH)),$(CMN_PCXX),$(CMN_NCXX))
 CMN_CC  = $(if $(filter $2,$(CC_WITH_PCH)),$(CMN_PCC),$(CMN_NCC))
 
 # compilers for C++ and C precompiled header
-# $1 - target .cpch (xxx_c.cpch or xxx_cxx.cpch)
+# $1 - target pch object (xxx_c.cpch or xxx_cxx.Cpch)
 # $2 - source pch header (xxx.h)
 # $3 - non-empty variant: R,P,D
 # target-specific: CXXOPTS, COPTS
+PCH_CXX = $(call SUP,$(TMD)PCHCXX,$2)$(call WRAP_CC,$($(TMD)CXX) $(DEF_CXXFLAGS) $(CC_PARAMS) $(CXXOPTS) -o $1 $2 $(CXXFLAGS))
 
 1) create fake source gg/1.c:
   #include "../ff/../1.h"
@@ -266,7 +333,6 @@ CMN_CC  = $(if $(filter $2,$(CC_WITH_PCH)),$(CMN_PCC),$(CMN_NCC))
 4) compile it
   cc -xpch=use:ff/1_c -c -o ff/2.o gg/2.tmp.c
 
-PCH_CXX = $(call SUP,$(TMD)PCHCXX,$2)$(call WRAP_CC,$($(TMD)CXX) $(DEF_CXXFLAGS) $(CC_PARAMS) $(CXXOPTS) -o $1 $2 $(CXXFLAGS)
 PCH_CC  = $(call SUP,$(TMD)PCHCC,$2)$($(TMD)CC) $(DEF_CFLAGS) $(CC_PARAMS) $(COPTS) -o $1 $2 $(CFLAGS)
 
 

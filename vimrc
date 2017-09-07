@@ -80,6 +80,7 @@ hi makeIdent ctermfg=cyan
 hi makeTarget ctermfg=white cterm=bold
 hi makeVarRef ctermfg=darkmagenta cterm=bold
 hi makeVarDelayedRef ctermfg=lightmagenta
+hi makeDDollar ctermfg=lightmagenta
 hi makePercent ctermfg=red
 hi makeAssignSimple ctermfg=white
 hi makeAppend ctermfg=white
@@ -89,6 +90,7 @@ hi makeDefineTarget ctermfg=white
 hi makeNewlineKw ctermfg=darkblue cterm=bold
 hi makeIdentLetters ctermfg=darkyellow
 hi makeDollar ctermfg=red
+hi makeBraces ctermfg=green
 
 map <C-Up> <C-Y>
 map <C-Down> <C-E>
