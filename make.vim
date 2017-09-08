@@ -1,3 +1,4 @@
+syn match makeTrailSpaces   / *$/
 syn match makeDollar        /\$(/he=s+1 containedin=makeIdent
 syn match makeDDollar       /\$\$(/he=s+2 containedin=makeIdent
 syn match makeBraces        /\$(/hs=s+1 containedin=makeDollar

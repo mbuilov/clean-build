@@ -191,10 +191,10 @@ CMN_CC  = $(if $(filter $2,$(CC_WITH_PCH)),$(call SUP,$(TMD)PCC,$2)$($(TMD)CC) -
   $(notdir $(PCH)))_pch_c.h,$(call SUP,$(TMD)CC,$2)$($(TMD)CC)) $(DEF_CFLAGS) $(CC_PARAMS) $(COPTS) -o $1 $2 $(CFLAGS)
 
 # compilers for C++ and C precompiled header
-# $1 - target .gch (xxx_pch_c.h.gch or xxx_pch_cxx.h.gch)
-# $2 - source pch header (xxx.h)
+# $1 - target .gch (e.g. /build/obj/xxx_pch_c.h.gch or /build/obj/xxx_pch_cxx.h.gch)
+# $2 - source pch header (full path, e.g. /src/include/xxx.h)
 # $3 - non-empty variant: R,P,D
-# target-specific: CXXOPTS, COPTS
+# target-specific: TMD, CXXOPTS, COPTS
 PCH_CXX = $(call SUP,$(TMD)PCHCXX,$2)$($(TMD)CXX) $(DEF_CXXFLAGS) $(CC_PARAMS) $(CXXOPTS) -o $1 $2 $(CXXFLAGS)
 PCH_CC  = $(call SUP,$(TMD)PCHCC,$2)$($(TMD)CC) $(DEF_CFLAGS) $(CC_PARAMS) $(COPTS) -o $1 $2 $(CFLAGS)
 

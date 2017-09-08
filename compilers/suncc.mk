@@ -102,7 +102,7 @@ RPATH_OPTION = $(addprefix -R,$(strip $(RPATH)))
 # $2 - objects
 # $3 - target: EXE or DLL
 # $4 - non-empty variant: R,P,D
-# target-specific: LIBS, DLLS, LIB_DIR, SYSLIBPATH, SYSLIBS, COMPILER, LOPTS
+# target-specific: LIBS, DLLS, LIB_DIR, SYSLIBPATH, SYSLIBS
 CMN_LIBS = -o $1 $2 $(RPATH_OPTION) $(if $(strip \
   $(LIBS)$(DLLS)),-L$(LIB_DIR) $(addprefix -l,$(DLLS)) $(if $(LIBS),-Bstatic $(addprefix -l,$(addsuffix \
   $(call DEP_SUFFIX,$3,$4,LIB),$(LIBS))) -Bdynamic)) $(addprefix -L,$(SYSLIBPATH)) $(SYSLIBS) $(CMN_LDFLAGS)
@@ -121,7 +121,7 @@ SONAME_OPTION = $(addprefix -h $(notdir $1).,$(firstword $(subst ., ,$(MODVER)))
 # $2 - objects for linking the target
 # $3 - target: EXE,DLL,LIB
 # $4 - non-empty variant: R,P,D
-# target-specific: TMD, COMPILER
+# target-specific: TMD, COMPILER, LOPTS
 # note: used by EXE_TEMPLATE, DLL_TEMPLATE, LIB_TEMPLATE from $(CLEAN_BUILD_DIR)/impl/_c.mk
 # note: use CXX compiler instead of ld to create shared libraries
 #  - for calling C++ constructors of static objects when loading the libraries,
@@ -224,72 +224,6 @@ ifndef NO_PCH
 
 ifeq (,$(filter-out undefined environment,$(origin SUNCC_PCH_TEMPLATEt)))
 include $(dir $(lastword $(MAKEFILE_LIST)))suncc_pch.mk
-
-#.........
-# suncc compiler precompiled headers support
-
-# included by $(CLEAN_BUILD_DIR)/compilers/suncc.mk
-
-ifndef TOCLEAN
-
-ifeq (,$(filter-out undefined environment,$(origin PCH_VARS_TEMPL)))
-include $(CLEAN_BUILD_DIR)/impl/pch.mk
-endif
-
-# define rule for building precompiled header
-# $1 - $(call fixpath,$(PCH))
-# $2 - $(filter $(CC_MASK),$(call fixpath,$(WITH_PCH))) or $(filter $(CXX_MASK),$(call fixpath,$(WITH_PCH)))
-# $3 - $(call FORM_OBJ_DIR,$t,$v)
-# $4 - $3/$(basename $(notdir $1))_pch_c.h or $3/$(basename $(notdir $1))_pch_cxx.h
-# $5 - pch compiler type: CC or CXX
-# $t - EXE,LIB,DLL,KLIB
-# $v - R,P
-# target-specific: PCH
-# note: last line must be empty
-define GCC_PCH_RULE_TEMPL
-$(addprefix $3/,$(addsuffix $(OBJ_SUFFIX),$(basename $(notdir $2)))): $4.gch
-$4.gch: $1 | $3 $$(ORDER_DEPS)
-	$$(call PCH_$t_$5,$$@,$$(PCH),$v)
-
-endef
-ifndef NO_DEPS
-$(call define_prepend,GCC_PCH_RULE_TEMPL,-include $$4.d$(newline))
-endif
-
-# define rule for building C/C++ precompiled header
-# define target-specific variables: PCH, CC_WITH_PCH and CXX_WITH_PCH
-# $1 - $(call FORM_TRG,$t,$v)
-# $2 - $(call fixpath,$(PCH))
-# $3 - $(filter $(CC_MASK),$(call fixpath,$(WITH_PCH)))
-# $4 - $(filter $(CXX_MASK),$(call fixpath,$(WITH_PCH)))
-# $5 - $(call FORM_OBJ_DIR,$t,$v)
-# $t - EXE,LIB,DLL,KLIB
-# $v - R,P
-GCC_PCH_TEMPLATEv = $(PCH_VARS_TEMPL)$(if \
-  $3,$(call GCC_PCH_RULE_TEMPL,$2,$3,$5,$5/$(basename $(notdir $2))_pch_c.h,CC))$(if \
-  $4,$(call GCC_PCH_RULE_TEMPL,$2,$4,$5,$5/$(basename $(notdir $2))_pch_cxx.h,CXX))
-
-# $1 - $(call fixpath,$(PCH))
-# $2 - $(filter $(CC_MASK),$(call fixpath,$(WITH_PCH)))
-# $3 - $(filter $(CXX_MASK),$(call fixpath,$(WITH_PCH)))
-# $t - EXE,LIB,DLL,KLIB
-GCC_PCH_TEMPLATEt2 = $(foreach v,$(call GET_VARIANTS,$t),$(call \
-  GCC_PCH_TEMPLATEv,$(call FORM_TRG,$t,$v),$1,$2,$3,$(call FORM_OBJ_DIR,$t,$v)))
-
-# $1 - $(call fixpath,$(WITH_PCH))
-# $t - EXE,LIB,DLL,KLIB
-SUNCC_PCH_TEMPLATEt1 = $(call GCC_PCH_TEMPLATEt2,$(call fixpath,$(PCH)),$(filter $(CC_MASK),$1),$(filter $(CXX_MASK),$1))
-
-# code to eval to build with precompiled headers
-# $t - EXE,LIB,DLL,KLIB
-# note: must reset target-specific variables CC_WITH_PCH and CXX_WITH_PCH if not using precompiled header
-#  for the target, otherwise dependent DLL or LIB target may inherit these values from EXE or DLL
-SUNCC_PCH_TEMPLATEt = $(if $(and $(PCH),$(WITH_PCH)),$(call \
-  SUNCC_PCH_TEMPLATEt1,$(call fixpath,$(WITH_PCH))),$(call WITH_PCH_RESET,$(call ALL_TARGETS,$t)))
-
-
-
-
 endif
 
 # C/C++ compilers for compiling without precompiled header
@@ -301,10 +235,15 @@ $(eval CMN_NCC  = $(value CMN_CC))
 # $2 - source
 # $3 - non-empty variant: R,P,D
 # target-specific: TMD, PCH, CXXOPTS, COPTS
-CMN_PCXX = $(call SUP,P$(TMD)CXX,$2)$(call WRAP_CC,$($(TMD)CXX) -xpch=use:$(dir $1)$(basename $(notdir \
-  $(PCH)))_cxx $(DEF_CXXFLAGS) $(CC_PARAMS) $(CXXOPTS) -o $1 $2 $(CXXFLAGS),$1,$2,$(basename $1).d,$(UDEPS_INCLUDE_FILTER))
-CMN_PCC  = $(call SUP,P$(TMD)CC,$2)$(call WRAP_CC,$($(TMD)CC) -xpch=use:$(dir $1)$(basename $(notdir \
-  $(PCH)))_c $(DEF_CFLAGS) $(CC_PARAMS) $(COPTS) -o $1 $2 $(CFLAGS),$1,$2,$(basename $1).d,$(UDEPS_INCLUDE_FILTER))
+CMN_PCXX = $(call SUP,$(TMD)PCXX,$2)$(call \
+  WRAP_CC,$($(TMD)CXX) -xpch=use:$(dir $1)$(basename $(notdir $(PCH)))_cxx \
+  $(DEF_CXXFLAGS) $(CC_PARAMS) $(CXXOPTS) -o $1 $(dir $1)$(notdir \
+  $2).pch.cc $(CXXFLAGS),$1,$2,$(basename $1).d,$(UDEPS_INCLUDE_FILTER))
+
+CMN_PCC  = $(call SUP,P$(TMD)CC,$2)$(call \
+  WRAP_CC,$($(TMD)CC) -xpch=use:$(dir $1)$(basename $(notdir $(PCH)))_c \
+  $(DEF_CFLAGS) $(CC_PARAMS) $(COPTS) -o $1 $(dir $1)$(notdir \
+  $2).pch.c $(CFLAGS),$1,$2,$(basename $1).d,$(UDEPS_INCLUDE_FILTER))
 
 # override C++ and C compilers to support compiling with precompiled header
 # $1 - target object file
@@ -315,11 +254,31 @@ CMN_CXX = $(if $(filter $2,$(CXX_WITH_PCH)),$(CMN_PCXX),$(CMN_NCXX))
 CMN_CC  = $(if $(filter $2,$(CC_WITH_PCH)),$(CMN_PCC),$(CMN_NCC))
 
 # compilers for C++ and C precompiled header
-# $1 - target pch object (xxx_c.cpch or xxx_cxx.Cpch)
-# $2 - source pch header (xxx.h)
-# $3 - non-empty variant: R,P,D
-# target-specific: CXXOPTS, COPTS
-PCH_CXX = $(call SUP,$(TMD)PCHCXX,$2)$(call WRAP_CC,$($(TMD)CXX) $(DEF_CXXFLAGS) $(CC_PARAMS) $(CXXOPTS) -o $1 $2 $(CXXFLAGS))
+# $1 - target object of generated source $3
+# $2 - pch header (full path, e.g. /src/include/xxx.h)
+# $3 - generated source to precompile header $2:
+#  $(dir $1)$(basename $(notdir $2))_cxx.cc or
+#  $(dir $1)$(basename $(notdir $2))_c.c
+# $4 - non-empty variant: R,P,D
+# target-specific: TMD, CXXOPTS, COPTS
+# note: pch object xxx_c.cpch or xxx_cxx.Cpch will be created as a side-effect of this compilation
+PCH_CXX = $(call SUP,$(TMD)PCHCXX,$2)$(call \
+  WRAP_CC,$($(TMD)CXX) -xpch=collect:$(dir $1)$(basename $(notdir $2))_cxx \
+  $(DEF_CXXFLAGS) $(CC_PARAMS) $(CXXOPTS) -o $1 $3 $(CXXFLAGS),$1,$3,$(basename $1).d,$(UDEPS_INCLUDE_FILTER))
+
+PCH_CC = $(call SUP,$(TMD)PCHCC,$2)$(call \
+  WRAP_CC,$($(TMD)CC) -xpch=collect:$(dir $1)$(basename $(notdir $2))_c \
+  $(DEF_CFLAGS) $(CC_PARAMS) $(COPTS) -o $1 $3 $(CFLAGS),$1,$3,$(basename $1).d,$(UDEPS_INCLUDE_FILTER))
+
+
+
+
+
+# $1 - compiler with options
+# $2 - target object file
+# $3 - source
+# $4 - $(basename $2).d
+# $5 - prefixes of system includes to filter out
 
 1) create fake source gg/1.c:
   #include "../ff/../1.h"

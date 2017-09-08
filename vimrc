@@ -72,6 +72,7 @@ hi _Ms_annotation_ ctermfg=cyan cterm=bold
 hi A_Annotation ctermfg=magenta cterm=bold
 hi CMN_Types ctermfg=darkmagenta cterm=bold
 
+hi makeTrailSpaces ctermbg=blue
 hi makeDefine ctermfg=lightgreen
 hi makeExport ctermfg=blue cterm=bold
 hi makeInclude ctermfg=magenta cterm=bold
