@@ -160,9 +160,6 @@ CMN_CXX = $(call SUP,$(TMD)CXX,$2)$($(TMD)CXX) $(DEF_CXXFLAGS) $(CC_PARAMS) $(CX
 CMN_CC  = $(call SUP,$(TMD)CC,$2)$($(TMD)CC) $(DEF_CFLAGS) $(CC_PARAMS) $(COPTS) -o $1 $2 $(CFLAGS)
 
 # compilers for each variant of EXE, DLL, LIB
-# $1 - target object file
-# $2 - source
-# $3 - non-empty variant: R,P,D
 # note: used by OBJ_RULES_BODY macro from $(CLEAN_BUILD_DIR)/impl/c_base.mk
 EXE_CXX = $(CMN_CXX)
 EXE_CC  = $(CMN_CC)
@@ -190,7 +187,7 @@ CMN_CXX = $(if $(filter $2,$(CXX_WITH_PCH)),$(call SUP,$(TMD)PCXX,$2)$($(TMD)CXX
 CMN_CC  = $(if $(filter $2,$(CC_WITH_PCH)),$(call SUP,$(TMD)PCC,$2)$($(TMD)CC) -I$(dir $1) -include $(basename \
   $(notdir $(PCH)))_pch_c.h,$(call SUP,$(TMD)CC,$2)$($(TMD)CC)) $(DEF_CFLAGS) $(CC_PARAMS) $(COPTS) -o $1 $2 $(CFLAGS)
 
-# compilers for C++ and C precompiled header
+# compilers of C/C++ precompiled header
 # $1 - target .gch (e.g. /build/obj/xxx_pch_c.h.gch or /build/obj/xxx_pch_cxx.h.gch)
 # $2 - source pch header (full path, e.g. /src/include/xxx.h)
 # $3 - non-empty variant: R,P,D
@@ -198,10 +195,7 @@ CMN_CC  = $(if $(filter $2,$(CC_WITH_PCH)),$(call SUP,$(TMD)PCC,$2)$($(TMD)CC) -
 PCH_CXX = $(call SUP,$(TMD)PCHCXX,$2)$($(TMD)CXX) $(DEF_CXXFLAGS) $(CC_PARAMS) $(CXXOPTS) -o $1 $2 $(CXXFLAGS)
 PCH_CC  = $(call SUP,$(TMD)PCHCC,$2)$($(TMD)CC) $(DEF_CFLAGS) $(CC_PARAMS) $(COPTS) -o $1 $2 $(CFLAGS)
 
-# different precompiler header compilers for R,P and D target variants
-# $1 - target .gch
-# $2 - source pch header
-# $3 - non-empty variant: R,P,D
+# different precompiled header compilers
 # note: used by GCC_PCH_RULE_TEMPL macro from $(CLEAN_BUILD_DIR)/compilers/gcc_pch.mk
 PCH_EXE_CXX = $(PCH_CXX)
 PCH_EXE_CC  = $(PCH_CC)
@@ -217,13 +211,13 @@ $(call append_simple,C_PREPARE_APP_VARS,$(newline)PCH:=)
 # for all application-level targets: add support for precompiled headers
 $(call define_prepend,DEFINE_C_APP_EVAL,$$(eval $$(foreach t,$(C_APP_TARGETS),$$(if $$($$t),$$(GCC_PCH_TEMPLATEt)))))
 
-endif # NO_PCH
+endif # !NO_PCH
 
 # auxiliary defines for EXE
 # $1 - $(call FORM_TRG,$t,$v)
 # $2 - $(call fixpath,$(MAP))
 # $t - EXE
-# $v - R
+# $v - R,P
 # note: last line must be empty
 define EXE_AUX_TEMPLATEv
 $1:RPATH := $$(RPATH)

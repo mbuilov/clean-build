@@ -12,6 +12,10 @@ ifeq (,$(filter-out undefined environment,$(origin PCH_TEMPLATE)))
 include $(CLEAN_BUILD_DIR)/impl/pch.mk
 endif
 
+# macro used by PCH_TEMPLATE from $(CLEAN_BUILD_DIR)/impl/pch.mk
+# not used for gcc
+PCH_TEMPLATEt:=
+
 ifndef TOCLEAN
 
 # define rule for building precompiled header
@@ -23,7 +27,7 @@ ifndef TOCLEAN
 # $5 - $4/$(basename $(notdir $2))_pch_c.h
 #   or $4/$(basename $(notdir $2))_pch_cxx.h
 # $6 - pch compiler type: CC or CXX
-# $v - R,P
+# $v - R,P,D
 # target-specific: PCH
 # note: last line must be empty
 define GCC_PCH_RULE_TEMPL
@@ -42,7 +46,8 @@ endif
 # $3 - $(filter $(CC_MASK),$(call fixpath,$(WITH_PCH)))
 # $4 - $(filter $(CXX_MASK),$(call fixpath,$(WITH_PCH)))
 # $5 - $(call FORM_OBJ_DIR,$1,$v)
-# $v - R,P
+# $6 - $(call FORM_TRG,$1,$v)
+# $v - R,P,D
 # note: may use target-specific variables: PCH, CC_WITH_PCH, CXX_WITH_PCH in generated code
 PCH_TEMPLATEv = $(if \
   $3,$(call GCC_PCH_RULE_TEMPL,$1,$2,$3,$5,$5/$(basename $(notdir $2))_pch_c.h,CC))$(if \
@@ -61,16 +66,16 @@ else # clean
 # $3 - $(filter $(CC_MASK),$(WITH_PCH))
 # $4 - $(filter $(CXX_MASK),$(WITH_PCH))
 # $5 - $(call FORM_OBJ_DIR,$1,$v)
-# $v - R,P
+# $v - R,P,D
 PCH_TEMPLATEv = $(if \
   $3,$(addprefix $5/$2_pch_c.h,.gch .d)) $(if \
   $4,$(addprefix $5/$2_pch_cxx.h,.gch .d))
 
-# return objects created while building with precompiled header to clean up
+# cleanup objects created while building with precompiled header
 # $t - EXE,LIB,DLL,KLIB
 GCC_PCH_TEMPLATEt = $(call TOCLEAN,$(call PCH_TEMPLATE,$t))
 
 endif # clean
 
 # protect variables from modifications in target makefiles
-$(call SET_GLOBAL,GCC_PCH_RULE_TEMPL=v PCH_TEMPLATEv=v GCC_PCH_TEMPLATEt=t)
+$(call SET_GLOBAL,PCH_TEMPLATEt GCC_PCH_RULE_TEMPL=v PCH_TEMPLATEv=v GCC_PCH_TEMPLATEt=t)
