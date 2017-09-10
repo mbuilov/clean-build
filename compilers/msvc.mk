@@ -4,10 +4,21 @@
 # Licensed under GPL version 2 or any later version, see COPYING
 #----------------------------------------------------------------------------------
 
+# msvc compiler toolchain (app-level), included by $(CLEAN_BUILD_DIR)/impl/_c.mk
+
 # reset additional variables
 # RES - resources to link to dll or exe
 # DEF - linker definitions file (used mostly to list exported symbols)
-$(call define_append,PREPARE_C_VARS,$(newline)RES:=$(newline)DEF:=)
+define C_PREPARE_MSVC_APP_VARS
+RES:=
+DEF:=
+endef
+
+# patch code executed at beginning of target makefile
+$(call define_append,C_PREPARE_APP_VARS,$(newline)$$(C_PREPARE_MSVC_APP_VARS))
+
+# optimization
+$(call try_make_simple,C_PREPARE_APP_VARS,C_PREPARE_MSVC_APP_VARS)
 
 # max number of sources to compile with /MP compiler option
 # - with too many sources it's possible to exceed maximum command string length
