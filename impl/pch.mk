@@ -48,13 +48,13 @@ endef
 # note: PCH_TEMPLATEv may use target-specific variables: PCH, CC_WITH_PCH, CXX_WITH_PCH in generated code
 PCH_TEMPLATE3 = $(PCH_VARS_TEMPL)$(PCH_TEMPLATEv)
 
-# call externally defined compiler-specific template PCH_TEMPLATEt
+# call externally defined compiler-specific template PCH_TEMPLATEgen
 #  with parameters:
 # $1 - EXE,LIB,DLL,KLIB
 # $2 - $(call fixpath,$(PCH))
 # $3 - $(filter $(CC_MASK),$(call fixpath,$(WITH_PCH)))
 # $4 - $(filter $(CXX_MASK),$(call fixpath,$(WITH_PCH)))
-PCH_TEMPLATE2 = $(PCH_TEMPLATEt)$(foreach v,$(GET_VARIANTS),$(call \
+PCH_TEMPLATE2 = $(PCH_TEMPLATEgen)$(foreach v,$(GET_VARIANTS),$(call \
   PCH_TEMPLATE3,$1,$2,$3,$4,$(call FORM_OBJ_DIR,$1,$v),$(call FORM_TRG,$1,$v)))
 
 # $1 - EXE,LIB,DLL,KLIB
@@ -71,7 +71,7 @@ PCH_TEMPLATE = $(if $(word 2,$(PCH) $(WITH_PCH)),$(call \
 
 else # clean
 
-# call externally defined compiler-specific template PCH_TEMPLATEt,
+# call externally defined compiler-specific template PCH_TEMPLATEgen,
 #  which must return objects to clean up,
 #  with parameters:
 # $1 - EXE,LIB,DLL,KLIB
@@ -81,7 +81,7 @@ else # clean
 # --- more parameters for PCH_TEMPLATEv:
 #  $5 - $(call FORM_OBJ_DIR,$1,$v)
 #  $v - variant - one of $(GET_VARIANTS)
-PCH_TEMPLATE1 = $(PCH_TEMPLATEt)$(foreach v,$(GET_VARIANTS),$(call PCH_TEMPLATEv,$1,$2,$3,$4,$(call FORM_OBJ_DIR,$1,$v)))
+PCH_TEMPLATE1 = $(PCH_TEMPLATEgen)$(foreach v,$(GET_VARIANTS),$(call PCH_TEMPLATEv,$1,$2,$3,$4,$(call FORM_OBJ_DIR,$1,$v)))
 
 # return objects created while building with precompiled header to clean up
 # $1 - EXE,LIB,DLL,KLIB

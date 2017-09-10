@@ -126,6 +126,9 @@ SONAME_OPTION = $(addprefix -h $(notdir $1).,$(firstword $(subst ., ,$(MODVER)))
 # note: use CXX compiler instead of ld to create shared libraries
 #  - for calling C++ constructors of static objects when loading the libraries,
 #  see https://docs.oracle.com/cd/E19205-01/819-5267/bkamq/index.html
+# note: use CXX compiler instead of ar to create C++ static library archives
+#  - for adding necessary C++ templates to the archives,
+#  see https://docs.oracle.com/cd/E19205-01/819-5267/bkamp/index.html
 EXE_LD = $(call SUP,$(TMD)EXE,$1)$($(TMD)$(COMPILER)) $(CMN_LIBS) $(EXE_LDFLAGS) $(LOPTS) $(LDFLAGS)
 DLL_LD = $(call SUP,$(TMD)DLL,$1)$($(TMD)$(COMPILER)) $(VERSION_SCRIPT) $(SONAME_OPTION) $(CMN_LIBS) $(DLL_LDFLAGS) $(LOPTS) $(LDFLAGS)
 LIB_LD = $(call SUP,$(TMD)LIB,$1)$(if $(COMPILER:CXX=),$($(TMD)AR) $(ARFLAGS) $1 $2,$($(TMD)$(COMPILER)) $(CXX_ARFLAGS) -o $1 $2)
@@ -282,110 +285,14 @@ $(call define_prepend,DEFINE_C_APP_EVAL,$$(eval $$(foreach t,$(C_APP_TARGETS),$$
 
 endif # !NO_PCH
 
-
-
-
-# $1 - compiler with options
-# $2 - target object file
-# $3 - source
-# $4 - $(basename $2).d
-# $5 - prefixes of system includes to filter out
-
-1) create fake source gg/1.c:
-  #include "../ff/../1.h"
-  #pragma hdrstop
-2) compile it 
-  cc -xpch=collect:ff/1_c -c -o ff/1.o gg/1.c
-3) generate source gg/2.tmp.c:
-  #include "../ff/../1.h"
-  #pragma hdrstop
-  #include "../2.c"
-4) compile it
-  cc -xpch=use:ff/1_c -c -o ff/2.o gg/2.tmp.c
-
-
-# auxiliary defines for EXE
-# $1 - $(call FORM_TRG,$t,$v)
-# $2 - $(call fixpath,$(MAP))
-# $t - EXE
-# $v - R
-define EXE_AUX_TEMPLATEv
-$1: RPATH := $(subst $$,$$$$,$(RPATH))
-$1: MAP := $2
-$1: $2
-endef
-
-# auxiliary defines for DLL
-# $1 - $(call FORM_TRG,$t,$v)
-# $2 - $(call fixpath,$(MAP))
-# $t - DLL
-# $v - R
-define DLL_AUX_TEMPLATEv
-$1: MODVER := $(MODVER)
-$1: RPATH := $(subst $$,$$$$,$(RPATH))
-$1: MAP := $2
-$1: $2
-endef
-
-# auxiliary defines for EXE or DLL
-# $t - EXE or DLL
-MOD_AUX_TEMPLATE1 = $(foreach v,$(call GET_VARIANTS,$t),$(call $t_AUX_TEMPLATEv,$(call FORM_TRG,$t,$v),$2))
-MOD_AUX_TEMPLATE  = $(call MOD_AUX_TEMPLATE1,$(call fixpath,$(MAP)))
-
-# this code is evaluated from $(DEFINE_TARGETS)
-define OS_DEFINE_TARGETS
-$(foreach t,EXE DLL,$(if $($t),$(MOD_AUX_TEMPLATE)))
-endef
-
-ifdef DRIVERS_SUPPORT
-
-# how to build driver, used by $(C_RULES)
-# $1 - target file: $(call FORM_TRG,$t,$v)
-# $2 - sources:     $(TRG_SRC)
-# $3 - sdeps:       $(TRG_SDEPS)
-# $4 - objdir:      $(call FORM_OBJ_DIR,$t,$v)
-# $t - DRV
-# $v - non-empty variant: R
-define DRV_TEMPLATE
-NEEDED_DIRS += $4
-$(STD_TARGET_VARS)
-$1: $(call OBJ_RULES,CC,$(filter %.c,$2),$3,$4)
-$1: $(call OBJ_RULES,CXX,$(filter %.cpp,$2),$3,$4)
-$1: $(call OBJ_RULES,ASM,$(filter %.asm,$2),$3,$4)
-$1: COMPILER   := $(TRG_COMPILER)
-$1: LIB_DIR    := $(LIB_DIR)
-$1: KLIBS      := $(KLIBS)
-$1: INCLUDE    := $(TRG_INCLUDE)
-$1: DEFINES    := $(TRG_DEFINES)
-$1: CFLAGS     := $(TRG_CFLAGS)
-$1: CXXFLAGS   := $(TRG_CXXFLAGS)
-$1: ASMFLAGS   := $(TRG_ASMFLAGS)
-$1: LDFLAGS    := $(TRG_LDFLAGS)
-$1: SYSLIBS    := $(SYSLIBS)
-$1: SYSLIBPATH := $(SYSLIBPATH)
-$1: $(addprefix $(LIB_DIR)/$(KLIB_PREFIX),$(KLIBS:=$(KLIB_SUFFIX)))
-	$$(call $t_$v_LD,$$@,$$(filter %$(OBJ_SUFFIX),$$^))
-endef
-
-endif # DRIVERS_SUPPORT
+# for DLL:         define target-specific variable MODVER
+# for DLL and EXE: define target-specific variables RPATH and MAP
+$(call define_prepend,DEFINE_C_APP_EVAL,$$(eval $$(UNIX_MOD_AUX_APP)))
 
 # protect variables from modifications in target makefiles
-$(call CLEAN_BUILD_PROTECT_VARS,CC CXX TCC TCXX AR TAR KCC KLD YASMC FLEXC BISONC YASM_FLAGS \
-  KLIB_NAME_PREFIX DEF_SHARED_FLAGS DEF_SHARED_LIBS DEF_EXE_FLAGS DEF_SO_FLAGS DEF_KLD_FLAGS DEF_AR_FLAGS \
-  DLL_EXPORTS_DEFINE DLL_IMPORTS_DEFINE RPATH_OPTION DEF_C_LIBS DEF_CXX_LIBS CMN_LIBS VERSION_SCRIPT_OPTION SONAME_OPTION \
-  EXE_R_LD DLL_R_LD LIB_R_LD LIB_D_LD KLIB_R_LD DRV_R_LD \
-  UDEPS_INCLUDE_FILTER SED_DEPS_SCRIPT WRAP_CC_COMPILER \
-  DEF_CXXFLAGS DEF_CFLAGS OS_APP_FLAGS APP_FLAGS OS_APP_DEFINES APP_DEFINES CC_PARAMS CMN_CXX CMN_CC \
-  PIC_OPTION EXE_R_CXX EXE_R_CC LIB_R_CXX LIB_R_CC DLL_R_CXX DLL_R_CC LIB_D_CXX LIB_D_CC \
-  KDEPS_INCLUDE_FILTER OS_KRN_FLAGS KRN_FLAGS OS_KRN_DEFINES KRN_DEFINES \
-  KCC_PARAMS KLIB_R_CC DRV_R_CC KLIB_R_ASM DRV_R_ASM BISON FLEX BISON_COLOR FLEX_COLOR \
-  EXE_AUX_TEMPLATEv=t;v DLL_AUX_TEMPLATEv=t;v MOD_AUX_TEMPLATE1=t MOD_AUX_TEMPLATE=t DRV_TEMPLATE=DRV;LIB_DIR;KLIBS;SYSLIBS;SYSLIBPATH;v)
-
-# static library archiver
-# target-specific: COMPILER
-# note: use CXX compiler instead of ar to create C++ static library archives
-#  - for adding necessary C++ templates to the archives,
-#  see https://docs.oracle.com/cd/E19205-01/819-5267/bkamp/index.html
-AR  = $(if $(COMPILER:CXX=),/usr/ccs/bin$(if $(TCPU:x86_64=),,/amd64)/ar,$(CXX))
-TAR = $(if $(COMPILER:CXX=),/usr/ccs/bin$(if $(TCPU:x86_64=),,/amd64)/ar,$(TCXX))
-
+$(call CLEAN_BUILD_PROTECT_VARS,CC CXX AR TCC TCXX TAR PIC_COPTION PIE_LOPTION \
+  LDFLAGS CMN_LDFLAGS EXE_LDFLAGS DLL_LDFLAGS ARFLAGS CXX_ARFLAGS DLL_EXPORTS_DEFINE DLL_IMPORTS_DEFINE RPATH_OPTION \
+  CMN_LIBS VERSION_SCRIPT SONAME_OPTION EXE_LD DLL_LD LIB_LD UDEPS_INCLUDE_FILTER SED_DEPS_SCRIPT WRAP_CC \
+  CFLAGS CXXFLAGS CMN_CFLAGS DEF_CFLAGS DEF_CXXFLAGS APP_DEFINES CC_PARAMS CMN_CXX CMN_CC \
+  EXE_CXX EXE_CC DLL_CXX DLL_CC LIB_CXX LIB_CC CMN_NCXX CMN_NCC CMN_PCXX CMN_PCC PCH_CXX PCH_CC \
+  PCH_EXE_CXX PCH_EXE_CC PCH_DLL_CXX PCH_DLL_CC PCH_LIB_CXX PCH_LIB_CC)
