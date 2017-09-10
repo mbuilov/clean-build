@@ -14,7 +14,7 @@ endif
 
 # macro used by PCH_TEMPLATE from $(CLEAN_BUILD_DIR)/impl/pch.mk
 # not used for gcc
-PCH_TEMPLATEt:=
+PCH_TEMPLATEgen:=
 
 ifndef TOCLEAN
 
@@ -40,7 +40,7 @@ ifndef NO_DEPS
 $(call define_prepend,GCC_PCH_RULE_TEMPL,-include $$5.d$(newline))
 endif
 
-# define rule for building C/C++ precompiled header as assumed by PCH_TEMPLATE macro
+# define rule for building C/C++ precompiled header, as assumed by PCH_TEMPLATE macro
 # $1 - EXE,LIB,DLL,KLIB
 # $2 - $(call fixpath,$(PCH))
 # $3 - $(filter $(CC_MASK),$(call fixpath,$(WITH_PCH)))
@@ -60,7 +60,7 @@ GCC_PCH_TEMPLATEt = $(call PCH_TEMPLATE,$t)
 
 else # clean
 
-# return objects created while building with precompiled header to clean up as assumed by PCH_TEMPLATE macro
+# return objects created while building with precompiled header to clean up, as assumed by PCH_TEMPLATE macro
 # $1 - EXE,LIB,DLL,KLIB
 # $2 - $(basename $(notdir $(PCH)))
 # $3 - $(filter $(CC_MASK),$(WITH_PCH))
@@ -78,4 +78,4 @@ GCC_PCH_TEMPLATEt = $(call TOCLEAN,$(call PCH_TEMPLATE,$t))
 endif # clean
 
 # protect variables from modifications in target makefiles
-$(call SET_GLOBAL,PCH_TEMPLATEt GCC_PCH_RULE_TEMPL=v PCH_TEMPLATEv=v GCC_PCH_TEMPLATEt=t)
+$(call SET_GLOBAL,PCH_TEMPLATEgen GCC_PCH_RULE_TEMPL=v PCH_TEMPLATEv=v GCC_PCH_TEMPLATEt=t)
