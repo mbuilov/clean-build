@@ -213,41 +213,9 @@ $(call define_prepend,DEFINE_C_APP_EVAL,$$(eval $$(foreach t,$(C_APP_TARGETS),$$
 
 endif # !NO_PCH
 
-# auxiliary defines for EXE
-# $1 - $(call FORM_TRG,$t,$v)
-# $2 - $(call fixpath,$(MAP))
-# $t - EXE
-# $v - R,P
-# note: last line must be empty
-define EXE_AUX_TEMPLATEv
-$1:RPATH := $$(RPATH)
-$1:MAP := $2
-$1:$2
-
-endef
-
-# auxiliary defines for DLL
-# $1 - $(call FORM_TRG,$t,$v)
-# $2 - $(call fixpath,$(MAP))
-# $t - DLL
-# $v - R
-# note: last line must be empty
-define DLL_AUX_TEMPLATEv
-$1:MODVER := $(MODVER)
-$1:RPATH := $$(RPATH)
-$1:MAP := $2
-$1:$2
-
-endef
-
-# auxiliary defines for EXE or DLL
-# $1 - $(call fixpath,$(MAP))
-# $t - EXE or DLL
-MOD_AUX_APPt = $(foreach v,$(call GET_VARIANTS,$t),$(call $t_AUX_TEMPLATEv,$(call FORM_TRG,$t,$v),$1))
-
 # for DLL:         define target-specific variable MODVER
 # for DLL and EXE: define target-specific variables RPATH and MAP
-$(call define_prepend,DEFINE_C_APP_EVAL,$$(eval $$(foreach t,EXE DLL,$$(if $$($$t),$$(call MOD_AUX_APPt,$$(call fixpath,$$(MAP)))))))
+$(call define_prepend,DEFINE_C_APP_EVAL,$$(eval $$(UNIX_MOD_AUX_APP)))
 
 # protect variables from modifications in target makefiles
 $(call SET_GLOBAL,CC CXX AR TCC TCXX TAR WLPREFIX \
@@ -256,5 +224,4 @@ $(call SET_GLOBAL,CC CXX AR TCC TCXX TAR WLPREFIX \
   EXE_LD DLL_LD LIB_LD AUTO_DEPS_FLAGS CFLAGS CXXFLAGS CMN_CFLAGS DEF_CFLAGS DEF_CXXFLAGS APP_DEFINES \
   CC_PARAMS CMN_CXX CMN_CC EXE_CXX EXE_CC DLL_CXX DLL_CC LIB_CXX LIB_CC \
   PCH_CXX PCH_CC PCHCC_COLOR PCHCXX_COLOR TPCHCC_COLOR TPCHCXX_COLOR \
-  PCH_EXE_CXX PCH_EXE_CC PCH_DLL_CXX PCH_DLL_CC PCH_LIB_CXX PCH_LIB_CC \
-  EXE_AUX_TEMPLATEv=t;v DLL_AUX_TEMPLATEv=t;v MOD_AUX_APPt=t)
+  PCH_EXE_CXX PCH_EXE_CC PCH_DLL_CXX PCH_DLL_CC PCH_LIB_CXX PCH_LIB_CC)
