@@ -276,7 +276,7 @@ TOOL_SUFFIX:=
 # note: $(CLEAN_BUILD_DIR)/utils/cmd.mk defines own PATHSEP
 PATHSEP := :
 
-# name of environment variable to modify in $(RUN_WITH_DLL_PATH)
+# name of environment variable to modify in $(RUN_TOOL)
 # note: $(DLL_PATH_VAR) should be PATH (for WINDOWS) or LD_LIBRARY_PATH (for UNIX-like OS)
 # note: $(CLEAN_BUILD_DIR)/utils/cmd.mk defines own DLL_PATH_VAR
 DLL_PATH_VAR := LD_LIBRARY_PATH
@@ -801,11 +801,29 @@ FIX_SDEPS = $(subst | ,|,$(call fixpath,$(subst |,| ,$1)))
 # $3 - environment variables to set to run executable, in form VAR=value,
 #  where 'VAR' and 'value' are expanded before setting environment variable
 # note: this function should be used for rule body, where automatic variable $@ is defined
-RUN_WITH_DLL_PATH = $(if $2$3,$(if $2,$(eval \
+RUN_TOOL = $(if $2$3,$(if $2,$(eval \
   $$@:export $(DLL_PATH_VAR):=$(addsuffix $(PATHSEP),$($(DLL_PATH_VAR)))$$2))$(foreach \
   v,$3,$(foreach g,$(firstword $(subst =, ,$v)),$(eval \
   $$@:export $g:=$(patsubst $g=%,%,$v))))$(if $(VERBOSE),$(show_with_dll_path)@))$1$(if \
   $2$3,$(if $(VERBOSE),$(show_dll_path_end)))
+
+# run executable in modified environment
+# $1 - command to run (with parameters)
+# $2 - additional path(s) separated by $(PATHSEP) to append to $(DLL_PATH_VAR)
+# $3 - environment variables to set to run executable, in forms:
+#  VAR         - just export already defined (likely target-specific) variable VAR as target-specific one
+#  VAR=VALUE   - define and export as target-specific new variable VAR with value VALUE
+#  VAR<FILE    - define and export as target-specific new variable VAR with contents of file FILE (must contain only one line)
+#  VAR|COMMAND - define and export as target-specific new variable VAR with contents of output of command COMMAND (must output one line)
+# note: all names and values are doubly-expanded in rule body, so may escape values like $$(VAR)=$$(value)
+# note: this function should be used for rule body, where automatic variable $@ is defined
+# note: WINXX/tools.mk defines own show_tool_vars_end
+RUN_TOOL = $(if $2$3,$(if $2,$(eval \
+  $$@:export $(DLL_PATH_VAR):=$(DLL_PATH_VAR)$$(if $$($(DLL_PATH_VAR)),$(PATHSEP))$2))$(foreach v=,$3,$(if $(findstring \
+  =,$v),$(foreach g=,$(firstword $(subst =, ,$(v=))),$(eval $@:export $g:=$(patsubst $g=%,%,$v))),$(if $(findstring \
+  <,$v),$(foreach g,$(firstword $(subst <, ,$v)),$(eval $@:export $g:=$$(shell $$(call CAT,$(patsubst $g<%,%,$v))))),$(if $(findstring \
+  |,$v),$(foreach g,$(firstword $(subst |, ,$v)),$(eval $@:export $g:=$$(shell $$(patsubst $g|%,%,$v)))),$(eval \
+  $@:export $v:=$$($v))))))$(if $(VERBOSE),$(show_tool_vars)@))$1$(if $2$3,$(if $(VERBOSE),$(show_tool_vars_end)))
 
 # current value of $(TOOL_MODE)
 # reset: $(SET_DEFAULT_DIRS) has already been evaluated
@@ -1006,7 +1024,7 @@ $(call SET_GLOBAL,PROJECT_VARS_NAMES PASS_ENV_VARS \
   GET_TARGET_NAME SUPPORTED_VARIANTS FILTER_VARIANTS_LIST GET_VARIANTS VARIANT_SUFFIX FORM_TRG ALL_TARGETS \
   FORM_OBJ_DIR ADD_GENERATED CHECK_GENERATED ADD_GENERATED_RET NON_PARALLEL_EXECUTE_RULE NON_PARALLEL_EXECUTE \
   MULTI_TARGET_SEQ MULTI_TARGET_RULE=MULTI_TARGET_NUM=MULTI_TARGET_NUM MULTI_TARGET CHECK_MULTI_RULE \
-  FORM_SDEPS EXTRACT_SDEPS FIX_SDEPS RUN_WITH_DLL_PATH TMD TOOL_MODE \
+  FORM_SDEPS EXTRACT_SDEPS FIX_SDEPS RUN_TOOL TMD TOOL_MODE \
   DEF_HEAD_CODE_EVAL DEF_TAIL_CODE_EVAL MAKE_CONTINUE_EVAL_NAME DEFINE_TARGETS_EVAL_NAME \
   DEF_HEAD_CODE DEF_TAIL_CODE DEFINE_TARGETS SAVE_VARS RESTORE_VARS MAKE_CONTINUE CONF_COLOR PRODUCT_VER)
 
