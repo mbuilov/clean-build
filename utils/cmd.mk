@@ -154,8 +154,8 @@ CREATE_DIR = mkdir $(ospath)
 # note: paths to files may contain spaces
 COMPARE_FILES = FC /T $(call ospath,$1 $2)
 
-# escape program argument to pass it via shell: "1 ^ 2" -> "\"1 ^^ 2\""
-SHELL_ESCAPE = "$(subst %,%%,$(subst <,^<,$(subst >,^>,$(subst |,^|,$(subst &,^&,$(subst ",\",$(subst ^,^^,$1)))))))"
+# escape program argument to pass it via shell: "1 ^ 2" -> """1 ^^ 2"""
+SHELL_ESCAPE = "$(subst %,%%,$(subst <,^<,$(subst >,^>,$(subst |,^|,$(subst &,^&,$(subst ","",$(subst ^,^^,$1)))))))"
 
 # stream-editor executable
 # note: SED value may be overridden either in command line or in project configuration makefile, like:
@@ -235,7 +235,7 @@ TOOL_SUFFIX := .exe
 # note: override PATHSEP from $(CLEAN_BUILD_DIR)/defs.mk
 PATHSEP := ;
 
-# name of environment variable to modify in $(RUN_WITH_DLL_PATH)
+# name of environment variable to modify in $(RUN_TOOL)
 # note: override DLL_PATH_VAR from $(CLEAN_BUILD_DIR)/defs.mk
 DLL_PATH_VAR := PATH
 
