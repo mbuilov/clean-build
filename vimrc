@@ -1,5 +1,5 @@
 " add this to ~/.vimrc
-hi makeTrailSpaces ctermbg=blue
+hi makeTrailSpaces ctermbg=magenta
 hi makeDefine ctermfg=lightgreen
 hi makeExport ctermfg=blue cterm=bold
 hi makeInclude ctermfg=magenta cterm=bold
