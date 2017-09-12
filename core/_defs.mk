@@ -278,23 +278,15 @@ PATHSEP := :
 
 # name of environment variable to modify in $(RUN_TOOL)
 # note: $(DLL_PATH_VAR) should be PATH (for WINDOWS) or LD_LIBRARY_PATH (for UNIX-like OS)
-# note: $(CLEAN_BUILD_DIR)/utils/cmd.mk defines own DLL_PATH_VAR
+# note: $(CLEAN_BUILD_DIR)/utils/cmd.mk defines own DLL_PATH_VAR value (PATH)
 DLL_PATH_VAR := LD_LIBRARY_PATH
 
 # show environment variables set for running a tool in modified environment
 # $1 - tool to execute (with parameters)
-# $2 - list of environment variables to set to run executable, in forms:
-#  VAR         - just export already defined variable VAR as target-specific one
-#  VAR=VALUE   - define and export as target-specific variable VAR with value VALUE
-#  VAR<FILE    - define and export as target-specific variable VAR with contents of file FILE (must contain only one line)
-#  VAR|COMMAND - define and export as target-specific variable VAR with contents of output of command COMMAND (must output one line)
-# note: names of variables and their values are doubly-expanded in rule body, so may escape them like $$(VAR)=$$(value)
-# note: this function should be used for rule body, where automatic variable $@ is defined
-# note: WINXX/tools.mk defines own show_tool_vars/show_tool_vars_end
-show_tool_vars = $(info $(foreach v=,$2,$(if $(findstring \
-  =,$(v=)),$(foreach g=,$(firstword $(subst =, ,$(v=))),$(g=)=$(call SHELL_ESCAPE,$($(g=)))),$(if $(findstring \
-  <,$(v=)),$(foreach g=,$(firstword $(subst <, ,$(v=))),$(g=)=$(call SHELL_ESCAPE,$($(g=)))),$(if $(findstring \
-  |,$(v=)),$(foreach g=,$(firstword $(subst |, ,$(v=))),$(g=)=$(call SHELL_ESCAPE,$($(g=)))),$(v=)=$(call SHELL_ESCAPE,$($(v=))))))) $1)
+# $2 - additional path(s) separated by $(PATHSEP) to append to $(DLL_PATH_VAR)
+# $3 - list of names of variables to export for running an executable
+# note: $(CLEAN_BUILD_DIR)/utils/cmd.mk defines own show_tool_vars/show_tool_vars_end
+show_tool_vars = $(info $(foreach v,$(if $2,$(DLL_PATH_VAR)) $3,$v=$(call SHELL_ESCAPE,$($v))) $1)
 
 # note: $(CLEAN_BUILD_DIR)/utils/cmd.mk defines own show_tool_vars_end
 show_tool_vars_end:=
@@ -804,28 +796,13 @@ FIX_SDEPS = $(subst | ,|,$(call fixpath,$(subst |,| ,$1)))
 
 # run executable in modified environment
 # $1 - tool to execute (with parameters)
-# $2 - list of environment variables to set to run executable, in forms:
-#  VAR         - just export already defined variable VAR as target-specific one
-#  VAR=VALUE   - define and export as target-specific variable VAR with value VALUE
-#  VAR<FILE    - define and export as target-specific variable VAR with contents of file FILE (must contain only one line)
-#  VAR|COMMAND - define and export as target-specific variable VAR with contents of output of command COMMAND (must output one line)
-# note: names of variables and their values are doubly-expanded in rule body, so may escape them like $$(VAR)=$$(value)
-# note: this function should be used for rule body, where automatic variable $@ is defined
-# note: WINXX/tools.mk defines own show_tool_vars/show_tool_vars_end
-RUN_TOOL = $(if $2,$(foreach v=,$2,$(if $(findstring \
-   =,$(v=)),$(foreach g=,$(firstword $(subst =, ,$(v=))),$(eval \
-  $$@:export $(g=):=$(patsubst $(g=)=%,%,$(v=)))),$(if $(findstring \
-   <,$(v=)),$(foreach g=,$(firstword $(subst <, ,$(v=))),$(eval \
-  $$@:export $(g=):=$$(shell $$(call CAT,$(patsubst $(g=)<%,%,$(v=)))))),$(if $(findstring \
-   |,$(v=)),$(foreach g=,$(firstword $(subst |, ,$(v=))),$(eval \
-  $$@:export $(g=):=$$(shell $$(patsubst $(g=)|%,%,$(v=))))),$(eval \
-  $$@:export $(v=):=$$($(v=)))))))$(if $(VERBOSE),$(show_tool_vars)@))$1$(if $2,$(if $(VERBOSE),$(show_tool_vars_end)))
-
-# generate dll-search path variable definition that may be passed to RUN_TOOL
-# $1 - additional path(s) separated by $(PATHSEP) to append to $(DLL_PATH_VAR)
-# example:
-#  $(call RUN_TOOL,my_tool,$(call APPEND_DLL_PATH,$(LIB_DIR)))
-APPEND_DLL_PATH = $(DLL_PATH_VAR)=$$(if $$($(DLL_PATH_VAR)),$(DLL_PATH_VAR)$(PATHSEP))$1
+# $2 - additional path(s) separated by $(PATHSEP) to append to $(DLL_PATH_VAR)
+# $3 - list of names of variables to export for running an executable
+# note: this function should be used in rule body, where automatic variable $@ is defined
+# note: $(CLEAN_BUILD_DIR)/utils/cmd.mk defines own show_tool_vars/show_tool_vars_end
+RUN_TOOL = $(if $2$3,$(if $2,$(eval \
+  $$@:export $$(DLL_PATH_VAR):=$$($$(DLL_PATH_VAR))$$(if $$($$(DLL_PATH_VAR)),$$(if $2,$$(PATHSEP)))$2))$(foreach v,$3,$(eval \
+  $$@:export $$v:=$$($$v)))$(if $(VERBOSE),$(show_tool_vars)@))$1$(if $2$3,$(if $(VERBOSE),$(show_tool_vars_end)))
 
 # current value of $(TOOL_MODE)
 # reset: $(SET_DEFAULT_DIRS) has already been evaluated
@@ -1026,7 +1003,7 @@ $(call SET_GLOBAL,PROJECT_VARS_NAMES PASS_ENV_VARS \
   GET_TARGET_NAME SUPPORTED_VARIANTS FILTER_VARIANTS_LIST GET_VARIANTS VARIANT_SUFFIX FORM_TRG ALL_TARGETS \
   FORM_OBJ_DIR ADD_GENERATED CHECK_GENERATED ADD_GENERATED_RET NON_PARALLEL_EXECUTE_RULE NON_PARALLEL_EXECUTE \
   MULTI_TARGET_SEQ MULTI_TARGET_RULE=MULTI_TARGET_NUM=MULTI_TARGET_NUM MULTI_TARGET CHECK_MULTI_RULE \
-  FORM_SDEPS EXTRACT_SDEPS FIX_SDEPS RUN_TOOL APPEND_DLL_PATH TMD TOOL_MODE \
+  FORM_SDEPS EXTRACT_SDEPS FIX_SDEPS RUN_TOOL TMD TOOL_MODE \
   DEF_HEAD_CODE_EVAL DEF_TAIL_CODE_EVAL MAKE_CONTINUE_EVAL_NAME DEFINE_TARGETS_EVAL_NAME \
   DEF_HEAD_CODE DEF_TAIL_CODE DEFINE_TARGETS SAVE_VARS RESTORE_VARS MAKE_CONTINUE CONF_COLOR PRODUCT_VER)
 
