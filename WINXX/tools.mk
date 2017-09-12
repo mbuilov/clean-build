@@ -120,13 +120,16 @@ MKDIR = mkdir $(ospath)
 # return an error if they are differ
 CMP = FC /T $(call ospath,$1 $2)
 
+# escape program argument to pass it via shell: "1 ^ 2" -> """1 ^^ 2"""
+SHELL_ESCAPE = "$(subst %,%%,$(subst <,^<,$(subst >,^>,$(subst |,^|,$(subst &,^&,$(subst ","",$(subst ^,^^,$1)))))))"
+
 # stream-editor executable
 # note: SED value may be overridden either in command line or in project configuration makefile, like:
 # SED := C:\tools\gnused.exe
 SED := sed.exe
 
 # escape command line argument to pass it to $(SED)
-SED_EXPR = "$(subst %,%%,$1)"
+SED_EXPR = $(SHELL_ESCAPE)
 
 # print contents of given file (to stdout, for redirecting it to output file)
 CAT = type $(ospath)
@@ -195,16 +198,16 @@ PATHSEP := ;
 DLL_PATH_VAR := PATH
 
 # if %PATH% environment variable was modified for calling a tool, print new %PATH% value in generated batch
-# $1 - command to run (with parameters)
-# $2 - additional paths to append to $(DLL_PATH_VAR)
-# $3 - environment variables to set to run executable, in form VAR=value
-# note: override show_with_dll_path from $(CLEAN_BUILD_DIR)/defs.mk
-show_with_dll_path = $(info setlocal$(if $2,$(newline)set "PATH=$(PATH)")$(foreach \
-  v,$3,$(foreach n,$(firstword $(subst =, ,$v)),$(newline)set "$n=$($n)"))$(newline)$1)
+# $1 - tool to execute (with parameters)
+# $2 - additional path(s) separated by $(PATHSEP) to append to $(DLL_PATH_VAR)
+# $3 - list of names of variables to set in environment (export) for running an executable
+# note: override show_tool_vars from $(CLEAN_BUILD_DIR)/defs.mk
+show_tool_vars = $(info setlocal$(foreach \
+  v,$(if $2,PATH) $3,$(newline)$(patsubst "%,set "$v=%,$(call SHELL_ESCAPE,$($v))))$(newline)$1)
 
 # show after executing a command
-# note: override show_dll_path_end from $(CLEAN_BUILD_DIR)/defs.mk
-show_dll_path_end = $(newline)@echo endlocal
+# note: override show_tool_vars_end from $(CLEAN_BUILD_DIR)/defs.mk
+show_tool_vars_end = $(newline)@echo endlocal
 
 # there is no support for embedding dll search path into executables or dlls
 NO_RPATH := 1
@@ -228,5 +231,5 @@ FILTER_OUTPUT = (($1 2>&1 && echo OK>&2)$2)3>&2 2>&1 1>&3|findstr /BC:OK>NUL
 
 # protect variables from modifications in target makefiles
 $(call CLEAN_BUILD_PROTECT_VARS,WIN_EXPORTED $(sort TMP PATHEXT SYSTEMROOT COMSPEC $(WIN_EXPORTED)) \
-  PATH DEL_ARGS_LIMIT nonrelpath1 DEL DEL_DIR RM1 RM MKDIR CMP SED SED_EXPR \
+  PATH DEL_ARGS_LIMIT nonrelpath1 DEL DEL_DIR RM1 RM MKDIR CMP SHELL_ESCAPE SED SED_EXPR \
   CAT ECHO_LINE ECHO_LINES ECHO WRITE NUL SUPPRESS_CP_OUTPUT CP TOUCH EXECIN DEL_ON_FAIL NO_RPATH FILTER_OUTPUT)
