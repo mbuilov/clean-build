@@ -284,7 +284,7 @@ DLL_PATH_VAR := LD_LIBRARY_PATH
 # show environment variables set for running a tool in modified environment
 # $1 - tool to execute (with parameters)
 # $2 - additional path(s) separated by $(PATHSEP) to append to $(DLL_PATH_VAR)
-# $3 - list of names of variables to export for running an executable
+# $3 - list of names of variables to set in environment (export) for running an executable
 # note: $(CLEAN_BUILD_DIR)/utils/cmd.mk defines own show_tool_vars/show_tool_vars_end
 show_tool_vars = $(info $(foreach v,$(if $2,$(DLL_PATH_VAR)) $3,$v=$(call SHELL_ESCAPE,$($v))) $1)
 
@@ -511,6 +511,15 @@ endif
 # default goal 'all' - depends only on the root makefile
 all: $(TARGET_MAKEFILE)-
 
+# add directories $1 to list of auto-created ones
+# note: these directories are will be auto-deleted while cleaning up
+ifndef MCHECK
+NEED_GEN_DIRS = $(eval NEEDED_DIRS+=$1)
+else
+# remember new value of NEEDED_DIRS, without tracing calls to it because it is incremented
+NEED_GEN_DIRS = $(eval NEEDED_DIRS+=$1$(newline)$(call SET_GLOBAL1,NEEDED_DIRS,0))
+endif
+
 # register targets as main ones built by current makefile, add standard target-specific variables
 # $1     - target file(s) to build (absolute paths)
 # $2     - directories of target file(s) (absolute paths)
@@ -563,8 +572,9 @@ endif
 
 else # clean
 
-# just cleanup target file(s) $1 (absolute paths)
+# just cleanup target files or directories $1 (absolute paths)
 $(eval STD_TARGET_VARS = $(value TOCLEAN))
+$(eval NEED_GEN_DIRS = $(value TOCLEAN))
 
 # do nothing if cleaning up
 CREATE_MAKEFILE_ALIAS:=
@@ -619,29 +629,39 @@ GET_VARIANTS = $(call FILTER_VARIANTS_LIST,$1,$(wordlist 2,999999,$($1)),$2)
 # $2 - target variant: R,P,D,S... (one of variants supported by selected toolchain - result of $(GET_VARIANTS), may be empty)
 # note: no suffix if building R (regular) variant or variant is not specified (then assume R variant)
 # example:
-#  LIB_VARIANT_SUFFIX = _$2
-#  where: argument $2 - non-empty, not R
-VARIANT_SUFFIX = $(if $(filter-out R,$2),$($1_VARIANT_SUFFIX))
+#  LIB_VARIANT_SUFFIX = _$1
+#  where: argument $1 - non-empty, not R
+VARIANT_SUFFIX = $(if $(filter-out R,$2),$(call $1_VARIANT_SUFFIX,$2))
 
 # get absolute path to target file - call appropriate .._FORM_TRG macro
 # $1 - EXE,LIB,...
 # $2 - target variant: R,P,D,S... (one of variants supported by selected toolchain - result of $(GET_VARIANTS), may be empty)
 # example:
-#  EXE_FORM_TRG = $(GET_TARGET_NAME:%=$(BIN_DIR)/%$(VARIANT_SUFFIX)$(EXE_SUFFIX))
-#  LIB_FORM_TRG = $(GET_TARGET_NAME:%=$(LIB_DIR)/$(LIB_PREFIX)%$(VARIANT_SUFFIX)$(LIB_SUFFIX))
+#  $1 - target name, e.g. my_exe, may be empty
+#  $2 - target variant: R,P,D,S... (one of variants supported by selected toolchain - result of $(GET_VARIANTS), may be empty)
+#  EXE_FORM_TRG = $(1:%=$(BIN_DIR)/%$(call VARIANT_SUFFIX,EXE,$2)$(EXE_SUFFIX))
+#  LIB_FORM_TRG = $(1:%=$(LIB_DIR)/$(LIB_PREFIX)%$(call VARIANT_SUFFIX,LIB,$2)$(LIB_SUFFIX))
 #  ...
-#  note: use $(patsubst...) to return empty value if $($1) is empty
-FORM_TRG = $($1_FORM_TRG)
+#  note: use $(patsubst...) to return empty value if $1 is empty
+FORM_TRG = $(call $1_FORM_TRG,$(GET_TARGET_NAME),$2)
 
-# get filenames of all variants of the target
+# get filenames of all built variants of the target
 # $1 - EXE,LIB,DLL,...
+# note: use $(call GET_VARIANTS,$1) to not pass possibly defined argument $2 to GET_VARIANTS macro
 ALL_TARGETS = $(foreach v,$(call GET_VARIANTS,$1),$(call FORM_TRG,$1,$v))
 
 # form name of target objects directory
-# $1 - target to build (EXE,LIB,DLL,...)
-# $2 - target variant (may be empty for regular variant R)
+# $1 - EXE,LIB,...
+# $2 - target variant: R,P,D,S... (one of variants supported by selected toolchain - result of $(GET_VARIANTS), may be empty)
 # add target-specific suffix (_EXE,_LIB,_DLL,...) to distinguish objects for the targets with equal names
 FORM_OBJ_DIR = $(OBJ_DIR)/$(GET_TARGET_NAME)$(if $(filter-out R,$2),_$2)_$1
+
+# construct full path to the target
+# $1 - target type: EXE,LIB,...
+# $2 - target name, e.g. my_exe
+# $3 - target variant, e.g. S
+# note: unsupported variant $3 will be substituted with variant R (regular)
+MAKE_TRG_PATH = $(call $1_FORM_TRG,$2,$(call FILTER_VARIANTS_LIST,$1,$3))
 
 # add generated files $1 to build sequence
 # note: files must be generated in $(GEN_DIR),$(BIN_DIR),$(OBJ_DIR) or $(LIB_DIR)
@@ -797,12 +817,12 @@ FIX_SDEPS = $(subst | ,|,$(call fixpath,$(subst |,| ,$1)))
 # run executable in modified environment
 # $1 - tool to execute (with parameters)
 # $2 - additional path(s) separated by $(PATHSEP) to append to $(DLL_PATH_VAR)
-# $3 - list of names of variables to export for running an executable
+# $3 - list of names of variables to set in environment (export) for running an executable
 # note: this function should be used in rule body, where automatic variable $@ is defined
 # note: $(CLEAN_BUILD_DIR)/utils/cmd.mk defines own show_tool_vars/show_tool_vars_end
 RUN_TOOL = $(if $2$3,$(if $2,$(eval \
-  $$@:export $$(DLL_PATH_VAR):=$$($$(DLL_PATH_VAR))$$(if $$($$(DLL_PATH_VAR)),$$(if $2,$$(PATHSEP)))$2))$(foreach v,$3,$(eval \
-  $$@:export $$v:=$$($$v)))$(if $(VERBOSE),$(show_tool_vars)@))$1$(if $2$3,$(if $(VERBOSE),$(show_tool_vars_end)))
+  $$@:export $(DLL_PATH_VAR):=$$($(DLL_PATH_VAR))$$(if $$($(DLL_PATH_VAR)),$$(if $2,$(PATHSEP)))$2))$(foreach v,$3,$(eval \
+  $$@:export $v:=$$($v)))$(if $(VERBOSE),$(show_tool_vars)@))$1$(if $(VERBOSE), >&2)$(if $2$3,$(if $(VERBOSE),$(show_tool_vars_end)))
 
 # current value of $(TOOL_MODE)
 # reset: $(SET_DEFAULT_DIRS) has already been evaluated
@@ -999,9 +1019,9 @@ $(call SET_GLOBAL,PROJECT_VARS_NAMES PASS_ENV_VARS \
   TARGET_TRIPLET DEF_BIN_DIR DEF_OBJ_DIR DEF_LIB_DIR DEF_GEN_DIR SET_DEFAULT_DIRS \
   TOOL_BASE MK_TOOLS_DIR GET_TOOLS GET_TOOL TOOL_OVERRIDE_DIRS \
   ADD_MDEPS ADD_ADEPS CREATE_MAKEFILE_ALIAS ADD_ORDER_DEPS=ORDER_DEPS=ORDER_DEPS \
-  STD_TARGET_VARS1 STD_TARGET_VARS MAKEFILE_INFO_TEMPL SET_MAKEFILE_INFO fixpath \
+  NEED_GEN_DIRS STD_TARGET_VARS1 STD_TARGET_VARS MAKEFILE_INFO_TEMPL SET_MAKEFILE_INFO fixpath \
   GET_TARGET_NAME SUPPORTED_VARIANTS FILTER_VARIANTS_LIST GET_VARIANTS VARIANT_SUFFIX FORM_TRG ALL_TARGETS \
-  FORM_OBJ_DIR ADD_GENERATED CHECK_GENERATED ADD_GENERATED_RET NON_PARALLEL_EXECUTE_RULE NON_PARALLEL_EXECUTE \
+  FORM_OBJ_DIR MAKE_TRG_PATH ADD_GENERATED CHECK_GENERATED ADD_GENERATED_RET NON_PARALLEL_EXECUTE_RULE NON_PARALLEL_EXECUTE \
   MULTI_TARGET_SEQ MULTI_TARGET_RULE=MULTI_TARGET_NUM=MULTI_TARGET_NUM MULTI_TARGET CHECK_MULTI_RULE \
   FORM_SDEPS EXTRACT_SDEPS FIX_SDEPS RUN_TOOL TMD TOOL_MODE \
   DEF_HEAD_CODE_EVAL DEF_TAIL_CODE_EVAL MAKE_CONTINUE_EVAL_NAME DEFINE_TARGETS_EVAL_NAME \

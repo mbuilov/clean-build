@@ -53,63 +53,62 @@ LIB_SUPPORTED_VARIANTS:=
 DLL_SUPPORTED_VARIANTS:=
 
 # determine target name suffix (in case if building multiple variants of the target, each variant must have unique file name)
-# $1 - target: EXE,LIB,DLL,...
-# $2 - non-empty target variant: P,D,S... (cannot be R - regular - it was filtered out)
+# $1 - non-empty target variant: P,D,S... (cannot be R - regular - it was filtered out)
 # note: used by VARIANT_SUFFIX macro from $(CLEAN_BUILD_DIR)/core/_defs.mk
-EXE_VARIANT_SUFFIX = _$2
-LIB_VARIANT_SUFFIX = _$2
-DLL_VARIANT_SUFFIX = _$2
+EXE_VARIANT_SUFFIX = _$1
+LIB_VARIANT_SUFFIX = _$1
+DLL_VARIANT_SUFFIX = _$1
 
 # define target variant flags, empty by default
-# $1 - target: EXE
-# $2 - variant
+# $1 - variant (one of variants supported by selected toolchain)
 # note: used by VARIANT_INCLUDE and other VARIANT_... macros from $(CLEAN_BUILD_DIR)/impl/c_base.mk
 EXE_VARIANT_INCLUDE:=
 EXE_VARIANT_DEFINES:=
 EXE_VARIANT_COPTS:=
 EXE_VARIANT_CXXOPTS:=
 EXE_VARIANT_LOPTS:=
+EXE_VARIANT_ASMOPTS:=
 
 # define target variant flags, empty by default
-# $1 - target: LIB
-# $2 - variant
+# $1 - variant (one of variants supported by selected toolchain)
 # note: used by VARIANT_INCLUDE and other VARIANT_... macros from $(CLEAN_BUILD_DIR)/impl/c_base.mk
 LIB_VARIANT_INCLUDE:=
 LIB_VARIANT_DEFINES:=
 LIB_VARIANT_COPTS:=
 LIB_VARIANT_CXXOPTS:=
 LIB_VARIANT_LOPTS:=
+LIB_VARIANT_ASMOPTS:=
 
 # define target variant flags, empty by default
-# $1 - target: DLL
-# $2 - variant
+# $1 - variant (one of variants supported by selected toolchain)
 # note: used by VARIANT_INCLUDE and other VARIANT_... macros from $(CLEAN_BUILD_DIR)/impl/c_base.mk
 DLL_VARIANT_INCLUDE:=
 DLL_VARIANT_DEFINES:=
 DLL_VARIANT_COPTS:=
 DLL_VARIANT_CXXOPTS:=
 DLL_VARIANT_LOPTS:=
+DLL_VARIANT_ASMOPTS:=
 
 # executable file suffix
 EXE_SUFFIX:=
 
 # form target file name for EXE
-# $1 - EXE
+# $1 - target name, e.g. my_exe, may be empty
 # $2 - target variant: R,P,D,S... (one of variants supported by selected toolchain, may be empty)
-# note: use $(patsubst...) to return empty value if $($1) is empty
+# note: use $(patsubst...) to return empty value if $1 is empty
 # note: used by FORM_TRG macro from $(CLEAN_BUILD_DIR)/core/_defs.mk
-EXE_FORM_TRG = $(GET_TARGET_NAME:%=$(BIN_DIR)/%$(VARIANT_SUFFIX)$(EXE_SUFFIX))
+EXE_FORM_TRG = $(1:%=$(BIN_DIR)/%$(call VARIANT_SUFFIX,EXE,$2)$(EXE_SUFFIX))
 
 # static library (archive) prefix/suffix
 LIB_PREFIX := lib
 LIB_SUFFIX := .a
 
 # form target file name for LIB
-# $1 - LIB
+# $1 - target name, e.g. my_lib, may be empty
 # $2 - target variant: R,P,D,S... (one of variants supported by selected toolchain, may be empty)
-# note: use $(patsubst...) to return empty value if $($1) is empty
+# note: use $(patsubst...) to return empty value if $1 is empty
 # note: used by FORM_TRG macro from $(CLEAN_BUILD_DIR)/core/_defs.mk
-LIB_FORM_TRG = $(GET_TARGET_NAME:%=$(LIB_DIR)/$(LIB_PREFIX)%$(VARIANT_SUFFIX)$(LIB_SUFFIX))
+LIB_FORM_TRG = $(1:%=$(LIB_DIR)/$(LIB_PREFIX)%$(call VARIANT_SUFFIX,LIB,$2)$(LIB_SUFFIX))
 
 # dynamically loaded library (shared object) prefix/suffix
 DLL_PREFIX := lib
@@ -120,16 +119,15 @@ DLL_SUFFIX := .so
 DLL_DIR = $(LIB_DIR)
 
 # form target file name for DLL
-# $1 - DLL
+# $1 - target name, e.g. my_dll, may be empty
 # $2 - target variant: R,P,D,S... (one of variants supported by selected toolchain, may be empty)
 # note: use $(patsubst...) to return empty value if $($1) is empty
 # note: used by FORM_TRG macro from $(CLEAN_BUILD_DIR)/core/_defs.mk
-DLL_FORM_TRG = $(GET_TARGET_NAME:%=$(DLL_DIR)/$(DLL_PREFIX)%$(VARIANT_SUFFIX)$(DLL_SUFFIX))
+DLL_FORM_TRG = $(1:%=$(DLL_DIR)/$(DLL_PREFIX)%$(call VARIANT_SUFFIX,DLL,$2)$(DLL_SUFFIX))
 
 # determine which variant of static library to link with EXE or DLL
-# $1 - target: EXE,DLL
+# $1 - target type: EXE,DLL
 # $2 - variant of target EXE or DLL: R,P, if empty, then assume R
-# $3 - dependency type: LIB
 # use the same variant (R or P) of static library as target EXE (for example for P-EXE use P-LIB)
 # always use D-variant of static library for DLL
 # note: if returns empty value - then assume it's default variant R
@@ -137,9 +135,8 @@ DLL_FORM_TRG = $(GET_TARGET_NAME:%=$(DLL_DIR)/$(DLL_PREFIX)%$(VARIANT_SUFFIX)$(D
 LIB_DEP_MAP = $(if $(filter DLL,$1),D,$2)
 
 # determine which variant of dynamic library to link with EXE or DLL
-# $1 - target: EXE,DLL
+# $1 - target type: EXE,DLL
 # $2 - variant of target EXE or DLL: R,P, if empty, then assume R
-# $3 - dependency type: DLL
 # the same one default variant (R) of DLL may be linked with any P- or R-EXE or R-DLL
 # note: if returns empty value - then assume it's default variant R
 # note: used by DEP_SUFFIX macro from $(CLEAN_BUILD_DIR)/impl/c_base.mk
@@ -151,12 +148,12 @@ IMP_PREFIX := $(DLL_PREFIX)
 IMP_SUFFIX := $(DLL_SUFFIX)
 
 # make file names of static libraries target depends on
-# $1 - target: EXE,DLL
+# $1 - target type: EXE,DLL
 # $2 - variant of target EXE or DLL: R,P,S,<empty>
 DEP_LIBS = $(foreach l,$(LIBS),$(LIB_PREFIX)$l$(call DEP_SUFFIX,$1,$2,LIB,$l)$(LIB_SUFFIX))
 
 # make file names of implementation libraries of dynamic libraries target depends on
-# $1 - target: EXE,DLL
+# $1 - target type: EXE,DLL
 # $2 - variant of target EXE or DLL: R,P,S,<empty>
 # note: assume when building DLL, $(DLL_LD) generates implementation library for DLL in $(LIB_DIR) and DLL itself in $(DLL_DIR)
 DEP_IMPS = $(foreach d,$(DLLS),$(IMP_PREFIX)$d$(call DEP_SUFFIX,$1,$2,DLL,$l)$(IMP_SUFFIX))
@@ -264,9 +261,9 @@ include $(C_COMPILER_MK)
 $(call SET_GLOBAL,C_APP_TARGETS C_TARGETS \
   EXE_SUPPORTED_VARIANTS LIB_SUPPORTED_VARIANTS DLL_SUPPORTED_VARIANTS \
   EXE_VARIANT_SUFFIX LIB_VARIANT_SUFFIX DLL_VARIANT_SUFFIX \
-  EXE_VARIANT_INCLUDE EXE_VARIANT_DEFINES EXE_VARIANT_COPTS EXE_VARIANT_CXXOPTS EXE_VARIANT_LOPTS \
-  LIB_VARIANT_INCLUDE LIB_VARIANT_DEFINES LIB_VARIANT_COPTS LIB_VARIANT_CXXOPTS LIB_VARIANT_LOPTS \
-  DLL_VARIANT_INCLUDE DLL_VARIANT_DEFINES DLL_VARIANT_COPTS DLL_VARIANT_CXXOPTS DLL_VARIANT_LOPTS \
+  EXE_VARIANT_INCLUDE EXE_VARIANT_DEFINES EXE_VARIANT_COPTS EXE_VARIANT_CXXOPTS EXE_VARIANT_LOPTS EXE_VARIANT_ASMOPTS \
+  LIB_VARIANT_INCLUDE LIB_VARIANT_DEFINES LIB_VARIANT_COPTS LIB_VARIANT_CXXOPTS LIB_VARIANT_LOPTS LIB_VARIANT_ASMOPTS \
+  DLL_VARIANT_INCLUDE DLL_VARIANT_DEFINES DLL_VARIANT_COPTS DLL_VARIANT_CXXOPTS DLL_VARIANT_LOPTS DLL_VARIANT_ASMOPTS \
   EXE_SUFFIX EXE_FORM_TRG LIB_PREFIX LIB_SUFFIX LIB_FORM_TRG DLL_PREFIX DLL_SUFFIX \
   DLL_DIR DLL_FORM_TRG LIB_DEP_MAP DLL_DEP_MAP IMP_PREFIX IMP_SUFFIX DEP_LIBS=LIBS DEP_IMPS=DLLS \
   EXE_TEMPLATE=t;v;EXE;LIB_DIR;LIBS;DLLS;SYSLIBS;SYSLIBPATH DLL_TEMPLATE=t;v;DLL LIB_TEMPLATE=t;v;LIB \

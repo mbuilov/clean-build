@@ -228,40 +228,40 @@ INSTALL_DIR = $(CREATE_DIR)
 INSTALL_FILES = $(COPY_FILES)
 
 # suffix of built tool executables
-# note: override TOOL_SUFFIX from $(CLEAN_BUILD_DIR)/defs.mk
+# note: override TOOL_SUFFIX from $(CLEAN_BUILD_DIR)/core/_defs.mk
 TOOL_SUFFIX := .exe
 
 # paths separator, as used in %PATH% environment variable
-# note: override PATHSEP from $(CLEAN_BUILD_DIR)/defs.mk
+# note: override PATHSEP from $(CLEAN_BUILD_DIR)/core/_defs.mk
 PATHSEP := ;
 
 # name of environment variable to modify in $(RUN_TOOL)
-# note: override DLL_PATH_VAR from $(CLEAN_BUILD_DIR)/defs.mk
+# note: override DLL_PATH_VAR from $(CLEAN_BUILD_DIR)/core/_defs.mk
 DLL_PATH_VAR := PATH
 
 # if %PATH% environment variable was modified for calling a tool, print new %PATH% value in generated batch
-# $1 - command to run (with parameters)
-# $2 - additional paths to append to $(DLL_PATH_VAR)
-# $3 - environment variables to set to run executable, in form VAR=value
-# note: override show_with_dll_path from $(CLEAN_BUILD_DIR)/defs.mk
-show_with_dll_path = $(info setlocal$(if $2,$(newline)set "PATH=$(PATH)")$(foreach \
-  v,$3,$(foreach n,$(firstword $(subst =, ,$v)),$(newline)set "$n=$($n)"))$(newline)$1)
+# $1 - tool to execute (with parameters)
+# $2 - additional path(s) separated by $(PATHSEP) to append to $(DLL_PATH_VAR)
+# $3 - list of names of variables to set in environment (export) for running an executable
+# note: override show_tool_vars from $(CLEAN_BUILD_DIR)/core/_defs.mk
+show_tool_vars = $(info setlocal$(foreach \
+  v,$(if $2,PATH) $3,$(newline)$(patsubst "%,set "$v=%,$(call SHELL_ESCAPE,$($v))))$(newline)$1)
 
 # show after executing a command
-# note: override show_dll_path_end from $(CLEAN_BUILD_DIR)/defs.mk
-show_dll_path_end = $(newline)@echo endlocal
+# note: override show_tool_vars_end from $(CLEAN_BUILD_DIR)/core/_defs.mk
+show_tool_vars_end = $(newline)@echo endlocal
 
-# there is no support for embedding dll search path into executables or dlls
+# there is no way for embedding dll search path into executables or dlls while linking
 NO_RPATH := 1
 
 # windows terminal do not supports ANSI color escape sequences
-# note: override PRINT_PERCENTS from $(CLEAN_BUILD_DIR)/defs.mk
+# note: override PRINT_PERCENTS from $(CLEAN_BUILD_DIR)/core/_defs.mk
 ifeq (,$(filter ansi-colors,$(.FEATURES)))
 PRINT_PERCENTS = [$1]
 endif
 
 # windows terminal do not supports ANSI color escape sequences
-# note: override COLORIZE from $(CLEAN_BUILD_DIR)/defs.mk
+# note: override COLORIZE from $(CLEAN_BUILD_DIR)/core/_defs.mk
 ifeq (,$(filter ansi-colors,$(.FEATURES)))
 COLORIZE = $1$(padto)$2
 endif
@@ -277,7 +277,7 @@ $(call SET_GLOBAL,$(sort TMP PATHEXT SYSTEMROOT COMSPEC $(WIN_EXPORTED)) PATH NO
 
 # protect variables from modifications in target makefiles
 # note: caller will protect variables: MAKEFLAGS SHELL PATH ospath nonrelpath1 nonrelpath
-#  TOOL_SUFFIX PATHSEP DLL_PATH_VAR show_with_dll_path, show_dll_path_end, PRINT_PERCENTS, COLORIZE
+#  TOOL_SUFFIX PATHSEP DLL_PATH_VAR show_tool_vars, show_tool_vars_end, PRINT_PERCENTS, COLORIZE
 $(call SET_GLOBAL,WIN_EXPORTED PRINT_ENV PATH_ARGS_LIMIT nonrelpath1 NUL DELETE_FILES DELETE_DIRS DELETE_DIRS_IF_EMPTY \
   DELETE_FILES_IN1 DELETE_FILES_IN DEL_FILES_OR_DIRS1 DEL_FILES_OR_DIRS SUPPRESS_CP_OUTPUT \
   COPY_FILES1 COPY_FILES TOUCH_FILES1 TOUCH_FILES CREATE_DIR COMPARE_FILES SHELL_ESCAPE SED SED_EXPR \

@@ -26,7 +26,7 @@ CC_MASK  := %.c
 CXX_MASK := %.cpp
 
 # get suffix of dependent library for given variant of the target
-# $1 - target: EXE,DLL,...
+# $1 - target type: EXE,DLL,...
 # $2 - variant of target EXE,DLL,...: R,P,S,... (if empty, assume R)
 # $3 - dependency type: LIB,DLL,...
 # example:
@@ -118,14 +118,14 @@ TRG_CXXOPTS = $(CXXOPTS)
 TRG_LOPTS   = $(LOPTS)
 
 # choose INCLUDE/DEFINES/COPTS/CXXOPTS/LOPTS for non-regilar target variant
-# $1 - EXE,LIB,DLL,DRV,KLIB,KDLL,...
-# $2 - non-empty variant: R,P,S,...
+# $t - EXE,LIB,DLL,DRV,KLIB,KDLL,...
+# $v - non-empty variant: R,P,D,S... (one of variants supported by selected toolchain)
 # note: $t_VARIANT_... macros should be defined in C/C++ compiler definitions makefile
-VARIANT_INCLUDE = $(if $(filter-out R,$2),$($1_VARIANT_INCLUDE))
-VARIANT_DEFINES = $(if $(filter-out R,$2),$($1_VARIANT_DEFINES))
-VARIANT_COPTS   = $(if $(filter-out R,$2),$($1_VARIANT_COPTS))
-VARIANT_CXXOPTS = $(if $(filter-out R,$2),$($1_VARIANT_CXXOPTS))
-VARIANT_LOPTS   = $(if $(filter-out R,$2),$($1_VARIANT_LOPTS))
+VARIANT_INCLUDE = $(if $(filter-out R,$v),$(call $t_VARIANT_INCLUDE,$v))
+VARIANT_DEFINES = $(if $(filter-out R,$v),$(call $t_VARIANT_DEFINES,$v))
+VARIANT_COPTS   = $(if $(filter-out R,$v),$(call $t_VARIANT_COPTS,$v))
+VARIANT_CXXOPTS = $(if $(filter-out R,$v),$(call $t_VARIANT_CXXOPTS,$v))
+VARIANT_LOPTS   = $(if $(filter-out R,$v),$(call $t_VARIANT_LOPTS,$v))
 
 # make list of sources for the target, used by TRG_SRC
 GET_SOURCES = $(SRC) $(WITH_PCH)
@@ -187,18 +187,18 @@ C_RULES = $(foreach t,$(C_TARGETS),$(if $($t),$(C_RULESt)))
 # $3 - sdeps:       $(TRG_SDEPS)
 # $4 - objdir:      $(call FORM_OBJ_DIR,$t,$v)
 # $t - EXE,DLL,LIB...
-# $v - non-empty variant: R,P,S,...
+# $2 - non-empty variant: R,P,D,S... (one of variants supported by selected toolchain)
 define C_BASE_TEMPLATE
 NEEDED_DIRS+=$4
 $(STD_TARGET_VARS)
 $1:$(call OBJ_RULES,CC,$(filter $(CC_MASK),$2),$3,$4)
 $1:$(call OBJ_RULES,CXX,$(filter $(CXX_MASK),$2),$3,$4)
 $1:COMPILER := $(TRG_COMPILER)
-$1:INCLUDE  := $(TRG_INCLUDE) $(call VARIANT_INCLUDE,$t,$v)
-$1:DEFINES  := $(TRG_DEFINES) $(call VARIANT_DEFINES,$t,$v)
-$1:COPTS    := $(TRG_COPTS) $(call VARIANT_COPTS,$t,$v)
-$1:CXXOPTS  := $(TRG_CXXOPTS) $(call VARIANT_CXXOPTS,$t,$v)
-$1:LOPTS    := $(TRG_LOPTS) $(call VARIANT_LOPTS,$t,$v)
+$1:INCLUDE  := $(TRG_INCLUDE) $(VARIANT_INCLUDE)
+$1:DEFINES  := $(TRG_DEFINES) $(VARIANT_DEFINES)
+$1:COPTS    := $(TRG_COPTS) $(VARIANT_COPTS)
+$1:CXXOPTS  := $(TRG_CXXOPTS) $(VARIANT_CXXOPTS)
+$1:LOPTS    := $(TRG_LOPTS) $(VARIANT_LOPTS)
 endef
 
 # code to be called at beginning of target makefile
@@ -241,7 +241,13 @@ ASM_MASK := %.asm
 # $t     - EXE,LIB,DLL,DRV,KLIB,KDLL,...
 # $v     - non-empty variant: R,P,S,...
 # $(TMD) - T in tool mode, empty otherwise
-TRG_ASMFLAGS = $(ASMFLAGS)
+TRG_ASMOPTS = $(ASMOPTS)
+
+# choose ASMOPTS for non-regilar target variant
+# $t - EXE,LIB,DLL,DRV,KLIB,KDLL,...
+# $v - non-empty variant: R,P,D,S... (one of variants supported by selected toolchain)
+# note: $t_VARIANT_... macros should be defined in C/C++ compiler definitions makefile
+VARIANT_ASMOPTS = $(if $(filter-out R,$v),$(call $t_VARIANT_ASMOPTS,$v))
 
 # template for adding assembler support
 # $1 - target file: $(call FORM_TRG,$t,$v)
@@ -252,7 +258,7 @@ TRG_ASMFLAGS = $(ASMFLAGS)
 # $v - non-empty variant: R,P,S,...
 define ASM_TEMPLATE
 $1:$(call OBJ_RULES,ASM,$(filter $(ASM_MASK),$2),$3,$4)
-$1:ASMFLAGS := $(TRG_ASMFLAGS)
+$1:ASMOPTS := $(TRG_ASMOPTS) $(VARIANT_ASMOPTS)
 endef
 
 # patch C_BASE_TEMPLATE
@@ -261,8 +267,8 @@ $(call define_append,C_BASE_TEMPLATE,$(newline)$(value ASM_TEMPLATE))
 # tool color
 ASM_COLOR := [37m
 
-# reset ASMFLAGS at beginning of target makefile
-$(call define_append,C_PREPARE_BASE_VARS,$(newline)ASMFLAGS:=)
+# reset ASMOPTS at beginning of target makefile
+$(call define_append,C_PREPARE_BASE_VARS,$(newline)ASMOPTS:=)
 
 endif # ASSEMBLER_SUPPORT
 
@@ -271,12 +277,11 @@ $(call try_make_simple,C_PREPARE_BASE_VARS,PRODUCT_VER)
 
 # protect variables from modifications in target makefiles
 $(call SET_GLOBAL,NO_PCH OBJ_SUFFIX CC_MASK CXX_MASK DEP_SUFFIX ADD_OBJ_SDEPS=x OBJ_RULES_BODY=t;v OBJ_RULES1=t;v OBJ_RULES=t;v \
-  TRG_COMPILER=t;v TRG_INCLUDE=t;v;INCLUDE;SYSINCLUDE VARIANT_DEFINES=t;v VARIANT_COPTS=t;v VARIANT_CXXOPTS=t;v VARIANT_LOPTS=t;v \
-  TRG_DEFINES=t;v;DEFINES TRG_COPTS=t;v;COPTS TRG_CXXOPTS=t;v;CXXOPTS TRG_LOPTS=t;v;LOPTS \
-  VARIANT_INCLUDE=t;v VARIANT_DEFINES=t;v VARIANT_COPTS=t;v VARIANT_CXXOPTS=t;v VARIANT_LOPTS=t;v \
+  TRG_COMPILER=t;v TRG_INCLUDE=t;v;INCLUDE;SYSINCLUDE TRG_DEFINES=t;v;DEFINES TRG_COPTS=t;v;COPTS TRG_CXXOPTS=t;v;CXXOPTS \
+  TRG_LOPTS=t;v;LOPTS VARIANT_INCLUDE=t;v VARIANT_DEFINES=t;v VARIANT_COPTS=t;v VARIANT_CXXOPTS=t;v VARIANT_LOPTS=t;v \
   GET_SOURCES=SRC;WITH_PCH TRG_SRC TRG_SDEPS=SDEPS STRING_DEFINE DEFINE_ESCAPE_STRING DEFINES_ESCAPE_STRING \
   C_TARGETS C_RULESv=t;v C_RULESt=t C_RULES C_BASE_TEMPLATE=t;v;$$t C_PREPARE_BASE_VARS C_RULES_EVAL \
-  ASM_MASK TRG_ASMFLAGS=t;v;ASMFLAGS ASM_TEMPLATE ASM_COLOR)
+  ASM_MASK TRG_ASMOPTS=t;v;ASMOPTS VARIANT_ASMOPTS=t;v ASM_TEMPLATE ASM_COLOR)
 
 # protect variables from modifications in target makefiles
 # note: do not trace calls to ASSEMBLER_SUPPORT variable because it is used in ifdefs

@@ -36,31 +36,27 @@ EXE_SUPPORTED_VARIANTS := P
 LIB_SUPPORTED_VARIANTS := P D
 
 # only one non-regular variant of EXE is supported - P - see $(EXE_SUPPORTED_VARIANTS)
-# $1 - target: EXE
-# $2 - P
+# $1 - P
 # note: override defaults from $(CLEAN_BUILD_DIR)/impl/_c.mk
 EXE_VARIANT_SUFFIX := _pie
 
 # two non-regular variants of LIB are supported: P and D - see $(LIB_SUPPORTED_VARIANTS)
-# $1 - target: LIB
-# $2 - P or D
+# $1 - P or D
 # note: override defaults from $(CLEAN_BUILD_DIR)/impl/_c.mk
-LIB_VARIANT_SUFFIX = $(if $(filter P,$2),_pie,_pic)
+LIB_VARIANT_SUFFIX = $(if $(filter P,$1),_pie,_pic)
 
 # only one non-regular variant of EXE is supported - P - see $(EXE_SUPPORTED_VARIANTS)
-# $1 - target: EXE
-# $2 - P
+# $1 - P
 # note: override defaults from $(CLEAN_BUILD_DIR)/impl/_c.mk
 EXE_VARIANT_COPTS   := $(PIE_COPTION)
 EXE_VARIANT_CXXOPTS := $(PIE_COPTION)
 EXE_VARIANT_LOPTS   := $(PIE_LOPTION)
 
 # two non-regular variants of LIB are supported: P and D - see $(LIB_SUPPORTED_VARIANTS)
-# $1 - target: LIB
-# $2 - P or D
+# $1 - P or D
 # note: override defaults from $(CLEAN_BUILD_DIR)/impl/_c.mk
-LIB_VARIANT_COPTS   = $(if $(filter P,$2),$(PIE_COPTION),$(PIC_COPTION))
-LIB_VARIANT_CXXOPTS = $(if $(filter P,$2),$(PIE_COPTION),$(PIC_COPTION))
+LIB_VARIANT_COPTS   = $(if $(filter P,$1),$(PIE_COPTION),$(PIC_COPTION))
+LIB_VARIANT_CXXOPTS = $(if $(filter P,$1),$(PIE_COPTION),$(PIC_COPTION))
 
 # ld flags that may be modified by user
 LDFLAGS := $(if $(DEBUG),-ggdb,-O)

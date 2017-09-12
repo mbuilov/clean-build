@@ -33,28 +33,24 @@ EXE_SUPPORTED_VARIANTS := P
 LIB_SUPPORTED_VARIANTS := D
 
 # only one non-regular variant of EXE is supported - P - see $(EXE_SUPPORTED_VARIANTS)
-# $1 - target: EXE
-# $2 - P
+# $1 - P
 # note: override defaults from $(CLEAN_BUILD_DIR)/impl/_c.mk
 EXE_VARIANT_SUFFIX := _pie
 
 # only one non-regular variant of LIB is supported - D - see $(LIB_SUPPORTED_VARIANTS)
-# $1 - target: LIB
-# $2 - D
+# $1 - D
 # note: override defaults from $(CLEAN_BUILD_DIR)/impl/_c.mk
 LIB_VARIANT_SUFFIX := _pic
 
 # only one non-regular variant of EXE is supported - P - see $(EXE_SUPPORTED_VARIANTS)
-# $1 - target: EXE
-# $2 - P
+# $1 - P
 # note: override defaults from $(CLEAN_BUILD_DIR)/impl/_c.mk
 EXE_VARIANT_COPTS   := $(PIC_COPTION)
 EXE_VARIANT_CXXOPTS := $(PIC_COPTION)
 EXE_VARIANT_LOPTS   := $(PIE_LOPTION)
 
 # only one non-regular variant of LIB is supported - D - see $(LIB_SUPPORTED_VARIANTS)
-# $1 - target: LIB
-# $2 - D
+# $1 - D
 # note: override defaults from $(CLEAN_BUILD_DIR)/impl/_c.mk
 LIB_VARIANT_COPTS   := $(PIC_COPTION)
 LIB_VARIANT_CXXOPTS := $(PIC_COPTION)
@@ -62,7 +58,6 @@ LIB_VARIANT_CXXOPTS := $(PIC_COPTION)
 # determine which variant of static library to link with EXE or DLL
 # $1 - target: EXE,DLL
 # $2 - variant of target EXE or DLL: R,P, if empty, then assume R
-# $3 - dependency type: LIB
 # note: if returns empty value - then assume it's default variant R
 # use D-variant of static library for pie-EXE or DLL
 # note: override defaults from $(CLEAN_BUILD_DIR)/impl/_c.mk
@@ -156,7 +151,7 @@ UDEPS_INCLUDE_FILTER := /usr/include/
 # $(foreach x,$5,\@^$x.*@d;)    - delete lines started with system include paths, start new circle
 # s@.*@&:\$(newline)$2: &@;w $4 - make dependencies, then write to generated dep-file
 
-SED_DEPS_SCRIPT = \
+CC_GEN_DEPS_COMMAND = $(SED) -n \
 -e '/^$(tab)*\//!{p;d;}' \
 -e 's/^\$(tab)*//;$(foreach x,$5,\@^$x.*@d;)s@.*@&:\$(newline)$2: &@;w $4'
 
@@ -169,7 +164,7 @@ SED_DEPS_SCRIPT = \
 ifdef NO_DEPS
 WRAP_CC = $1
 else
-WRAP_CC = { { $1 -H 2>&1 && echo OK >&2; } | sed -n $(SED_DEPS_SCRIPT) 2>&1; } 3>&2 2>&1 1>&3 3>&- | grep OK > /dev/null
+WRAP_CC = { { $1 -H 2>&1 && echo OK >&2; } | $(CC_GEN_DEPS_COMMAND) 2>&1; } 3>&2 2>&1 1>&3 3>&- | grep OK > /dev/null
 endif
 
 # C/C++ compiler flags that may be modified by user
@@ -292,7 +287,7 @@ $(call define_prepend,DEFINE_C_APP_EVAL,$$(eval $$(UNIX_MOD_AUX_APP)))
 # protect variables from modifications in target makefiles
 $(call CLEAN_BUILD_PROTECT_VARS,CC CXX AR TCC TCXX TAR PIC_COPTION PIE_LOPTION \
   LDFLAGS CMN_LDFLAGS EXE_LDFLAGS DLL_LDFLAGS ARFLAGS CXX_ARFLAGS DLL_EXPORTS_DEFINE DLL_IMPORTS_DEFINE RPATH_OPTION \
-  CMN_LIBS VERSION_SCRIPT SONAME_OPTION EXE_LD DLL_LD LIB_LD UDEPS_INCLUDE_FILTER SED_DEPS_SCRIPT WRAP_CC \
+  CMN_LIBS VERSION_SCRIPT SONAME_OPTION EXE_LD DLL_LD LIB_LD UDEPS_INCLUDE_FILTER CC_GEN_DEPS_COMMAND WRAP_CC \
   CFLAGS CXXFLAGS CMN_CFLAGS DEF_CFLAGS DEF_CXXFLAGS APP_DEFINES CC_PARAMS CMN_CXX CMN_CC \
   EXE_CXX EXE_CC DLL_CXX DLL_CC LIB_CXX LIB_CC CMN_NCXX CMN_NCC CMN_PCXX CMN_PCC PCH_CXX PCH_CC \
   PCH_EXE_CXX PCH_EXE_CC PCH_DLL_CXX PCH_DLL_CC PCH_LIB_CXX PCH_LIB_CC)
