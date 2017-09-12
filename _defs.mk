@@ -327,21 +327,20 @@ TOOL_SUFFIX:=
 # note: $(CLEAN_BUILD_DIR)/WINXX/tools.mk defines own PATHSEP
 PATHSEP := :
 
-# name of environment variable to modify in $(RUN_WITH_DLL_PATH)
+# name of environment variable to modify in $(RUN_TOOL)
 # note: $(DLL_PATH_VAR) should be PATH (for WINDOWS) or LD_LIBRARY_PATH (for UNIX-like OS)
 # note: $(CLEAN_BUILD_DIR)/WINXX/tools.mk defines own DLL_PATH_VAR
 DLL_PATH_VAR := LD_LIBRARY_PATH
 
-# show modified $(DLL_PATH_VAR) environment variable with running command
-# $1 - command to run (with parameters)
-# $2 - additional paths to append to $(DLL_PATH_VAR)
-# $3 - environment variables to set to run executable, in form VAR=value
-# note: $(CLEAN_BUILD_DIR)/WINXX/tools.mk defines own show_with_dll_path
-show_with_dll_path = $(info $(if $2,$(DLL_PATH_VAR)="$($(DLL_PATH_VAR))" )$(foreach \
-  v,$3,$(foreach n,$(firstword $(subst =, ,$v)),$n="$($n)")) $1)
+# show environment variables set for running a tool in modified environment
+# $1 - tool to execute (with parameters)
+# $2 - additional path(s) separated by $(PATHSEP) to append to $(DLL_PATH_VAR)
+# $3 - list of names of variables to set in environment (export) for running an executable
+# note: $(CLEAN_BUILD_DIR)/WINXX/tools.mk defines own show_tool_vars/show_tool_vars_end
+show_tool_vars = $(info $(foreach v,$(if $2,$(DLL_PATH_VAR)) $3,$v=$(call SHELL_ESCAPE,$($v))) $1)
 
-# note: $(CLEAN_BUILD_DIR)/WINXX/tools.mk defines own show_dll_path_end
-show_dll_path_end:=
+# note: $(CLEAN_BUILD_DIR)/WINXX/tools.mk defines own show_tool_vars_end
+show_tool_vars_end:=
 
 # tools colors
 GEN_COLOR   := [1;32m
@@ -525,10 +524,14 @@ FIX_ORDER_DEPS:=
 
 ifdef TOCLEAN
 
-# just cleanup target file(s) $1 (absolute paths)
+# just cleanup target files or directories $1 (absolute paths)
 $(eval STD_TARGET_VARS = $(value TOCLEAN))
+$(eval NEED_GEN_DIRS = $(value TOCLEAN))
 
 else # !clean
+
+# add directories to list of auto-created ones
+NEED_GEN_DIRS = $(eval NEEDED_DIRS+=$1)
 
 # standard target-specific variables
 # $1     - target file(s) to build (absolute paths)
@@ -555,7 +558,7 @@ STD_TARGET_VARS = $(call STD_TARGET_VARS1,$1,$(patsubst %/,%,$(sort $(dir $1))))
 
 endif # !clean
 
-# for given target $1
+# for given target(s) $1
 # define target-specific variables for printing makefile info
 # $(MF)    - makefile which specifies how to build the target
 # $(MCONT) - number of section in makefile after a call to $(MAKE_CONTINUE)
@@ -689,17 +692,17 @@ EXTRACT_SDEPS = $(foreach d,$(filter $(addsuffix |%,$1),$2),$(wordlist 2,999999,
 # $1 - sdeps list: <source file1>|<dependency1>|<dependency2>|... <source file2>|<dependency1>|<dependency2>|...
 FIX_SDEPS = $(subst | ,|,$(call fixpath,$(subst |,| ,$1)))
 
-# run executable with modified $(DLL_PATH_VAR) environment variable
-# $1 - command to run (with parameters)
-# $2 - additional paths to append to $(DLL_PATH_VAR)
-# $3 - environment variables to set to run executable, in form VAR=value
-# note: this function should be used for rule body, where automatic variable $@ is defined
-# note: WINXX/tools.mk defines own show_dll_path_end
-RUN_WITH_DLL_PATH = $(if $2$3,$(if $2,$(eval \
-  $@:export $(DLL_PATH_VAR):=$(addsuffix $(PATHSEP),$($(DLL_PATH_VAR)))$2))$(foreach \
-  v,$3,$(foreach g,$(firstword $(subst =, ,$v)),$(eval \
-  $@:export $g:=$(patsubst $g=%,%,$v))))$(if $(VERBOSE),$(show_with_dll_path)@))$1$(if \
-  $2$3,$(if $(VERBOSE),$(show_dll_path_end)))
+keyword_export := export
+
+# run executable in modified environment
+# $1 - tool to execute (with parameters)
+# $2 - additional path(s) separated by $(PATHSEP) to append to $(DLL_PATH_VAR)
+# $3 - list of names of variables to set in environment (export) for running an executable
+# note: this function should be used in rule body, where automatic variable $@ is defined
+# note: $(CLEAN_BUILD_DIR)/utils/cmd.mk defines own show_tool_vars/show_tool_vars_end
+RUN_TOOL = $(if $2$3,$(if $2,$(eval \
+  $$@:export $(DLL_PATH_VAR):=$$($(DLL_PATH_VAR))$$(if $$($(DLL_PATH_VAR)),$$(if $2,$(PATHSEP)))$2))$(foreach v,$3,$(eval \
+  $$@:export $v:=$$($v)))$(if $(VERBOSE),$(show_tool_vars)@))$1$(if $(VERBOSE), >&2)$(if $2$3,$(if $(VERBOSE),$(show_tool_vars_end)))
 
 # reset
 TMD:=
@@ -836,13 +839,13 @@ $(call CLEAN_BUILD_PROTECT_VARS,MAKEFLAGS PATH SHELL PASS_ENV_VARS $(PASS_ENV_VA
   PROJECT_VARS_NAMES CLEAN_BUILD_VERSION CLEAN_BUILD_DIR CLEAN_BUILD_REQUIRED_VERSION \
   BUILD DRIVERS_SUPPORT TARGET OS CPU TCPU KCPU SUPPORTED_TARGETS SUPPORTED_OSES SUPPORTED_CPUS \
   OSDIR NO_CLEAN_BUILD_DISTCLEAN_TARGET DEBUG VERBOSE QUIET INFOMF MDEBUG REMEMBER_PROCESSED_MAKEFILE \
-  ospath nonrelpath TOOL_SUFFIX PATHSEP DLL_PATH_VAR show_with_dll_path show_dll_path_end \
+  ospath nonrelpath TOOL_SUFFIX PATHSEP DLL_PATH_VAR show_tool_vars show_tool_vars_end \
   GEN_COLOR MGEN_COLOR CP_COLOR RM_COLOR DEL_COLOR LN_COLOR MKDIR_COLOR TOUCH_COLOR CAT_COLOR SED_COLOR \
   PRINT_PERCENTS COLORIZE ADD_SHOWN_PERCENTS FORMAT_PERCENTS REM_MAKEFILE SUP \
   SED_MULTI_EXPR TARGET_TRIPLET DEF_BIN_DIR DEF_OBJ_DIR DEF_LIB_DIR DEF_GEN_DIR SET_DEFAULT_DIRS \
-  TOOL_BASE MK_TOOLS_DIR GET_TOOLS GET_TOOL TOOL_OVERRIDE_DIRS TOCLEAN FIX_ORDER_DEPS \
+  TOOL_BASE MK_TOOLS_DIR GET_TOOLS GET_TOOL TOOL_OVERRIDE_DIRS TOCLEAN FIX_ORDER_DEPS NEED_GEN_DIRS \
   STD_TARGET_VARS1 STD_TARGET_VARS MAKEFILE_INFO_TEMPL SET_MAKEFILE_INFO fixpath \
   FILTER_VARIANTS_LIST GET_VARIANTS GET_TARGET_NAME FORM_OBJ_DIR \
   CHECK_GENERATED ADD_GENERATED MULTI_TARGET_RULE MULTI_TARGET_SEQ CHECK_MULTI_RULE MULTI_TARGET \
-  FORM_SDEPS EXTRACT_SDEPS FIX_SDEPS RUN_WITH_DLL_PATH DEF_HEAD_CODE DEF_HEAD_CODE_EVAL DEF_TAIL_CODE DEF_TAIL_CODE_EVAL \
+  FORM_SDEPS EXTRACT_SDEPS FIX_SDEPS RUN_TOOL DEF_HEAD_CODE DEF_HEAD_CODE_EVAL DEF_TAIL_CODE DEF_TAIL_CODE_EVAL \
   DEFINE_TARGETS=DEFINE_TARGETS_EVAL_NAME SAVE_VARS RESTORE_VARS MAKE_CONTINUE_BODY_EVAL MAKE_CONTINUE OSTYPE CONF_COLOR)
