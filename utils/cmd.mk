@@ -104,8 +104,8 @@ DELETE_FILES = for %%f in ($(ospath)) do if exist %%f del /F/Q %%f
 # delete directories $1 (recursively) (short list, no more than PATH_ARGS_LIMIT), paths may contain spaces: "1 2\3 4" "5 6\7 8\9" ...
 DELETE_DIRS = for %%f in ($(ospath)) do if exist %%f rd /S/Q %%f
 
-# delete directories $1 (non-recursively) if they are empty (short list, no more than PATH_ARGS_LIMIT), paths may contain spaces
-DELETE_DIRS_IF_EMPTY = rd $(ospath) 2>NUL
+# try to delete directories $1 (non-recursively) if they are empty (short list, no more than PATH_ARGS_LIMIT), paths may contain spaces
+TRY_DELETE_DIRS = rd $(ospath) 2>NUL
 
 # in directory $1 (path may contain spaces), delete files $2 (long list), to support long list, paths _must_ be without spaces
 # note: $6 - <empty> on first call, $(newline) on next calls
@@ -120,20 +120,34 @@ DEL_FILES_OR_DIRS  = $(call xcmd,DEL_FILES_OR_DIRS1,$(ospath),$(PATH_ARGS_LIMIT)
 # code for suppressing output of copy command, like
 # "        1 file(s) copied."
 # "Скопировано файлов:         1."
-SUPPRESS_CP_OUTPUT := | findstr /VC:"        1" & if errorlevel 1 (cmd /c exit 0) else (cmd /c exit 1)
+SUPPRESS_COPY_OUTPUT := | findstr /VC:"        1" & if errorlevel 1 (cmd /c exit 0) else (cmd /c exit 1)
+
+# code for suppressing output of move command, like
+# "        1 file(s) moved."
+# "Перемещено файлов:         1."
+# note: WinXP's move doesn't output anything on success
+SUPPRESS_MOVE_OUTPUT := | findstr /VC:"        1" & if errorlevel 1 (cmd /c exit 0) else (cmd /c exit 1)
 
 # copy file(s) (long list) preserving modification date:
 # - file(s) $1 to directory $2 (paths to files $1 _must_ be without spaces, but path to directory $2 may contain spaces) or
 # - file $1 to file $2         (path to file $1 _must_ be without spaces, but path to file $2 may contain spaces)
 # note: $6 - <empty> on first call, $(newline) on next calls
-COPY_FILES1 = $(if $6,$(QUIET))for %%f in ($1) do copy /Y /B %%f $2$(SUPPRESS_CP_OUTPUT)
+COPY_FILES1 = $(if $6,$(QUIET))for %%f in ($1) do copy /Y /B %%f $2$(SUPPRESS_COPY_OUTPUT)
 COPY_FILES  = $(if $(word 2,$1),$(call xcmd,COPY_FILES1,$(ospath),$(PATH_ARGS_LIMIT),$(call \
-  ospath,$2),,,),copy /Y /B $(call ospath,$1 $2)$(SUPPRESS_CP_OUTPUT))
+  ospath,$2),,,),copy /Y /B $(call ospath,$1 $2)$(SUPPRESS_COPY_OUTPUT))
+
+# move file(s) (long list) preserving modification date:
+# - file(s) $1 to directory $2 (paths to files $1 _must_ be without spaces, but path to directory $2 may contain spaces) or
+# - file $1 to file $2         (path to file $1 _must_ be without spaces, but path to file $2 may contain spaces)
+# note: $6 - <empty> on first call, $(newline) on next calls
+MOVE_FILES1 = $(if $6,$(QUIET))for %%f in ($1) do move /Y /B %%f $2$(SUPPRESS_MOVE_OUTPUT)
+MOVE_FILES  = $(if $(word 2,$1),$(call xcmd,MOVE_FILES1,$(ospath),$(PATH_ARGS_LIMIT),$(call \
+  ospath,$2),,,),move /Y $(call ospath,$1 $2)$(SUPPRESS_MOVE_OUTPUT))
 
 # update modification date of given file(s) or create file(s) if they do not exist
 # note: to support long list, paths _must_ be without spaces
 # note: $6 - <empty> on first call, $(newline) on next calls
-TOUCH_FILES1 = $(if $6,$(QUIET))for %%f in ($1) do if exist %%f (copy /Y /B %%f+,, %%f$(SUPPRESS_CP_OUTPUT)) else (rem. > %%f)
+TOUCH_FILES1 = $(if $6,$(QUIET))for %%f in ($1) do if exist %%f (copy /Y /B %%f+,, %%f$(SUPPRESS_COPY_OUTPUT)) else (rem. > %%f)
 TOUCH_FILES  = $(call xcmd,TOUCH_FILES1,$(ospath),$(PATH_ARGS_LIMIT),,,,)
 
 # create directory, path may contain spaces: "1 2\3 4"
@@ -246,7 +260,7 @@ DLL_PATH_VAR := PATH
 # $4 - list of names of variables to set in environment (export) for running an executable
 # note: override show_tool_vars from $(CLEAN_BUILD_DIR)/core/_defs.mk
 show_tool_vars = $(info setlocal$(foreach v,$(if $2,PATH) $4,$(newline)$(patsubst \
-  "%,SET "$v=%,$(call SHELL_ESCAPE,$($v))))$(newline)$(if $3,$(call EXECUTE_IN,$3,$1),$1))
+  "%,set "$v=%,$(call SHELL_ESCAPE,$($v))))$(newline)$(if $3,$(call EXECUTE_IN,$3,$1),$1))
 
 # show after executing a command
 # note: override show_tool_vars_end from $(CLEAN_BUILD_DIR)/core/_defs.mk
@@ -279,8 +293,8 @@ $(call SET_GLOBAL,$(sort TMP PATHEXT SYSTEMROOT COMSPEC $(WIN_EXPORTED)) PATH NO
 # protect variables from modifications in target makefiles
 # note: caller will protect variables: MAKEFLAGS SHELL PATH ospath nonrelpath1 nonrelpath
 #  TOOL_SUFFIX PATHSEP DLL_PATH_VAR show_tool_vars, show_tool_vars_end, PRINT_PERCENTS, COLORIZE
-$(call SET_GLOBAL,WIN_EXPORTED PRINT_ENV PATH_ARGS_LIMIT nonrelpath1 NUL DELETE_FILES DELETE_DIRS DELETE_DIRS_IF_EMPTY \
-  DELETE_FILES_IN1 DELETE_FILES_IN DEL_FILES_OR_DIRS1 DEL_FILES_OR_DIRS SUPPRESS_CP_OUTPUT \
-  COPY_FILES1 COPY_FILES TOUCH_FILES1 TOUCH_FILES CREATE_DIR COMPARE_FILES SHELL_ESCAPE SED SED_EXPR \
+$(call SET_GLOBAL,WIN_EXPORTED PRINT_ENV PATH_ARGS_LIMIT nonrelpath1 NUL DELETE_FILES DELETE_DIRS TRY_DELETE_DIRS \
+  DELETE_FILES_IN1 DELETE_FILES_IN DEL_FILES_OR_DIRS1 DEL_FILES_OR_DIRS SUPPRESS_COPY_OUTPUT SUPPRESS_MOVE_OUTPUT \
+  COPY_FILES1 COPY_FILES MOVE_FILES1 MOVE_FILES TOUCH_FILES1 TOUCH_FILES CREATE_DIR COMPARE_FILES SHELL_ESCAPE SED SED_EXPR \
   CAT_FILE ECHO_LINE_ESCAPE ECHO_LINE ECHO_LINES ECHO_TEXT WRITE_TEXT CREATE_SIMLINK CHANGE_MODE \
   EXECUTE_IN DEL_ON_FAIL INSTALL INSTALL_DIR INSTALL_FILES FILTER_OUTPUT)

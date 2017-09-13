@@ -25,13 +25,18 @@ DELETE_FILES = rm -f$(if $(VERBOSE),v) $1$(if $(VERBOSE), >&2)
 # delete directories $1 (recursively) (short list, no more than PATH_ARGS_LIMIT), paths may contain spaces: '1 2/3 4' '5 6/7 8/9' ...
 DELETE_DIRS = rm -rf$(if $(VERBOSE),v) $1$(if $(VERBOSE), >&2)
 
-# delete directories $1 (non-recursively) if they are empty (short list, no more than PATH_ARGS_LIMIT), paths may contain spaces
-DELETE_DIRS_IF_EMPTY = rmdir$(if $(VERBOSE), -v) --ignore-fail-on-non-empty $1
+# try to delete directories $1 (non-recursively) if they are empty (short list, no more than PATH_ARGS_LIMIT), paths may contain spaces
+TRY_DELETE_DIRS = rmdir$(if $(VERBOSE), -v) --ignore-fail-on-non-empty $1$(if $(VERBOSE), >&2)
 
 # copy file(s) (long list) preserving modification date, ownership and mode:
 # - file(s) $1 to directory $2 (paths to files $1 _must_ be without spaces, but path to directory $2 may contain spaces) or
 # - file $1 to file $2         (path to file $1 _must_ be without spaces, but path to file $2 may contain spaces)
 COPY_FILES2 = cp -p$(if $(VERBOSE),v) $1 $2$(if $(VERBOSE), >&2)
+
+# move file(s) (long list) preserving modification date, ownership and mode:
+# - file(s) $1 to directory $2 (paths to files $1 _must_ be without spaces, but path to directory $2 may contain spaces) or
+# - file $1 to file $2         (path to file $1 _must_ be without spaces, but path to file $2 may contain spaces)
+MOVE_FILES2 = mv$(if $(VERBOSE), -v) $1 $2$(if $(VERBOSE), >&2)
 
 # create directory, path may contain spaces: '1 2/3 4'
 # to avoid races, CREATE_DIR must be called only if it's known that destination directory does not exist
@@ -55,14 +60,16 @@ EXECUTE_IN = pushd $1 >/dev/null && { $2 && popd >/dev/null || { popd >/dev/null
 
 # create directory (with intermediate parent directories) while installing things
 # $1 - path to directory to create, path may contain spaces, such as: '/opt/a b c'
+# note: INSTALL defined in $(CLEAN_BUILD_DIR)/utils/unix.mk
 INSTALL_DIR = $(INSTALL) -d$(if $(VERBOSE),v) $1$(if $(VERBOSE), >&2)
 
 # install file(s) (long list) to directory or copy file to file
 # $1 - file(s) to install (to support long list, paths _must_ be without spaces)
 # $2 - destination directory or file, path may contain spaces
 # $3 - optional access mode, such as -m644 (rw--r--r-) or -m755 (rwxr-xr-x)
+# note: overwrite INSTALL_FILES2 macro from $(CLEAN_BUILD_DIR)/utils/unix.mk
 INSTALL_FILES2 = $(INSTALL)$(if $(VERBOSE), -v) $3 $1 $2$(if $(VERBOSE), >&2)
 
 # protect variables from modifications in target makefiles
-$(call SET_GLOBAL,CYGWIN_FILTERED_ENV PRINT_ENV DELETE_FILES DELETE_DIRS DELETE_DIRS_IF_EMPTY COPY_FILES2 \
+$(call SET_GLOBAL,CYGWIN_FILTERED_ENV PRINT_ENV DELETE_FILES DELETE_DIRS TRY_DELETE_DIRS COPY_FILES2 MOVE_FILES2 \
   CREATE_DIR SED_EXPR CREATE_SIMLINK CHANGE_MODE EXECUTE_IN INSTALL_DIR INSTALL_FILES2)

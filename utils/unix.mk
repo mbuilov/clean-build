@@ -30,9 +30,9 @@ DELETE_FILES = rm -f $1
 # note: $(CLEAN_BUILD_DIR)/utils/gnu.mk overrides DELETE_DIRS
 DELETE_DIRS = rm -rf $1
 
-# delete directories $1 (non-recursively) if they are empty (short list, no more than PATH_ARGS_LIMIT), paths may contain spaces
-# note: $(CLEAN_BUILD_DIR)/utils/gnu.mk overrides DELETE_DIRS_IF_EMPTY
-DELETE_DIRS_IF_EMPTY = rmdir $1 2>/dev/null || true
+# try to delete directories $1 (non-recursively) if they are empty (short list, no more than PATH_ARGS_LIMIT), paths may contain spaces
+# note: $(CLEAN_BUILD_DIR)/utils/gnu.mk overrides TRY_DELETE_DIRS
+TRY_DELETE_DIRS = rmdir $1 2>/dev/null || true
 
 # in directory $1 (path may contain spaces), delete files $2 (long list), to support long list, paths _must_ be without spaces
 # note: $6 - <empty> on first call, $(newline) on next calls
@@ -51,7 +51,16 @@ DEL_FILES_OR_DIRS  = $(call xcmd,DEL_FILES_OR_DIRS1,$1,$(PATH_ARGS_LIMIT),,,,)
 # note: $(CLEAN_BUILD_DIR)/utils/gnu.mk overrides COPY_FILES2
 COPY_FILES2 = cp -p $1 $2
 COPY_FILES1 = $(if $6,$(QUIET))$(COPY_FILES2)
-COPY_FILES  = $(if $(word 2,$1),$(call xcmd,COPY_FILES1,$1,$(PATH_ARGS_LIMIT),$2,,,),cp -p $1 $2)
+COPY_FILES  = $(if $(word 2,$1),$(call xcmd,COPY_FILES1,$1,$(PATH_ARGS_LIMIT),$2,,,),$(COPY_FILES2))
+
+# move file(s) (long list) preserving modification date, ownership and mode:
+# - file(s) $1 to directory $2 (paths to files $1 _must_ be without spaces, but path to directory $2 may contain spaces) or
+# - file $1 to file $2         (path to file $1 _must_ be without spaces, but path to file $2 may contain spaces)
+# note: $6 - <empty> on first call, $(newline) on next calls
+# note: $(CLEAN_BUILD_DIR)/utils/gnu.mk overrides MOVE_FILES2
+MOVE_FILES2 = mv $1 $2
+MOVE_FILES1 = $(if $6,$(QUIET))$(MOVE_FILES2)
+MOVE_FILES  = $(if $(word 2,$1),$(call xcmd,MOVE_FILES1,$1,$(PATH_ARGS_LIMIT),$2,,,),$(MOVE_FILES2))
 
 # update modification date of given file(s) or create file(s) if they do not exist
 # note: to support long list, paths _must_ be without spaces
@@ -160,8 +169,8 @@ LN_COLOR    := [36m
 CHMOD_COLOR := [1;35m
 
 # protect variables from modifications in target makefiles
-$(call SET_GLOBAL,PRINT_ENV PATH_ARGS_LIMIT NUL DELETE_FILES DELETE_DIRS DELETE_DIRS_IF_EMPTY DELETE_FILES_IN1 DELETE_FILES_IN \
-  DEL_FILES_OR_DIRS1 DEL_FILES_OR_DIRS COPY_FILES2 COPY_FILES1 COPY_FILES TOUCH_FILES1 TOUCH_FILES CREATE_DIR \
-  COMPARE_FILES SHELL_ESCAPE SED SED_EXPR CAT_FILE ECHO_LINE_ESCAPE ECHO_LINE ECHO_LINES ECHO_TEXT WRITE_TEXT \
-  CREATE_SIMLINK CHANGE_MODE EXECUTE_IN DEL_ON_FAIL INSTALL INSTALL_DIR INSTALL_FILES2 INSTALL_FILES1 INSTALL_FILES \
-  LN_COLOR CHMOD_COLOR ifaddq)
+$(call SET_GLOBAL,PRINT_ENV PATH_ARGS_LIMIT NUL DELETE_FILES DELETE_DIRS TRY_DELETE_DIRS DELETE_FILES_IN1 DELETE_FILES_IN \
+  DEL_FILES_OR_DIRS1 DEL_FILES_OR_DIRS COPY_FILES2 COPY_FILES1 COPY_FILES MOVE_FILES2 MOVE_FILES1 MOVE_FILES \
+  TOUCH_FILES1 TOUCH_FILES CREATE_DIR COMPARE_FILES SHELL_ESCAPE SED SED_EXPR CAT_FILE \
+  ECHO_LINE_ESCAPE ECHO_LINE ECHO_LINES ECHO_TEXT WRITE_TEXT CREATE_SIMLINK CHANGE_MODE EXECUTE_IN \
+  DEL_ON_FAIL INSTALL INSTALL_DIR INSTALL_FILES2 INSTALL_FILES1 INSTALL_FILES LN_COLOR CHMOD_COLOR ifaddq)
