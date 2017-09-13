@@ -475,20 +475,19 @@ else
 TOCLEAN = $(eval CLEAN+=$$1)
 endif
 
-# append makefiles (really PHONY targets created from them) to ORDER_DEPS list
-# note: this function is useful to specify dependency on all target files built by makefiles (a tree of makefiles)
+# append makefiles (really .PHONY goals created from them) to ORDER_DEPS list
+# note: this function is useful to specify dependency on all targets built by makefiles (a tree of makefiles)
 # note: argument - list of makefiles (or directories, where Makefile is searched)
 # note: overridden in $(CLEAN_BUILD_DIR)/core/_parallel.mk
 ADD_MDEPS:=
 
-# same as ADD_MDEPS, but accepts aliases of makefiles
-# note: alias names are created via CREATE_MAKEFILE_ALIAS macro
+# same as ADD_MDEPS, but accepts aliases of makefiles created via CREATE_MAKEFILE_ALIAS macro
 # note: overridden in $(CLEAN_BUILD_DIR)/core/_parallel.mk
 ADD_ADEPS:=
 
 ifndef TOCLEAN
 
-# create a PHONY target aliasing current makefile
+# create a .PHONY goal aliasing current makefile
 # $1 - arbitrary alias name
 CREATE_MAKEFILE_ALIAS = $(eval .PHONY: $1_MAKEFILE_ALIAS-$(newline)$1_MAKEFILE_ALIAS-: $(TARGET_MAKEFILE)-)
 
@@ -505,7 +504,7 @@ else
 ADD_ORDER_DEPS = $(eval ORDER_DEPS+=$$1)
 endif
 
-# define a PHONY target which will depend on main makefile targets (registered via STD_TARGET_VARS macro)
+# define a .PHONY goal which will depend on main makefile targets (registered via STD_TARGET_VARS macro)
 .PHONY: $(TARGET_MAKEFILE)-
 
 # default goal 'all' - depends only on the root makefile
@@ -525,7 +524,7 @@ endif
 # $2     - directories of target file(s) (absolute paths)
 # $(TMD) - T if target is built in TOOL_MODE
 # note: postpone expansion of $(ORDER_DEPS) to optimize parsing
-# note: PHONY target $(TARGET_MAKEFILE)- will depend on built files
+# note: .PHONY goal $(TARGET_MAKEFILE)- will depend on built files
 define STD_TARGET_VARS1
 $1:TMD:=$(TMD)
 $1:| $2 $$(ORDER_DEPS)
