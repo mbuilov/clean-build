@@ -6,7 +6,10 @@
 
 # generic support for precompiled headers
 
-# included by $(CLEAN_BUILD_DIR)/compilers/gcc_pch.mk
+# included by:
+#  $(CLEAN_BUILD_DIR)/compilers/gcc_pch.mk
+#  $(CLEAN_BUILD_DIR)/compilers/suncc_pch.mk
+#  $(CLEAN_BUILD_DIR)/compilers/msvc_pch.mk
 
 ifndef TOCLEAN
 
