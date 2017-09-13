@@ -284,9 +284,11 @@ DLL_PATH_VAR := LD_LIBRARY_PATH
 # show environment variables set for running a tool in modified environment
 # $1 - tool to execute (with parameters)
 # $2 - additional path(s) separated by $(PATHSEP) to append to $(DLL_PATH_VAR)
-# $3 - list of names of variables to set in environment (export) for running an executable
+# $3 - directory to change to for executing a tool
+# $4 - list of names of variables to set in environment (export) for running an executable
 # note: $(CLEAN_BUILD_DIR)/utils/cmd.mk defines own show_tool_vars/show_tool_vars_end
-show_tool_vars = $(info $(foreach v,$(if $2,$(DLL_PATH_VAR)) $3,$v=$(call SHELL_ESCAPE,$($v))) $1)
+show_tool_vars1 = $(foreach v,$(if $2,$(DLL_PATH_VAR)) $4,$v=$(call SHELL_ESCAPE,$($v))) $1
+show_tool_vars = $(info $(if $3,$(call EXECUTE_IN,$3,$(show_tool_vars1)),$(show_tool_vars1)))
 
 # note: $(CLEAN_BUILD_DIR)/utils/cmd.mk defines own show_tool_vars_end
 show_tool_vars_end:=
@@ -816,12 +818,16 @@ FIX_SDEPS = $(subst | ,|,$(call fixpath,$(subst |,| ,$1)))
 # run executable in modified environment
 # $1 - tool to execute (with parameters)
 # $2 - additional path(s) separated by $(PATHSEP) to append to $(DLL_PATH_VAR)
-# $3 - list of names of variables to set in environment (export) for running an executable
+# $3 - directory to change to for executing a tool
+# $4 - list of names of variables to set in environment (export) for running an executable
 # note: this function should be used in rule body, where automatic variable $@ is defined
+# note: calling a tool _must_ not produce any output to stdout,
+#  tool's stdout must be redirected either to file or to stderr, e.g. './my_tool >file' or './my_tool >&2'
 # note: $(CLEAN_BUILD_DIR)/utils/cmd.mk defines own show_tool_vars/show_tool_vars_end
-RUN_TOOL = $(if $2$3,$(if $2,$(eval \
-  $$@:export $(DLL_PATH_VAR):=$$($(DLL_PATH_VAR))$$(if $$($(DLL_PATH_VAR)),$$(if $2,$(PATHSEP)))$2))$(foreach v,$3,$(eval \
-  $$@:export $v:=$$($v)))$(if $(VERBOSE),$(show_tool_vars)@))$1$(if $(VERBOSE), >&2)$(if $2$3,$(if $(VERBOSE),$(show_tool_vars_end)))
+RUN_TOOL = $(if $2$4,$(if $2,$(eval \
+  $$@:export $(DLL_PATH_VAR):=$$($(DLL_PATH_VAR))$$(if $$($(DLL_PATH_VAR)),$$(if $2,$(PATHSEP)))$2))$(foreach v,$4,$(eval \
+  $$@:export $v:=$$($v)))$(if $(VERBOSE),$(show_tool_vars)@))$(if $3,$(call EXECUTE_IN,$3,$1),$1)$(if \
+  $2$4,$(if $(VERBOSE),$(show_tool_vars_end)))
 
 # current value of $(TOOL_MODE)
 # reset: $(SET_DEFAULT_DIRS) has already been evaluated
@@ -1011,7 +1017,7 @@ $(call SET_GLOBAL,MAKEFLAGS $(PASS_ENV_VARS) PATH SHELL NEEDED_DIRS \
 $(call SET_GLOBAL,PROJECT_VARS_NAMES PASS_ENV_VARS \
   CLEAN_BUILD_VERSION CLEAN_BUILD_DIR CLEAN_BUILD_REQUIRED_VERSION \
   BUILD SUPPORTED_TARGETS TARGET OS CPU TCPU UTILS UTILS_MK TARGET_MAKEFILE \
-  ospath nonrelpath TOOL_SUFFIX PATHSEP DLL_PATH_VAR show_tool_vars show_tool_vars_end SED_MULTI_EXPR \
+  ospath nonrelpath TOOL_SUFFIX PATHSEP DLL_PATH_VAR show_tool_vars1 show_tool_vars show_tool_vars_end SED_MULTI_EXPR \
   GEN_COLOR MGEN_COLOR CP_COLOR RM_COLOR RMDIR_COLOR MKDIR_COLOR TOUCH_COLOR CAT_COLOR SED_COLOR \
   PRINT_PERCENTS COLORIZE SHOWN_REMAINDER ADD_SHOWN_PERCENTS==SHOWN_REMAINDER \
   FORMAT_PERCENTS=SHOWN_PERCENTS REM_MAKEFILE=SHOWN_PERCENTS=SHOWN_PERCENTS SUP \
