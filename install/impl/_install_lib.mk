@@ -114,7 +114,7 @@ install_lib_$1_headers: $$($1_LIBRARY_HEADERS) | $$(call NEED_INSTALL_DIR_RET,$$
 	$$(call DO_INSTALL_FILES,$$(HEADERS),$$(D_INCLUDEDIR)$($1_LIBRARY_HDIR),$(LIB_HEADERS_FILE_ACCESS_MODE))
 uninstall_lib_$1_headers:
 	$$(call DO_UNINSTALL_FILES_IN,$$(D_INCLUDEDIR)$($1_LIBRARY_HDIR),$$(notdir $$(HEADERS)))$(if \
-  $($1_LIBRARY_HDIR),$(newline)$(tab)$$(call DO_UNINSTALL_DIR_IF_EMPTY,$$(D_INCLUDEDIR)$($1_LIBRARY_HDIR)))
+  $($1_LIBRARY_HDIR),$(newline)$(tab)$$(call DO_TRY_UNINSTALL_DIR,$$(D_INCLUDEDIR)$($1_LIBRARY_HDIR)))
 install_lib_$1:   install_lib_$1_headers
 uninstall_lib_$1: uninstall_lib_$1_headers
 $(call MAKEFILE_INFO_TEMPL,install_lib_$1_headers uninstall_lib_$1_headers)

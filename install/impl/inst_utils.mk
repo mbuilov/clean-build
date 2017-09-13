@@ -62,8 +62,8 @@ DO_UNINSTALL_DIR  = $(call DO_UNINSTALL_DIRq,$(ifaddq))
 # $1 - directory to delete, path may contain spaces, such as: "C:/Program Files/AcmeCorp"
 # note: pass non-empty 3-d argument to SUP function to not colorize tool arguments
 # note: pass non-empty 4-th argument to SUP function to not update percents of executed makefiles
-DO_UNINSTALL_DIR_IF_EMPTYq = $(call SUP,RMDIR,$(ospath),1,1)$(DELETE_DIRS_IF_EMPTY)
-DO_UNINSTALL_DIR_IF_EMPTY  = $(call DO_UNINSTALL_DIR_IF_EMPTYq,$(ifaddq))
+DO_TRY_UNINSTALL_DIRq = $(call SUP,RMDIR,$(ospath),1,1)$(TRY_DELETE_DIRS)
+DO_TRY_UNINSTALL_DIR  = $(call DO_TRY_UNINSTALL_DIRq,$(ifaddq))
 
 # global list of directories to install
 NEEDED_INSTALL_DIRS:=
@@ -112,4 +112,4 @@ $(call SET_GLOBAL1,NEEDED_INSTALL_DIRS,0)
 # protect variables from modifications in target makefiles
 $(call SET_GLOBAL,DO_INSTALL_DIRq DO_INSTALL_DIR DO_INSTALL_FILESq DO_INSTALL_FILES DO_INSTALL_SIMLINKqq DO_INSTALL_SIMLINK \
   DO_UNINSTALL_FILEq DO_UNINSTALL_FILE DO_UNINSTALL_FILES_INq DO_UNINSTALL_FILES_IN DO_UNINSTALL_DIRq DO_UNINSTALL_DIR \
-  DO_UNINSTALL_DIR_IF_EMPTYq DO_UNINSTALL_DIR_IF_EMPTY ADD_INSTALL_DIRS_TEMPL NEED_INSTALL_DIR NEED_INSTALL_DIR_RET)
+  DO_TRY_UNINSTALL_DIRq DO_TRY_UNINSTALL_DIR ADD_INSTALL_DIRS_TEMPL NEED_INSTALL_DIR NEED_INSTALL_DIR_RET)
