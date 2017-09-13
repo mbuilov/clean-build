@@ -6,15 +6,19 @@
 
 # standard resource template, included by $(CLEAN_BUILD_DIR)/compilers/msvc.mk
 
-# $2    - target file name the resource is bundled into, e.g. $(notdir $(call FORM_TRG,EXE,R))
-# $3    - header file $(WIN_RC_PRODUCT_DEFS_HEADER)
-# $4    - $(WIN_RC_PRODUCT_VERSION_MAJOR)
-# $5    - $(WIN_RC_PRODUCT_VERSION_MINOR)
-# $6    - $(WIN_RC_PRODUCT_VERSION_PATCH)
-# $7    - $(WIN_RC_MODULE_VERSION_MAJOR)
-# $8    - $(WIN_RC_MODULE_VERSION_MINOR)
-# $9    - $(WIN_RC_MODULE_VERSION_PATCH)
-# $(10) - $(WIN_RC_PRODUCT_BUILD_NUM)
+https://msdn.microsoft.com/ru-ru/library/windows/desktop/aa381058(v=vs.85).aspx
+https://msdn.microsoft.com/ru-ru/library/windows/desktop/ms646997(v=vs.85).aspx
+https://www.cs.helsinki.fi/group/boi2016/doc/freepascal/fclres/versionconsts/index.html
+
+# $1    - target file name the resource is bundled into, e.g. $(notdir $(call FORM_TRG,EXE,R))
+# $3    - $(WIN_RC_INCLUDE)                 auxiliary text to add to generated resource file
+# $4    - $(WIN_RC_PRODUCT_VERSION_MAJOR)   product major version number
+# $5    - $(WIN_RC_PRODUCT_VERSION_MINOR)   product minor version number
+# $6    - $(WIN_RC_PRODUCT_VERSION_PATCH)   product patch number
+# $7    - $(WIN_RC_MODULE_VERSION_MAJOR)    module file major version number
+# $8    - $(WIN_RC_MODULE_VERSION_MINOR)    module file minor version number
+# $9    - $(WIN_RC_MODULE_VERSION_PATCH)    module file patch number
+# $(10) - $(WIN_RC_PRODUCT_BUILD_NUM)       product build number
 # $(11) - $(WIN_RC_COMMENTS)
 # $(12) - $(WIN_RC_COMPANY_NAME)
 # $(13) - $(WIN_RC_FILE_DESCRIPTION)
@@ -29,26 +33,23 @@
 # $(22) - $(WIN_RC_LANG)
 # $(23) - $(WIN_RC_CHARSET)
 # note: $6 - by default PRODUCT_VERSION_PATCH, may be not defined in included header $3
-define STD_VERSION_RC_TEMPLATE
+define WIN_RC_STD_VERSION_TEMPLATE
 #include <winver.h>
-#include "$3"
+#include "$2"$3
 #define _VERSION_TO_STR(s) #s
 #define VERSION_TO_STR(a,b,c,d) _VERSION_TO_STR(a.b.c.d)
-#ifndef $6
-#define $6 0
-#endif
 VS_VERSION_INFO VERSIONINFO
-FILEVERSION     $7,$8,$9,$(10)
-PRODUCTVERSION  $4,$5,$6,$(10)
-FILEFLAGSMASK VS_FF_DEBUG | VS_FF_PRERELEASE | VS_FF_PATCHED | VS_FF_PRIVATEBUILD | VS_FF_INFOINFERRED | VS_FF_SPECIALBUILD
+FILEVERSION    $4,$5,$6,$(10)
+PRODUCTVERSION $7,$8,$9,$(10)
+FILEFLAGSMASK VS_FF_DEBUG | VS_FF_PATCHED | VS_FF_PRERELEASE | VS_FF_PRIVATEBUILD | VS_FF_SPECIALBUILD
 #ifdef DEBUG
-    FILEFLAGS VS_FF_DEBUG | VS_FF_PRERELEASE$(if $(18), | VS_FF_PRIVATEBUILD)$(if $(21), | VS_FF_SPECIALBUILD)
+    FILEFLAGS VS_FF_DEBUG | VS_FF_PRERELEASE$(if $(24), | VS_FF_PATCHED)$(if $(18), | VS_FF_PRIVATEBUILD)$(if $(21), | VS_FF_SPECIALBUILD)
 #else
-    FILEFLAGS 0x0L$(if $(18), | VS_FF_PRIVATEBUILD)$(if $(21), | VS_FF_SPECIALBUILD)
+    FILEFLAGS 0x0L$(if $(24), | VS_FF_PATCHED)$(if $(18), | VS_FF_PRIVATEBUILD)$(if $(21), | VS_FF_SPECIALBUILD)
 #endif
-FILEOS      $(STD_RC_FILEOS)
-FILETYPE    $(STD_RC_FILETYPE)
-FILESUBTYPE $(STD_RC_FILESUBTYPE)
+FILEOS      $(25)
+FILETYPE    $(26)
+FILESUBTYPE $(27)
 BEGIN
     BLOCK "StringFileInfo"
     BEGIN
@@ -57,14 +58,14 @@ BEGIN
 $(11),$(newline)            VALUE "Comments"$(comma)        $(11) "\0")
             VALUE "CompanyName",     $(12) "\0"
             VALUE "FileDescription", $(13) "\0"
-            VALUE "FileVersion",     $(14) "\0"
+            VALUE "FileVersion",     VERSION_TO_STR($4,$5,$6,$(10)) "\0"
             VALUE "InternalName",    $(15) "\0"$(if \
 $(16),$(newline)            VALUE "LegalCopyright"$(comma)  $(16) "\0")$(if \
 $(17),$(newline)            VALUE "LegalTrademarks"$(comma) $(17) "\0")
-            VALUE "OriginalFilename","$2$($1_SUFFIX)\0"$(if \
+            VALUE "OriginalFilename","$1\0"$(if \
 $(18),$(newline)            VALUE "PrivateBuild"$(comma) $(18) "\0")
             VALUE "ProductName",     $(19) "\0"
-            VALUE "ProductVersion",  $(20) "\0"$(if \
+            VALUE "ProductVersion",  VERSION_TO_STR($7,$8,$9,$(10)) "\0"$(if \
 $(21),$(newline)            VALUE "SpecialBuild"$(comma) $(21) "\0")
         END
     END
@@ -114,6 +115,10 @@ endif
 #define PRODUCT_TARGET        "RELEASE"
 #define PRODUCT_BUILD_NUM     12345
 #define PRODUCT_BUILD_DATE    "01/01/2017:09.30"
+
+#include "$2"$3
+#define _VERSION_TO_STR(s) #s
+#define VERSION_TO_STR(a,b,c,d) _VERSION_TO_STR(a.b.c.d)
 
 # define parameters for .rc-file generation
 # $1 - target EXE,DLL,DRV,KDLL
