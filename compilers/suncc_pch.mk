@@ -115,7 +115,7 @@ PCH_TEMPLATEv = $(call PCH_TEMPLATEv1,$1,$2,$3,$4,$5,$6,$(call FORM_OBJ_DIR,$1),
 define SUNCC_PCH_GEN_TEMPL
 NEEDED_DIRS+=$1
 $3:| $1
-	$$(call ECHO_TEXT,#include "$2"$(newline)#pragma hdrstop) > $$@
+	$$(call SUP,GEN,$$@)$$(call ECHO_TEXT,#include "$2"$(newline)#pragma hdrstop) > $$@
 
 endef
 
@@ -126,7 +126,7 @@ endef
 # note: last line must be empty
 define SUNCC_PCH_SRC_GEN
 $1/$(notdir $s)$4:| $1
-	$$(call ECHO_TEXT,#include "$2"$(newline)#pragma hdrstop$(newline)#include "$s") > $$@
+	$$(call SUP,GEN,$$@)$$(call ECHO_TEXT,#include "$2"$(newline)#pragma hdrstop$(newline)#include "$s") > $$@
 
 endef
 

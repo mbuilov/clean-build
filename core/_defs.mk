@@ -487,6 +487,13 @@ ADD_MDEPS:=
 # note: overridden in $(CLEAN_BUILD_DIR)/core/_parallel.mk
 ADD_ADEPS:=
 
+# fix template to print what makefile builds
+# $1 - template name
+# $2 - expression that gives target file(s) the template builds
+# $3 - optional expression that gives order-only dependencies
+# note: expressions $2 and $3 are evaluated while expanding template $1, _before_ evaluating expansion result
+ADD_WHAT_MAKEFILE_BUILDS:=
+
 ifndef TOCLEAN
 
 # create a .PHONY goal aliasing current makefile
@@ -539,10 +546,19 @@ ifdef MCHECK
 $(call define_append,STD_TARGET_VARS1,$(newline)$$(call SET_GLOBAL1,NEEDED_DIRS,0))
 endif
 
-# print what makefile builds
 ifdef MDEBUG
-$(call define_append,STD_TARGET_VARS1,$$(info $$(if \
-  $$(TMD),[T]: )$$(patsubst $$(BUILD)/%,%,$$1)$$(if $$(ORDER_DEPS), | $$(ORDER_DEPS))))
+
+# fix template to print what makefile builds
+# $1 - template name
+# $2 - expression that gives target file(s) the template builds
+# $3 - optional expression that gives order-only dependencies
+# note: expressions $2 and $3 are evaluated while expanding template $1, _before_ evaluating expansion result
+ADD_WHAT_MAKEFILE_BUILDS = $(call define_append,$1,$(newline)$$(info $$(if $$(TMD),[T]: )$$(patsubst \
+  $$(BUILD)/%,%,$(subst $$,$$$$,$2))$(if $3,$$(if $(subst $$,$$$$,$3), | $(subst $$,$$$$,$3)))))
+
+# print what makefile builds
+$(call ADD_WHAT_MAKEFILE_BUILDS,STD_TARGET_VARS1,$$1,$$(ORDER_DEPS))
+
 endif
 
 # register targets as main ones built by current makefile, add standard target-specific variables
@@ -953,12 +969,19 @@ endif
 DEFINE_TARGETS = $(if $(call $(DEFINE_TARGETS_EVAL_NAME)),)
 
 # before $(MAKE_CONTINUE): save variables to restore them after (via RESTORE_VARS macro)
-SAVE_VARS = $(eval $(foreach v,$1,$(newline)$(if $(findstring \
-  simple,$(flavor $v)),$v^saved:=$$($v)$(newline),define $v^saved$(newline)$(value $v)$(newline)endef)))
+SAVE_VARS = $(eval $(foreach v,$1,$(if $(findstring \
+  simple,$(flavor $v)),$v^saved:=$$($v),define $v^saved$(newline)$(value $v)$(newline)endef)$(newline)))
 
 # after $(MAKE_CONTINUE): restore variables saved before (via SAVE_VARS macro)
-RESTORE_VARS = $(eval $(foreach v,$1,$(newline)$(if $(findstring \
-  simple,$(flavor $v^saved)),$v:=$$($v^saved)$(newline),define $v$(newline)$(value $v^saved)$(newline)endef)))
+RESTORE_VARS = $(eval $(foreach v,$1,$(if $(findstring \
+  simple,$(flavor $v^saved)),$v:=$$($v^saved),define $v$(newline)$(value $v^saved)$(newline)endef)$(newline)))
+
+# reset %^saved variables
+ifdef CLEAN_BUILD_RESET_SAVED_VARS
+$(eval RESTORE_VARS = $(subst \
+  $(close_brace)$(close_brace)$(close_brace),$(close_brace)$(close_brace)$$(CLEAN_BUILD_RESET_SAVED_VARS)$(close_brace),$(value \
+  RESTORE_VARS)))
+endif
 
 # initially reset variable, it is checked in DEF_HEAD_CODE
 MAKE_CONT:=
@@ -1023,7 +1046,7 @@ $(call SET_GLOBAL,PROJECT_VARS_NAMES PASS_ENV_VARS \
   FORMAT_PERCENTS=SHOWN_PERCENTS REM_MAKEFILE=SHOWN_PERCENTS=SHOWN_PERCENTS SUP \
   TARGET_TRIPLET DEF_BIN_DIR DEF_OBJ_DIR DEF_LIB_DIR DEF_GEN_DIR SET_DEFAULT_DIRS \
   TOOL_BASE MK_TOOLS_DIR GET_TOOLS GET_TOOL TOOL_OVERRIDE_DIRS \
-  ADD_MDEPS ADD_ADEPS CREATE_MAKEFILE_ALIAS ADD_ORDER_DEPS=ORDER_DEPS=ORDER_DEPS \
+  ADD_MDEPS ADD_ADEPS ADD_WHAT_MAKEFILE_BUILDS CREATE_MAKEFILE_ALIAS ADD_ORDER_DEPS=ORDER_DEPS=ORDER_DEPS \
   NEED_GEN_DIRS STD_TARGET_VARS1 STD_TARGET_VARS MAKEFILE_INFO_TEMPL SET_MAKEFILE_INFO fixpath \
   GET_TARGET_NAME SUPPORTED_VARIANTS FILTER_VARIANTS_LIST GET_VARIANTS VARIANT_SUFFIX FORM_TRG ALL_TARGETS \
   FORM_OBJ_DIR MAKE_TRG_PATH ADD_GENERATED CHECK_GENERATED ADD_GENERATED_RET NON_PARALLEL_EXECUTE_RULE NON_PARALLEL_EXECUTE \

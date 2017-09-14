@@ -29,11 +29,24 @@ $(eval ADD_SHOWN_PERCENTS = $(subst \
   $$(TARGET_MAKEFILES_COUNT1),$(words $(PROCESSED_MAKEFILES) 1),$(value ADD_SHOWN_PERCENTS))))
 endif
 
-# check that target rules are defined and completed
 ifdef MCHECK
+
+# check that target rules are defined and completed
 $(PROCESSED_MAKEFILES):
 	$(foreach f,$(filter-out $(wildcard $^),$^),$(info $(@:-=): cannot build $f))
+
+# only counters, protected global constants and target-specific variables may be used in rules,
+#  so redefine non-protected global (i.e. "local") variables to produce access errors
+$(eval $(call CLEAN_BUILD_RESET_LOCAL_VARS,TARGET_MAKEFILE BIN_DIR OBJ_DIR LIB_DIR GEN_DIR TOOL_MODE TMD ORDER_DEPS CB_INCLUDE_LEVEL NEEDED_DIRS MULTI_TARGET_NUM MAKE_CONTINUE_EVAL_NAME DEFINE_TARGETS_EVAL_NAME MAKE_CONT))
+
+# values of TARGET_MAKEFILE, BIN_DIR/OBJ_DIR/LIB_DIR/GEN_DIR, TOOL_MODE, TMD, ORDER_DEPS, CB_INCLUDE_LEVEL, NEEDED_DIRS
+
 endif
+
+BIN_DIR:=$(TOOL_BASE)/bin-TOOL-$(TCPU)-$(TARGET)
+OBJ_DIR:=$(TOOL_BASE)/obj-TOOL-$(TCPU)-$(TARGET)
+LIB_DIR:=$(TOOL_BASE)/lib-TOOL-$(TCPU)-$(TARGET)
+GEN_DIR:=$(TOOL_BASE)/gen-TOOL-$(TCPU)-$(TARGET)
 
 # define rule for default goal 'all'
 # note: all depends on $(TARGET_MAKEFILE)- defined in $(CLEAN_BUILD_DIR)/core/_defs.mk

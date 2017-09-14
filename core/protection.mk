@@ -59,21 +59,29 @@ endif
 # $2 - if not empty, then do not trace calls for given macros
 SET_GLOBAL = $(eval $(SET_GLOBAL1))
 
-# 1) only protected global and target-specific variables may be used in rules,
-#  so redefine non-protected global (i.e. "local") variables to produce access errors
-#  note: do not touch GNU Make automatic variable MAKEFILE_LIST
-# 2) check and set CLEAN_BUILD_NEED_TAIL_CODE - $(DEF_TAIL_CODE) must be evaluated after $(DEF_HEAD_CODE)
-# 3) remember new value of CLEAN_BUILD_NEED_TAIL_CODE
-define CLEAN_BUILD_CHECK_AT_HEAD
-$(if $(foreach v,$(filter-out \
-  MAKEFILE_LIST $(CLEAN_BUILD_PROTECTED_VARS) $^saved,$(.VARIABLES)),$(if \
+# reset "local" variable $v
+CLEAN_BUILD_RESET_LOCAL_VAR = $(if \
   $(filter file override environment,$(origin $v)),$(if \
   $(filter-out !$$$(open_brace)error$(space)%,$(value $v)),$(if \
   $(filter environment,$(origin $v)),$v=!$$(error \
   using environment variable: $v, use of environment variables is discouraged, please use only file variables),$(findstring \
   override,$(origin $v)) $v=!$$(error \
-  using local varaible: $v, please use target-specific or global ones))$(newline))))$(if $(CLEAN_BUILD_NEED_TAIL_CODE),$(error \
-  $$(DEFINE_TARGETS) was not evaluated at end of $(CLEAN_BUILD_NEED_TAIL_CODE)!)),)CLEAN_BUILD_NEED_TAIL_CODE := $(TARGET_MAKEFILE)
+  using local varaible: $v, please use target-specific or global one))$(newline)))
+
+# only protected global and target-specific variables may be used in rules,
+#  so redefine non-protected global (i.e. "local") variables to produce access errors
+# note: do not touch GNU Make automatic variable MAKEFILE_LIST
+# note: do not reset %^saved variables here - they are needed for RESTORE_VARS, which will reset them
+CLEAN_BUILD_RESET_LOCAL_VARS = $(foreach v,$(filter-out \
+  MAKEFILE_LIST $(CLEAN_BUILD_PROTECTED_VARS) %^saved,$(.VARIABLES)),$(CLEAN_BUILD_RESET_LOCAL_VAR))
+
+# called by RESTORE_VARS to reset %^saved variables
+CLEAN_BUILD_RESET_SAVED_VARS = $(foreach v,$(filter %^saved,$(.VARIABLES)),$(CLEAN_BUILD_RESET_LOCAL_VAR))
+
+# check and set CLEAN_BUILD_NEED_TAIL_CODE - $(DEF_TAIL_CODE) must be evaluated after $(DEF_HEAD_CODE)
+define CLEAN_BUILD_CHECK_AT_HEAD
+$(CLEAN_BUILD_RESET_LOCAL_VARS)$(if $(CLEAN_BUILD_NEED_TAIL_CODE),$(error \
+  $$(DEFINE_TARGETS) was not evaluated at end of $(CLEAN_BUILD_NEED_TAIL_CODE)!))CLEAN_BUILD_NEED_TAIL_CODE := $(TARGET_MAKEFILE)
 $(call SET_GLOBAL1,CLEAN_BUILD_NEED_TAIL_CODE)
 endef
 
@@ -115,12 +123,15 @@ TARGET_MAKEFILE = $(call SET_GLOBAL,CLEAN_BUILD_OVERRIDDEN_VARS CLEAN_BUILD_NEED
 # note: TARGET_MAKEFILE variable is used here temporary and will be redefined later
 TARGET_MAKEFILE += $(call SET_GLOBAL,CLEAN_BUILD_PROTECTED_VARS \
   MCHECK TRACE CLEAN_BUILD_ENCODE_VAR_VALUE CLEAN_BUILD_ENCODE_VAR_NAME \
-  CLEAN_BUILD_PROTECT_VARS2 SET_GLOBAL1 SET_GLOBAL CLEAN_BUILD_CHECK_AT_HEAD \
-  CLEAN_BUILD_CHECK_PROTECTED_VAR CLEAN_BUILD_CHECK_AT_TAIL,0)
+  CLEAN_BUILD_PROTECT_VARS2 SET_GLOBAL1 SET_GLOBAL \
+  CLEAN_BUILD_RESET_LOCAL_VAR CLEAN_BUILD_RESET_LOCAL_VARS CLEAN_BUILD_RESET_SAVED_VARS \
+  CLEAN_BUILD_CHECK_AT_HEAD CLEAN_BUILD_CHECK_PROTECTED_VAR CLEAN_BUILD_CHECK_AT_TAIL,0)
 
 else # !MCHECK
 
 # reset
+CLEAN_BUILD_RESET_LOCAL_VARS:=
+CLEAN_BUILD_RESET_SAVED_VARS:=
 CLEAN_BUILD_CHECK_AT_HEAD:=
 CLEAN_BUILD_CHECK_AT_TAIL:=
 
