@@ -11,70 +11,95 @@ https://msdn.microsoft.com/ru-ru/library/windows/desktop/ms646997(v=vs.85).aspx
 https://www.cs.helsinki.fi/group/boi2016/doc/freepascal/fclres/versionconsts/index.html
 
 # $1    - target file name the resource is bundled into, e.g. $(notdir $(call FORM_TRG,EXE,R))
-# $3    - $(WIN_RC_INCLUDE)                 auxiliary text to add to generated resource file
-# $4    - $(WIN_RC_PRODUCT_VERSION_MAJOR)   product major version number
-# $5    - $(WIN_RC_PRODUCT_VERSION_MINOR)   product minor version number
-# $6    - $(WIN_RC_PRODUCT_VERSION_PATCH)   product patch number
-# $7    - $(WIN_RC_MODULE_VERSION_MAJOR)    module file major version number
-# $8    - $(WIN_RC_MODULE_VERSION_MINOR)    module file minor version number
-# $9    - $(WIN_RC_MODULE_VERSION_PATCH)    module file patch number
-# $(10) - $(WIN_RC_PRODUCT_BUILD_NUM)       product build number
-# $(11) - $(WIN_RC_COMMENTS)
-# $(12) - $(WIN_RC_COMPANY_NAME)
-# $(13) - $(WIN_RC_FILE_DESCRIPTION)
-# $(14) - $(WIN_RC_FILE_VERSION)
-# $(15) - $(WIN_RC_INTERNAL_NAME)
-# $(16) - $(WIN_RC_LEGAL_COPYRIGHT)
-# $(17) - $(WIN_RC_LEGAL_TRADEMARKS)
-# $(18) - $(WIN_RC_PRIVATE_BUILD)
-# $(19) - $(WIN_RC_PRODUCT_NAME)
-# $(20) - $(WIN_RC_PRODUCT_VERSION)
-# $(21) - $(WIN_RC_SPECIAL_BUILD)
-# $(22) - $(WIN_RC_LANG)
-# $(23) - $(WIN_RC_CHARSET)
-# note: $6 - by default PRODUCT_VERSION_PATCH, may be not defined in included header $3
-define WIN_RC_STD_VERSION_TEMPLATE
+# $2    - $(WIN_RC_INCLUDE)                 auxiliary text to add to generated resource file
+# $3    - $(WIN_RC_PRODUCT_VERSION_MAJOR)   product major version number
+# $4    - $(WIN_RC_PRODUCT_VERSION_MINOR)   product minor version number
+# $5    - $(WIN_RC_PRODUCT_VERSION_PATCH)   product patch number
+# $6    - $(WIN_RC_MODULE_VERSION_MAJOR)    module file major version number
+# $7    - $(WIN_RC_MODULE_VERSION_MINOR)    module file minor version number
+# $8    - $(WIN_RC_MODULE_VERSION_PATCH)    module file patch number
+# $9    - $(WIN_RC_PRODUCT_BUILD_NUM)       product build number
+# $(10) - $(WIN_RC_FILEOS)
+# $(11) - $(WIN_RC_FILETYPE)
+# $(12) - $(WIN_RC_FILESUBTYPE)
+# $(13) - $(WIN_RC_LANG)
+# $(14) - $(WIN_RC_CHARSET)
+# $(15) - $(WIN_RC_COMPANY_NAME)
+# $(16) - $(WIN_RC_PRODUCT_NAME)
+# $(17) - $(WIN_RC_FILE_DESCRIPTION)
+# $(18) - $(WIN_RC_INTERNAL_NAME)
+# $(19) - $(WIN_RC_COMMENTS)
+# $(20) - $(WIN_RC_LEGAL_COPYRIGHT)
+# $(21) - $(WIN_RC_LEGAL_TRADEMARKS)
+# $(22) - $(WIN_RC_PRIVATE_BUILD)
+# $(23) - $(WIN_RC_SPECIAL_BUILD)
+define WIN_RC_VERSION_TEMPLATE
 #include <winver.h>
-#include "$2"$3
+$2
 #define _VERSION_TO_STR(s) #s
 #define VERSION_TO_STR(a,b,c,d) _VERSION_TO_STR(a.b.c.d)
 VS_VERSION_INFO VERSIONINFO
-FILEVERSION    $4,$5,$6,$(10)
-PRODUCTVERSION $7,$8,$9,$(10)
+PRODUCTVERSION $3,$4,$5,$9
+FILEVERSION    $6,$7,$8,$9
 FILEFLAGSMASK VS_FF_DEBUG | VS_FF_PATCHED | VS_FF_PRERELEASE | VS_FF_PRIVATEBUILD | VS_FF_SPECIALBUILD
 #ifdef DEBUG
-    FILEFLAGS VS_FF_DEBUG | VS_FF_PRERELEASE$(if $(24), | VS_FF_PATCHED)$(if $(18), | VS_FF_PRIVATEBUILD)$(if $(21), | VS_FF_SPECIALBUILD)
+    FILEFLAGS VS_FF_DEBUG | VS_FF_PRERELEASE$(if $(24), | VS_FF_PATCHED)$(if $(21), | VS_FF_PRIVATEBUILD)$(if $(23), | VS_FF_SPECIALBUILD)
 #else
-    FILEFLAGS 0x0L$(if $(24), | VS_FF_PATCHED)$(if $(18), | VS_FF_PRIVATEBUILD)$(if $(21), | VS_FF_SPECIALBUILD)
+    FILEFLAGS 0x0L$(if $(24), | VS_FF_PATCHED)$(if $(21), | VS_FF_PRIVATEBUILD)$(if $(23), | VS_FF_SPECIALBUILD)
 #endif
-FILEOS      $(25)
-FILETYPE    $(26)
-FILESUBTYPE $(27)
+FILEOS      $(10)
+FILETYPE    $(11)
+FILESUBTYPE $(12)
 BEGIN
     BLOCK "StringFileInfo"
     BEGIN
-        BLOCK "$(22)$(23)"
-        BEGIN$(if \
-$(11),$(newline)            VALUE "Comments"$(comma)        $(11) "\0")
-            VALUE "CompanyName",     $(12) "\0"
-            VALUE "FileDescription", $(13) "\0"
-            VALUE "FileVersion",     VERSION_TO_STR($4,$5,$6,$(10)) "\0"
-            VALUE "InternalName",    $(15) "\0"$(if \
-$(16),$(newline)            VALUE "LegalCopyright"$(comma)  $(16) "\0")$(if \
-$(17),$(newline)            VALUE "LegalTrademarks"$(comma) $(17) "\0")
-            VALUE "OriginalFilename","$1\0"$(if \
-$(18),$(newline)            VALUE "PrivateBuild"$(comma) $(18) "\0")
-            VALUE "ProductName",     $(19) "\0"
-            VALUE "ProductVersion",  VERSION_TO_STR($7,$8,$9,$(10)) "\0"$(if \
-$(21),$(newline)            VALUE "SpecialBuild"$(comma) $(21) "\0")
+        BLOCK "$(13)$(14)"
+        BEGIN
+            VALUE "CompanyName",     $(15) "\0"
+            VALUE "ProductName",     $(16) "\0"
+            VALUE "ProductVersion",  VERSION_TO_STR($3,$4,$5,$9) "\0"
+            VALUE "FileDescription", $(17) "\0"
+            VALUE "FileVersion",     VERSION_TO_STR($6,$7,$8,$9) "\0"
+            VALUE "OriginalFilename","$1\0"
+            VALUE "InternalName",    $(18) "\0"$(if \
+$(19),$(newline)            VALUE "Comments"$(comma)        $(19) "\0")$(if \
+$(20),$(newline)            VALUE "LegalCopyright"$(comma)  $(20) "\0")$(if \
+$(21),$(newline)            VALUE "LegalTrademarks"$(comma) $(21) "\0")$(if \
+$(22),$(newline)            VALUE "PrivateBuild"$(comma)    $(22) "\0")$(if \
+$(23),$(newline)            VALUE "SpecialBuild"$(comma)    $(23) "\0")
         END
     END
     BLOCK "VarFileInfo"
     BEGIN
-        VALUE "Translation", 0x$(22), 0x$(23)
+        VALUE "Translation", 0x$(13), 0x$(14)
     END
 END
 endef
+
+# C-header file which defines constants for standard resource template
+# note: PRODUCT_NAMES_H may be recursive macro, which value may depend on $(TARGET_MAKEFILE)
+WIN_RC_PRODUCT_DEFS_HEADER = $(GEN_DIR)/$(PRODUCT_NAMES_H)
+
+# auxiliary text to add to generated resource file
+WIN_RC_INCLUDE = \#include "$(WIN_RC_PRODUCT_DEFS_HEADER)"
+
+# assume PRODUCT_VERSION_MAJOR, PRODUCT_VERSION_MINOR and PRODUCT_VERSION_PATCH
+#  constants are defined in $(WIN_RC_PRODUCT_DEFS_HEADER)
+WIN_RC_PRODUCT_VERSION_MAJOR := PRODUCT_VERSION_MAJOR
+WIN_RC_PRODUCT_VERSION_MINOR := PRODUCT_VERSION_MINOR
+WIN_RC_PRODUCT_VERSION_PATCH := PRODUCT_VERSION_PATCH
+
+# per-module version
+WIN_RC_MODULE_VERSION_MAJOR = $(call ver_major,$(MODVER))
+WIN_RC_MODULE_VERSION_MINOR = $(call ver_minor,$(MODVER))
+WIN_RC_MODULE_VERSION_PATCH = $(call ver_patch,$(MODVER))
+
+# assume PRODUCT_BUILD_NUM constant is defined in $(WIN_RC_PRODUCT_DEFS_HEADER)
+WIN_RC_PRODUCT_BUILD_NUM := PRODUCT_BUILD_NUM
+
+WIN_RC_FILEOS := VOS_NT_WINDOWS32
+# $(11) - $(WIN_RC_FILETYPE)
+# $(12) - $(WIN_RC_FILESUBTYPE)
 
 # FILEOS value in $(STD_VERSION_RC_TEMPLATE)
 # $1 - EXE,DLL,DRV,KDLL
@@ -91,14 +116,6 @@ STD_RC_FILETYPE = $(if \
 # $1 - EXE,DLL,DRV,KDLL
 STD_RC_FILESUBTYPE = $(if $(filter DRV KDLL,$1),VFT2_DRV_SYSTEM,0L)
 
-# C-header file which defines constants for standard resource template
-# note: $(PRODUCT_NAMES_H) may be recursive macro,
-# so may produce dynamic results, for example based on value of $(TARGET_MAKEFILE)
-WIN_RC_PRODUCT_DEFS_HEADER = $(GEN_DIR)/$(PRODUCT_NAMES_H)
-
-ifeq (simple,$(flavor PRODUCT_NAMES_H))
-WIN_RC_PRODUCT_DEFS_HEADER := $(WIN_RC_PRODUCT_DEFS_HEADER)
-endif
 
 # define standard resource values - use definitions from C-header file $(WIN_RC_PRODUCT_DEFS_HEADER),
 # which should contain (example):
@@ -124,12 +141,6 @@ endif
 # $1 - target EXE,DLL,DRV,KDLL
 # target-specific variables: MODVER
 # note: some of WIN_RC_... variables may be overridden in project configuration makefile before including this file
-WIN_RC_PRODUCT_VERSION_MAJOR := PRODUCT_VERSION_MAJOR
-WIN_RC_PRODUCT_VERSION_MINOR := PRODUCT_VERSION_MINOR
-WIN_RC_PRODUCT_VERSION_PATCH := PRODUCT_VERSION_PATCH
-WIN_RC_MODULE_VERSION_MAJOR   = $(call ver_major,$(MODVER))
-WIN_RC_MODULE_VERSION_MINOR   = $(call ver_minor,$(MODVER))
-WIN_RC_MODULE_VERSION_PATCH   = $(call ver_patch,$(MODVER))
 WIN_RC_PRODUCT_BUILD_NUM     := PRODUCT_BUILD_NUM
 WIN_RC_COMMENTS               = PRODUCT_TARGET "/" PRODUCT_OS "/" $(if \
                                 $(filter DRV KDLL,$1),PRODUCT_KCPU,PRODUCT_CPU) "/" PRODUCT_BUILD_DATE
