@@ -190,9 +190,9 @@ define STD_RES_TEMPLATE2
 $4/stdres.rc: WIN_RC_PRODUCT_DEFS_HEADER := $2
 $4/stdres.rc:| $4
 	$$(call SUP,GEN,$$@)$$(call WRITE_TEXT,$$(call WIN_RC_VERSION_TEMPLATE,$1,$(notdir $3),$v),$$@,$(WIN_RC_WRITE_BY_LINES))
-$s43/stdred.res: $4/stdred.rc $2 | $4
+$4/stdres.res: $4/stdres.rc $2 | $4
 	$$(call RC_COMPILER,$$@,$$<)
-RES += $4/stdred.res
+RES += $4/stdres.res
 
 endef
 
@@ -212,8 +212,8 @@ else # clean
 # cleanup standard resource
 # $1 - EXE,DLL,DRV,KDLL
 # note: don't cleanup standard resource in tool mode or if NO_STD_RES variable is set in target makefile
-STD_RES_TEMPLATE = $(if $(TMD),,$(if $(NO_STD_RES),,CLEAN += $(foreach \
-  v,$(call GET_VARIANTS,$1),$(addprefix $(call FORM_OBJ_DIR,$1,$v)/stdres.,rc res))$(newline)))
+STD_RES_TEMPLATE = $(if $(TMD),,$(if $(NO_STD_RES),,$(call TOCLEAN,$(foreach \
+  v,$(call GET_VARIANTS,$1),$(addprefix $(call FORM_OBJ_DIR,$1,$v)/stdres.,rc res)))))
 
 endif # clean
 
