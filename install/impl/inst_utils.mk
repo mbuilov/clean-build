@@ -105,9 +105,12 @@ NEED_INSTALL_DIR  = $(call NEED_INSTALL_DIR1,$(filter-out $(NEEDED_INSTALL_DIRS)
 # same as NEED_INSTALL_DIR, but return needed directory with spaces prefixed with slash: C:/Program\ Files/AcmeCorp
 NEED_INSTALL_DIR_RET = $(NEED_INSTALL_DIR)$(subst $(space),\ ,$1)
 
+# makefile parsing first phase variables
+CLEAN_BUILD_FIRST_PHASE_VARS += NEEDED_INSTALL_DIRS
+
 # protect variables from modifications in target makefiles
-# note: do not trace calls to NEEDED_INSTALL_DIRS because its value is incremented
-$(call SET_GLOBAL1,NEEDED_INSTALL_DIRS,0)
+# note: do not trace calls to CLEAN_BUILD_FIRST_PHASE_VARS and NEEDED_INSTALL_DIRS because theirs values are incremented
+$(call SET_GLOBAL1,CLEAN_BUILD_FIRST_PHASE_VARS NEEDED_INSTALL_DIRS,0)
 
 # protect variables from modifications in target makefiles
 $(call SET_GLOBAL,DO_INSTALL_DIRq DO_INSTALL_DIR DO_INSTALL_FILESq DO_INSTALL_FILES DO_INSTALL_SIMLINKqq DO_INSTALL_SIMLINK \
