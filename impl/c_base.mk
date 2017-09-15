@@ -188,8 +188,9 @@ C_RULES = $(foreach t,$(C_TARGETS),$(if $($t),$(C_RULESt)))
 # $4 - objdir:      $(call FORM_OBJ_DIR,$t,$v)
 # $t - EXE,DLL,LIB...
 # $2 - non-empty variant: R,P,D,S... (one of variants supported by selected toolchain)
+# note: STD_TARGET_VARS also changes CB_NEEDED_DIRS
 define C_BASE_TEMPLATE
-NEEDED_DIRS+=$4
+CB_NEEDED_DIRS+=$4
 $(STD_TARGET_VARS)
 $1:$(call OBJ_RULES,CC,$(filter $(CC_MASK),$2),$3,$4)
 $1:$(call OBJ_RULES,CXX,$(filter $(CXX_MASK),$2),$3,$4)
