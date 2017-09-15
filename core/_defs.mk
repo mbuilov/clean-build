@@ -93,8 +93,8 @@ $(eval $(foreach v,$(PROJECT_VARS_NAMES),override $(if $(findstring simple,$(fla
 PASS_ENV_VARS:=
 
 # needed directories - we will create them in $(CLEAN_BUILD_DIR)/core/all.mk
-# note: NEEDED_DIRS is never cleared, only appended
-NEEDED_DIRS:=
+# note: CB_NEEDED_DIRS is never cleared, only appended
+CB_NEEDED_DIRS:=
 
 # save configuration to $(CONFIG) file as result of 'conf' goal
 # note: if $(CONFIG) file is generated under $(BUILD) directory,
@@ -514,10 +514,10 @@ all: $(TARGET_MAKEFILE)-
 # add directories $1 to list of auto-created ones
 # note: these directories are will be auto-deleted while cleaning up
 ifdef MCHECK
-# remember new value of NEEDED_DIRS, without tracing calls to it because it is incremented
-NEED_GEN_DIRS = $(eval NEEDED_DIRS+=$$1$(newline)$(call SET_GLOBAL1,NEEDED_DIRS,0))
+# remember new value of CB_NEEDED_DIRS, without tracing calls to it because it is incremented
+NEED_GEN_DIRS = $(eval CB_NEEDED_DIRS+=$$1$(newline)$(call SET_GLOBAL1,CB_NEEDED_DIRS,0))
 else
-NEED_GEN_DIRS = $(eval NEEDED_DIRS+=$$1)
+NEED_GEN_DIRS = $(eval CB_NEEDED_DIRS+=$$1)
 endif
 
 # register targets as main ones built by current makefile, add standard target-specific variables
@@ -530,12 +530,12 @@ define STD_TARGET_VARS1
 $1:TMD:=$(TMD)
 $1:| $2 $$(ORDER_DEPS)
 $(TARGET_MAKEFILE)-:$1
-NEEDED_DIRS+=$2
+CB_NEEDED_DIRS+=$2
 endef
 
-# remember new value of NEEDED_DIRS, without tracing calls to it because it is incremented
+# remember new value of CB_NEEDED_DIRS, without tracing calls to it because it is incremented
 ifdef MCHECK
-$(call define_append,STD_TARGET_VARS1,$(newline)$$(call SET_GLOBAL1,NEEDED_DIRS,0))
+$(call define_append,STD_TARGET_VARS1,$(newline)$$(call SET_GLOBAL1,CB_NEEDED_DIRS,0))
 endif
 
 ifdef MDEBUG
@@ -1035,7 +1035,7 @@ CLEAN_BUILD_FIRST_PHASE_VARS += BIN_DIR OBJ_DIR LIB_DIR GEN_DIR
 
 # makefile parsing first phase variables
 # tip: STD_TARGET_VARS1 defines target-specific TMD variable for use in rule execution second phase
-CLEAN_BUILD_FIRST_PHASE_VARS += NEEDED_DIRS ORDER_DEPS MULTI_TARGET_NUM CB_INCLUDE_LEVEL \
+CLEAN_BUILD_FIRST_PHASE_VARS += CB_NEEDED_DIRS ORDER_DEPS MULTI_TARGET_NUM CB_INCLUDE_LEVEL \
   PROCESSED_MAKEFILES MAKE_CONT SET_DEFAULT_DIRS TOOL_OVERRIDE_DIRS ADD_MDEPS ADD_ADEPS ADD_WHAT_MAKEFILE_BUILDS \
   CREATE_MAKEFILE_ALIAS ADD_ORDER_DEPS NEED_GEN_DIRS STD_TARGET_VARS1 STD_TARGET_VARS MAKEFILE_INFO_TEMPL \
   SET_MAKEFILE_INFO GET_TARGET_NAME GET_VARIANTS FORM_TRG ALL_TARGETS FORM_OBJ_DIR ADD_GENERATED CHECK_GENERATED \
@@ -1045,7 +1045,7 @@ CLEAN_BUILD_FIRST_PHASE_VARS += NEEDED_DIRS ORDER_DEPS MULTI_TARGET_NUM CB_INCLU
 
 # protect macros from modifications in target makefiles,
 # do not trace calls to macros used in ifdefs, passed to environment of called tools or modified via operator +=
-$(call SET_GLOBAL,MAKEFLAGS $(PASS_ENV_VARS) PATH SHELL CLEAN_BUILD_FIRST_PHASE_VARS NEEDED_DIRS \
+$(call SET_GLOBAL,MAKEFLAGS $(PASS_ENV_VARS) PATH SHELL CLEAN_BUILD_FIRST_PHASE_VARS CB_NEEDED_DIRS \
   NO_CLEAN_BUILD_DISTCLEAN_TARGET DEBUG VERBOSE QUIET INFOMF MDEBUG SHOWN_PERCENTS CLEAN ORDER_DEPS \
   MULTI_TARGETS MULTI_TARGET_NUM CB_INCLUDE_LEVEL PROCESSED_MAKEFILES MAKE_CONT NO_DEPS,0)
 
