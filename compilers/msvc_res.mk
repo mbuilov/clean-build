@@ -209,11 +209,11 @@ STD_RES_TEMPLATE = $(if $(TMD),,$(if $(NO_STD_RES),,$(call STD_RES_TEMPLATE1,$1,
 
 else # clean
 
-# cleanup standard resource
+# return list of standard resources to cleanup
 # $1 - EXE,DLL,DRV,KDLL
 # note: don't cleanup standard resource in tool mode or if NO_STD_RES variable is set in target makefile
-STD_RES_TEMPLATE = $(if $(TMD),,$(if $(NO_STD_RES),,$(call TOCLEAN,$(foreach \
-  v,$(call GET_VARIANTS,$1),$(addprefix $(call FORM_OBJ_DIR,$1,$v)/stdres.,rc res)))))
+STD_RES_TEMPLATE = $(if $(TMD),,$(if $(NO_STD_RES),,$(foreach \
+  v,$(call GET_VARIANTS,$1),$(addprefix $(call FORM_OBJ_DIR,$1,$v)/stdres.,rc res))))
 
 endif # clean
 
