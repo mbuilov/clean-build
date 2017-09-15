@@ -8,13 +8,7 @@
 
 # included by $(CLEAN_BUILD_DIR)/compilers/suncc.mk
 
-ifeq (,$(filter-out undefined environment,$(origin PCH_TEMPLATE)))
-include $(CLEAN_BUILD_DIR)/impl/pch.mk
-endif
-
-ifndef TOCLEAN
-
-# Example how to use precompiled header:
+# How to use precompiled header:
 #
 # 1) create fake source /build/obj/xxx_pch.c
 #   #include "/project/include/xxx.h"
@@ -29,6 +23,12 @@ ifndef TOCLEAN
 #   cc -xpch=use:/build/obj/xxx_c -c -o /build/obj/src1.o /build/obj/src1.c.c
 # 5) link application
 #   cc -o /build/bin/app /build/obj/xxx_pch_c.o /build/obj/src1.o
+
+ifeq (,$(filter-out undefined environment,$(origin PCH_TEMPLATE)))
+include $(CLEAN_BUILD_DIR)/impl/pch.mk
+endif
+
+ifndef TOCLEAN
 
 # $1  - EXE,LIB,DLL,KLIB
 # $2  - $(call fixpath,$(PCH))
@@ -110,10 +110,10 @@ PCH_TEMPLATEv = $(call PCH_TEMPLATEv1,$1,$2,$3,$4,$5,$6,$(call FORM_OBJ_DIR,$1),
 # $1 - common objdir (for R-variant)
 # $2 - $(call fixpath,$(PCH))
 # $3 - pch source (e.g. /build/obj/xxx_pch.c or /build/obj/xxx_pch.cc)
-# note: new value of NEEDED_DIRS will be accounted in expanded next C_BASE_TEMPLATE
+# note: new value of CB_NEEDED_DIRS will be accounted in expanded next C_BASE_TEMPLATE
 # note: last line must be empty
 define SUNCC_PCH_GEN_TEMPL
-NEEDED_DIRS+=$1
+CB_NEEDED_DIRS+=$1
 $3:| $1
 	$$(call SUP,GEN,$$@)$$(call ECHO_TEXT,#include "$2"$(newline)#pragma hdrstop) > $$@
 
