@@ -184,7 +184,7 @@ WIN_RC_WRITE_BY_LINES := 40
 # $v - R,S,D,...
 # note: optimization: don't use $(STD_TARGET_VARS) - inherit MF,MCONT,TMD,MODVER from target EXE,DLL,DRV,KDLL
 # note: target-specific MODVER is inherited from target EXE,DLL,DRV,KDLL
-# note: object directory $4 added to NEEDED_DIRS by C_BASE_TEMPLATE from $(CLEAN_BUILD_DIR)/impl/c_base.mk
+# note: object directory $4 added to CB_NEEDED_DIRS by C_BASE_TEMPLATE from $(CLEAN_BUILD_DIR)/impl/c_base.mk
 # note: last line must be empty
 define STD_RES_TEMPLATE2
 $4/stdres.rc: WIN_RC_PRODUCT_DEFS_HEADER := $2
