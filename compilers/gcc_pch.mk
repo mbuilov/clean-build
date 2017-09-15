@@ -8,6 +8,15 @@
 
 # included by $(CLEAN_BUILD_DIR)/compilers/gcc.mk
 
+# How to use precompiled header:
+#
+# 1) complie precompiled header
+#   gcc -c -o /build/obj/xxx_pch_c.gch /project/include/xxx.h
+# 2) compile source using precompiled header
+#   gcc -c -I/build/obj -include xxx_pch_c.h -o /build/obj/src1.o /build/obj/src1.c
+# 3) link application
+#   gcc -o /build/bin/app /build/obj/src1.o
+
 ifeq (,$(filter-out undefined environment,$(origin PCH_TEMPLATE)))
 include $(CLEAN_BUILD_DIR)/impl/pch.mk
 endif
