@@ -66,7 +66,7 @@ DO_TRY_UNINSTALL_DIRq = $(call SUP,RMDIR,$(ospath),1,1)$(TRY_DELETE_DIRS)
 DO_TRY_UNINSTALL_DIR  = $(call DO_TRY_UNINSTALL_DIRq,$(ifaddq))
 
 # global list of directories to install
-NEEDED_INSTALL_DIRS:=
+CB_NEEDED_INSTALL_DIRS:=
 
 # PHONY target: install_dirs - depends on installed directories,
 # may be used to adjust installed directories after they are created - set access rights, etc.,
@@ -79,7 +79,7 @@ install_dirs:
 .PHONY: install_dirs
 
 # define rule for creating installation directories,
-#  add those directories to global list NEEDED_INSTALL_DIRS
+#  add those directories to global list CB_NEEDED_INSTALL_DIRS
 # $1 - result of $(call split_dirs,$1) on directories processed by $(call unspaces,...)
 # $2 - list of directories to create: $(subst $(space),\ ,$(tospaces))
 define ADD_INSTALL_DIRS_TEMPL
@@ -87,30 +87,30 @@ $(subst :|,:| ,$(subst $(space),\ ,$(call tospaces,$(subst $(space),,$(mk_dir_de
 $2:
 	$$(call INSTALL_MKDIR,$$(subst \ , ,$$@))
 install_dirs: $2
-NEEDED_INSTALL_DIRS += $1
+CB_NEEDED_INSTALL_DIRS += $1
 endef
 
-# remember new value of NEEDED_INSTALL_DIRS
-# note: do not trace calls to NEEDED_INSTALL_DIRS because its value is incremented
+# remember new value of CB_NEEDED_INSTALL_DIRS
+# note: do not trace calls to CB_NEEDED_INSTALL_DIRS because its value is incremented
 ifdef MCHECK
-$(call define_append,ADD_INSTALL_DIRS_TEMPL1,$(newline)$$(call SET_GLOBAL1,NEEDED_INSTALL_DIRS,0))
+$(call define_append,ADD_INSTALL_DIRS_TEMPL1,$(newline)$$(call SET_GLOBAL1,CB_NEEDED_INSTALL_DIRS,0))
 endif
 
 # add rule for creating directory while installing things
 # $1 - directory to install, absolute unix path, may contain spaces: C:/Program Files/AcmeCorp
 # note: assume directory path does not contain % symbols
 NEED_INSTALL_DIR1 = $(if $1,$(eval $(call ADD_INSTALL_DIRS_TEMPL,$1,$(subst $(space),\ ,$(tospaces)))))
-NEED_INSTALL_DIR  = $(call NEED_INSTALL_DIR1,$(filter-out $(NEEDED_INSTALL_DIRS),$(call split_dirs,$(unspaces))))
+NEED_INSTALL_DIR  = $(call NEED_INSTALL_DIR1,$(filter-out $(CB_NEEDED_INSTALL_DIRS),$(call split_dirs,$(unspaces))))
 
 # same as NEED_INSTALL_DIR, but return needed directory with spaces prefixed with slash: C:/Program\ Files/AcmeCorp
 NEED_INSTALL_DIR_RET = $(NEED_INSTALL_DIR)$(subst $(space),\ ,$1)
 
 # makefile parsing first phase variables
-CLEAN_BUILD_FIRST_PHASE_VARS += NEEDED_INSTALL_DIRS
+CLEAN_BUILD_FIRST_PHASE_VARS += CB_NEEDED_INSTALL_DIRS
 
 # protect variables from modifications in target makefiles
-# note: do not trace calls to CLEAN_BUILD_FIRST_PHASE_VARS and NEEDED_INSTALL_DIRS because theirs values are incremented
-$(call SET_GLOBAL1,CLEAN_BUILD_FIRST_PHASE_VARS NEEDED_INSTALL_DIRS,0)
+# note: do not trace calls to CLEAN_BUILD_FIRST_PHASE_VARS and CB_NEEDED_INSTALL_DIRS because theirs values are incremented
+$(call SET_GLOBAL1,CLEAN_BUILD_FIRST_PHASE_VARS CB_NEEDED_INSTALL_DIRS,0)
 
 # protect variables from modifications in target makefiles
 $(call SET_GLOBAL,DO_INSTALL_DIRq DO_INSTALL_DIR DO_INSTALL_FILESq DO_INSTALL_FILES DO_INSTALL_SIMLINKqq DO_INSTALL_SIMLINK \
