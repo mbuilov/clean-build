@@ -60,7 +60,7 @@ conf:| $(patsubst %/,%,$(dir $(CONFIG)))
 # if $(CONFIG) file is under $(BUILD), create config directory automatically
 # else - $(CONFIG) file is outside of $(BUILD), config directory must be created manually
 ifneq (,$(filter $(abspath $(BUILD))/%,$(CONFIG)))
-NEEDED_DIRS += $(patsubst %/,%,$(dir $(CONFIG)))
+CB_NEEDED_DIRS += $(patsubst %/,%,$(dir $(CONFIG)))
 else
 $(patsubst %/,%,$(dir $(CONFIG))):
 	$(error config file directory '$@' does not exist, it is not under '$(BUILD)', so should be created manually)
