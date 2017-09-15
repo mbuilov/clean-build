@@ -120,6 +120,14 @@ else
 CLEAN_BUILD_PARALLEL_EVAL:=
 endif
 
+# makefile parsing first phase variables
+CLEAN_BUILD_FIRST_PHASE_VARS += CB_INCLUDE_TEMPLATE CLEAN_BUILD_PARALLEL \
+  ADD_MDEPS1 PROCESS_SUBMAKES_EVAL PROCESS_SUBMAKES CLEAN_BUILD_PARALLEL_EVAL
+
+# protect CLEAN_BUILD_FIRST_PHASE_VARS from modification in target makefiles,
+# do not trace calls to CLEAN_BUILD_FIRST_PHASE_VARS because it's modified via += operator
+$(call SET_GLOBAL,CLEAN_BUILD_FIRST_PHASE_VARS,0)
+
 # protect variables from modifications in target makefiles
 # note: do not complain about new ADD_MDEPS and ADD_ADEPS values
 # - replace ADD_MDEPS and ADD_ADEPS values defined in $(CLEAN_BUILD_DIR)/core/_defs.mk with new ones

@@ -342,10 +342,6 @@ SHOWN_REMAINDER:=
 # note: TARGET_MAKEFILES_COUNT and TARGET_MAKEFILES_COUNT1 are defined in $(CLEAN_BUILD_DIR)/core/all.mk
 ADD_SHOWN_PERCENTS = $(if $(word $(TARGET_MAKEFILES_COUNT),$1),+ $(call \
   ADD_SHOWN_PERCENTS,$(wordlist $(TARGET_MAKEFILES_COUNT1),999999,$1)),$(newline)SHOWN_REMAINDER:=$1)
-# remember new value of SHOWN_REMAINDER
-ifdef SET_GLOBAL1
-$(call define_append,ADD_SHOWN_PERCENTS,$(newline)$$(call SET_GLOBAL1,SHOWN_REMAINDER))
-endif
 # prepare for printing percents of processed makefiles
 FORMAT_PERCENTS = $(subst |,,$(subst \
   |0%,00%,$(subst \
@@ -367,10 +363,6 @@ SHOWN_PERCENTS += $(call ADD_SHOWN_PERCENTS,$(SHOWN_REMAINDER) \
 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 \
 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1)
 endef
-# remember new value of SHOWN_PERCENTS, without tracing calls to it because it is incremented
-ifdef MCHECK
-$(call define_append,REM_MAKEFILE,$(newline)$$(call SET_GLOBAL1,SHOWN_PERCENTS,0))
-endif
 ifdef INFOMF
 SUP = $(info $(call PRINT_PERCENTS,$(if $4,,$(if $(findstring undefined,$(origin \
   $(MF))),$(eval $(REM_MAKEFILE))))$(FORMAT_PERCENTS))$(MF)$(MCONT):$(COLORIZE))@
@@ -491,7 +483,7 @@ ADD_ADEPS:=
 # $1 - template name
 # $2 - expression that gives target file(s) the template builds
 # $3 - optional expression that gives order-only dependencies
-# note: expressions $2 and $3 are evaluated while expanding template $1, _before_ evaluating expansion result
+# note: expressions $2 and $3 are expanded while expanding template $1, _before_ evaluating expansion result
 ADD_WHAT_MAKEFILE_BUILDS:=
 
 ifndef TOCLEAN
@@ -521,11 +513,11 @@ all: $(TARGET_MAKEFILE)-
 
 # add directories $1 to list of auto-created ones
 # note: these directories are will be auto-deleted while cleaning up
-ifndef MCHECK
-NEED_GEN_DIRS = $(eval NEEDED_DIRS+=$1)
-else
+ifdef MCHECK
 # remember new value of NEEDED_DIRS, without tracing calls to it because it is incremented
-NEED_GEN_DIRS = $(eval NEEDED_DIRS+=$1$(newline)$(call SET_GLOBAL1,NEEDED_DIRS,0))
+NEED_GEN_DIRS = $(eval NEEDED_DIRS+=$$1$(newline)$(call SET_GLOBAL1,NEEDED_DIRS,0))
+else
+NEED_GEN_DIRS = $(eval NEEDED_DIRS+=$$1)
 endif
 
 # register targets as main ones built by current makefile, add standard target-specific variables
@@ -552,9 +544,9 @@ ifdef MDEBUG
 # $1 - template name
 # $2 - expression that gives target file(s) the template builds
 # $3 - optional expression that gives order-only dependencies
-# note: expressions $2 and $3 are evaluated while expanding template $1, _before_ evaluating expansion result
-ADD_WHAT_MAKEFILE_BUILDS = $(call define_append,$1,$(newline)$$(info $$(if $$(TMD),[T]: )$$(patsubst \
-  $$(BUILD)/%,%,$(subst $$,$$$$,$2))$(if $3,$$(if $(subst $$,$$$$,$3), | $(subst $$,$$$$,$3)))))
+# note: expressions $2 and $3 are expanded while expanding template $1, _before_ evaluating expansion result
+ADD_WHAT_MAKEFILE_BUILDS = $(call define_append,$1,$$(info \
+  $$(if $$(TMD),[T]: )$$(patsubst $$(BUILD)/%,%,$2)$(if $3,$$(if $3, | $3))))
 
 # print what makefile builds
 $(call ADD_WHAT_MAKEFILE_BUILDS,STD_TARGET_VARS1,$$1,$$(ORDER_DEPS))
@@ -713,6 +705,12 @@ endif
 $1:=$2
 endef
 
+# reset NON_PARALEL_GROUP_$(group_name) variable before rule execution second phase
+ifdef MCHECK
+$(eval define NON_PARALLEL_EXECUTE_RULE$(newline)$(subst \
+  endif,else$(newline)CLEAN_BUILD_FIRST_PHASE_VARS+=$$1$(newline)endif,$(value NON_PARALLEL_EXECUTE_RULE))$(newline)endef)
+endif
+
 # remember new value of NON_PARALEL_GROUP_$(group_name)
 ifdef SET_GLOBAL1
 $(call define_append,NON_PARALLEL_EXECUTE_RULE,$(newline)$$(call SET_GLOBAL1,$$1))
@@ -731,11 +729,11 @@ endif
 NON_PARALLEL_EXECUTE = $(eval $(call NON_PARALLEL_EXECUTE_RULE,$1_NON_PARALEL_GROUP,$2))
 
 # list of processed multi-target rules
-# note: MULTI_TARGETS is never cleared, only appended (in rules execution phase)
+# note: MULTI_TARGETS is never cleared, only appended (in rule execution second phase)
 MULTI_TARGETS:=
 
 # used to count each call of $(MULTI_TARGET)
-# note: MULTI_TARGET_NUM is never cleared, only appended (in makefiles parsing phase)
+# note: MULTI_TARGET_NUM is never cleared, only appended (in makefile parsing first phase)
 MULTI_TARGET_NUM:=
 
 # make a chain of dependencies of multi-targets on each other: 1 2 3 4 -> 2:| 1; 3:| 2; 4:| 3;
@@ -845,8 +843,9 @@ RUN_TOOL = $(if $2$4,$(if $2,$(eval \
   $$@:export $v:=$$($v)))$(if $(VERBOSE),$(show_tool_vars)@))$(if $3,$(call EXECUTE_IN,$3,$1),$1)$(if \
   $2$4,$(if $(VERBOSE),$(show_tool_vars_end)))
 
-# current value of $(TOOL_MODE)
-# reset: $(SET_DEFAULT_DIRS) has already been evaluated
+# current value of $(TOOL_MODE) - may use TMD while defining rules
+# reset value: we are currently not in tool mode, $(SET_DEFAULT_DIRS) has already
+#  been evaluated to set non-tool mode values of BIN_DIR, OBJ_DIR, LIB_DIR, GEN_DIR
 TMD:=
 
 # TOOL_MODE may be set to non-empty value at beginning of target makefile (before including this file)
@@ -1030,11 +1029,25 @@ PRODUCT_VER := 0.0.1
 # note: do not process dependencies when cleaning up
 NO_DEPS := $(filter clean,$(MAKECMDGOALS))
 
+# BIN_DIR, OBJ_DIR, LIB_DIR, GEN_DIR change their values depending on the value of TOOL_MODE set
+#  in last parsed makefile, so clear these variables before rule execution second phase
+CLEAN_BUILD_FIRST_PHASE_VARS += BIN_DIR OBJ_DIR LIB_DIR GEN_DIR
+
+# makefile parsing first phase variables
+# tip: STD_TARGET_VARS1 defines target-specific TMD variable for use in rule execution second phase
+CLEAN_BUILD_FIRST_PHASE_VARS += NEEDED_DIRS ORDER_DEPS MULTI_TARGET_NUM CB_INCLUDE_LEVEL \
+  PROCESSED_MAKEFILES MAKE_CONT SET_DEFAULT_DIRS TOOL_OVERRIDE_DIRS ADD_MDEPS ADD_ADEPS ADD_WHAT_MAKEFILE_BUILDS \
+  CREATE_MAKEFILE_ALIAS ADD_ORDER_DEPS NEED_GEN_DIRS STD_TARGET_VARS1 STD_TARGET_VARS MAKEFILE_INFO_TEMPL \
+  SET_MAKEFILE_INFO GET_TARGET_NAME GET_VARIANTS FORM_TRG ALL_TARGETS FORM_OBJ_DIR ADD_GENERATED CHECK_GENERATED \
+  ADD_GENERATED_RET NON_PARALLEL_EXECUTE_RULE NON_PARALLEL_EXECUTE MULTI_TARGET_SEQ MULTI_TARGET_RULE MULTI_TARGET \
+  CHECK_MULTI_RULE TMD TOOL_MODE DEF_HEAD_CODE_EVAL DEF_TAIL_CODE_EVAL MAKE_CONTINUE_EVAL_NAME DEFINE_TARGETS_EVAL_NAME \
+  DEF_HEAD_CODE DEF_TAIL_CODE DEFINE_TARGETS SAVE_VARS RESTORE_VARS MAKE_CONTINUE TOCLEAN
+
 # protect macros from modifications in target makefiles,
 # do not trace calls to macros used in ifdefs, passed to environment of called tools or modified via operator +=
-$(call SET_GLOBAL,MAKEFLAGS $(PASS_ENV_VARS) PATH SHELL NEEDED_DIRS \
-  NO_CLEAN_BUILD_DISTCLEAN_TARGET DEBUG VERBOSE QUIET INFOMF MDEBUG SHOWN_PERCENTS CLEAN \
-  ORDER_DEPS MULTI_TARGETS MULTI_TARGET_NUM CB_INCLUDE_LEVEL PROCESSED_MAKEFILES MAKE_CONT NO_DEPS,0)
+$(call SET_GLOBAL,MAKEFLAGS $(PASS_ENV_VARS) PATH SHELL CLEAN_BUILD_FIRST_PHASE_VARS NEEDED_DIRS \
+  NO_CLEAN_BUILD_DISTCLEAN_TARGET DEBUG VERBOSE QUIET INFOMF MDEBUG SHOWN_PERCENTS CLEAN ORDER_DEPS \
+  MULTI_TARGETS MULTI_TARGET_NUM CB_INCLUDE_LEVEL PROCESSED_MAKEFILES MAKE_CONT NO_DEPS,0)
 
 # protect macros from modifications in target makefiles, allow tracing calls to them
 $(call SET_GLOBAL,PROJECT_VARS_NAMES PASS_ENV_VARS \

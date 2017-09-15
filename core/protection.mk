@@ -24,6 +24,11 @@ endif
 # reset - this variable is checked in trace_calls function in $(CLEAN_BUILD_DIR)/core/functions.mk
 CLEAN_BUILD_PROTECTED_VARS:=
 
+# list of names of first-phase variables
+#  - protected variables that change their values in makefile parsing first phase,
+#  but whose values are reset immediately before rule execution second phase
+CLEAN_BUILD_FIRST_PHASE_VARS:=
+
 ifdef MCHECK
 
 # reset
@@ -59,26 +64,32 @@ endif
 # $2 - if not empty, then do not trace calls for given macros
 SET_GLOBAL = $(eval $(SET_GLOBAL1))
 
-# reset "local" variable $v
+# reset "local" variable $v:
+# check if $v is not already produces access error
 CLEAN_BUILD_RESET_LOCAL_VAR = $(if \
-  $(filter file override environment,$(origin $v)),$(if \
   $(filter-out !$$$(open_brace)error$(space)%,$(value $v)),$(if \
   $(filter environment,$(origin $v)),$v=!$$(error \
   using environment variable: $v, use of environment variables is discouraged, please use only file variables),$(findstring \
   override,$(origin $v)) $v=!$$(error \
-  using local varaible: $v, please use target-specific or global one))$(newline)))
+  using local varaible: $v, please use target-specific or global one))$(newline))
 
-# only protected global and target-specific variables may be used in rules,
-#  so redefine non-protected global (i.e. "local") variables to produce access errors
+# only protected variables may remain its value between makefiles,
+#  redefine non-protected (i.e. "local") variables to produce access errors
 # note: do not touch GNU Make automatic variable MAKEFILE_LIST
-# note: do not reset %^saved variables here - they are needed for RESTORE_VARS, which will reset them
+# note: do not reset %^saved variables here - they are needed for RESTORE_VARS, which will reset them later
+# note: do not touch automatic variables
 CLEAN_BUILD_RESET_LOCAL_VARS = $(foreach v,$(filter-out \
-  MAKEFILE_LIST $(CLEAN_BUILD_PROTECTED_VARS) %^saved,$(.VARIABLES)),$(CLEAN_BUILD_RESET_LOCAL_VAR))
+  MAKEFILE_LIST $(CLEAN_BUILD_PROTECTED_VARS) %^saved,$(.VARIABLES)),$(if \
+  $(filter file override environment,$(origin $v)),$(CLEAN_BUILD_RESET_LOCAL_VAR)))
 
 # called by RESTORE_VARS to reset %^saved variables
 CLEAN_BUILD_RESET_SAVED_VARS = $(foreach v,$(filter %^saved,$(.VARIABLES)),$(CLEAN_BUILD_RESET_LOCAL_VAR))
 
-# check and set CLEAN_BUILD_NEED_TAIL_CODE - $(DEF_TAIL_CODE) must be evaluated after $(DEF_HEAD_CODE)
+# called from $(CLEAN_BUILD_DIR)/core/all.mk
+CLEAN_BUILD_RESET_FIRST_PHASE = $(CLEAN_BUILD_RESET_LOCAL_VARS)$(foreach \
+  v,$(CLEAN_BUILD_FIRST_PHASE_VARS),$(CLEAN_BUILD_RESET_LOCAL_VAR))
+
+# reset "local" variables, check and set CLEAN_BUILD_NEED_TAIL_CODE - $(DEF_TAIL_CODE) must be evaluated after $(DEF_HEAD_CODE)
 define CLEAN_BUILD_CHECK_AT_HEAD
 $(CLEAN_BUILD_RESET_LOCAL_VARS)$(if $(CLEAN_BUILD_NEED_TAIL_CODE),$(error \
   $$(DEFINE_TARGETS) was not evaluated at end of $(CLEAN_BUILD_NEED_TAIL_CODE)!))CLEAN_BUILD_NEED_TAIL_CODE := $(TARGET_MAKEFILE)
@@ -127,10 +138,16 @@ TARGET_MAKEFILE += $(call SET_GLOBAL,CLEAN_BUILD_PROTECTED_VARS \
   CLEAN_BUILD_RESET_LOCAL_VAR CLEAN_BUILD_RESET_LOCAL_VARS CLEAN_BUILD_RESET_SAVED_VARS \
   CLEAN_BUILD_CHECK_AT_HEAD CLEAN_BUILD_CHECK_PROTECTED_VAR CLEAN_BUILD_CHECK_AT_TAIL,0)
 
+# these macros must not be used in rule execution second phase
+CLEAN_BUILD_FIRST_PHASE_VARS += MCHECK TRACE CLEAN_BUILD_PROTECTED_VARS CLEAN_BUILD_FIRST_PHASE_VARS \
+  CLEAN_BUILD_OVERRIDDEN_VARS CLEAN_BUILD_NEED_TAIL_CODE CLEAN_BUILD_ENCODE_VAR_VALUE CLEAN_BUILD_ENCODE_VAR_NAME \
+  CLEAN_BUILD_PROTECT_VARS2 trace_calls SET_GLOBAL1 SET_GLOBAL CLEAN_BUILD_RESET_LOCAL_VAR CLEAN_BUILD_RESET_LOCAL_VARS \
+  CLEAN_BUILD_RESET_SAVED_VARS CLEAN_BUILD_CHECK_AT_HEAD CLEAN_BUILD_CHECK_PROTECTED_VAR CLEAN_BUILD_CHECK_AT_TAIL TARGET_MAKEFILE
+
 else # !MCHECK
 
 # reset
-CLEAN_BUILD_RESET_LOCAL_VARS:=
+CLEAN_BUILD_RESET_FIRST_PHASE:=
 CLEAN_BUILD_RESET_SAVED_VARS:=
 CLEAN_BUILD_CHECK_AT_HEAD:=
 CLEAN_BUILD_CHECK_AT_TAIL:=
