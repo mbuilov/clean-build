@@ -10,14 +10,14 @@
 # note: to avoid races when creating directories, create parent directories before child sub-directories,
 # for example, if needed to create a/b/c1 and a/b/c2 - create a/b before creating a/b/c1 and a/b/c2 in parallel
 # note: assume all directories are created in $(BUILD) directory
-NEEDED_DIRS := $(call split_dirs,$(NEEDED_DIRS:$(dir $(BUILD))%=%))
+CB_NEEDED_DIRS := $(call split_dirs,$(CB_NEEDED_DIRS:$(dir $(BUILD))%=%))
 
 # define order-only dependencies for directories
-$(eval $(call mk_dir_deps,$(NEEDED_DIRS),$(dir $(BUILD))))
+$(eval $(call mk_dir_deps,$(CB_NEEDED_DIRS),$(dir $(BUILD))))
 
 # define rules to create $(BUILD)-relative needed directories
 # note: do not update percents of executed makefiles, so pass 1 as 4-th argument of SUP function
-$(addprefix $(dir $(BUILD)),$(NEEDED_DIRS)):
+$(addprefix $(dir $(BUILD)),$(CB_NEEDED_DIRS)):
 	$(call SUP,MKDIR,$@,,1)$(call CREATE_DIR,$@)
 
 # note: $(PROCESSED_MAKEFILES) - absolute paths of all processed target makefiles with '-' suffix
