@@ -57,23 +57,8 @@ $(subst $(space),$(newline),$(join $(addsuffix :,$5),$2))$(if \
 $5:| $4 $$(ORDER_DEPS)
 	$$(call $t_$1,$$@,$$<,$v)
 endef
-
-# $1 - sources type: CXX,CC,ASM,...
-# $2 - sources to compile
-# $3 - sdeps (result of FIX_SDEPS)
-# $4 - objdir
-# $5 - $(addprefix $4/,$(basename $(notdir $2)))
-# $t - target type: EXE,LIB,...
-# $v - non-empty variant: R,P,S,...
-# returns: list of object files
-# note: cleanup auto-generated dependencies
-ifdef TOCLEAN
-OBJ_RULES1 = $(call TOCLEAN,$(addsuffix .d,$5) $(addsuffix $(OBJ_SUFFIX),$5))
-else
-OBJ_RULES1 = $(call OBJ_RULES_BODY,$1,$2,$3,$4,$(addsuffix $(OBJ_SUFFIX),$5))
 ifndef NO_DEPS
-$(call define_append,OBJ_RULES1,$(newline)-include $$(addsuffix .d,$$5))
-endif
+$(call define_append,OBJ_RULES_BODY,$(newline)-include $$(addsuffix .d,$$5))
 endif
 
 # rule that defines how to build objects from sources
@@ -84,7 +69,15 @@ endif
 # $t - target type: EXE,LIB,...
 # $v - non-empty variant: R,P,S,...
 # returns: list of object files
-OBJ_RULES = $(if $2,$(call OBJ_RULES1,$1,$2,$3,$4,$(addprefix $4/,$(basename $(notdir $2)))))
+ifndef TOCLEAN
+OBJ_RULES = $(if $2,$(call OBJ_RULES_BODY,$1,$2,$3,$4,$(addprefix \
+  $4/,$(addsuffix $(OBJ_SUFFIX),$(basename $(notdir $2))))))
+else
+# note: cleanup auto-generated dependencies
+OBJ_RULES1 = $(call TOCLEAN,$1 $(addsuffix .d,$1))
+OBJ_RULES = $(if $2,$(call OBJ_RULES1,$(addprefix \
+  $4/,$(addsuffix $(OBJ_SUFFIX),$(basename $(notdir $2))))))
+endif
 
 # which compiler type to use for the target: CXX or CC?
 # note: CXX compiler may compile C sources, but also links standard C++ libraries (like libstdc++)

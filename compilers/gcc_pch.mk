@@ -11,8 +11,8 @@
 # How to use precompiled header:
 #
 # 1) complie precompiled header
-#   gcc -c -o /build/obj/xxx_pch_c.gch /project/include/xxx.h
-# 2) compile source using precompiled header
+#   gcc -c -o /build/obj/xxx_pch_c.h.gch /project/include/xxx.h
+# 2) compile source using precompiled header (include fake header xxx_pch_c.h)
 #   gcc -c -I/build/obj -include xxx_pch_c.h -o /build/obj/src1.o /build/obj/src1.c
 # 3) link application
 #   gcc -o /build/bin/app /build/obj/src1.o
@@ -55,7 +55,7 @@ endif
 # $3 - $(filter $(CC_MASK),$(call fixpath,$(WITH_PCH)))
 # $4 - $(filter $(CXX_MASK),$(call fixpath,$(WITH_PCH)))
 # $5 - $(call FORM_OBJ_DIR,$1,$v)
-# $6 - $(call FORM_TRG,$1,$v)
+# $6 - $(call FORM_TRG,$1,$v) (not used)
 # $v - R,P,D
 # note: may use target-specific variables: PCH, CC_WITH_PCH, CXX_WITH_PCH in generated code
 PCH_TEMPLATEv = $(if \

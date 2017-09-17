@@ -170,8 +170,8 @@ else # clean
 # $5 - $(call FORM_OBJ_DIR,$1,$v)
 # $v - R,P,D
 PCH_TEMPLATEv = $(if \
-  $3,$(addprefix $5/,$2_pch_c$(OBJ_SUFFIX) $2_pch_c.d $2_c.cpch)) $(if \
-  $4,$(addprefix $5/,$2_pch_cc$(OBJ_SUFFIX) $2_pch_cc.d $2_cc.Cpch))
+  $3,$(addprefix $5/,$2_pch_c$(OBJ_SUFFIX) $2_pch_c$(OBJ_SUFFIX).d $2_c.cpch)) $(if \
+  $4,$(addprefix $5/,$2_pch_cc$(OBJ_SUFFIX) $2_pch_cc$(OBJ_SUFFIX).d $2_cc.Cpch))
 
 # return objects created while building with precompiled header to clean up
 # $1 - common objdir (for R-variant)
