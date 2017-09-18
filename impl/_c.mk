@@ -60,7 +60,7 @@ LIB_VARIANT_SUFFIX = _$1
 DLL_VARIANT_SUFFIX = _$1
 
 # define target variant flags, empty by default
-# $1 - variant (one of variants supported by selected toolchain)
+# $1 - variant (R or one of variants supported by selected toolchain)
 # note: used by VARIANT_INCLUDE and other VARIANT_... macros from $(CLEAN_BUILD_DIR)/impl/c_base.mk
 EXE_VARIANT_INCLUDE:=
 EXE_VARIANT_DEFINES:=
@@ -70,7 +70,7 @@ EXE_VARIANT_LOPTS:=
 EXE_VARIANT_ASMOPTS:=
 
 # define target variant flags, empty by default
-# $1 - variant (one of variants supported by selected toolchain)
+# $1 - variant (R or one of variants supported by selected toolchain)
 # note: used by VARIANT_INCLUDE and other VARIANT_... macros from $(CLEAN_BUILD_DIR)/impl/c_base.mk
 LIB_VARIANT_INCLUDE:=
 LIB_VARIANT_DEFINES:=
@@ -80,7 +80,7 @@ LIB_VARIANT_LOPTS:=
 LIB_VARIANT_ASMOPTS:=
 
 # define target variant flags, empty by default
-# $1 - variant (one of variants supported by selected toolchain)
+# $1 - variant (R or one of variants supported by selected toolchain)
 # note: used by VARIANT_INCLUDE and other VARIANT_... macros from $(CLEAN_BUILD_DIR)/impl/c_base.mk
 DLL_VARIANT_INCLUDE:=
 DLL_VARIANT_DEFINES:=
@@ -128,18 +128,20 @@ DLL_FORM_TRG = $(1:%=$(DLL_DIR)/$(DLL_PREFIX)%$(call VARIANT_SUFFIX,DLL,$2)$(DLL
 # determine which variant of static library to link with EXE or DLL
 # $1 - target type: EXE,DLL
 # $2 - variant of target EXE or DLL: R,P, if empty, then assume R
+# $3 - dependency name, e.g. mylib
 # use the same variant (R or P) of static library as target EXE (for example for P-EXE use P-LIB)
-# always use D-variant of static library for DLL
+# always use D-variant of static library for regular DLL
 # note: if returns empty value - then assume it's default variant R
-# note: used by DEP_SUFFIX macro from $(CLEAN_BUILD_DIR)/impl/c_base.mk
-LIB_DEP_MAP = $(if $(filter DLL,$1),D,$2)
+# note: used by DEP_LIBRARY macro from $(CLEAN_BUILD_DIR)/impl/c_base.mk
+LIB_DEP_MAP = $(if $(findstring DLL,$1),D,$2)
 
 # determine which variant of dynamic library to link with EXE or DLL
 # $1 - target type: EXE,DLL
 # $2 - variant of target EXE or DLL: R,P, if empty, then assume R
+# $3 - dependency name, e.g. mylib
 # the same one default variant (R) of DLL may be linked with any P- or R-EXE or R-DLL
 # note: if returns empty value - then assume it's default variant R
-# note: used by DEP_SUFFIX macro from $(CLEAN_BUILD_DIR)/impl/c_base.mk
+# note: used by DEP_LIBRARY macro from $(CLEAN_BUILD_DIR)/impl/c_base.mk
 DLL_DEP_MAP:=
 
 # prefix/suffix of import library of a dll
@@ -150,13 +152,13 @@ IMP_SUFFIX := $(DLL_SUFFIX)
 # make file names of static libraries target depends on
 # $1 - target type: EXE,DLL
 # $2 - variant of target EXE or DLL: R,P,S,<empty>
-DEP_LIBS = $(foreach l,$(LIBS),$(LIB_PREFIX)$l$(call DEP_SUFFIX,$1,$2,LIB,$l)$(LIB_SUFFIX))
+DEP_LIBS = $(foreach l,$(LIBS),$(LIB_PREFIX)$(call DEP_LIBRARY,$1,$2,$l,LIB)$(LIB_SUFFIX))
 
 # make file names of implementation libraries of dynamic libraries target depends on
 # $1 - target type: EXE,DLL
 # $2 - variant of target EXE or DLL: R,P,S,<empty>
 # note: assume when building DLL, $(DLL_LD) generates implementation library for DLL in $(LIB_DIR) and DLL itself in $(DLL_DIR)
-DEP_IMPS = $(foreach d,$(DLLS),$(IMP_PREFIX)$d$(call DEP_SUFFIX,$1,$2,DLL,$l)$(IMP_SUFFIX))
+DEP_IMPS = $(foreach d,$(DLLS),$(IMP_PREFIX)$(call DEP_LIBRARY,$1,$2,$d,DLL)$(IMP_SUFFIX))
 
 # template for building executables, used by C_RULES macro
 # $1 - target file: $(call FORM_TRG,$t,$v)

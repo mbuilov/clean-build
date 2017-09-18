@@ -43,22 +43,22 @@ EXE_VARIANT_SUFFIX := _pie
 # two non-regular variants of LIB are supported: P and D - see $(LIB_SUPPORTED_VARIANTS)
 # $1 - P or D
 # note: override defaults from $(CLEAN_BUILD_DIR)/impl/_c.mk
-LIB_VARIANT_SUFFIX = $(if $(filter P,$1),_pie,_pic)
+LIB_VARIANT_SUFFIX = $(if $(findstring P,$1),_pie,_pic)
 
 # only one non-regular variant of EXE is supported - P - see $(EXE_SUPPORTED_VARIANTS)
-# $1 - P
+# $1 - R or P
 # note: override defaults from $(CLEAN_BUILD_DIR)/impl/_c.mk
-EXE_VARIANT_COPTS   := $(PIE_COPTION)
-EXE_VARIANT_CXXOPTS := $(PIE_COPTION)
-EXE_VARIANT_LOPTS   := $(PIE_LOPTION)
+EXE_VARIANT_COPTS   = $(if $(findstring P,$1),$(PIE_COPTION))
+EXE_VARIANT_CXXOPTS = $(EXE_VARIANT_COPTS)
+EXE_VARIANT_LOPTS   = $(if $(findstring P,$1),$(PIE_LOPTION))
 
 # two non-regular variants of LIB are supported: P and D - see $(LIB_SUPPORTED_VARIANTS)
-# $1 - P or D
+# $1 - R, P or D
 # note: override defaults from $(CLEAN_BUILD_DIR)/impl/_c.mk
-LIB_VARIANT_COPTS   = $(if $(filter P,$1),$(PIE_COPTION),$(PIC_COPTION))
-LIB_VARIANT_CXXOPTS = $(if $(filter P,$1),$(PIE_COPTION),$(PIC_COPTION))
+LIB_VARIANT_COPTS   = $(if $(findstring P,$1),$(PIE_COPTION),$(if $(findstring D,$1),$(PIC_COPTION)))
+LIB_VARIANT_CXXOPTS = $(LIB_VARIANT_COPTS)
 
-# ld flags that may be modified by user
+# ld flags modifiable by user
 LDFLAGS := $(if $(DEBUG),-ggdb,-O)
 
 # common gcc flags for linking executables and shared libraries

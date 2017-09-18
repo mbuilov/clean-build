@@ -6,13 +6,29 @@
 
 # msvc compiler toolchain (app-level), included by $(CLEAN_BUILD_DIR)/impl/_c.mk
 
+# Windows tools, such as rc.exe, mc.exe, cl.exe, link.exe, produce excessive output in stdout,
+# by default, try to filter this output out by wrapping calls to the tools.
+# If not-empty, then do not wrap tools
+NO_WRAP:=
+
+# add definitions of MC_COMPILER and RC_COMPILER (needed by STD_RES_TEMPLATE)
+ifeq (,$(filter-out undefined environment,$(origin MC_COMPILER)))
+include $(dir $(lastword $(MAKEFILE_LIST)))wintools.mk
+endif
+
+# add definitions of standard resource with module version information
+ifeq (,$(filter-out undefined environment,$(origin STD_RES_TEMPLATE)))
+include $(dir $(lastword $(MAKEFILE_LIST)))msvc_res.mk
+endif
+
 # reset additional variables
-# RES - resources to link to dll or exe
+# RES - resources to link to EXE or DLL
 # DEF - linker definitions file (used mostly to list exported symbols)
 define C_PREPARE_MSVC_APP_VARS
 RES:=
 DEF:=
 endef
+C_PREPARE_MSVC_APP_VARS := $(C_PREPARE_MSVC_APP_VARS)
 
 # patch code executed at beginning of target makefile
 $(call define_append,C_PREPARE_APP_VARS,$(newline)$$(C_PREPARE_MSVC_APP_VARS))
@@ -20,85 +36,131 @@ $(call define_append,C_PREPARE_APP_VARS,$(newline)$$(C_PREPARE_MSVC_APP_VARS))
 # optimization
 $(call try_make_simple,C_PREPARE_APP_VARS,C_PREPARE_MSVC_APP_VARS)
 
-# max number of sources to compile with /MP compiler option
-# - with too many sources it's possible to exceed maximum command string length
-MCL_MAX_COUNT := 50
+# Creating a process on Windows costs more time than on Unix,
+# so when compiling in parallel, it takes more total time to
+# call compiler for each one source individually over than
+# compiling multiple sources at once, so that compiler itself
+# internally may parallel the compilation using threads.
 
-include $(CLEAN_BUILD_DIR)/WINXX/cres.mk
-
-# run via $(MAKE) S=1 to compile each source individually (without /MP compiler option)
+# By default, compile multiple sources at once.
+# Run via $(MAKE) S=1 to compile each source individually (without /MP compiler option)
 ifeq (command line,$(origin S))
 SEQ_BUILD := $(S:0=)
 else
 SEQ_BUILD:=
 endif
 
-include $(CLEAN_BUILD_DIR)/WINXX/auto_c.mk
+# max number of sources to compile with /MP compiler option
+# - with too many sources it's possible to exceed maximum command string length
+MCL_MAX_COUNT := 50
 
-# yasm/flex/bison compilers
-YASMC  := yasm.exe
-FLEXC  := flex.exe
-BISONC := bison.exe
+# paths compiler/linker and system libraries/headers - must be defined in project configuration makefile
+VSLIB = $(error VSLIB is not defined - Windows-like paths to Visual Studio libraries, spaces must be replaced with ?)
+VSINC = $(error VSINC is not defined - Windows-like paths to Visual Studio headers, spaces must be replaced with ?)
+VSLD  = $(error VSLD is not defined - Windows-like path to link.exe, should be in double-quotes if contains spaces)
+VSCL  = $(error VSCL is not defined - Windows-like path to cl.exe, should be in double-quotes if contains spaces)
+UMLIB = $(error UMLIB is not defined - Windows-like paths to user-mode libraries, spaces must be replaced with ?)
+UMINC = $(error UMINC is not defined - Windows-like paths to user-mode headers, spaces must be replaced with ?)
 
-# note: assume yasm used only for drivers
-YASM_FLAGS := -f $(if $(KCPU:%64=),win32,win64)$(if $(KCPU:x86%=),, -m $(if $(KCPU:%64=),x86,amd64))
+# utilities for the tool mode, may be overridden by specifying them in project configuration makefile
+VSTLIB = $(VSLIB)
+VSTINC = $(VSINC)
+VSTLD  = $(VSLD)
+VSTCL  = $(VSCL)
+UMTLIB = $(UMLIB)
+UMTINC = $(UMINC)
 
-# if not-empty, then do not wrap tools
-NO_WRAP:=
+# Manifest Tool
+MT = $(error MT is not defined - Windows-like path to mt.exe, should be in double-quotes if contains spaces)
 
-# strings to strip off from mc.exe output
-# note: may be overridden either in project configuration makefile or in command line
-MC_STRIP_STRINGS := MC:?Compiling
+# supported variants:
+# R - dynamically linked multi-threaded libc (default variant)
+# S - statically linked multi-threaded libc
+# RU - same as R, but with unicode support
+# SU - same as S, but with unicode support
+WIN_SUPPORTED_VARIANTS := S RU SU
 
-# wrap mc.exe call to strip-off diagnostic mc messages
-# $1 - mc command with arguments
-# note: send mc output to stderr
-ifdef NO_WRAP
-WRAP_MC = $1 >&2
-else ifndef MC_STRIP_STRINGS
-WRAP_MC = $1 >&2
-else
-WRAP_MC = $(call FILTER_OUTPUT,$1,$(call qpath,$(MC_STRIP_STRINGS),|findstr /VBRC:))
-endif
+# for each non-regular target variant from $(WIN_NONREGULAR_VARIANTS): RU,SU,S
+WIN_VARIANT_SUFFIX := $(if $(findstring \
+  RU,$1),_u,$(if $(findstring \
+  SU,$1),_su,_s))
 
-# message compiler
-# $1 - generated .rc and .h
-# $2 - arguments for mc.exe
-# target-specific: TMD
-MC = $(call SUP,$(TMD)MC,$1)$(call WRAP_MC,$($(TMD)MC1)$(if $(VERBOSE), -v) $2)
+# options for each target variant: R,S,RU,SU
+WIN_VARIANT_COPTS = $(if $(filter R%,$1),/MD,/MT)$(if $(DEBUG),d)$(if $(filter %U,$1), /DUNICODE /D_UNICODE)
 
-# tools colors
-MC_COLOR  := $(GEN_COLOR)
-TMC_COLOR := $(GEN_COLOR)
+# note: override defaults from $(CLEAN_BUILD_DIR)/impl/_c.mk
+EXE_SUPPORTED_VARIANTS = $(WIN_SUPPORTED_VARIANTS)
+LIB_SUPPORTED_VARIANTS = $(WIN_SUPPORTED_VARIANTS)
+DLL_SUPPORTED_VARIANTS = $(WIN_SUPPORTED_VARIANTS)
 
-# strings to strip off from rc.exe output if rc.exe does not support /nologo option
-# note: may be overridden either in project configuration makefile or in command line
-RC_LOGO_STRINGS := Microsoft?(R)?Windows?(R)?Resource?Compiler?Version Copyright?(C)?Microsoft?Corporation.??All?rights?reserved. ^$$
+# note: override defaults from $(CLEAN_BUILD_DIR)/impl/_c.mk
+EXE_VARIANT_SUFFIX = $(WIN_VARIANT_SUFFIX)
+LIB_VARIANT_SUFFIX = $(WIN_VARIANT_SUFFIX)
+DLL_VARIANT_SUFFIX = $(WIN_VARIANT_SUFFIX)
 
-# send resource compiler output to stderr
-# $1 - rc command with arguments
-# note: send rc output to stderr
-ifdef NO_WRAP
-WRAP_RC = $1 >&2
-else ifndef RC_LOGO_STRINGS
-WRAP_RC = $1 >&2
-else ifdef SUPPRESS_RC_LOGO
-WRAP_RC = $1 >&2
-else
-WRAP_RC = $(call FILTER_OUTPUT,$1,$(call qpath,$(RC_LOGO_STRINGS),|findstr /VBRC:))
-endif
+# note: override defaults from $(CLEAN_BUILD_DIR)/impl/_c.mk
+EXE_VARIANT_COPTS   = $(WIN_VARIANT_COPTS)
+EXE_VARIANT_CXXOPTS = $(EXE_VARIANT_COPTS)
 
-# resource compiler
-# $1 - target .res
-# $2 - source .rc
-# $3 - rc compiler options
-# target-specific: TMD
-RC = $(call SUP,$(TMD)RC,$1)$(call WRAP_RC,$($(TMD)RC1) $(SUPPRESS_RC_LOGO)$(if \
-  $(VERBOSE), /v) $3 $(call qpath,$(VS$(TMD)INC) $(UM$(TMD)INC),/I) /fo$(call ospath,$1 $2))
+# note: override defaults from $(CLEAN_BUILD_DIR)/impl/_c.mk
+LIB_VARIANT_COPTS   = $(WIN_VARIANT_COPTS)
+LIB_VARIANT_CXXOPTS = $(LIB_VARIANT_COPTS)
 
-# tools colors
-RC_COLOR  := $(GEN_COLOR)
-TRC_COLOR := $(GEN_COLOR)
+# note: override defaults from $(CLEAN_BUILD_DIR)/impl/_c.mk
+DLL_VARIANT_COPTS   = $(WIN_VARIANT_COPTS)
+DLL_VARIANT_CXXOPTS = $(DLL_VARIANT_COPTS)
+
+# determine which variant of static library to link with EXE or DLL
+# $1 - target: EXE,DLL
+# $2 - variant of target EXE or DLL: R,S,RU or SU, if empty, then assume R
+# $3 - dependency name, e.g. mylib
+# note: override defaults from $(CLEAN_BUILD_DIR)/impl/_c.mk
+# note: use the same variant of dependent static library as target EXE or DLL (for example for S-EXE use S-LIB)
+# note: unicode variants of the target EXE or DLL may link with two kinds of libraries:
+#  1) with unicode support - name begins with UNI_ prefix, normally built in 2 variants, e.g. UNI_mylib.lib and UNI_mylib_u.lib
+#  2) without unicode support - name do not begins with UNI_ prefix, normally built in 1 variant, e.g. mylib.lib
+#  so, for RU or SU variant of target EXE or DLL, if dependent library name do not starts with UNI_
+#  - dependent library do not have unicode variant, so convert needed variant to non-unicode one: RU->R or SU->S
+LIB_DEP_MAP = $(if $(3:UNI_%=),$(2:U=),$2)
+
+# same for dependent dynamic library
+DLL_DEP_MAP = $(if $(3:UNI_%=),$(2:U=),$2)
+
+# link.exe flags modifiable by user
+LDFLAGS := $(if $(DEBUG),/DEBUG,/RELEASE /LTCG /OPT:REF)
+
+# common link.exe flags for linking executables and dynamic libraries
+CMN_LDFLAGS := /INCREMENTAL:NO
+
+# link.exe flags for linking an EXE
+EXE_LDFLAGS:=
+
+# link.exe flags for linking a DLL
+DLL_LDFLAGS:=
+
+# check that library name built as RU/SU variant begins with UNI_ prefix
+# $1 - library name
+# $v - variant name: RU,SU
+CHECK_LIB_UNI_NAME1 = $(if $(filter-out UNI_%,$1),$(error library '$1' name must begin with UNI_ prefix to build it as $v variant))
+
+# check that library name built as RU/SU variant begins with UNI_ prefix
+# $1 - IMP or LIB
+# $v - variant name: R,S,RU,SU
+# note: $$1 - target library name
+CHECK_LIB_UNI_NAME = $(if $(filter %U,$v),$$(call CHECK_LIB_UNI_NAME1,$$(patsubst \
+  %$(call LIB_VARIANT_SUFFIX,$v)$($1_SUFFIX),%,$$(notdir $$1))))
+
+# how to mark exported symbols from a DLL
+DLL_EXPORTS_DEFINE := "__declspec(dllexport)"
+
+# how to mark imported symbols from a DLL
+DLL_IMPORTS_DEFINE := "__declspec(dllimport)"
+
+
+
+
+
+
 
 # exe file suffix
 EXE_SUFFIX := .exe
@@ -117,22 +179,6 @@ DLL_SUFFIX := .dll
 # import library for dll prefix/suffix
 IMP_PREFIX:=
 IMP_SUFFIX := .lib
-
-# kernel-mode static library prefix/suffix
-KLIB_PREFIX:=
-KLIB_SUFFIX := .ka
-
-# dynamically loaded kernel shared library prefix/suffix
-KDLL_PREFIX:=
-KDLL_SUFFIX := .sys
-
-# import library for kernel dll prefix/suffix
-KIMP_PREFIX:=
-KIMP_SUFFIX := .lib
-
-# kernel module (driver) prefix/suffix
-DRV_PREFIX := drv
-DRV_SUFFIX := .sys
 
 # dll and import file for dll - different files
 # place dll to $(BIN_DIR), import lib for dll - to $(LIB_DIR)
@@ -663,252 +709,6 @@ TLINK_COLOR  := $(LINK_COLOR)
 TXLINK_COLOR := $(XLINK_COLOR)
 TLIB_COLOR   := $(LIB_COLOR)
 
-ifdef DRIVERS_SUPPORT
-
-# SUBSYSTEM for kernel mode
-SUBSYSTEM_KVER := $(SUBSYSTEM_VER)
-
-# default linker flags for KLIB
-# $1 - target KLIB
-# $2 - objects
-DEF_KLIB_LDFLAGS := $(if $(DEBUG),,/LTCG)
-
-# define KLIB linker
-# $1 - target KLIB
-# $2 - objects
-# target-specific: LDFLAGS
-# note: send linker stdout to stderr
-KLIB_R_LD1 = $(call SUP,KLIB,$1)$(WKLD) /lib /nologo /OUT:$(call ospath,$1 $2) $(DEF_KLIB_LDFLAGS) $(LDFLAGS) >&2
-
-DEF_DRV_LDFLAGS = \
-  /INCREMENTAL:NO $(if $(DEBUG),/DEBUG,/RELEASE /LTCG /OPT:REF) /DRIVER /FULLBUILD \
-  /NODEFAULTLIB /SAFESEH:NO /MANIFEST:NO /MERGE:_PAGE=PAGE /MERGE:_TEXT=.text /MERGE:.rdata=.text \
-  /SECTION:INIT,d /ENTRY:DriverEntry$(if $(KCPU:%64=),@8) /ALIGN:0x40 /BASE:0x10000 /STACK:0x40000,0x1000 \
-  /MACHINE:$(if $(KCPU:%64=),x86,x64) /SUBSYSTEM:NATIVE,$(SUBSYSTEM_KVER)
-
-ifdef WDK
-ifneq (,$(call is_less,10,$(VS_VER)))
-# >= Visual Studio 2012
-DEF_DRV_LDFLAGS += /kernel
-endif
-endif
-
-# common parts of linker options for built DRV or KDLL
-# $1 - target EXE or DLL
-# $2 - objects
-# $v - variant: R
-# target-specific: MODVER, DEF, RES, LIBS, KDLLS, LIB_DIR, SYSLIBPATH, SYSLIBS
-CMN_KLIBS = /OUT:$(ospath) /VERSION:$(call MK_MAJ_MIN_VER,$(MODVER)) $(addprefix \
-  /DEF:,$(call ospath,$(DEF))) $(DEF_DRV_LDFLAGS) $(call ospath,$2 $(RES)) $(if \
-  $(firstword $(KLIBS)$(KDLLS)),/LIBPATH:$(call ospath,$(LIB_DIR))) $(addprefix \
-  $(KLIB_PREFIX),$(KLIBS:=$(KLIB_SUFFIX))) $(addprefix $(KIMP_PREFIX),$(KDLLS:=$(KIMP_SUFFIX))) $(call \
-  qpath,$(call ospath,$(SYSLIBPATH)),/LIBPATH:) $(SYSLIBS)
-
-# define DRV linker
-# $1 - target DRV
-# $2 - objects
-# $v - variant: R
-# target-specific: MODVER, RES, KLIBS, SYSLIBPATH, SYSLIBS, LDFLAGS, DEF, IMP, DRV_EXPORTS
-# note: send linker output to stderr
-DRV_R_LD1 = $(call SUP,KLINK,$1)$(call \
-  WRAP_EXE_LINKER,$(DRV_EXPORTS),$(WKLD) /nologo $(CMN_KLIBS) $(if \
-  $(DRV_EXPORTS),/IMPLIB:$(call ospath,$(IMP))) $(LDFLAGS))
-
-# define KDLL linker
-# $1 - target KDLL
-# $2 - objects
-# $v - variant: R
-# target-specific: DEF, LDFLAGS, IMP, KDLL_NO_EXPORTS
-# note: send linker output to stderr
-KDLL_R_LD1 = $(call SUP,KLINK,$1)$(call \
-  WRAP_DLL_LINKER,$(KDLL_NO_EXPORTS),$1,$(WKLD) /nologo /DLL $(CMN_KLIBS) $(if \
-  $(KDLL_NO_EXPORTS),,/IMPLIB:$(call ospath,$(IMP))) $(LDFLAGS))
-
-# flags for kernel-level C-compiler
-OS_KRN_FLAGS := -cbstring /X /GF /W3 /GR- /Gz /Zl /Oi /Gm- /Zp8 /Gy /Zc:wchar_t- /typedil-
-ifdef DEBUG
-OS_KRN_FLAGS += /GS /Oy- /Od
-else
-OS_KRN_FLAGS += /GS- /Oy
-endif
-
-ifdef WDK
-
-ifneq (,$(call is_less,10,$(VS_VER)))
-# >= Visual Studio 2012
-
-OS_KRN_FLAGS := $(filter-out /typedil-,$(OS_KRN_FLAGS)) /kernel
-
-ifdef DEBUG
-OS_KRN_FLAGS += $(if $(KCPU:%64=),,-d2epilogunwind) /d1import_no_registry /d2Zi+
-else
-OS_KRN_FLAGS += /d1nodatetime
-endif
-
-ifdef DEBUG
-OS_KRN_FLAGS += /sdl # Enable additional security checks
-endif
-
-endif # Visual Studio 2012
-
-ifneq (,$(call is_less,11,$(VS_VER)))
-# >= Visual Studio 2013
-OS_KRN_FLAGS += /Zc:inline # Remove unreferenced COMDAT
-OS_KRN_FLAGS += /Zc:rvalueCast # Enforce type conversion rules
-OS_KRN_FLAGS += /Zc:strictStrings # Disable string literal type conversion
-endif
-
-endif # WDK
-
-# option /Zi is used to store debug info in one .pdb for all compiled sources
-# for parallel builds, it's needed to synchronize access to this .pdb
-# if FORCE_SYNC_PDB_KERN is defined (as /FS, starting with Visual Studio 2013),
-# then may use /Zi, else - use old /Z7 to store debug info in each .obj
-# note: no debug info in release build if /FS option is not supported
-ifdef FORCE_SYNC_PDB_KERN
-OS_KRN_FLAGS += $(FORCE_SYNC_PDB_KERN) /Zi
-else ifdef DEBUG
-OS_KRN_FLAGS += /Z7
-endif
-
-# KRN_FLAGS may be overridden in project makefile
-KRN_FLAGS := $(OS_KRN_FLAGS)
-
-# kernel-level defines
-OS_KRN_DEFINES := WIN32=100 WINNT=1 _DLL=1 $(if $(DEBUG),DBG=1 MSC_NOOPT DEPRECATE_DDK_FUNCTIONS=1,NDEBUG) $(if \
-  $(KCPU:%64=),_WIN32 _X86_=1 i386=1 STD_CALL,_WIN64 _AMD64_ AMD64) WIN32_LEAN_AND_MEAN=1
-
-# KRN_DEFINES may be overridden in project makefile
-KRN_DEFINES := $(OS_PREDEFINES) $(OS_KRN_DEFINES)
-
-# call C compiler
-# $1 - outdir/
-# $2 - sources
-# $3 - flags
-# target-specific: DEFINES, INCLUDE, COMPILER
-CMN_KCL = $(WKCL) /nologo /c $(KRN_FLAGS) $(call SUBST_DEFINES,$(addprefix /D,$(KRN_DEFINES) $(DEFINES))) $(call \
-  qpath,$(call ospath,$(INCLUDE)) $(KMINC),/I) /Fo$(ospath) /Fd$(ospath) $3 $(call ospath,$2)
-
-ifdef SEQ_BUILD
-
-# sequential build: don't add /MP option to Visual Studio C compiler
-# note: auto-dependencies generation available only in sequential mode - /MP conflicts with /showIncludes
-# note: precompiled headers are not supported in this mode (but support may be added later)
-
-# $(SED) expression to filter-out system files while dependencies generation
-# note: may be overridden either in project configuration makefile or in command line
-# c:\\winddk\\
-KDEPS_INCLUDE_FILTER := $(subst \,\\,$(KMINC))
-
-# common kernel C/C++ compiler
-# $1 - target object file
-# $2 - source
-# target-specific: CFLAGS, CXXFLAGS
-CMN_KCC = $(call SUP,KCC,$2)$(call WRAP_CC_COMPILER_DEPS,$(call CMN_KCL,$(dir $1),$2,$(CFLAGS)),$1,$2,KDEPS_INCLUDE_FILTER)
-CMN_KCXX = $(call SUP,KCXX,$2)$(call WRAP_CC_COMPILER_DEPS,$(call CMN_KCL,$(dir $1),$2,$(CXXFLAGS)),$1,$2,KDEPS_INCLUDE_FILTER)
-
-# $1 - target object file
-# $2 - source
-KLIB_R_CC  = $(CMN_KCC)
-DRV_R_CC   = $(CMN_KCC)
-KDLL_R_CC  = $(CMN_KCC)
-KLIB_R_CXX = $(CMN_KCXX)
-DRV_R_CXX  = $(CMN_KCXX)
-KDLL_R_CXX = $(CMN_KCXX)
-KLIB_R_LD  = $(KLIB_R_LD1)
-DRV_R_LD   = $(DRV_R_LD1)
-KDLL_R_LD  = $(KDLL_R_LD1)
-
-else # !SEQ_BUILD
-
-# multi-source build: build multiple sources at one CL call - using /MP option
-# note: auto-dependencies generation is not supported in this mode - /MP conflicts with /showIncludes
-# note: there is support for precompiled headers in this mode
-
-# $1 - sources
-# $2 - outdir/
-# $3 - pch header
-# target-specific: CFLAGS, CXXFLAGS
-CALL_MKCC   = $(call SUP,MKCC,$1)$(call WRAP_CC_COMPILER,$(call CMN_KCL,$2,$1,/MP $(CFLAGS)),,$1)
-CALL_MKCXX  = $(call SUP,MKCXX,$1)$(call WRAP_CC_COMPILER,$(call CMN_KCL,$2,$1,/MP $(CXXFLAGS)),,$1)
-CALL_MPKCC  = $(call SUP,MPKCC,$1)$(call WRAP_CC_COMPILER,$(call CMN_KCL,$2,$1,/MP /Yu$3 /Fp$2$(basename \
-  $(notdir $3))_c.pch /FI$3 $(CFLAGS)),,$1)
-CALL_MPKCXX = $(call SUP,MPKCXX,$1)$(call WRAP_CC_COMPILER,$(call CMN_KCL,$2,$1,/MP /Yu$3 /Fp$2$(basename \
-  $(notdir $3))_cpp.pch /FI$3 $(CXXFLAGS)),,$1)
-
-# $1 - outdir/
-# $2 - pch header
-# $3 - non-pch C
-# $4 - non-pch CXX
-# $5 - pch C
-# $6 - pch CXX
-CMN_MKCL3 = $(if \
-  $3,$(call xcmd,CALL_MKCC,$3,$(MCL_MAX_COUNT),$1,$2)$(newline))$(if \
-  $4,$(call xcmd,CALL_MKCXX,$4,$(MCL_MAX_COUNT),$1,$2)$(newline))$(if \
-  $5,$(call xcmd,CALL_MPKCC,$5,$(MCL_MAX_COUNT),$1,$2)$(newline))$(if \
-  $6,$(call xcmd,CALL_MPKCXX,$6,$(MCL_MAX_COUNT),$1,$2)$(newline))
-
-# $1 - outdir/
-# $2 - C-sources
-# $3 - CXX-sources
-# target-specific: PCH, WITH_PCH
-CMN_MKCL2 = $(call CMN_MKCL3,$1,$(PCH),$(filter-out $(WITH_PCH),$2),$(filter-out \
-  $(WITH_PCH),$3),$(filter $(WITH_PCH),$2),$(filter $(WITH_PCH),$3))
-
-# $1 - outdir/
-# $2 - sources
-CMN_MKCL1 = $(call CMN_MKCL2,$1,$(filter %.c,$2),$(filter %.cpp,$2))
-
-# $1 - target DRV, KDLL or KLIB
-# target-specific: SRC, SDEPS, OBJ_DIR
-CMN_MKCL = $(call CMN_MKCL1,$(OBJ_DIR)/,$(sort $(filter $(SRC),$? $(call FILTER_SDEPS,$(SDEPS)))))
-
-# $1 - target DRV, KDLL or KLIB
-# $2 - objects (of precompiled headers)
-# target-specific: SRC, OBJ_DIR
-KLIB_R_LD = $(CMN_MKCL)$(call KLIB_R_LD1,$1,$2 $(addprefix $(OBJ_DIR)/,$(addsuffix $(OBJ_SUFFIX),$(basename $(notdir $(SRC))))))
-DRV_R_LD  = $(CMN_MKCL)$(call DRV_R_LD1,$1,$2 $(addprefix $(OBJ_DIR)/,$(addsuffix $(OBJ_SUFFIX),$(basename $(notdir $(SRC))))))
-KDLL_R_LD = $(CMN_MKCL)$(call KDLL_R_LD1,$1,$2 $(addprefix $(OBJ_DIR)/,$(addsuffix $(OBJ_SUFFIX),$(basename $(notdir $(SRC))))))
-
-# $1 - target pch object
-# $2 - pch-source
-# $3 - pch header name
-# target-specific: CFLAGS, CXXFLAGS
-PCH_R_KCC  = $(call SUP,PCHKCC,$2)$(call WRAP_CC_COMPILER_DEPS,$(call CMN_KCL,$(dir $1),$2,/Yc$3 /Yl$(basename \
-  $(notdir $2)) /Fp$(dir $1)$(basename $(notdir $3))_c.pch $(CFLAGS)),$1,$2,KDEPS_INCLUDE_FILTER)
-PCH_R_KCXX = $(call SUP,PCHKCXX,$2)$(call WRAP_CC_COMPILER_DEPS,$(call CMN_KCL,$(dir $1),$2,/Yc$3 /Yl$(basename \
-  $(notdir $2)) /Fp$(dir $1)$(basename $(notdir $3))_cpp.pch $(CXXFLAGS)),$1,$2,KDEPS_INCLUDE_FILTER)
-
-# tools colors
-MKCC_COLOR   := $(KCC_COLOR)
-MKCXX_COLOR  := $(KCXX_COLOR)
-MKPCC_COLOR  := $(MKCC_COLOR)
-MKPCXX_COLOR := $(MKCXX_COLOR)
-
-endif # !SEQ_BUILD
-
-# kernel-level assembler
-# $1 - target object file
-# $2 - asm-source
-# target-specific: ASMFLAGS
-KLIB_R_ASM = $(call SUP,ASM,$2)$(YASMC) $(YASM_FLAGS) $(ASMFLAGS) -o $(call ospath,$1 $2)
-DRV_R_ASM  = $(KLIB_R_ASM)
-KDLL_R_ASM = $(KLIB_R_ASM)
-
-# tools colors
-KLINK_COLOR := $(KLD_COLOR)
-KLIB_COLOR  := $(AR_COLOR)
-
-endif # DRIVERS_SUPPORT
-
-# $1 - target
-# $2 - source
-BISON = $(call SUP,BISON,$2)$(BISONC) -o $(ospath) -d --fixed-output-files $(call ospath,$(call abspath,$2))
-FLEX  = $(call SUP,FLEX,$2)$(FLEXC) -o$(call ospath,$1 $2)
-
-# tools colors
-BISON_COLOR := $(GEN_COLOR)
-FLEX_COLOR  := $(GEN_COLOR)
 
 ifdef SEQ_BUILD
 

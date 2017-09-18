@@ -43,27 +43,28 @@ EXE_VARIANT_SUFFIX := _pie
 LIB_VARIANT_SUFFIX := _pic
 
 # only one non-regular variant of EXE is supported - P - see $(EXE_SUPPORTED_VARIANTS)
-# $1 - P
+# $1 - R or P
 # note: override defaults from $(CLEAN_BUILD_DIR)/impl/_c.mk
-EXE_VARIANT_COPTS   := $(PIC_COPTION)
-EXE_VARIANT_CXXOPTS := $(PIC_COPTION)
-EXE_VARIANT_LOPTS   := $(PIE_LOPTION)
+EXE_VARIANT_COPTS   = $(if $(findstring P,$1),$(PIC_COPTION))
+EXE_VARIANT_CXXOPTS = $(EXE_VARIANT_COPTS)
+EXE_VARIANT_LOPTS   = $(if $(findstring P,$1),$(PIE_LOPTION))
 
 # only one non-regular variant of LIB is supported - D - see $(LIB_SUPPORTED_VARIANTS)
-# $1 - D
+# $1 - R or D
 # note: override defaults from $(CLEAN_BUILD_DIR)/impl/_c.mk
-LIB_VARIANT_COPTS   := $(PIC_COPTION)
-LIB_VARIANT_CXXOPTS := $(PIC_COPTION)
+LIB_VARIANT_COPTS   = $(if $(findstring D,$1),$(PIC_COPTION))
+LIB_VARIANT_CXXOPTS = $(LIB_VARIANT_COPTS)
 
 # determine which variant of static library to link with EXE or DLL
 # $1 - target: EXE,DLL
 # $2 - variant of target EXE or DLL: R,P, if empty, then assume R
+# $3 - dependency name, e.g. mylib
 # note: if returns empty value - then assume it's default variant R
-# use D-variant of static library for pie-EXE or DLL
+# use D-variant of static library for pie-EXE or regular DLL
 # note: override defaults from $(CLEAN_BUILD_DIR)/impl/_c.mk
-LIB_DEP_MAP = $(if $(filter DLL,$1)$(filter P,$2),D)
+LIB_DEP_MAP = $(if $(findstring DLL,$1)$(findstring P,$2),D)
 
-# ld flags that may be modified by user
+# cc linking flags modifiable by user
 # note: '-xs' - allows debugging by dbx without object (.o) files
 LDFLAGS := $(if $(DEBUG),-g -xs,-fast)
 

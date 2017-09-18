@@ -25,15 +25,17 @@ OBJ_SUFFIX := .o
 CC_MASK  := %.c
 CXX_MASK := %.cpp
 
-# get suffix of dependent library for given variant of the target
+# form name of dependent library for given variant of the target
 # $1 - target type: EXE,DLL,...
 # $2 - variant of target EXE,DLL,...: R,P,S,... (if empty, assume R)
-# $3 - dependency type: LIB,DLL,...
+# $3 - dependency name, e.g. mylib
+# $4 - dependency type: LIB,DLL,...
+# note: used by DEP_LIBS/DEP_IMPS macros from $(CLEAN_BUILD_DIR)/impl/_c.mk
 # example:
-#  always use D-variant of static library for DLL
+#  always use D-variant of static library if target is a DLL,
 #  else use the same variant (R or P) of static library as target (EXE) (for example for P-EXE use P-LIB)
 #  LIB_DEP_MAP = $(if $(filter DLL,$1),D,$2)
-DEP_SUFFIX = $(call VARIANT_SUFFIX,$3,$($3_DEP_MAP))
+DEP_LIBRARY = $3$(call VARIANT_SUFFIX,$4,$($4_DEP_MAP))
 
 # add source-dependencies for an object file
 # $1 - objdir
@@ -114,11 +116,11 @@ TRG_LOPTS   = $(LOPTS)
 # $t - EXE,LIB,DLL,DRV,KLIB,KDLL,...
 # $v - non-empty variant: R,P,D,S... (one of variants supported by selected toolchain)
 # note: $t_VARIANT_... macros should be defined in C/C++ compiler definitions makefile
-VARIANT_INCLUDE = $(if $(filter-out R,$v),$(call $t_VARIANT_INCLUDE,$v))
-VARIANT_DEFINES = $(if $(filter-out R,$v),$(call $t_VARIANT_DEFINES,$v))
-VARIANT_COPTS   = $(if $(filter-out R,$v),$(call $t_VARIANT_COPTS,$v))
-VARIANT_CXXOPTS = $(if $(filter-out R,$v),$(call $t_VARIANT_CXXOPTS,$v))
-VARIANT_LOPTS   = $(if $(filter-out R,$v),$(call $t_VARIANT_LOPTS,$v))
+VARIANT_INCLUDE = $(call $t_VARIANT_INCLUDE,$v)
+VARIANT_DEFINES = $(call $t_VARIANT_DEFINES,$v)
+VARIANT_COPTS   = $(call $t_VARIANT_COPTS,$v)
+VARIANT_CXXOPTS = $(call $t_VARIANT_CXXOPTS,$v)
+VARIANT_LOPTS   = $(call $t_VARIANT_LOPTS,$v)
 
 # make list of sources for the target, used by TRG_SRC
 GET_SOURCES = $(SRC) $(WITH_PCH)
@@ -270,7 +272,7 @@ endif # ASSEMBLER_SUPPORT
 $(call try_make_simple,C_PREPARE_BASE_VARS,PRODUCT_VER)
 
 # protect variables from modifications in target makefiles
-$(call SET_GLOBAL,NO_PCH OBJ_SUFFIX CC_MASK CXX_MASK DEP_SUFFIX ADD_OBJ_SDEPS=x OBJ_RULES_BODY=t;v OBJ_RULES1=t;v OBJ_RULES=t;v \
+$(call SET_GLOBAL,NO_PCH OBJ_SUFFIX CC_MASK CXX_MASK DEP_LIBRARY ADD_OBJ_SDEPS=x OBJ_RULES_BODY=t;v OBJ_RULES1=t;v OBJ_RULES=t;v \
   TRG_COMPILER=t;v TRG_INCLUDE=t;v;INCLUDE;SYSINCLUDE TRG_DEFINES=t;v;DEFINES TRG_COPTS=t;v;COPTS TRG_CXXOPTS=t;v;CXXOPTS \
   TRG_LOPTS=t;v;LOPTS VARIANT_INCLUDE=t;v VARIANT_DEFINES=t;v VARIANT_COPTS=t;v VARIANT_CXXOPTS=t;v VARIANT_LOPTS=t;v \
   GET_SOURCES=SRC;WITH_PCH TRG_SRC TRG_SDEPS=SDEPS STRING_DEFINE DEFINE_ESCAPE_STRING DEFINES_ESCAPE_STRING \
