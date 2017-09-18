@@ -57,7 +57,7 @@ endef
 # note: PRODUCT_NAMES_H may be recursive macro, which value may depend on $(TARGET_MAKEFILE)
 WIN_RC_PRODUCT_DEFS_HEADER = $(GEN_DIR)/$(PRODUCT_NAMES_H)
 
-# example of $(PRODUCT_NAMES_H):
+# assume $(PRODUCT_NAMES_H) contains next definitions:
 #define VENDOR_NAME           "Acme corp"
 #define PRODUCT_NAME          "Super app"
 #define VENDOR_COPYRIGHT      "(c) Acme corp. All rights reserved"
