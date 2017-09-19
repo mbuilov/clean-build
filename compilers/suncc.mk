@@ -99,7 +99,7 @@ RPATH_OPTION = $(addprefix -R,$(strip $(RPATH)))
 # $3 - target: EXE or DLL
 # $4 - non-empty variant: R,P,D
 # target-specific: LIBS, DLLS, LIB_DIR, SYSLIBPATH, SYSLIBS
-CMN_LIBS = -o $1 $2 $(RPATH_OPTION) $(if $(strip \
+CMN_LIBS = -o $1 $2 $(RPATH_OPTION) $(if $(firstword \
   $(LIBS)$(DLLS)),-L$(LIB_DIR) $(addprefix -l,$(DLLS)) $(if $(LIBS),-Bstatic $(addprefix -l,$(addsuffix \
   $(call DEP_SUFFIX,$3,$4,LIB),$(LIBS))) -Bdynamic)) $(addprefix -L,$(SYSLIBPATH)) $(SYSLIBS) $(CMN_LDFLAGS)
 
