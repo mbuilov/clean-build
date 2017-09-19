@@ -120,8 +120,12 @@ MKDIR = mkdir $(ospath)
 # return an error if they are differ
 CMP = FC /T $(call ospath,$1 $2)
 
-# escape program argument to pass it via shell: "1 ^ 2" -> """1 ^^ 2"""
-SHELL_ESCAPE = "$(subst %,%%,$(subst <,^<,$(subst >,^>,$(subst |,^|,$(subst &,^&,$(subst ","",$(subst ^,^^,$1)))))))"
+# escape program argument to pass it via shell: 1 " 2 -> "1 "" 2"
+SHELL_ESCAPE = "$(subst ","",$1)"
+
+# escape special characters in unquoted argument of echo or set command
+UNQUOTED_ESCAPE = $(subst $(open_brace),^$(open_brace),$(subst $(close_brace),^$(close_brace),$(subst \
+  %,%%,$(subst <,^<,$(subst >,^>,$(subst |,^|,$(subst &,^&,$(subst ",^",$(subst ^,^^,$1)))))))))
 
 # stream-editor executable
 # note: SED value may be overridden either in command line or in project configuration makefile, like:
@@ -138,8 +142,7 @@ CAT = type $(ospath)
 # note: line will be ended with CRLF
 # NOTE: ECHO_LINE may be not defined for other OSes, use ECHO in platform-independent code
 # NOTE: echoed line length must not exceed maximum command line length (8191 characters)
-ECHO_LINE = echo.$(subst $(open_brace),^$(open_brace),$(subst $(close_brace),^$(close_brace),$(subst \
-  %,%%,$(subst <,^<,$(subst >,^>,$(subst |,^|,$(subst &,^&,$(subst ",^",$(subst ^,^^,$1)))))))))
+ECHO_LINE = echo.$(UNQUOTED_ESCAPE)
 
 # print lines of text to output file or to stdout
 # $1 - lines list, where $(tab) replaced with $$(tab) and $(space) replaced with $$(space), must be non-empty
@@ -170,11 +173,17 @@ NUL := NUL
 # "        1 file(s) copied."
 # "Скопировано файлов:         1."
 SUPPRESS_CP_OUTPUT := | findstr /VC:"        1" & if errorlevel 1 (cmd /c exit 0) else (cmd /c exit 1)
+SUPPRESS_MV_OUTPUT := | findstr /VC:"        1" & if errorlevel 1 (cmd /c exit 0) else (cmd /c exit 1)
 
 # copy preserving modification date:
 # - file(s) $1 to directory $2 or
 # - file $1 to file $2
 CP = $(if $(word 2,$1),for %%f in ($(ospath)) do copy /Y /B %%f,copy /Y /B $(ospath)) $(call ospath,$2)$(SUPPRESS_CP_OUTPUT)
+
+# move preserving modification date:
+# - file(s) $1 to directory $2 or
+# - file $1 to file $2
+MV = $(if $(word 2,$1),for %%f in ($(ospath)) do move /Y %%f,move /Y $(ospath)) $(call ospath,$2)$(SUPPRESS_MV_OUTPUT)
 
 # update modification date of given file(s) or create file(s) if they do not exist
 TOUCH = for %%f in ($(ospath)) do if exist %%f (copy /Y /B %%f+,, %%f$(SUPPRESS_CP_OUTPUT)) else (rem. > %%f)
@@ -203,7 +212,7 @@ DLL_PATH_VAR := PATH
 # $3 - list of names of variables to set in environment (export) for running an executable
 # note: override show_tool_vars from $(CLEAN_BUILD_DIR)/defs.mk
 show_tool_vars = $(info setlocal$(foreach \
-  v,$(if $2,PATH) $3,$(newline)$(patsubst "%,set "$v=%,$(call SHELL_ESCAPE,$($v))))$(newline)$1)
+  v,$(if $2,PATH) $3,$(newline)set $(call UNQUOTED_ESCAPE,$v)=$(call UNQUOTED_ESCAPE,$($v)))$(newline)$1)
 
 # show after executing a command
 # note: override show_tool_vars_end from $(CLEAN_BUILD_DIR)/defs.mk
@@ -231,5 +240,5 @@ FILTER_OUTPUT = (($1 2>&1 && echo OK>&2)$2)3>&2 2>&1 1>&3|findstr /BC:OK>NUL
 
 # protect variables from modifications in target makefiles
 $(call CLEAN_BUILD_PROTECT_VARS,WIN_EXPORTED $(sort TMP PATHEXT SYSTEMROOT COMSPEC $(WIN_EXPORTED)) \
-  PATH DEL_ARGS_LIMIT nonrelpath1 DEL DEL_DIR RM1 RM MKDIR CMP SHELL_ESCAPE SED SED_EXPR \
-  CAT ECHO_LINE ECHO_LINES ECHO WRITE NUL SUPPRESS_CP_OUTPUT CP TOUCH EXECIN DEL_ON_FAIL NO_RPATH FILTER_OUTPUT)
+  PATH DEL_ARGS_LIMIT nonrelpath1 DEL DEL_DIR RM1 RM MKDIR CMP SHELL_ESCAPE UNQUOTED_ESCAPE SED SED_EXPR \
+  CAT ECHO_LINE ECHO_LINES ECHO WRITE NUL SUPPRESS_CP_OUTPUT SUPPRESS_MV_OUTPUT CP MV TOUCH EXECIN DEL_ON_FAIL NO_RPATH FILTER_OUTPUT)
