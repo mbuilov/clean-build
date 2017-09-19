@@ -58,7 +58,7 @@ EXE_VARIANT_LOPTS   = $(if $(findstring P,$1),$(PIE_LOPTION))
 LIB_VARIANT_COPTS   = $(if $(findstring P,$1),$(PIE_COPTION),$(if $(findstring D,$1),$(PIC_COPTION)))
 LIB_VARIANT_CXXOPTS = $(LIB_VARIANT_COPTS)
 
-# ld flags modifiable by user
+# user-modifiable gcc flags for linking executables and shared libraries
 LDFLAGS := $(if $(DEBUG),-ggdb,-O)
 
 # common gcc flags for linking executables and shared libraries

@@ -8,7 +8,7 @@
 
 # Windows tools, such as rc.exe, mc.exe, cl.exe, link.exe, produce excessive output in stdout,
 # by default, try to filter this output out by wrapping calls to the tools.
-# If not-empty, then do not wrap tools
+# If not empty, then do not wrap tools
 NO_WRAP:=
 
 # add definitions of MC_COMPILER and RC_COMPILER (needed by STD_RES_TEMPLATE)
@@ -38,9 +38,9 @@ $(call try_make_simple,C_PREPARE_APP_VARS,C_PREPARE_MSVC_APP_VARS)
 
 # Creating a process on Windows costs more time than on Unix,
 # so when compiling in parallel, it takes more total time to
-# call compiler for each one source individually over than
+# call compiler for each source individually over than
 # compiling multiple sources at once, so that compiler itself
-# internally may parallel the compilation using threads.
+# internally may parallel the compilation by using threads.
 
 # By default, compile multiple sources at once.
 # Run via $(MAKE) S=1 to compile each source individually (without /MP compiler option)
@@ -55,25 +55,27 @@ endif
 MCL_MAX_COUNT := 50
 
 # paths compiler/linker and system libraries/headers - must be defined in project configuration makefile
-VSLIB = $(error VSLIB is not defined - Windows-like paths to Visual Studio libraries, spaces must be replaced with ?)
-VSINC = $(error VSINC is not defined - Windows-like paths to Visual Studio headers, spaces must be replaced with ?)
-VSLD  = $(error VSLD is not defined - Windows-like path to link.exe, should be in double-quotes if contains spaces)
-VSCL  = $(error VSCL is not defined - Windows-like path to cl.exe, should be in double-quotes if contains spaces)
-UMLIB = $(error UMLIB is not defined - Windows-like paths to user-mode libraries, spaces must be replaced with ?)
-UMINC = $(error UMINC is not defined - Windows-like paths to user-mode headers, spaces must be replaced with ?)
+VSLIB = $(error VSLIB is not defined - paths to Visual Studio libraries, spaces must be replaced with ?)
+VSINC = $(error VSINC is not defined - paths to Visual Studio headers, spaces must be replaced with ?)
+VSLD  = $(error VSLD is not defined - path to link.exe, should be in double-quotes if contains spaces)
+VSAR  = $(error VSAR is not defined - path to lib.exe, should be in double-quotes if contains spaces)
+VSCL  = $(error VSCL is not defined - path to cl.exe, should be in double-quotes if contains spaces)
+UMLIB = $(error UMLIB is not defined - paths to user-mode libraries, spaces must be replaced with ?)
+UMINC = $(error UMINC is not defined - paths to user-mode headers, spaces must be replaced with ?)
 
 # utilities for the tool mode, may be overridden by specifying them in project configuration makefile
 VSTLIB = $(VSLIB)
 VSTINC = $(VSINC)
 VSTLD  = $(VSLD)
+VSTAR  = $(VSAR)
 VSTCL  = $(VSCL)
 UMTLIB = $(UMLIB)
 UMTINC = $(UMINC)
 
 # Manifest Tool
-MT = $(error MT is not defined - Windows-like path to mt.exe, should be in double-quotes if contains spaces)
+MT = $(error MT is not defined - path to mt.exe, should be in double-quotes if contains spaces)
 
-# supported variants:
+# supported target variants:
 # R - dynamically linked multi-threaded libc (default variant)
 # S - statically linked multi-threaded libc
 # RU - same as R, but with unicode support
@@ -86,7 +88,7 @@ WIN_VARIANT_SUFFIX := $(if $(findstring \
   SU,$1),_su,_s))
 
 # options for each target variant: R,S,RU,SU
-WIN_VARIANT_COPTS = $(if $(filter R%,$1),/MD,/MT)$(if $(DEBUG),d)$(if $(filter %U,$1), /DUNICODE /D_UNICODE)
+WIN_VARIANT_COPTS = $(if $(filter S%,$1),/MT,/MD)$(if $(DEBUG),d)$(if $(filter %U,$1), /DUNICODE /D_UNICODE)
 
 # note: override defaults from $(CLEAN_BUILD_DIR)/impl/_c.mk
 EXE_SUPPORTED_VARIANTS = $(WIN_SUPPORTED_VARIANTS)
@@ -118,16 +120,16 @@ DLL_VARIANT_CXXOPTS = $(DLL_VARIANT_COPTS)
 # note: use the same variant of dependent static library as target EXE or DLL (for example for S-EXE use S-LIB)
 # note: unicode variants of the target EXE or DLL may link with two kinds of libraries:
 #  1) with unicode support - name begins with UNI_ prefix, normally built in 2 variants, e.g. UNI_mylib.lib and UNI_mylib_u.lib
-#  2) without unicode support - name do not begins with UNI_ prefix, normally built in 1 variant, e.g. mylib.lib
-#  so, for RU or SU variant of target EXE or DLL, if dependent library name do not starts with UNI_
+#  2) without unicode support - name do not begin with UNI_ prefix, normally built in 1 variant, e.g. mylib.lib
+#  so, for RU or SU variant of target EXE or DLL, if dependent library name do not starts with UNI_ prefix
 #  - dependent library do not have unicode variant, so convert needed variant to non-unicode one: RU->R or SU->S
 LIB_DEP_MAP = $(if $(3:UNI_%=),$(2:U=),$2)
 
 # same for dependent dynamic library
 DLL_DEP_MAP = $(if $(3:UNI_%=),$(2:U=),$2)
 
-# link.exe flags modifiable by user
-LDFLAGS := $(if $(DEBUG),/DEBUG,/RELEASE /LTCG /OPT:REF)
+# user-modifiable link.exe flags for linking executables and shared libraries
+LDFLAGS := $(if $(DEBUG),/DEBUG,/RELEASE /LTCG)
 
 # common link.exe flags for linking executables and dynamic libraries
 CMN_LDFLAGS := /INCREMENTAL:NO
@@ -136,7 +138,16 @@ CMN_LDFLAGS := /INCREMENTAL:NO
 EXE_LDFLAGS:=
 
 # link.exe flags for linking a DLL
-DLL_LDFLAGS:=
+DLL_LDFLAGS := /DLL
+
+# lib.exe flags for linking a LIB
+ARFLAGS := $(if $(DEBUG),,/LTCG)
+
+# how to mark exported symbols from a DLL
+DLL_EXPORTS_DEFINE := "__declspec(dllexport)"
+
+# how to mark imported symbols from a DLL
+DLL_IMPORTS_DEFINE := "__declspec(dllimport)"
 
 # check that library name built as RU/SU variant begins with UNI_ prefix
 # $1 - library name
@@ -150,11 +161,34 @@ CHECK_LIB_UNI_NAME1 = $(if $(filter-out UNI_%,$1),$(error library '$1' name must
 CHECK_LIB_UNI_NAME = $(if $(filter %U,$v),$$(call CHECK_LIB_UNI_NAME1,$$(patsubst \
   %$(call LIB_VARIANT_SUFFIX,$v)$($1_SUFFIX),%,$$(notdir $$1))))
 
-# how to mark exported symbols from a DLL
-DLL_EXPORTS_DEFINE := "__declspec(dllexport)"
+# how to embed manifest into EXE or DLL
+# Note: starting from Visual Studio 2012, linker supports /MANIFEST:EMBED option - linker may call mt.exe internally
+EMBED_MANIFEST_OPTION:=
 
-# how to mark imported symbols from a DLL
-DLL_IMPORTS_DEFINE := "__declspec(dllimport)"
+ifdef EMBED_MANIFEST_OPTION
+# reset
+EMBED_EXE_MANIFEST:=
+EMBED_DLL_MANIFEST:=
+else
+EMBED_EXE_MANIFEST = $(newline)$(QUIET)if exist $(ospath).manifest ($(MT) -nologo -manifest \
+  $(ospath).manifest -outputresource:$(ospath);1 && del $(ospath).manifest)$(DEL_ON_FAIL)
+EMBED_DLL_MANIFEST = $(newline)$(QUIET)if exist $(ospath).manifest ($(MT) -nologo -manifest \
+  $(ospath).manifest -outputresource:$(ospath);2 && del $(ospath).manifest)$(DEL_ON_FAIL)
+endif
+
+# make version string: maj.min.patch -> maj.min
+MODVER_MAJOR_MINOR = $(subst $(space),.,$(wordlist 1,2,$(subst ., ,$(MODVER)) 0 0))
+
+# common parts of linker options to build EXE or DLL
+# $$1 - target EXE or DLL
+# $$2 - objects
+# $v - variant
+# note: because target variable (EXE or DLL) is not used in VARIANT_LIB_MAP and VARIANT_IMP_MAP,
+#  may pass any value as first parameter to MAKE_DEP_LIBS and MAKE_DEP_IMPS (macros from $(CLEAN_BUILD_DIR)/c.mk)
+# target-specific: TMD, MODVER, DEF, RES, LIBS, DLLS, LIB_DIR, SYSLIBPATH, SYSLIBS
+CMN_LIBS = /OUT:$(ospath) /VERSION:$(MODVER_MAJOR_MINOR) $(addprefix /DEF:,$(call ospath,$(DEF))) $(CMN_LIBS_LDFLAGS) $(call ospath,$2 $(RES)) $(if \
+  $(firstword $(LIBS)$(DLLS)),/LIBPATH:$(call ospath,$(LIB_DIR))) $(call MAKE_DEP_LIBS,XXX,$v,$(LIBS)) $(call \
+  MAKE_DEP_IMPS,XXX,$v,$(DLLS)) $(call qpath,$(VS$(TMD)LIB) $(UM$(TMD)LIB) $(call ospath,$(SYSLIBPATH)),/LIBPATH:) $(SYSLIBS)
 
 
 
@@ -229,45 +263,6 @@ VARIANT_LIB_MAP = $(if $(3:UNI_%=),$(2:U=),$2)
 # NOTE: for RU or SU variant of target EXE or DLL, if dependent library name do not starts with UNI_
 #  - dependent library do not have unicode variant, so convert needed variant to non-unicode one: RU->R or SU->S
 VARIANT_IMP_MAP = $(if $(3:UNI_%=),$(2:U=),$2)
-
-# check that library name built as RU/SU variant is started with UNI_ prefix
-# $1 - library name
-# $v - variant name: RU,SU
-CHECK_LIB_UNI_NAME1 = $(if $(filter-out UNI_%,$1),$(error library '$1' name must start with UNI_ prefix to build it as $v variant))
-
-# check that library name built as RU/SU variant is started with UNI_ prefix
-# $1 - IMP or LIB
-# $v - variant name: R,S,RU,SU
-# note: $$1 - target library name
-CHECK_LIB_UNI_NAME = $(if $(filter %U,$v),$$(call CHECK_LIB_UNI_NAME1,$$(patsubst \
-  %$(call LIB_VAR_SUFFIX,$v)$($1_SUFFIX),%,$$(notdir $$1))))
-
-# how to mark exported symbols from a DLL
-DLL_EXPORTS_DEFINE := "__declspec(dllexport)"
-
-# how to mark imported symbols from a DLL
-DLL_IMPORTS_DEFINE := "__declspec(dllimport)"
-
-# helper macro for target makefiles to pass string define value to C-compiler
-# result of this macro will be processed by SUBST_DEFINES
-# note: override value from $(CLEAN_BUILD_DIR)/c.mk
-STRING_DEFINE = "$(subst ","",$(subst $(tab),$$(tab),$(subst $(space),$$(space),$(subst $$,$$$$,$1))))"
-
-# how to embed manifest into executable or dll
-# Note: starting from Visual Studio 2012, linker supports /MANIFEST:EMBED option - linker will call mt.exe internally
-EMBED_MANIFEST_OPTION:=
-
-ifndef EMBED_MANIFEST_OPTION
-# target-specific: TMD
-EMBED_EXE_MANIFEST = $(newline)$(QUIET)if exist $(ospath).manifest ($($(TMD)MT1) -nologo -manifest \
-  $(ospath).manifest -outputresource:$(ospath);1 && del $(ospath).manifest)$(DEL_ON_FAIL)
-EMBED_DLL_MANIFEST = $(newline)$(QUIET)if exist $(ospath).manifest ($($(TMD)MT1) -nologo -manifest \
-  $(ospath).manifest -outputresource:$(ospath);2 && del $(ospath).manifest)$(DEL_ON_FAIL)
-else
-# reset
-EMBED_EXE_MANIFEST:=
-EMBED_DLL_MANIFEST:=
-endif
 
 # standard defines
 # for example, WINVER_DEFINES = WINVER=0x0501 _WIN32_WINNT=0x0501

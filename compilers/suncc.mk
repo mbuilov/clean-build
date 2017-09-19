@@ -64,7 +64,7 @@ LIB_VARIANT_CXXOPTS = $(LIB_VARIANT_COPTS)
 # note: override defaults from $(CLEAN_BUILD_DIR)/impl/_c.mk
 LIB_DEP_MAP = $(if $(findstring DLL,$1)$(findstring P,$2),D)
 
-# cc linking flags modifiable by user
+# user-modifiable cc flags for linking executables and shared libraries
 # note: '-xs' - allows debugging by dbx without object (.o) files
 LDFLAGS := $(if $(DEBUG),-g -xs,-fast)
 
