@@ -6,9 +6,9 @@
 
 # msvc compiler toolchain (app-level), included by $(CLEAN_BUILD_DIR)/impl/_c.mk
 
-# msvc compiler settings
-ifeq (,$(filter-out undefined environment,$(origin MC_COMPILER)))
-include $(dir $(lastword $(MAKEFILE_LIST)))msvc_settings.mk
+# common msvc compiler definitions
+ifeq (,$(filter-out undefined environment,$(origin INCLUDING_FILE_PATTERN_en)))
+include $(dir $(lastword $(MAKEFILE_LIST)))msvc_cmn.mk
 endif
 
 # add definitions of MC_COMPILER and RC_COMPILER (needed by STD_RES_TEMPLATE)
@@ -54,8 +54,8 @@ TVSCL      = $(VSCL)
 TUMLIBPATH = $(UMLIBPATH)
 TUMINCLUDE = $(UMINCLUDE)
 
-# supported target variants:
-# R - dynamically linked multi-threaded libc (default variant)
+# supported non-regular target variants:
+# (R - dynamically linked multi-threaded libc - default variant)
 # S - statically linked multi-threaded libc
 # RU - same as R, but with unicode support
 # SU - same as S, but with unicode support
@@ -190,6 +190,8 @@ endif
 
 # check that target exe/dll exports symbols - linker has created .exp file
 # $1 - path to target EXE or DLL
+# note: if EXE do not exports symbols (as usual), do not set EXE_EXPORTS (empty by default)
+# note: if DLL do not exports symbols (unusual), set DLL_NO_EXPORTS to non-empty value
 # target-specific: IMP, LIB_DIR
 CHECK_EXP_CREATED = $(if $(IMP),$(newline)$(QUIET)if not exist $(call ospath,$(LIB_DIR)/$(basename \
   $(notdir $(IMP))).exp) (echo $(notdir $1) does not exports any symbols!) && cmd /c exit 1)
@@ -249,30 +251,60 @@ ifdef SEQ_BUILD
 # default value, may be overridden either in project configuration makefile or in command line
 INCLUDING_FILE_PATTERN := $(INCLUDING_FILE_PATTERN_en)
 
-# $(SED) expression to filter-out system files while dependencies generation
+# prefixes of system include paths to filter-out while dependencies generation
 # note: may be overridden either in project configuration makefile or in command line
 # c:\\program?files?(x86)\\microsoft?visual?studio?10.0\\vc\\include\\
 UDEPS_INCLUDE_FILTER := $(subst \,\\,$(VSINCLUDE) $(UMINCLUDE))
 
-ifndef NO_WRAP
-ifndef NO_DEPS
-WRAP_CC_COMPILER_DEPS = $(WRAP_CC_COMPILER)
-else
-WRAP_CC_COMPILER_DEPS = (($1 /showIncludes 2>&1 && set/p="C">&2<NUL)|$(SED)\
-  -n $(SED_DEPS_SCRIPT) 2>&1 && set/p="S">&2<NUL)3>&2 2>&1 1>&3|findstr /BC:CS>NUL
-endif
-
-# either just call compiler or call compiler and auto-generate dependencies
+# call compiler and auto-generate dependencies
 # $1 - compiler with options
 # $2 - target object file
 # $3 - source
-# $4 - $2.d
-# $5 - prefixes of system includes to filter out
-ifdef NO_DEPS
-WRAP_CC = $1
-else
-WRAP_CC = { { $1 -H 2>&1 && echo OK >&2; } | $(CC_GEN_DEPS_COMMAND) 2>&1; } 3>&2 2>&1 1>&3 3>&- | grep OK > /dev/null
+# note: FILTER_OUTPUT sends command output to stderr
+# note: send output to stderr in VERBOSE mode, this is needed for build script generation
+ifndef NO_WRAP
+ifndef NO_DEPS
+WRAP_CC = (($1 /showIncludes 2>&1 && set/p="C">&2<NUL)|$(SED) -n \
+  $(SED_DEPS_SCRIPT) 2>&1 && set/p="S">&2<NUL)3>&2 2>&1 1>&3|findstr /BC:CS>NUL
 endif
+endif
+
+# user-modifiable C/C++ compiler flags
+CFLAGS   := $(if $(DEBUG),-g,-fast)
+CXXFLAGS := $(CFLAGS)
+
+# common flags for application-level C/C++-compilers
+CMN_CFLAGS := -v -xldscope=hidden
+
+# default flags for application-level C compiler
+DEF_CFLAGS := $(CMN_CFLAGS)
+
+# default flags for application-level C++ compiler
+# disable some C++ warnings:
+# badargtype2w - (Anachronism) when passing pointers to functions
+# wbadasg      - (Anachronism) assigning extern "C" ...
+DEF_CXXFLAGS := -erroff=badargtype2w,wbadasg $(CMN_CFLAGS)
+
+# application-level defines
+APP_DEFINES:=
+
+# call C compiler
+# $1 - outdir/
+# $2 - sources
+# $3 - flags
+# target-specific: TMD, DEFINES, INCLUDE, COMPILER
+CMN_CL1 = $(VS$(TMD)CL) /nologo /c $(APP_FLAGS) $(call SUBST_DEFINES,$(addprefix /D,$(APP_DEFINES) $(DEFINES))) $(call \
+  qpath,$(call ospath,$(INCLUDE)) $(VS$(TMD)INC) $(UM$(TMD)INC),/I) /Fo$(ospath) /Fd$(ospath) $3 $(call ospath,$2)
+
+# C compilers for different variants (R,S,RU,SU)
+# $1 - outdir/
+# $2 - sources
+# $3 - flags
+CMN_RCL  = $(CMN_CL1) /MD$(if $(DEBUG),d)
+CMN_SCL  = $(CMN_CL1) /MT$(if $(DEBUG),d)
+CMN_RUCL = $(CMN_RCL) /DUNICODE /D_UNICODE
+CMN_SUCL = $(CMN_SCL) /DUNICODE /D_UNICODE
+
 
 
 
