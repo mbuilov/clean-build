@@ -168,8 +168,12 @@ CREATE_DIR = mkdir $(ospath)
 # note: paths to files may contain spaces
 COMPARE_FILES = FC /T $(call ospath,$1 $2)
 
-# escape program argument to pass it via shell: "1 ^ 2" -> """1 ^^ 2"""
-SHELL_ESCAPE = "$(subst %,%%,$(subst <,^<,$(subst >,^>,$(subst |,^|,$(subst &,^&,$(subst ","",$(subst ^,^^,$1)))))))"
+# escape program argument to pass it via shell: 1 " 2 -> "1 "" 2"
+SHELL_ESCAPE = "$(subst ","",$(subst \",\\",$1))"
+
+# escape special characters in unquoted argument of echo or set command
+UNQUOTED_ESCAPE = $(subst $(open_brace),^$(open_brace),$(subst $(close_brace),^$(close_brace),$(subst \
+  %,%%,$(subst <,^<,$(subst >,^>,$(subst |,^|,$(subst &,^&,$(subst ",^",$(subst ^,^^,$1)))))))))
 
 # stream-editor executable
 # note: SED value may be overridden either in command line or in project configuration makefile, like:
@@ -183,16 +187,11 @@ SED_EXPR = $(SHELL_ESCAPE)
 # print contents of given file (to stdout, for redirecting it to output file)
 CAT_FILE = type $(ospath)
 
-# prepare echo argument, like SHELL_ESCAPE, but escape " differently,
-# also escape braces to be able to enclose call to echo with them, like: (echo.^))
-ECHO_LINE_ESCAPE = $(subst $(open_brace),^$(open_brace),$(subst $(close_brace),^$(close_brace),$(subst \
-  %,%%,$(subst <,^<,$(subst >,^>,$(subst |,^|,$(subst &,^&,$(subst ",^",$(subst ^,^^,$1)))))))))
-
 # print one line of text (to stdout, for redirecting it to output file)
 # note: line must not contain $(newline)s
 # note: line will be ended with CRLF
 # NOTE: echoed line length must not exceed maximum command line length (8191 characters)
-ECHO_LINE = echo.$(ECHO_LINE_ESCAPE)
+ECHO_LINE = echo.$(UNQUOTED_ESCAPE)
 
 # print lines of text to output file or to stdout (for redirecting it to output file)
 # $1 - non-empty lines list, where entries are processed by $(unescape)
@@ -202,7 +201,7 @@ ECHO_LINE = echo.$(ECHO_LINE_ESCAPE)
 # $6 - empty if overwrite file $2, non-empty if append text to it
 # NOTE: total text length must not exceed maximum command line length (8191 characters)
 ECHO_LINES = $(if $6,$3,$4)$(call tospaces,(echo.$(subst \
-  $(space),$(close_brace)&&$(open_brace)echo.,$(ECHO_LINE_ESCAPE))))$(if $2,>$(if $6,>) $2)
+  $(space),$(close_brace)&&$(open_brace)echo.,$(UNQUOTED_ESCAPE))))$(if $2,>$(if $6,>) $2)
 
 # print lines of text (to stdout, for redirecting it to output file)
 # note: each line will be ended with CRLF
@@ -259,8 +258,8 @@ DLL_PATH_VAR := PATH
 # $3 - directory to change to for executing a tool
 # $4 - list of names of variables to set in environment (export) for running an executable
 # note: override show_tool_vars from $(CLEAN_BUILD_DIR)/core/_defs.mk
-show_tool_vars = $(info setlocal$(foreach v,$(if $2,PATH) $4,$(newline)$(patsubst \
-  "%,set "$v=%,$(call SHELL_ESCAPE,$($v))))$(newline)$(if $3,$(call EXECUTE_IN,$3,$1),$1))
+show_tool_vars = $(info setlocal$(foreach v,$(if $2,PATH) $4,$(newline)set $(call \
+  UNQUOTED_ESCAPE,$v)=$(call UNQUOTED_ESCAPE,$($v)))$(newline)$(if $3,$(call EXECUTE_IN,$3,$1),$1))
 
 # show after executing a command
 # note: override show_tool_vars_end from $(CLEAN_BUILD_DIR)/core/_defs.mk
