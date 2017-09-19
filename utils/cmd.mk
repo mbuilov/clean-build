@@ -258,8 +258,8 @@ DLL_PATH_VAR := PATH
 # $3 - directory to change to for executing a tool
 # $4 - list of names of variables to set in environment (export) for running an executable
 # note: override show_tool_vars from $(CLEAN_BUILD_DIR)/core/_defs.mk
-show_tool_vars = $(info setlocal$(foreach v,$(if $2,PATH) $4,$(newline)set $(call \
-  UNQUOTED_ESCAPE,$v)=$(call UNQUOTED_ESCAPE,$($v)))$(newline)$(if $3,$(call EXECUTE_IN,$3,$1),$1))
+show_tool_vars = $(info setlocal$(foreach v,$(if $2,PATH) $4,$(newline)set $v=$(call \
+  UNQUOTED_ESCAPE,$($v)))$(newline)$(if $3,$(call EXECUTE_IN,$3,$1),$1))
 
 # show after executing a command
 # note: override show_tool_vars_end from $(CLEAN_BUILD_DIR)/core/_defs.mk
