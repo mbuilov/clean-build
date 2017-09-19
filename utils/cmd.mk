@@ -282,7 +282,7 @@ endif
 
 # filter command's output through pipe, then send it to stderr
 # $1 - command
-# $2 - pipe expression for filtering stdout, must be non-empty, for example: |findstr /BC:ABC
+# $2 - pipe expression for filtering stdout, must be non-empty, for example: |findstr /BC:ABC |findstr /BC:CDE
 FILTER_OUTPUT = (($1 2>&1 && echo OK>&2)$2)3>&2 2>&1 1>&3|findstr /BC:OK>NUL
 
 # protect variables from modifications in target makefiles
