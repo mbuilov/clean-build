@@ -286,7 +286,7 @@ endif
 FILTER_OUTPUT = (($1 2>&1 && echo OK>&2)$2)3>&2 2>&1 1>&3|findstr /BC:OK>NUL
 
 # protect variables from modifications in target makefiles
-# note: do not trace calls to this variables because they either exported or used in ifdefs
+# note: do not trace calls to these variables because they are either exported or used in ifdefs
 $(call SET_GLOBAL,$(sort TMP PATHEXT SYSTEMROOT COMSPEC $(WIN_EXPORTED)) PATH NO_RPATH,0)
 
 # protect variables from modifications in target makefiles
