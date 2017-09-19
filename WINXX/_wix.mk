@@ -6,6 +6,10 @@
 
 # rules for building WIX (Windows Installer Xml) installer
 
+ifeq (,$(filter-out undefined environment,$(origin DEF_HEAD_CODE)))
+include $(dir $(lastword $(MAKEFILE_LIST)))../_defs.mk
+endif
+
 # WIX - path to Windows Installer Xml - must be defined either in command line
 # or in project configuration makefile before including this file, for example:
 # WIX:=C:\Program Files (x86)\WiX Toolset v3.10
@@ -13,10 +17,6 @@ WIX:=
 
 ifeq (,$(WIX))
 $(error WIX is not defined, example: C:\Program Files (x86)\WiX Toolset v3.10\)
-endif
-
-ifeq (,$(filter-out undefined environment,$(origin DEF_HEAD_CODE)))
-include $(dir $(lastword $(MAKEFILE_LIST)))../_defs.mk
 endif
 
 # what we may build by including $(CLEAN_BUILD_DIR)/wix.mk (for ex. INSTALLER := my_installer)
