@@ -123,7 +123,7 @@ LIB_LD = $(call SUP,$(TMD)LIB,$1)$($(TMD)AR) $(ARFLAGS) $1 $2
 # flags for auto-dependencies generation
 AUTO_DEPS_FLAGS := $(if $(NO_DEPS),,-MMD -MP)
 
-# C/C++ compiler flags that may be modified by user
+# user-modifiable C/C++ compiler flags
 CFLAGS   := $(if $(DEBUG),-ggdb,-g -O2)
 CXXFLAGS := $(CFLAGS)
 
