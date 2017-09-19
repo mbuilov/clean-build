@@ -6,14 +6,14 @@
 
 # msvc compiler toolchain (app-level), included by $(CLEAN_BUILD_DIR)/impl/_c.mk
 
-# Windows tools, such as rc.exe, mc.exe, cl.exe, link.exe, produce excessive output in stdout,
-# by default, try to filter this output out by wrapping calls to the tools.
-# If not empty, then do not wrap tools
-NO_WRAP:=
+# msvc compiler settings
+ifeq (,$(filter-out undefined environment,$(origin MC_COMPILER)))
+include $(dir $(lastword $(MAKEFILE_LIST)))msvc_settings.mk
+endif
 
 # add definitions of MC_COMPILER and RC_COMPILER (needed by STD_RES_TEMPLATE)
 ifeq (,$(filter-out undefined environment,$(origin MC_COMPILER)))
-include $(dir $(lastword $(MAKEFILE_LIST)))wintools.mk
+include $(dir $(lastword $(MAKEFILE_LIST)))msvc_tools.mk
 endif
 
 # add definitions of standard resource with module version information
@@ -36,44 +36,23 @@ $(call define_append,C_PREPARE_APP_VARS,$(newline)$$(C_PREPARE_MSVC_APP_VARS))
 # optimization
 $(call try_make_simple,C_PREPARE_APP_VARS,C_PREPARE_MSVC_APP_VARS)
 
-# Creating a process on Windows costs more time than on Unix,
-# so when compiling in parallel, it takes more total time to
-# call compiler for each source individually over than
-# compiling multiple sources at once, so that compiler itself
-# internally may parallel the compilation by using threads.
-
-# By default, compile multiple sources at once.
-# Run via $(MAKE) S=1 to compile each source individually (without /MP compiler option)
-ifeq (command line,$(origin S))
-SEQ_BUILD := $(S:0=)
-else
-SEQ_BUILD:=
-endif
-
-# max number of sources to compile with /MP compiler option
-# - with too many sources it's possible to exceed maximum command string length
-MCL_MAX_COUNT := 50
-
 # paths compiler/linker and system libraries/headers - must be defined in project configuration makefile
-VSLIB = $(error VSLIB is not defined - paths to Visual Studio libraries, spaces must be replaced with ?)
-VSINC = $(error VSINC is not defined - paths to Visual Studio headers, spaces must be replaced with ?)
-VSLD  = $(error VSLD is not defined - path to link.exe, should be in double-quotes if contains spaces)
-VSAR  = $(error VSAR is not defined - path to lib.exe, should be in double-quotes if contains spaces)
-VSCL  = $(error VSCL is not defined - path to cl.exe, should be in double-quotes if contains spaces)
-UMLIB = $(error UMLIB is not defined - paths to user-mode libraries, spaces must be replaced with ?)
-UMINC = $(error UMINC is not defined - paths to user-mode headers, spaces must be replaced with ?)
+VSLIBPATH = $(error VSLIBPATH is not defined - paths to Visual Studio libraries, spaces must be replaced with ?)
+VSINCLUDE = $(error VSINCLUDE is not defined - paths to Visual Studio headers, spaces must be replaced with ?)
+VSLINK    = $(error VSLINK is not defined - path to link.exe, should be in double-quotes if contains spaces)
+VSLIB     = $(error VSLIB is not defined - path to lib.exe, should be in double-quotes if contains spaces)
+VSCL      = $(error VSCL is not defined - path to cl.exe, should be in double-quotes if contains spaces)
+UMLIBPATH = $(error UMLIBPATH is not defined - paths to user-mode libraries, spaces must be replaced with ?)
+UMINCLUDE = $(error UMINCLUDE is not defined - paths to user-mode headers, spaces must be replaced with ?)
 
 # utilities for the tool mode, may be overridden by specifying them in project configuration makefile
-VSTLIB = $(VSLIB)
-VSTINC = $(VSINC)
-VSTLD  = $(VSLD)
-VSTAR  = $(VSAR)
-VSTCL  = $(VSCL)
-UMTLIB = $(UMLIB)
-UMTINC = $(UMINC)
-
-# Manifest Tool
-MT = $(error MT is not defined - path to mt.exe, should be in double-quotes if contains spaces)
+TVSLIBPATH = $(VSLIBPATH)
+TVSINCLUDE = $(VSINCLUDE)
+TVSLINK    = $(VSLINK)
+TVSLIB     = $(VSLIB)
+TVSCL      = $(VSCL)
+TUMLIBPATH = $(UMLIBPATH)
+TUMINCLUDE = $(UMINCLUDE)
 
 # supported target variants:
 # R - dynamically linked multi-threaded libc (default variant)
@@ -125,7 +104,7 @@ DLL_VARIANT_CXXOPTS = $(DLL_VARIANT_COPTS)
 #  - dependent library do not have unicode variant, so convert needed variant to non-unicode one: RU->R or SU->S
 LIB_DEP_MAP = $(if $(3:UNI_%=),$(2:U=),$2)
 
-# same for dependent dynamic library
+# same for dependent dynamic library (via it's import library)
 DLL_DEP_MAP = $(if $(3:UNI_%=),$(2:U=),$2)
 
 # user-modifiable link.exe flags for linking executables and shared libraries
@@ -149,6 +128,158 @@ DLL_EXPORTS_DEFINE := "__declspec(dllexport)"
 # how to mark imported symbols from a DLL
 DLL_IMPORTS_DEFINE := "__declspec(dllimport)"
 
+# make version string: major.minor.patch -> major.minor
+# target-specific: MODVER
+MODVER_MAJOR_MINOR = $(subst $(space),.,$(wordlist 1,2,$(subst ., ,$(MODVER)) 0 0))
+
+# paths to application-level system libraries 
+# target-specific: TMD
+SYS_APPLIBPATH = $($(TMD)VSLIBPATH) $($(TMD)UMLIBPATH)
+
+# minimum required version of the operating system subsystem
+# note: 5.01 - WinXP(x86), 5.02 - WinXP(x64)
+SUBSYSTEM_VER := $(if $(CPU:%64=),5.01,5.02)
+
+# default subsystem for EXE or DLL
+# $1 - path to target EXE or DLL
+# note: do not add /SUBSYSTEM option if $(LOPTS) have already specified one, e.g.: /SUBSYSTEM:WINDOWS,$(SUBSYSTEM_VER)
+# note: do not specify subsystem version when building tools (in tool mode)
+# target-specific: TMD, LOPTS
+DEF_SUBSYSTEM = $(if $(filter /SUBSYSTEM:%,$(LOPTS)),,/SUBSYSTEM:CONSOLE$(if $(TMD),,,$(SUBSYSTEM_VER)))
+
+# how to embed manifest into EXE or DLL
+# Note: starting from Visual Studio 2012, linker supports /MANIFEST:EMBED option - linker may call mt.exe internally
+EMBED_MANIFEST_OPTION:=
+
+# common linker options for EXE or DLL
+# $1 - path to target EXE or DLL
+# $2 - objects
+# $3 - target: EXE or DLL
+# $4 - non-empty variant: R,P,D
+# target-specific: RES, IMP, DEF, LIBS, DLLS, LIB_DIR, SYSLIBPATH, SYSLIBS
+CMN_LIBS = /nologo /OUT:$(call ospath,$1 $2 $(RES)) /VERSION:$(MODVER_MAJOR_MINOR) $(DEF_SUBSYSTEM) $(EMBED_MANIFEST_OPTION) \
+  $(addprefix /IMPLIB:,$(call ospath,$(IMP))) $(addprefix /DEF:,$(call ospath,$(DEF))) $(if \
+  $(firstword $(LIBS)$(DLLS)),/LIBPATH:$(call ospath,$(LIB_DIR)) $(call DEP_LIBS,$3,$4) $(call DEP_IMPS,$3,$4)) $(call \
+  qpath,$(SYSLIBPATH) $(SYS_APPLIBPATH),/LIBPATH:) $(SYSLIBS) $(CMN_LDFLAGS)
+
+# default value, may be overridden either in project configuration makefile or in command line
+LINKER_STRIP_STRINGS := $(LINKER_STRIP_STRINGS_en)
+
+# call exe/drv linker and strip-off diagnostic message and message about generated .exp-file
+# $1 - linker with options
+# note: send output to stderr in VERBOSE mode, this is needed for build script generation
+ifdef VERBOSE
+WRAP_LINKER = $1 >&2
+else
+WRAP_LINKER = $1
+endif
+
+# $1 - linker with options
+# note: FILTER_OUTPUT sends command output to stderr
+# note: in debug, diagnostic message is not printed
+# target-specific: IMP
+ifndef NO_WRAP
+$(eval WRAP_LINKER = $$(if $$(IMP),$$(call FILTER_OUTPUT,$$1,|findstr /VC:$$(basename $$(notdir $$(IMP))).exp),$(value WRAP_LINKER)))
+ifndef DEBUG
+ifdef LINKER_STRIP_STRINGS
+WRAP_LINKER = $(call FILTER_OUTPUT,$1,$(call qpath,$(LINKER_STRIP_STRINGS),|findstr /VBRC:)$(patsubst \
+  %, |findstr /VC:%.exp,$(basename $(notdir $(IMP)))))
+endif
+endif
+endif
+
+# check that target exe/dll exports symbols - linker has created .exp file
+# $1 - path to target EXE or DLL
+# target-specific: IMP, LIB_DIR
+CHECK_EXP_CREATED = $(if $(IMP),$(newline)$(QUIET)if not exist $(call ospath,$(LIB_DIR)/$(basename \
+  $(notdir $(IMP))).exp) (echo $(notdir $1) does not exports any symbols!) && cmd /c exit 1)
+
+# linkers for each variant of EXE or DLL
+# $1 - path to target EXE or DLL
+# $2 - objects for linking the target
+# $3 - target: EXE or DLL
+# $4 - non-empty variant: R,S,RU,SU
+# target-specific: TMD, LOPTS
+# note: used by EXE_TEMPLATE and DLL_TEMPLATE from $(CLEAN_BUILD_DIR)/impl/_c.mk
+# note: link.exe will not delete generated manifest file if failed to build target exe/dll, e.g. because of invalid DEF file
+EXE_LD = $(call SUP,$(TMD)EXE,$1)$(call WRAP_LINKER,$($(TMD)VSLINK) $(CMN_LIBS) $(EXE_LDFLAGS) $(LOPTS) $(LDFLAGS))$(CHECK_EXP_CREATED)
+DLL_LD = $(call SUP,$(TMD)DLL,$1)$(call WRAP_LINKER,$($(TMD)VSLINK) $(CMN_LIBS) $(DLL_LDFLAGS) $(LOPTS) $(LDFLAGS))$(CHECK_EXP_CREATED)
+
+# manifest embedding
+# $1 - path to target EXE or DLL
+ifndef EMBED_MANIFEST_OPTION
+EMBED_EXE_MANIFEST = if exist $(ospath).manifest $(MT) -nologo \
+  -manifest $(ospath).manifest -outputresource:$(ospath);1 && del $(ospath).manifest
+EMBED_DLL_MANIFEST = if exist $(ospath).manifest $(MT) -nologo \
+  -manifest $(ospath).manifest -outputresource:$(ospath);2 && del $(ospath).manifest
+$(call define_append,EXE_LD,$(newline)$(QUIET)$$(EMBED_EXE_MANIFEST))
+$(call define_append,DLL_LD,$(newline)$(QUIET)$$(EMBED_DLL_MANIFEST))
+endif
+
+# linker for each variant of LIB
+# $1 - path to target LIB
+# $2 - objects for linking the target
+# $3 - target: LIB
+# $4 - non-empty variant: R,S,RU,SU
+# target-specific: TMD, LOPTS
+LIB_LD = $(call SUP,$(TMD)LIB,$1)$($(TMD)VSLIB) /nologo /OUT:$(call ospath,$1 $2) $(ARFLAGS)
+
+# note: send output to stderr in VERBOSE mode, this is needed for build script generation
+ifdef VERBOSE
+$(eval LIB_LD = $(value LIB_LD) >&2)
+endif
+
+# stip-off names of compiled sources
+# $1 - compiler with options
+# $2 - target object file
+# $3 - source(s)
+# note: FILTER_OUTPUT sends command output to stderr
+# note: send output to stderr in VERBOSE mode, this is needed for build script generation
+ifndef NO_WRAP
+WRAP_CC = $(call FILTER_OUTPUT,$1,$(addprefix |findstr /VXC:,$(notdir $3)))
+else ifdef VERBOSE
+WRAP_CC = $1 >&2
+else
+WRAP_CC = $1
+endif
+
+# may auto-generate dependencies only if building sequentially, because /showIncludes option conflicts with /MP
+ifdef SEQ_BUILD
+
+# default value, may be overridden either in project configuration makefile or in command line
+INCLUDING_FILE_PATTERN := $(INCLUDING_FILE_PATTERN_en)
+
+# $(SED) expression to filter-out system files while dependencies generation
+# note: may be overridden either in project configuration makefile or in command line
+# c:\\program?files?(x86)\\microsoft?visual?studio?10.0\\vc\\include\\
+UDEPS_INCLUDE_FILTER := $(subst \,\\,$(VSINCLUDE) $(UMINCLUDE))
+
+ifndef NO_WRAP
+ifndef NO_DEPS
+WRAP_CC_COMPILER_DEPS = $(WRAP_CC_COMPILER)
+else
+WRAP_CC_COMPILER_DEPS = (($1 /showIncludes 2>&1 && set/p="C">&2<NUL)|$(SED)\
+  -n $(SED_DEPS_SCRIPT) 2>&1 && set/p="S">&2<NUL)3>&2 2>&1 1>&3|findstr /BC:CS>NUL
+endif
+
+# either just call compiler or call compiler and auto-generate dependencies
+# $1 - compiler with options
+# $2 - target object file
+# $3 - source
+# $4 - $2.d
+# $5 - prefixes of system includes to filter out
+ifdef NO_DEPS
+WRAP_CC = $1
+else
+WRAP_CC = { { $1 -H 2>&1 && echo OK >&2; } | $(CC_GEN_DEPS_COMMAND) 2>&1; } 3>&2 2>&1 1>&3 3>&- | grep OK > /dev/null
+endif
+
+
+
+
+
+
+
 # check that library name built as RU/SU variant begins with UNI_ prefix
 # $1 - library name
 # $v - variant name: RU,SU
@@ -160,35 +291,6 @@ CHECK_LIB_UNI_NAME1 = $(if $(filter-out UNI_%,$1),$(error library '$1' name must
 # note: $$1 - target library name
 CHECK_LIB_UNI_NAME = $(if $(filter %U,$v),$$(call CHECK_LIB_UNI_NAME1,$$(patsubst \
   %$(call LIB_VARIANT_SUFFIX,$v)$($1_SUFFIX),%,$$(notdir $$1))))
-
-# how to embed manifest into EXE or DLL
-# Note: starting from Visual Studio 2012, linker supports /MANIFEST:EMBED option - linker may call mt.exe internally
-EMBED_MANIFEST_OPTION:=
-
-ifdef EMBED_MANIFEST_OPTION
-# reset
-EMBED_EXE_MANIFEST:=
-EMBED_DLL_MANIFEST:=
-else
-EMBED_EXE_MANIFEST = $(newline)$(QUIET)if exist $(ospath).manifest ($(MT) -nologo -manifest \
-  $(ospath).manifest -outputresource:$(ospath);1 && del $(ospath).manifest)$(DEL_ON_FAIL)
-EMBED_DLL_MANIFEST = $(newline)$(QUIET)if exist $(ospath).manifest ($(MT) -nologo -manifest \
-  $(ospath).manifest -outputresource:$(ospath);2 && del $(ospath).manifest)$(DEL_ON_FAIL)
-endif
-
-# make version string: maj.min.patch -> maj.min
-MODVER_MAJOR_MINOR = $(subst $(space),.,$(wordlist 1,2,$(subst ., ,$(MODVER)) 0 0))
-
-# common parts of linker options to build EXE or DLL
-# $$1 - target EXE or DLL
-# $$2 - objects
-# $v - variant
-# note: because target variable (EXE or DLL) is not used in VARIANT_LIB_MAP and VARIANT_IMP_MAP,
-#  may pass any value as first parameter to MAKE_DEP_LIBS and MAKE_DEP_IMPS (macros from $(CLEAN_BUILD_DIR)/c.mk)
-# target-specific: TMD, MODVER, DEF, RES, LIBS, DLLS, LIB_DIR, SYSLIBPATH, SYSLIBS
-CMN_LIBS = /OUT:$(ospath) /VERSION:$(MODVER_MAJOR_MINOR) $(addprefix /DEF:,$(call ospath,$(DEF))) $(CMN_LIBS_LDFLAGS) $(call ospath,$2 $(RES)) $(if \
-  $(firstword $(LIBS)$(DLLS)),/LIBPATH:$(call ospath,$(LIB_DIR))) $(call MAKE_DEP_LIBS,XXX,$v,$(LIBS)) $(call \
-  MAKE_DEP_IMPS,XXX,$v,$(DLLS)) $(call qpath,$(VS$(TMD)LIB) $(UM$(TMD)LIB) $(call ospath,$(SYSLIBPATH)),/LIBPATH:) $(SYSLIBS)
 
 
 
@@ -309,23 +411,6 @@ CMN_LIBS = /OUT:$$(ospath) /VERSION:$$(call MK_MAJ_MIN_VER,$$(MODVER)) $$(addpre
   MAKE_DEP_IMPS,XXX,$v,$$(DLLS)) $$(call qpath,$$(VS$$(TMD)LIB) $$(UM$$(TMD)LIB) $$(call \
   ospath,$$(SYSLIBPATH)),/LIBPATH:) $$(SYSLIBS)
 
-# default subsystem for EXE or DLL
-# $$1 - target EXE or DLL
-# $$2 - objects
-# $v - variant
-# note: do not add /SUBSYSTEM option if $(LDFLAGS) have already specified one
-# target-specific: LDFLAGS, TMD
-DEF_SUBSYSTEM = $$(if $$(filter /SUBSYSTEM:%,$$(LDFLAGS)),,/SUBSYSTEM:CONSOLE$(if $$(TMD),,,$(SUBSYSTEM_VER)))
-
-# strings to strip off from link.exe output
-LINKER_STRIP_STRINGS_en := Generating?code Finished?generating?code
-# cp1251 ".Ð¾Ð·Ð´Ð°Ð½Ð¸Ðµ?ÐºÐ¾Ð´Ð° .Ð¾Ð·Ð´Ð°Ð½Ð¸Ðµ?ÐºÐ¾Ð´Ð°?Ð·Ð°Ð²ÐµÑ€ÑˆÐµÐ½Ð¾"
-LINKER_STRIP_STRINGS_ru_cp1251 := .îçäàíèå?êîäà .îçäàíèå?êîäà?çàâåðøåíî
-# cp1251 ".Ð¾Ð·Ð´Ð°Ð½Ð¸Ðµ?ÐºÐ¾Ð´Ð° .Ð¾Ð·Ð´Ð°Ð½Ð¸Ðµ?ÐºÐ¾Ð´Ð°?Ð·Ð°Ð²ÐµÑ€ÑˆÐµÐ½Ð¾" as cp866 converted to cp1251
-LINKER_STRIP_STRINGS_ru_cp1251_as_cp866_to_cp1251 := .þ÷ôðýøõ?úþôð .þ÷ôðýøõ?úþôð?÷ðòõ¨°õýþ
-# default value, may be overridden either in project configuration makefile or in command line
-LINKER_STRIP_STRINGS := $(LINKER_STRIP_STRINGS_en)
-
 # wrap linker call to strip-off diagnostic linker messages
 # $1 - linker command with arguments
 # note: send linker output to stderr
@@ -425,6 +510,17 @@ DLL_$v_LD1 = $$(call SUP,$$(TMD)LINK,$$1)$$(call \
   DEL_DEF_MANIFEST_ON_FAIL,$$1,$$(EMBED_DLL_MANIFEST))
 endef
 $(eval $(foreach v,R $(VARIANTS_FILTER),$(DLL_LD_TEMPLATE)))
+
+
+
+
+
+
+
+
+
+
+
 
 # flags for application-level C/C++-compiler
 OS_APP_FLAGS := /X /GF /W3 /EHsc
@@ -1025,53 +1121,6 @@ ADD_RES_RULE = $(eval define CB_WINXX_RES_RULES$(newline)$(if $(value CB_WINXX_R
 
 # used to specify path to some resource for rc.exe via /DMY_BMP=$(call RC_DEFINE_PATH,$(TOP)/xx/yy/tt.bmp)
 RC_DEFINE_PATH = "\"$(subst \,\\,$(ospath))\""
-
-ifdef DRIVERS_SUPPORT
-
-# how to build driver, used by $(C_RULES)
-# $1 - target file: $(call FORM_TRG,$t,$v)
-# $2 - sources:     $(TRG_SRC)
-# $3 - sdeps:       $(TRG_SDEPS)
-# $4 - objdir:      $(call FORM_OBJ_DIR,$t,$v)
-# $t - DRV or KDLL
-# $v - non-empty variant: R
-define DRV_TEMPLATE
-NEEDED_DIRS += $4
-$(STD_TARGET_VARS)
-$1: $(call OBJ_RULES,CC,$(filter %.c,$2),$3,$4)
-$1: $(call OBJ_RULES,CXX,$(filter %.cpp,$2),$3,$4)
-$1: $(call OBJ_RULES,ASM,$(filter %.asm,$2),$3,$4)
-$1: COMPILER   := $(TRG_COMPILER)
-$1: LIB_DIR    := $(LIB_DIR)
-$1: KLIBS      := $(KLIBS)
-$1: KDLLS      := $(KDLLS)
-$1: INCLUDE    := $(TRG_INCLUDE)
-$1: DEFINES    := $(TRG_DEFINES)
-$1: CFLAGS     := $(TRG_CFLAGS)
-$1: CXXFLAGS   := $(TRG_CXXFLAGS)
-$1: ASMFLAGS   := $(TRG_ASMFLAGS)
-$1: LDFLAGS    := $(TRG_LDFLAGS)
-$1: SYSLIBS    := $(SYSLIBS)
-$1: SYSLIBPATH := $(SYSLIBPATH)
-$1: $(addprefix $(LIB_DIR)/,$(addprefix \
-  $(KLIB_PREFIX),$(KLIBS:=$(KLIB_SUFFIX))) $(addprefix \
-  $(KIMP_PREFIX),$(KDLLS:=$(KIMP_SUFFIX))))
-	$$(call $t_$v_LD,$$@,$$(filter %$(OBJ_SUFFIX),$$^))
-endef
-
-# how to build kernel shared library, used by $(C_RULES)
-KDLL_TEMPLATE = $(DRV_TEMPLATE)
-
-# for EXP_AUX_TEMPLATEt
-DRV_AUX_TEMPLATEv = $(EXE_AUX_TEMPLATEv)
-KDLL_AUX_TEMPLATEv = $(DLL_AUX_TEMPLATEv)
-
-# called by OS_DEFINE_TARGETS
-# $t - DRV or KDLL
-DRV_AUX_TEMPLATE = $(EXP_AUX_TEMPLATE)
-KDLL_AUX_TEMPLATE = $(EXP_AUX_TEMPLATE)
-
-endif # DRIVERS_SUPPORT
 
 # initial reset
 NO_STD_RES:=
