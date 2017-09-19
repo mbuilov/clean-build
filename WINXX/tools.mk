@@ -211,8 +211,7 @@ DLL_PATH_VAR := PATH
 # $2 - additional path(s) separated by $(PATHSEP) to append to $(DLL_PATH_VAR)
 # $3 - list of names of variables to set in environment (export) for running an executable
 # note: override show_tool_vars from $(CLEAN_BUILD_DIR)/defs.mk
-show_tool_vars = $(info setlocal$(foreach \
-  v,$(if $2,PATH) $3,$(newline)set $(call UNQUOTED_ESCAPE,$v)=$(call UNQUOTED_ESCAPE,$($v)))$(newline)$1)
+show_tool_vars = $(info setlocal$(foreach v,$(if $2,PATH) $3,$(newline)set $v=$(call UNQUOTED_ESCAPE,$($v)))$(newline)$1)
 
 # show after executing a command
 # note: override show_tool_vars_end from $(CLEAN_BUILD_DIR)/defs.mk
