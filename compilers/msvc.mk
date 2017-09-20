@@ -36,7 +36,7 @@ $(call define_append,C_PREPARE_APP_VARS,$(newline)$$(C_PREPARE_MSVC_APP_VARS))
 # optimization
 $(call try_make_simple,C_PREPARE_APP_VARS,C_PREPARE_MSVC_APP_VARS)
 
-# Visual studio versions
+# Visual Studio versions
 #-------------------------------------------------------------------------------------
 # version | _MSC_VER |        name        | C++ compiler default installation path
 #-------------------------------------------------------------------------------------
@@ -52,7 +52,8 @@ $(call try_make_simple,C_PREPARE_APP_VARS,C_PREPARE_MSVC_APP_VARS)
 # 14.10       1910     Visual Studio 2017   Microsoft Visual Studio\2017\Community\VC\Tools\MSVC\14.10.25017\bin\HostX86\x86\cl.exe
 # 14.11       1911     Visual Studio 2017   Microsoft Visual Studio\2017\Community\VC\Tools\MSVC\14.11.25503\bin\HostX86\x86\cl.exe
 
-# assume we are using Visual Studio 6.0
+# version of Visual Studio we are using - major number of 'version' column: 6,7,8,9,10,11,12,14
+# by default, setup for Visual Studio 6.0
 VS_VER := 6
 
 # paths compiler/linker and system libraries/headers - must be defined in project configuration makefile
@@ -131,14 +132,6 @@ DLL_DEP_MAP = $(if $(3:UNI_%=),$(2:U=),$2)
 # /RELEASE - set the checksum in PE-header
 LDFLAGS := $(if $(DEBUG),/DEBUG,/RELEASE)
 
-# /LTCG - link-time code generation
-ifneq (,$(call is_less,6,$(VS_VER)))
-# >= Visual Studio 2002
-ifndef DEBUG
-LDFLAGS += /LTCG
-endif
-endif
-
 # common link.exe flags for linking executables and dynamic libraries
 CMN_LDFLAGS := /INCREMENTAL:NO
 
@@ -151,10 +144,11 @@ DLL_LDFLAGS := /DLL
 # lib.exe flags for linking a LIB
 ARFLAGS:=
 
-# /LTCG - link-time code generation
 ifneq (,$(call is_less,6,$(VS_VER)))
 # >= Visual Studio 2002
 ifndef DEBUG
+# /LTCG - link-time code generation
+LDFLAGS += /LTCG
 ARFLAGS += /LTCG
 endif
 endif
@@ -275,7 +269,7 @@ ifdef VERBOSE
 $(eval LIB_LD = $(value LIB_LD) >&2)
 endif
 
-# stip-off names of compiled sources
+# strip-off names of compiled sources
 # $1 - compiler with options
 # $2 - target object file
 # $3 - source(s)
@@ -345,48 +339,13 @@ else
 CFLAGS += $(FORCE_SYNC_PDB) /Zi
 endif
 else
-# compiling sources of a module with /MP option
-# note: groups of sources of a module are compiled sequentially, after each other
+# compiling sources of a module with /MP option:
+#  - groups of sources of a module are compiled sequentially, one group after each other
+#  - sources in a group are compiled in parallel by compiler threads, via single compiler invocation.
 # note: /MP option implies /FS option, if it's supported
-# /Zi option - store debug info (in new format) in single .pdb, assume compiler will serialize access to the .pdb
+# /Zi option - store debug info (in new format) in single .pdb, assume compiler internally will serialize access to the .pdb
 CFLAGS += /Zi
 endif
-endif
-
-
-
-
-
-
-ifdef DEBUG
-ifndef FORCE_SYNC_PDB
-ifdef SEQ_BUILD
-# /Z7 option - store debug info (in old format) in each .obj to avoid contention accessing .pdb during parallel compilation
-CFLAGS += /Z7
-else
-# compiling sources of a module with /MP option
-# note: groups of sources of a module are compiled sequentially, after each other
-# /Zi option - store debug info (in new format) in single .pdb, assume compiler will serialize access to the .pdb
-CFLAGS += /Zi
-endif
-else # FORCE_SYNC_PDB
-# /FS option is supported, add it only if /MP was be specified - /MP implies /FS
-ifdef SEQ_BUILD
-CFLAGS += $(FORCE_SYNC_PDB)
-endif
-# /Zi option - store debug info (in new format) in single .pdb, assume compiler will serialize access to the .pdb
-CFLAGS += /Zi
-endif # FORCE_SYNC_PDB
-endif # DEBUG
-
-
-#  Check FORCE_SYNC_PDB - if it's not defined, use /Z7 option - store debug info (in old format) in each .obj.
-#  Else, FORCE_SYNC_PDB should be defined as /FS - store debug info in a single .pdb.
-# note: no debug info in RELEASE builds if /FS option is not supported
-ifdef FORCE_SYNC_PDB
-CFLAGS += $(FORCE_SYNC_PDB) /Zi
-else ifdef DEBUG
-CFLAGS += /Z7
 endif
 
 # user-modifiable C++ compiler flags
@@ -394,17 +353,27 @@ CXXFLAGS := $(CFLAGS)
 
 # common flags for application-level C/C++-compilers
 # /X  - do not search include files in directories specified in the PATH and INCLUDE environment variables
-# /GF - pools strings and places them in read-only memory 
-# /W3 - warning level
+# /GF - pool strings and place them in read-only memory 
+# /W3 - warning level 3
+CMN_CFLAGS := /X /GF /W3
+
+ifdef DEBUG
 # /Od - disable optimizations
-# /RTCc /RTCsu - run-time error checks (starting with Visual Studio .NET 2003)
-# /GS - buffer security check (starting with Visual Studio .NET 2003)
+CMN_CFLAGS += /Od
+
+ifneq (,$(call is_less,6,$(VS_VER)))
+# >= Visual Studio 2002
+# /RTCc - reports when a value is assigned to a smaller data type and results in a data loss
+# /RTCs - enables stack frame run-time error checking
+# /RTCu - reports when a variable is used without having been initialized
+# /GS   - buffer security check
+CMN_CFLAGS += /RTCc /RTCsu /GS
+
 # /GL - whole program optimization, linker must be invoked with /LTCG (starting with Visual Studio .NET 2003)
 
 
 # /EHsc - synchronous exception handling model, extern C functions never throw an exception
 
-CMN_CFLAGS := /X /GF /W3
 ifdef DEBUG
 CMN_CFLAGS += /Od /RTCc /RTCsu /GS
 else
