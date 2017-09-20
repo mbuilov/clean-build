@@ -36,6 +36,25 @@ $(call define_append,C_PREPARE_APP_VARS,$(newline)$$(C_PREPARE_MSVC_APP_VARS))
 # optimization
 $(call try_make_simple,C_PREPARE_APP_VARS,C_PREPARE_MSVC_APP_VARS)
 
+# Visual studio versions
+#-------------------------------------------------------------------------------------
+# version | _MSC_VER |        name        | C++ compiler default installation path
+#-------------------------------------------------------------------------------------
+# 6.0         1200     Visual Studio 6.0    Microsoft Visual Studio\VC98\cl.exe
+# 7.0         1300     Visual Studio 2002   Microsoft Visual Studio .NET\VC7\bin\cl.exe
+# 7.1         1310     Visual Studio 2003   Microsoft Visual Studio .NET 2003\VC7\bin\cl.exe
+# 8.0         1400     Visual Studio 2005   Microsoft Visual Studio 8\VC\bin\cl.exe
+# 9.0         1500     Visual Studio 2008   Microsoft Visual Studio 9.0\VC\bin\cl.exe
+# 10.0        1600     Visual Studio 2010   Microsoft Visual Studio 10.0\VC\bin\cl.exe
+# 11.0        1700     Visual Studio 2012   Microsoft Visual Studio 11.0\VC\bin\cl.exe
+# 12.0        1800     Visual Studio 2013   Microsoft Visual Studio 12.0\VC\bin\cl.exe
+# 14.0        1900     Visual Studio 2015   Microsoft Visual Studio 14.0\VC\bin\cl.exe
+# 14.10       1910     Visual Studio 2017   Microsoft Visual Studio\2017\Community\VC\Tools\MSVC\14.10.25017\bin\HostX86\x86\cl.exe
+# 14.11       1911     Visual Studio 2017   Microsoft Visual Studio\2017\Community\VC\Tools\MSVC\14.11.25503\bin\HostX86\x86\cl.exe
+
+# assume we are using Visual Studio 6.0
+VS_VER := 6
+
 # paths compiler/linker and system libraries/headers - must be defined in project configuration makefile
 VSLIBPATH = $(error VSLIBPATH is not defined - paths to Visual Studio libraries, spaces must be replaced with ?)
 VSINCLUDE = $(error VSINCLUDE is not defined - paths to Visual Studio headers, spaces must be replaced with ?)
@@ -108,7 +127,17 @@ LIB_DEP_MAP = $(if $(3:UNI_%=),$(2:U=),$2)
 DLL_DEP_MAP = $(if $(3:UNI_%=),$(2:U=),$2)
 
 # user-modifiable link.exe flags for linking executables and shared libraries
-LDFLAGS := $(if $(DEBUG),/DEBUG,/RELEASE /LTCG)
+# /DEBUG   - generate debug info (in .pdb)
+# /RELEASE - set the checksum in PE-header
+LDFLAGS := $(if $(DEBUG),/DEBUG,/RELEASE)
+
+# /LTCG - link-time code generation
+ifneq (,$(call is_less,6,$(VS_VER)))
+# >= Visual Studio 2002
+ifndef DEBUG
+LDFLAGS += /LTCG
+endif
+endif
 
 # common link.exe flags for linking executables and dynamic libraries
 CMN_LDFLAGS := /INCREMENTAL:NO
@@ -120,7 +149,15 @@ EXE_LDFLAGS:=
 DLL_LDFLAGS := /DLL
 
 # lib.exe flags for linking a LIB
-ARFLAGS := $(if $(DEBUG),,/LTCG)
+ARFLAGS:=
+
+# /LTCG - link-time code generation
+ifneq (,$(call is_less,6,$(VS_VER)))
+# >= Visual Studio 2002
+ifndef DEBUG
+ARFLAGS += /LTCG
+endif
+endif
 
 # how to mark exported symbols from a DLL
 DLL_EXPORTS_DEFINE := "__declspec(dllexport)"
@@ -134,7 +171,7 @@ MODVER_MAJOR_MINOR = $(subst $(space),.,$(wordlist 1,2,$(subst ., ,$(MODVER)) 0 
 
 # paths to application-level system libraries 
 # target-specific: TMD
-SYS_APPLIBPATH = $($(TMD)VSLIBPATH) $($(TMD)UMLIBPATH)
+APPLIBPATH = $($(TMD)VSLIBPATH) $($(TMD)UMLIBPATH)
 
 # minimum required version of the operating system subsystem
 # note: 5.01 - WinXP(x86), 5.02 - WinXP(x64)
@@ -148,8 +185,12 @@ SUBSYSTEM_VER := $(if $(CPU:%64=),5.01,5.02)
 DEF_SUBSYSTEM = $(if $(filter /SUBSYSTEM:%,$(LOPTS)),,/SUBSYSTEM:CONSOLE$(if $(TMD),,,$(SUBSYSTEM_VER)))
 
 # how to embed manifest into EXE or DLL
-# Note: starting from Visual Studio 2012, linker supports /MANIFEST:EMBED option - linker may call mt.exe internally
+ifneq (,$(call is_less,10,$(VS_VER)))
+# >= Visual Studio 2012, linker may call mt.exe internally
+EMBED_MANIFEST_OPTION := /MANIFEST:EMBED
+else
 EMBED_MANIFEST_OPTION:=
+endif
 
 # common linker options for EXE or DLL
 # $1 - path to target EXE or DLL
@@ -160,7 +201,7 @@ EMBED_MANIFEST_OPTION:=
 CMN_LIBS = /nologo /OUT:$(call ospath,$1 $2 $(RES)) /VERSION:$(MODVER_MAJOR_MINOR) $(DEF_SUBSYSTEM) $(EMBED_MANIFEST_OPTION) \
   $(addprefix /IMPLIB:,$(call ospath,$(IMP))) $(addprefix /DEF:,$(call ospath,$(DEF))) $(if \
   $(firstword $(LIBS)$(DLLS)),/LIBPATH:$(call ospath,$(LIB_DIR)) $(call DEP_LIBS,$3,$4) $(call DEP_IMPS,$3,$4)) $(call \
-  qpath,$(SYSLIBPATH) $(SYS_APPLIBPATH),/LIBPATH:) $(SYSLIBS) $(CMN_LDFLAGS)
+  qpath,$(SYSLIBPATH) $(APPLIBPATH),/LIBPATH:) $(SYSLIBS) $(CMN_LDFLAGS)
 
 # default value, may be overridden either in project configuration makefile or in command line
 LINKER_STRIP_STRINGS := $(LINKER_STRIP_STRINGS_en)
@@ -210,12 +251,15 @@ DLL_LD = $(call SUP,$(TMD)DLL,$1)$(call WRAP_LINKER,$($(TMD)VSLINK) $(CMN_LIBS) 
 # manifest embedding
 # $1 - path to target EXE or DLL
 ifndef EMBED_MANIFEST_OPTION
+ifneq (,$(call is_less,7,$(VS_VER)))
+# >= Visual Studio 2005
 EMBED_EXE_MANIFEST = if exist $(ospath).manifest $(MT) -nologo \
   -manifest $(ospath).manifest -outputresource:$(ospath);1 && del $(ospath).manifest
 EMBED_DLL_MANIFEST = if exist $(ospath).manifest $(MT) -nologo \
   -manifest $(ospath).manifest -outputresource:$(ospath);2 && del $(ospath).manifest
 $(call define_append,EXE_LD,$(newline)$(QUIET)$$(EMBED_EXE_MANIFEST))
 $(call define_append,DLL_LD,$(newline)$(QUIET)$$(EMBED_DLL_MANIFEST))
+endif
 endif
 
 # linker for each variant of LIB
@@ -245,7 +289,13 @@ else
 WRAP_CC = $1
 endif
 
-# may auto-generate dependencies only if building sequentially, because /showIncludes option conflicts with /MP
+# /MP compiler option was introduced in Visual Studio 2008
+ifneq (,$(call is_less,$(VS_VER),9))
+# < Visual Studio 2008
+SEQ_BUILD := 1
+endif
+
+# may auto-generate dependencies only if building sources sequentially, because /showIncludes option conflicts with /MP
 ifdef SEQ_BUILD
 
 # default value, may be overridden either in project configuration makefile or in command line
@@ -264,18 +314,72 @@ UDEPS_INCLUDE_FILTER := $(subst \,\\,$(VSINCLUDE) $(UMINCLUDE))
 # note: send output to stderr in VERBOSE mode, this is needed for build script generation
 ifndef NO_WRAP
 ifndef NO_DEPS
-WRAP_CC = (($1 /showIncludes 2>&1 && set/p="C">&2<NUL)|$(SED) -n \
-  $(SED_DEPS_SCRIPT) 2>&1 && set/p="S">&2<NUL)3>&2 2>&1 1>&3|findstr /BC:CS>NUL
+WRAP_CC = (($1 /showIncludes 2>&1 && set/p="C">&2<NUL)|$(SED) -n $(call \
+  SED_DEPS_SCRIPT,$1,$2,$3,$(INCLUDING_FILE_PATTERN),$(UDEPS_INCLUDE_FILTER)) 2>&1 && set/p="S">&2<NUL)3>&2 2>&1 1>&3|findstr /BC:CS>NUL
 endif
 endif
+
+endif # SEQ_BUILD
 
 # user-modifiable C compiler flags
-CFLAGS:=
+# /MP option - compile all sources of a module at once
+CFLAGS := $(if $(SEQ_BUILD),,/MP)
 
-# notes:
-#  When using the /Zi option, the debug info of all compiled sources is stored in a single .pdb,
-#  but this can lead to contentions accessing that .pdb during parallel compilation.
-#  To cope this problem, the /FS option was introduced in Visual Studio 2013.
+# When using the /Zi option, the debug info of all compiled sources is stored in a single .pdb,
+# but this can lead to contentions accessing that .pdb during parallel compilation.
+# To cope this problem, the /FS option was introduced in Visual Studio 2013.
+ifneq (,$(call is_less,11,$(VS_VER)))
+# >= Visual Studio 2013
+FORCE_SYNC_PDB := /FS
+else
+FORCE_SYNC_PDB:=
+endif
+
+ifdef DEBUG
+ifdef SEQ_BUILD
+ifndef FORCE_SYNC_PDB
+# /Z7 option - store debug info (in old format) in each .obj to avoid contention accessing .pdb during parallel compilation
+CFLAGS += /Z7
+else
+# /Zi option - store debug info (in new format) in single .pdb, compiler will serialize access to the .pdb via mspdbsrv.exe
+CFLAGS += $(FORCE_SYNC_PDB) /Zi
+endif
+else
+# compiling sources of a module with /MP option
+# note: groups of sources of a module are compiled sequentially, after each other
+# note: /MP option implies /FS option, if it's supported
+# /Zi option - store debug info (in new format) in single .pdb, assume compiler will serialize access to the .pdb
+CFLAGS += /Zi
+endif
+endif
+
+
+
+
+
+
+ifdef DEBUG
+ifndef FORCE_SYNC_PDB
+ifdef SEQ_BUILD
+# /Z7 option - store debug info (in old format) in each .obj to avoid contention accessing .pdb during parallel compilation
+CFLAGS += /Z7
+else
+# compiling sources of a module with /MP option
+# note: groups of sources of a module are compiled sequentially, after each other
+# /Zi option - store debug info (in new format) in single .pdb, assume compiler will serialize access to the .pdb
+CFLAGS += /Zi
+endif
+else # FORCE_SYNC_PDB
+# /FS option is supported, add it only if /MP was be specified - /MP implies /FS
+ifdef SEQ_BUILD
+CFLAGS += $(FORCE_SYNC_PDB)
+endif
+# /Zi option - store debug info (in new format) in single .pdb, assume compiler will serialize access to the .pdb
+CFLAGS += /Zi
+endif # FORCE_SYNC_PDB
+endif # DEBUG
+
+
 #  Check FORCE_SYNC_PDB - if it's not defined, use /Z7 option - store debug info (in old format) in each .obj.
 #  Else, FORCE_SYNC_PDB should be defined as /FS - store debug info in a single .pdb.
 # note: no debug info in RELEASE builds if /FS option is not supported
@@ -293,8 +397,9 @@ CXXFLAGS := $(CFLAGS)
 # /GF - pools strings and places them in read-only memory 
 # /W3 - warning level
 # /Od - disable optimizations
+# /RTCc /RTCsu - run-time error checks (starting with Visual Studio .NET 2003)
 # /GS - buffer security check (starting with Visual Studio .NET 2003)
-# / 
+# /GL - whole program optimization, linker must be invoked with /LTCG (starting with Visual Studio .NET 2003)
 
 
 # /EHsc - synchronous exception handling model, extern C functions never throw an exception
