@@ -269,12 +269,42 @@ WRAP_CC = (($1 /showIncludes 2>&1 && set/p="C">&2<NUL)|$(SED) -n \
 endif
 endif
 
-# user-modifiable C/C++ compiler flags
-CFLAGS   := $(if $(DEBUG),-g,-fast)
+# user-modifiable C compiler flags
+CFLAGS:=
+
+# notes:
+#  When using the /Zi option, the debug info of all compiled sources is stored in a single .pdb,
+#  but this can lead to contentions accessing that .pdb during parallel compilation.
+#  To cope this problem, the /FS option was introduced in Visual Studio 2013.
+#  Check FORCE_SYNC_PDB - if it's not defined, use /Z7 option - store debug info (in old format) in each .obj.
+#  Else, FORCE_SYNC_PDB should be defined as /FS - store debug info in a single .pdb.
+# note: no debug info in RELEASE builds if /FS option is not supported
+ifdef FORCE_SYNC_PDB
+CFLAGS += $(FORCE_SYNC_PDB) /Zi
+else ifdef DEBUG
+CFLAGS += /Z7
+endif
+
+# user-modifiable C++ compiler flags
 CXXFLAGS := $(CFLAGS)
 
 # common flags for application-level C/C++-compilers
-CMN_CFLAGS := -v -xldscope=hidden
+# /X  - do not search include files in directories specified in the PATH and INCLUDE environment variables
+# /GF - pools strings and places them in read-only memory 
+# /W3 - warning level
+# /Od - disable optimizations
+# /GS - buffer security check (starting with Visual Studio .NET 2003)
+# / 
+
+
+# /EHsc - synchronous exception handling model, extern C functions never throw an exception
+
+CMN_CFLAGS := /X /GF /W3
+ifdef DEBUG
+CMN_CFLAGS += /Od /RTCc /RTCsu /GS
+else
+CMN_CFLAGS += /Ox /GL /Gy
+endif
 
 # default flags for application-level C compiler
 DEF_CFLAGS := $(CMN_CFLAGS)
