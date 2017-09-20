@@ -90,6 +90,9 @@ RPATH_LINK:=
 # target-specific: RPATH_LINK
 RPATH_LINK_OPTION = $(addprefix $(WLPREFIX)-rpath-link=,$(RPATH_LINK))
 
+# gcc option to use pipe for communication between the various stages of compilation
+PIPE_OPTION := -pipe
+
 # common linker options for EXE or DLL
 # $1 - path to target EXE or DLL
 # $2 - objects
