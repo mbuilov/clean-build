@@ -17,7 +17,7 @@ NO_WRAP:=
 # compiling multiple sources at once, so that compiler itself
 # internally may parallel the compilation by using threads.
 
-# By default, compile multiple sources at once.
+# By default, compile all sources of a module at once (however, different modules may be compiled in parallel)
 # Run via $(MAKE) S=1 to compile each source individually (without /MP compiler option)
 ifeq (command line,$(origin S))
 SEQ_BUILD := $(S:0=)
@@ -25,8 +25,9 @@ else
 SEQ_BUILD:=
 endif
 
-# max number of sources to compile with /MP compiler option
-# - with too many sources it's possible to exceed maximum command string length
+# It is possible to exceed maximum command string length if compiling too many sources at once,
+# to prevent this, split all sources of a module to groups, then compile groups after each other.
+# Maximum number of sources in a group compiled at once.
 MCL_MAX_COUNT := 50
 
 # strings to strip off from link.exe output
