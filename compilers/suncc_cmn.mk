@@ -17,17 +17,16 @@
 #
 # $1 - compiler with options (unused)
 # $2 - target object file
-# $3 - source (unused)
-# $4 - prefixes of system includes to filter out, e.g. $(UDEPS_INCLUDE_FILTER)/$(KDEPS_INCLUDE_FILTER)
+# $3 - prefixes of system includes to filter out, e.g. $(UDEPS_INCLUDE_FILTER)/$(KDEPS_INCLUDE_FILTER)
 
 # /^$(tab)*\//!{p;d;}             - print all lines not started with optional tabs and /, start new circle
 # s/^\$(tab)*//;                  - strip-off leading tabs
-# $(foreach x,$4,\@^$x.*@d;)      - delete lines started with system include paths, start new circle
+# $(foreach x,$3,\@^$x.*@d;)      - delete lines started with system include paths, start new circle
 # s@.*@&:\$(newline)$2: &@;w $2.d - make dependencies, then write to generated dep-file
 
 SED_DEPS_SCRIPT = \
 -e '/^$(tab)*\//!{p;d;}' \
--e 's/^\$(tab)*//;$(foreach x,$4,\@^$x.*@d;)s@.*@&:\$(newline)$2: &@;w $2.d'
+-e 's/^\$(tab)*//;$(foreach x,$3,\@^$x.*@d;)s@.*@&:\$(newline)$2: &@;w $2.d'
 
 # protect variables from modifications in target makefiles
 $(call SET_GLOBAL,SED_DEPS_SCRIPT)
