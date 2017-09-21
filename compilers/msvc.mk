@@ -154,10 +154,10 @@ endif
 endif
 
 # how to mark exported symbols from a DLL
-DLL_EXPORTS_DEFINE := "__declspec(dllexport)"
+DLL_EXPORTS_DEFINE := __declspec(dllexport)
 
 # how to mark imported symbols from a DLL
-DLL_IMPORTS_DEFINE := "__declspec(dllimport)"
+DLL_IMPORTS_DEFINE := __declspec(dllimport)
 
 # make version string: major.minor.patch -> major.minor
 # target-specific: MODVER
