@@ -174,8 +174,9 @@ C_RULES = $(foreach t,$(C_TARGETS),$(if $($t),$(C_RULESt)))
 # $(TMD) - T in tool mode, empty otherwise
 # note: STD_TARGET_VARS also changes CB_NEEDED_DIRS, so do not remember its new value here
 # note: $t_VARIANT_... macros should be defined in C/C++ compiler definitions makefile, e.g.: $(CLEAN_BUILD_DIR)/impl/_c.mk
-# note: CFLAGS, CXXFLAGS, LDFLAGS - standard user-defined C/C++ compilers and linker flags, that are normally taken from
-#  the environment, should be defined in compiler-specific makefile, e.g.: $(CLEAN_BUILD_DIR)/compilers/gcc.mk
+# note: CFLAGS, CXXFLAGS, LDFLAGS - standard user-modifiable C/C++ compilers and linker flags,
+#  that are normally taken from the environment (in project configuration makefile),
+#  default values should be set in compiler-specific makefile, e.g.: $(CLEAN_BUILD_DIR)/compilers/gcc.mk
 define C_BASE_TEMPLATE
 CB_NEEDED_DIRS+=$4
 $(STD_TARGET_VARS)
