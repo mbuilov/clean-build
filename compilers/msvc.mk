@@ -11,7 +11,7 @@ ifeq (,$(filter-out undefined environment,$(origin INCLUDING_FILE_PATTERN_en)))
 include $(dir $(lastword $(MAKEFILE_LIST)))msvc_cmn.mk
 endif
 
-# add definitions of MC_COMPILER and RC_COMPILER (needed by STD_RES_TEMPLATE)
+# add definitions of RC_COMPILER (needed by STD_RES_TEMPLATE) and MC_COMPILER
 ifeq (,$(filter-out undefined environment,$(origin MC_COMPILER)))
 include $(dir $(lastword $(MAKEFILE_LIST)))msvc_tools.mk
 endif
@@ -37,20 +37,20 @@ $(call define_append,C_PREPARE_APP_VARS,$(newline)$$(C_PREPARE_MSVC_APP_VARS))
 $(call try_make_simple,C_PREPARE_APP_VARS,C_PREPARE_MSVC_APP_VARS)
 
 # Visual Studio versions
-#-------------------------------------------------------------------------------------
-# version | _MSC_VER |        name        | C++ compiler default installation path
-#-------------------------------------------------------------------------------------
-# 6.0         1200     Visual Studio 6.0    Microsoft Visual Studio\VC98\cl.exe
-# 7.0         1300     Visual Studio 2002   Microsoft Visual Studio .NET\VC7\bin\cl.exe
-# 7.1         1310     Visual Studio 2003   Microsoft Visual Studio .NET 2003\VC7\bin\cl.exe
-# 8.0         1400     Visual Studio 2005   Microsoft Visual Studio 8\VC\bin\cl.exe
-# 9.0         1500     Visual Studio 2008   Microsoft Visual Studio 9.0\VC\bin\cl.exe
-# 10.0        1600     Visual Studio 2010   Microsoft Visual Studio 10.0\VC\bin\cl.exe
-# 11.0        1700     Visual Studio 2012   Microsoft Visual Studio 11.0\VC\bin\cl.exe
-# 12.0        1800     Visual Studio 2013   Microsoft Visual Studio 12.0\VC\bin\cl.exe
-# 14.0        1900     Visual Studio 2015   Microsoft Visual Studio 14.0\VC\bin\cl.exe
-# 14.10       1910     Visual Studio 2017   Microsoft Visual Studio\2017\Community\VC\Tools\MSVC\14.10.25017\bin\HostX86\x86\cl.exe
-# 14.11       1911     Visual Studio 2017   Microsoft Visual Studio\2017\Community\VC\Tools\MSVC\14.11.25503\bin\HostX86\x86\cl.exe
+#---------------------------------------------------------------------------------
+# version _MSC_VER        name         C++ compiler default installation path
+#---------------------------------------------------------------------------------
+#  6.0     1200    Visual Studio 6.0   Microsoft Visual Studio\VC98\cl.exe
+#  7.0     1300    Visual Studio 2002  Microsoft Visual Studio .NET\VC7\bin\cl.exe
+#  7.1     1310    Visual Studio 2003  Microsoft Visual Studio .NET 2003\VC7\bin\cl.exe
+#  8.0     1400    Visual Studio 2005  Microsoft Visual Studio 8\VC\bin\cl.exe
+#  9.0     1500    Visual Studio 2008  Microsoft Visual Studio 9.0\VC\bin\cl.exe
+#  10.0    1600    Visual Studio 2010  Microsoft Visual Studio 10.0\VC\bin\cl.exe
+#  11.0    1700    Visual Studio 2012  Microsoft Visual Studio 11.0\VC\bin\cl.exe
+#  12.0    1800    Visual Studio 2013  Microsoft Visual Studio 12.0\VC\bin\cl.exe
+#  14.0    1900    Visual Studio 2015  Microsoft Visual Studio 14.0\VC\bin\cl.exe
+#  14.10   1910    Visual Studio 2017  Microsoft Visual Studio\2017\Community\VC\Tools\MSVC\14.10.25017\bin\HostX86\x86\cl.exe
+#  14.11   1911    Visual Studio 2017  Microsoft Visual Studio\2017\Community\VC\Tools\MSVC\14.11.25503\bin\HostX86\x86\cl.exe
 
 # version of Visual Studio we are using - major number of 'version' column: 6,7,8,9,10,11,12,14
 # by default, setup for Visual Studio 6.0
@@ -86,8 +86,8 @@ WIN_VARIANT_SUFFIX := $(if $(findstring \
   RU,$1),_u,$(if $(findstring \
   SU,$1),_su,_s))
 
-# options for each target variant: R,S,RU,SU
-WIN_VARIANT_COPTS = $(if $(filter S%,$1),/MT,/MD)$(if $(DEBUG),d)$(if $(filter %U,$1), /DUNICODE /D_UNICODE)
+# C/C++ complier options for each target variant: R,S,RU,SU
+WIN_VARIANT_CFLAGS = $(if $(filter S%,$1),/MT,/MD)$(if $(DEBUG),d)$(if $(filter %U,$1), /DUNICODE /D_UNICODE)
 
 # note: override defaults from $(CLEAN_BUILD_DIR)/impl/_c.mk
 EXE_SUPPORTED_VARIANTS = $(WIN_SUPPORTED_VARIANTS)
@@ -100,16 +100,16 @@ LIB_VARIANT_SUFFIX = $(WIN_VARIANT_SUFFIX)
 DLL_VARIANT_SUFFIX = $(WIN_VARIANT_SUFFIX)
 
 # note: override defaults from $(CLEAN_BUILD_DIR)/impl/_c.mk
-EXE_VARIANT_COPTS   = $(WIN_VARIANT_COPTS)
-EXE_VARIANT_CXXOPTS = $(EXE_VARIANT_COPTS)
+EXE_VARIANT_CFLAGS   = $(WIN_VARIANT_CFLAGS)
+EXE_VARIANT_CXXFLAGS = $(EXE_VARIANT_CFLAGS)
 
 # note: override defaults from $(CLEAN_BUILD_DIR)/impl/_c.mk
-LIB_VARIANT_COPTS   = $(WIN_VARIANT_COPTS)
-LIB_VARIANT_CXXOPTS = $(LIB_VARIANT_COPTS)
+LIB_VARIANT_CFLAGS   = $(WIN_VARIANT_CFLAGS)
+LIB_VARIANT_CXXFLAGS = $(LIB_VARIANT_CFLAGS)
 
 # note: override defaults from $(CLEAN_BUILD_DIR)/impl/_c.mk
-DLL_VARIANT_COPTS   = $(WIN_VARIANT_COPTS)
-DLL_VARIANT_CXXOPTS = $(DLL_VARIANT_COPTS)
+DLL_VARIANT_CFLAGS   = $(WIN_VARIANT_CFLAGS)
+DLL_VARIANT_CXXFLAGS = $(DLL_VARIANT_CFLAGS)
 
 # determine which variant of static library to link with EXE or DLL
 # $1 - target: EXE,DLL
@@ -127,8 +127,15 @@ LIB_DEP_MAP = $(if $(3:UNI_%=),$(2:U=),$2)
 # same for dependent dynamic library (via it's import library)
 DLL_DEP_MAP = $(if $(3:UNI_%=),$(2:U=),$2)
 
+# how to mark symbols exported from a DLL
+DLL_EXPORTS_DEFINE := __declspec(dllexport)
+
+# how to mark symbols imported from a DLL
+DLL_IMPORTS_DEFINE := __declspec(dllimport)
+
 # user-modifiable link.exe flags for linking executables and shared libraries
-# /DEBUG   - generate debug info (in .pdb)
+# note: may be taken from the environment in project configuration makefile
+# /DEBUG   - generate debug info (in separate .pdb)
 # /RELEASE - set the checksum in PE-header
 LDFLAGS := $(if $(DEBUG),/DEBUG,/RELEASE)
 
@@ -142,6 +149,7 @@ EXE_LDFLAGS:=
 DLL_LDFLAGS := /DLL
 
 # lib.exe flags for linking a LIB
+# note: may be taken from the environment in project configuration makefile
 ARFLAGS:=
 
 ifneq (,$(call is_less,6,$(VS_VER)))
@@ -153,11 +161,49 @@ ARFLAGS += /LTCG
 endif
 endif
 
-# how to mark exported symbols from a DLL
-DLL_EXPORTS_DEFINE := __declspec(dllexport)
+# /MP compiler option was introduced in Visual Studio 2008
+ifneq (,$(call is_less,$(VS_VER),9))
+# < Visual Studio 2008
+SEQ_BUILD := 1
+endif
 
-# how to mark imported symbols from a DLL
-DLL_IMPORTS_DEFINE := __declspec(dllimport)
+# user-modifiable C compiler flags
+# /MP option - compile all sources of a module at once
+CFLAGS := $(if $(SEQ_BUILD),,/MP)
+
+# When using the /Zi option, the debug info of all compiled sources is stored in a single .pdb,
+# but this can lead to contentions accessing that .pdb during parallel compilation.
+# To cope this problem, the /FS option was introduced in Visual Studio 2013.
+ifneq (,$(call is_less,11,$(VS_VER)))
+# >= Visual Studio 2013
+FORCE_SYNC_PDB := /FS
+else
+FORCE_SYNC_PDB:=
+endif
+
+ifdef DEBUG
+ifdef SEQ_BUILD
+ifndef FORCE_SYNC_PDB
+# /Z7 option - store debug info (in old format) in each .obj to avoid contention accessing .pdb during parallel compilation
+CFLAGS += /Z7
+else
+# /Zi option - store debug info (in new format) in single .pdb, compiler will serialize access to the .pdb via mspdbsrv.exe
+CFLAGS += $(FORCE_SYNC_PDB) /Zi
+endif
+else
+# compiling sources of a module with /MP option:
+#  - groups of sources of a module are compiled sequentially, one group after each other
+#  - sources in a group are compiled in parallel by compiler threads, via single compiler invocation.
+# note: /MP option implies /FS option, if it's supported
+# /Zi option - store debug info (in new format) in single .pdb, assume compiler internally will serialize access to the .pdb
+CFLAGS += /Zi
+endif
+endif
+
+# user-modifiable C++ compiler flags
+CXXFLAGS := $(CFLAGS)
+
+
 
 # make version string: major.minor.patch -> major.minor
 # target-specific: MODVER
@@ -167,16 +213,12 @@ MODVER_MAJOR_MINOR = $(subst $(space),.,$(wordlist 1,2,$(subst ., ,$(MODVER)) 0 
 # target-specific: TMD
 APPLIBPATH = $($(TMD)VSLIBPATH) $($(TMD)UMLIBPATH)
 
-# minimum required version of the operating system subsystem
+# minimum required version of the operating system
 # note: 5.01 - WinXP(x86), 5.02 - WinXP(x64)
 SUBSYSTEM_VER := $(if $(CPU:%64=),5.01,5.02)
 
 # default subsystem for EXE or DLL
-# $1 - path to target EXE or DLL
-# note: do not add /SUBSYSTEM option if $(LOPTS) have already specified one, e.g.: /SUBSYSTEM:WINDOWS,$(SUBSYSTEM_VER)
-# note: do not specify subsystem version when building tools (in tool mode)
-# target-specific: TMD, LOPTS
-DEF_SUBSYSTEM = $(if $(filter /SUBSYSTEM:%,$(LOPTS)),,/SUBSYSTEM:CONSOLE$(if $(TMD),,,$(SUBSYSTEM_VER)))
+SUBSYSTEM_SPEC := /SUBSYSTEM:CONSOLE,$(SUBSYSTEM_VER)
 
 # how to embed manifest into EXE or DLL
 ifneq (,$(call is_less,10,$(VS_VER)))
@@ -185,6 +227,21 @@ EMBED_MANIFEST_OPTION := /MANIFEST:EMBED
 else
 EMBED_MANIFEST_OPTION:=
 endif
+
+
+
+
+
+# default subsystem for EXE or DLL
+# $1 - path to target EXE or DLL
+# note: do not add /SUBSYSTEM option if $(LOPTS) have already specified one, e.g.: /SUBSYSTEM:WINDOWS,$(SUBSYSTEM_VER)
+# note: do not specify subsystem version when building tools (in tool mode)
+# target-specific: TMD, LOPTS
+DEF_SUBSYSTEM = $(if $(filter /SUBSYSTEM:%,$(LOPTS)),,/SUBSYSTEM:CONSOLE$(if $(TMD),,,$(SUBSYSTEM_VER)))
+
+# linker flags for the tool mode
+TLDFLAGS := $(LDFLAGS)
+TARFLAGS := $(ARFLAGS)
 
 # common linker options for EXE or DLL
 # $1 - path to target EXE or DLL
@@ -283,12 +340,6 @@ else
 WRAP_CC = $1
 endif
 
-# /MP compiler option was introduced in Visual Studio 2008
-ifneq (,$(call is_less,$(VS_VER),9))
-# < Visual Studio 2008
-SEQ_BUILD := 1
-endif
-
 # may auto-generate dependencies only if building sources sequentially, because /showIncludes option conflicts with /MP
 ifdef SEQ_BUILD
 
@@ -314,42 +365,6 @@ endif
 endif
 
 endif # SEQ_BUILD
-
-# user-modifiable C compiler flags
-# /MP option - compile all sources of a module at once
-CFLAGS := $(if $(SEQ_BUILD),,/MP)
-
-# When using the /Zi option, the debug info of all compiled sources is stored in a single .pdb,
-# but this can lead to contentions accessing that .pdb during parallel compilation.
-# To cope this problem, the /FS option was introduced in Visual Studio 2013.
-ifneq (,$(call is_less,11,$(VS_VER)))
-# >= Visual Studio 2013
-FORCE_SYNC_PDB := /FS
-else
-FORCE_SYNC_PDB:=
-endif
-
-ifdef DEBUG
-ifdef SEQ_BUILD
-ifndef FORCE_SYNC_PDB
-# /Z7 option - store debug info (in old format) in each .obj to avoid contention accessing .pdb during parallel compilation
-CFLAGS += /Z7
-else
-# /Zi option - store debug info (in new format) in single .pdb, compiler will serialize access to the .pdb via mspdbsrv.exe
-CFLAGS += $(FORCE_SYNC_PDB) /Zi
-endif
-else
-# compiling sources of a module with /MP option:
-#  - groups of sources of a module are compiled sequentially, one group after each other
-#  - sources in a group are compiled in parallel by compiler threads, via single compiler invocation.
-# note: /MP option implies /FS option, if it's supported
-# /Zi option - store debug info (in new format) in single .pdb, assume compiler internally will serialize access to the .pdb
-CFLAGS += /Zi
-endif
-endif
-
-# user-modifiable C++ compiler flags
-CXXFLAGS := $(CFLAGS)
 
 # common flags for application-level C/C++-compilers
 # /X  - do not search include files in directories specified in the PATH and INCLUDE environment variables
