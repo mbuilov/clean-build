@@ -355,7 +355,7 @@ FORMAT_PERCENTS = $(subst |,,$(subst \
   |8%,08%,$(subst \
   |9%,09%,$(subst \
   |100%,FIN,|$(words $(SHOWN_PERCENTS))%))))))))))))
-# don't update percents if $(MF) was already shown
+# don't update percents if $(MF) has been already shown
 # else remember makefile $(MF), then try to increment total percents count
 define REM_MAKEFILE
 $$(MF):=1
@@ -395,7 +395,7 @@ DEF_OBJ_DIR := $(BUILD)/obj-$(TARGET_TRIPLET)
 DEF_LIB_DIR := $(BUILD)/lib-$(TARGET_TRIPLET)
 DEF_GEN_DIR := $(BUILD)/gen-$(TARGET_TRIPLET)
 
-# code to eval to restore default directories after tool mode
+# code to eval to restore default directories after "tool mode"
 define SET_DEFAULT_DIRS
 BIN_DIR:=$(DEF_BIN_DIR)
 OBJ_DIR:=$(DEF_OBJ_DIR)
@@ -437,7 +437,7 @@ GET_TOOLS = $(addprefix $(MK_TOOLS_DIR)/,$(addsuffix $(TOOL_SUFFIX),$3))
 # get path to a tool $1 for current TOOL_BASE and TCPU
 GET_TOOL = $(call GET_TOOLS,$(TOOL_BASE),$(TCPU),$1)
 
-# code to eval to override default directories in tool mode (when TOOL_MODE has non-empty value)
+# code to eval to override default directories in "tool mode"
 define TOOL_OVERRIDE_DIRS
 BIN_DIR:=$(TOOL_BASE)/bin-TOOL-$(TCPU)-$(TARGET)
 OBJ_DIR:=$(TOOL_BASE)/obj-TOOL-$(TCPU)-$(TARGET)
@@ -521,13 +521,11 @@ NEED_GEN_DIRS = $(eval CB_NEEDED_DIRS+=$$1)
 endif
 
 # register targets as main ones built by current makefile, add standard target-specific variables
-# $1     - target file(s) to build (absolute paths)
-# $2     - directories of target file(s) (absolute paths)
-# $(TMD) - T if target is built in TOOL_MODE
+# $1 - target file(s) to build (absolute paths)
+# $2 - directories of target file(s) (absolute paths)
 # note: postpone expansion of $(ORDER_DEPS) to optimize parsing
 # note: .PHONY goal $(TARGET_MAKEFILE)- will depend on built files
 define STD_TARGET_VARS1
-$1:TMD:=$(TMD)
 $1:| $2 $$(ORDER_DEPS)
 $(TARGET_MAKEFILE)-:$1
 CB_NEEDED_DIRS+=$2
@@ -843,12 +841,13 @@ RUN_TOOL = $(if $2$4,$(if $2,$(eval \
   $$@:export $v:=$$($v)))$(if $(VERBOSE),$(show_tool_vars)@))$(if $3,$(call EXECUTE_IN,$3,$1),$1)$(if \
   $2$4,$(if $(VERBOSE),$(show_tool_vars_end)))
 
-# current value of TOOL_MODE
-# note: $(TOOL_MODE) should not be used in rule templates - use $(TMD) instead,
-#  because TMD set to $(TOOL_MODE) while evaluating $(DEF_HEAD_CODE), but TOOL_MODE may be set
-#  to another value before calling $(MAKE_CONTINUE) and so before rule templates evaluation
-# reset value: we are currently not in tool mode, $(SET_DEFAULT_DIRS) was already
-#  evaluated to set non-tool mode values of BIN_DIR, OBJ_DIR, LIB_DIR, GEN_DIR
+# T in "tool mode" - TOOL_MODE variable was set to non-empty value prior evaluating $(DEF_HEAD_CODE),
+#  empty in normal mode.
+# note: $(TOOL_MODE) should not be used in rule templates - use $(TMD) instead, because
+#  TOOL_MODE may be set to another value anywhere before $(DEFINE_TARGETS) or $(MAKE_CONTINUE),
+#  and so before rule templates evaluation.
+# reset value: we are currently not in tool mode, $(DEF_HEAD_CODE) was not evaluated yet, but $(SET_DEFAULT_DIRS)
+#  has been already evaluated to set non-tool mode values of BIN_DIR, OBJ_DIR, LIB_DIR, GEN_DIR
 TMD:=
 
 # TOOL_MODE may be set to non-empty value at beginning of target makefile
@@ -932,7 +931,7 @@ $(eval define DEF_HEAD_CODE$(newline)$(subst \
   else,else$(newline)PROCESSED_MAKEFILES+=$$(TARGET_MAKEFILE),$(value DEF_HEAD_CODE))$(newline)endef)
 endif
 
-# check that $(TARGET_MAKEFILE) was not already processed (note: before first $(MAKE_CONTINUE))
+# check that $(TARGET_MAKEFILE) was not already processed (note: check only before first $(MAKE_CONTINUE))
 ifdef MCHECK
 $(eval define DEF_HEAD_CODE$(newline)$(subst \
   else,else$(newline)$$$$(if $$$$(filter $$$$(TARGET_MAKEFILE),$$$$(PROCESSED_MAKEFILES)),$$$$(error \
@@ -1038,7 +1037,6 @@ NO_DEPS := $(filter clean,$(MAKECMDGOALS))
 CLEAN_BUILD_FIRST_PHASE_VARS += BIN_DIR OBJ_DIR LIB_DIR GEN_DIR
 
 # makefile parsing first phase variables
-# tip: STD_TARGET_VARS1 defines target-specific TMD variable for use in rule execution second phase
 CLEAN_BUILD_FIRST_PHASE_VARS += CB_NEEDED_DIRS ORDER_DEPS MULTI_TARGET_NUM CB_INCLUDE_LEVEL \
   PROCESSED_MAKEFILES MAKE_CONT SET_DEFAULT_DIRS TOOL_OVERRIDE_DIRS ADD_MDEPS ADD_ADEPS ADD_WHAT_MAKEFILE_BUILDS \
   CREATE_MAKEFILE_ALIAS ADD_ORDER_DEPS NEED_GEN_DIRS STD_TARGET_VARS1 STD_TARGET_VARS MAKEFILE_INFO_TEMPL \
@@ -1068,7 +1066,7 @@ $(call SET_GLOBAL,PROJECT_VARS_NAMES PASS_ENV_VARS \
   GET_TARGET_NAME SUPPORTED_VARIANTS FILTER_VARIANTS_LIST GET_VARIANTS VARIANT_SUFFIX FORM_TRG ALL_TARGETS \
   FORM_OBJ_DIR MAKE_TRG_PATH ADD_GENERATED CHECK_GENERATED ADD_GENERATED_RET NON_PARALLEL_EXECUTE_RULE NON_PARALLEL_EXECUTE \
   MULTI_TARGET_SEQ MULTI_TARGET_RULE=MULTI_TARGET_NUM=MULTI_TARGET_NUM MULTI_TARGET CHECK_MULTI_RULE \
-  FORM_SDEPS EXTRACT_SDEPS FIX_SDEPS RUN_TOOL TMD TOOL_MODE \
+  FORM_SDEPS EXTRACT_SDEPS FIX_SDEPS RUN_TOOL TMD \
   DEF_HEAD_CODE_EVAL DEF_TAIL_CODE_EVAL MAKE_CONTINUE_EVAL_NAME DEFINE_TARGETS_EVAL_NAME \
   DEF_HEAD_CODE DEF_TAIL_CODE DEFINE_TARGETS SAVE_VARS RESTORE_VARS MAKE_CONTINUE CONF_COLOR PRODUCT_VER)
 
