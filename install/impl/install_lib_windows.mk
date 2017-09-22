@@ -36,7 +36,7 @@ endef
 define INSTALL_LIB_WINDOWS
 $(INSTALL_LIB_BASE)
 $(if $($1_LIBRARY_NO_INSTALL_IMPORT),,$(if $($1_BUILT_DLLS),$(INSTALL_LIB_IMPORT)))
-.PHONY: install_lib_$1_import uninstall_lib_$1_import
+CLEAN_BUILD_GOALS += install_lib_$1_import uninstall_lib_$1_import
 endef
 
 # define rules for installing/uninstalling library and its headers

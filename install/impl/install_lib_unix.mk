@@ -55,7 +55,7 @@ endef
 define INSTALL_LIB_UNIX
 $(INSTALL_LIB_BASE)
 $(if $($1_LIBRARY_NO_INSTALL_SHARED),,$(if $($1_LIBRARY_NO_DEVEL),,$(if $(MODVER),$(if $($1_BUILT_DLLS),$(INSTALL_LIB_SIMLINKS)))))
-.PHONY: install_lib_$1_simlinks uninstall_lib_$1_simlinks
+CLEAN_BUILD_GOALS += install_lib_$1_simlinks uninstall_lib_$1_simlinks
 endef
 
 # define rules for installing/uninstalling library and its headers

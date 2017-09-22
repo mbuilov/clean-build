@@ -165,7 +165,7 @@ uninstall_lib_$1_$3:
 	$$(call DO_UNINSTALL_FILE,$$(CONF_FILE))
 install_lib_$1_$5:   install_lib_$1_$3
 uninstall_lib_$1_$5: uninstall_lib_$1_$3
-.PHONY: install_lib_$1_$3 uninstall_lib_$1_$3
+CLEAN_BUILD_GOALS += install_lib_$1_$3 uninstall_lib_$1_$3
 endif
 endef
 
@@ -196,7 +196,7 @@ $(if $($1_LIBRARY_NO_INSTALL_STATIC),,$(if $($1_BUILT_LIBS),$(INSTALL_LIB_STATIC
 $(if $($1_LIBRARY_NO_INSTALL_SHARED),,$(if $($1_BUILT_DLLS),$(INSTALL_LIB_SHARED)))
 $(if $($1_LIBRARY_NO_INSTALL_HEADERS),,$(if $($1_LIBRARY_HEADERS),$(INSTALL_LIB_HEADERS)))
 $(if $($1_LIBRARY_NO_INSTALL_PKGCONF),,$(INSTALL_LIB_PKGCONF))
-.PHONY: \
+CLEAN_BUILD_GOALS += \
   install_lib_$1_static uninstall_lib_$1_static \
   install_lib_$1_shared uninstall_lib_$1_shared \
   install_lib_$1_headers uninstall_lib_$1_headers \
@@ -205,6 +205,11 @@ $(if $($1_LIBRARY_NO_INSTALL_PKGCONF),,$(INSTALL_LIB_PKGCONF))
 install:   install_lib_$1
 uninstall: uninstall_lib_$1
 endef
+
+# do not trace calls to macros modified via operator +=
+ifdef MCHECK
+$(call define_append,INSTALL_LIB_BASE,$$(call SET_GLOBAL1,CLEAN_BUILD_GOALS,0))
+endif
 
 # INSTALL_LIB_MK - makefile with definition of $(OS)-specific INSTALL_LIB macro
 # note: INSTALL_OS_TYPE defined in $(CLEAN_BUILD_DIR)/install/impl/inst_dirs.mk
