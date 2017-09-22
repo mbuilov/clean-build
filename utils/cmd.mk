@@ -169,7 +169,7 @@ CREATE_DIR = mkdir $(ospath)
 COMPARE_FILES = FC /T $(call ospath,$1 $2)
 
 # escape program argument to pass it via shell: 1 " 2 -> "1 "" 2"
-SHELL_ESCAPE = "$(subst ","",$(subst \",\\",$1))"
+SHELL_ESCAPE = "$(subst ","",$(subst \",\\",$(subst %,%%,$1)))"
 
 # escape special characters in unquoted argument of echo or set command
 UNQUOTED_ESCAPE = $(subst $(open_brace),^$(open_brace),$(subst $(close_brace),^$(close_brace),$(subst \
