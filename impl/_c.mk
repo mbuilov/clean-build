@@ -168,7 +168,7 @@ DEP_IMPS = $(foreach d,$(DLLS),$(IMP_PREFIX)$(call DEP_LIBRARY,$1,$2,$d,DLL)$(IM
 # $t - EXE or DLL
 # $v - non-empty variant: R,P,S,...
 # note: target-specific variables are passed to dependencies, so templates for
-#  dependent libs/dlls must set own values of INCLUDE, DEFINES, CFLAGS and other sensible variables
+#  dependent libs/dlls must set own values of COMPILER, VINCLUDE, VDEFINES, VCFLAGS and other sensible variables
 define EXE_TEMPLATE
 $(C_BASE_TEMPLATE)
 $1:LIB_DIR    := $(LIB_DIR)
