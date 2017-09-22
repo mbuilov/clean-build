@@ -22,10 +22,11 @@ include $m
 
 endef
 
-# remember new values of TOOL_MODE and TARGET_MAKEFILE
+# remember new value of TARGET_MAKEFILE
+# note: TOOL_MODE value will be saved in DEF_HEAD_CODE
 ifdef SET_GLOBAL1
 $(eval define CB_INCLUDE_TEMPLATE$(newline)$(subst include,$$(call \
-  SET_GLOBAL1,TOOL_MODE TARGET_MAKEFILE)$(newline)include,$(value CB_INCLUDE_TEMPLATE))$(newline)endef)
+  SET_GLOBAL1,TARGET_MAKEFILE)$(newline)include,$(value CB_INCLUDE_TEMPLATE))$(newline)endef)
 endif
 
 # generate code for processing given list of makefiles
