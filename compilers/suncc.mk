@@ -79,16 +79,6 @@ DLL_IMPORTS_DEFINE:=
 # '-xs' - allows debugging by dbx after deleting object (.o) files
 LDFLAGS := $(if $(DEBUG),-xs)
 
-# common cc flags for linking executables and shared libraries
-# tip: may use -filt=%none to not demangle C++ names
-CMN_LDFLAGS := -ztext
-
-# cc flags for linking an EXE
-EXE_LDFLAGS:=
-
-# cc flags for linking a DLL
-DLL_LDFLAGS := -G -zdefs
-
 # flags for objects archiver
 # note: may be taken from the environment in project configuration makefile
 # note: for handling C++ templates, CC compiler is used to create C++ static libraries
@@ -119,8 +109,8 @@ TCPU_CFLAGS   := -m$(if $(TCPU:%64=),32,64 $(CPU64_COPTIONS))
 TCPU_CXXFLAGS := -m$(if $(TCPU:%64=),32,64 $(CPU64_CXXOPTIONS))
 
 # make linker command for linking EXE, DLL or LIB
-# target-specific: TMD, COMPILER, CFLAGS, CXXFLAGS
-GET_LINKER = $($(TMD)$(COMPILER)) $(if $(COMPILER:CXX=),$($(TMD)CPU_CFLAGS) $(CFLAGS),$($(TMD)CPU_CXXFLAGS) $(CXXFLAGS))
+# target-specific: TMD, COMPILER, VCFLAGS, VCXXFLAGS
+GET_LINKER = $($(TMD)$(COMPILER)) $(if $(COMPILER:CXX=),$($(TMD)CPU_CFLAGS) $(VCFLAGS),$($(TMD)CPU_CXXFLAGS) $(VCXXFLAGS))
 
 # option for specifying dynamic linker runtime search path for EXE or DLL
 # target-specific: RPATH
@@ -129,6 +119,16 @@ MK_RPATH_OPTION = $(addprefix -R,$(strip $(RPATH)))
 # cc options to begin the list of static/dynamic libraries to link to the target
 BEGIN_STATIC_LIBS_OPTION  := -Bstatic
 BEGIN_DYNAMIC_LIBS_OPTION := -Bdynamic
+
+# common cc flags for linking executables and shared libraries
+# tip: may use -filt=%none to not demangle C++ names
+CMN_LDFLAGS := -ztext
+
+# cc flags for linking an EXE
+EXE_LDFLAGS:=
+
+# cc flags for linking a DLL
+DLL_LDFLAGS := -G -zdefs
 
 # common linker options for EXE or DLL
 # $1 - path to target EXE or DLL
@@ -154,7 +154,7 @@ MK_SONAME_OPTION = $(addprefix -h $(notdir $1).,$(firstword $(subst ., ,$(MODVER
 # $2 - objects for linking the target
 # $3 - target: EXE,DLL,LIB
 # $4 - non-empty variant: R,P,D
-# target-specific: TMD, LDFLAGS
+# target-specific: TMD, VLDFLAGS
 # note: used by EXE_TEMPLATE, DLL_TEMPLATE, LIB_TEMPLATE from $(CLEAN_BUILD_DIR)/impl/_c.mk
 # note: use CXX compiler instead of ld to create shared libraries
 #  - for calling C++ constructors of static objects when loading the libraries,
@@ -162,8 +162,8 @@ MK_SONAME_OPTION = $(addprefix -h $(notdir $1).,$(firstword $(subst ., ,$(MODVER
 # note: use CXX compiler instead of ar to create C++ static library archives
 #  - for adding necessary C++ templates to the archives,
 #  see https://docs.oracle.com/cd/E19205-01/819-5267/bkamp/index.html
-EXE_LD = $(call SUP,$(TMD)EXE,$1)$(GET_LINKER) $(CMN_LIBS) $(EXE_LDFLAGS) $(LDFLAGS)
-DLL_LD = $(call SUP,$(TMD)DLL,$1)$(GET_LINKER) $(MK_VER_SCRIPT_OPTION) $(MK_SONAME_OPTION) $(CMN_LIBS) $(DLL_LDFLAGS) $(LDFLAGS)
+EXE_LD = $(call SUP,$(TMD)EXE,$1)$(GET_LINKER) $(CMN_LIBS) $(EXE_LDFLAGS) $(VLDFLAGS)
+DLL_LD = $(call SUP,$(TMD)DLL,$1)$(GET_LINKER) $(MK_VER_SCRIPT_OPTION) $(MK_SONAME_OPTION) $(CMN_LIBS) $(DLL_LDFLAGS) $(VLDFLAGS)
 LIB_LD = $(call SUP,$(TMD)LIB,$1)$(if $(COMPILER:CXX=),$($(TMD)AR) $($(TMD)ARFLAGS) $1 $2,$(GET_LINKER) $(CXX_ARFLAGS) -o $1 $2)
 
 # prefix of system headers to filter-out while dependencies generation
@@ -195,15 +195,15 @@ DEF_CXXFLAGS := -erroff=badargtype2w,wbadasg $(CMN_CFLAGS)
 # common options for application-level C/C++ compilers
 # $1 - target object file
 # $2 - source
-# target-specific: DEFINES, INCLUDE
-CMN_PARAMS = -c -o $1 $2 $(DEFINES) $(INCLUDE)
+# target-specific: VDEFINES, VINCLUDE
+CMN_PARAMS = -c -o $1 $2 $(VDEFINES) $(VINCLUDE)
 
 # parameters of application-level C and C++ compilers
 # $1 - target object file
 # $2 - source
-# target-specific: TMD, CFLAGS, CXXFLAGS
-CC_PARAMS = $($(TMD)CPU_CFLAGS) $(CMN_PARAMS) $(DEF_CFLAGS) $(CFLAGS)
-CXX_PARAMS = $($(TMD)CPU_CXXFLAGS) $(CMN_PARAMS) $(DEF_CXXFLAGS) $(CXXFLAGS)
+# target-specific: TMD, VCFLAGS, VCXXFLAGS
+CC_PARAMS = $($(TMD)CPU_CFLAGS) $(CMN_PARAMS) $(DEF_CFLAGS) $(VCFLAGS)
+CXX_PARAMS = $($(TMD)CPU_CXXFLAGS) $(CMN_PARAMS) $(DEF_CXXFLAGS) $(VCXXFLAGS)
 
 # C++ and C compilers
 # $1 - target object file
