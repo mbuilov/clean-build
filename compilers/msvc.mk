@@ -59,20 +59,11 @@ VS_VER := 6
 # paths compiler/linker and system libraries/headers - must be defined in project configuration makefile
 VSLIBPATH = $(error VSLIBPATH is not defined - paths to Visual Studio libraries, spaces must be replaced with ?)
 VSINCLUDE = $(error VSINCLUDE is not defined - paths to Visual Studio headers, spaces must be replaced with ?)
-VSLINK    = $(error VSLINK is not defined - path to link.exe, should be in double-quotes if contains spaces)
-VSLIB     = $(error VSLIB is not defined - path to lib.exe, should be in double-quotes if contains spaces)
 VSCL      = $(error VSCL is not defined - path to cl.exe, should be in double-quotes if contains spaces)
+VSLIB     = $(error VSLIB is not defined - path to lib.exe, should be in double-quotes if contains spaces)
+VSLINK    = $(error VSLINK is not defined - path to link.exe, should be in double-quotes if contains spaces)
 UMLIBPATH = $(error UMLIBPATH is not defined - paths to user-mode libraries, spaces must be replaced with ?)
 UMINCLUDE = $(error UMINCLUDE is not defined - paths to user-mode headers, spaces must be replaced with ?)
-
-# utilities for the tool mode, may be overridden by specifying them in project configuration makefile
-TVSLIBPATH = $(VSLIBPATH)
-TVSINCLUDE = $(VSINCLUDE)
-TVSLINK    = $(VSLINK)
-TVSLIB     = $(VSLIB)
-TVSCL      = $(VSCL)
-TUMLIBPATH = $(UMLIBPATH)
-TUMINCLUDE = $(UMINCLUDE)
 
 # supported non-regular target variants:
 # (R - dynamically linked multi-threaded libc - default variant)
@@ -139,15 +130,6 @@ DLL_IMPORTS_DEFINE := __declspec(dllimport)
 # /RELEASE - set the checksum in PE-header
 LDFLAGS := $(if $(DEBUG),/DEBUG,/RELEASE)
 
-# common link.exe flags for linking executables and dynamic libraries
-CMN_LDFLAGS := /INCREMENTAL:NO
-
-# link.exe flags for linking an EXE
-EXE_LDFLAGS:=
-
-# link.exe flags for linking a DLL
-DLL_LDFLAGS := /DLL
-
 # lib.exe flags for linking a LIB
 # note: may be taken from the environment in project configuration makefile
 ARFLAGS:=
@@ -181,6 +163,7 @@ else
 FORCE_SYNC_PDB:=
 endif
 
+# set debug info format
 ifdef DEBUG
 ifdef SEQ_BUILD
 ifndef FORCE_SYNC_PDB
@@ -203,51 +186,50 @@ endif
 # user-modifiable C++ compiler flags
 CXXFLAGS := $(CFLAGS)
 
-
+# flags for the tool mode
+TLDFLAGS     := $(LDFLAGS)
+TARFLAGS     := $(ARFLAGS)
+TCXX_ARFLAGS := $(CXX_ARFLAGS)
+TCFLAGS      := $(CFLAGS)
+TCXXFLAGS    := $(CXXFLAGS)
 
 # make version string: major.minor.patch -> major.minor
 # target-specific: MODVER
 MODVER_MAJOR_MINOR = $(subst $(space),.,$(wordlist 1,2,$(subst ., ,$(MODVER)) 0 0))
 
 # paths to application-level system libraries 
-# target-specific: TMD
-APPLIBPATH = $($(TMD)VSLIBPATH) $($(TMD)UMLIBPATH)
+APPLIBPATH := $(VSLIBPATH) $(UMLIBPATH)
 
 # minimum required version of the operating system
 # note: 5.01 - WinXP(x86), 5.02 - WinXP(x64)
 SUBSYSTEM_VER := $(if $(CPU:%64=),5.01,5.02)
 
 # default subsystem for EXE or DLL
-SUBSYSTEM_SPEC := /SUBSYSTEM:CONSOLE,$(SUBSYSTEM_VER)
+# note: may be overridden by target-specific value
+SUBSYSTEM_OPTION := /SUBSYSTEM:CONSOLE,$(SUBSYSTEM_VER)
 
 # how to embed manifest into EXE or DLL
 ifneq (,$(call is_less,10,$(VS_VER)))
 # >= Visual Studio 2012, linker may call mt.exe internally
-EMBED_MANIFEST_OPTION := /MANIFEST:EMBED
+MANIFEST_EMBED_OPTION := /MANIFEST:EMBED
 else
-EMBED_MANIFEST_OPTION:=
+MANIFEST_EMBED_OPTION:=
 endif
 
+# common link.exe flags for linking executables and dynamic libraries
+CMN_LDFLAGS := /INCREMENTAL:NO
 
+# link.exe flags for linking an EXE
+EXE_LDFLAGS:=
 
-
-
-# default subsystem for EXE or DLL
-# $1 - path to target EXE or DLL
-# note: do not add /SUBSYSTEM option if $(LOPTS) have already specified one, e.g.: /SUBSYSTEM:WINDOWS,$(SUBSYSTEM_VER)
-# note: do not specify subsystem version when building tools (in tool mode)
-# target-specific: TMD, LOPTS
-DEF_SUBSYSTEM = $(if $(filter /SUBSYSTEM:%,$(LOPTS)),,/SUBSYSTEM:CONSOLE$(if $(TMD),,,$(SUBSYSTEM_VER)))
-
-# linker flags for the tool mode
-TLDFLAGS := $(LDFLAGS)
-TARFLAGS := $(ARFLAGS)
+# link.exe flags for linking a DLL
+DLL_LDFLAGS := /DLL
 
 # common linker options for EXE or DLL
 # $1 - path to target EXE or DLL
 # $2 - objects
 # $3 - target: EXE or DLL
-# $4 - non-empty variant: R,P,D
+# $4 - non-empty variant: R,S,RU,SU
 # target-specific: RES, IMP, DEF, LIBS, DLLS, LIB_DIR, SYSLIBPATH, SYSLIBS
 CMN_LIBS = /nologo /OUT:$(call ospath,$1 $2 $(RES)) /VERSION:$(MODVER_MAJOR_MINOR) $(DEF_SUBSYSTEM) $(EMBED_MANIFEST_OPTION) \
   $(addprefix /IMPLIB:,$(call ospath,$(IMP))) $(addprefix /DEF:,$(call ospath,$(DEF))) $(if \
