@@ -355,7 +355,7 @@ FORMAT_PERCENTS = $(subst |,,$(subst \
   |8%,08%,$(subst \
   |9%,09%,$(subst \
   |100%,FIN,|$(words $(SHOWN_PERCENTS))%))))))))))))
-# don't update percents if $(MF) has been already shown
+# don't update percents if $(MF) was already shown
 # else remember makefile $(MF), then try to increment total percents count
 define REM_MAKEFILE
 $$(MF):=1
@@ -540,7 +540,7 @@ endif
 
 ifdef MDEBUG
 
-# fix template to print what makefile builds
+# fix template to print (while evaluating the template) what makefile builds
 # $1 - template name
 # $2 - expression that gives target file(s) the template builds
 # $3 - optional expression that gives order-only dependencies
@@ -843,13 +843,17 @@ RUN_TOOL = $(if $2$4,$(if $2,$(eval \
   $$@:export $v:=$$($v)))$(if $(VERBOSE),$(show_tool_vars)@))$(if $3,$(call EXECUTE_IN,$3,$1),$1)$(if \
   $2$4,$(if $(VERBOSE),$(show_tool_vars_end)))
 
-# current value of $(TOOL_MODE) - may use TMD while defining rules
-# reset value: we are currently not in tool mode, $(SET_DEFAULT_DIRS) has already
-#  been evaluated to set non-tool mode values of BIN_DIR, OBJ_DIR, LIB_DIR, GEN_DIR
+# current value of TOOL_MODE
+# note: $(TOOL_MODE) should not be used in rule templates - use $(TMD) instead,
+#  because TMD set to $(TOOL_MODE) while evaluating $(DEF_HEAD_CODE), but TOOL_MODE may be set
+#  to another value before calling $(MAKE_CONTINUE) and so before rule templates evaluation
+# reset value: we are currently not in tool mode, $(SET_DEFAULT_DIRS) was already
+#  evaluated to set non-tool mode values of BIN_DIR, OBJ_DIR, LIB_DIR, GEN_DIR
 TMD:=
 
-# TOOL_MODE may be set to non-empty value at beginning of target makefile (before including this file)
-# reset TOOL_MODE if it's not set in target makefile
+# TOOL_MODE may be set to non-empty value at beginning of target makefile
+#  (before including this file and so before evaluating $(DEF_HEAD_CODE))
+# reset TOOL_MODE if it was not set in target makefile
 ifneq (file,$(origin TOOL_MODE))
 TOOL_MODE:=
 endif
