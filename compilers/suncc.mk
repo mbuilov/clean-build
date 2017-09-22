@@ -11,7 +11,7 @@ ifeq (,$(filter-out undefined environment,$(origin SED_DEPS_SCRIPT)))
 include $(dir $(lastword $(MAKEFILE_LIST)))suncc_cmn.mk
 endif
 
-# define INST_RPATH, RPATH and MAP variables
+# define RPATH and target-specific MAP and MODVER (for DLLs) variables
 include $(dir $(lastword $(MAKEFILE_LIST)))unixcc.mk
 
 # target compilers/linkers
