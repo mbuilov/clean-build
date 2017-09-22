@@ -182,12 +182,12 @@ CB_NEEDED_DIRS+=$4
 $(STD_TARGET_VARS)
 $1:$(call OBJ_RULES,CC,$(filter $(CC_MASK),$2),$3,$4)
 $1:$(call OBJ_RULES,CXX,$(filter $(CXX_MASK),$2),$3,$4)
-$1:COMPILER := $(TRG_COMPILER)
-$1:INCLUDE  := $$(call MK_INCLUDE_OPTION,$$(TRG_INCLUDE) $$(call $t_VARIANT_INCLUDE,$v))
-$1:DEFINES  := $$(call MK_DEFINES_OPTION,$$(call $t_VARIANT_DEFINES,$v) $$(TRG_DEFINES))
-$1:CFLAGS   := $$(call $t_VARIANT_CFLAGS,$v) $$($(TMD)CFLAGS)
-$1:CXXFLAGS := $$(call $t_VARIANT_CXXFLAGS,$v) $$($(TMD)CXXFLAGS)
-$1:LDFLAGS  := $$(call $t_VARIANT_LDFLAGS,$v) $$($(TMD)LDFLAGS)
+$1:COMPILER  := $(TRG_COMPILER)
+$1:VINCLUDE  := $$(call MK_INCLUDE_OPTION,$$(TRG_INCLUDE) $$(call $t_VARIANT_INCLUDE,$v))
+$1:VDEFINES  := $$(call MK_DEFINES_OPTION,$$(call $t_VARIANT_DEFINES,$v) $$(TRG_DEFINES))
+$1:VCFLAGS   := $$(call $t_VARIANT_CFLAGS,$v) $$($(TMD)CFLAGS)
+$1:VCXXFLAGS := $$(call $t_VARIANT_CXXFLAGS,$v) $$($(TMD)CXXFLAGS)
+$1:VLDFLAGS  := $$(call $t_VARIANT_LDFLAGS,$v) $$($(TMD)LDFLAGS)
 endef
 
 # code to be called at beginning of target makefile
