@@ -73,7 +73,7 @@ CLEAN_BUILD_RESET_LOCAL_VAR = $(if \
   override,$(origin $v)) $v=!$$(error \
   using local varaible: $v, please use target-specific or global one))$(newline))
 
-# only protected variables may remain its value between makefiles,
+# only protected variables may remain its values between makefiles,
 #  redefine non-protected (i.e. "local") variables to produce access errors
 # note: do not touch GNU Make automatic variable MAKEFILE_LIST
 # note: do not reset %^saved variables here - they are needed for RESTORE_VARS, which will reset them later
