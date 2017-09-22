@@ -12,15 +12,8 @@
 RPATH:=
 
 # reset additional variables at beginning of target makefile
-# RPATH - runtime path for dynamic linker to search for shared libraries
-# MAP   - linker map file (used mostly to list exported symbols)
-define C_PREPARE_UNIX_APP_VARS
-RPATH := $(INST_RPATH)
-MAP:=
-endef
-
-# optimization
-$(call try_make_simple,C_PREPARE_UNIX_APP_VARS,INST_RPATH)
+# MAP - linker map file (used mostly to list exported symbols)
+C_PREPARE_UNIX_APP_VARS = MAP:=
 
 # patch code executed at beginning of target makefile
 $(call define_append,C_PREPARE_APP_VARS,$(newline)$$(C_PREPARE_UNIX_APP_VARS))
@@ -33,9 +26,10 @@ $(call try_make_simple,C_PREPARE_APP_VARS,C_PREPARE_UNIX_APP_VARS)
 # $2 - $(call fixpath,$(MAP))
 # $t - EXE
 # $v - R,P
+# note: target-specific MAP variable may be inherited by the DLLs this EXE depends on,
+#  so _must_ define DLL's own target-specific MAP variables, even with empty value, to override EXE's one
 # note: last line must be empty
 define EXE_AUX_TEMPLATEv
-$1:RPATH := $$(RPATH)
 $1:MAP := $2
 $1:$2
 
@@ -46,10 +40,11 @@ endef
 # $2 - $(call fixpath,$(MAP))
 # $t - DLL
 # $v - R
+# note: _must_ define DLL's own target-specific MAP variable, even with empty value,
+#  to override possibly inherited target-specific MAP variable of EXE which depends on this DLL
 # note: last line must be empty
 define DLL_AUX_TEMPLATEv
 $1:MODVER := $(MODVER)
-$1:RPATH := $$(RPATH)
 $1:MAP := $2
 $1:$2
 
@@ -60,8 +55,8 @@ endef
 UNIX_MOD_AUX_APPt = $(foreach v,$(call GET_VARIANTS,$t),$(call $t_AUX_TEMPLATEv,$(call FORM_TRG,$t,$v),$1))
 
 # auxiliary defines for EXE or DLL
-# define target-specific variables: RPATH, MAP, MODVER (only for DLL)
+# define target-specific variables: MAP, MODVER (only for DLL)
 UNIX_MOD_AUX_APP = $(foreach t,EXE DLL,$(if $($t),$(call UNIX_MOD_AUX_APPt,$(call fixpath,$(MAP)))))
 
 # protect variables from modifications in target makefiles
-$(call SET_GLOBAL,INST_RPATH C_PREPARE_UNIX_APP_VARS EXE_AUX_TEMPLATEv=t;v DLL_AUX_TEMPLATEv=t;v UNIX_MOD_AUX_APPt=t UNIX_MOD_AUX_APP)
+$(call SET_GLOBAL,RPATH C_PREPARE_UNIX_APP_VARS EXE_AUX_TEMPLATEv=t;v DLL_AUX_TEMPLATEv=t;v UNIX_MOD_AUX_APPt=t UNIX_MOD_AUX_APP)
