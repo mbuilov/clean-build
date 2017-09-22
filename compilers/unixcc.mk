@@ -7,9 +7,9 @@
 # common part of unix compiler toolchain (app-level), included by
 # $(CLEAN_BUILD_DIR)/compilers/gcc.mk and $(CLEAN_BUILD_DIR)/compilers/suncc.mk
 
-# global variable: INST_RPATH - location where to search for external dependency libraries at runtime: /opt/lib or $ORIGIN/../lib
-# note: INST_RPATH may be overridden either in project configuration makefile or in command line
-INST_RPATH:=
+# RPATH - location where to search for external dependency libraries at runtime: /opt/lib or $ORIGIN/../lib
+# note: RPATH may be overridden either in project configuration makefile or in command line
+RPATH:=
 
 # reset additional variables at beginning of target makefile
 # RPATH - runtime path for dynamic linker to search for shared libraries
