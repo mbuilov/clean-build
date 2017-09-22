@@ -81,25 +81,22 @@ endif
 
 # which compiler type to use for the target: CXX or CC?
 # note: CXX compiler may compile C sources, but also links standard C++ libraries (like libstdc++)
-# $1     - target file: $(call FORM_TRG,$t,$v)
-# $2     - sources: $(TRG_SRC)
-# $t     - EXE,LIB,DLL,DRV,KLIB,KDLL,...
-# $v     - non-empty variant: R,P,S,...
-# $(TMD) - T in tool mode, empty otherwise
+# $1 - target file: $(call FORM_TRG,$t,$v)
+# $2 - sources: $(TRG_SRC)
+# $t - EXE,LIB,DLL,DRV,KLIB,KDLL,...
+# $v - non-empty variant: R,P,S,...
 TRG_COMPILER = $(if $(filter $(CXX_MASK),$2),CXX,CC)
 
 # make absolute paths to include directories - we need absolute paths to headers in generated .d dependency file
-# $t     - EXE,LIB,DLL,DRV,KLIB,KDLL,...
-# $v     - non-empty variant: R,P,S,...
-# $(TMD) - T in tool mode, empty otherwise
+# $t - EXE,LIB,DLL,DRV,KLIB,KDLL,...
+# $v - non-empty variant: R,P,S,...
 # note: do not touch paths in $(SYSINCLUDE) - assume they are absolute
 # note: $(SYSINCLUDE) paths are normally filtered-out while .d dependency file generation
 TRG_INCLUDE = $(call fixpath,$(INCLUDE)) $(SYSINCLUDE)
 
 # defines for the target
-# $t     - EXE,LIB,DLL,DRV,KLIB,KDLL,...
-# $v     - non-empty variant: R,P,S,...
-# $(TMD) - T in tool mode, empty otherwise
+# $t - EXE,LIB,DLL,DRV,KLIB,KDLL,...
+# $v - non-empty variant: R,P,S,...
 # note: this macro may be overridden in project configuration makefile, for example:
 # TRG_DEFINES = $(if $(DEBUG),_DEBUG) TARGET_$(TARGET:D=) $(foreach \
 #   cpu,$($(if $(filter DRV KLIB KDLL,$t),K,$(TMD))CPU),$(if \
@@ -172,12 +169,14 @@ C_RULES = $(foreach t,$(C_TARGETS),$(if $($t),$(C_RULESt)))
 # $t - EXE,DLL,LIB...
 # $v - non-empty variant: R,P,D,S... (one of variants supported by selected toolchain)
 # $(TMD) - T in tool mode, empty otherwise
+# note: define target-specific variable TRG - an unique prefix, that may be used to create????????
 # note: STD_TARGET_VARS also changes CB_NEEDED_DIRS, so do not remember its new value here
 # note: $t_VARIANT_... macros should be defined in C/C++ compiler definitions makefile, e.g.: $(CLEAN_BUILD_DIR)/impl/_c.mk
 # note: CFLAGS, CXXFLAGS, LDFLAGS - standard user-modifiable C/C++ compilers and linker flags,
 #  that are normally taken from the environment (in project configuration makefile),
 #  default values should be set in compiler-specific makefile, e.g.: $(CLEAN_BUILD_DIR)/compilers/gcc.mk
 define C_BASE_TEMPLATE
+$1:TRG := $(patsubst $(BUILD)/%,%,$1)
 CB_NEEDED_DIRS+=$4
 $(STD_TARGET_VARS)
 $1:$(call OBJ_RULES,CC,$(filter $(CC_MASK),$2),$3,$4)
