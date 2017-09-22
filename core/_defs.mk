@@ -513,11 +513,11 @@ all: $(TARGET_MAKEFILE)-
 
 # add directories $1 to list of auto-created ones
 # note: these directories are will be auto-deleted while cleaning up
-ifdef MCHECK
+ifndef MCHECK
+NEED_GEN_DIRS = $(eval CB_NEEDED_DIRS+=$$1)
+else
 # remember new value of CB_NEEDED_DIRS, without tracing calls to it because it is incremented
 NEED_GEN_DIRS = $(eval CB_NEEDED_DIRS+=$$1$(newline)$(call SET_GLOBAL1,CB_NEEDED_DIRS,0))
-else
-NEED_GEN_DIRS = $(eval CB_NEEDED_DIRS+=$$1)
 endif
 
 # register targets as main ones built by current makefile, add standard target-specific variables
@@ -580,8 +580,20 @@ endif
 else # clean
 
 # just cleanup target files or directories $1 (absolute paths)
-$(eval STD_TARGET_VARS = $(value TOCLEAN))
-$(eval NEED_GEN_DIRS = $(value TOCLEAN))
+ifndef MCHECK
+STD_TARGET_VARS = CLEAN+=$1
+else
+# callers of STD_TARGET_VARS may assume that it will protect new value of CB_NEEDED_DIRS
+STD_TARGET_VARS = CLEAN+=$1$(newline)$(call SET_GLOBAL1,CLEAN CB_NEEDED_DIRS,0)
+endif
+
+# cleanup generated directories
+ifndef MCHECK
+NEED_GEN_DIRS = $(eval CLEAN+=$$1)
+else
+# callers of NEED_GEN_DIRS may assume that it will protect new value of CB_NEEDED_DIRS
+NEED_GEN_DIRS = $(eval CLEAN+=$$1$(newline)$$(call SET_GLOBAL1,CLEAN CB_NEEDED_DIRS,0))
+endif
 
 # do nothing if cleaning up
 CREATE_MAKEFILE_ALIAS:=
