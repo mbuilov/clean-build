@@ -88,6 +88,9 @@ endif
 $(eval $(foreach v,$(PROJECT_VARS_NAMES),override $(if $(findstring simple,$(flavor \
   $v)),$v:=$$($v),define $v$(newline)$(value $v)$(newline)endef)$(newline)))
 
+# clean-build supported goals
+CLEAN_BUILD_GOALS := all conf clean distclean check tests
+
 # initialize PASS_ENV_VARS - list of variables to export to subprocesses
 # note: PASS_ENV_VARS may be set either in project makefile or in command line
 PASS_ENV_VARS:=
@@ -209,13 +212,10 @@ NO_CLEAN_BUILD_DISTCLEAN_TARGET:=
 
 ifndef NO_CLEAN_BUILD_DISTCLEAN_TARGET
 
-# define distclean goal
+# define distclean goal - delete all built artifacts, including directories
 # note: DELETE_DIRS macro defined in included below $(UTILS_MK) file
 distclean:
 	$(QUIET)$(call DELETE_DIRS,$(BUILD))
-
-# fake target - delete all built artifacts, including directories
-.PHONY: distclean
 
 endif # !NO_CLEAN_BUILD_DISTCLEAN_TARGET
 
@@ -1067,7 +1067,7 @@ NO_DEPS := $(filter clean,$(MAKECMDGOALS))
 CLEAN_BUILD_FIRST_PHASE_VARS += BIN_DIR OBJ_DIR LIB_DIR GEN_DIR
 
 # makefile parsing first phase variables
-CLEAN_BUILD_FIRST_PHASE_VARS += CB_NEEDED_DIRS ORDER_DEPS MULTI_TARGET_NUM CB_INCLUDE_LEVEL \
+CLEAN_BUILD_FIRST_PHASE_VARS += CLEAN_BUILD_GOALS CB_NEEDED_DIRS ORDER_DEPS MULTI_TARGET_NUM CB_INCLUDE_LEVEL \
   PROCESSED_MAKEFILES MAKE_CONT SET_DEFAULT_DIRS TOOL_OVERRIDE_DIRS ADD_MDEPS ADD_ADEPS ADD_WHAT_MAKEFILE_BUILDS \
   CREATE_MAKEFILE_ALIAS ADD_ORDER_DEPS NEED_GEN_DIRS STD_TARGET_VARS1 STD_TARGET_VARS MAKEFILE_INFO_TEMPL \
   SET_MAKEFILE_INFO GET_TARGET_NAME GET_VARIANTS FORM_TRG ALL_TARGETS FORM_OBJ_DIR ADD_GENERATED CHECK_GENERATED \
@@ -1077,9 +1077,9 @@ CLEAN_BUILD_FIRST_PHASE_VARS += CB_NEEDED_DIRS ORDER_DEPS MULTI_TARGET_NUM CB_IN
 
 # protect macros from modifications in target makefiles,
 # do not trace calls to macros used in ifdefs, passed to environment of called tools or modified via operator +=
-$(call SET_GLOBAL,MAKEFLAGS $(PASS_ENV_VARS) PATH SHELL CLEAN_BUILD_FIRST_PHASE_VARS CB_NEEDED_DIRS \
-  NO_CLEAN_BUILD_DISTCLEAN_TARGET DEBUG VERBOSE QUIET INFOMF MDEBUG SHOWN_PERCENTS CLEAN ORDER_DEPS \
-  MULTI_TARGETS MULTI_TARGET_NUM CB_INCLUDE_LEVEL PROCESSED_MAKEFILES MAKE_CONT NO_DEPS,0)
+$(call SET_GLOBAL,MAKEFLAGS CLEAN_BUILD_GOALS $(PASS_ENV_VARS) PATH SHELL CLEAN_BUILD_FIRST_PHASE_VARS \
+  CB_NEEDED_DIRS NO_CLEAN_BUILD_DISTCLEAN_TARGET DEBUG VERBOSE QUIET INFOMF MDEBUG SHOWN_PERCENTS CLEAN \
+  ORDER_DEPS MULTI_TARGETS MULTI_TARGET_NUM CB_INCLUDE_LEVEL PROCESSED_MAKEFILES MAKE_CONT NO_DEPS,0)
 
 # protect macros from modifications in target makefiles, allow tracing calls to them
 $(call SET_GLOBAL,PROJECT_VARS_NAMES PASS_ENV_VARS \
