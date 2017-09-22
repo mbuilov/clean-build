@@ -68,15 +68,6 @@ DLL_IMPORTS_DEFINE:=
 # note: may be taken from the environment in project configuration makefile
 LDFLAGS:=
 
-# common gcc flags for linking executables and shared libraries
-CMN_LDFLAGS := -Wl,--warn-common -Wl,--no-demangle
-
-# gcc flags for linking an EXE
-EXE_LDFLAGS:=
-
-# gcc flags for linking a DLL
-DLL_LDFLAGS := -shared -Wl,--no-undefined
-
 # flags for objects archiver
 # note: may be taken from the environment in project configuration makefile
 ARFLAGS := -crs
@@ -99,8 +90,8 @@ TCPU_CFLAGS   := -m$(if $(TCPU:%64=),32,64)
 TCPU_CXXFLAGS := $(TCPU_CFLAGS)
 
 # make linker command for linking EXE or DLL
-# target-specific: TMD, COMPILER, CFLAGS, CXXFLAGS
-GET_LINKER = $($(TMD)$(COMPILER)) $(if $(COMPILER:CXX=),$($(TMD)CPU_CFLAGS) $(CFLAGS),$($(TMD)CPU_CXXFLAGS) $(CXXFLAGS))
+# target-specific: TMD, COMPILER, VCFLAGS, VCXXFLAGS
+GET_LINKER = $($(TMD)$(COMPILER)) $(if $(COMPILER:CXX=),$($(TMD)CPU_CFLAGS) $(VCFLAGS),$($(TMD)CPU_CXXFLAGS) $(VCXXFLAGS))
 
 # gcc option to use pipe for communication between the various stages of compilation
 PIPE_OPTION := -pipe
@@ -113,6 +104,7 @@ WLPREFIX := -Wl,
 MK_RPATH_OPTION = $(addprefix $(WLPREFIX)-rpath=,$(strip $(RPATH)))
 
 # link-time path to search for shared libraries
+# note: assume if needed, will be redefined as target-specific value in target makefile
 RPATH_LINK:=
 
 # option for specifying link-time search path for linking an EXE or DLL
@@ -122,6 +114,15 @@ MK_RPATH_LINK_OPTION = $(addprefix $(WLPREFIX)-rpath-link=,$(RPATH_LINK))
 # gcc options to begin the list of static/dynamic libraries to link to the target
 BEGIN_STATIC_LIBS_OPTION  := -Wl,-Bstatic
 BEGIN_DYNAMIC_LIBS_OPTION := -Wl,-Bdynamic
+
+# common gcc flags for linking executables and shared libraries
+CMN_LDFLAGS := -Wl,--warn-common -Wl,--no-demangle
+
+# gcc flags for linking an EXE
+EXE_LDFLAGS:=
+
+# gcc flags for linking a DLL
+DLL_LDFLAGS := -shared -Wl,--no-undefined
 
 # common linker options for EXE or DLL
 # $1 - path to target EXE or DLL
@@ -168,15 +169,15 @@ DEF_CXXFLAGS := $(CMN_CFLAGS)
 # common options for application-level C/C++ compilers
 # $1 - target object file
 # $2 - source
-# target-specific: DEFINES, INCLUDE
-CMN_PARAMS = $(PIPE_OPTION) -c -o $1 $2 $(AUTO_DEPS_FLAGS) $(DEFINES) $(INCLUDE)
+# target-specific: VDEFINES, VINCLUDE
+CMN_PARAMS = $(PIPE_OPTION) -c -o $1 $2 $(AUTO_DEPS_FLAGS) $(VDEFINES) $(VINCLUDE)
 
 # parameters of application-level C and C++ compilers
 # $1 - target object file
 # $2 - source
-# target-specific: TMD, CFLAGS, CXXFLAGS
-CC_PARAMS = $($(TMD)CPU_CFLAGS) $(CMN_PARAMS) $(DEF_CFLAGS) $(CFLAGS)
-CXX_PARAMS = $($(TMD)CPU_CXXFLAGS) $(CMN_PARAMS) $(DEF_CXXFLAGS) $(CXXFLAGS)
+# target-specific: TMD, VCFLAGS, VCXXFLAGS
+CC_PARAMS = $($(TMD)CPU_CFLAGS) $(CMN_PARAMS) $(DEF_CFLAGS) $(VCFLAGS)
+CXX_PARAMS = $($(TMD)CPU_CXXFLAGS) $(CMN_PARAMS) $(DEF_CXXFLAGS) $(VCXXFLAGS)
 
 # C++ and C compilers
 # $1 - target object file
