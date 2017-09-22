@@ -939,11 +939,20 @@ $(eval define DEF_HEAD_CODE$(newline)$(subst \
 endif
 
 # remember new values of TMD, MAKE_CONTINUE_EVAL_NAME and DEFINE_TARGETS_EVAL_NAME
+# remember TOOL_MODE to not reset it in $(CLEAN_BUILD_CHECK_AT_HEAD)
 ifdef SET_GLOBAL1
 $(eval define DEF_HEAD_CODE$(newline)$(subst \
   TMD:=T,TMD:=T$$(newline)$$(call SET_GLOBAL1,TMD),$(subst \
   TMD:=$(close_brace),TMD:=$$(newline)$$(call SET_GLOBAL1,TMD)$(close_brace),$(subst \
   endif,$$(call SET_GLOBAL1,MAKE_CONTINUE_EVAL_NAME DEFINE_TARGETS_EVAL_NAME)$(newline)endif,$(value DEF_HEAD_CODE))))$(newline)endef)
+$(call define_prepend,DEF_HEAD_CODE,$$(call SET_GLOBAL1,TOOL_MODE)$(newline))
+endif
+
+# remember new value of MAKE_CONT (without tracing calls to it)
+# note: assume $(call SET_GLOBAL1,MAKE_CONT,0) will give empty line at end after expansion
+ifdef MCHECK
+$(eval define DEF_HEAD_CODE$(newline)$(subst \
+  endif$(newline),endif$(newline)$$(call SET_GLOBAL1,MAKE_CONT,0),$(value DEF_HEAD_CODE))$(newline)endef)
 endif
 
 # ***********************************************
@@ -1012,6 +1021,15 @@ MAKE_CONT:=
 #  - to be able to call it with just $(MAKE_CONTINUE) in target makefile
 MAKE_CONTINUE = $(if $(if $1,$(SAVE_VARS))$(eval MAKE_CONT+=2)$(DEFINE_TARGETS)$(call \
   $(MAKE_CONTINUE_EVAL_NAME))$(if $1,$(RESTORE_VARS)),)
+
+# before $(MAKE_CONTINUE), it is allowed to change TOOL_MODE, remember its value
+ifdef SET_GLOBAL1
+$(eval MAKE_CONTINUE = $(subst $$(DEFINE_TARGETS),$$(call SET_GLOBAL,TOOL_MODE)$$(DEFINE_TARGETS),$(value MAKE_CONTINUE)))
+endif
+# also, remember new value of MAKE_CONT (without tracing calls to it)
+ifdef MCHECK
+$(eval MAKE_CONTINUE = $(subst $$(DEFINE_TARGETS),$$(call SET_GLOBAL,MAKE_CONT,0)$$(DEFINE_TARGETS),$(value MAKE_CONTINUE)))
+endif
 
 # define shell utilities
 include $(UTILS_MK)
