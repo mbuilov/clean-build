@@ -331,6 +331,26 @@ subst_var_refs = $(if $2,$(call subst_var_refs,$(subst $$($(firstword $2)),,$1),
 try_make_simple = $(if $(filter $(words $2),$(words $(filter simple,$(foreach v,$2,$(flavor $v))))),$(if \
   $(findstring $$,$(call subst_var_refs,$(value $1),$2)),,$(eval $1:=$$($1))))
 
+# redefine macro $1 so that when expanded, it will give new value only if current key
+#  matches predefined one, else returns old value the macro have before it was redefined
+# $1 - name of redefined macro
+# $2 - name of key variable
+# $3 - predefined key value
+# $4 - new value of redefined macro
+# note: defines 2 variables:
+#  $3^o.$1 - old value of macro $1
+#  $3^n.$1 - new value of macro $1
+# example:
+#  A := 1
+#  $(call keyed_redefine,A,K,x,2)
+#  K := a
+#  $A -> 1
+#  K := x
+#  $A -> 2
+keyed_redefine = $(eval $(if $(findstring simple,$(flavor $1)),$3^o.$1 := $$($1),define $3^o.$1$(newline)$(value \
+  $1)$(newline)endef)$(newline)$(if $(findstring $$,$4),define $3^n.$1$(newline)$4$(newline)endef,$3^n.$1 := $$4)$(newline)$1 = $$(if \
+  $$(filter $3,$$($2)),$$($3^n.$1),$$($3^o.$1)))
+
 # protect variables from modification in target makefiles
 # note: do not try to trace calls to these macros, pass 0 as second parameter to SET_GLOBAL
 # note: TARGET_MAKEFILE variable is used here temporary and will be redefined later
@@ -347,4 +367,4 @@ TARGET_MAKEFILE += $(call SET_GLOBAL, \
   ver_major ver_minor ver_patch ver_compatible1 ver_compatible \
   get_dir split_dirs1 split_dirs mk_dir_deps lazy_simple \
   define_append=$$1=$$1 define_prepend=$$1=$$1 append_simple=$$1=$$1 prepend_simple=$$1=$$1 \
-  try_deref_templ=$$1 try_deref=$$1=$$1 subst_var_refs try_make_simple=$$1;$$2=$$1)
+  try_deref_templ=$$1 try_deref=$$1=$$1 subst_var_refs try_make_simple=$$1;$$2=$$1 keyed_redefine)
