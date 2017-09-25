@@ -333,20 +333,27 @@ try_make_simple = $(if $(filter $(words $2),$(words $(filter simple,$(foreach v,
 
 # redefine macro $1 so that when expanded, it will give new value only if current key
 #  matches predefined one, else returns old value the macro have before it was redefined
+#
 # $1 - name of redefined macro
 # $2 - name of key variable
 # $3 - predefined key value
 # $4 - new value of redefined macro
+#
 # note: defines 2 variables:
 #  $3^o.$1 - old value of macro $1
 #  $3^n.$1 - new value of macro $1
-# example:
+#
+# note: keyed_redefine is useful in target-specific context, to suppress
+#  inheritance of target-specific variables in dependent goals, e.g.:
+#
 #  A := 1
-#  $(call keyed_redefine,A,K,x,2)
-#  K := a
-#  $A -> 1
-#  K := x
-#  $A -> 2
+#  my_target: K := x
+#  my_target: $(call keyed_redefine,A,K,x,2)
+#  my_target: my_depend
+#  my_depend: K := a
+#  my_target:; $(info $@:A=$A) # 2
+#  my_depend:; $(info $@:A=$A) # 1
+#
 keyed_redefine = $(eval $(if $(findstring simple,$(flavor $1)),$3^o.$1 := $$($1),define $3^o.$1$(newline)$(value \
   $1)$(newline)endef)$(newline)$(if $(findstring $$,$4),define $3^n.$1$(newline)$4$(newline)endef,$3^n.$1 := $$4)$(newline)$1 = $$(if \
   $$(filter $3,$$($2)),$$($3^n.$1),$$($3^o.$1)))
