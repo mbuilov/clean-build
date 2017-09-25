@@ -134,15 +134,6 @@ LDFLAGS := $(if $(DEBUG),/DEBUG,/RELEASE)
 # note: may be taken from the environment in project configuration makefile
 ARFLAGS:=
 
-ifneq (,$(call is_less,6,$(VS_VER)))
-# >= Visual Studio 2002
-ifndef DEBUG
-# /LTCG - link-time code generation
-LDFLAGS += /LTCG
-ARFLAGS += /LTCG
-endif
-endif
-
 # /MP compiler option was introduced in Visual Studio 2008
 ifneq (,$(call is_less,$(VS_VER),9))
 # < Visual Studio 2008
@@ -151,7 +142,8 @@ endif
 
 # user-modifiable C compiler flags
 # /MP option - compile all sources of a module at once
-CFLAGS := $(if $(SEQ_BUILD),,/MP)
+# /W3 - warning level 3
+CFLAGS := $(if $(SEQ_BUILD),,/MP) /W3
 
 # When using the /Zi option, the debug info of all compiled sources is stored in a single .pdb,
 # but this can lead to contentions accessing that .pdb during parallel compilation.
@@ -189,26 +181,33 @@ CFLAGS += /Od
 ifeq (,$(call is_less,6,$(VS_VER)))
 # Visual Studio 6.0
 # /GZ - catch release-build errors in debug build
-CMN_CFLAGS += /GZ
+CFLAGS += /GZ
 else
 # >= Visual Studio 2002
 # /RTCc - reports when a value is assigned to a smaller data type and results in a data loss
 # /RTCs - enables stack frame run-time error checking
 # /RTCu - reports when a variable is used without having been initialized
 # /GS   - buffer security check
-CMN_CFLAGS += /RTCc /RTCsu /GS
+CFLAGS += /RTCc /RTCsu /GS
 endif
 
-else
+else # !DEBUG
+
 # /Ox - maximum optimization
-# /GF - pool strings and place them in read-only memory 
+# /GF - pool strings and place them in read-only memory
 # /Gy - enable function level linking
 CFLAGS += /Ox /GF /Gy
+
+ifneq (,$(call is_less,6,$(VS_VER)))
+# >= Visual Studio 2002
+# /GS - buffer security check
+# /GL - whole program optimization, linker must be invoked with /LTCG
+CFLAGS += /GS- /GL
+
+# /LTCG - link-time code generation
+LDFLAGS += /LTCG
+ARFLAGS += /LTCG
 endif
-
-
-# /W3 - warning level 3
-CFLAGS += /W3
 
 # user-modifiable C++ compiler flags
 CXXFLAGS := $(CFLAGS)
@@ -245,7 +244,7 @@ else
 MANIFEST_EMBED_OPTION:=
 endif
 
-# paths to application-level system libraries 
+# paths to application-level system libraries
 APPLIBPATH := $(VSLIBPATH) $(UMLIBPATH)
 
 # common link.exe flags for linking executables and dynamic libraries
@@ -382,31 +381,42 @@ endif
 
 endif # SEQ_BUILD
 
+# paths to application-level system headers
+APPINCLUDE := $(VSINCLUDE) $(UMINCLUDE)
+
 # common flags for application-level C/C++ compilers
-# /X  - do not search include files in directories specified in the PATH and INCLUDE environment variables
-CMN_CFLAGS := /X
-
-ifdef DEBUG
-
-
-# /GL - whole program optimization, linker must be invoked with /LTCG (starting with Visual Studio .NET 2003)
-
 # /EHsc - synchronous exception handling model, extern C functions never throw an exception
-
-ifdef DEBUG
-CMN_CFLAGS += /Od /RTCc /RTCsu /GS
-else
-CMN_CFLAGS += /Ox /GL /Gy
-endif
+# /X    - do not search include files in directories specified in the PATH and INCLUDE environment variables
+CMN_CFLAGS := /EHsc /X $(call qpath,$(APPINCLUDE),/I)
 
 # default flags for application-level C compiler
 DEF_CFLAGS := $(CMN_CFLAGS)
 
 # default flags for application-level C++ compiler
-# disable some C++ warnings:
-# badargtype2w - (Anachronism) when passing pointers to functions
-# wbadasg      - (Anachronism) assigning extern "C" ...
-DEF_CXXFLAGS := -erroff=badargtype2w,wbadasg $(CMN_CFLAGS)
+DEF_CXXFLAGS := $(CMN_CFLAGS)
+
+# make compiler options string to specify included headers search path
+# note: assume there are no spaces in include paths
+# note: override default implementation from $(CLEAN_BUILD_DIR)/impl/c_base.mk
+MK_INCLUDE_OPTION = $(addprefix /I,$(ospath))
+
+# common options for application-level C/C++ compilers
+# $1 - target object file
+# $2 - source(s)
+# target-specific: VDEFINES, VINCLUDE
+CMN_PARAMS = /nologo /c /Fo$(ospath) /Fd$(ospath) $(call ospath,$2) $(VDEFINES) $(VINCLUDE)
+
+
+
+
+
+
+??????????
+
+
+
+
+
 
 # application-level defines
 APP_DEFINES:=
