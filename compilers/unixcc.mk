@@ -4,11 +4,15 @@
 # Licensed under GPL version 2 or any later version, see COPYING
 #----------------------------------------------------------------------------------
 
-# common part of unix compiler toolchain (app-level), included by
-# $(CLEAN_BUILD_DIR)/compilers/gcc.mk and $(CLEAN_BUILD_DIR)/compilers/suncc.mk
+# common part of unix compiler toolchain (app-level), included by:
+#  $(CLEAN_BUILD_DIR)/compilers/gcc.mk
+#  $(CLEAN_BUILD_DIR)/compilers/suncc.mk
 
-# RPATH - location where to search for external dependency libraries at runtime: /opt/lib or $ORIGIN/../lib
+# RPATH - location where to search for external dependency libraries at runtime, e.g.: /opt/lib or $ORIGIN/../lib
 # note: RPATH may be overridden either in project configuration makefile or in command line
+# note: to define target-specific RPATH variable - use C_REDEFINE macro from $(CLEAN_BUILD_DIR)/impl/c_base.mk, e.g.:
+#  EXE := my_exe
+#  $(call C_REDEFINE,RPATH,$(RPATH) my_rpath)
 RPATH:=
 
 # reset additional variables at beginning of target makefile
@@ -27,7 +31,7 @@ $(call try_make_simple,C_PREPARE_APP_VARS,C_PREPARE_UNIX_APP_VARS)
 # $t - EXE
 # $v - R,P
 # note: target-specific MAP variable may be inherited by the DLLs this EXE depends on,
-#  so _must_ define DLL's own target-specific MAP variables, even with empty value, to override EXE's one
+#  so _must_ define DLL's own target-specific MAP variables, even with empty value, to override inherited EXE's one
 # note: last line must be empty
 define EXE_AUX_TEMPLATEv
 $1:MAP := $2
@@ -41,7 +45,7 @@ endef
 # $t - DLL
 # $v - R
 # note: _must_ define DLL's own target-specific MAP variable, even with empty value,
-#  to override possibly inherited target-specific MAP variable of EXE which depends on this DLL
+#  to override inherited target-specific MAP variable of EXE which depends on this DLL
 # note: last line must be empty
 define DLL_AUX_TEMPLATEv
 $1:MODVER := $(MODVER)

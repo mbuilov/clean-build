@@ -17,7 +17,7 @@ CC  := $(CROSS_PREFIX)gcc
 CXX := $(CROSS_PREFIX)g++
 AR  := $(CROSS_PREFIX)ar
 
-# compilers/linkers to build tools
+# native compilers/linkers to use for build tools
 TCC  := $(if $(CROSS_PREFIX),gcc,$(CC))
 TCXX := $(if $(CROSS_PREFIX),g++,$(CXX))
 TAR  := $(if $(CROSS_PREFIX),ar,$(AR))
@@ -100,7 +100,7 @@ PIPE_OPTION := -pipe
 WLPREFIX := -Wl,
 
 # option for specifying dynamic linker runtime search path for EXE or DLL
-# target-specific: RPATH
+# possibly target-specific: RPATH
 MK_RPATH_OPTION = $(addprefix $(WLPREFIX)-rpath=,$(strip $(RPATH)))
 
 # link-time path to search for shared libraries
@@ -108,12 +108,12 @@ MK_RPATH_OPTION = $(addprefix $(WLPREFIX)-rpath=,$(strip $(RPATH)))
 RPATH_LINK:=
 
 # option for specifying link-time search path for linking an EXE or DLL
-# target-specific: RPATH_LINK
+# possibly target-specific: RPATH_LINK
 MK_RPATH_LINK_OPTION = $(addprefix $(WLPREFIX)-rpath-link=,$(RPATH_LINK))
 
 # gcc options to begin the list of static/dynamic libraries to link to the target
-BEGIN_STATIC_LIBS_OPTION  := -Wl,-Bstatic
-BEGIN_DYNAMIC_LIBS_OPTION := -Wl,-Bdynamic
+BSTATIC_OPTION  := -Wl,-Bstatic
+BDYNAMIC_OPTION := -Wl,-Bdynamic
 
 # common gcc flags for linking executables and shared libraries
 CMN_LDFLAGS := -Wl,--warn-common -Wl,--no-demangle
@@ -129,14 +129,14 @@ DLL_LDFLAGS := -shared -Wl,--no-undefined
 # $2 - objects
 # $3 - target: EXE or DLL
 # $4 - non-empty variant: R,P,D
-# target-specific: LIBS, DLLS, LIB_DIR, SYSLIBPATH, SYSLIBS
+# target-specific: LIBS, DLLS, LIB_DIR
 CMN_LIBS = $(PIPE_OPTION) -o $1 $2 $(MK_RPATH_OPTION) $(MK_RPATH_LINK_OPTION) $(if $(firstword \
-  $(LIBS)$(DLLS)),-L$(LIB_DIR) $(addprefix -l,$(DLLS)) $(if $(LIBS),$(BEGIN_STATIC_LIBS_OPTION) $(addprefix -l,$(addsuffix \
-  $(call DEP_SUFFIX,$3,$4,LIB),$(LIBS))) $(BEGIN_DYNAMIC_LIBS_OPTION))) $(addprefix -L,$(SYSLIBPATH)) $(SYSLIBS) $(CMN_LDFLAGS)
+  $(LIBS)$(DLLS)),-L$(LIB_DIR) $(addprefix -l,$(DLLS)) $(if $(LIBS),$(BSTATIC_OPTION) $(addprefix \
+  -l,$(addsuffix $(call DEP_SUFFIX,$3,$4,LIB),$(LIBS))) $(BDYNAMIC_OPTION))) $(CMN_LDFLAGS)
 
 # specify what symbols to export from a dll
 # target-specific: MAP
-MK_VER_SCRIPT_OPTION = $(addprefix $(WLPREFIX)--version-script=,$(MAP))
+MK_MAP_OPTION = $(addprefix $(WLPREFIX)--version-script=,$(MAP))
 
 # append soname option if target shared library have version info (some number after .so)
 # $1 - full path to target shared library, for ex. /aa/bb/cc/libmy_lib.so, if MODVER=1.2.3 then soname will be libmy_lib.so.1
@@ -148,10 +148,10 @@ MK_SONAME_OPTION = $(addprefix $(WLPREFIX)-soname=$(notdir $1).,$(firstword $(su
 # $2 - objects for linking the target
 # $3 - target: EXE,DLL,LIB
 # $4 - non-empty variant: R,P,D
-# target-specific: TMD, LDFLAGS
+# target-specific: TMD, VLDFLAGS
 # note: used by EXE_TEMPLATE, DLL_TEMPLATE, LIB_TEMPLATE from $(CLEAN_BUILD_DIR)/impl/_c.mk
-EXE_LD = $(call SUP,$(TMD)EXE,$1)$(GET_LINKER) $(CMN_LIBS) $(EXE_LDFLAGS) $(LDFLAGS)
-DLL_LD = $(call SUP,$(TMD)DLL,$1)$(GET_LINKER) $(MK_VER_SCRIPT_OPTION) $(MK_SONAME_OPTION) $(CMN_LIBS) $(DLL_LDFLAGS) $(LDFLAGS)
+EXE_LD = $(call SUP,$(TMD)EXE,$1)$(GET_LINKER) $(CMN_LIBS) $(EXE_LDFLAGS) $(VLDFLAGS)
+DLL_LD = $(call SUP,$(TMD)DLL,$1)$(GET_LINKER) $(MK_MAP_OPTION) $(MK_SONAME_OPTION) $(CMN_LIBS) $(DLL_LDFLAGS) $(VLDFLAGS)
 LIB_LD = $(call SUP,$(TMD)LIB,$1)$($(TMD)AR) $($(TMD)ARFLAGS) $1 $2
 
 # flags for auto-dependencies generation
@@ -246,7 +246,7 @@ $(call define_prepend,DEFINE_C_APP_EVAL,$$(eval $$(UNIX_MOD_AUX_APP)))
 $(call SET_GLOBAL,CROSS_PREFIX CC CXX AR TCC TCXX TAR PIC_COPTION PIE_COPTION PIE_LOPTION \
   DLL_EXPORTS_DEFINE DLL_IMPORTS_DEFINE LDFLAGS CMN_LDFLAGS EXE_LDFLAGS DLL_LDFLAGS ARFLAGS CFLAGS CXXFLAGS \
   CPU_CFLAGS CPU_CXXFLAGS TLDFLAGS TARFLAGS TCFLAGS TCXXFLAGS TCPU_CFLAGS TCPU_CXXFLAGS GET_LINKER PIPE_OPTION \
-  WLPREFIX MK_RPATH_OPTION RPATH_LINK MK_RPATH_LINK_OPTION BEGIN_STATIC_LIBS_OPTION BEGIN_DYNAMIC_LIBS_OPTION CMN_LIBS \
-  MK_VER_SCRIPT_OPTION MK_SONAME_OPTION EXE_LD DLL_LD LIB_LD AUTO_DEPS_FLAGS CMN_CFLAGS DEF_CFLAGS DEF_CXXFLAGS \
+  WLPREFIX MK_RPATH_OPTION RPATH_LINK MK_RPATH_LINK_OPTION BSTATIC_OPTION BDYNAMIC_OPTION CMN_LIBS \
+  MK_MAP_OPTION MK_SONAME_OPTION EXE_LD DLL_LD LIB_LD AUTO_DEPS_FLAGS CMN_CFLAGS DEF_CFLAGS DEF_CXXFLAGS \
   CMN_PARAMS CC_PARAMS CXX_PARAMS CMN_CC CMN_CXX EXE_CC EXE_CXX DLL_CC DLL_CXX LIB_CC LIB_CXX \
   PCH_CC PCH_CXX PCH_EXE_CC PCH_EXE_CXX PCH_DLL_CC PCH_DLL_CXX PCH_LIB_CC PCH_LIB_CXX)

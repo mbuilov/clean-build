@@ -4,7 +4,7 @@
 # Licensed under GPL version 2 or any later version, see COPYING
 #----------------------------------------------------------------------------------
 
-# generic rules for compiling C/C++/Assembler files
+# generic rules for compiling C/C++/Assembler source files
 
 # included by:
 #  $(CLEAN_BUILD_DIR)/impl/_c.mk
@@ -14,7 +14,7 @@ ifeq (,$(filter-out undefined environment,$(origin EXTRACT_SDEPS)))
 include $(dir $(lastword $(MAKEFILE_LIST)))../core/_defs.mk
 endif
 
-# by default, enable use of precompiled headers
+# by default, enable use of C/C++ precompiled headers
 NO_PCH:=
 
 # object file suffix
@@ -47,7 +47,7 @@ ADD_OBJ_SDEPS = $(if $2,$(newline)$1/$(basename $(notdir $x))$(OBJ_SUFFIX): $2)
 # $2 - sources to compile
 # $3 - sdeps (result of FIX_SDEPS)
 # $4 - objdir
-# $5 - $(addsuffix $(OBJ_SUFFIX),$(addprefix $4/,$(basename $(notdir $2))))
+# $5 - objects: $(addsuffix $(OBJ_SUFFIX),$(addprefix $4/,$(basename $(notdir $2))))
 # $t - target type: EXE,LIB,...
 # $v - non-empty variant: R,P,S,...
 # returns: list of object files
@@ -90,9 +90,8 @@ TRG_COMPILER = $(if $(filter $(CXX_MASK),$2),CXX,CC)
 # make absolute paths to include directories - we need absolute paths to headers in generated .d dependency file
 # $t - EXE,LIB,DLL,DRV,KLIB,KDLL,...
 # $v - non-empty variant: R,P,S,...
-# note: do not touch paths in $(SYSINCLUDE) - assume they are absolute
-# note: $(SYSINCLUDE) paths are normally filtered-out while .d dependency file generation
-TRG_INCLUDE = $(call fixpath,$(INCLUDE)) $(SYSINCLUDE)
+# note: assume INCLUDE paths do not contain spaces
+TRG_INCLUDE = $(call fixpath,$(INCLUDE))
 
 # defines for the target
 # $t - EXE,LIB,DLL,DRV,KLIB,KDLL,...
@@ -114,7 +113,7 @@ TRG_SRC = $(call fixpath,$(GET_SOURCES))
 TRG_SDEPS = $(call FIX_SDEPS,$(SDEPS))
 
 # make compiler options string to specify included headers search path
-# note: assume there are no spaces in the paths
+# note: assume there are no spaces in include paths
 MK_INCLUDE_OPTION = $(addprefix -I,$1)
 
 # helper macro for passing define value containing special symbols (e.g. quoted string) to C-compiler
@@ -132,10 +131,10 @@ DEFINE_ESCAPE_VALUE = $1=$(call SHELL_ESCAPE,$(call tospaces,$(patsubst $1=%,%,$
 # $1 - list of defines
 # example: -DA=1 -DB="b" -DC="1$(space)2"
 # returns: -DA=1 -DB='"b"' -DC='"1 2"'
-DEFINES_ESCAPE_VALUE = $(foreach d,$1,$(call DEFINE_ESCAPE_VALUE,$(firstword $(subst =, ,$d))))
+DEFINE_ESCAPE_VALUES = $(foreach d,$1,$(call DEFINE_ESCAPE_VALUE,$(firstword $(subst =, ,$d))))
 
 # make compiler options string to specify defines
-MK_DEFINES_OPTION = $(call DEFINES_ESCAPE_VALUE,$(addprefix -D,$1))
+MK_DEFINES_OPTION = $(call DEFINE_ESCAPE_VALUES,$(addprefix -D,$1))
 
 # list of target types that may be built from C/C++/Assembler sources
 # note: appended in:
@@ -161,6 +160,13 @@ C_RULESt = $(foreach v,$(call GET_VARIANTS,$t),$(call C_RULESv,$(call FORM_TRG,$
 # $2 - $(TRG_SDEPS)
 C_RULES = $(foreach t,$(C_TARGETS),$(if $($t),$(C_RULESt)))
 
+# redefine macro $1 with new value $2 as target-specific variable bound to namespace identified by target-specific variable TRG,
+#  this is usable when it is needed to redefine some variable (e.g. DEF_CFLAGS) as target-specific (e.g. for an EXE), allow
+#  inheritance of that variable to dependent objects (of EXE), but prevent inheritance to dependent DLLs and their objects */
+# note: target-specific TRG defined by C_BASE_TEMPLATE
+C_REDEFINE = $(foreach t,$(C_TARGETS),$(if $($t),$(foreach v,$(call GET_VARIANTS,$t),$(eval $(call \
+  FORM_TRG,$t,$v): $$(call keyed_redefine,$$1,TRG,$(notdir $(FORM_OBJ_DIR,$t,$v)),$$2)))))
+
 # base template for C/C++ targets
 # $1 - target file: $(call FORM_TRG,$t,$v)
 # $2 - sources:     $(TRG_SRC)
@@ -169,14 +175,14 @@ C_RULES = $(foreach t,$(C_TARGETS),$(if $($t),$(C_RULESt)))
 # $t - EXE,DLL,LIB...
 # $v - non-empty variant: R,P,D,S... (one of variants supported by selected toolchain)
 # $(TMD) - T in tool mode, empty otherwise
-# note: define target-specific variable TRG - an unique prefix, that may be used to create????????
+# note: define target-specific variable TRG - an unique namespace, for use in C_REDEFINE
 # note: STD_TARGET_VARS also changes CB_NEEDED_DIRS, so do not remember its new value here
 # note: $t_VARIANT_... macros should be defined in C/C++ compiler definitions makefile, e.g.: $(CLEAN_BUILD_DIR)/impl/_c.mk
-# note: CFLAGS, CXXFLAGS, LDFLAGS - standard user-modifiable C/C++ compilers and linker flags,
+# note: (T)CFLAGS, (T)CXXFLAGS, (T)LDFLAGS - standard user-modifiable C/C++ compilers and linker flags,
 #  that are normally taken from the environment (in project configuration makefile),
 #  default values should be set in compiler-specific makefile, e.g.: $(CLEAN_BUILD_DIR)/compilers/gcc.mk
 define C_BASE_TEMPLATE
-$1:TRG := $(patsubst $(BUILD)/%,%,$1)
+$1:TRG := $(notdir $4)
 CB_NEEDED_DIRS+=$4
 $(STD_TARGET_VARS)
 $1:$(call OBJ_RULES,CC,$(filter $(CC_MASK),$2),$3,$4)
@@ -184,9 +190,9 @@ $1:$(call OBJ_RULES,CXX,$(filter $(CXX_MASK),$2),$3,$4)
 $1:COMPILER  := $(TRG_COMPILER)
 $1:VINCLUDE  := $$(call MK_INCLUDE_OPTION,$$(TRG_INCLUDE) $$(call $t_VARIANT_INCLUDE,$v))
 $1:VDEFINES  := $$(call MK_DEFINES_OPTION,$$(call $t_VARIANT_DEFINES,$v) $$(TRG_DEFINES))
-$1:VCFLAGS   := $$(call $t_VARIANT_CFLAGS,$v) $$($(TMD)CFLAGS)
-$1:VCXXFLAGS := $$(call $t_VARIANT_CXXFLAGS,$v) $$($(TMD)CXXFLAGS)
-$1:VLDFLAGS  := $$(call $t_VARIANT_LDFLAGS,$v) $$($(TMD)LDFLAGS)
+$1:VCFLAGS   := $$(call $t_VARIANT_CFLAGS,$v) $$(SYSCFLAGS) $$($(TMD)CFLAGS)
+$1:VCXXFLAGS := $$(call $t_VARIANT_CXXFLAGS,$v) $$(SYSCFLAGS) $$($(TMD)CXXFLAGS)
+$1:VLDFLAGS  := $$(call $t_VARIANT_LDFLAGS,$v) $$(SYSLDFLAGS) $$($(TMD)LDFLAGS)
 endef
 
 # code to be called at beginning of target makefile
@@ -198,9 +204,8 @@ WITH_PCH:=
 SDEPS:=
 INCLUDE:=
 DEFINES:=
-SYSINCLUDE:=
-SYSLIBS:=
-SYSLIBPATH:=
+SYSCFLAGS:=
+SYSLDFLAGS:=
 LIBS:=
 DLLS:=
 endef
@@ -223,9 +228,9 @@ ifdef ASSEMBLER_SUPPORT
 ASM_MASK := %.asm
 
 # standard user-defined assembler flags,
-# normally taken from the environment, but may be overridden in project configuration makefile
+# normally taken from the environment (in project configuration makefile)
 # note: assume assembler is not used in tool mode
-ASMFLAGS := $(ASMFLAGS)
+ASMFLAGS:=
 
 # template for adding assembler support
 # $1 - target file: $(call FORM_TRG,$t,$v)
@@ -237,7 +242,7 @@ ASMFLAGS := $(ASMFLAGS)
 # note: $t_VARIANT_ASMFLAGS macro should be defined in assembler definitions makefile, e.g. $(CLEAN_BUILD_DIR)/impl/_c.mk
 define ASM_TEMPLATE
 $1:$(call OBJ_RULES,ASM,$(filter $(ASM_MASK),$2),$3,$4)
-$1:ASMFLAGS := $(call $t_VARIANT_ASMFLAGS,$v) $(ASMFLAGS)
+$1:VASMFLAGS := $(call $t_VARIANT_ASMFLAGS,$v) $(ASMFLAGS)
 endef
 
 # patch C_BASE_TEMPLATE
@@ -252,11 +257,12 @@ endif # ASSEMBLER_SUPPORT
 $(call try_make_simple,C_PREPARE_BASE_VARS,PRODUCT_VER)
 
 # protect variables from modifications in target makefiles
-$(call SET_GLOBAL,NO_PCH OBJ_SUFFIX CC_MASK CXX_MASK DEP_LIBRARY ADD_OBJ_SDEPS=x OBJ_RULES_BODY=t;v OBJ_RULES1=t;v OBJ_RULES=t;v \
-  TRG_COMPILER=t;v TRG_INCLUDE=t;v;INCLUDE;SYSINCLUDE TRG_DEFINES=t;v;DEFINES \
-  GET_SOURCES=SRC;WITH_PCH TRG_SRC TRG_SDEPS=SDEPS MK_INCLUDE_OPTION DEFINE_SPECIAL DEFINE_ESCAPE_VALUE DEFINES_ESCAPE_VALUE \
-  MK_DEFINES_OPTION C_TARGETS C_RULESv=t;v C_RULESt=t C_RULES C_BASE_TEMPLATE=t;v;$$t C_PREPARE_BASE_VARS C_RULES_EVAL \
-  ASM_MASK ASM_TEMPLATE ASM_COLOR)
+$(call SET_GLOBAL,NO_PCH OBJ_SUFFIX CC_MASK CXX_MASK \
+  DEP_LIBRARY ADD_OBJ_SDEPS=x OBJ_RULES_BODY=t;v OBJ_RULES1=t;v OBJ_RULES=t;v \
+  TRG_COMPILER=t;v TRG_INCLUDE=t;v;INCLUDE TRG_DEFINES=t;v;DEFINES GET_SOURCES=SRC;WITH_PCH TRG_SRC TRG_SDEPS=SDEPS \
+  MK_INCLUDE_OPTION DEFINE_SPECIAL DEFINE_ESCAPE_VALUE DEFINE_ESCAPE_VALUES \
+  MK_DEFINES_OPTION C_TARGETS C_RULESv=t;v C_RULESt=t C_RULES C_REDEFINE C_BASE_TEMPLATE=t;v;$$t C_PREPARE_BASE_VARS C_RULES_EVAL \
+  ASM_MASK ASMFLAGS ASM_TEMPLATE ASM_COLOR)
 
 # protect variables from modifications in target makefiles
 # note: do not trace calls to ASSEMBLER_SUPPORT variable because it is used in ifdefs

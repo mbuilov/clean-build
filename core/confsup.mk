@@ -49,13 +49,17 @@ conf: override CONFIG_TEXT := $(foreach v,$(filter-out \
   $(findstring command line,$(origin $v))$(findstring override,$(origin \
   $v)),$(OVERRIDE_VAR_TEMPLATE)))$(foreach v,PATH SHELL $(PASS_ENV_VARS),$(OVERRIDE_VAR_TEMPLATE))
 
+# write by that number of lines at a time while generating config file
+# note: with too many lines it is possible to exceed maximum command string length
+CONFSUP_WRITE_BY_LINES := 10
+
 # generate configuration file
 # note: SUP - defined in $(CLEAN_BUILD_DIR)/core/_defs.mk
 # note: WRITE - defined in $(TOOLCHAINS_DIR)/utils/$(UTILS).mk
 # note: pass 1 as 4-th argument of SUP function to not update percents of executed target makefiles
 # note: CONFIG_TEXT was defined above as target-specific variable
 conf:| $(patsubst %/,%,$(dir $(CONFIG)))
-	$(call SUP,GEN,$(CF),,1)$(call WRITE,$(CONFIG_TEXT),$(CF),10)
+	$(call SUP,GEN,$(CF),,1)$(call WRITE,$(CONFIG_TEXT),$(CF),$(CONFSUP_WRITE_BY_LINES))
 
 # if $(CONFIG) file is under $(BUILD), create config directory automatically
 # else - $(CONFIG) file is outside of $(BUILD), config directory must be created manually
@@ -71,4 +75,4 @@ endif # CONFIG
 
 # protect variables from modification in target makefiles
 # note: TARGET_MAKEFILE variable is used here temporary and will be redefined later
-TARGET_MAKEFILE += $(call SET_GLOBAL,CONFIG)
+TARGET_MAKEFILE += $(call SET_GLOBAL,CONFIG CONFSUP_WRITE_BY_LINES)

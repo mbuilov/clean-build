@@ -167,15 +167,14 @@ DEP_IMPS = $(foreach d,$(DLLS),$(IMP_PREFIX)$(call DEP_LIBRARY,$1,$2,$d,DLL)$(IM
 # $4 - objdir:      $(call FORM_OBJ_DIR,$t,$v)
 # $t - EXE or DLL
 # $v - non-empty variant: R,P,S,...
-# note: target-specific variables are passed to dependencies, so templates for
-#  dependent libs/dlls must set own values of COMPILER, VINCLUDE, VDEFINES, VCFLAGS and other sensible variables
+# note: target-specific variables are passed to dependencies, so templates for dependent libs/dlls
+#  must set own values of COMPILER, VINCLUDE, VDEFINES, VCFLAGS and other sensible variables
 define EXE_TEMPLATE
 $(C_BASE_TEMPLATE)
-$1:LIB_DIR    := $(LIB_DIR)
-$1:LIBS       := $(LIBS)
-$1:DLLS       := $(DLLS)
-$1:SYSLIBS    := $(SYSLIBS)
-$1:SYSLIBPATH := $(SYSLIBPATH)
+$1:TMD     := $(TMD)
+$1:LIBS    := $(LIBS)
+$1:DLLS    := $(DLLS)
+$1:LIB_DIR := $(LIB_DIR)
 $1:$(addprefix $(LIB_DIR)/,$(call DEP_LIBS,$t,$v) $(call DEP_IMPS,$t,$v))
 	$$(call $t_LD,$$@,$$(filter %$(OBJ_SUFFIX),$$^),$t,$v)
 endef
@@ -192,6 +191,7 @@ DLL_TEMPLATE = $(EXE_TEMPLATE)
 # $v - non-empty variant: R,P,D,S
 define LIB_TEMPLATE
 $(C_BASE_TEMPLATE)
+$1:TMD := $(TMD)
 $1:
 	$$(call $t_LD,$$@,$$(filter %$(OBJ_SUFFIX),$$^),$t,$v)
 endef

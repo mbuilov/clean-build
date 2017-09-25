@@ -26,7 +26,7 @@ SEQ_BUILD:=
 endif
 
 # It is possible to exceed maximum command string length if compiling too many sources at once,
-# to prevent this, split all sources of a module to groups, then compile groups after each other.
+#  to prevent this, split all sources of a module to groups, then compile groups one after each other.
 # Maximum number of sources in a group compiled at once.
 MCL_MAX_COUNT := 50
 

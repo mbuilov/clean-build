@@ -19,7 +19,7 @@ CC  := cc
 CXX := CC
 AR  := /usr/ccs/bin$(if $(TCPU:x86_64=),,/amd64)/ar
 
-# compilers/linkers to build tools
+# native compilers/linkers to use for build tools
 TCC  := $(CC)
 TCXX := $(CXX)
 TAR  := $(AR)
@@ -113,12 +113,12 @@ TCPU_CXXFLAGS := -m$(if $(TCPU:%64=),32,64 $(CPU64_CXXOPTIONS))
 GET_LINKER = $($(TMD)$(COMPILER)) $(if $(COMPILER:CXX=),$($(TMD)CPU_CFLAGS) $(VCFLAGS),$($(TMD)CPU_CXXFLAGS) $(VCXXFLAGS))
 
 # option for specifying dynamic linker runtime search path for EXE or DLL
-# target-specific: RPATH
+# possibly target-specific: RPATH
 MK_RPATH_OPTION = $(addprefix -R,$(strip $(RPATH)))
 
 # cc options to begin the list of static/dynamic libraries to link to the target
-BEGIN_STATIC_LIBS_OPTION  := -Bstatic
-BEGIN_DYNAMIC_LIBS_OPTION := -Bdynamic
+BSTATIC_OPTION  := -Bstatic
+BDYNAMIC_OPTION := -Bdynamic
 
 # common cc flags for linking executables and shared libraries
 # tip: may use -filt=%none to not demangle C++ names
@@ -135,14 +135,14 @@ DLL_LDFLAGS := -G -zdefs
 # $2 - objects
 # $3 - target: EXE or DLL
 # $4 - non-empty variant: R,P,D
-# target-specific: LIBS, DLLS, LIB_DIR, SYSLIBPATH, SYSLIBS
+# target-specific: LIBS, DLLS, LIB_DIR
 CMN_LIBS = -o $1 $2 $(MK_RPATH_OPTION) $(if $(firstword \
-  $(LIBS)$(DLLS)),-L$(LIB_DIR) $(addprefix -l,$(DLLS)) $(if $(LIBS),$(BEGIN_STATIC_LIBS_OPTION) $(addprefix -l,$(addsuffix \
-  $(call DEP_SUFFIX,$3,$4,LIB),$(LIBS))) $(BEGIN_DYNAMIC_LIBS_OPTION))) $(addprefix -L,$(SYSLIBPATH)) $(SYSLIBS) $(CMN_LDFLAGS)
+  $(LIBS)$(DLLS)),-L$(LIB_DIR) $(addprefix -l,$(DLLS)) $(if $(LIBS),$(BSTATIC_OPTION) $(addprefix \
+  -l,$(addsuffix $(call DEP_SUFFIX,$3,$4,LIB),$(LIBS))) $(BDYNAMIC_OPTION))) $(CMN_LDFLAGS)
 
 # specify what symbols to export from a dll
 # target-specific: MAP
-MK_VER_SCRIPT_OPTION = $(addprefix -M,$(MAP))
+MK_MAP_OPTION = $(addprefix -M,$(MAP))
 
 # append soname option if target shared library have version info (some number after .so)
 # $1 - full path to target shared library, for ex. /aa/bb/cc/libmy_lib.so, if MODVER=1.2.3 then soname will be libmy_lib.so.1
@@ -163,7 +163,7 @@ MK_SONAME_OPTION = $(addprefix -h $(notdir $1).,$(firstword $(subst ., ,$(MODVER
 #  - for adding necessary C++ templates to the archives,
 #  see https://docs.oracle.com/cd/E19205-01/819-5267/bkamp/index.html
 EXE_LD = $(call SUP,$(TMD)EXE,$1)$(GET_LINKER) $(CMN_LIBS) $(EXE_LDFLAGS) $(VLDFLAGS)
-DLL_LD = $(call SUP,$(TMD)DLL,$1)$(GET_LINKER) $(MK_VER_SCRIPT_OPTION) $(MK_SONAME_OPTION) $(CMN_LIBS) $(DLL_LDFLAGS) $(VLDFLAGS)
+DLL_LD = $(call SUP,$(TMD)DLL,$1)$(GET_LINKER) $(MK_MAP_OPTION) $(MK_SONAME_OPTION) $(CMN_LIBS) $(DLL_LDFLAGS) $(VLDFLAGS)
 LIB_LD = $(call SUP,$(TMD)LIB,$1)$(if $(COMPILER:CXX=),$($(TMD)AR) $($(TMD)ARFLAGS) $1 $2,$(GET_LINKER) $(CXX_ARFLAGS) -o $1 $2)
 
 # prefix of system headers to filter-out while dependencies generation
@@ -294,7 +294,7 @@ $(call define_prepend,DEFINE_C_APP_EVAL,$$(eval $$(UNIX_MOD_AUX_APP)))
 $(call CLEAN_BUILD_PROTECT_VARS,CC CXX AR TCC TCXX TAR PIC_COPTION PIE_LOPTION DLL_EXPORTS_DEFINE DLL_IMPORTS_DEFINE \
   LDFLAGS CMN_LDFLAGS EXE_LDFLAGS DLL_LDFLAGS ARFLAGS CXX_ARFLAGS CFLAGS CXXFLAGS CPU64_COPTIONS CPU64_CXXOPTIONS \
   CPU_CFLAGS CPU_CXXFLAGS TLDFLAGS TARFLAGS TCXX_ARFLAGS TCFLAGS TCXXFLAGS TCPU_CFLAGS TCPU_CXXFLAGS GET_LINKER MK_RPATH_OPTION \
-  BEGIN_STATIC_LIBS_OPTION BEGIN_DYNAMIC_LIBS_OPTION CMN_LIBS MK_VER_SCRIPT_OPTION MK_SONAME_OPTION EXE_LD DLL_LD LIB_LD \
+  BSTATIC_OPTION BDYNAMIC_OPTION CMN_LIBS MK_MAP_OPTION MK_SONAME_OPTION EXE_LD DLL_LD LIB_LD \
   UDEPS_INCLUDE_FILTER WRAP_CC CMN_CFLAGS DEF_CFLAGS DEF_CXXFLAGS CMN_PARAMS CC_PARAMS CXX_PARAMS CMN_CC CMN_CXX \
   EXE_CC EXE_CXX DLL_CC DLL_CXX LIB_CC LIB_CXX CMN_NCC CMN_NCXX CMN_PCC CMN_PCXX PCH_CC PCH_CXX \
   PCH_EXE_CC PCH_EXE_CXX PCH_DLL_CC PCH_DLL_CXX PCH_LIB_CC PCH_LIB_CXX)

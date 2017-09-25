@@ -163,8 +163,9 @@ else
 FORCE_SYNC_PDB:=
 endif
 
-# set debug info format
 ifdef DEBUG
+
+# set debug info format
 ifdef SEQ_BUILD
 ifndef FORCE_SYNC_PDB
 # /Z7 option - store debug info (in old format) in each .obj to avoid contention accessing .pdb during parallel compilation
@@ -173,40 +174,68 @@ else
 # /Zi option - store debug info (in new format) in single .pdb, compiler will serialize access to the .pdb via mspdbsrv.exe
 CFLAGS += $(FORCE_SYNC_PDB) /Zi
 endif
-else
+else # !SEQ_BUILD
 # compiling sources of a module with /MP option:
 #  - groups of sources of a module are compiled sequentially, one group after each other
 #  - sources in a group are compiled in parallel by compiler threads, via single compiler invocation.
 # note: /MP option implies /FS option, if it's supported
 # /Zi option - store debug info (in new format) in single .pdb, assume compiler internally will serialize access to the .pdb
 CFLAGS += /Zi
+endif # !SEQ_BUILD
+
+# /Od - disable optimizations
+CFLAGS += /Od
+
+ifeq (,$(call is_less,6,$(VS_VER)))
+# Visual Studio 6.0
+# /GZ - catch release-build errors in debug build
+CMN_CFLAGS += /GZ
+else
+# >= Visual Studio 2002
+# /RTCc - reports when a value is assigned to a smaller data type and results in a data loss
+# /RTCs - enables stack frame run-time error checking
+# /RTCu - reports when a variable is used without having been initialized
+# /GS   - buffer security check
+CMN_CFLAGS += /RTCc /RTCsu /GS
 endif
+
+else
+# /Ox - maximum optimization
+# /GF - pool strings and place them in read-only memory 
+# /Gy - enable function level linking
+CFLAGS += /Ox /GF /Gy
 endif
+
+
+# /W3 - warning level 3
+CFLAGS += /W3
 
 # user-modifiable C++ compiler flags
 CXXFLAGS := $(CFLAGS)
 
 # flags for the tool mode
-TLDFLAGS     := $(LDFLAGS)
-TARFLAGS     := $(ARFLAGS)
-TCXX_ARFLAGS := $(CXX_ARFLAGS)
-TCFLAGS      := $(CFLAGS)
-TCXXFLAGS    := $(CXXFLAGS)
+TLDFLAGS  := $(LDFLAGS)
+TARFLAGS  := $(ARFLAGS)
+TCFLAGS   := $(CFLAGS)
+TCXXFLAGS := $(CXXFLAGS)
 
 # make version string: major.minor.patch -> major.minor
 # target-specific: MODVER
 MODVER_MAJOR_MINOR = $(subst $(space),.,$(wordlist 1,2,$(subst ., ,$(MODVER)) 0 0))
 
-# paths to application-level system libraries 
-APPLIBPATH := $(VSLIBPATH) $(UMLIBPATH)
+# version of EXE or DLL
+VERSION_OPTION = /VERSION:$(MODVER_MAJOR_MINOR)
 
 # minimum required version of the operating system
 # note: 5.01 - WinXP(x86), 5.02 - WinXP(x64)
 SUBSYSTEM_VER := $(if $(CPU:%64=),5.01,5.02)
 
+# default subsystem type: CONSOLE, WINDOWS
+SUBSYSTEM_TYPE := CONSOLE
+
 # default subsystem for EXE or DLL
-# note: may be overridden by target-specific value
-SUBSYSTEM_OPTION := /SUBSYSTEM:CONSOLE,$(SUBSYSTEM_VER)
+# possibly target-specific: SUBSYSTEM_TYPE, SUBSYSTEM_VER
+SUBSYSTEM_OPTION = /SUBSYSTEM:$(SUBSYSTEM_TYPE),$(SUBSYSTEM_VER)
 
 # how to embed manifest into EXE or DLL
 ifneq (,$(call is_less,10,$(VS_VER)))
@@ -216,8 +245,11 @@ else
 MANIFEST_EMBED_OPTION:=
 endif
 
+# paths to application-level system libraries 
+APPLIBPATH := $(VSLIBPATH) $(UMLIBPATH)
+
 # common link.exe flags for linking executables and dynamic libraries
-CMN_LDFLAGS := /INCREMENTAL:NO
+CMN_LDFLAGS := /INCREMENTAL:NO $(call qpath,$(APPLIBPATH),/LIBPATH:)
 
 # link.exe flags for linking an EXE
 EXE_LDFLAGS:=
@@ -230,16 +262,16 @@ DLL_LDFLAGS := /DLL
 # $2 - objects
 # $3 - target: EXE or DLL
 # $4 - non-empty variant: R,S,RU,SU
-# target-specific: RES, IMP, DEF, LIBS, DLLS, LIB_DIR, SYSLIBPATH, SYSLIBS
-CMN_LIBS = /nologo /OUT:$(call ospath,$1 $2 $(RES)) /VERSION:$(MODVER_MAJOR_MINOR) $(DEF_SUBSYSTEM) $(EMBED_MANIFEST_OPTION) \
-  $(addprefix /IMPLIB:,$(call ospath,$(IMP))) $(addprefix /DEF:,$(call ospath,$(DEF))) $(if \
-  $(firstword $(LIBS)$(DLLS)),/LIBPATH:$(call ospath,$(LIB_DIR)) $(call DEP_LIBS,$3,$4) $(call DEP_IMPS,$3,$4)) $(call \
-  qpath,$(SYSLIBPATH) $(APPLIBPATH),/LIBPATH:) $(SYSLIBS) $(CMN_LDFLAGS)
+# target-specific: RES, IMP, DEF, LIBS, DLLS, LIB_DIR
+CMN_LIBS = /nologo /OUT:$(call ospath,$1 $2 $(RES)) $(VERSION_OPTION) $(SUBSYSTEM_OPTION) $(MANIFEST_EMBED_OPTION) $(addprefix \
+  /IMPLIB:,$(call ospath,$(IMP))) $(addprefix /DEF:,$(call ospath,$(DEF))) $(if $(firstword $(LIBS)$(DLLS)),/LIBPATH:$(call \
+  ospath,$(LIB_DIR)) $(call DEP_LIBS,$3,$4) $(call DEP_IMPS,$3,$4)) $(CMN_LDFLAGS)
 
+# regular expression string to match diagnostic linker message to strip-off
 # default value, may be overridden either in project configuration makefile or in command line
 LINKER_STRIP_STRINGS := $(LINKER_STRIP_STRINGS_en)
 
-# call exe/drv linker and strip-off diagnostic message and message about generated .exp-file
+# call linker and strip-off diagnostic message and message about generated .exp-file
 # $1 - linker with options
 # note: send output to stderr in VERBOSE mode, this is needed for build script generation
 ifdef VERBOSE
@@ -250,7 +282,7 @@ endif
 
 # $1 - linker with options
 # note: FILTER_OUTPUT sends command output to stderr
-# note: in debug, diagnostic message is not printed
+# note: no diagnostic message is printed in debug
 # target-specific: IMP
 ifndef NO_WRAP
 $(eval WRAP_LINKER = $$(if $$(IMP),$$(call FILTER_OUTPUT,$$1,|findstr /VC:$$(basename $$(notdir $$(IMP))).exp),$(value WRAP_LINKER)))
@@ -264,8 +296,8 @@ endif
 
 # check that target exe/dll exports symbols - linker has created .exp file
 # $1 - path to target EXE or DLL
-# note: if EXE do not exports symbols (as usual), do not set EXE_EXPORTS (empty by default)
-# note: if DLL do not exports symbols (unusual), set DLL_NO_EXPORTS to non-empty value
+# note: if EXE do not exports symbols (as usual), do not set in target makefile EXE_EXPORTS (empty by default)
+# note: if DLL do not exports symbols (unusual), set in target makefile DLL_NO_EXPORTS to non-empty value
 # target-specific: IMP, LIB_DIR
 CHECK_EXP_CREATED = $(if $(IMP),$(newline)$(QUIET)if not exist $(call ospath,$(LIB_DIR)/$(basename \
   $(notdir $(IMP))).exp) (echo $(notdir $1) does not exports any symbols!) && cmd /c exit 1)
@@ -275,15 +307,16 @@ CHECK_EXP_CREATED = $(if $(IMP),$(newline)$(QUIET)if not exist $(call ospath,$(L
 # $2 - objects for linking the target
 # $3 - target: EXE or DLL
 # $4 - non-empty variant: R,S,RU,SU
-# target-specific: TMD, LOPTS
+# target-specific: TMD, VLDFLAGS
 # note: used by EXE_TEMPLATE and DLL_TEMPLATE from $(CLEAN_BUILD_DIR)/impl/_c.mk
 # note: link.exe will not delete generated manifest file if failed to build target exe/dll, e.g. because of invalid DEF file
-EXE_LD = $(call SUP,$(TMD)EXE,$1)$(call WRAP_LINKER,$($(TMD)VSLINK) $(CMN_LIBS) $(EXE_LDFLAGS) $(LOPTS) $(LDFLAGS))$(CHECK_EXP_CREATED)
-DLL_LD = $(call SUP,$(TMD)DLL,$1)$(call WRAP_LINKER,$($(TMD)VSLINK) $(CMN_LIBS) $(DLL_LDFLAGS) $(LOPTS) $(LDFLAGS))$(CHECK_EXP_CREATED)
+EXE_LD = $(call SUP,$(TMD)EXE,$1)$(call WRAP_LINKER,$($(TMD)VSLINK) $(CMN_LIBS) $(EXE_LDFLAGS) $(VLDFLAGS))$(CHECK_EXP_CREATED)
+DLL_LD = $(call SUP,$(TMD)DLL,$1)$(call WRAP_LINKER,$($(TMD)VSLINK) $(CMN_LIBS) $(DLL_LDFLAGS) $(VLDFLAGS))$(CHECK_EXP_CREATED)
 
 # manifest embedding
 # $1 - path to target EXE or DLL
-ifndef EMBED_MANIFEST_OPTION
+# note: in Visual Studio 2012 and above, linker may call mt.exe internally
+ifndef MANIFEST_EMBED_OPTION
 ifneq (,$(call is_less,7,$(VS_VER)))
 # >= Visual Studio 2005
 EMBED_EXE_MANIFEST = if exist $(ospath).manifest $(MT) -nologo \
@@ -300,8 +333,8 @@ endif
 # $2 - objects for linking the target
 # $3 - target: LIB
 # $4 - non-empty variant: R,S,RU,SU
-# target-specific: TMD, LOPTS
-LIB_LD = $(call SUP,$(TMD)LIB,$1)$($(TMD)VSLIB) /nologo /OUT:$(call ospath,$1 $2) $(ARFLAGS)
+# target-specific: TMD
+LIB_LD = $(call SUP,$(TMD)LIB,$1)$($(TMD)VSLIB) /nologo /OUT:$(call ospath,$1 $2) $($(TMD)ARFLAGS)
 
 # note: send output to stderr in VERBOSE mode, this is needed for build script generation
 ifdef VERBOSE
@@ -325,6 +358,7 @@ endif
 # may auto-generate dependencies only if building sources sequentially, because /showIncludes option conflicts with /MP
 ifdef SEQ_BUILD
 
+# regular expression used to match paths to included headers from /showIncludes option output
 # default value, may be overridden either in project configuration makefile or in command line
 INCLUDING_FILE_PATTERN := $(INCLUDING_FILE_PATTERN_en)
 
@@ -348,26 +382,14 @@ endif
 
 endif # SEQ_BUILD
 
-# common flags for application-level C/C++-compilers
+# common flags for application-level C/C++ compilers
 # /X  - do not search include files in directories specified in the PATH and INCLUDE environment variables
-# /GF - pool strings and place them in read-only memory 
-# /W3 - warning level 3
-CMN_CFLAGS := /X /GF /W3
+CMN_CFLAGS := /X
 
 ifdef DEBUG
-# /Od - disable optimizations
-CMN_CFLAGS += /Od
 
-ifneq (,$(call is_less,6,$(VS_VER)))
-# >= Visual Studio 2002
-# /RTCc - reports when a value is assigned to a smaller data type and results in a data loss
-# /RTCs - enables stack frame run-time error checking
-# /RTCu - reports when a variable is used without having been initialized
-# /GS   - buffer security check
-CMN_CFLAGS += /RTCc /RTCsu /GS
 
 # /GL - whole program optimization, linker must be invoked with /LTCG (starting with Visual Studio .NET 2003)
-
 
 # /EHsc - synchronous exception handling model, extern C functions never throw an exception
 
@@ -597,7 +619,7 @@ define EXE_LD_TEMPLATE
 $(empty)
 EXE_$v_LD1 = $$(call SUP,$$(TMD)XLINK,$$1)$$(call \
   WRAP_EXE_LINKER,$$(EXE_EXPORTS),$$(VS$$(TMD)LD) /nologo $(CMN_LIBS) $$(if $$(EXE_EXPORTS),/IMPLIB:$$(call \
-  ospath,$$(IMP))) $(DEF_SUBSYSTEM) $(EMBED_MANIFEST_OPTION) $$(LDFLAGS))$$(call \
+  ospath,$$(IMP))) $(DEF_SUBSYSTEM) $(MANIFEST_EMBED_OPTION) $$(LDFLAGS))$$(call \
   DEL_DEF_MANIFEST_ON_FAIL,$$1,$$(EMBED_EXE_MANIFEST))
 endef
 $(eval $(foreach v,R $(VARIANTS_FILTER),$(EXE_LD_TEMPLATE)))
@@ -639,7 +661,7 @@ define DLL_LD_TEMPLATE
 $(empty)
 DLL_$v_LD1 = $$(call SUP,$$(TMD)LINK,$$1)$$(call \
   WRAP_DLL_LINKER,$$(DLL_NO_EXPORTS),$$1,$$(VS$$(TMD)LD) /nologo /DLL $(CMN_LIBS) $$(if $$(DLL_NO_EXPORTS),,/IMPLIB:$$(call \
-  ospath,$$(IMP))) $(DEF_SUBSYSTEM) $(EMBED_MANIFEST_OPTION) $$(LDFLAGS))$$(call \
+  ospath,$$(IMP))) $(DEF_SUBSYSTEM) $(MANIFEST_EMBED_OPTION) $$(LDFLAGS))$$(call \
   DEL_DEF_MANIFEST_ON_FAIL,$$1,$$(EMBED_DLL_MANIFEST))
 endef
 $(eval $(foreach v,R $(VARIANTS_FILTER),$(DLL_LD_TEMPLATE)))
@@ -1289,7 +1311,7 @@ $(call CLEAN_BUILD_PROTECT_VARS,MCL_MAX_COUNT SEQ_BUILD YASMC FLEXC BISONC YASM_
   MC_STRIP_STRINGS WRAP_MC MC MC_COLOR TMC_COLOR \
   RC_LOGO_STRINGS WRAP_RC RC RC_COLOR TRC_COLOR \
   KIMP_PREFIX KIMP_SUFFIX CHECK_LIB_UNI_NAME1=v CHECK_LIB_UNI_NAME=v DLL_EXPORTS_DEFINE DLL_IMPORTS_DEFINE \
-  EMBED_MANIFEST_OPTION EMBED_EXE_MANIFEST=TMD EMBED_DLL_MANIFEST OS_PREDEFINES MK_MAJ_MIN_VER DEF_LIB_LDFLAGS LIB_LD_TEMPLATE=v \
+  MANIFEST_EMBED_OPTION EMBED_EXE_MANIFEST=TMD EMBED_DLL_MANIFEST OS_PREDEFINES MK_MAJ_MIN_VER DEF_LIB_LDFLAGS LIB_LD_TEMPLATE=v \
   CMN_LIBS_LDFLAGS CMN_LIBS=v DEF_SUBSYSTEM \
   LINKER_STRIP_STRINGS_en LINKER_STRIP_STRINGS_ru_cp1251 LINKER_STRIP_STRINGS_ru_cp1251_as_cp866_to_cp1251 \
   LINKER_STRIP_STRINGS WRAP_LINKER DEL_DEF_MANIFEST_ON_FAIL \
