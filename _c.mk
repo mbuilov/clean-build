@@ -212,7 +212,7 @@ DEP_LIBS = $(call MAKE_DEP_LIBS,$1,$2,$(LIBS))
 DEP_IMPS = $(call MAKE_DEP_IMPS,$1,$2,$(DLLS))
 
 # process result of STRING_DEFINE to make values of defines passed to C-compiler
-# called by macro that expands to C-complier call
+# called by macro that expands to C-compiler call
 SUBST_DEFINES = $(eval SUBST_DEFINES_:=$(subst $(comment),$$(comment),$1))$(SUBST_DEFINES_)
 
 # helper macro for target makefiles to pass string define value to C-compiler
