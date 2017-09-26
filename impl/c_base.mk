@@ -43,6 +43,7 @@ DEP_LIBRARY = $3$(call VARIANT_SUFFIX,$4,$($4_DEP_MAP))
 # $x - source
 ADD_OBJ_SDEPS = $(if $2,$(newline)$1/$(basename $(notdir $x))$(OBJ_SUFFIX): $2)
 
+# call compiler: OBJ_CXX,OBJ_CC,OBJ_ASM,...
 # $1 - sources type: CXX,CC,ASM,...
 # $2 - sources to compile
 # $3 - sdeps (result of FIX_SDEPS)
@@ -57,7 +58,7 @@ $5
 $(subst $(space),$(newline),$(join $(addsuffix :,$5),$2))$(if \
   $3,$(foreach x,$2,$(call ADD_OBJ_SDEPS,$4,$(call EXTRACT_SDEPS,$x,$3))))
 $5:| $4 $$(ORDER_DEPS)
-	$$(call $t_$1,$$@,$$<,$v)
+	$$(call OBJ_$1,$$@,$$<,$t,$v)
 endef
 ifndef NO_DEPS
 $(call define_append,OBJ_RULES_BODY,$(newline)-include $$(addsuffix .d,$$5))
@@ -134,7 +135,8 @@ DEFINE_ESCAPE_VALUE = $1=$(call SHELL_ESCAPE,$(call tospaces,$(patsubst $1=%,%,$
 DEFINE_ESCAPE_VALUES = $(foreach d,$1,$(call DEFINE_ESCAPE_VALUE,$(firstword $(subst =, ,$d))))
 
 # make compiler options string to specify defines
-MK_DEFINES_OPTION = $(call DEFINE_ESCAPE_VALUES,$(addprefix -D,$1))
+MK_DEFINES_OPTION1 = $(addprefix -D,$1)
+MK_DEFINES_OPTION = $(call DEFINE_ESCAPE_VALUES,$(MK_DEFINES_OPTION1))
 
 # list of target types that may be built from C/C++/Assembler sources
 # note: appended in:
@@ -188,8 +190,8 @@ $(STD_TARGET_VARS)
 $1:$(call OBJ_RULES,CC,$(filter $(CC_MASK),$2),$3,$4)
 $1:$(call OBJ_RULES,CXX,$(filter $(CXX_MASK),$2),$3,$4)
 $1:COMPILER  := $(TRG_COMPILER)
-$1:VINCLUDE  := $$(call MK_INCLUDE_OPTION,$$(TRG_INCLUDE) $$(call $t_VARIANT_INCLUDE,$v))
-$1:VDEFINES  := $$(call MK_DEFINES_OPTION,$$(call $t_VARIANT_DEFINES,$v) $$(TRG_DEFINES))
+$1:VINCLUDE  := $$(call MK_INCLUDE_OPTION,$(TRG_INCLUDE) $$(call $t_VARIANT_INCLUDE,$v))
+$1:VDEFINES  := $$(call MK_DEFINES_OPTION,$$(call $t_VARIANT_DEFINES,$v) $(TRG_DEFINES))
 $1:VCFLAGS   := $$(call $t_VARIANT_CFLAGS,$v) $$(SYSCFLAGS) $$($(TMD)CFLAGS)
 $1:VCXXFLAGS := $$(call $t_VARIANT_CXXFLAGS,$v) $$(SYSCFLAGS) $$($(TMD)CXXFLAGS)
 $1:VLDFLAGS  := $$(call $t_VARIANT_LDFLAGS,$v) $$(SYSLDFLAGS) $$($(TMD)LDFLAGS)
@@ -261,7 +263,8 @@ $(call SET_GLOBAL,NO_PCH OBJ_SUFFIX CC_MASK CXX_MASK \
   DEP_LIBRARY ADD_OBJ_SDEPS=x OBJ_RULES_BODY=t;v OBJ_RULES1=t;v OBJ_RULES=t;v \
   TRG_COMPILER=t;v TRG_INCLUDE=t;v;INCLUDE TRG_DEFINES=t;v;DEFINES GET_SOURCES=SRC;WITH_PCH TRG_SRC TRG_SDEPS=SDEPS \
   MK_INCLUDE_OPTION DEFINE_SPECIAL DEFINE_ESCAPE_VALUE DEFINE_ESCAPE_VALUES \
-  MK_DEFINES_OPTION C_TARGETS C_RULESv=t;v C_RULESt=t C_RULES C_REDEFINE C_BASE_TEMPLATE=t;v;$$t C_PREPARE_BASE_VARS C_RULES_EVAL \
+  MK_DEFINES_OPTION1 MK_DEFINES_OPTION C_TARGETS C_RULESv=t;v C_RULESt=t C_RULES \
+  C_REDEFINE C_BASE_TEMPLATE=t;v;$$t C_PREPARE_BASE_VARS C_RULES_EVAL \
   ASM_MASK ASMFLAGS ASM_TEMPLATE ASM_COLOR)
 
 # protect variables from modifications in target makefiles
