@@ -125,7 +125,7 @@ SHELL_ESCAPE = "$(subst ","",$(subst \",\\",$(subst %,%%,$1)))"
 
 # escape special characters in unquoted argument of echo or set command
 UNQUOTED_ESCAPE = $(subst $(open_brace),^$(open_brace),$(subst $(close_brace),^$(close_brace),$(subst \
-  %,^%,$(subst <,^<,$(subst >,^>,$(subst |,^|,$(subst &,^&,$(subst ",^",$(subst ^,^^,$1)))))))))
+  %,%%,$(subst <,^<,$(subst >,^>,$(subst |,^|,$(subst &,^&,$(subst ",^",$(subst ^,^^,$1)))))))))
 
 # stream-editor executable
 # note: SED value may be overridden either in command line or in project configuration makefile, like:
