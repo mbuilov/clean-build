@@ -66,8 +66,7 @@ endif
 endif
 
 # standard include paths - to include <winver.h>
-# target-specific: TMD
-RC_COMPILER_INCLUDES = $($(TMD)VSINCLUDE) $($(TMD)UMINCLUDE)
+RC_COMPILER_INCLUDES := $(VSINCLUDE) $(UMINCLUDE)
 
 # resource compiler
 # $1 - target .res
