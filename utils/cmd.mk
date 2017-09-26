@@ -18,7 +18,7 @@ $(error Cygwin version of Gnu Make is used with cmd.exe shell - this configurati
 endif
 
 # Windows programs need at least these variables to be defined in environment
-WIN_REQUIRED_VARS := TMP PATHEXT SYSTEMROOT COMSPEC
+WIN_REQUIRED_VARS := TMP PATHEXT SYSTEMROOT SYSTEMDRIVE COMSPEC
 
 # note: assume variable name cannot contain = character
 WIN_EXPORTED := $(filter $(WIN_REQUIRED_VARS:==%),$(join \
