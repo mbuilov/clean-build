@@ -44,7 +44,7 @@ endif
 override KC_COMPILER := $(KC_COMPILER)
 
 ifndef KC_COMPILER
-$(error KC_COMPILER - kernel-level C complier is not defined)
+$(error KC_COMPILER - kernel-level C compiler is not defined)
 endif
 
 ifeq (,$(wildcard $(KC_COMPILER)))
