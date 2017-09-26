@@ -24,6 +24,44 @@ TCC  := $(CC)
 TCXX := $(CXX)
 TAR  := $(AR)
 
+# how to mark symbols exported from a DLL
+# note: override definition in $(CLEAN_BUILD_DIR)/impl/_c.mk
+DLL_EXPORTS_DEFINE := $(call DEFINE_SPECIAL,__attribute__((visibility("default"))))
+
+# default values of user-defined C/C++ compiler flags
+# note: may be taken from the environment in project configuration makefile
+CFLAGS   := $(if $(DEBUG),-g,-fast)
+CXXFLAGS := $(CFLAGS)
+
+# compiler options for 64-bit target
+# note: about '-xport64' option see https://docs.oracle.com/cd/E19205-01/819-5267/bkbgj/index.html
+CPU64_COPTIONS   := -xarch=sse2
+CPU64_CXXOPTIONS := $(CPU64_COPTIONS) -xport64
+
+# cc flags to compile/link for selected CPU
+CPU_CFLAGS   := -m$(if $(CPU:%64=),32,64 $(CPU64_COPTIONS))
+CPU_CXXFLAGS := -m$(if $(CPU:%64=),32,64 $(CPU64_CXXOPTIONS))
+
+# flags for objects archiver
+# note: may be taken from the environment in project configuration makefile
+# note: for handling C++ templates, CC compiler is used to create C++ static libraries
+ARFLAGS     := -c -r
+CXX_ARFLAGS := -xar
+
+# default values of user-defined cc flags for linking executables and shared libraries
+# note: may be taken from the environment in project configuration makefile
+# '-xs' - allows debugging by dbx after deleting object (.o) files
+LDFLAGS := $(if $(DEBUG),-xs)
+
+# flags for the tool mode
+TCFLAGS       := $(CFLAGS)
+TCXXFLAGS     := $(CXXFLAGS)
+TCPU_CFLAGS   := -m$(if $(TCPU:%64=),32,64 $(CPU64_COPTIONS))
+TCPU_CXXFLAGS := -m$(if $(TCPU:%64=),32,64 $(CPU64_CXXOPTIONS))
+TARFLAGS      := $(ARFLAGS)
+TCXX_ARFLAGS  := $(CXX_ARFLAGS)
+TLDFLAGS      := $(LDFLAGS)
+
 # position-independent code for executables/shared objects (dynamic libraries)
 PIC_COPTION := -Kpic
 PIE_LOPTION := -ztype=pie
@@ -48,16 +86,18 @@ LIB_VARIANT_SUFFIX := _pic
 
 # only one non-regular variant of EXE is supported - P - see $(EXE_SUPPORTED_VARIANTS)
 # $1 - R or P
+# $(TMD) - T in tool mode, empty otherwise
 # note: override defaults from $(CLEAN_BUILD_DIR)/impl/_c.mk
-EXE_VARIANT_CFLAGS   = $(if $(findstring P,$1),$(PIC_COPTION))
-EXE_VARIANT_CXXFLAGS = $(EXE_VARIANT_CFLAGS)
-EXE_VARIANT_LDFLAGS  = $(if $(findstring P,$1),$(PIE_LOPTION))
+EXE_CFLAGS   = $(if $(findstring P,$1),$(PIC_COPTION)) $($(TMD)CFLAGS)
+EXE_CXXFLAGS = $(if $(findstring P,$1),$(PIC_COPTION)) $($(TMD)CXXFLAGS)
+EXE_LDFLAGS  = $(if $(findstring P,$1),$(PIE_LOPTION)) $($(TMD)LDFLAGS)
 
 # only one non-regular variant of LIB is supported - D - see $(LIB_SUPPORTED_VARIANTS)
 # $1 - R or D
+# $(TMD) - T in tool mode, empty otherwise
 # note: override defaults from $(CLEAN_BUILD_DIR)/impl/_c.mk
-LIB_VARIANT_CFLAGS   = $(if $(findstring D,$1),$(PIC_COPTION))
-LIB_VARIANT_CXXFLAGS = $(LIB_VARIANT_CFLAGS)
+LIB_CFLAGS   = $(if $(findstring D,$1),$(PIC_COPTION)) $($(TMD)CFLAGS)
+LIB_CXXFLAGS = $(if $(findstring D,$1),$(PIC_COPTION)) $($(TMD)CXXFLAGS)
 
 # determine which variant of static library to link with EXE or DLL
 # $1 - target: EXE,DLL
@@ -67,46 +107,6 @@ LIB_VARIANT_CXXFLAGS = $(LIB_VARIANT_CFLAGS)
 # use D-variant of static library for pie-EXE or regular DLL
 # note: override defaults from $(CLEAN_BUILD_DIR)/impl/_c.mk
 LIB_DEP_MAP = $(if $(findstring DLL,$1)$(findstring P,$2),D)
-
-# how to mark symbols exported from a DLL
-DLL_EXPORTS_DEFINE := $(call DEFINE_SPECIAL,__attribute__((visibility("default"))))
-
-# how to mark symbols imported from a DLL
-DLL_IMPORTS_DEFINE:=
-
-# user-modifiable cc flags for linking executables and shared libraries
-# note: may be taken from the environment in project configuration makefile
-# '-xs' - allows debugging by dbx after deleting object (.o) files
-LDFLAGS := $(if $(DEBUG),-xs)
-
-# flags for objects archiver
-# note: may be taken from the environment in project configuration makefile
-# note: for handling C++ templates, CC compiler is used to create C++ static libraries
-ARFLAGS     := -c -r
-CXX_ARFLAGS := -xar
-
-# user-modifiable C/C++ compiler flags
-# note: may be taken from the environment in project configuration makefile
-CFLAGS   := $(if $(DEBUG),-g,-fast)
-CXXFLAGS := $(CFLAGS)
-
-# compiler options for 64-bit target
-# note: about '-xport64' option see https://docs.oracle.com/cd/E19205-01/819-5267/bkbgj/index.html
-CPU64_COPTIONS   := -xarch=sse2
-CPU64_CXXOPTIONS := $(CPU64_COPTIONS) -xport64
-
-# cc flags to compile/link for selected CPU
-CPU_CFLAGS   := -m$(if $(CPU:%64=),32,64 $(CPU64_COPTIONS))
-CPU_CXXFLAGS := -m$(if $(CPU:%64=),32,64 $(CPU64_CXXOPTIONS))
-
-# flags for the tool mode
-TLDFLAGS      := $(LDFLAGS)
-TARFLAGS      := $(ARFLAGS)
-TCXX_ARFLAGS  := $(CXX_ARFLAGS)
-TCFLAGS       := $(CFLAGS)
-TCXXFLAGS     := $(CXXFLAGS)
-TCPU_CFLAGS   := -m$(if $(TCPU:%64=),32,64 $(CPU64_COPTIONS))
-TCPU_CXXFLAGS := -m$(if $(TCPU:%64=),32,64 $(CPU64_CXXOPTIONS))
 
 # make linker command for linking EXE, DLL or LIB
 # target-specific: TMD, COMPILER, VCFLAGS, VCXXFLAGS
@@ -125,10 +125,10 @@ BDYNAMIC_OPTION := -Bdynamic
 CMN_LDFLAGS := -ztext
 
 # cc flags for linking an EXE
-EXE_LDFLAGS:=
+DEF_EXE_LDFLAGS := $(CMN_LDFLAGS)
 
 # cc flags for linking a DLL
-DLL_LDFLAGS := -G -zdefs
+DEF_DLL_LDFLAGS := -G -zdefs $(CMN_LDFLAGS)
 
 # common linker options for EXE or DLL
 # $1 - path to target EXE or DLL
@@ -138,7 +138,7 @@ DLL_LDFLAGS := -G -zdefs
 # target-specific: LIBS, DLLS, LIB_DIR
 CMN_LIBS = -o $1 $2 $(MK_RPATH_OPTION) $(if $(firstword \
   $(LIBS)$(DLLS)),-L$(LIB_DIR) $(addprefix -l,$(DLLS)) $(if $(LIBS),$(BSTATIC_OPTION) $(addprefix \
-  -l,$(addsuffix $(call DEP_SUFFIX,$3,$4,LIB),$(LIBS))) $(BDYNAMIC_OPTION))) $(CMN_LDFLAGS)
+  -l,$(addsuffix $(call DEP_SUFFIX,$3,$4,LIB),$(LIBS))) $(BDYNAMIC_OPTION)))
 
 # specify what symbols to export from a dll
 # target-specific: MAP
@@ -162,8 +162,8 @@ MK_SONAME_OPTION = $(addprefix -h $(notdir $1).,$(firstword $(subst ., ,$(MODVER
 # note: use CXX compiler instead of ar to create C++ static library archives
 #  - for adding necessary C++ templates to the archives,
 #  see https://docs.oracle.com/cd/E19205-01/819-5267/bkamp/index.html
-EXE_LD = $(call SUP,$(TMD)EXE,$1)$(GET_LINKER) $(CMN_LIBS) $(EXE_LDFLAGS) $(VLDFLAGS)
-DLL_LD = $(call SUP,$(TMD)DLL,$1)$(GET_LINKER) $(MK_MAP_OPTION) $(MK_SONAME_OPTION) $(CMN_LIBS) $(DLL_LDFLAGS) $(VLDFLAGS)
+EXE_LD = $(call SUP,$(TMD)EXE,$1)$(GET_LINKER) $(CMN_LIBS) $(DEF_EXE_LDFLAGS) $(VLDFLAGS)
+DLL_LD = $(call SUP,$(TMD)DLL,$1)$(GET_LINKER) $(MK_MAP_OPTION) $(MK_SONAME_OPTION) $(CMN_LIBS) $(DEF_DLL_LDFLAGS) $(VLDFLAGS)
 LIB_LD = $(call SUP,$(TMD)LIB,$1)$(if $(COMPILER:CXX=),$($(TMD)AR) $($(TMD)ARFLAGS) $1 $2,$(GET_LINKER) $(CXX_ARFLAGS) -o $1 $2)
 
 # prefix of system headers to filter-out while dependencies generation
@@ -180,13 +180,13 @@ else
 WRAP_CC = { { $1 -H 2>&1 && echo OK >&2; } | $(SED) -n $(SED_DEPS_SCRIPT) 2>&1; } 3>&2 2>&1 1>&3 3>&- | grep OK > /dev/null
 endif
 
-# common flags for application-level C/C++-compilers
+# common cc flags for compiling application-level C/C++ sources
 CMN_CFLAGS := -v -xldscope=hidden
 
-# default flags for application-level C compiler
+# default cc flags for compiling application-level C sources
 DEF_CFLAGS := $(CMN_CFLAGS)
 
-# default flags for application-level C++ compiler
+# default cc flags for compiling application-level C++ sources
 # disable some C++ warnings:
 # badargtype2w - (Anachronism) when passing pointers to functions
 # wbadasg      - (Anachronism) assigning extern "C" ...
@@ -284,9 +284,9 @@ endif # !NO_PCH
 $(call define_prepend,DEFINE_C_APP_EVAL,$$(eval $$(UNIX_MOD_AUX_APP)))
 
 # protect variables from modifications in target makefiles
-$(call CLEAN_BUILD_PROTECT_VARS,CC CXX AR TCC TCXX TAR PIC_COPTION PIE_LOPTION DLL_EXPORTS_DEFINE DLL_IMPORTS_DEFINE \
-  LDFLAGS CMN_LDFLAGS EXE_LDFLAGS DLL_LDFLAGS ARFLAGS CXX_ARFLAGS CFLAGS CXXFLAGS CPU64_COPTIONS CPU64_CXXOPTIONS \
-  CPU_CFLAGS CPU_CXXFLAGS TLDFLAGS TARFLAGS TCXX_ARFLAGS TCFLAGS TCXXFLAGS TCPU_CFLAGS TCPU_CXXFLAGS GET_LINKER MK_RPATH_OPTION \
-  BSTATIC_OPTION BDYNAMIC_OPTION CMN_LIBS MK_MAP_OPTION MK_SONAME_OPTION EXE_LD DLL_LD LIB_LD \
+$(call CLEAN_BUILD_PROTECT_VARS,CC CXX AR TCC TCXX TAR CFLAGS CXXFLAGS CPU64_COPTIONS CPU64_CXXOPTIONS CPU_CFLAGS CPU_CXXFLAGS \
+  ARFLAGS CXX_ARFLAGS LDFLAGS TCFLAGS TCXXFLAGS TCPU_CFLAGS TCPU_CXXFLAGS TARFLAGS TCXX_ARFLAGS TLDFLAGS PIC_COPTION PIE_LOPTION \
+  GET_LINKER MK_RPATH_OPTION BSTATIC_OPTION BDYNAMIC_OPTION CMN_LDFLAGS DEF_EXE_LDFLAGS DEF_DLL_LDFLAGS \
+  CMN_LIBS MK_MAP_OPTION MK_SONAME_OPTION EXE_LD DLL_LD LIB_LD \
   UDEPS_INCLUDE_FILTER WRAP_CC CMN_CFLAGS DEF_CFLAGS DEF_CXXFLAGS CMN_PARAMS CC_PARAMS CXX_PARAMS \
   OBJ_CC OBJ_CXX OBJ_NCC OBJ_NCXX OBJ_PCC OBJ_PCXX PCH_CC PCH_CXX)

@@ -6,7 +6,7 @@
 
 # gcc compiler toolchain (app-level), included by $(CLEAN_BUILD_DIR)/impl/_c.mk
 
-# define INST_RPATH, RPATH and MAP variables
+# define RPATH and target-specific MAP and MODVER (for DLLs) variables
 include $(dir $(lastword $(MAKEFILE_LIST)))unixcc.mk
 
 # command prefix for cross-compilation
@@ -21,6 +21,35 @@ AR  := $(CROSS_PREFIX)ar
 TCC  := $(if $(CROSS_PREFIX),gcc,$(CC))
 TCXX := $(if $(CROSS_PREFIX),g++,$(CXX))
 TAR  := $(if $(CROSS_PREFIX),ar,$(AR))
+
+# how to mark symbols exported from a DLL
+# note: override definition in $(CLEAN_BUILD_DIR)/impl/_c.mk
+DLL_EXPORTS_DEFINE := $(call DEFINE_SPECIAL,__attribute__((visibility("default"))))
+
+# default values of user-defined C/C++ compiler flags
+# note: may be taken from the environment in project configuration makefile
+CFLAGS   := $(if $(DEBUG),-ggdb,-g -O2)
+CXXFLAGS := $(CFLAGS)
+
+# gcc flags to compile/link for selected CPU
+CPU_CFLAGS   := -m$(if $(CPU:%64=),32,64)
+CPU_CXXFLAGS := $(CPU_CFLAGS)
+
+# flags for objects archiver
+# note: may be taken from the environment in project configuration makefile
+ARFLAGS := -crs
+
+# default values of user-defined gcc flags for linking executables and shared libraries
+# note: may be taken from the environment in project configuration makefile
+LDFLAGS:=
+
+# flags for the tool mode
+TCFLAGS       := $(CFLAGS)
+TCXXFLAGS     := $(CXXFLAGS)
+TCPU_CFLAGS   := -m$(if $(TCPU:%64=),32,64)
+TCPU_CXXFLAGS := $(TCPU_CFLAGS)
+TARFLAGS      := $(ARFLAGS)
+TLDFLAGS      := $(LDFLAGS)
 
 # position-independent code for executables/shared objects (dynamic libraries)
 PIC_COPTION := -fpic
@@ -47,47 +76,18 @@ LIB_VARIANT_SUFFIX = $(if $(findstring P,$1),_pie,_pic)
 
 # only one non-regular variant of EXE is supported - P - see $(EXE_SUPPORTED_VARIANTS)
 # $1 - R or P
+# $(TMD) - T in tool mode, empty otherwise
 # note: override defaults from $(CLEAN_BUILD_DIR)/impl/_c.mk
-EXE_VARIANT_CFLAGS   = $(if $(findstring P,$1),$(PIE_COPTION))
-EXE_VARIANT_CXXFLAGS = $(EXE_VARIANT_CFLAGS)
-EXE_VARIANT_LDFLAGS  = $(if $(findstring P,$1),$(PIE_LOPTION))
+EXE_CFLAGS   = $(if $(findstring P,$1),$(PIE_COPTION)) $($(TMD)CFLAGS)
+EXE_CXXFLAGS = $(if $(findstring P,$1),$(PIE_COPTION)) $($(TMD)CXXFLAGS)
+EXE_LDFLAGS  = $(if $(findstring P,$1),$(PIE_LOPTION)) $($(TMD)LDFLAGS)
 
 # two non-regular variants of LIB are supported: P and D - see $(LIB_SUPPORTED_VARIANTS)
 # $1 - R, P or D
+# $(TMD) - T in tool mode, empty otherwise
 # note: override defaults from $(CLEAN_BUILD_DIR)/impl/_c.mk
-LIB_VARIANT_CFLAGS   = $(if $(findstring P,$1),$(PIE_COPTION),$(if $(findstring D,$1),$(PIC_COPTION)))
-LIB_VARIANT_CXXFLAGS = $(LIB_VARIANT_CFLAGS)
-
-# how to mark symbols exported from a DLL
-DLL_EXPORTS_DEFINE := $(call DEFINE_SPECIAL,__attribute__((visibility("default"))))
-
-# how to mark symbols imported from a DLL
-DLL_IMPORTS_DEFINE:=
-
-# user-modifiable gcc flags for linking executables and shared libraries
-# note: may be taken from the environment in project configuration makefile
-LDFLAGS:=
-
-# flags for objects archiver
-# note: may be taken from the environment in project configuration makefile
-ARFLAGS := -crs
-
-# user-modifiable C/C++ compiler flags
-# note: may be taken from the environment in project configuration makefile
-CFLAGS   := $(if $(DEBUG),-ggdb,-g -O2)
-CXXFLAGS := $(CFLAGS)
-
-# gcc flags to compile/link for selected CPU
-CPU_CFLAGS   := -m$(if $(CPU:%64=),32,64)
-CPU_CXXFLAGS := $(CPU_CFLAGS)
-
-# flags for the tool mode
-TLDFLAGS      := $(LDFLAGS)
-TARFLAGS      := $(ARFLAGS)
-TCFLAGS       := $(CFLAGS)
-TCXXFLAGS     := $(CXXFLAGS)
-TCPU_CFLAGS   := -m$(if $(TCPU:%64=),32,64)
-TCPU_CXXFLAGS := $(TCPU_CFLAGS)
+LIB_CFLAGS   = $(if $(findstring P,$1),$(PIE_COPTION),$(if $(findstring D,$1),$(PIC_COPTION))) $($(TMD)CFLAGS)
+LIB_CXXFLAGS = $(if $(findstring P,$1),$(PIE_COPTION),$(if $(findstring D,$1),$(PIC_COPTION))) $($(TMD)CXXFLAGS)
 
 # make linker command for linking EXE or DLL
 # target-specific: TMD, COMPILER, VCFLAGS, VCXXFLAGS
@@ -118,11 +118,11 @@ BDYNAMIC_OPTION := -Wl,-Bdynamic
 # common gcc flags for linking executables and shared libraries
 CMN_LDFLAGS := -Wl,--warn-common -Wl,--no-demangle
 
-# gcc flags for linking an EXE
-EXE_LDFLAGS:=
+# default gcc flags for linking an EXE
+DEF_EXE_LDFLAGS := $(CMN_LDFLAGS)
 
-# gcc flags for linking a DLL
-DLL_LDFLAGS := -shared -Wl,--no-undefined
+# default gcc flags for linking a DLL
+DEF_DLL_LDFLAGS := -shared -Wl,--no-undefined $(CMN_LDFLAGS)
 
 # common linker options for EXE or DLL
 # $1 - path to target EXE or DLL
@@ -132,7 +132,7 @@ DLL_LDFLAGS := -shared -Wl,--no-undefined
 # target-specific: LIBS, DLLS, LIB_DIR
 CMN_LIBS = $(PIPE_OPTION) -o $1 $2 $(MK_RPATH_OPTION) $(MK_RPATH_LINK_OPTION) $(if $(firstword \
   $(LIBS)$(DLLS)),-L$(LIB_DIR) $(addprefix -l,$(DLLS)) $(if $(LIBS),$(BSTATIC_OPTION) $(addprefix \
-  -l,$(addsuffix $(call DEP_SUFFIX,$3,$4,LIB),$(LIBS))) $(BDYNAMIC_OPTION))) $(CMN_LDFLAGS)
+  -l,$(addsuffix $(call DEP_SUFFIX,$3,$4,LIB),$(LIBS))) $(BDYNAMIC_OPTION)))
 
 # specify what symbols to export from a dll
 # target-specific: MAP
@@ -150,20 +150,20 @@ MK_SONAME_OPTION = $(addprefix $(WLPREFIX)-soname=$(notdir $1).,$(firstword $(su
 # $4 - non-empty variant: R,P,D
 # target-specific: TMD, VLDFLAGS
 # note: used by EXE_TEMPLATE, DLL_TEMPLATE, LIB_TEMPLATE from $(CLEAN_BUILD_DIR)/impl/_c.mk
-EXE_LD = $(call SUP,$(TMD)EXE,$1)$(GET_LINKER) $(CMN_LIBS) $(EXE_LDFLAGS) $(VLDFLAGS)
-DLL_LD = $(call SUP,$(TMD)DLL,$1)$(GET_LINKER) $(MK_MAP_OPTION) $(MK_SONAME_OPTION) $(CMN_LIBS) $(DLL_LDFLAGS) $(VLDFLAGS)
+EXE_LD = $(call SUP,$(TMD)EXE,$1)$(GET_LINKER) $(CMN_LIBS) $(DEF_EXE_LDFLAGS) $(VLDFLAGS)
+DLL_LD = $(call SUP,$(TMD)DLL,$1)$(GET_LINKER) $(MK_MAP_OPTION) $(MK_SONAME_OPTION) $(CMN_LIBS) $(DEF_DLL_LDFLAGS) $(VLDFLAGS)
 LIB_LD = $(call SUP,$(TMD)LIB,$1)$($(TMD)AR) $($(TMD)ARFLAGS) $1 $2
 
 # flags for auto-dependencies generation
 AUTO_DEPS_FLAGS := $(if $(NO_DEPS),,-MMD -MP)
 
-# common flags for application-level C/C++-compilers
+# common gcc flags for compiling application-level C/C++ sources
 CMN_CFLAGS := -Wall -fvisibility=hidden
 
-# default flags for application-level C compiler
+# default gcc flags for compiling application-level C sources
 DEF_CFLAGS := -std=c99 -pedantic $(CMN_CFLAGS)
 
-# default flags for application-level C++ compiler
+# default gcc flags for compiling application-level C++ sources
 DEF_CXXFLAGS := $(CMN_CFLAGS)
 
 # common options for application-level C/C++ compilers
@@ -180,7 +180,7 @@ CMN_PARAMS = $(PIPE_OPTION) -c -o $1 $2 $(AUTO_DEPS_FLAGS) $(VDEFINES) $(VINCLUD
 # $3 - target: EXE,DLL,LIB
 # $4 - non-empty variant: R,P,D
 # target-specific: TMD, VCFLAGS, VCXXFLAGS
-CC_PARAMS = $($(TMD)CPU_CFLAGS) $(CMN_PARAMS) $(DEF_CFLAGS) $(VCFLAGS)
+CC_PARAMS  = $($(TMD)CPU_CFLAGS) $(CMN_PARAMS) $(DEF_CFLAGS) $(VCFLAGS)
 CXX_PARAMS = $($(TMD)CPU_CXXFLAGS) $(CMN_PARAMS) $(DEF_CXXFLAGS) $(VCXXFLAGS)
 
 # C/C++ compilers for each variant of EXE,DLL,LIB
@@ -237,9 +237,9 @@ endif # !NO_PCH
 $(call define_prepend,DEFINE_C_APP_EVAL,$$(eval $$(UNIX_MOD_AUX_APP)))
 
 # protect variables from modifications in target makefiles
-$(call SET_GLOBAL,CROSS_PREFIX CC CXX AR TCC TCXX TAR PIC_COPTION PIE_COPTION PIE_LOPTION \
-  DLL_EXPORTS_DEFINE DLL_IMPORTS_DEFINE LDFLAGS CMN_LDFLAGS EXE_LDFLAGS DLL_LDFLAGS ARFLAGS CFLAGS CXXFLAGS \
-  CPU_CFLAGS CPU_CXXFLAGS TLDFLAGS TARFLAGS TCFLAGS TCXXFLAGS TCPU_CFLAGS TCPU_CXXFLAGS GET_LINKER PIPE_OPTION \
-  WLPREFIX MK_RPATH_OPTION RPATH_LINK MK_RPATH_LINK_OPTION BSTATIC_OPTION BDYNAMIC_OPTION CMN_LIBS \
-  MK_MAP_OPTION MK_SONAME_OPTION EXE_LD DLL_LD LIB_LD AUTO_DEPS_FLAGS CMN_CFLAGS DEF_CFLAGS DEF_CXXFLAGS \
+$(call SET_GLOBAL,CROSS_PREFIX CC CXX AR TCC TCXX TAR CFLAGS CXXFLAGS CPU_CFLAGS CPU_CXXFLAGS ARFLAGS LDFLAGS \
+  TCFLAGS TCXXFLAGS TCPU_CFLAGS TCPU_CXXFLAGS TARFLAGS TLDFLAGS PIC_COPTION PIE_COPTION PIE_LOPTION \
+  GET_LINKER PIPE_OPTION WLPREFIX MK_RPATH_OPTION RPATH_LINK MK_RPATH_LINK_OPTION BSTATIC_OPTION BDYNAMIC_OPTION \
+  CMN_LDFLAGS DEF_EXE_LDFLAGS DEF_DLL_LDFLAGS CMN_LIBS MK_MAP_OPTION MK_SONAME_OPTION \
+  EXE_LD DLL_LD LIB_LD AUTO_DEPS_FLAGS CMN_CFLAGS DEF_CFLAGS DEF_CXXFLAGS \
   CMN_PARAMS CC_PARAMS CXX_PARAMS OBJ_CC OBJ_CXX PCH_CC PCH_CXX)

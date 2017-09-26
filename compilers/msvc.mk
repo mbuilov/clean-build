@@ -40,7 +40,7 @@ $(call try_make_simple,C_PREPARE_APP_VARS,C_PREPARE_MSVC_APP_VARS)
 #---------------------------------------------------------------------------------
 # version _MSC_VER        name         C++ compiler default installation path
 #---------------------------------------------------------------------------------
-#  6.0     1200    Visual Studio 6.0   Microsoft Visual Studio\VC98\cl.exe
+#  6.0     1200    Visual Studio 6.0   Microsoft Visual Studio\VC98\Bin\cl.exe
 #  7.0     1300    Visual Studio 2002  Microsoft Visual Studio .NET\VC7\bin\cl.exe
 #  7.1     1310    Visual Studio 2003  Microsoft Visual Studio .NET 2003\VC7\bin\cl.exe
 #  8.0     1400    Visual Studio 2005  Microsoft Visual Studio 8\VC\bin\cl.exe
@@ -65,74 +65,13 @@ VSINCLUDE = $(error VSINCLUDE is not defined - paths to Visual Studio headers, s
 UMLIBPATH = $(error UMLIBPATH is not defined - paths to user-mode libraries, spaces must be replaced with ?)
 UMINCLUDE = $(error UMINCLUDE is not defined - paths to user-mode headers, spaces must be replaced with ?)
 
-# supported non-regular target variants:
-# (R - dynamically linked multi-threaded libc - default variant)
-# S - statically linked multi-threaded libc
-# RU - same as R, but with unicode support
-# SU - same as S, but with unicode support
-WIN_SUPPORTED_VARIANTS := S RU SU
-
-# for each non-regular target variant from $(WIN_NONREGULAR_VARIANTS): RU,SU,S
-WIN_VARIANT_SUFFIX := $(if $(findstring \
-  RU,$1),_u,$(if $(findstring \
-  SU,$1),_su,_s))
-
-# C/C++ complier options for each target variant: R,S,RU,SU
-WIN_VARIANT_CFLAGS = $(if $(filter S%,$1),/MT,/MD)$(if $(DEBUG),d)$(if $(filter %U,$1), /DUNICODE /D_UNICODE)
-
-# note: override defaults from $(CLEAN_BUILD_DIR)/impl/_c.mk
-EXE_SUPPORTED_VARIANTS = $(WIN_SUPPORTED_VARIANTS)
-LIB_SUPPORTED_VARIANTS = $(WIN_SUPPORTED_VARIANTS)
-DLL_SUPPORTED_VARIANTS = $(WIN_SUPPORTED_VARIANTS)
-
-# note: override defaults from $(CLEAN_BUILD_DIR)/impl/_c.mk
-EXE_VARIANT_SUFFIX = $(WIN_VARIANT_SUFFIX)
-LIB_VARIANT_SUFFIX = $(WIN_VARIANT_SUFFIX)
-DLL_VARIANT_SUFFIX = $(WIN_VARIANT_SUFFIX)
-
-# note: override defaults from $(CLEAN_BUILD_DIR)/impl/_c.mk
-EXE_VARIANT_CFLAGS   = $(WIN_VARIANT_CFLAGS)
-EXE_VARIANT_CXXFLAGS = $(EXE_VARIANT_CFLAGS)
-
-# note: override defaults from $(CLEAN_BUILD_DIR)/impl/_c.mk
-LIB_VARIANT_CFLAGS   = $(WIN_VARIANT_CFLAGS)
-LIB_VARIANT_CXXFLAGS = $(LIB_VARIANT_CFLAGS)
-
-# note: override defaults from $(CLEAN_BUILD_DIR)/impl/_c.mk
-DLL_VARIANT_CFLAGS   = $(WIN_VARIANT_CFLAGS)
-DLL_VARIANT_CXXFLAGS = $(DLL_VARIANT_CFLAGS)
-
-# determine which variant of static library to link with EXE or DLL
-# $1 - target: EXE,DLL
-# $2 - variant of target EXE or DLL: R,S,RU or SU, if empty, then assume R
-# $3 - dependency name, e.g. mylib
-# note: override defaults from $(CLEAN_BUILD_DIR)/impl/_c.mk
-# note: use the same variant of dependent static library as target EXE or DLL (for example for S-EXE use S-LIB)
-# note: unicode variants of the target EXE or DLL may link with two kinds of libraries:
-#  1) with unicode support - name begins with UNI_ prefix, normally built in 2 variants, e.g. UNI_mylib.lib and UNI_mylib_u.lib
-#  2) without unicode support - name do not begin with UNI_ prefix, normally built in 1 variant, e.g. mylib.lib
-#  so, for RU or SU variant of target EXE or DLL, if dependent library name do not starts with UNI_ prefix
-#  - dependent library do not have unicode variant, so convert needed variant to non-unicode one: RU->R or SU->S
-LIB_DEP_MAP = $(if $(3:UNI_%=),$(2:U=),$2)
-
-# same for dependent dynamic library (via it's import library)
-DLL_DEP_MAP = $(if $(3:UNI_%=),$(2:U=),$2)
-
 # how to mark symbols exported from a DLL
+# note: override definition in $(CLEAN_BUILD_DIR)/impl/_c.mk
 DLL_EXPORTS_DEFINE := __declspec(dllexport)
 
 # how to mark symbols imported from a DLL
+# note: override definition in $(CLEAN_BUILD_DIR)/impl/_c.mk
 DLL_IMPORTS_DEFINE := __declspec(dllimport)
-
-# user-modifiable link.exe flags for linking executables and shared libraries
-# note: may be taken from the environment in project configuration makefile
-# /DEBUG   - generate debug info (in separate .pdb)
-# /RELEASE - set the checksum in PE-header
-LDFLAGS := $(if $(DEBUG),/DEBUG,/RELEASE)
-
-# lib.exe flags for linking a LIB
-# note: may be taken from the environment in project configuration makefile
-ARFLAGS:=
 
 # /MP compiler option was introduced in Visual Studio 2008
 ifneq (,$(call is_less,$(VS_VER),9))
@@ -140,7 +79,8 @@ ifneq (,$(call is_less,$(VS_VER),9))
 SEQ_BUILD := 1
 endif
 
-# user-modifiable C compiler flags
+# default values of user-defined C compiler flags
+# note: may be taken from the environment in project configuration makefile
 # /MP option - compile all sources of a module at once
 # /W3 - warning level 3
 CFLAGS := $(if $(SEQ_BUILD),,/MP) /W3
@@ -203,22 +143,97 @@ ifneq (,$(call is_less,6,$(VS_VER)))
 # /GS - buffer security check
 # /GL - whole program optimization, linker must be invoked with /LTCG
 CFLAGS += /GS- /GL
-
-# /LTCG - link-time code generation
-LDFLAGS += /LTCG
-ARFLAGS += /LTCG
 endif
 
 endif # !DEBUG
 
-# user-modifiable C++ compiler flags
-CXXFLAGS := $(CFLAGS)
+ifneq (,$(call is_less,7,$(VS_VER)))
+# >= Visual Studio 2005
+# /errorReport - report internal compiler errors
+CFLAGS += /errorReport:none
+endif
+
+# default values of user-defined C++ compiler flags
+# /Gm - enable minimal rebuild
+CXXFLAGS := $(CFLAGS) /Gm-
+
+# /GR - enable run-time type information
+CFLAGS += /GR-
+
+# lib.exe flags for linking a LIB
+# /LTCG - link-time code generation (for RELEASE)
+# note: may be taken from the environment in project configuration makefile
+ARFLAGS := $(if $(DEBUG),,$(if $(filter /GL,$(CFLAGS)),/LTCG))
+
+# default values of user-defined link.exe flags for linking executables and shared libraries
+# note: may be taken from the environment in project configuration makefile
+# /DEBUG   - generate debug info (in separate .pdb)
+# /RELEASE - set the checksum in PE-header
+# /LTCG    - link-time code generation (for RELEASE)
+LDFLAGS := $(if $(DEBUG),/DEBUG,/RELEASE$(if $(filter /GL,$(CFLAGS)), /LTCG))
 
 # flags for the tool mode
-TLDFLAGS  := $(LDFLAGS)
-TARFLAGS  := $(ARFLAGS)
 TCFLAGS   := $(CFLAGS)
 TCXXFLAGS := $(CXXFLAGS)
+TARFLAGS  := $(ARFLAGS)
+TLDFLAGS  := $(LDFLAGS)
+
+
+
+
+
+# supported non-regular target variants:
+# (R - dynamically linked multi-threaded libc - default variant)
+# S - statically linked multi-threaded libc
+# RU - same as R, but with unicode support
+# SU - same as S, but with unicode support
+WIN_SUPPORTED_VARIANTS := S RU SU
+
+# for each non-regular target variant from $(WIN_NONREGULAR_VARIANTS): RU,SU,S
+WIN_VARIANT_SUFFIX := $(if $(findstring \
+  RU,$1),_u,$(if $(findstring \
+  SU,$1),_su,_s))
+
+# C/C++ compiler options for each target variant: R,S,RU,SU
+WIN_VARIANT_CFLAGS = $(if $(filter S%,$1),/MT,/MD)$(if $(DEBUG),d)$(if $(filter %U,$1), /DUNICODE /D_UNICODE)
+
+# note: override defaults from $(CLEAN_BUILD_DIR)/impl/_c.mk
+EXE_SUPPORTED_VARIANTS = $(WIN_SUPPORTED_VARIANTS)
+LIB_SUPPORTED_VARIANTS = $(WIN_SUPPORTED_VARIANTS)
+DLL_SUPPORTED_VARIANTS = $(WIN_SUPPORTED_VARIANTS)
+
+# note: override defaults from $(CLEAN_BUILD_DIR)/impl/_c.mk
+EXE_VARIANT_SUFFIX = $(WIN_VARIANT_SUFFIX)
+LIB_VARIANT_SUFFIX = $(WIN_VARIANT_SUFFIX)
+DLL_VARIANT_SUFFIX = $(WIN_VARIANT_SUFFIX)
+
+# note: override defaults from $(CLEAN_BUILD_DIR)/impl/_c.mk
+EXE_VARIANT_CFLAGS   = $(WIN_VARIANT_CFLAGS)
+EXE_VARIANT_CXXFLAGS = $(EXE_VARIANT_CFLAGS)
+
+# note: override defaults from $(CLEAN_BUILD_DIR)/impl/_c.mk
+LIB_VARIANT_CFLAGS   = $(WIN_VARIANT_CFLAGS)
+LIB_VARIANT_CXXFLAGS = $(LIB_VARIANT_CFLAGS)
+
+# note: override defaults from $(CLEAN_BUILD_DIR)/impl/_c.mk
+DLL_VARIANT_CFLAGS   = $(WIN_VARIANT_CFLAGS)
+DLL_VARIANT_CXXFLAGS = $(DLL_VARIANT_CFLAGS)
+
+# determine which variant of static library to link with EXE or DLL
+# $1 - target: EXE,DLL
+# $2 - variant of target EXE or DLL: R,S,RU or SU, if empty, then assume R
+# $3 - dependency name, e.g. mylib
+# note: override defaults from $(CLEAN_BUILD_DIR)/impl/_c.mk
+# note: use the same variant of dependent static library as target EXE or DLL (for example for S-EXE use S-LIB)
+# note: unicode variants of the target EXE or DLL may link with two kinds of libraries:
+#  1) with unicode support - name begins with UNI_ prefix, normally built in 2 variants, e.g. UNI_mylib.lib and UNI_mylib_u.lib
+#  2) without unicode support - name do not begin with UNI_ prefix, normally built in 1 variant, e.g. mylib.lib
+#  so, for RU or SU variant of target EXE or DLL, if dependent library name do not starts with UNI_ prefix
+#  - dependent library do not have unicode variant, so convert needed variant to non-unicode one: RU->R or SU->S
+LIB_DEP_MAP = $(if $(3:UNI_%=),$(2:U=),$2)
+
+# same for dependent dynamic library (via it's import library)
+DLL_DEP_MAP = $(if $(3:UNI_%=),$(2:U=),$2)
 
 # make version string: major.minor.patch -> major.minor
 # target-specific: MODVER
@@ -252,11 +267,11 @@ APPLIBPATH := $(VSLIBPATH) $(UMLIBPATH)
 # common link.exe flags for linking executables and dynamic libraries
 CMN_LDFLAGS := /INCREMENTAL:NO $(call qpath,$(APPLIBPATH),/LIBPATH:)
 
-# link.exe flags for linking an EXE
-EXE_LDFLAGS:=
+# default link.exe flags for linking an EXE
+DEF_EXE_LDFLAGS := $(CMN_LDFLAGS)
 
-# link.exe flags for linking a DLL
-DLL_LDFLAGS := /DLL
+# default link.exe flags for linking a DLL
+DEF_DLL_LDFLAGS := /DLL $(CMN_LDFLAGS)
 
 # common linker options for EXE or DLL
 # $1 - path to target EXE or DLL
@@ -266,7 +281,7 @@ DLL_LDFLAGS := /DLL
 # target-specific: RES, IMP, DEF, LIBS, DLLS, LIB_DIR
 CMN_LIBS = /nologo /OUT:$(call ospath,$1 $2 $(RES)) $(VERSION_OPTION) $(SUBSYSTEM_OPTION) $(MANIFEST_EMBED_OPTION) $(addprefix \
   /IMPLIB:,$(call ospath,$(IMP))) $(addprefix /DEF:,$(call ospath,$(DEF))) $(if $(firstword $(LIBS)$(DLLS)),/LIBPATH:$(call \
-  ospath,$(LIB_DIR)) $(call DEP_LIBS,$3,$4) $(call DEP_IMPS,$3,$4)) $(CMN_LDFLAGS)
+  ospath,$(LIB_DIR)) $(call DEP_LIBS,$3,$4) $(call DEP_IMPS,$3,$4))
 
 # regular expression string to match diagnostic linker message to strip-off
 # default value, may be overridden either in project configuration makefile or in command line
@@ -366,8 +381,8 @@ CHECK_EXP_CREATED = $(if $(IMP),$(newline)$(QUIET)if not exist $(call ospath,$(L
 # target-specific: TMD, VLDFLAGS
 # note: used by EXE_TEMPLATE and DLL_TEMPLATE from $(CLEAN_BUILD_DIR)/impl/_c.mk
 # note: link.exe will not delete generated manifest file if failed to build target exe/dll, e.g. because of invalid DEF file
-EXE_LD = $(call SUP,$(TMD)EXE,$1)$(call WRAP_LINKER,$($(TMD)VSLINK) $(CMN_LIBS) $(EXE_LDFLAGS) $(VLDFLAGS))$(CHECK_EXP_CREATED)
-DLL_LD = $(call CHECK_LIB_UNI_NAME $(call SUP,$(TMD)DLL,$1)$(call WRAP_LINKER,$($(TMD)VSLINK) $(CMN_LIBS) $(DLL_LDFLAGS) $(VLDFLAGS))$(CHECK_EXP_CREATED)
+EXE_LD = $(call SUP,$(TMD)EXE,$1)$(call WRAP_LINKER,$($(TMD)VSLINK) $(CMN_LIBS) $(DEF_EXE_LDFLAGS) $(VLDFLAGS))$(CHECK_EXP_CREATED)
+DLL_LD = $(call CHECK_LIB_UNI_NAME $(call SUP,$(TMD)DLL,$1)$(call WRAP_LINKER,$($(TMD)VSLINK) $(CMN_LIBS) $(DEF_DLL_LDFLAGS) $(VLDFLAGS))$(CHECK_EXP_CREATED)
 
 # manifest embedding
 # $1 - path to target EXE or DLL
@@ -1409,3 +1424,70 @@ $(call CLEAN_BUILD_PROTECT_VARS,MCL_MAX_COUNT SEQ_BUILD YASMC FLEXC BISONC YASM_
   ADD_MC_RULE1 ADD_MC_RULE ADD_RES_RULE2 ADD_RES_RULE1 ADD_RES_RULE RC_DEFINE_PATH \
   DRV_TEMPLATE=t;DRV;LIB_DIR;KLIBS;KDLLS;SYSLIBS;SYSLIBPATH KDLL_TEMPLATE DRV_AUX_TEMPLATE2 KDLL_AUX_TEMPLATE2 \
   DRV_AUX_TEMPLATEv KDLL_AUX_TEMPLATEv DRV_AUX_TEMPLATE KDLL_AUX_TEMPLATE)
+
+cmd /S /C \"\"C:\\Program Files (x86)\\Microsoft Visual Studio\\2017\\Community\\VC\\Auxiliary\\Build\\vcvars32.bat\" &&
+cd \"%current_folder%\"
+cl.exe file.c
+/GS-
+/analyze-
+/W3
+/Gy
+/Zc:wchar_t
+/Gm-
+/Od
+/Zc:inline
+/fp:precise
+/D \"WIN32\"
+/D \"_WINDOWS\"
+/D \"_UNICODE\"
+/D \"UNICODE\"
+/errorReport:prompt
+/WX-
+/Zc:forScope
+/Gd
+/Oy-
+/Oi
+/MD
+/Fa\"\"
+/EHsc
+/nologo
+/Fo\"\"
+/Fp\"\"
+/diagnostics:classic
+/link
+/ENTRY:wWinMain
+/SUBSYSTEM:WINDOWS
+/MANIFEST:EMBED
+/NXCOMPAT
+/DYNAMICBASE
+\"kernel32.lib\"
+\"user32.lib\"
+\"gdi32.lib\"
+\"winspool.lib\"
+\"comdlg32.lib\"
+\"advapi32.lib\"
+\"shell32.lib\"
+\"ole32.lib\"
+\"oleaut32.lib\"
+\"uuid.lib\"
+\"odbc32.lib\"
+\"odbccp32.lib\"
+/DEBUG:NONE
+/MACHINE:%arch%
+/OPT:REF
+/SAFESEH
+/INCREMENTAL:NO
+/SUBSYSTEM:WINDOWS
+/MANIFESTUAC:\"level = 'asInvoker' uiAccess = 'false'\"
+/OPT:ICF
+/ERRORREPORT:PROMPT
+/NOLOGO
+/TLBID:1\"
+
+rel:
+/GS /GL /analyze- /W3 /Gy /Zc:wchar_t /Zi /Gm- /O2 /Fd"Release\vc140.pdb" /Zc:inline /fp:precise /D "WIN32" /D "NDEBUG" /D "_CONSOLE" /D "_UNICODE" /D "UNICODE" /errorReport:prompt /WX- /Zc:forScope /Gd /Oy- /Oi /MD /Fa"Release\" /EHsc /nologo /Fo"Release\" /Fp"Release\ConsoleApplication2.pch"
+
+deb:
+/GS /analyze- /W3 /Zc:wchar_t /ZI /Gm /Od /Fd"Debug\vc140.pdb" /Zc:inline /fp:precise /D "WIN32" /D "_DEBUG" /D "_CONSOLE" /D "_UNICODE" /D "UNICODE" /errorReport:prompt /WX- /Zc:forScope /RTC1 /Gd /Oy- /MDd /Fa"Debug\" /EHsc /nologo /Fo"Debug\" /Fp"Debug\ConsoleApplication2.pch"
+
+
