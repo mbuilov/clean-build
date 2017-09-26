@@ -16,11 +16,11 @@ $(error cygwin gnu make is used for WINDOWS build - this configuration is not su
  for example, under cygwin start build with: /cygdrive/c/tools/gnumake-4.2.1.exe SED=C:/tools/sed.exe <args>)
 endif
 
-# Windows needs TMP, PATHEXT, SYSTEMROOT and COMSPEC variables to be defined in environment of called executables
+# Windows programs need at least these variables to be defined in environment
 WIN_REQUIRED_VARS := TMP PATHEXT SYSTEMROOT COMSPEC
 
 # note: assume variable name cannot contain = character
-WIN_EXPORTED := $(filter $(WIN_REQUIRED_VARS:=%),$(join \
+WIN_EXPORTED := $(filter $(WIN_REQUIRED_VARS:==%),$(join \
   $(addsuffix =,$(call toupper,$(.VARIABLES))),$(.VARIABLES)))
 
 #      if SYSTEMROOT is defined, define SystemRoot = $(value SYSTEMROOT)
@@ -41,7 +41,7 @@ $(foreach t,TMP PATHEXT SYSTEMROOT COMSPEC,\
 WIN_EXPORTED := $(sort $(subst =, ,$(WIN_EXPORTED)))
 export $(WIN_EXPORTED)
 
-# shell must be cmd.exe, not /bin/sh if building under cygwin
+# shell must be cmd.exe, not /bin/sh if build was started under Cygwin
 ifneq (cmd.exe,$(notdir $(SHELL)))
 ifneq (undefined,$(origin COMSPEC))
 override SHELL := $(COMSPEC)
@@ -60,16 +60,18 @@ conf: override CONFIG_TEXT += $(foreach v,SHELL $(WIN_EXPORTED),$(OVERRIDE_VAR_T
 endif
 endif
 
-# strip off cygwin paths - to use only native windows tools
-# for example, sed.exe from cygwin handles quotes in format string differently than C:/GnuWin32/bin/sed.exe
+# strip off Cygwin paths - to use only native windows tools
+# for example, sed.exe from Cygwin handles quotes in format string differently than C:/GnuWin32/bin/sed.exe
+# note: Cygwin paths may look like: C:\cygwin64\usr\local\bin;C:\cygwin64\bin
+# note: assume paths separated with ; and there is no ; inside paths
 override PATH := $(subst ?, ,$(subst $(space),;,$(strip $(foreach p,$(subst \
   ;, ,$(subst $(space),?,$(PATH))),$(if $(findstring cygwin,$p),,$p)))))
 
 # print prepared environment in verbose mode
 ifdef VERBOSE
 $(info setlocal$(newline)FOR /F "delims==" %%V IN ('SET') DO $(foreach \
-  x,PATH TMP PATHEXT SYSTEMROOT COMSPEC $(PASS_ENV_VARS),IF /I NOT "$x"=="%%V") SET "%%V="$(foreach \
-  v,PATH $(filter TMP PATHEXT SYSTEMROOT COMSPEC,$(WIN_EXPORTED)) $(PASS_ENV_VARS),$(newline)SET "$v=$($v)"))
+  x,PATH $(WIN_REQUIRED_VARS) $(PASS_ENV_VARS),IF /I NOT "$x"=="%%V") SET "%%V="$(foreach \
+  v,PATH $(filter $(WIN_REQUIRED_VARS),$(WIN_EXPORTED)) $(PASS_ENV_VARS),$(newline)SET "$v=$($v)"))
 endif
 
 # maximum command line length
@@ -240,6 +242,6 @@ endif
 FILTER_OUTPUT = (($1 2>&1 && echo OK>&2)$2)3>&2 2>&1 1>&3|findstr /BC:OK>NUL
 
 # protect variables from modifications in target makefiles
-$(call CLEAN_BUILD_PROTECT_VARS,WIN_REQUIRED_VARS WIN_EXPORTED $(sort TMP PATHEXT SYSTEMROOT COMSPEC $(WIN_EXPORTED)) \
+$(call CLEAN_BUILD_PROTECT_VARS,WIN_REQUIRED_VARS WIN_EXPORTED $(sort $(WIN_REQUIRED_VARS) $(WIN_EXPORTED)) \
   PATH DEL_ARGS_LIMIT nonrelpath1 DEL DEL_DIR RM1 RM MKDIR CMP SHELL_ESCAPE UNQUOTED_ESCAPE SED SED_EXPR \
   CAT ECHO_LINE ECHO_LINES ECHO WRITE NUL SUPPRESS_CP_OUTPUT SUPPRESS_MV_OUTPUT CP MV TOUCH EXECIN DEL_ON_FAIL NO_RPATH FILTER_OUTPUT)
