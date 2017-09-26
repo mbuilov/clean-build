@@ -16,9 +16,11 @@ $(error cygwin gnu make is used for WINDOWS build - this configuration is not su
  for example, under cygwin start build with: /cygdrive/c/tools/gnumake-4.2.1.exe SED=C:/tools/sed.exe <args>)
 endif
 
-# Windows needs TMP, PATHEXT, SYSTEMROOT and COMSPEC variables to be defined in environment of calling executables
+# Windows needs TMP, PATHEXT, SYSTEMROOT and COMSPEC variables to be defined in environment of called executables
+WIN_REQUIRED_VARS := TMP PATHEXT SYSTEMROOT COMSPEC
+
 # note: assume variable name cannot contain = character
-WIN_EXPORTED := $(filter TMP=% PATHEXT=% SYSTEMROOT=% COMSPEC=%,$(join \
+WIN_EXPORTED := $(filter $(WIN_REQUIRED_VARS:=%),$(join \
   $(addsuffix =,$(call toupper,$(.VARIABLES))),$(.VARIABLES)))
 
 #      if SYSTEMROOT is defined, define SystemRoot = $(value SYSTEMROOT)
@@ -238,6 +240,6 @@ endif
 FILTER_OUTPUT = (($1 2>&1 && echo OK>&2)$2)3>&2 2>&1 1>&3|findstr /BC:OK>NUL
 
 # protect variables from modifications in target makefiles
-$(call CLEAN_BUILD_PROTECT_VARS,WIN_EXPORTED $(sort TMP PATHEXT SYSTEMROOT COMSPEC $(WIN_EXPORTED)) \
+$(call CLEAN_BUILD_PROTECT_VARS,WIN_REQUIRED_VARS WIN_EXPORTED $(sort TMP PATHEXT SYSTEMROOT COMSPEC $(WIN_EXPORTED)) \
   PATH DEL_ARGS_LIMIT nonrelpath1 DEL DEL_DIR RM1 RM MKDIR CMP SHELL_ESCAPE UNQUOTED_ESCAPE SED SED_EXPR \
   CAT ECHO_LINE ECHO_LINES ECHO WRITE NUL SUPPRESS_CP_OUTPUT SUPPRESS_MV_OUTPUT CP MV TOUCH EXECIN DEL_ON_FAIL NO_RPATH FILTER_OUTPUT)
