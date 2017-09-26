@@ -17,9 +17,11 @@ $(error Cygwin version of Gnu Make is used with cmd.exe shell - this configurati
  /cygdrive/c/tools/gnumake-4.2.1.exe SED=C:/tools/sed.exe <args>)
 endif
 
-# Windows programs need TMP, PATHEXT, SYSTEMROOT and COMSPEC variables to be defined in environment
+# Windows programs need at least these variables to be defined in environment
+WIN_REQUIRED_VARS := TMP PATHEXT SYSTEMROOT COMSPEC
+
 # note: assume variable name cannot contain = character
-WIN_EXPORTED := $(filter TMP=% PATHEXT=% SYSTEMROOT=% COMSPEC=%,$(join \
+WIN_EXPORTED := $(filter $(WIN_REQUIRED_VARS:==%),$(join \
   $(addsuffix =,$(call toupper,$(.VARIABLES))),$(.VARIABLES)))
 
 #      if SYSTEMROOT is defined, define SystemRoot = $(value SYSTEMROOT)
@@ -69,8 +71,8 @@ override PATH := $(call tospaces,$(subst $(space),;,$(strip $(foreach p,$(subst 
 
 # print prepared environment in verbose mode (used for generating one-big-build instructions batch file)
 PRINT_ENV = $(info setlocal$(newline)FOR /F "delims==" %%V IN ('SET') DO $(foreach \
-  x,PATH TMP PATHEXT SYSTEMROOT COMSPEC $(PASS_ENV_VARS),IF /I NOT "$x"=="%%V") SET "%%V="$(foreach \
-  v,PATH $(filter TMP PATHEXT SYSTEMROOT COMSPEC,$(WIN_EXPORTED)) $(PASS_ENV_VARS),$(newline)SET "$v=$($v)"))
+  x,PATH $(WIN_REQUIRED_VARS) $(PASS_ENV_VARS),IF /I NOT "$x"=="%%V") SET "%%V="$(foreach \
+  v,PATH $(filter $(WIN_REQUIRED_VARS),$(WIN_EXPORTED)) $(PASS_ENV_VARS),$(newline)SET "$v=$($v)"))
 
 # command line length of cmd.exe is limited:
 # for Windows 95   - 127 chars;
@@ -287,12 +289,12 @@ FILTER_OUTPUT = (($1 2>&1 && echo OK>&2)$2)3>&2 2>&1 1>&3|findstr /BC:OK>NUL
 
 # protect variables from modifications in target makefiles
 # note: do not trace calls to these variables because they are either exported or used in ifdefs
-$(call SET_GLOBAL,$(sort TMP PATHEXT SYSTEMROOT COMSPEC $(WIN_EXPORTED)) PATH NO_RPATH,0)
+$(call SET_GLOBAL,$(sort $(WIN_REQUIRED_VARS) $(WIN_EXPORTED)) PATH NO_RPATH,0)
 
 # protect variables from modifications in target makefiles
 # note: caller will protect variables: MAKEFLAGS SHELL PATH ospath nonrelpath1 nonrelpath
 #  TOOL_SUFFIX PATHSEP DLL_PATH_VAR show_tool_vars, show_tool_vars_end, PRINT_PERCENTS, COLORIZE
-$(call SET_GLOBAL,WIN_EXPORTED PRINT_ENV PATH_ARGS_LIMIT nonrelpath1 NUL DELETE_FILES DELETE_DIRS TRY_DELETE_DIRS \
+$(call SET_GLOBAL,WIN_REQUIRED_VARS WIN_EXPORTED PRINT_ENV PATH_ARGS_LIMIT nonrelpath1 NUL DELETE_FILES DELETE_DIRS TRY_DELETE_DIRS \
   DELETE_FILES_IN1 DELETE_FILES_IN DEL_FILES_OR_DIRS1 DEL_FILES_OR_DIRS SUPPRESS_COPY_OUTPUT SUPPRESS_MOVE_OUTPUT \
   COPY_FILES1 COPY_FILES MOVE_FILES1 MOVE_FILES TOUCH_FILES1 TOUCH_FILES CREATE_DIR COMPARE_FILES SHELL_ESCAPE SED SED_EXPR \
   CAT_FILE ECHO_LINE_ESCAPE ECHO_LINE ECHO_LINES ECHO_TEXT WRITE_TEXT CREATE_SIMLINK CHANGE_MODE \
