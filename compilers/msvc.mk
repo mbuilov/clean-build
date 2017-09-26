@@ -57,11 +57,11 @@ $(call try_make_simple,C_PREPARE_APP_VARS,C_PREPARE_MSVC_APP_VARS)
 VS_VER := 6
 
 # paths compiler/linker and system libraries/headers - must be defined in project configuration makefile
-VSLIBPATH = $(error VSLIBPATH is not defined - paths to Visual Studio libraries, spaces must be replaced with ?)
-VSINCLUDE = $(error VSINCLUDE is not defined - paths to Visual Studio headers, spaces must be replaced with ?)
 VSCL      = $(error VSCL is not defined - path to cl.exe, should be in double-quotes if contains spaces)
 VSLIB     = $(error VSLIB is not defined - path to lib.exe, should be in double-quotes if contains spaces)
 VSLINK    = $(error VSLINK is not defined - path to link.exe, should be in double-quotes if contains spaces)
+VSLIBPATH = $(error VSLIBPATH is not defined - paths to Visual Studio libraries, spaces must be replaced with ?)
+VSINCLUDE = $(error VSINCLUDE is not defined - paths to Visual Studio headers, spaces must be replaced with ?)
 UMLIBPATH = $(error UMLIBPATH is not defined - paths to user-mode libraries, spaces must be replaced with ?)
 UMINCLUDE = $(error UMINCLUDE is not defined - paths to user-mode headers, spaces must be replaced with ?)
 
@@ -209,6 +209,8 @@ LDFLAGS += /LTCG
 ARFLAGS += /LTCG
 endif
 
+endif # !DEBUG
+
 # user-modifiable C++ compiler flags
 CXXFLAGS := $(CFLAGS)
 
@@ -225,12 +227,12 @@ MODVER_MAJOR_MINOR = $(subst $(space),.,$(wordlist 1,2,$(subst ., ,$(MODVER)) 0 
 # version of EXE or DLL
 VERSION_OPTION = /VERSION:$(MODVER_MAJOR_MINOR)
 
+# default subsystem type: CONSOLE, WINDOWS
+SUBSYSTEM_TYPE := CONSOLE
+
 # minimum required version of the operating system
 # note: 5.01 - WinXP(x86), 5.02 - WinXP(x64)
 SUBSYSTEM_VER := $(if $(CPU:%64=),5.01,5.02)
-
-# default subsystem type: CONSOLE, WINDOWS
-SUBSYSTEM_TYPE := CONSOLE
 
 # default subsystem for EXE or DLL
 # possibly target-specific: SUBSYSTEM_TYPE, SUBSYSTEM_VER
@@ -293,6 +295,61 @@ endif
 endif
 endif
 
+# generate import library path
+# $1 - built dll name without optional variant suffix
+# $2 - built dll variant
+MAKE_IMP_PATH = $(LIB_DIR)/$(IMP_PREFIX)$1$(call LIB_VAR_SUFFIX,$2)$(IMP_SUFFIX)
+
+# for DLL or EXE that exports symbols
+# $1 - $(call FORM_TRG,$t,$v)
+# $2 - $(call fixpath,$(DEF))
+# $3 - $(call MAKE_IMP_PATH,$n,$v)
+# $t - EXE,DLL,DRV or KDLL
+# $n - $(call GET_TARGET_NAME,$t)
+ifndef TOCLEAN
+define EXPORTS_TEMPLATEn
+$1: IMP := $3
+$1: DEF := $2
+$1: $2 | $(LIB_DIR)
+NEEDED_DIRS += $(LIB_DIR)
+$3: $1
+endef
+else ifdef DEBUG
+# cleanup generated .exp file in debug
+EXPORTS_TEMPLATEn = $(call TOCLEAN,$3 $(3:$(IMP_SUFFIX)=.exp))
+else
+EXPORTS_TEMPLATEn:=
+endif
+
+# for DLL or EXE that do not exports symbols
+# $1 - $(call FORM_TRG,$t,$v)
+# $t - EXE,DLL,DRV or KDLL
+# $n - $(call GET_TARGET_NAME,$t)
+ifndef TOCLEAN
+define NO_EXPORTS_TEMPLATE
+$1: IMP:=
+$1: DEF:=
+endef
+else
+NO_EXPORTS_TEMPLATE:=
+endif
+
+# $1 - $(call FORM_TRG,$t,$v)
+# $2 - $(call fixpath,$(DEF))
+# $3 - non-<empty> if target exports symbols, <empty> - otherwise
+# $t - EXE,DLL,DRV or KDLL
+# $n - $(call GET_TARGET_NAME,$t)
+# $v - R,S
+EXPORTS_TEMPLATE = $(if $3,$(call EXPORTS_TEMPLATEn,$1,$2,$(call MAKE_IMP_PATH,$n,$v)),$(NO_EXPORTS_TEMPLATE))
+
+# check that name of library built as RU/SU variant begins with UNI_ prefix (see comments of LIB_DEP_MAP/DLL_DEP_MAP)
+# $1 - path to target LIB or IMP
+# $2 - LIB or IMP
+# $3 - non-empty variant: R,S,RU,SU
+CHECK_LIB_UNI_NAME = $(if $(filter %U,$3),$(foreach \
+  n,$(patsubst $($2_PREFIX)%$(call LIB_VARIANT_SUFFIX,$3)$($2_SUFFIX),%,$(notdir $1)),$(if \
+  $(filter-out UNI_%,$n),$(error name of library '$n' must begin with UNI_ prefix to build it as $3 variant))))
+
 # check that target exe/dll exports symbols - linker has created .exp file
 # $1 - path to target EXE or DLL
 # note: if EXE do not exports symbols (as usual), do not set in target makefile EXE_EXPORTS (empty by default)
@@ -310,7 +367,7 @@ CHECK_EXP_CREATED = $(if $(IMP),$(newline)$(QUIET)if not exist $(call ospath,$(L
 # note: used by EXE_TEMPLATE and DLL_TEMPLATE from $(CLEAN_BUILD_DIR)/impl/_c.mk
 # note: link.exe will not delete generated manifest file if failed to build target exe/dll, e.g. because of invalid DEF file
 EXE_LD = $(call SUP,$(TMD)EXE,$1)$(call WRAP_LINKER,$($(TMD)VSLINK) $(CMN_LIBS) $(EXE_LDFLAGS) $(VLDFLAGS))$(CHECK_EXP_CREATED)
-DLL_LD = $(call SUP,$(TMD)DLL,$1)$(call WRAP_LINKER,$($(TMD)VSLINK) $(CMN_LIBS) $(DLL_LDFLAGS) $(VLDFLAGS))$(CHECK_EXP_CREATED)
+DLL_LD = $(call CHECK_LIB_UNI_NAME $(call SUP,$(TMD)DLL,$1)$(call WRAP_LINKER,$($(TMD)VSLINK) $(CMN_LIBS) $(DLL_LDFLAGS) $(VLDFLAGS))$(CHECK_EXP_CREATED)
 
 # manifest embedding
 # $1 - path to target EXE or DLL
@@ -333,7 +390,7 @@ endif
 # $3 - target: LIB
 # $4 - non-empty variant: R,S,RU,SU
 # target-specific: TMD
-LIB_LD = $(call SUP,$(TMD)LIB,$1)$($(TMD)VSLIB) /nologo /OUT:$(call ospath,$1 $2) $($(TMD)ARFLAGS)
+LIB_LD = $(call CHECK_LIB_UNI_NAME,$1,LIB,$4)$(call SUP,$(TMD)LIB,$1)$($(TMD)VSLIB) /nologo /OUT:$(call ospath,$1 $2) $($(TMD)ARFLAGS)
 
 # note: send output to stderr in VERBOSE mode, this is needed for build script generation
 ifdef VERBOSE
@@ -400,26 +457,42 @@ DEF_CXXFLAGS := $(CMN_CFLAGS)
 # note: override default implementation from $(CLEAN_BUILD_DIR)/impl/c_base.mk
 MK_INCLUDE_OPTION = $(addprefix /I,$(ospath))
 
+# make compiler options string to specify defines
+# note: override default implementation from $(CLEAN_BUILD_DIR)/impl/c_base.mk
+MK_DEFINES_OPTION1 = $(addprefix /D,$1)
+
 # common options for application-level C/C++ compilers
-# $1 - target object file
-# $2 - source(s)
+# $1 - outdir/
+# $2 - sources
+# $3 - target: EXE,DLL,LIB
+# $4 - non-empty variant: R,S,RU,SU
 # target-specific: VDEFINES, VINCLUDE
 CMN_PARAMS = /nologo /c /Fo$(ospath) /Fd$(ospath) $(call ospath,$2) $(VDEFINES) $(VINCLUDE)
 
+# parameters of application-level C and C++ compilers
+# $1 - outdir/
+# $2 - sources
+# $3 - target: EXE,DLL,LIB
+# $4 - non-empty variant: R,S,RU,SU
+# target-specific: TMD, VCFLAGS, VCXXFLAGS
+CC_PARAMS = $(CMN_PARAMS) $(DEF_CFLAGS) $(VCFLAGS)
+CXX_PARAMS = $(CMN_PARAMS) $(DEF_CXXFLAGS) $(VCXXFLAGS)
+
+# C/C++ compilers for each variant of EXE,DLL,LIB
+# $1 - target object file
+# $2 - source
+# $3 - target: EXE,DLL,LIB
+# $4 - non-empty variant: R,S,RU,SU
+# target-specific: TMD
+# note: used by OBJ_RULES_BODY macro from $(CLEAN_BUILD_DIR)/impl/c_base.mk
+OBJ_CC  = $(call SUP,$(TMD)CC,$2)$(VSCL) $(call CC_PARAMS,$(dir $1),$2,$3,$4)
+OBJ_CXX = $(call SUP,$(TMD)CXX,$2)$(VSCL) $(call CXX_PARAMS,$(dir $1),$2,$3,$4)
 
 
 
 
 
 ??????????
-
-
-
-
-
-
-# application-level defines
-APP_DEFINES:=
 
 # call C compiler
 # $1 - outdir/
@@ -439,23 +512,6 @@ CMN_RUCL = $(CMN_RCL) /DUNICODE /D_UNICODE
 CMN_SUCL = $(CMN_SCL) /DUNICODE /D_UNICODE
 
 
-
-
-
-
-
-
-# check that library name built as RU/SU variant begins with UNI_ prefix
-# $1 - library name
-# $v - variant name: RU,SU
-CHECK_LIB_UNI_NAME1 = $(if $(filter-out UNI_%,$1),$(error library '$1' name must begin with UNI_ prefix to build it as $v variant))
-
-# check that library name built as RU/SU variant begins with UNI_ prefix
-# $1 - IMP or LIB
-# $v - variant name: R,S,RU,SU
-# note: $$1 - target library name
-CHECK_LIB_UNI_NAME = $(if $(filter %U,$v),$$(call CHECK_LIB_UNI_NAME1,$$(patsubst \
-  %$(call LIB_VARIANT_SUFFIX,$v)$($1_SUFFIX),%,$$(notdir $$1))))
 
 
 
