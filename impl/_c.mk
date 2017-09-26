@@ -59,35 +59,28 @@ EXE_VARIANT_SUFFIX = _$1
 LIB_VARIANT_SUFFIX = _$1
 DLL_VARIANT_SUFFIX = _$1
 
-# define target variant flags, empty by default
-# $1 - variant (R or one of variants supported by selected toolchain)
-# note: used by VARIANT_INCLUDE and other VARIANT_... macros from $(CLEAN_BUILD_DIR)/impl/c_base.mk
-EXE_VARIANT_INCLUDE:=
-EXE_VARIANT_DEFINES:=
-EXE_VARIANT_CFLAGS:=
-EXE_VARIANT_CXXFLAGS:=
-EXE_VARIANT_LDFLAGS:=
-EXE_VARIANT_ASMFLAGS:=
+# C/C++ compiler and linker flags for the target
+# $1 - non-empty variant: R,P,D,S... (one of variants supported by selected toolchain)
+# $(TMD) - T in tool mode, empty otherwise
+# note: these flags should contain values of standard user-defined C/C++ compilers and linker flags, such as
+#  CFLAGS, CXXFLAGS, LDFLAGS and so on, that are normally taken from the environment (in project configuration makefile),
+#  their default values should be set in compiler-specific makefile, e.g.: $(CLEAN_BUILD_DIR)/compilers/gcc.mk.
+# note: called by TRG_CFLAGS, TRG_CXXFLAGS and TRG_LDFLAGS from $(CLEAN_BUILD_DIR)/impl/c_base.mk
+EXE_CFLAGS   = $($(TMD)CFLAGS)
+EXE_CXXFLAGS = $($(TMD)CXXFLAGS)
+EXE_LDFLAGS  = $($(TMD)LDFLAGS)
+LIB_CFLAGS   = $($(TMD)CFLAGS)
+LIB_CXXFLAGS = $($(TMD)CXXFLAGS)
+LIB_LDFLAGS  = $($(TMD)LDFLAGS)
+DLL_CFLAGS   = $($(TMD)CFLAGS)
+DLL_CXXFLAGS = $($(TMD)CXXFLAGS)
+DLL_LDFLAGS  = $($(TMD)LDFLAGS)
 
-# define target variant flags, empty by default
-# $1 - variant (R or one of variants supported by selected toolchain)
-# note: used by VARIANT_INCLUDE and other VARIANT_... macros from $(CLEAN_BUILD_DIR)/impl/c_base.mk
-LIB_VARIANT_INCLUDE:=
-LIB_VARIANT_DEFINES:=
-LIB_VARIANT_CFLAGS:=
-LIB_VARIANT_CXXFLAGS:=
-LIB_VARIANT_LDFLAGS:=
-LIB_VARIANT_ASMFLAGS:=
+# how to mark symbols exported from a DLL
+DLL_EXPORTS_DEFINE:=
 
-# define target variant flags, empty by default
-# $1 - variant (R or one of variants supported by selected toolchain)
-# note: used by VARIANT_INCLUDE and other VARIANT_... macros from $(CLEAN_BUILD_DIR)/impl/c_base.mk
-DLL_VARIANT_INCLUDE:=
-DLL_VARIANT_DEFINES:=
-DLL_VARIANT_CFLAGS:=
-DLL_VARIANT_CXXFLAGS:=
-DLL_VARIANT_LDFLAGS:=
-DLL_VARIANT_ASMFLAGS:=
+# how to mark symbols imported from a DLL
+DLL_IMPORTS_DEFINE:=
 
 # executable file suffix
 EXE_SUFFIX:=
@@ -263,10 +256,8 @@ include $(C_COMPILER_MK)
 $(call SET_GLOBAL,C_APP_TARGETS C_TARGETS \
   EXE_SUPPORTED_VARIANTS LIB_SUPPORTED_VARIANTS DLL_SUPPORTED_VARIANTS \
   EXE_VARIANT_SUFFIX LIB_VARIANT_SUFFIX DLL_VARIANT_SUFFIX \
-  EXE_VARIANT_INCLUDE EXE_VARIANT_DEFINES EXE_VARIANT_CFLAGS EXE_VARIANT_CXXFLAGS EXE_VARIANT_LDFLAGS EXE_VARIANT_ASMFLAGS \
-  LIB_VARIANT_INCLUDE LIB_VARIANT_DEFINES LIB_VARIANT_CFLAGS LIB_VARIANT_CXXFLAGS LIB_VARIANT_LDFLAGS LIB_VARIANT_ASMFLAGS \
-  DLL_VARIANT_INCLUDE DLL_VARIANT_DEFINES DLL_VARIANT_CFLAGS DLL_VARIANT_CXXFLAGS DLL_VARIANT_LDFLAGS DLL_VARIANT_ASMFLAGS \
-  EXE_SUFFIX EXE_FORM_TRG LIB_PREFIX LIB_SUFFIX LIB_FORM_TRG DLL_PREFIX DLL_SUFFIX \
+  EXE_CFLAGS EXE_CXXFLAGS EXE_LDFLAGS LIB_CFLAGS LIB_CXXFLAGS LIB_LDFLAGS DLL_CFLAGS DLL_CXXFLAGS DLL_LDFLAGS \
+  DLL_EXPORTS_DEFINE DLL_IMPORTS_DEFINE EXE_SUFFIX EXE_FORM_TRG LIB_PREFIX LIB_SUFFIX LIB_FORM_TRG DLL_PREFIX DLL_SUFFIX \
   DLL_DIR DLL_FORM_TRG LIB_DEP_MAP DLL_DEP_MAP IMP_PREFIX IMP_SUFFIX DEP_LIBS=LIBS DEP_IMPS=DLLS \
   EXE_TEMPLATE=t;v;EXE;LIB_DIR;LIBS;DLLS;SYSLIBS;SYSLIBPATH DLL_TEMPLATE=t;v;DLL LIB_TEMPLATE=t;v;LIB \
   CC_COLOR CXX_COLOR EXE_COLOR DLL_COLOR LIB_COLOR TCC_COLOR TCXX_COLOR TEXE_COLOR TDLL_COLOR TLIB_COLOR \
