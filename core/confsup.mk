@@ -55,7 +55,7 @@ CONFSUP_WRITE_BY_LINES := 10
 
 # generate configuration file
 # note: SUP - defined in $(CLEAN_BUILD_DIR)/core/_defs.mk
-# note: WRITE - defined in $(TOOLCHAINS_DIR)/utils/$(UTILS).mk
+# note: WRITE - defined in $(CLEAN_BUILD_DIR)/utils/$(UTILS).mk
 # note: pass 1 as 4-th argument of SUP function to not update percents of executed target makefiles
 # note: CONFIG_TEXT was defined above as target-specific variable
 conf:| $(patsubst %/,%,$(dir $(CONFIG)))
