@@ -55,7 +55,7 @@ $5: $9
 $(11): $(10) $9
 $(10):| $9
 $9 $(10): $2 | $8 $4 $$(ORDER_DEPS)
-	$$(if $$($7_PCH_BUILT),,$$(eval $7_PCH_BUILT:=1)$$(call PCH_$1_$7,$9,$$(PCH),$8,$v))
+	$$(if $$($7_PCH_BUILT),,$$(eval $7_PCH_BUILT:=1)$$(call PCH_$7,$9,$$(PCH),$8,$1,$v))
 $(subst $(space),$(newline),$(join $(addsuffix :|,$(11)),$(addprefix $6/,$(addsuffix $(suffix $8),$(notdir $3)))))
 
 endef

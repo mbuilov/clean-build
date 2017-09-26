@@ -49,7 +49,7 @@ $5: $7
 $(addprefix $4/,$(addsuffix $(OBJ_SUFFIX),$(basename $(notdir $3)))): $8 $7
 $8:| $7
 $7 $8: $2 | $4 $$(ORDER_DEPS)
-	$$(if $$($6_PCH_BUILT),,$$(eval $6_PCH_BUILT:=1)$$(call PCH_$1_$6,$7,$$(PCH),$8,$v))
+	$$(if $$($6_PCH_BUILT),,$$(eval $6_PCH_BUILT:=1)$$(call PCH_$6,$7,$$(PCH),$8,$1,$v))
 
 endef
 ifndef NO_DEPS

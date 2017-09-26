@@ -169,31 +169,29 @@ DEF_CXXFLAGS := $(CMN_CFLAGS)
 # common options for application-level C/C++ compilers
 # $1 - target object file
 # $2 - source
+# $3 - target: EXE,DLL,LIB
+# $4 - non-empty variant: R,P,D
 # target-specific: VDEFINES, VINCLUDE
 CMN_PARAMS = $(PIPE_OPTION) -c -o $1 $2 $(AUTO_DEPS_FLAGS) $(VDEFINES) $(VINCLUDE)
 
 # parameters of application-level C and C++ compilers
 # $1 - target object file
 # $2 - source
+# $3 - target: EXE,DLL,LIB
+# $4 - non-empty variant: R,P,D
 # target-specific: TMD, VCFLAGS, VCXXFLAGS
 CC_PARAMS = $($(TMD)CPU_CFLAGS) $(CMN_PARAMS) $(DEF_CFLAGS) $(VCFLAGS)
 CXX_PARAMS = $($(TMD)CPU_CXXFLAGS) $(CMN_PARAMS) $(DEF_CXXFLAGS) $(VCXXFLAGS)
 
-# C++ and C compilers
+# C/C++ compilers for each variant of EXE,DLL,LIB
 # $1 - target object file
 # $2 - source
+# $3 - target: EXE,DLL,LIB
+# $4 - non-empty variant: R,P,D
 # target-specific: TMD
-CMN_CC  = $(call SUP,$(TMD)CC,$2)$($(TMD)CC) $(CC_PARAMS)
-CMN_CXX = $(call SUP,$(TMD)CXX,$2)$($(TMD)CXX) $(CXX_PARAMS)
-
-# compilers for each variant of EXE,DLL,LIB
 # note: used by OBJ_RULES_BODY macro from $(CLEAN_BUILD_DIR)/impl/c_base.mk
-EXE_CC  = $(CMN_CC)
-EXE_CXX = $(CMN_CXX)
-DLL_CC  = $(CMN_CC)
-DLL_CXX = $(CMN_CXX)
-LIB_CC  = $(CMN_CC)
-LIB_CXX = $(CMN_CXX)
+OBJ_CC  = $(call SUP,$(TMD)CC,$2)$($(TMD)CC) $(CC_PARAMS)
+OBJ_CXX = $(call SUP,$(TMD)CXX,$2)$($(TMD)CXX) $(CXX_PARAMS)
 
 ifndef NO_PCH
 
@@ -206,28 +204,24 @@ endif
 # override C++ and C compilers to support compiling with precompiled header
 # $1 - target object file
 # $2 - source
+# $3 - target: EXE,DLL,LIB
+# $4 - non-empty variant: R,P,D
 # note: $(basename $(notdir $(PCH)))_pch_cxx.h and $(basename $(notdir $(PCH)))_pch_c.h files are virtual (i.e. do not exist)
 # target-specific: CC_WITH_PCH, CXX_WITH_PCH, TMD, PCH
-CMN_CC  = $(if $(filter $2,$(CC_WITH_PCH)),$(call SUP,$(TMD)PCC,$2)$($(TMD)CC) -I$(dir $1) -include $(basename \
+OBJ_CC  = $(if $(filter $2,$(CC_WITH_PCH)),$(call SUP,$(TMD)PCC,$2)$($(TMD)CC) -I$(dir $1) -include $(basename \
   $(notdir $(PCH)))_pch_c.h,$(call SUP,$(TMD)CC,$2)$($(TMD)CC)) $(CC_PARAMS)
-CMN_CXX = $(if $(filter $2,$(CXX_WITH_PCH)),$(call SUP,$(TMD)PCXX,$2)$($(TMD)CXX) -I$(dir $1) -include $(basename \
+OBJ_CXX = $(if $(filter $2,$(CXX_WITH_PCH)),$(call SUP,$(TMD)PCXX,$2)$($(TMD)CXX) -I$(dir $1) -include $(basename \
   $(notdir $(PCH)))_pch_cxx.h,$(call SUP,$(TMD)CXX,$2)$($(TMD)CXX)) $(CXX_PARAMS)
 
 # compilers of C/C++ precompiled header
 # $1 - target .gch (e.g. /build/obj/xxx_pch_c.h.gch or /build/obj/xxx_pch_cxx.h.gch)
 # $2 - source pch header (full path, e.g. /src/include/xxx.h)
+# $3 - target: EXE,DLL,LIB
+# $4 - non-empty variant: R,P,D
 # target-specific: TMD
+# note: used by GCC_PCH_RULE_TEMPL macro from $(CLEAN_BUILD_DIR)/compilers/gcc_pch.mk
 PCH_CC  = $(call SUP,$(TMD)PCHCC,$2)$($(TMD)CC) $(CC_PARAMS)
 PCH_CXX = $(call SUP,$(TMD)PCHCXX,$2)$($(TMD)CXX) $(CXX_PARAMS)
-
-# different compilers of precompiled header
-# note: used by GCC_PCH_RULE_TEMPL macro from $(CLEAN_BUILD_DIR)/compilers/gcc_pch.mk
-PCH_EXE_CC  = $(PCH_CC)
-PCH_EXE_CXX = $(PCH_CXX)
-PCH_DLL_CC  = $(PCH_CC)
-PCH_DLL_CXX = $(PCH_CXX)
-PCH_LIB_CC  = $(PCH_CC)
-PCH_LIB_CXX = $(PCH_CXX)
 
 # reset additional variables
 # PCH - either absolute or makefile-related path to header to precompile
@@ -248,5 +242,4 @@ $(call SET_GLOBAL,CROSS_PREFIX CC CXX AR TCC TCXX TAR PIC_COPTION PIE_COPTION PI
   CPU_CFLAGS CPU_CXXFLAGS TLDFLAGS TARFLAGS TCFLAGS TCXXFLAGS TCPU_CFLAGS TCPU_CXXFLAGS GET_LINKER PIPE_OPTION \
   WLPREFIX MK_RPATH_OPTION RPATH_LINK MK_RPATH_LINK_OPTION BSTATIC_OPTION BDYNAMIC_OPTION CMN_LIBS \
   MK_MAP_OPTION MK_SONAME_OPTION EXE_LD DLL_LD LIB_LD AUTO_DEPS_FLAGS CMN_CFLAGS DEF_CFLAGS DEF_CXXFLAGS \
-  CMN_PARAMS CC_PARAMS CXX_PARAMS CMN_CC CMN_CXX EXE_CC EXE_CXX DLL_CC DLL_CXX LIB_CC LIB_CXX \
-  PCH_CC PCH_CXX PCH_EXE_CC PCH_EXE_CXX PCH_DLL_CC PCH_DLL_CXX PCH_LIB_CC PCH_LIB_CXX)
+  CMN_PARAMS CC_PARAMS CXX_PARAMS OBJ_CC OBJ_CXX PCH_CC PCH_CXX)

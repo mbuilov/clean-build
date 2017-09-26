@@ -42,7 +42,7 @@ ifndef TOCLEAN
 define GCC_PCH_RULE_TEMPL
 $(addprefix $4/,$(addsuffix $(OBJ_SUFFIX),$(basename $(notdir $3)))): $5.gch
 $5.gch: $2 | $4 $$(ORDER_DEPS)
-	$$(call PCH_$1_$6,$$@,$$(PCH),$v)
+	$$(call PCH_$6,$$@,$$(PCH),$1,$v)
 
 endef
 ifndef NO_DEPS
