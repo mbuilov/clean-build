@@ -28,14 +28,14 @@ CXX_MASK := %.cpp
 # form name of dependent library for given variant of the target
 # $1 - target type: EXE,DLL,...
 # $2 - variant of target EXE,DLL,...: R,P,S,... (if empty, assume R)
-# $3 - dependency name, e.g. mylib
+# $3 - dependency name, e.g. mylib or mylib/flag1/flag2/...
 # $4 - dependency type: LIB,DLL,...
 # note: used by DEP_LIBS/DEP_IMPS macros from $(CLEAN_BUILD_DIR)/impl/_c.mk
 # example:
 #  always use D-variant of static library if target is a DLL,
 #  else use the same variant (R or P) of static library as target (EXE) (for example for P-EXE use P-LIB)
 #  LIB_DEP_MAP = $(if $(filter DLL,$1),D,$2)
-DEP_LIBRARY = $3$(call VARIANT_SUFFIX,$4,$($4_DEP_MAP))
+DEP_LIBRARY = $(firstword $(subst /, ,$3))$(call VARIANT_SUFFIX,$4,$($4_DEP_MAP))
 
 # add source-dependencies for an object file
 # $1 - objdir
