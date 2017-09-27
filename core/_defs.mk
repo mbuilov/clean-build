@@ -629,19 +629,28 @@ SUPPORTED_VARIANTS = $($1_SUPPORTED_VARIANTS)
 # filter-out unsupported variants of the target and return only supported ones (at least R)
 # $1 - target: EXE,LIB,...
 # $2 - list of specified variants of the target (may be empty)
-# $3 - optional name of function which returns list of supported by selected toolchain non-regular variants of given target type
-#  (SUPPORTED_VARIANTS by default), function must be defined at time of $(eval)
+FILTER_VARIANTS_LIST = $(call FILTER_VARIANTS_LIST_F,$1,$2,SUPPORTED_VARIANTS)
+
+# extended version of FILTER_VARIANTS_LIST
+# $1 - target: EXE,LIB,...
+# $2 - list of specified variants of the target (may be empty)
+# $3 - name of function which returns list of supported by selected toolchain non-regular variants
+#  of given target type, function must be defined at time of $(eval)
 # note: add R to filter pattern to not filter-out default variant R, if it was specified for the target
 # note: if $(filter ...) gives no variants, return default variant R (regular), which is always supported
-FILTER_VARIANTS_LIST = $(patsubst ,R,$(filter R $($(firstword $3 SUPPORTED_VARIANTS)),$2))
+FILTER_VARIANTS_LIST_F = $(patsubst ,R,$(filter R $($3),$2))
 
 # if target may be specified with variants, like LIB := my_lib R S
 #  then get variants of the target supported by selected toolchain
 # note: returns non-empty variants list, containing at least R (regular) variant
 # $1 - target: EXE,LIB,...
-# $2 - optional name of function which returns list of supported by selected toolchain non-regular variants of given target type
-#  (SUPPORTED_VARIANTS by default), function must be defined at time of $(eval)
-GET_VARIANTS = $(call FILTER_VARIANTS_LIST,$1,$(wordlist 2,999999,$($1)),$2)
+GET_VARIANTS = $(call GET_VARIANTS_F,$1,SUPPORTED_VARIANTS)
+
+# extended version of GET_VARIANTS
+# $1 - target: EXE,LIB,...
+# $2 - name of function which returns list of supported by selected toolchain non-regular variants
+#  of given target type, function must be defined at time of $(eval)
+GET_VARIANTS_F = $(call FILTER_VARIANTS_LIST_F,$1,$(wordlist 2,999999,$($1)),$2)
 
 # determine target name suffix (in case if building multiple variants of the target, each variant must have unique file name)
 # $1 - target: EXE,LIB,...
@@ -666,8 +675,7 @@ FORM_TRG = $(call $1_FORM_TRG,$(GET_TARGET_NAME),$2)
 
 # get filenames of all built variants of the target
 # $1 - EXE,LIB,DLL,...
-# note: use $(call GET_VARIANTS,$1) to not pass possibly defined argument $2 to GET_VARIANTS macro
-ALL_TARGETS = $(foreach v,$(call GET_VARIANTS,$1),$(call FORM_TRG,$1,$v))
+ALL_TARGETS = $(foreach v,$(GET_VARIANTS),$(call FORM_TRG,$1,$v))
 
 # form name of target objects directory
 # $1 - EXE,LIB,...
@@ -1070,7 +1078,7 @@ CLEAN_BUILD_FIRST_PHASE_VARS += BIN_DIR OBJ_DIR LIB_DIR GEN_DIR
 CLEAN_BUILD_FIRST_PHASE_VARS += CLEAN_BUILD_GOALS CB_NEEDED_DIRS ORDER_DEPS MULTI_TARGET_NUM CB_INCLUDE_LEVEL \
   PROCESSED_MAKEFILES MAKE_CONT SET_DEFAULT_DIRS TOOL_OVERRIDE_DIRS ADD_MDEPS ADD_ADEPS ADD_WHAT_MAKEFILE_BUILDS \
   CREATE_MAKEFILE_ALIAS ADD_ORDER_DEPS NEED_GEN_DIRS STD_TARGET_VARS1 STD_TARGET_VARS MAKEFILE_INFO_TEMPL \
-  SET_MAKEFILE_INFO GET_TARGET_NAME GET_VARIANTS FORM_TRG ALL_TARGETS FORM_OBJ_DIR ADD_GENERATED CHECK_GENERATED \
+  SET_MAKEFILE_INFO GET_TARGET_NAME GET_VARIANTS_F GET_VARIANTS FORM_TRG ALL_TARGETS FORM_OBJ_DIR ADD_GENERATED CHECK_GENERATED \
   ADD_GENERATED_RET NON_PARALLEL_EXECUTE_RULE NON_PARALLEL_EXECUTE MULTI_TARGET_SEQ MULTI_TARGET_RULE MULTI_TARGET \
   CHECK_MULTI_RULE TMD TOOL_MODE DEF_HEAD_CODE_EVAL DEF_TAIL_CODE_EVAL MAKE_CONTINUE_EVAL_NAME DEFINE_TARGETS_EVAL_NAME \
   DEF_HEAD_CODE DEF_TAIL_CODE DEFINE_TARGETS SAVE_VARS RESTORE_VARS MAKE_CONTINUE TOCLEAN
@@ -1092,9 +1100,10 @@ $(call SET_GLOBAL,PROJECT_VARS_NAMES PASS_ENV_VARS \
   TARGET_TRIPLET DEF_BIN_DIR DEF_OBJ_DIR DEF_LIB_DIR DEF_GEN_DIR SET_DEFAULT_DIRS \
   TOOL_BASE MK_TOOLS_DIR GET_TOOLS GET_TOOL TOOL_OVERRIDE_DIRS \
   ADD_MDEPS ADD_ADEPS ADD_WHAT_MAKEFILE_BUILDS CREATE_MAKEFILE_ALIAS ADD_ORDER_DEPS=ORDER_DEPS=ORDER_DEPS \
-  NEED_GEN_DIRS STD_TARGET_VARS1 STD_TARGET_VARS MAKEFILE_INFO_TEMPL SET_MAKEFILE_INFO fixpath \
-  GET_TARGET_NAME SUPPORTED_VARIANTS FILTER_VARIANTS_LIST GET_VARIANTS VARIANT_SUFFIX FORM_TRG ALL_TARGETS \
-  FORM_OBJ_DIR MAKE_TRG_PATH ADD_GENERATED CHECK_GENERATED ADD_GENERATED_RET NON_PARALLEL_EXECUTE_RULE NON_PARALLEL_EXECUTE \
+  NEED_GEN_DIRS STD_TARGET_VARS1 STD_TARGET_VARS MAKEFILE_INFO_TEMPL SET_MAKEFILE_INFO fixpath GET_TARGET_NAME \
+  SUPPORTED_VARIANTS FILTER_VARIANTS_LIST FILTER_VARIANTS_LIST_F GET_VARIANTS GET_VARIANTS_F VARIANT_SUFFIX \
+  FORM_TRG ALL_TARGETS FORM_OBJ_DIR MAKE_TRG_PATH ADD_GENERATED CHECK_GENERATED ADD_GENERATED_RET \
+  NON_PARALLEL_EXECUTE_RULE NON_PARALLEL_EXECUTE \
   MULTI_TARGET_SEQ MULTI_TARGET_RULE=MULTI_TARGET_NUM=MULTI_TARGET_NUM MULTI_TARGET CHECK_MULTI_RULE \
   FORM_SDEPS EXTRACT_SDEPS FIX_SDEPS RUN_TOOL TMD \
   DEF_HEAD_CODE_EVAL DEF_TAIL_CODE_EVAL MAKE_CONTINUE_EVAL_NAME DEFINE_TARGETS_EVAL_NAME \
