@@ -121,7 +121,7 @@ DLL_FORM_TRG = $(1:%=$(DLL_DIR)/$(DLL_PREFIX)%$(call VARIANT_SUFFIX,DLL,$2)$(DLL
 # determine which variant of static library to link with EXE or DLL
 # $1 - target type: EXE,DLL
 # $2 - variant of target EXE or DLL: R,P, if empty, then assume R
-# $3 - dependency name, e.g. mylib
+# $3 - dependency name, e.g. mylib or mylib/flag1/flag2/...
 # use the same variant (R or P) of static library as target EXE (for example for P-EXE use P-LIB)
 # always use D-variant of static library for regular DLL
 # note: if returns empty value - then assume it's default variant R
@@ -131,7 +131,7 @@ LIB_DEP_MAP = $(if $(findstring DLL,$1),D,$2)
 # determine which variant of dynamic library to link with EXE or DLL
 # $1 - target type: EXE,DLL
 # $2 - variant of target EXE or DLL: R,P, if empty, then assume R
-# $3 - dependency name, e.g. mylib
+# $3 - dependency name, e.g. mylib or mylib/flag1/flag2/...
 # the same one default variant (R) of DLL may be linked with any P- or R-EXE or R-DLL
 # note: if returns empty value - then assume it's default variant R
 # note: used by DEP_LIBRARY macro from $(CLEAN_BUILD_DIR)/impl/c_base.mk
