@@ -62,5 +62,12 @@ UNIX_MOD_AUX_APPt = $(foreach v,$(call GET_VARIANTS,$t),$(call $t_AUX_TEMPLATEv,
 # define target-specific variables: MAP, MODVER (only for DLL)
 UNIX_MOD_AUX_APP = $(foreach t,EXE DLL,$(if $($t),$(call UNIX_MOD_AUX_APPt,$(call fixpath,$(MAP)))))
 
+# MAP variable is used only when building EXE or DLL
+ifdef MCHECK
+MAP_VARIABLE_CHECK = $(if $(MAP),$(if $(LIB),$(if $(EXE)$(DLL),,$(warning MAP variable is not used when building a LIB))))
+$(call define_prepend,UNIX_MOD_AUX_APP,$$(MAP_VARIABLE_CHECK))
+endif
+
 # protect variables from modifications in target makefiles
-$(call SET_GLOBAL,RPATH C_PREPARE_UNIX_APP_VARS EXE_AUX_TEMPLATEv=t;v DLL_AUX_TEMPLATEv=t;v UNIX_MOD_AUX_APPt=t UNIX_MOD_AUX_APP)
+$(call SET_GLOBAL,RPATH C_PREPARE_UNIX_APP_VARS \
+  EXE_AUX_TEMPLATEv=t;v DLL_AUX_TEMPLATEv=t;v UNIX_MOD_AUX_APPt=t UNIX_MOD_AUX_APP, MAP_VARIABLE_CHECK)
