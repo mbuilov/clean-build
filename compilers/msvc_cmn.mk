@@ -7,7 +7,7 @@
 # common msvc compiler definitions, included by $(CLEAN_BUILD_DIR)/compilers/msvc.mk
 
 # Windows tools, such as rc.exe, mc.exe, cl.exe, link.exe, produce excessive output in stdout,
-# by default, try to filter this output out by wrapping calls to the tools.
+#  by default, try to filter this output out by wrapping calls to the tools.
 # If not empty, then do not wrap tools
 NO_WRAP:=
 
@@ -15,7 +15,8 @@ NO_WRAP:=
 # so when compiling in parallel, it takes more total time to
 # call compiler for each source individually over than
 # compiling multiple sources at once, so that compiler itself
-# internally may parallel the compilation by using threads.
+# internally may parallel the compilation cloning itself and
+# working in service mode.
 
 # By default, compile all sources of a module at once (however, different modules may be compiled in parallel)
 # Run via $(MAKE) S=1 to compile each source individually (without /MP compiler option)
