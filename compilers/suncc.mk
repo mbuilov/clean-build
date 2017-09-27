@@ -33,14 +33,10 @@ DLL_EXPORTS_DEFINE := $(call DEFINE_SPECIAL,__attribute__((visibility("default")
 CFLAGS   := $(if $(DEBUG),-g,-fast)
 CXXFLAGS := $(CFLAGS)
 
-# compiler options for 64-bit target
-# note: about '-xport64' option see https://docs.oracle.com/cd/E19205-01/819-5267/bkbgj/index.html
-CPU64_COPTIONS   := -xarch=sse2
-CPU64_CXXOPTIONS := $(CPU64_COPTIONS) -xport64
-
 # cc flags to compile/link for selected CPU
-CPU_CFLAGS   := -m$(if $(CPU:%64=),32,64 $(CPU64_COPTIONS))
-CPU_CXXFLAGS := -m$(if $(CPU:%64=),32,64 $(CPU64_CXXOPTIONS))
+# note: about '-xport64' option see https://docs.oracle.com/cd/E19205-01/819-5267/bkbgj/index.html
+CPU_CFLAGS   := -m$(if $(CPU:%64=),32,64) $(if $(CPU:x86%=),,-xarch=sse2)
+CPU_CXXFLAGS := $(CPU_CFLAGS) -xport64
 
 # flags for objects archiver
 # note: may be taken from the environment in project configuration makefile
@@ -56,8 +52,8 @@ LDFLAGS := $(if $(DEBUG),-xs)
 # flags for the tool mode
 TCFLAGS       := $(CFLAGS)
 TCXXFLAGS     := $(CXXFLAGS)
-TCPU_CFLAGS   := -m$(if $(TCPU:%64=),32,64 $(CPU64_COPTIONS))
-TCPU_CXXFLAGS := -m$(if $(TCPU:%64=),32,64 $(CPU64_CXXOPTIONS))
+TCPU_CFLAGS   := -m$(if $(TCPU:%64=),32,64) $(if $(TCPU:x86%=),,-xarch=sse2)
+TCPU_CXXFLAGS := $(TCPU_CFLAGS) -xport64
 TARFLAGS      := $(ARFLAGS)
 TCXX_ARFLAGS  := $(CXX_ARFLAGS)
 TLDFLAGS      := $(LDFLAGS)
@@ -102,7 +98,7 @@ LIB_CXXFLAGS = $(if $(findstring D,$1),$(PIC_COPTION)) $($(TMD)CXXFLAGS)
 # determine which variant of static library to link with EXE or DLL
 # $1 - target: EXE,DLL
 # $2 - variant of target EXE or DLL: R,P, if empty, then assume R
-# $3 - dependency name, e.g. mylib
+# $3 - dependency name, e.g. mylib or mylib/flag1/flag2/...
 # note: if returns empty value - then assume it's default variant R
 # use D-variant of static library for pie-EXE or regular DLL
 # note: override defaults from $(CLEAN_BUILD_DIR)/impl/_c.mk
@@ -140,7 +136,7 @@ CMN_LIBS = -o $1 $2 $(MK_RPATH_OPTION) $(if $(firstword \
   $(LIBS)$(DLLS)),-L$(LIB_DIR) $(addprefix -l,$(DLLS)) $(if $(LIBS),$(BSTATIC_OPTION) $(addprefix \
   -l,$(addsuffix $(call DEP_SUFFIX,$3,$4,LIB),$(LIBS))) $(BDYNAMIC_OPTION)))
 
-# specify what symbols to export from a dll
+# specify what symbols to export from a dll/exe
 # target-specific: MAP
 MK_MAP_OPTION = $(addprefix -M,$(MAP))
 
@@ -162,9 +158,9 @@ MK_SONAME_OPTION = $(addprefix -h $(notdir $1).,$(firstword $(subst ., ,$(MODVER
 # note: use CXX compiler instead of ar to create C++ static library archives
 #  - for adding necessary C++ templates to the archives,
 #  see https://docs.oracle.com/cd/E19205-01/819-5267/bkamp/index.html
-EXE_LD = $(call SUP,$(TMD)EXE,$1)$(GET_LINKER) $(CMN_LIBS) $(DEF_EXE_LDFLAGS) $(VLDFLAGS)
+EXE_LD = $(call SUP,$(TMD)EXE,$1)$(GET_LINKER) $(MK_MAP_OPTION) $(CMN_LIBS) $(DEF_EXE_LDFLAGS) $(VLDFLAGS)
 DLL_LD = $(call SUP,$(TMD)DLL,$1)$(GET_LINKER) $(MK_MAP_OPTION) $(MK_SONAME_OPTION) $(CMN_LIBS) $(DEF_DLL_LDFLAGS) $(VLDFLAGS)
-LIB_LD = $(call SUP,$(TMD)LIB,$1)$(if $(COMPILER:CXX=),$($(TMD)AR) $($(TMD)ARFLAGS) $1 $2,$(GET_LINKER) $(CXX_ARFLAGS) -o $1 $2)
+LIB_LD = $(call SUP,$(TMD)LIB,$1)$(if $(COMPILER:CXX=),$($(TMD)AR) $($(TMD)ARFLAGS) $1 $2,$(GET_LINKER) $($(TMD)CXX_ARFLAGS) -o $1 $2)
 
 # prefix of system headers to filter-out while dependencies generation
 # note: used as $(SED) expression
@@ -284,7 +280,7 @@ endif # !NO_PCH
 $(call define_prepend,DEFINE_C_APP_EVAL,$$(eval $$(UNIX_MOD_AUX_APP)))
 
 # protect variables from modifications in target makefiles
-$(call CLEAN_BUILD_PROTECT_VARS,CC CXX AR TCC TCXX TAR CFLAGS CXXFLAGS CPU64_COPTIONS CPU64_CXXOPTIONS CPU_CFLAGS CPU_CXXFLAGS \
+$(call CLEAN_BUILD_PROTECT_VARS,CC CXX AR TCC TCXX TAR CFLAGS CXXFLAGS CPU_CFLAGS CPU_CXXFLAGS \
   ARFLAGS CXX_ARFLAGS LDFLAGS TCFLAGS TCXXFLAGS TCPU_CFLAGS TCPU_CXXFLAGS TARFLAGS TCXX_ARFLAGS TLDFLAGS PIC_COPTION PIE_LOPTION \
   GET_LINKER MK_RPATH_OPTION BSTATIC_OPTION BDYNAMIC_OPTION CMN_LDFLAGS DEF_EXE_LDFLAGS DEF_DLL_LDFLAGS \
   CMN_LIBS MK_MAP_OPTION MK_SONAME_OPTION EXE_LD DLL_LD LIB_LD \

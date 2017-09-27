@@ -18,23 +18,31 @@ endif
 
 # add definitions of standard resource with module version information
 ifeq (,$(filter-out undefined environment,$(origin STD_RES_TEMPLATE)))
-include $(dir $(lastword $(MAKEFILE_LIST)))msvc_res.mk
+include $(dir $(lastword $(MAKEFILE_LIST)))msvc_stdres.mk
+endif
+
+# add support for exporting symbols (from a dll or exe)
+ifeq (,$(filter-out undefined environment,$(origin EXPORTS_TEMPLATEv)))
+include $(dir $(lastword $(MAKEFILE_LIST)))msvc_exp.mk
 endif
 
 # reset additional variables
-# RES - resources to link to EXE or DLL
-# DEF - linker definitions file (used mostly to list exported symbols)
+# EXE_EXPORTS    - non-empty if EXE exports symbols
+# DLL_NO_EXPORTS - non-empty if DLL do not exports symbols (e.g. resource DLL)
 define C_PREPARE_MSVC_APP_VARS
-RES:=
-DEF:=
+EXE_EXPORTS:=
+DLL_NO_EXPORTS:=
 endef
 C_PREPARE_MSVC_APP_VARS := $(C_PREPARE_MSVC_APP_VARS)
 
 # patch code executed at beginning of target makefile
-$(call define_append,C_PREPARE_APP_VARS,$(newline)$$(C_PREPARE_MSVC_APP_VARS))
+$(call define_append,C_PREPARE_APP_VARS,$(if \
+,)$(newline)$$(C_PREPARE_MSVC_APP_VARS)$(if \
+,)$(newline)$$(C_PREPARE_MSVC_STDRES_VARS)$(if \
+,)$(newline)$$(C_PREPARE_MSVC_EXP_VARS))
 
 # optimization
-$(call try_make_simple,C_PREPARE_APP_VARS,C_PREPARE_MSVC_APP_VARS)
+$(call try_make_simple,C_PREPARE_APP_VARS,C_PREPARE_MSVC_APP_VARS C_PREPARE_MSVC_EXP_VARS)
 
 # Visual Studio versions
 #---------------------------------------------------------------------------------
@@ -72,6 +80,24 @@ DLL_EXPORTS_DEFINE := __declspec(dllexport)
 # how to mark symbols imported from a DLL
 # note: override definition in $(CLEAN_BUILD_DIR)/impl/_c.mk
 DLL_IMPORTS_DEFINE := __declspec(dllimport)
+
+# executable file suffix
+# note: override defaults in $(CLEAN_BUILD_DIR)/impl/_c.mk
+EXE_SUFFIX := .exe
+
+# static library (archive) prefix/suffix
+# note: override defaults in $(CLEAN_BUILD_DIR)/impl/_c.mk
+LIB_PREFIX:=
+
+# dynamically loaded library (shared object) prefix/suffix
+# note: override defaults in $(CLEAN_BUILD_DIR)/impl/_c.mk
+DLL_PREFIX:=
+DLL_SUFFIX := .dll
+
+# import library for dll prefix/suffix
+# note: override defaults in $(CLEAN_BUILD_DIR)/impl/_c.mk
+IMP_PREFIX:=
+IMP_SUFFIX := .lib
 
 # /MP compiler option was introduced in Visual Studio 2008
 ifneq (,$(call is_less,$(VS_VER),9))
@@ -145,6 +171,13 @@ ifneq (,$(call is_less,6,$(VS_VER)))
 CFLAGS += /GS- /GL
 endif
 
+ifneq (,$(call is_less,11,$(VS_VER)))
+# >= Visual Studio 2013
+# /Zc:inline - remove unreferenced internal functions from objs
+# note: /Zc:inline is ignored if /GL is specified
+CFLAGS += /Zc:inline
+endif
+
 endif # !DEBUG
 
 ifneq (,$(call is_less,7,$(VS_VER)))
@@ -155,13 +188,14 @@ endif
 
 # default values of user-defined C++ compiler flags
 # /Gm - enable minimal rebuild
+# note: may be taken from the environment in project configuration makefile
 CXXFLAGS := $(CFLAGS) /Gm-
 
 # /GR - enable run-time type information
 CFLAGS += /GR-
 
 # lib.exe flags for linking a LIB
-# /LTCG - link-time code generation (for RELEASE)
+# /LTCG - link-time code generation
 # note: may be taken from the environment in project configuration makefile
 ARFLAGS := $(if $(DEBUG),,$(if $(filter /GL,$(CFLAGS)),/LTCG))
 
@@ -169,7 +203,7 @@ ARFLAGS := $(if $(DEBUG),,$(if $(filter /GL,$(CFLAGS)),/LTCG))
 # note: may be taken from the environment in project configuration makefile
 # /DEBUG   - generate debug info (in separate .pdb)
 # /RELEASE - set the checksum in PE-header
-# /LTCG    - link-time code generation (for RELEASE)
+# /LTCG    - link-time code generation
 LDFLAGS := $(if $(DEBUG),/DEBUG,/RELEASE$(if $(filter /GL,$(CFLAGS)), /LTCG))
 
 # flags for the tool mode
@@ -178,10 +212,6 @@ TCXXFLAGS := $(CXXFLAGS)
 TARFLAGS  := $(ARFLAGS)
 TLDFLAGS  := $(LDFLAGS)
 
-
-
-
-
 # supported non-regular target variants:
 # (R - dynamically linked multi-threaded libc - default variant)
 # S - statically linked multi-threaded libc
@@ -189,51 +219,53 @@ TLDFLAGS  := $(LDFLAGS)
 # SU - same as S, but with unicode support
 WIN_SUPPORTED_VARIANTS := S RU SU
 
-# for each non-regular target variant from $(WIN_NONREGULAR_VARIANTS): RU,SU,S
-WIN_VARIANT_SUFFIX := $(if $(findstring \
+# target name suffix for each non-regular variant of the target
+# $1 - one of $(WIN_SUPPORTED_VARIANTS)
+WIN_VARIANT_SUFFIX = $(if $(findstring \
   RU,$1),_u,$(if $(findstring \
   SU,$1),_su,_s))
 
-# C/C++ compiler options for each target variant: R,S,RU,SU
+# C/C++ compiler options for each target variant
+# $1 - one of R,$(WIN_SUPPORTED_VARIANTS)
 WIN_VARIANT_CFLAGS = $(if $(filter S%,$1),/MT,/MD)$(if $(DEBUG),d)$(if $(filter %U,$1), /DUNICODE /D_UNICODE)
 
 # note: override defaults from $(CLEAN_BUILD_DIR)/impl/_c.mk
-EXE_SUPPORTED_VARIANTS = $(WIN_SUPPORTED_VARIANTS)
-LIB_SUPPORTED_VARIANTS = $(WIN_SUPPORTED_VARIANTS)
-DLL_SUPPORTED_VARIANTS = $(WIN_SUPPORTED_VARIANTS)
+EXE_SUPPORTED_VARIANTS := $(WIN_SUPPORTED_VARIANTS)
+LIB_SUPPORTED_VARIANTS := $(WIN_SUPPORTED_VARIANTS)
+DLL_SUPPORTED_VARIANTS := $(WIN_SUPPORTED_VARIANTS)
 
 # note: override defaults from $(CLEAN_BUILD_DIR)/impl/_c.mk
 EXE_VARIANT_SUFFIX = $(WIN_VARIANT_SUFFIX)
 LIB_VARIANT_SUFFIX = $(WIN_VARIANT_SUFFIX)
 DLL_VARIANT_SUFFIX = $(WIN_VARIANT_SUFFIX)
 
+# C/C++ compiler options for each target variant
+# $1 - one of R,$(WIN_SUPPORTED_VARIANTS)
+# $(TMD) - T in tool mode, empty otherwise
 # note: override defaults from $(CLEAN_BUILD_DIR)/impl/_c.mk
-EXE_VARIANT_CFLAGS   = $(WIN_VARIANT_CFLAGS)
-EXE_VARIANT_CXXFLAGS = $(EXE_VARIANT_CFLAGS)
-
-# note: override defaults from $(CLEAN_BUILD_DIR)/impl/_c.mk
-LIB_VARIANT_CFLAGS   = $(WIN_VARIANT_CFLAGS)
-LIB_VARIANT_CXXFLAGS = $(LIB_VARIANT_CFLAGS)
-
-# note: override defaults from $(CLEAN_BUILD_DIR)/impl/_c.mk
-DLL_VARIANT_CFLAGS   = $(WIN_VARIANT_CFLAGS)
-DLL_VARIANT_CXXFLAGS = $(DLL_VARIANT_CFLAGS)
+EXE_CFLAGS   = $(WIN_VARIANT_CFLAGS) $($(TMD)CFLAGS)
+EXE_CXXFLAGS = $(WIN_VARIANT_CFLAGS) $($(TMD)CXXFLAGS)
+LIB_CFLAGS   = $(WIN_VARIANT_CFLAGS) $($(TMD)CFLAGS)
+LIB_CXXFLAGS = $(WIN_VARIANT_CFLAGS) $($(TMD)CXXFLAGS)
+DLL_CFLAGS   = $(WIN_VARIANT_CFLAGS) $($(TMD)CFLAGS)
+DLL_CXXFLAGS = $(WIN_VARIANT_CFLAGS) $($(TMD)CXXFLAGS)
 
 # determine which variant of static library to link with EXE or DLL
 # $1 - target: EXE,DLL
 # $2 - variant of target EXE or DLL: R,S,RU or SU, if empty, then assume R
-# $3 - dependency name, e.g. mylib
+# $3 - dependency name, e.g. mylib or mylib/flag1/flag2/...
 # note: override defaults from $(CLEAN_BUILD_DIR)/impl/_c.mk
 # note: use the same variant of dependent static library as target EXE or DLL (for example for S-EXE use S-LIB)
 # note: unicode variants of the target EXE or DLL may link with two kinds of libraries:
-#  1) with unicode support - name begins with UNI_ prefix, normally built in 2 variants, e.g. UNI_mylib.lib and UNI_mylib_u.lib
-#  2) without unicode support - name do not begin with UNI_ prefix, normally built in 1 variant, e.g. mylib.lib
-#  so, for RU or SU variant of target EXE or DLL, if dependent library name do not starts with UNI_ prefix
-#  - dependent library do not have unicode variant, so convert needed variant to non-unicode one: RU->R or SU->S
-LIB_DEP_MAP = $(if $(3:UNI_%=),$(2:U=),$2)
+#  1) with unicode support - normally built in 2 variants, e.g. mylib.lib and mylib_u.lib or mylib_s.lib and mylib_su.lib
+#  2) without unicode support - normally built in 1 variant, e.g. mylib.lib or mylib_s.lib
+#  so, for unicode (RU or SU) variant of target EXE or DLL, if dependent library is not specified with 'uni' flag
+#  - dependent library do not have unicode variant, so convert needed variant of library to non-unicode one: RU->R or SU->S
+LIB_DEP_MAP = $(if $(filter uni,$(subst /, ,$3)),$2,$(2:U=))
 
-# same for dependent dynamic library (via it's import library)
-DLL_DEP_MAP = $(if $(3:UNI_%=),$(2:U=),$2)
+# determine which variant of dynamic library to link with EXE or DLL
+# the same as for the static library
+DLL_DEP_MAP = $(LIB_DEP_MAP)
 
 # make version string: major.minor.patch -> major.minor
 # target-specific: MODVER
@@ -278,12 +310,12 @@ DEF_DLL_LDFLAGS := /DLL $(CMN_LDFLAGS)
 # $2 - objects
 # $3 - target: EXE or DLL
 # $4 - non-empty variant: R,S,RU,SU
-# target-specific: RES, IMP, DEF, LIBS, DLLS, LIB_DIR
-CMN_LIBS = /nologo /OUT:$(call ospath,$1 $2 $(RES)) $(VERSION_OPTION) $(SUBSYSTEM_OPTION) $(MANIFEST_EMBED_OPTION) $(addprefix \
-  /IMPLIB:,$(call ospath,$(IMP))) $(addprefix /DEF:,$(call ospath,$(DEF))) $(if $(firstword $(LIBS)$(DLLS)),/LIBPATH:$(call \
+# target-specific: IMP, DEF, LIBS, DLLS, LIB_DIR
+CMN_LIBS = /nologo /OUT:$(call ospath,$1 $2 $(filter %.res,$^)) $(VERSION_OPTION) $(SUBSYSTEM_OPTION) $(MANIFEST_EMBED_OPTION) \
+  $(addprefix /IMPLIB:,$(call ospath,$(IMP))) $(addprefix /DEF:,$(call ospath,$(DEF))) $(if $(firstword $(LIBS)$(DLLS)),/LIBPATH:$(call \
   ospath,$(LIB_DIR)) $(call DEP_LIBS,$3,$4) $(call DEP_IMPS,$3,$4))
 
-# regular expression string to match diagnostic linker message to strip-off
+# regular expression string for findstr.exe to match diagnostic linker message to strip-off
 # default value, may be overridden either in project configuration makefile or in command line
 LINKER_STRIP_STRINGS := $(LINKER_STRIP_STRINGS_en)
 
@@ -310,61 +342,6 @@ endif
 endif
 endif
 
-# generate import library path
-# $1 - built dll name without optional variant suffix
-# $2 - built dll variant
-MAKE_IMP_PATH = $(LIB_DIR)/$(IMP_PREFIX)$1$(call LIB_VAR_SUFFIX,$2)$(IMP_SUFFIX)
-
-# for DLL or EXE that exports symbols
-# $1 - $(call FORM_TRG,$t,$v)
-# $2 - $(call fixpath,$(DEF))
-# $3 - $(call MAKE_IMP_PATH,$n,$v)
-# $t - EXE,DLL,DRV or KDLL
-# $n - $(call GET_TARGET_NAME,$t)
-ifndef TOCLEAN
-define EXPORTS_TEMPLATEn
-$1: IMP := $3
-$1: DEF := $2
-$1: $2 | $(LIB_DIR)
-NEEDED_DIRS += $(LIB_DIR)
-$3: $1
-endef
-else ifdef DEBUG
-# cleanup generated .exp file in debug
-EXPORTS_TEMPLATEn = $(call TOCLEAN,$3 $(3:$(IMP_SUFFIX)=.exp))
-else
-EXPORTS_TEMPLATEn:=
-endif
-
-# for DLL or EXE that do not exports symbols
-# $1 - $(call FORM_TRG,$t,$v)
-# $t - EXE,DLL,DRV or KDLL
-# $n - $(call GET_TARGET_NAME,$t)
-ifndef TOCLEAN
-define NO_EXPORTS_TEMPLATE
-$1: IMP:=
-$1: DEF:=
-endef
-else
-NO_EXPORTS_TEMPLATE:=
-endif
-
-# $1 - $(call FORM_TRG,$t,$v)
-# $2 - $(call fixpath,$(DEF))
-# $3 - non-<empty> if target exports symbols, <empty> - otherwise
-# $t - EXE,DLL,DRV or KDLL
-# $n - $(call GET_TARGET_NAME,$t)
-# $v - R,S
-EXPORTS_TEMPLATE = $(if $3,$(call EXPORTS_TEMPLATEn,$1,$2,$(call MAKE_IMP_PATH,$n,$v)),$(NO_EXPORTS_TEMPLATE))
-
-# check that name of library built as RU/SU variant begins with UNI_ prefix (see comments of LIB_DEP_MAP/DLL_DEP_MAP)
-# $1 - path to target LIB or IMP
-# $2 - LIB or IMP
-# $3 - non-empty variant: R,S,RU,SU
-CHECK_LIB_UNI_NAME = $(if $(filter %U,$3),$(foreach \
-  n,$(patsubst $($2_PREFIX)%$(call LIB_VARIANT_SUFFIX,$3)$($2_SUFFIX),%,$(notdir $1)),$(if \
-  $(filter-out UNI_%,$n),$(error name of library '$n' must begin with UNI_ prefix to build it as $3 variant))))
-
 # check that target exe/dll exports symbols - linker has created .exp file
 # $1 - path to target EXE or DLL
 # note: if EXE do not exports symbols (as usual), do not set in target makefile EXE_EXPORTS (empty by default)
@@ -380,9 +357,9 @@ CHECK_EXP_CREATED = $(if $(IMP),$(newline)$(QUIET)if not exist $(call ospath,$(L
 # $4 - non-empty variant: R,S,RU,SU
 # target-specific: TMD, VLDFLAGS
 # note: used by EXE_TEMPLATE and DLL_TEMPLATE from $(CLEAN_BUILD_DIR)/impl/_c.mk
-# note: link.exe will not delete generated manifest file if failed to build target exe/dll, e.g. because of invalid DEF file
-EXE_LD = $(call SUP,$(TMD)EXE,$1)$(call WRAP_LINKER,$($(TMD)VSLINK) $(CMN_LIBS) $(DEF_EXE_LDFLAGS) $(VLDFLAGS))$(CHECK_EXP_CREATED)
-DLL_LD = $(call CHECK_LIB_UNI_NAME $(call SUP,$(TMD)DLL,$1)$(call WRAP_LINKER,$($(TMD)VSLINK) $(CMN_LIBS) $(DEF_DLL_LDFLAGS) $(VLDFLAGS))$(CHECK_EXP_CREATED)
+# note: link.exe will not delete generated manifest file if failed to build target exe/dll, for example because of invalid DEF file
+EXE_LD = $(call SUP,$(TMD)EXE,$1)$(call WRAP_LINKER,$(VSLINK) $(CMN_LIBS) $(DEF_EXE_LDFLAGS) $(VLDFLAGS))$(CHECK_EXP_CREATED)
+DLL_LD = $(call SUP,$(TMD)DLL,$1)$(call WRAP_LINKER,$(VSLINK) $(CMN_LIBS) $(DEF_DLL_LDFLAGS) $(VLDFLAGS))$(CHECK_EXP_CREATED)
 
 # manifest embedding
 # $1 - path to target EXE or DLL
@@ -405,12 +382,85 @@ endif
 # $3 - target: LIB
 # $4 - non-empty variant: R,S,RU,SU
 # target-specific: TMD
-LIB_LD = $(call CHECK_LIB_UNI_NAME,$1,LIB,$4)$(call SUP,$(TMD)LIB,$1)$($(TMD)VSLIB) /nologo /OUT:$(call ospath,$1 $2) $($(TMD)ARFLAGS)
+# note: lib.exe doesn't supports linking resources into a static library
+LIB_LD = $(call SUP,$(TMD)LIB,$1)$(VSLIB) /nologo /OUT:$(call ospath,$1 $2) $($(TMD)ARFLAGS)
 
 # note: send output to stderr in VERBOSE mode, this is needed for build script generation
 ifdef VERBOSE
 $(eval LIB_LD = $(value LIB_LD) >&2)
 endif
+
+# auxiliary defines for EXE or DLL
+# define target-specific variables: MAP, MODVER (only for DLL)
+MSVC_MOD_AUX_APP = $(foreach t,EXE DLL,$(if $($t),$(foreach v,$(call GET_VARIANTS,$t),$(call EXPORTS_TEMPLATEv,
+
+
+
+
+
+
+
+
+
+
+
+
+
+# $1 - $(call FORM_TRG,$t,$v)
+# $2 - $(call fixpath,$(DEF))
+# $3 - non-<empty> if target exports symbols, <empty> - otherwise
+# $t - EXE,DLL,DRV or KDLL
+# $n - $(call GET_TARGET_NAME,$t)
+# $v - R,S
+EXPORTS_TEMPLATE = $(if $3,$(call EXPORTS_TEMPLATEn,$1,$2,$(call MAKE_IMP_PATH,$n,$v)),$(NO_EXPORTS_TEMPLATE))
+
+# $1 - $(call fixpath,$(MAP))
+# $t - EXE or DLL
+UNIX_MOD_AUX_APPt = $(foreach v,$(call GET_VARIANTS,$t),$(call $t_AUX_TEMPLATEv,$(call FORM_TRG,$t,$v),$1))
+
+
+$(call EXPORTS_TEMPLATEt,$(call fixpath,$(DEF)))))
+
+
+
+
+
+
+
+
+
+
+
+app flags:
+# >= Visual Studio 2002
+# /Zc:wchar_t - wchar_t is native type
+/Zc:wchar_t
+
+# >= Visual Studio 2013
+# /Zc:rvalueCast    - enforce type conversion rules
+# /Zc:strictStrings - disable string literal type conversion 
+/Zc:rvalueCast
+/Zc:strictStrings # Disable string literal type conversion
+
+
+
+
+
+# $1 - $(call FORM_TRG,$t,$v)
+# $2 - $(call fixpath,$(DEF))
+# $3 - non-<empty> if target exports symbols, <empty> - otherwise
+# $t - EXE,DLL,DRV or KDLL
+# $n - $(call GET_TARGET_NAME,$t)
+# $v - R,S
+EXPORTS_TEMPLATE = $(if $3,$(call EXPORTS_TEMPLATEn,$1,$2,$(call MAKE_IMP_PATH,$n,$v)),$(NO_EXPORTS_TEMPLATE))
+
+# check that name of library built as RU/SU variant begins with UNI_ prefix (see comments of LIB_DEP_MAP/DLL_DEP_MAP)
+# $1 - path to target LIB or IMP
+# $2 - LIB or IMP
+# $3 - non-empty variant: R,S,RU,SU
+CHECK_LIB_UNI_NAME = $(if $(filter %U,$3),$(foreach \
+  n,$(patsubst $($2_PREFIX)%$(call LIB_VARIANT_SUFFIX,$3)$($2_SUFFIX),%,$(notdir $1)),$(if \
+  $(filter-out UNI_%,$n),$(error name of library '$n' must begin with UNI_ prefix to build it as $3 variant))))
 
 # strip-off names of compiled sources
 # $1 - compiler with options
@@ -1428,66 +1478,120 @@ $(call CLEAN_BUILD_PROTECT_VARS,MCL_MAX_COUNT SEQ_BUILD YASMC FLEXC BISONC YASM_
 cmd /S /C \"\"C:\\Program Files (x86)\\Microsoft Visual Studio\\2017\\Community\\VC\\Auxiliary\\Build\\vcvars32.bat\" &&
 cd \"%current_folder%\"
 cl.exe file.c
-/GS-
-/analyze-
-/W3
-/Gy
-/Zc:wchar_t
-/Gm-
-/Od
-/Zc:inline
-/fp:precise
+#/GS-
+#/analyze-
+#/W3
+#/Gy
+#/Zc:wchar_t
+#/Gm-
+#/Od
+#/Zc:inline
+#/fp:precise
 /D \"WIN32\"
 /D \"_WINDOWS\"
 /D \"_UNICODE\"
 /D \"UNICODE\"
-/errorReport:prompt
-/WX-
-/Zc:forScope
-/Gd
-/Oy-
-/Oi
-/MD
-/Fa\"\"
-/EHsc
-/nologo
-/Fo\"\"
-/Fp\"\"
-/diagnostics:classic
-/link
-/ENTRY:wWinMain
-/SUBSYSTEM:WINDOWS
-/MANIFEST:EMBED
-/NXCOMPAT
-/DYNAMICBASE
-\"kernel32.lib\"
-\"user32.lib\"
-\"gdi32.lib\"
-\"winspool.lib\"
-\"comdlg32.lib\"
-\"advapi32.lib\"
-\"shell32.lib\"
-\"ole32.lib\"
-\"oleaut32.lib\"
-\"uuid.lib\"
-\"odbc32.lib\"
-\"odbccp32.lib\"
-/DEBUG:NONE
-/MACHINE:%arch%
-/OPT:REF
-/SAFESEH
-/INCREMENTAL:NO
-/SUBSYSTEM:WINDOWS
-/MANIFESTUAC:\"level = 'asInvoker' uiAccess = 'false'\"
-/OPT:ICF
-/ERRORREPORT:PROMPT
-/NOLOGO
-/TLBID:1\"
+#/errorReport:prompt
+#/WX-
+#/Zc:forScope
+#/Gd
+#/Oy-
+#/Oi
+#/MD
+#/Fa\"\"
+#/EHsc
+#/nologo
+#/Fo\"\"
+#/Fp\"\"
+#/diagnostics:classic
+#/link
+#/ENTRY:wWinMain
+#/SUBSYSTEM:WINDOWS
+#/MANIFEST:EMBED
+#/NXCOMPAT
+#/DYNAMICBASE
+#\"kernel32.lib\"
+#\"user32.lib\"
+#\"gdi32.lib\"
+#\"winspool.lib\"
+#\"comdlg32.lib\"
+#\"advapi32.lib\"
+#\"shell32.lib\"
+#\"ole32.lib\"
+#\"oleaut32.lib\"
+#\"uuid.lib\"
+#\"odbc32.lib\"
+#\"odbccp32.lib\"
+#/DEBUG:NONE
+/MACHINE:%arch% /MACHINE:{ARM|EBC|X64|X86}
+#/OPT:REF
+#/SAFESEH
+#/INCREMENTAL:NO
+#/SUBSYSTEM:WINDOWS
+#/MANIFESTUAC:\"level = 'asInvoker' uiAccess = 'false'\"
+#/OPT:ICF
+#/ERRORREPORT:PROMPT
+#/NOLOGO
+#/TLBID:1\"
 
 rel:
-/GS /GL /analyze- /W3 /Gy /Zc:wchar_t /Zi /Gm- /O2 /Fd"Release\vc140.pdb" /Zc:inline /fp:precise /D "WIN32" /D "NDEBUG" /D "_CONSOLE" /D "_UNICODE" /D "UNICODE" /errorReport:prompt /WX- /Zc:forScope /Gd /Oy- /Oi /MD /Fa"Release\" /EHsc /nologo /Fo"Release\" /Fp"Release\ConsoleApplication2.pch"
+#/GS
+#/GL
+#/analyze-
+#/W3
+#/Gy
+#/Zc:wchar_t
+#/Zi
+#/Gm-
+#/O2
+#/Fd"Release\vc140.pdb"
+#/Zc:inline
+#/fp:precise
+/D "WIN32"
+/D "NDEBUG"
+/D "_CONSOLE"
+/D "_UNICODE"
+/D "UNICODE"
+#/errorReport:prompt
+#/WX-
+#/Zc:forScope
+#/Gd
+#/Oy-
+#/Oi
+#/MD
+#/Fa"Release\"
+#/EHsc
+#/nologo
+#/Fo"Release\"
+#/Fp"Release\ConsoleApplication2.pch"
 
 deb:
-/GS /analyze- /W3 /Zc:wchar_t /ZI /Gm /Od /Fd"Debug\vc140.pdb" /Zc:inline /fp:precise /D "WIN32" /D "_DEBUG" /D "_CONSOLE" /D "_UNICODE" /D "UNICODE" /errorReport:prompt /WX- /Zc:forScope /RTC1 /Gd /Oy- /MDd /Fa"Debug\" /EHsc /nologo /Fo"Debug\" /Fp"Debug\ConsoleApplication2.pch"
+#/GS
+#/analyze-
+#/W3
+#/Zc:wchar_t
+#/ZI
+#/Gm
+#/Od
+#/Fd"Debug\vc140.pdb"
+#/Zc:inline
+#/fp:precise
+/D "WIN32"
+/D "_DEBUG"
+/D "_CONSOLE"
+/D "_UNICODE"
+/D "UNICODE"
+#/errorReport:prompt
+#/WX-
+#/Zc:forScope
+#/RTC1
+#/Gd
+#/Oy-
+#/MDd
+#/Fa"Debug\"
+#/EHsc
+#/nologo
+#/Fo"Debug\"
+#/Fp"Debug\ConsoleApplication2.pch"
 
 
