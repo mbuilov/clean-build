@@ -31,7 +31,7 @@ endif
 # Maximum number of sources in a group compiled at once.
 MCL_MAX_COUNT := 50
 
-# strings to strip off from link.exe output
+# strings to strip off from link.exe output (spaces replaced with ?)
 LINKER_STRIP_STRINGS_en := Generating?code Finished?generating?code
 # cp1251 ".Ð¾Ð·Ð´Ð°Ð½Ð¸Ðµ?ÐºÐ¾Ð´Ð° .Ð¾Ð·Ð´Ð°Ð½Ð¸Ðµ?ÐºÐ¾Ð´Ð°?Ð·Ð°Ð²ÐµÑÑÐµÐ½Ð¾"
 LINKER_STRIP_STRINGS_ru_cp1251 := .îçäàíèå?êîäà .îçäàíèå?êîäà?çàâåðøåíî
