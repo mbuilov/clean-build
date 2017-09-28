@@ -71,12 +71,6 @@ endef
 DEFINE_LINKER_WRAPPER = $(eval $(subst <WRAP_LINKER>,$1,$(subst \
   <STRIP_EXPR>,$(call qpath,$2,|findstr /VBRC:),$(value WRAP_LINKER_TEMPL))))
 
-# check that target exports symbols - linker has created .exp file
-# $1 - path to the target (e.g. EXE or DLL)
-# target-specific: IMP
-CHECK_EXP_CREATED = $(if $(IMP),$(newline)$(QUIET)if not exist $(call ospath,$(basename \
-  $(IMP)).exp) (echo $(notdir $1) does not exports any symbols!) && cmd /c exit 1)
-
 # $(SED) expression to match C compiler messages about included files (used for auto-dependencies generation)
 INCLUDING_FILE_PATTERN_en := Note: including file:
 # utf8 "ÐÑÐ¸Ð¼ÐµÑÐ°Ð½Ð¸Ðµ: Ð²ÐºÐ»ÑÑÐµÐ½Ð¸Ðµ ÑÐ°Ð¹Ð»Ð°:"
@@ -162,7 +156,7 @@ $(call SET_GLOBAL,NO_WRAP SEQ_BUILD,0)
 
 # protect variables from modifications in target makefiles
 $(call SET_GLOBAL,MCL_MAX_COUNT LINKER_STRIP_STRINGS_en LINKER_STRIP_STRINGS_ru_cp1251 \
-  LINKER_STRIP_STRINGS_ru_cp1251_as_cp866_to_cp1251 WRAP_LINKER_TEMPL DEFINE_LINKER_WRAPPER CHECK_EXP_CREATED \
+  LINKER_STRIP_STRINGS_ru_cp1251_as_cp866_to_cp1251 WRAP_LINKER_TEMPL DEFINE_LINKER_WRAPPER \
   INCLUDING_FILE_PATTERN_en INCLUDING_FILE_PATTERN_ru_utf8 INCLUDING_FILE_PATTERN_ru_utf8_bytes \
   INCLUDING_FILE_PATTERN_ru_cp1251 INCLUDING_FILE_PATTERN_ru_cp1251_bytes \
   INCLUDING_FILE_PATTERN_ru_cp866 INCLUDING_FILE_PATTERN_ru_cp866_bytes SED_DEPS_SCRIPT \
