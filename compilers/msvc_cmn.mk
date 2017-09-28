@@ -107,7 +107,7 @@ define WRAP_COMPLIER_TEMPL
 
 # strip-off names of compiled sources
 # $1 - compiler with options
-# $2 - target object file or object files directory
+# $2 - target object file or <empty>
 # $3 - path(s) to the source(s)
 # note: FILTER_OUTPUT sends command output to stderr
 # note: send output to stderr in VERBOSE mode, this is needed for build script generation
@@ -146,9 +146,29 @@ endef
 DEFINE_COMPILER_WRAPPER = $(eval $(subst <WRAP_CC>,$1,$(subst <MP_BUILD>,$2,$(subst \
   <INCLUDING_FILE_PATTERN>,$3,$(subst <UDEPS_INCLUDE_FILTER>,$4,$(value WRAP_COMPLIER_TEMPL))))))
 
-# get dependencies of all sources, e.g.:
-# $(call TRG_ALL_SDEPS,s1|d1|d2 s2|d1|d3) -> /pr/d1 /pr/d2 /pr/d3
-#TRG_ALL_SDEPS = $(call fixpath,$(sort $(foreach d,$(SDEPS),$(wordlist 2,999999,$(subst |, ,$d)))))
+# add source-file dependencies for the target,
+#  define target-specific variables: SRC, SDEPS, OBJ_DIR
+# parameters (same as for C_BASE_TEMPLATE):
+# $1 - target file: $(call FORM_TRG,$t,$v)
+# $2 - sources:     $(TRG_SRC)
+# $3 - sdeps:       $(TRG_SDEPS)
+# $4 - objdir:      $(call FORM_OBJ_DIR,$t,$v)
+# $t - EXE,DLL,LIB...
+# $v - non-empty variant: R,P,D,S... (one of variants supported by selected toolchain)
+define MP_TARGET_SRC_DEPS
+$1: SRC := $2
+$1: SDEPS := $3
+$1: OBJ_DIR := $4
+$1: $2 $(sort $(call ALL_SDEPS,$3)) | $4
+endef
+
+# C_BASE_TEMPLATE_MP will have the same value as C_BASE_TEMPLATE,
+#  but without calls to OBJ_RULES for C/C++ sources and
+#  with $(MP_TARGET_SRC_DEPS) at last line
+$(eval define C_BASE_TEMPLATE_MP$(newline)$(subst $(newline)$$1:$$(call \
+  OBJ_RULES,CC,$$(filter $$(CC_MASK),$$2),$$3,$$4)$(newline)$$1:$$(call \
+  OBJ_RULES,CXX,$$(filter $$(CXX_MASK),$$2),$$3,$$4),,$(value \
+  C_BASE_TEMPLATE))$(newline)$$(MP_TARGET_SRC_DEPS)$(newline)endef)
 
 # protect variables from modifications in target makefiles
 # note: do not trace calls to these variables because they are used in ifdefs
@@ -160,4 +180,4 @@ $(call SET_GLOBAL,MCL_MAX_COUNT LINKER_STRIP_STRINGS_en LINKER_STRIP_STRINGS_ru_
   INCLUDING_FILE_PATTERN_en INCLUDING_FILE_PATTERN_ru_utf8 INCLUDING_FILE_PATTERN_ru_utf8_bytes \
   INCLUDING_FILE_PATTERN_ru_cp1251 INCLUDING_FILE_PATTERN_ru_cp1251_bytes \
   INCLUDING_FILE_PATTERN_ru_cp866 INCLUDING_FILE_PATTERN_ru_cp866_bytes SED_DEPS_SCRIPT \
-  WRAP_COMPLIER_TEMPL DEFINE_COMPILER_WRAPPER)
+  WRAP_COMPLIER_TEMPL DEFINE_COMPILER_WRAPPER MP_TARGET_SRC_DEPS C_BASE_TEMPLATE_MP)
