@@ -178,9 +178,10 @@ C_RULES = $(foreach t,$(C_TARGETS),$(if $($t),$(C_RULESt)))
 # redefine macro $1 with new value $2 as target-specific variable bound to namespace identified by target-specific variable TRG,
 #  this is usable when it is needed to redefine some variable (e.g. DEF_CFLAGS) as target-specific (e.g. for an EXE), allow
 #  inheritance of that variable to dependent objects (of EXE), but prevent inheritance to dependent DLLs and their objects
-# note: target-specific TRG defined by C_BASE_TEMPLATE
+# note: target-specific variable TRG, those value is used as a namespace name, defined by C_BASE_TEMPLATE
+# example: $(call C_REDEFINE,DEF_CFLAGS,-Wall)
 C_REDEFINE = $(foreach t,$(C_TARGETS),$(if $($t),$(foreach v,$(call GET_VARIANTS,$t),$(eval $(call \
-  FORM_TRG,$t,$v): $$(call keyed_redefine,$$1,TRG,$(notdir $(FORM_OBJ_DIR,$t,$v)),$$2)))))
+  FORM_TRG,$t,$v): $$(call keyed_redefine,$$1,TRG,$(notdir $(call FORM_OBJ_DIR,$t,$v)),$$2)))))
 
 # base template for C/C++ targets
 # $1 - target file: $(call FORM_TRG,$t,$v)
@@ -189,7 +190,7 @@ C_REDEFINE = $(foreach t,$(C_TARGETS),$(if $($t),$(foreach v,$(call GET_VARIANTS
 # $4 - objdir:      $(call FORM_OBJ_DIR,$t,$v)
 # $t - EXE,DLL,LIB...
 # $v - non-empty variant: R,P,D,S... (one of variants supported by selected toolchain)
-# note: define target-specific variable TRG - an unique namespace, for use in C_REDEFINE
+# note: define target-specific variable TRG - an unique namespace name, for use in C_REDEFINE
 # note: STD_TARGET_VARS also changes CB_NEEDED_DIRS, so do not remember its new value here
 define C_BASE_TEMPLATE
 $1:TRG := $(notdir $4)
