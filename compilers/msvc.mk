@@ -22,7 +22,7 @@ include $(dir $(lastword $(MAKEFILE_LIST)))msvc_stdres.mk
 endif
 
 # add support for exporting symbols (from a dll or exe)
-ifeq (,$(filter-out undefined environment,$(origin EXPORTS_TEMPLATEv)))
+ifeq (,$(filter-out undefined environment,$(origin EXPORTS_TEMPLATE)))
 include $(dir $(lastword $(MAKEFILE_LIST)))msvc_exp.mk
 endif
 
@@ -106,22 +106,22 @@ DLL_SUFFIX := .dll
 IMP_PREFIX:=
 IMP_SUFFIX := .lib
 
-# determine if building multiple sources at once
-ifdef SEQ_BUILD
-MP_BUILD:=
-else ifneq (,$(call is_less,$(VS_VER),9))
-# /MP compiler option was introduced in Visual Studio 2008
-# < Visual Studio 2008
-MP_BUILD:=
-else
-MP_BUILD := 1
-endif
-
 # default values of user-defined C compiler flags
 # note: may be taken from the environment in project configuration makefile
-# /MP option - compile all sources of a module at once
 # /W3 - warning level 3
-CFLAGS := $(if $(MP_BUILD),/MP )/W3
+CFLAGS := /W3
+
+# determine if building multiple sources at once
+ifndef SEQ_BUILD
+ifneq (,$(call is_less,8,$(VS_VER)))
+# >= Visual Studio 2008
+# /MP - compile all sources of a module at once
+CFLAGS += /MP
+endif
+endif
+
+# $(MP_BUILD) will be non-empty if building multiple sources at once
+MP_BUILD := $(filter /MP,$(CFLAGS))
 
 # When using the /Zi option, the debug info of all compiled sources is stored in a single .pdb,
 # but this can lead to contentions accessing that .pdb during parallel compilation.
@@ -349,11 +349,12 @@ $(call DEFINE_LINKER_WRAPPER,WRAP_LINKER,$(LINKER_STRIP_STRINGS))
 # $3 - target: EXE or DLL
 # $4 - non-empty variant: R,S,RU,SU
 # target-specific: TMD, VLDFLAGS
+# note: used by EXE_TEMPLATE and DLL_TEMPLATE from $(CLEAN_BUILD_DIR)/impl/_c.mk
 # note: link.exe will not delete generated manifest file if failed to build target exe/dll, for example because of invalid DEF file
 # note: if EXE do not exports symbols (as usual), do not set in target makefile EXE_EXPORTS (empty by default)
 # note: if DLL do not exports symbols (unusual), set in target makefile DLL_NO_EXPORTS to non-empty value
-EXE_LD1 = $(call WRAP_LINKER,$(VSLINK) $(CMN_LIBS) $(DEF_EXE_LDFLAGS) $(VLDFLAGS))$(CHECK_EXP_CREATED)
-DLL_LD1 = $(call WRAP_LINKER,$(VSLINK) $(CMN_LIBS) $(DEF_DLL_LDFLAGS) $(VLDFLAGS))$(CHECK_EXP_CREATED)
+EXE_LD = $(call SUP,$(TMD)EXE,$1)$(call WRAP_LINKER,$(VSLINK) $(CMN_LIBS) $(DEF_EXE_LDFLAGS) $(VLDFLAGS))$(CHECK_EXP_CREATED)
+DLL_LD = $(call SUP,$(TMD)DLL,$1)$(call WRAP_LINKER,$(VSLINK) $(CMN_LIBS) $(DEF_DLL_LDFLAGS) $(VLDFLAGS))$(CHECK_EXP_CREATED)
 
 # manifest embedding
 # $1 - path to target EXE or DLL
@@ -365,20 +366,20 @@ EMBED_EXE_MANIFEST = if exist $(ospath).manifest $(MT) -nologo \
   -manifest $(ospath).manifest -outputresource:$(ospath);1 && del $(ospath).manifest
 EMBED_DLL_MANIFEST = if exist $(ospath).manifest $(MT) -nologo \
   -manifest $(ospath).manifest -outputresource:$(ospath);2 && del $(ospath).manifest
-$(call define_append,EXE_LD1,$(newline)$(QUIET)$$(EMBED_EXE_MANIFEST))
-$(call define_append,DLL_LD1,$(newline)$(QUIET)$$(EMBED_DLL_MANIFEST))
+$(call define_append,EXE_LD,$(newline)$(QUIET)$$(EMBED_EXE_MANIFEST))
+$(call define_append,DLL_LD,$(newline)$(QUIET)$$(EMBED_DLL_MANIFEST))
 endif
 endif
 
 # for DLL and EXE, define target-specific variables: SUBSYSTEM, MODVER, IMP, DEF
 # $1 - $(call FORM_TRG,$t,$v)
 # $2 - path to import library if target exports symbols, <empty> - otherwise
-# $t - EXE or DLL
-# $v - variant: R,S,RU,SU
+# $3 - EXE or DLL
+# $4 - variant: R,S,RU,SU
 define EXE_DLL_AUX_TEMPLATE
 $1:SUBSYSTEM := $(SUBSYSTEM_TYPE),$(DEF_SUBSYSTEM_VER)
 $1:MODVER    := $(MODVER)
-$(EXPORTS_TEMPLATEv)
+$(EXPORTS_TEMPLATE)
 endef
 
 # auxiliary defines for EXE: define target-specific SUBSYSTEM, MODVER, IMP, DEF
@@ -386,14 +387,14 @@ endef
 # $t - EXE
 # $v - variant: R,S,RU,SU
 EXE_AUX_TEMPLATE = $(call EXE_DLL_AUX_TEMPLATE,$1,$(if \
-  $(EXE_EXPORTS),$(LIB_DIR)/$(IMP_PREFIX)$(call GET_TARGET_NAME,EXE)$(call LIB_VARIANT_SUFFIX,$v)$(IMP_SUFFIX)))
+  $(EXE_EXPORTS),$(LIB_DIR)/$(IMP_PREFIX)$(call GET_TARGET_NAME,EXE)$(call LIB_VARIANT_SUFFIX,$v)$(IMP_SUFFIX)),EXE,$v)
 
 # auxiliary defines for DLL: define target-specific SUBSYSTEM, MODVER, IMP, DEF
 # $1 - $(call FORM_TRG,$t,$v)
 # $t - DLL
 # $v - variant: R,S,RU,SU
 DLL_AUX_TEMPLATE = $(call EXE_DLL_AUX_TEMPLATE,$1,$(if \
-  $(DLL_NO_EXPORTS),,$(LIB_DIR)/$(IMP_PREFIX)$(call GET_TARGET_NAME,DLL)$(call LIB_VARIANT_SUFFIX,$v)$(IMP_SUFFIX)))
+  $(DLL_NO_EXPORTS),,$(LIB_DIR)/$(IMP_PREFIX)$(call GET_TARGET_NAME,DLL)$(call LIB_VARIANT_SUFFIX,$v)$(IMP_SUFFIX)),DLL,$v)
 
 # linker for each variant of LIB
 # $1 - path to target LIB
@@ -401,26 +402,20 @@ DLL_AUX_TEMPLATE = $(call EXE_DLL_AUX_TEMPLATE,$1,$(if \
 # $3 - target: LIB
 # $4 - non-empty variant: R,S,RU,SU
 # target-specific: TMD
+# note: used by LIB_TEMPLATE from $(CLEAN_BUILD_DIR)/impl/_c.mk
 # note: lib.exe does not support linking resources (.res - files) to a static library
-LIB_LD1 = $(VSLIB) /nologo /OUT:$(call ospath,$1 $2) $($(TMD)ARFLAGS)
+LIB_LD = $(call SUP,$(TMD)LIB,$1)$(VSLIB) /nologo /OUT:$(call ospath,$1 $2) $($(TMD)ARFLAGS)
 
 # check that LIB do not includes resources (.res - files)
 ifdef MCHECK
-$(eval LIB_LD1 = $$(if $$(filter %.res,$$^),$$(warning \
-  $$1: resources cannot be linked into the static library: $$(filter %.res,$$^)))$(value LIB_LD1))
+$(eval LIB_LD = $$(if $$(filter %.res,$$^),$$(warning \
+  $$1: resources cannot be linked into the static library: $$(filter %.res,$$^)))$(value LIB_LD))
 endif
 
 # note: send output to stderr in VERBOSE mode, this is needed for build script generation
 ifdef VERBOSE
-$(eval LIB_LD1 = $(value LIB_LD1) >&2)
+$(eval LIB_LD = $(value LIB_LD) >&2)
 endif
-
-# linkers for each variant of EXE, DLL or LIB
-# $1 - path to target EXE, DLL or LIB
-# note: used by EXE_TEMPLATE, DLL_TEMPLATE and LIB_TEMPLATE from $(CLEAN_BUILD_DIR)/impl/_c.mk
-EXE_LD = $(call SUP,$(TMD)EXE,$1)$(EXE_LD1)
-DLL_LD = $(call SUP,$(TMD)DLL,$1)$(DLL_LD1)
-LIB_LD = $(call SUP,$(TMD)LIB,$1)$(LIB_LD1)
 
 # regular expression used to match paths to included headers from /showIncludes option output
 # default value, may be overridden either in project configuration makefile or in command line
@@ -512,56 +507,75 @@ ifndef MP_BUILD
 # $4 - non-empty variant: R,S,RU,SU
 # target-specific: TMD
 # note: used by OBJ_RULES_BODY macro from $(CLEAN_BUILD_DIR)/impl/c_base.mk
-OBJ_CC  = $(call SUP,$(TMD)CC,$2)$(VSCL) $(call CC_PARAMS,$(dir $1),$2,$3,$4)
-OBJ_CXX = $(call SUP,$(TMD)CXX,$2)$(VSCL) $(call CXX_PARAMS,$(dir $1),$2,$3,$4)
+OBJ_CC  = $(call SUP,$(TMD)CC,$2)$(call WRAP_CC,$(VSCL) $(call CC_PARAMS,$(dir $1),$2,$3,$4),$1,$2)
+OBJ_CXX = $(call SUP,$(TMD)CXX,$2)$(call WRAP_CC,$(VSCL) $(call CXX_PARAMS,$(dir $1),$2,$3,$4),$1,$2)
 
 else ifndef TOCLEAN
-
-# add dependency on sources for the target,
-#  define target-specific variables: SRC, SDEPS, OBJ_DIR
-# parameters (same as for C_BASE_TEMPLATE):
-# $1 - target file: $(call FORM_TRG,$t,$v)
-# $2 - sources:     $(TRG_SRC)
-# $3 - sdeps:       $(TRG_SDEPS)
-# $4 - objdir:      $(call FORM_OBJ_DIR,$t,$v)
-# $t - EXE,DLL,LIB...
-# $v - non-empty variant: R,P,D,S... (one of variants supported by selected toolchain)
-define MP_TARGET_SRC_DEPS
-$1: SRC := $2
-$1: SDEPS := $3
-$1: OBJ_DIR := $4
-$1: $2 $(call ALL_SDEPS,$3) | $4
-endef
-
-# C_BASE_TEMPLATE_MP will have the same value as C_BASE_TEMPLATE,
-#  but without calls to OBJ_RULES for C/C++ sources and
-#  with $(MP_TARGET_SRC_DEPS) at last line
-$(eval define C_BASE_TEMPLATE_MP$(newline)$(subst $(newline)$$1:$$(call \
-  OBJ_RULES,CC,$$(filter $$(CC_MASK),$$2),$$3,$$4)$(newline)$$1:$$(call \
-  OBJ_RULES,CXX,$$(filter $$(CXX_MASK),$$2),$$3,$$4),,$(value \
-  C_BASE_TEMPLATE))$(newline)$$(MP_TARGET_SRC_DEPS)$(newline)endef)
 
 # override templates defined in $(CLEAN_BUILD_DIR)/_c.mk:
 #  EXE_TEMPLATE, DLL_TEMPLATE and LIB_TEMPLATE will not call OBJ_RULES for C/C++ sources,
 #  instead, we will build the target module directly from sources,
 #  object files will be generated as a side-effect of this process
+# note: $(C_BASE_TEMPLATE_MP) defines target-specific variables: SRC, SDEPS, OBJ_DIR
 $(eval define EXE_TEMPLATE$(newline)$(subst $$(C_BASE_TEMPLATE),$$(C_BASE_TEMPLATE_MP),$(value EXE_TEMPLATE))$(newline)endef)
 $(eval define DLL_TEMPLATE$(newline)$(subst $$(C_BASE_TEMPLATE),$$(C_BASE_TEMPLATE_MP),$(value DLL_TEMPLATE))$(newline)endef)
 $(eval define LIB_TEMPLATE$(newline)$(subst $$(C_BASE_TEMPLATE),$$(C_BASE_TEMPLATE_MP),$(value LIB_TEMPLATE))$(newline)endef)
 
-# redefine linkers to compile & link
+# redefine linkers to compile & link in one rule
 # $1 - path to target EXE, DLL or LIB
-# $2 - objects for linking the target (may be empty, if no sources were assembled)
+# $2 - objects for linking the target (may be empty, if no .asm sources were assembled)
 # $3 - target: EXE, DLL or LIB
 # $4 - non-empty variant: R,S,RU,SU
 # target-specific: TMD, VLDFLAGS, SRC, SDEPS, OBJ_DIR
 # note: used by redefined above EXE_TEMPLATE, DLL_TEMPLATE and LIB_TEMPLATE
-EXE_LD = $(call CC,...)$(call SUP,$(TMD)EXE,$1)$(EXE_LD1)
-DLL_LD = $(call CC,...)$(call SUP,$(TMD)DLL,$1)$(DLL_LD1)
-LIB_LD = $(call CC,...)$(call SUP,$(TMD)LIB,$1)$(LIB_LD1)
+$(eval EXE_LD = $$(CMN_MCL)$(value EXE_LD))
+$(eval DLL_LD = $$(CMN_MCL)$(value DLL_LD))
+$(eval LIB_LD = $$(CMN_MCL)$(value LIB_LD))
+
+# compile multiple sources at once
+# $1 - path to target EXE, DLL or LIB
+# $2 - objects for linking the target (may be empty, if no .asm sources were assembled)
+# $3 - target: EXE, DLL or LIB
+# $4 - non-empty variant: R,S,RU,SU
+# target-specific: SRC, SDEPS
+CMN_MCL = $(call CMN_MCL1,$(sort $(filter $(SRC),$? $(call R_FILTER_SDEPS,$?,$(SDEPS)))),$3,$4)
+
+# $1 - some sources from target-specific $(SRC)
+# $2 - target: EXE, DLL or LIB
+# $3 - non-empty variant: R,S,RU,SU
+CMN_MCL1 = $(call CMN_MCL2,$(filter %.$(CC_MASK),$1),$(filter %.$(CXX_MASK),$1),$2,$3)
+
+# $1 - C sources
+# $2 - C++ sources
+# $3 - target: EXE, DLL or LIB
+# $4 - non-empty variant: R,S,RU,SU
+CMN_MCL2 = $(if \
+  $1,$(call xcmd,OBJ_MCC,$1,$(MCL_MAX_COUNT),$3,$4)$(newline))$(if \
+  $2,$(call xcmd,OBJ_MCXX,$2,$(MCL_MAX_COUNT),$3,$4)$(newline))
+
+# C/C++ multi-source compilers for each variant of EXE,DLL,LIB
+# $1 - sources
+# $2 - target: EXE, DLL or LIB
+# $3 - non-empty variant: R,S,RU,SU
+# target-specific: TMD, OBJ_DIR
+OBJ_MCC  = $(call SUP,$(TMD)CC,$1)$(call WRAP_CC,$(VSCL) $(call CC_PARAMS,$(OBJ_DIR)/,$1,$2,$3),,$1)
+OBJ_MCXX = $(call SUP,$(TMD)CXX,$1)$(call WRAP_CC,$(VSCL) $(call CXX_PARAMS,$(OBJ_DIR)/,$1,$2,$3),,$1)
 
 endif # MP_BUILD
 
+# expand EXE_AUX_TEMPLATE or DLL_AUX_TEMPLATE
+$(foreach t,EXE DLL,$(if $($t),$(foreach v,$(call GET_VARIANTS,$t),$(call $t_AUX_TEMPLATE,$(call FORM_TRG,$t,$v))))$(call STD_RES_TEMPLATE,$t)
+
+
+
+
+
+PCH_TEMPLATE3 = $(PCH_TEMPLATEt)$(foreach v,$(call GET_VARIANTS,$t),$(newline)$(call \
+  PCH_TEMPLATEv,$1,$2,$(call FORM_TRG,$t,$v),$(call FORM_OBJ_DIR,$t,$v),$3))
+
+# for DLL:         define target-specific variable MODVER
+# for DLL and EXE: define target-specific variables RPATH and MAP
+$(call define_prepend,DEFINE_C_APP_EVAL,$$(eval $$(UNIX_MOD_AUX_APP)))
 
 
 
