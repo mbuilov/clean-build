@@ -26,8 +26,8 @@ CB_NEEDED_DIRS += $(patsubst %/,%,$(dir $2))
 $2: $1
 endef
 else
-# return import library and possibly generated .exp file to cleanup
-EXPORTS_TEMPLATE = $2 $(basename $2).exp
+# just delete import library and possibly generated .exp file
+EXPORTS_TEMPLATE = $(call TOCLEAN,$2 $(basename $2).exp)
 endif
 
 # if target may export symbols, but it's specified that target do not exports
@@ -59,5 +59,11 @@ DEF_VARIABLE_CHECK = $(if $2,,$(if $(DEF),$(warning DEF variable is ignored for 
 $(call define_prepend,EXPORTS_TEMPLATEv,$$(DEF_VARIABLE_CHECK))
 endif
 
+# check that target exports symbols - linker has created .exp file
+# $1 - path to the target (e.g. EXE or DLL)
+# target-specific: IMP
+CHECK_EXP_CREATED = $(if $(IMP),$(newline)$(QUIET)if not exist $(call ospath,$(basename \
+  $(IMP)).exp) (echo $(notdir $1) does not exports any symbols!) && cmd /c exit 1)
+
 # protect variables from modifications in target makefiles
-$(call SET_GLOBAL,C_PREPARE_MSVC_EXP_VARS EXPORTS_TEMPLATE NO_EXPORTS_TEMPLATE EXPORTS_TEMPLATEv DEF_VARIABLE_CHECK)
+$(call SET_GLOBAL,C_PREPARE_MSVC_EXP_VARS EXPORTS_TEMPLATE NO_EXPORTS_TEMPLATE EXPORTS_TEMPLATEv DEF_VARIABLE_CHECK CHECK_EXP_CREATED)
