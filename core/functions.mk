@@ -231,10 +231,6 @@ relpath2 = $(call back_prefix,$(1:$3%=%))$(2:$3%=%)
 relpath1 = $(call relpath2,$1,$2,$(call cmn_path,$1,$2))
 relpath  = $(call relpath1,$(1:/=)/,$(2:/=)/)
 
-# join elements of list $1 with $2
-# example: $(call join_with,a b c,|) -> a|b|c
-join_with = $(subst $(space),$2,$(strip $1))
-
 # get major, minor or patch number from version string like 1.2.3
 # if cannot get needed value, return 0
 ver_major = $(firstword $(subst ., ,$1) 0)
@@ -366,7 +362,7 @@ TARGET_MAKEFILE += $(call SET_GLOBAL, \
 TARGET_MAKEFILE += $(call SET_GLOBAL, \
   unspaces tospaces ifaddq qpath tolower toupper repl09 repl09AZ padto1 padto \
   is_less1 is_less xargs1 xargs xcmd trim normp2 normp1 normp \
-  cmn_path1 cmn_path back_prefix relpath2 relpath1 relpath join_with \
+  cmn_path1 cmn_path back_prefix relpath2 relpath1 relpath \
   ver_major ver_minor ver_patch ver_compatible1 ver_compatible \
   get_dir split_dirs1 split_dirs mk_dir_deps lazy_simple \
   define_append=$$1=$$1 define_prepend=$$1=$$1 append_simple=$$1=$$1 prepend_simple=$$1=$$1 \
