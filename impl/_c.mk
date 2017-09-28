@@ -162,6 +162,7 @@ DEP_IMPS = $(foreach d,$(DLLS),$(IMP_PREFIX)$(call DEP_LIBRARY,$1,$2,$d,DLL)$(IM
 # $v - non-empty variant: R,P,S,...
 # note: target-specific variables are passed to dependencies, so templates for dependent libs/dlls
 #  must set own values of COMPILER, VINCLUDE, VDEFINES, VCFLAGS and other sensible variables
+# note: $(CLEAN_BUILD_DIR)/compilers/msvc.mk redefines EXE_TEMPLATE
 define EXE_TEMPLATE
 $(C_BASE_TEMPLATE)
 $1:TMD     := $(TMD)
@@ -173,6 +174,7 @@ $1:$(addprefix $(LIB_DIR)/,$(call DEP_LIBS,$t,$v) $(call DEP_IMPS,$t,$v))
 endef
 
 # template for building dynamic (shared) libraries, used by C_RULES
+# note: $(CLEAN_BUILD_DIR)/compilers/msvc.mk redefines DLL_TEMPLATE
 $(eval define DLL_TEMPLATE$(newline)$(value EXE_TEMPLATE)$(newline)endef)
 
 # template for building static libraries, used by C_RULES
@@ -182,6 +184,7 @@ $(eval define DLL_TEMPLATE$(newline)$(value EXE_TEMPLATE)$(newline)endef)
 # $4 - objdir:      $(call FORM_OBJ_DIR,$t,$v)
 # $t - LIB
 # $v - non-empty variant: R,P,D,S
+# note: $(CLEAN_BUILD_DIR)/compilers/msvc.mk redefines LIB_TEMPLATE
 define LIB_TEMPLATE
 $(C_BASE_TEMPLATE)
 $1:TMD := $(TMD)
