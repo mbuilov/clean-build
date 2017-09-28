@@ -30,8 +30,8 @@ $(call try_make_simple,C_PREPARE_APP_VARS,C_PREPARE_UNIX_APP_VARS)
 # $2 - $(call fixpath,$(MAP))
 # $t - EXE
 # $v - R,P
-# note: target-specific MAP variable may be inherited by the DLLs this EXE depends on,
-#  so _must_ define DLL's own target-specific MAP variables, even with empty value, to override inherited EXE's one
+# note: target-specific MAP variable is inherited by the DLLs this EXE depends on,
+#  so DLLs _must_ define their own target-specific MAP variable to override inherited EXE's one
 # note: last line must be empty
 define EXE_AUX_TEMPLATEv
 $1:MAP := $2
@@ -44,8 +44,8 @@ endef
 # $2 - $(call fixpath,$(MAP))
 # $t - DLL
 # $v - R
-# note: _must_ define DLL's own target-specific MAP variable, even with empty value,
-#  to override inherited target-specific MAP variable of EXE which depends on this DLL
+# note: define DLL's own target-specific MAP variable to override inherited target-specific
+#  MAP variable of EXE (or another DLL) which depends on this DLL
 # note: last line must be empty
 define DLL_AUX_TEMPLATEv
 $1:MODVER := $(MODVER)
