@@ -831,21 +831,25 @@ MULTI_TARGET = $(eval $(STD_TARGET_VARS))
 endif # clean
 
 # helper macro: make source dependencies list
-# $1 - sources
-# $2 - their dependencies
-# example: $(call FORM_SDEPS,s1 s2,d1 d2 d3/d4) -> s1/d1|d2|d3 s2/d1|d2|d3/d4
-FORM_SDEPS = $(addsuffix /$(call join_with,$2,|),$1)
+# $1 - source(s)
+# $2 - dependencies of the source(s)
+# example: $(call FORM_SDEPS,s1 s2,d1 d2 d3/d4) -> s1/|d1|d2|d3/d4 s2/|d1|d2|d3/d4
+FORM_SDEPS = $(addsuffix /|$(subst $(space),|,$(strip $2)),$1)
 
-# get dependencies for source file(s)
-# $1 - source file(s)
-# $2 - source dependencies list
-# example: $(call EXTRACT_SDEPS,s1 s2,s1/d1|d2|d3 s2/d1|d2|d3/d4) -> d1 d2 d3 d1 d2 d3/d4
-EXTRACT_SDEPS = $(subst |, ,$(filter-out %|,$(subst ||,| ,$(filter $(addsuffix /%,$1),$2))))
-??????
+# get dependencies of all sources
+# $1 - dependencies list (result of FORM_SDEPS)
+# example: $(call ALL_SDEPS,s8/|d1|d8 s2/|d1|d2|d3/d4) -> d1 d8 d1 d2 d3/d4
+ALL_SDEPS = $(filter-out %/,$(subst |, ,$1))
+
+# get dependencies of the source(s)
+# $1 - source(s)
+# $2 - dependencies list (result of FORM_SDEPS)
+# example: $(call EXTRACT_SDEPS,s8 s2,s8/|d1|d8 s2/|d1|d2|d3/d4) -> d1 d8 d1 d2 d3/d4
+EXTRACT_SDEPS = $(call ALL_SDEPS,$(filter $(addsuffix /|%,$1),$2))
 
 # fix source dependencies paths: add absolute path to directory of currently processing makefile to non-absolute paths
-# $1 - source dependencies list
-# example: $(call FIX_SDEPS,s1||d1|d2 s2||d1|d2) -> /pr/s1||/pr/d1|/pr/d2 /pr/s2||/pr/d1|/pr/d2
+# $1 - source dependencies list (result of FORM_SDEPS)
+# example: $(call FIX_SDEPS,s8/|d1|d8 s2/|d1|d2|d3/d4) -> /pr/s8/|/pr/d1|/pr/d8 /pr/s2||/pr/d1|/pr/d2|/pr/d3/d4
 FIX_SDEPS = $(subst | ,|,$(call fixpath,$(subst |,| ,$1)))
 
 # run executable in modified environment
@@ -1106,7 +1110,7 @@ $(call SET_GLOBAL,PROJECT_VARS_NAMES PASS_ENV_VARS \
   FORM_TRG ALL_TARGETS FORM_OBJ_DIR MAKE_TRG_PATH ADD_GENERATED CHECK_GENERATED ADD_GENERATED_RET \
   NON_PARALLEL_EXECUTE_RULE NON_PARALLEL_EXECUTE \
   MULTI_TARGET_SEQ MULTI_TARGET_RULE=MULTI_TARGET_NUM=MULTI_TARGET_NUM MULTI_TARGET CHECK_MULTI_RULE \
-  FORM_SDEPS EXTRACT_SDEPS FIX_SDEPS RUN_TOOL TMD \
+  FORM_SDEPS ALL_SDEPS EXTRACT_SDEPS FIX_SDEPS RUN_TOOL TMD \
   DEF_HEAD_CODE_EVAL DEF_TAIL_CODE_EVAL MAKE_CONTINUE_EVAL_NAME DEFINE_TARGETS_EVAL_NAME \
   DEF_HEAD_CODE DEF_TAIL_CODE DEFINE_TARGETS SAVE_VARS RESTORE_VARS MAKE_CONTINUE CONF_COLOR PRODUCT_VER)
 
