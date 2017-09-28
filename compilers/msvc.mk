@@ -283,6 +283,8 @@ SUBSYSTEM_VER := $(if $(CPU:%64=),5.01,5.02)
 
 # default subsystem for EXE or DLL
 # possibly target-specific: SUBSYSTEM_TYPE, SUBSYSTEM_VER
+# note: use C_REDEFINE to define SUBSYSTEM_TYPE or SUBSYSTEM_VER as target-specific variables,
+#  for example: $(call C_REDEFINE,SUBSYSTEM_TYPE,WINDOWS)
 SUBSYSTEM_OPTION = /SUBSYSTEM:$(SUBSYSTEM_TYPE),$(SUBSYSTEM_VER)
 
 # how to embed manifest into EXE or DLL
