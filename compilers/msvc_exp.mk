@@ -12,11 +12,11 @@ C_PREPARE_MSVC_EXP_VARS := DEF:=
 
 # for the target exporting symbols
 # $1 - $(call FORM_TRG,$t,$v)
-# $2 - $(MAKE_IMP_PATH)
+# $2 - $(MAKE_IMPORT_LIB_PATH)
 # $3 - $(call fixpath,$(DEF))
 # note: C_BASE_TEMPLATE also changes CB_NEEDED_DIRS, so do not remember its new value here
-# note: target-specific IMP and DEF variables may be inherited by targets depending on current one,
-#  so _must_ define their own target-specific IMP and DEF variables, even with empty values, to override inherited ones
+# note: target-specific IMP and DEF variables are inherited by the targets this target depends on,
+#  so dependencies _must_ define their own target-specific IMP and DEF variables to override inherited ones
 ifndef TOCLEAN
 define EXPORTS_TEMPLATE
 $1: IMP := $2
@@ -26,18 +26,18 @@ CB_NEEDED_DIRS += $(LIB_DIR)
 $2: $1
 endef
 else
-# return import library and generated .exp file to cleanup
+# return import library and possibly generated .exp file to cleanup
 EXPORTS_TEMPLATE = $2 $(2:$(IMP_SUFFIX)=.exp)
 endif
 
-# if target may export symbols, but do not exports
+# if target may export symbols, but it's specified that target do not exports
 # $1 - $(call FORM_TRG,$t,$v)
-# note: _must_ define target's own target-specific IMP and DEF variables, even with empty values,
-#  to override inherited target-specific IMP and DEF variables of target depending on this one
+# note: define target's own target-specific IMP and DEF variables to override inherited
+#  target-specific IMP and DEF variables of the target which depends on this one
 ifndef TOCLEAN
 define NO_EXPORTS_TEMPLATE
-$1: IMP:=
-$1: DEF:=
+$1:IMP:=
+$1:DEF:=
 endef
 else
 NO_EXPORTS_TEMPLATE:=
