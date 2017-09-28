@@ -66,15 +66,14 @@ endif
 endif
 
 # standard include paths - to include <winver.h>
-RC_COMPILER_INCLUDES := $(VSINCLUDE) $(UMINCLUDE)
+RC_STDINCLUDES := $(VSINCLUDE) $(UMINCLUDE)
 
 # resource compiler
 # $1 - target .res
 # $2 - source .rc
-# $3 - rc compiler options
+# $3 - rc compiler options, such as: $(call qpath,$(RC_STDINCLUDES),/I)
 # target-specific: TMD
-RC_COMPILER = $(call SUP,$(TMD)RC,$1)$(call WRAP_RC,$(RC) $(RC_SUPPRESS_LOGO)$(if \
-  $(VERBOSE), /v) $3 $(call qpath,$(RC_COMPILER_INCLUDES),/I) /fo$(call ospath,$1 $2))
+RC_COMPILER = $(call SUP,$(TMD)RC,$1)$(call WRAP_RC,$(RC) $(RC_SUPPRESS_LOGO)$(if $(VERBOSE), /v) $3 /fo$(call ospath,$1 $2))
 
 # tools colors
 RC_COLOR  := $(GEN_COLOR)
@@ -85,4 +84,4 @@ MT = $(error MT is not defined - path to mt.exe, should be in double-quotes if c
 
 # protect variables from modifications in target makefiles
 $(call SET_GLOBAL,MC RC MC_STRIP_STRINGS WRAP_MC MC_COMPILER MC_COLOR TMC_COLOR \
-  RC_SUPPRESS_LOGO RC_LOGO_STRINGS WRAP_RC RC_COMPILER_INCLUDES RC_COMPILER RC_COLOR TRC_COLOR MT)
+  RC_SUPPRESS_LOGO RC_LOGO_STRINGS WRAP_RC RC_STDINCLUDES RC_COMPILER RC_COLOR TRC_COLOR MT)

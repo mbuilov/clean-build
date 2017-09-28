@@ -4,13 +4,13 @@
 # Licensed under GPL version 2 or any later version, see COPYING
 #----------------------------------------------------------------------------------
 
-# standard resource generation, included by $(CLEAN_BUILD_DIR)/compilers/msvc.mk
+# standard version resource file generation, included by $(CLEAN_BUILD_DIR)/compilers/msvc.mk
 
 # reset additional variables at beginning of target makefile
 # NO_STD_RES - if non-empty, then do not add standard resource to the target
 C_PREPARE_MSVC_STDRES_VARS := NO_STD_RES:=
 
-# standard resource template
+# standard version resource template
 # $1 - EXE,DLL,DRV,KDLL
 # $2 - target file name
 # $3 - R,S,D,...
@@ -57,7 +57,7 @@ $(WIN_RC_SPECIAL_BUILD),$(newline)            VALUE "SpecialBuild"$(comma)    $(
 END
 endef
 
-# C-header file which defines constants for standard resource template
+# C-header file which defines constants for standard version resource template
 # note: PRODUCT_NAMES_H may be recursive macro, which value may depend on $(TARGET_MAKEFILE)
 WIN_RC_PRODUCT_DEFS_HEADER = $(GEN_DIR)/$(PRODUCT_NAMES_H)
 
@@ -75,7 +75,7 @@ WIN_RC_PRODUCT_DEFS_HEADER = $(GEN_DIR)/$(PRODUCT_NAMES_H)
 #define PRODUCT_BUILD_NUM     12345
 #define PRODUCT_BUILD_DATE    "01/01/2017:09.30"
 
-# auxiliary text to add to generated resource file
+# auxiliary text to add to generated version resource file
 WIN_RC_INCLUDE = \#include "$(WIN_RC_PRODUCT_DEFS_HEADER)"
 
 # product version numbers
@@ -199,7 +199,7 @@ $4/$5.rc: WIN_RC_PRODUCT_DEFS_HEADER := $2
 $4/$5.rc:| $4
 	$$(call SUP,GEN,$$@)$$(call WRITE_TEXT,$$(call WIN_RC_VERSION_TEMPLATE,$1,$(notdir $3),$v),$$@,$(WIN_RC_WRITE_BY_LINES))
 $4/$5.res: $4/$5.rc $2 | $4
-	$$(call RC_COMPILER,$$@,$$<)
+	$$(call RC_COMPILER,$$@,$$<,$$(call qpath,$$(RC_STDINCLUDES),/I))
 $3: $4/$5.res
 
 endef
