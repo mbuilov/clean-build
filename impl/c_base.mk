@@ -37,21 +37,11 @@ CXX_MASK := %.cpp
 #  LIB_DEP_MAP = $(if $(filter DLL,$1),D,$2)
 DEP_LIBRARY = $(firstword $(subst /, ,$3))$(call VARIANT_SUFFIX,$4,$($4_DEP_MAP))
 
-# add source-dependencies for an object file
-# $1 - objdir
-# $2 - source dependencies
-# $x - source
-ADD_OBJ_SDEPS = $(if $2,$(newline)$1/$(basename $(notdir $x))$(OBJ_SUFFIX): $2)
-
-/a/v/1/|d1|d2|d3 2/|d1|d2|d3
-
-# $1 - objdir
-# $2 - sources to compile
-# $3 - sdeps (result of FIX_SDEPS)
-a := $(subst |,| ,$(filter $(addsuffix /|%,$2),$3))
-l := $(patsubst %/|,$1/%$(OBJ_SUFFIX):,$(notdir $(filter %/|,$a)))
-r := $(subst | ,|,$(filter-out %/|,$a))
-d := $(subst |, ,$(addprefix $(newline),$(join $l,$r)))
+# add source-dependencies for object files
+# $1 - source dependencies list, e.g. dir1/src1/| dir2/dep1| dep2 dir3/src2/| dep3
+# $2 - objdir
+ADD_OBJ_SDEPS = $(subst |, ,$(subst $(space),$(newline),$(join \
+  $(addprefix $2/,$(addsuffix $(OBJ_SUFFIX):,$(basename $(notdir $(filter %/|,$1))))),$(subst | ,|,$(filter-out %/|,$1)))))
 
 # call compiler: OBJ_CXX,OBJ_CC,OBJ_ASM,...
 # $1 - sources type: CXX,CC,ASM,...
@@ -65,8 +55,8 @@ d := $(subst |, ,$(addprefix $(newline),$(join $l,$r)))
 # note: postpone expansion of ORDER_DEPS to optimize parsing
 define OBJ_RULES_BODY
 $5
-$(subst $(space),$(newline),$(join $(addsuffix :,$5),$2))$(if \
-  $3,$(foreach x,$2,$(call ADD_OBJ_SDEPS,$4,$(call EXTRACT_SDEPS,$x,$3))))
+$(subst $(space),$(newline),$(join $(addsuffix :,$5),$2))
+$(call ADD_OBJ_SDEPS,$(subst |,| ,$(call FILTER_SDEPS,$2,$3)),$4)
 $5:| $4 $$(ORDER_DEPS)
 	$$(call OBJ_$1,$$@,$$<,$t,$v)
 endef
@@ -286,7 +276,7 @@ $(call try_make_simple,C_PREPARE_BASE_VARS,PRODUCT_VER)
 
 # protect variables from modifications in target makefiles
 $(call SET_GLOBAL,NO_PCH OBJ_SUFFIX CC_MASK CXX_MASK \
-  DEP_LIBRARY ADD_OBJ_SDEPS=x OBJ_RULES_BODY=t;v OBJ_RULES1=t;v OBJ_RULES=t;v \
+  DEP_LIBRARY ADD_OBJ_SDEPS OBJ_RULES_BODY=t;v OBJ_RULES1=t;v OBJ_RULES=t;v \
   TRG_COMPILER=t;v TRG_INCLUDE=t;v;INCLUDE TRG_DEFINES=t;v;DEFINES GET_SOURCES=SRC;WITH_PCH TRG_SRC TRG_SDEPS=SDEPS \
   MK_INCLUDE_OPTION DEFINE_SPECIAL DEFINE_ESCAPE_VALUE DEFINE_ESCAPE_VALUES MK_DEFINES_OPTION1 MK_DEFINES_OPTION \
   TRG_CFLAGS=t;v TRG_CXXFLAGS=t;v TRG_LDFLAGS=t;v C_TARGETS C_RULESv=t;v C_RULESt=t C_RULES \
