@@ -831,8 +831,8 @@ MULTI_TARGET = $(eval $(STD_TARGET_VARS))
 endif # clean
 
 # helper macro: make source dependencies list
-# $1 - source(s)
-# $2 - dependencies of the source(s)
+# $1 - source(s), may be empty
+# $2 - dependencies of the source(s), must be non-empty
 # example: $(call FORM_SDEPS,s1 s2,d1 d2 d3/d4) -> s1/|d1|d2|d3/d4 s2/|d1|d2|d3/d4
 FORM_SDEPS = $(addsuffix /|$(subst $(space),|,$(strip $2)),$1)
 
@@ -841,16 +841,27 @@ FORM_SDEPS = $(addsuffix /|$(subst $(space),|,$(strip $2)),$1)
 # example: $(call ALL_SDEPS,s8/|d1|d8 s2/|d1|d2|d3/d4) -> d1 d8 d1 d2 d3/d4
 ALL_SDEPS = $(filter-out %/,$(subst |, ,$1))
 
+# filter dependencies list - get dependencies for given source(s)
+# $1 - source(s)
+# $2 - dependencies list (result of FORM_SDEPS)
+FILTER_SDEPS = $(filter $(addsuffix /|%,$1),$2)
+
 # get dependencies of the source(s)
 # $1 - source(s)
 # $2 - dependencies list (result of FORM_SDEPS)
 # example: $(call EXTRACT_SDEPS,s8 s2,s8/|d1|d8 s2/|d1|d2|d3/d4) -> d1 d8 d1 d2 d3/d4
-EXTRACT_SDEPS = $(call ALL_SDEPS,$(filter $(addsuffix /|%,$1),$2))
+EXTRACT_SDEPS = $(call ALL_SDEPS,$(FILTER_SDEPS))
 
 # fix source dependencies paths: add absolute path to directory of currently processing makefile to non-absolute paths
 # $1 - source dependencies list (result of FORM_SDEPS)
-# example: $(call FIX_SDEPS,s8/|d1|d8 s2/|d1|d2|d3/d4) -> /pr/s8/|/pr/d1|/pr/d8 /pr/s2||/pr/d1|/pr/d2|/pr/d3/d4
+# example: $(call FIX_SDEPS,s8/|d1|d8 s2/|d1|d2|d3/d4) -> /pr/s8/|/pr/d1|/pr/d8 /pr/s2/|/pr/d1|/pr/d2|/pr/d3/d4
 FIX_SDEPS = $(subst | ,|,$(call fixpath,$(subst |,| ,$1)))
+
+# reverse-filter dependencies list - get sources that depend on given dependencies
+# $1 - dependencies to search in $2
+# $2 - dependencies list (result of FORM_SDEPS)
+R_FILTER_SDEPS1 = $(if $(filter $(wordlist 2,999999,$2),$1),$(firstword $2))
+R_FILTER_SDEPS = $(patsubst %/,%,$(foreach d,$2,$(call R_FILTER_SDEPS1,$1,$(subst |, ,$d))))
 
 # run executable in modified environment
 # $1 - tool to execute (with parameters)
@@ -1110,7 +1121,7 @@ $(call SET_GLOBAL,PROJECT_VARS_NAMES PASS_ENV_VARS \
   FORM_TRG ALL_TARGETS FORM_OBJ_DIR MAKE_TRG_PATH ADD_GENERATED CHECK_GENERATED ADD_GENERATED_RET \
   NON_PARALLEL_EXECUTE_RULE NON_PARALLEL_EXECUTE \
   MULTI_TARGET_SEQ MULTI_TARGET_RULE=MULTI_TARGET_NUM=MULTI_TARGET_NUM MULTI_TARGET CHECK_MULTI_RULE \
-  FORM_SDEPS ALL_SDEPS EXTRACT_SDEPS FIX_SDEPS RUN_TOOL TMD \
+  FORM_SDEPS ALL_SDEPS FILTER_SDEPS EXTRACT_SDEPS FIX_SDEPS R_FILTER_SDEPS1 R_FILTER_SDEPS RUN_TOOL TMD \
   DEF_HEAD_CODE_EVAL DEF_TAIL_CODE_EVAL MAKE_CONTINUE_EVAL_NAME DEFINE_TARGETS_EVAL_NAME \
   DEF_HEAD_CODE DEF_TAIL_CODE DEFINE_TARGETS SAVE_VARS RESTORE_VARS MAKE_CONTINUE CONF_COLOR PRODUCT_VER)
 
