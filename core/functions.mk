@@ -306,30 +306,27 @@ define_prepend = $(eval define $1$(newline)$2$(value $1)$(newline)endef)
 append_simple = $(if $(findstring simple,$(flavor $1)),$(eval $1:=$$($1)$$2),$(define_append))
 prepend_simple = $(if $(findstring simple,$(flavor $1)),$(eval $1:=$$2$$($1)),$(define_prepend))
 
-# template for try_deref function
-define try_deref_templ
-ifeq ($(value $1),$$($2))
-$(eval $(keyword_define) $1$(newline)$(value $2)$(newline)$(keyword_endef))
-endif
-endef
+# substitute references to variables with their values in given text
+# $1 - text
+# $2 - names of variables
+subst_var_refs = $(if $2,$(call subst_var_refs,$(subst $$($(firstword $2)),$(value $(firstword $2)),$1),$(wordlist 2,999999,$2)),$1)
 
-# if macro $1 just calls macro $2, redefine $1 as $(value $2)
-try_deref = $(eval $(value try_deref_templ))
+# redefine macro $1 partially expanding it - replace references to variables in list $2 with their values
+expand_partially = $(eval define $1$(newline)$(call subst_var_refs,$(value $1),$2)$(newline)endef)
 
 # remove references to variables from given text
 # $1 - text
 # $2 - names of variables
-subst_var_refs = $(if $2,$(call subst_var_refs,$(subst $$($(firstword $2)),,$1),$(wordlist 2,999999,$2)),$1)
+remove_var_refs = $(if $2,$(call remove_var_refs,$(subst $$($(firstword $2)),,$1),$(wordlist 2,999999,$2)),$1)
 
 # try to redefine macro as simple (non-recursive) variable
 # $1 - macro name
-# $2 - list of variables to try to substitute with their values
-# $2 - names of known variables in $(value $1)
+# $2 - list of variables to try to substitute with their values in $(value $1)
 # 1) check that variables in $2 are all simple
 # 2) check that no other variables in the value of macro $1
 # 3) re-define macro $1 as simple (non-recursive) variable
 try_make_simple = $(if $(filter $(words $2),$(words $(filter simple,$(foreach v,$2,$(flavor $v))))),$(if \
-  $(findstring $$,$(call subst_var_refs,$(value $1),$2)),,$(eval $1:=$$($1))))
+  $(findstring $$,$(call remove_var_refs,$(value $1),$2)),,$(eval $1:=$$($1))))
 
 # redefine macro $1 so that when expanded, it will give new value only if current key
 #  matches predefined one, else returns old value the macro have before it was redefined
@@ -373,4 +370,4 @@ TARGET_MAKEFILE += $(call SET_GLOBAL, \
   ver_major ver_minor ver_patch ver_compatible1 ver_compatible \
   get_dir split_dirs1 split_dirs mk_dir_deps lazy_simple \
   define_append=$$1=$$1 define_prepend=$$1=$$1 append_simple=$$1=$$1 prepend_simple=$$1=$$1 \
-  try_deref_templ=$$1 try_deref=$$1=$$1 subst_var_refs try_make_simple=$$1;$$2=$$1 keyed_redefine)
+  subst_var_refs expand_partially=$$1=$$1 remove_var_refs try_make_simple=$$1;$$2=$$1 keyed_redefine)

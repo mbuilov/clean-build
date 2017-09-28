@@ -173,7 +173,7 @@ $1:$(addprefix $(LIB_DIR)/,$(call DEP_LIBS,$t,$v) $(call DEP_IMPS,$t,$v))
 endef
 
 # template for building dynamic (shared) libraries, used by C_RULES
-DLL_TEMPLATE = $(EXE_TEMPLATE)
+$(eval define DLL_TEMPLATE$(newline)$(value EXE_TEMPLATE)$(newline)endef)
 
 # template for building static libraries, used by C_RULES
 # $1 - target file: $(call FORM_TRG,$t,$v)

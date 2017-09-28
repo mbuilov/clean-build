@@ -26,14 +26,21 @@ ifeq (,$(filter-out undefined environment,$(origin EXPORTS_TEMPLATEv)))
 include $(dir $(lastword $(MAKEFILE_LIST)))msvc_exp.mk
 endif
 
+# default subsystem type for EXE or DLL: CONSOLE, WINDOWS, etc.
+DEF_SUBSYSTEM_TYPE := CONSOLE
+
 # reset additional variables
 # EXE_EXPORTS    - non-empty if EXE exports symbols
 # DLL_NO_EXPORTS - non-empty if DLL do not exports symbols (e.g. resource DLL)
+# SUBSYSTEM_TYPE - environment for the executable: CONSOLE, WINDOWS, etc.
 define C_PREPARE_MSVC_APP_VARS
 EXE_EXPORTS:=
 DLL_NO_EXPORTS:=
+SUBSYSTEM_TYPE:=$(DEF_SUBSYSTEM_TYPE)
 endef
-C_PREPARE_MSVC_APP_VARS := $(C_PREPARE_MSVC_APP_VARS)
+
+# optimization
+$(call try_make_simple,C_PREPARE_MSVC_APP_VARS,DEF_SUBSYSTEM_TYPE)
 
 # patch code executed at beginning of target makefile
 $(call define_append,C_PREPARE_APP_VARS,$(if \
@@ -42,7 +49,7 @@ $(call define_append,C_PREPARE_APP_VARS,$(if \
 ,)$(newline)$$(C_PREPARE_MSVC_EXP_VARS))
 
 # optimization
-$(call try_make_simple,C_PREPARE_APP_VARS,C_PREPARE_MSVC_APP_VARS C_PREPARE_MSVC_EXP_VARS)
+$(call try_make_simple,C_PREPARE_APP_VARS,C_PREPARE_MSVC_APP_VARS C_PREPARE_MSVC_STDRES_VARS C_PREPARE_MSVC_EXP_VARS)
 
 # Visual Studio versions
 #---------------------------------------------------------------------------------
@@ -99,17 +106,22 @@ DLL_SUFFIX := .dll
 IMP_PREFIX:=
 IMP_SUFFIX := .lib
 
+# determine if building multiple sources at once
+ifdef SEQ_BUILD
+MP_BUILD:=
+else ifneq (,$(call is_less,$(VS_VER),9))
 # /MP compiler option was introduced in Visual Studio 2008
-ifneq (,$(call is_less,$(VS_VER),9))
 # < Visual Studio 2008
-SEQ_BUILD := 1
+MP_BUILD:=
+else
+MP_BUILD := 1
 endif
 
 # default values of user-defined C compiler flags
 # note: may be taken from the environment in project configuration makefile
 # /MP option - compile all sources of a module at once
 # /W3 - warning level 3
-CFLAGS := $(if $(SEQ_BUILD),,/MP) /W3
+CFLAGS := $(if $(MP_BUILD),/MP )/W3
 
 # When using the /Zi option, the debug info of all compiled sources is stored in a single .pdb,
 # but this can lead to contentions accessing that .pdb during parallel compilation.
@@ -124,22 +136,20 @@ endif
 ifdef DEBUG
 
 # set debug info format
-ifdef SEQ_BUILD
-ifndef FORCE_SYNC_PDB
-# /Z7 option - store debug info (in old format) in each .obj to avoid contention accessing .pdb during parallel compilation
-CFLAGS += /Z7
-else
-# /Zi option - store debug info (in new format) in single .pdb, compiler will serialize access to the .pdb via mspdbsrv.exe
-CFLAGS += $(FORCE_SYNC_PDB) /Zi
-endif
-else # !SEQ_BUILD
+ifdef MP_BUILD
 # compiling sources of a module with /MP option:
 #  - groups of sources of a module are compiled sequentially, one group after each other
 #  - sources in a group are compiled in parallel by compiler threads, via single compiler invocation.
 # note: /MP option implies /FS option, if it's supported
 # /Zi option - store debug info (in new format) in single .pdb, assume compiler internally will serialize access to the .pdb
 CFLAGS += /Zi
-endif # !SEQ_BUILD
+else ifndef FORCE_SYNC_PDB
+# /Z7 option - store debug info (in old format) in each .obj to avoid contention accessing .pdb during parallel compilation
+CFLAGS += /Z7
+else
+# /Zi option - store debug info (in new format) in single .pdb, compiler will serialize access to the .pdb via mspdbsrv.exe
+CFLAGS += $(FORCE_SYNC_PDB) /Zi
+endif
 
 # /Od - disable optimizations
 CFLAGS += /Od
@@ -150,11 +160,16 @@ ifeq (,$(call is_less,6,$(VS_VER)))
 CFLAGS += /GZ
 else
 # >= Visual Studio 2002
-# /RTCc - reports when a value is assigned to a smaller data type and results in a data loss
 # /RTCs - enables stack frame run-time error checking
 # /RTCu - reports when a variable is used without having been initialized
 # /GS   - buffer security check
-CFLAGS += /RTCc /RTCsu /GS
+CFLAGS += /RTCsu /GS
+endif
+
+ifneq (,$(call is_less,10,$(VS_VER)))
+# >= Visual Studio 2012
+# /sdl - additional security checks
+CFLAGS += /sdl
 endif
 
 else # !DEBUG
@@ -193,6 +208,15 @@ CXXFLAGS := $(CFLAGS) /Gm-
 
 # /GR - enable run-time type information
 CFLAGS += /GR-
+
+ifdef DEBUG
+ifneq (,$(call is_less,6,$(VS_VER)))
+# >= Visual Studio 2002
+# /RTCc - reports when a value is assigned to a smaller data type and results in a data loss
+# note: for C++ code, it may be needed to define /D_ALLOW_RTCc_IN_STL (starting with Visual Studio 2015)
+CFLAGS += /RTCc
+endif
+endif
 
 # lib.exe flags for linking a LIB
 # /LTCG - link-time code generation
@@ -264,7 +288,7 @@ DLL_CXXFLAGS = $(WIN_VARIANT_CFLAGS) $($(TMD)CXXFLAGS)
 LIB_DEP_MAP = $(if $(filter uni,$(subst /, ,$3)),$2,$(2:U=))
 
 # determine which variant of dynamic library to link with EXE or DLL
-# the same as for the static library
+# the same logic as for the static library
 DLL_DEP_MAP = $(LIB_DEP_MAP)
 
 # make version string: major.minor.patch -> major.minor
@@ -274,18 +298,13 @@ MODVER_MAJOR_MINOR = $(subst $(space),.,$(wordlist 1,2,$(subst ., ,$(MODVER)) 0 
 # version of EXE or DLL
 VERSION_OPTION = /VERSION:$(MODVER_MAJOR_MINOR)
 
-# default subsystem type: CONSOLE, WINDOWS
-SUBSYSTEM_TYPE := CONSOLE
-
 # minimum required version of the operating system
 # note: 5.01 - WinXP(x86), 5.02 - WinXP(x64)
-SUBSYSTEM_VER := $(if $(CPU:%64=),5.01,5.02)
+DEF_SUBSYSTEM_VER := $(if $(CPU:%64=),5.01,5.02)
 
-# default subsystem for EXE or DLL
-# possibly target-specific: SUBSYSTEM_TYPE, SUBSYSTEM_VER
-# note: use C_REDEFINE to define SUBSYSTEM_TYPE or SUBSYSTEM_VER as target-specific variables,
-#  for example: $(call C_REDEFINE,SUBSYSTEM_TYPE,WINDOWS)
-SUBSYSTEM_OPTION = /SUBSYSTEM:$(SUBSYSTEM_TYPE),$(SUBSYSTEM_VER)
+# subsystem for EXE or DLL
+# target-specific: SUBSYSTEM, e.g.: $(SUBSYSTEM_TYPE),$(DEF_SUBSYSTEM_VER)
+SUBSYSTEM_OPTION = /SUBSYSTEM:$(SUBSYSTEM)
 
 # how to embed manifest into EXE or DLL
 ifneq (,$(call is_less,10,$(VS_VER)))
@@ -321,36 +340,8 @@ CMN_LIBS = /nologo /OUT:$(call ospath,$1 $2 $(filter %.res,$^)) $(VERSION_OPTION
 # default value, may be overridden either in project configuration makefile or in command line
 LINKER_STRIP_STRINGS := $(LINKER_STRIP_STRINGS_en)
 
-# call linker and strip-off diagnostic message and message about generated .exp-file
-# $1 - linker with options
-# note: send output to stderr in VERBOSE mode, this is needed for build script generation
-ifdef VERBOSE
-WRAP_LINKER = $1 >&2
-else
-WRAP_LINKER = $1
-endif
-
-# $1 - linker with options
-# note: FILTER_OUTPUT sends command output to stderr
-# note: no diagnostic message is printed in debug
-# target-specific: IMP
-ifndef NO_WRAP
-$(eval WRAP_LINKER = $$(if $$(IMP),$$(call FILTER_OUTPUT,$$1,|findstr /VC:$$(basename $$(notdir $$(IMP))).exp),$(value WRAP_LINKER)))
-ifndef DEBUG
-ifdef LINKER_STRIP_STRINGS
-WRAP_LINKER = $(call FILTER_OUTPUT,$1,$(call qpath,$(LINKER_STRIP_STRINGS),|findstr /VBRC:)$(patsubst \
-  %, |findstr /VC:%.exp,$(basename $(notdir $(IMP)))))
-endif
-endif
-endif
-
-# check that target exe/dll exports symbols - linker has created .exp file
-# $1 - path to target EXE or DLL
-# note: if EXE do not exports symbols (as usual), do not set in target makefile EXE_EXPORTS (empty by default)
-# note: if DLL do not exports symbols (unusual), set in target makefile DLL_NO_EXPORTS to non-empty value
-# target-specific: IMP, LIB_DIR
-CHECK_EXP_CREATED = $(if $(IMP),$(newline)$(QUIET)if not exist $(call ospath,$(LIB_DIR)/$(basename \
-  $(notdir $(IMP))).exp) (echo $(notdir $1) does not exports any symbols!) && cmd /c exit 1)
+# define WRAP_LINKER - link.exe wrapper
+$(call DEFINE_LINKER_WRAPPER,WRAP_LINKER,$(LINKER_STRIP_STRINGS))
 
 # linkers for each variant of EXE or DLL
 # $1 - path to target EXE or DLL
@@ -360,6 +351,8 @@ CHECK_EXP_CREATED = $(if $(IMP),$(newline)$(QUIET)if not exist $(call ospath,$(L
 # target-specific: TMD, VLDFLAGS
 # note: used by EXE_TEMPLATE and DLL_TEMPLATE from $(CLEAN_BUILD_DIR)/impl/_c.mk
 # note: link.exe will not delete generated manifest file if failed to build target exe/dll, for example because of invalid DEF file
+# note: if EXE do not exports symbols (as usual), do not set in target makefile EXE_EXPORTS (empty by default)
+# note: if DLL do not exports symbols (unusual), set in target makefile DLL_NO_EXPORTS to non-empty value
 EXE_LD = $(call SUP,$(TMD)EXE,$1)$(call WRAP_LINKER,$(VSLINK) $(CMN_LIBS) $(DEF_EXE_LDFLAGS) $(VLDFLAGS))$(CHECK_EXP_CREATED)
 DLL_LD = $(call SUP,$(TMD)DLL,$1)$(call WRAP_LINKER,$(VSLINK) $(CMN_LIBS) $(DEF_DLL_LDFLAGS) $(VLDFLAGS))$(CHECK_EXP_CREATED)
 
@@ -378,108 +371,50 @@ $(call define_append,DLL_LD,$(newline)$(QUIET)$$(EMBED_DLL_MANIFEST))
 endif
 endif
 
+# for DLL and EXE, define target-specific variables: SUBSYSTEM, MODVER, IMP, DEF
+# $1 - $(call FORM_TRG,$t,$v)
+# $2 - path to import library if target exports symbols, <empty> - otherwise
+# $t - EXE or DLL
+# $v - variant: R,S,RU,SU
+define EXE_DLL_AUX_TEMPLATE
+$1:SUBSYSTEM := $(SUBSYSTEM_TYPE),$(DEF_SUBSYSTEM_VER)
+$1:MODVER    := $(MODVER)
+$(EXPORTS_TEMPLATEv)
+endef
+
+# auxiliary defines for EXE
+# $1 - $(call FORM_TRG,$t,$v)
+# $t - EXE
+# $v - variant: R,S,RU,SU
+EXE_AUX_TEMPLATE = $(call EXE_DLL_AUX_TEMPLATE,$1,$(if \
+  $(EXE_EXPORTS),$(LIB_DIR)/$(IMP_PREFIX)$(call GET_TARGET_NAME,EXE)$(call LIB_VARIANT_SUFFIX,$v)$(IMP_SUFFIX)))
+
+# auxiliary defines for DLL
+# $1 - $(call FORM_TRG,$t,$v)
+# $t - DLL
+# $v - variant: R,S,RU,SU
+DLL_AUX_TEMPLATE = $(call EXE_DLL_AUX_TEMPLATE,$1,$(if \
+  $(DLL_NO_EXPORTS),,$(LIB_DIR)/$(IMP_PREFIX)$(call GET_TARGET_NAME,DLL)$(call LIB_VARIANT_SUFFIX,$v)$(IMP_SUFFIX)))
+
 # linker for each variant of LIB
 # $1 - path to target LIB
 # $2 - objects for linking the target
 # $3 - target: LIB
 # $4 - non-empty variant: R,S,RU,SU
 # target-specific: TMD
-# note: lib.exe doesn't supports linking resources into a static library
+# note: lib.exe does not support linking resources (.res - files) to a static library
 LIB_LD = $(call SUP,$(TMD)LIB,$1)$(VSLIB) /nologo /OUT:$(call ospath,$1 $2) $($(TMD)ARFLAGS)
+
+# check that LIB do not includes resources (.res - files)
+ifdef MCHECK
+$(eval LIB_LD = $$(if $$(filter %.res,$$^),$$(warning \
+  $$1: resources cannot be linked into the static library: $$(filter %.res,$$^)))$(value LIB_LD))
+endif
 
 # note: send output to stderr in VERBOSE mode, this is needed for build script generation
 ifdef VERBOSE
 $(eval LIB_LD = $(value LIB_LD) >&2)
 endif
-
-# auxiliary defines for EXE or DLL
-# define target-specific variables: MAP, MODVER (only for DLL)
-MSVC_MOD_AUX_APP = $(foreach t,EXE DLL,$(if $($t),$(foreach v,$(call GET_VARIANTS,$t),$(call EXPORTS_TEMPLATEv,
-
-
-
-
-
-
-
-
-
-
-
-
-
-# $1 - $(call FORM_TRG,$t,$v)
-# $2 - $(call fixpath,$(DEF))
-# $3 - non-<empty> if target exports symbols, <empty> - otherwise
-# $t - EXE,DLL,DRV or KDLL
-# $n - $(call GET_TARGET_NAME,$t)
-# $v - R,S
-EXPORTS_TEMPLATE = $(if $3,$(call EXPORTS_TEMPLATEn,$1,$2,$(call MAKE_IMP_PATH,$n,$v)),$(NO_EXPORTS_TEMPLATE))
-
-# $1 - $(call fixpath,$(MAP))
-# $t - EXE or DLL
-UNIX_MOD_AUX_APPt = $(foreach v,$(call GET_VARIANTS,$t),$(call $t_AUX_TEMPLATEv,$(call FORM_TRG,$t,$v),$1))
-
-
-$(call EXPORTS_TEMPLATEt,$(call fixpath,$(DEF)))))
-
-
-
-
-
-
-
-
-
-
-
-app flags:
-# >= Visual Studio 2002
-# /Zc:wchar_t - wchar_t is native type
-/Zc:wchar_t
-
-# >= Visual Studio 2013
-# /Zc:rvalueCast    - enforce type conversion rules
-# /Zc:strictStrings - disable string literal type conversion 
-/Zc:rvalueCast
-/Zc:strictStrings # Disable string literal type conversion
-
-
-
-
-
-# $1 - $(call FORM_TRG,$t,$v)
-# $2 - $(call fixpath,$(DEF))
-# $3 - non-<empty> if target exports symbols, <empty> - otherwise
-# $t - EXE,DLL,DRV or KDLL
-# $n - $(call GET_TARGET_NAME,$t)
-# $v - R,S
-EXPORTS_TEMPLATE = $(if $3,$(call EXPORTS_TEMPLATEn,$1,$2,$(call MAKE_IMP_PATH,$n,$v)),$(NO_EXPORTS_TEMPLATE))
-
-# check that name of library built as RU/SU variant begins with UNI_ prefix (see comments of LIB_DEP_MAP/DLL_DEP_MAP)
-# $1 - path to target LIB or IMP
-# $2 - LIB or IMP
-# $3 - non-empty variant: R,S,RU,SU
-CHECK_LIB_UNI_NAME = $(if $(filter %U,$3),$(foreach \
-  n,$(patsubst $($2_PREFIX)%$(call LIB_VARIANT_SUFFIX,$3)$($2_SUFFIX),%,$(notdir $1)),$(if \
-  $(filter-out UNI_%,$n),$(error name of library '$n' must begin with UNI_ prefix to build it as $3 variant))))
-
-# strip-off names of compiled sources
-# $1 - compiler with options
-# $2 - target object file
-# $3 - source(s)
-# note: FILTER_OUTPUT sends command output to stderr
-# note: send output to stderr in VERBOSE mode, this is needed for build script generation
-ifndef NO_WRAP
-WRAP_CC = $(call FILTER_OUTPUT,$1,$(addprefix |findstr /VXC:,$(notdir $3)))
-else ifdef VERBOSE
-WRAP_CC = $1 >&2
-else
-WRAP_CC = $1
-endif
-
-# may auto-generate dependencies only if building sources sequentially, because /showIncludes option conflicts with /MP
-ifdef SEQ_BUILD
 
 # regular expression used to match paths to included headers from /showIncludes option output
 # default value, may be overridden either in project configuration makefile or in command line
@@ -490,31 +425,48 @@ INCLUDING_FILE_PATTERN := $(INCLUDING_FILE_PATTERN_en)
 # c:\\program?files?(x86)\\microsoft?visual?studio?10.0\\vc\\include\\
 UDEPS_INCLUDE_FILTER := $(subst \,\\,$(VSINCLUDE) $(UMINCLUDE))
 
-# call compiler and auto-generate dependencies
-# $1 - compiler with options
-# $2 - target object file
-# $3 - source
-# note: FILTER_OUTPUT sends command output to stderr
-# note: send output to stderr in VERBOSE mode, this is needed for build script generation
-ifndef NO_WRAP
-ifndef NO_DEPS
-WRAP_CC = (($1 /showIncludes 2>&1 && set/p="C">&2<NUL)|$(SED) -n $(call \
-  SED_DEPS_SCRIPT,$1,$2,$3,$(INCLUDING_FILE_PATTERN),$(UDEPS_INCLUDE_FILTER)) 2>&1 && set/p="S">&2<NUL)3>&2 2>&1 1>&3|findstr /BC:CS>NUL
-endif
-endif
-
-endif # SEQ_BUILD
-
-# paths to application-level system headers
-APPINCLUDE := $(VSINCLUDE) $(UMINCLUDE)
+# define WRAP_CC - cl.exe wrapper
+$(call DEFINE_COMPILER_WRAPPER,WRAP_CC,$(MP_BUILD),$(INCLUDING_FILE_PATTERN),$(UDEPS_INCLUDE_FILTER))
 
 # common flags for application-level C/C++ compilers
 # /EHsc - synchronous exception handling model, extern C functions never throw an exception
 # /X    - do not search include files in directories specified in the PATH and INCLUDE environment variables
-CMN_CFLAGS := /EHsc /X $(call qpath,$(APPINCLUDE),/I)
+CMN_CFLAGS := /EHsc /X
+
+ifneq (,$(call is_less,6,$(VS_VER)))
+# >= Visual Studio 2002
+# /Zc:wchar_t - wchar_t is native type
+CMN_CFLAGS += /Zc:wchar_t
+endif
+
+ifneq (,$(call is_less,11,$(VS_VER)))
+# >= Visual Studio 2013
+# /Zc:rvalueCast    - enforce type conversion rules
+# /Zc:strictStrings - disable string literal type conversion 
+CMN_CFLAGS += /Zc:rvalueCast /Zc:strictStrings
+endif
+
+ifneq (,$(call is_less,7,$(VS_VER)))
+# >= Visual Studio 2005
+# /D_CRT_SECURE_NO_DEPRECATE - disable warnings about use of 'non-secure' functions like strcpy()
+# note: add /D_CRT_NONSTDC_NO_DEPRECATE - to disable warnings about use of POSIX functions like access()
+CMN_CFLAGS += /D_CRT_SECURE_NO_DEPRECATE
+endif
+
+# paths to application-level system headers
+APPINCLUDE := $(VSINCLUDE) $(UMINCLUDE)
+
+# add standard include paths
+CMN_CFLAGS += $(call qpath,$(APPINCLUDE),/I)
 
 # default flags for application-level C compiler
 DEF_CFLAGS := $(CMN_CFLAGS)
+
+ifneq (,$(call is_less,$(VS_VER),14))
+# < Visual Studio 2015
+# allow 'inline' keyword in C code
+DEF_CFLAGS += /Dinline=__inline
+endif
 
 # default flags for application-level C++ compiler
 DEF_CXXFLAGS := $(CMN_CFLAGS)
@@ -545,6 +497,8 @@ CMN_PARAMS = /nologo /c /Fo$(ospath) /Fd$(ospath) $(call ospath,$2) $(VDEFINES) 
 CC_PARAMS = $(CMN_PARAMS) $(DEF_CFLAGS) $(VCFLAGS)
 CXX_PARAMS = $(CMN_PARAMS) $(DEF_CXXFLAGS) $(VCXXFLAGS)
 
+ifndef MP_BUILD
+
 # C/C++ compilers for each variant of EXE,DLL,LIB
 # $1 - target object file
 # $2 - source
@@ -554,6 +508,111 @@ CXX_PARAMS = $(CMN_PARAMS) $(DEF_CXXFLAGS) $(VCXXFLAGS)
 # note: used by OBJ_RULES_BODY macro from $(CLEAN_BUILD_DIR)/impl/c_base.mk
 OBJ_CC  = $(call SUP,$(TMD)CC,$2)$(VSCL) $(call CC_PARAMS,$(dir $1),$2,$3,$4)
 OBJ_CXX = $(call SUP,$(TMD)CXX,$2)$(VSCL) $(call CXX_PARAMS,$(dir $1),$2,$3,$4)
+
+else # MP_BUILD
+
+ifndef TOCLEAN
+
+# add dependency on sources for the target,
+#  define target-specific variables: SRC, SDEPS, OBJ_DIR
+# parameters (same as for C_BASE_TEMPLATE):
+# $1 - target file: $(call FORM_TRG,$t,$v)
+# $2 - sources:     $(TRG_SRC)
+# $3 - sdeps:       $(TRG_SDEPS)
+# $4 - objdir:      $(call FORM_OBJ_DIR,$t,$v)
+# $t - EXE,DLL,LIB...
+# $v - non-empty variant: R,P,D,S... (one of variants supported by selected toolchain)
+define MP_TARGET_SRC_DEPS
+$1: SRC := $2
+$1: SDEPS := $3
+
+#TRG_ALL_SDEPS = $(call fixpath,$(sort $(foreach d,$(SDEPS),$(wordlist 2,999999,$(subst |, ,$d)))))
+
+$1: OBJ_DIR := $4
+$1: $2 $(sort $(foreach d,$3,$(wordlist 2,999999,$(subst |, ,$d))))) | $4
+endef
+
+# C_BASE_TEMPLATE_MP will have the same value as C_BASE_TEMPLATE,
+#  but without calls to OBJ_RULES for C/C++ sources and
+#  with $(MULTISOURCE_AUX) at last line
+$(eval define C_BASE_TEMPLATE_MP$(newline)$(subst $(newline)$$1:$$(call \
+  OBJ_RULES,CC,$$(filter $$(CC_MASK),$$2),$$3,$$4)$(newline)$$1:$$(call \
+  OBJ_RULES,CXX,$$(filter $$(CXX_MASK),$$2),$$3,$$4),,$(value \
+  C_BASE_TEMPLATE))$(newline)$$(MP_TARGET_DEP_ON_SRC)$(newline)endef)
+
+# override templates defined in $(CLEAN_BUILD_DIR)/_c.mk:
+#  EXE_TEMPLATE, DLL_TEMPLATE and LIB_TEMPLATE will not call OBJ_RULES for C/C++ sources,
+#  instead, we will build the target module directly from sources,
+#  object files will be generated as a side-effect of this process
+$(eval define EXE_TEMPLATE$(newline)$(subst $$(C_BASE_TEMPLATE),$$(C_BASE_TEMPLATE_MP),$(value EXE_TEMPLATE))$(newline)endef)
+$(eval define DLL_TEMPLATE$(newline)$(subst $$(C_BASE_TEMPLATE),$$(C_BASE_TEMPLATE_MP),$(value DLL_TEMPLATE))$(newline)endef)
+$(eval define LIB_TEMPLATE$(newline)$(subst $$(C_BASE_TEMPLATE),$$(C_BASE_TEMPLATE_MP),$(value LIB_TEMPLATE))$(newline)endef)
+
+# EXE, DLL or LIB must be recompiled if any dependency of source file have changed
+MP_TARGET_DEP_ON_SDEPS = $(eval $(foreach t,$(C_APP_TARGETS),$(if $$($$t),$$(SUNCC_PCH_TEMPLATEt)))))
+
+TRG_ALL_SDEPS = $(call fixpath,$(sort $(foreach d,$(SDEPS),$(wordlist 2,999999,$(subst |, ,$d)))))
+
+
+
+
+# $1 - $(TRG_SRC)
+# $2 - $(TRG_SDEPS)
+# $3 - $(TRG_ALL_SDEPS)
+# $4 - $(call FORM_TRG,$t,$v)
+# $5 - $(call FORM_OBJ_DIR,$t,$v)
+# $t - EXE,DLL,DRV or KDLL
+# $v - R,S
+define MULTISOURCE_AUX
+$4: SRC := $1
+$4: SDEPS := $2
+$4: OBJ_DIR := $5
+$4: $1 $3 | $5
+endef
+
+$(call define_append,EXE_TEMPLATE,
+
+# $1 - $(TRG_SRC)
+# $2 - $(TRG_SDEPS)
+# $3 - $(TRG_ALL_SDEPS)
+# $4 - $(call FORM_TRG,$t,$v)
+# $5 - $(call FORM_OBJ_DIR,$t,$v)
+# $t - EXE,DLL,DRV or KDLL
+# $v - R,S
+define MULTISOURCE_AUX
+$4: SRC := $1
+$4: SDEPS := $2
+$4: OBJ_DIR := $5
+$4: $1 $3 | $5
+endef
+
+endif
+
+# linkers for each variant of EXE or DLL
+# $1 - path to target EXE or DLL
+# $2 - objects for linking the target
+# $3 - target: EXE or DLL
+# $4 - non-empty variant: R,S,RU,SU
+# target-specific: TMD, VLDFLAGS
+# note: used by EXE_TEMPLATE and DLL_TEMPLATE from $(CLEAN_BUILD_DIR)/impl/_c.mk
+# note: link.exe will not delete generated manifest file if failed to build target exe/dll, for example because of invalid DEF file
+# note: if EXE do not exports symbols (as usual), do not set in target makefile EXE_EXPORTS (empty by default)
+# note: if DLL do not exports symbols (unusual), set in target makefile DLL_NO_EXPORTS to non-empty value
+EXE_LD = $(call SUP,$(TMD)EXE,$1)$(call WRAP_LINKER,$(VSLINK) $(CMN_LIBS) $(DEF_EXE_LDFLAGS) $(VLDFLAGS))$(CHECK_EXP_CREATED)
+DLL_LD = $(call SUP,$(TMD)DLL,$1)$(call WRAP_LINKER,$(VSLINK) $(CMN_LIBS) $(DEF_DLL_LDFLAGS) $(VLDFLAGS))$(CHECK_EXP_CREATED)
+
+endif # MP_BUILD
+
+
+
+
+
+
+
+
+
+
+
 
 
 

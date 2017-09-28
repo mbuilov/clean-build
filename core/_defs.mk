@@ -833,18 +833,19 @@ endif # clean
 # helper macro: make source dependencies list
 # $1 - sources
 # $2 - their dependencies
-# example: $(call FORM_SDEPS,s1 s2,d1 d2 d3) -> s1|d1|d2|d3 s2|d1|d2|d3
-FORM_SDEPS = $(addsuffix |$(call join_with,$2,|),$1)
+# example: $(call FORM_SDEPS,s1 s2,d1 d2 d3/d4) -> s1/d1|d2|d3 s2/d1|d2|d3/d4
+FORM_SDEPS = $(addsuffix /$(call join_with,$2,|),$1)
 
 # get dependencies for source file(s)
 # $1 - source file(s)
 # $2 - source dependencies list
-# example: $(call EXTRACT_SDEPS,s1 s2,s1|d1|d2|d3 s2|d1|d2|d3) -> d1 d2 d3 d1 d2 d3
-EXTRACT_SDEPS = $(foreach d,$(filter $(addsuffix |%,$1),$2),$(wordlist 2,999999,$(subst |, ,$d)))
+# example: $(call EXTRACT_SDEPS,s1 s2,s1/d1|d2|d3 s2/d1|d2|d3/d4) -> d1 d2 d3 d1 d2 d3/d4
+EXTRACT_SDEPS = $(subst |, ,$(filter-out %|,$(subst ||,| ,$(filter $(addsuffix /%,$1),$2))))
+??????
 
 # fix source dependencies paths: add absolute path to directory of currently processing makefile to non-absolute paths
 # $1 - source dependencies list
-# example: $(call FIX_SDEPS,s1|d1|d2 s2|d1|d2) -> /pr/s1|/pr/d1|/pr/d2 /pr/s2|/pr/d1|/pr/d2
+# example: $(call FIX_SDEPS,s1||d1|d2 s2||d1|d2) -> /pr/s1||/pr/d1|/pr/d2 /pr/s2||/pr/d1|/pr/d2
 FIX_SDEPS = $(subst | ,|,$(call fixpath,$(subst |,| ,$1)))
 
 # run executable in modified environment

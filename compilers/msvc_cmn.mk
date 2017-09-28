@@ -38,6 +38,45 @@ LINKER_STRIP_STRINGS_ru_cp1251 := .îçäàíèå?êîäà .îçäàíèå?êî�
 # cp1251 ".Ð¾Ð·Ð´Ð°Ð½Ð¸Ðµ?ÐºÐ¾Ð´Ð° .Ð¾Ð·Ð´Ð°Ð½Ð¸Ðµ?ÐºÐ¾Ð´Ð°?Ð·Ð°Ð²ÐµÑÑÐµÐ½Ð¾" as cp866 converted to cp1251
 LINKER_STRIP_STRINGS_ru_cp1251_as_cp866_to_cp1251 := .þ÷ôðýøõ?úþôð .þ÷ôðýøõ?úþôð?÷ðòõ¨°õýþ
 
+# code to define linker wrapper macro
+define WRAP_LINKER_TEMPL
+
+# call linker and strip-off diagnostic message and message about generated .exp-file
+# $1 - linker with options
+# note: send output to stderr in VERBOSE mode, this is needed for build script generation
+ifdef VERBOSE
+<WRAP_LINKER> = $1 >&2
+else
+<WRAP_LINKER> = $1
+endif
+
+# $1 - linker with options
+# note: FILTER_OUTPUT sends command output to stderr
+# note: no diagnostic message is printed in DEBUG
+# target-specific: IMP
+ifndef NO_WRAP
+$(eval <WRAP_LINKER> = $$(if $$(IMP),$$(call FILTER_OUTPUT,$$1,|findstr /VC:$$(basename $$(notdir $$(IMP))).exp),$(value <WRAP_LINKER>)))
+ifndef DEBUG
+ifneq (,<STRIP_EXPR>)
+<WRAP_LINKER> = $(call FILTER_OUTPUT,$1,<STRIP_EXPR>$(patsubst %, |findstr /VC:%.exp,$(basename $(notdir $(IMP)))))
+endif
+endif
+endif
+
+endef
+
+# define the linker wrapper
+# $1 - linker wrapper name, e.g. WRAP_LINKER
+# $2 - strings to strip-off from link.exe output, e.g. $(LINKER_STRIP_STRINGS_en)
+DEFINE_LINKER_WRAPPER = $(eval $(subst <WRAP_LINKER>,$1,$(subst \
+  <STRIP_EXPR>,$(call qpath,$2,|findstr /VBRC:),$(value WRAP_LINKER_TEMPL))))
+
+# check that target exports symbols - linker has created .exp file
+# $1 - path to the target (e.g. EXE or DLL)
+# target-specific: IMP
+CHECK_EXP_CREATED = $(if $(IMP),$(newline)$(QUIET)if not exist $(call ospath,$(basename \
+  $(IMP)).exp) (echo $(notdir $1) does not exports any symbols!) && cmd /c exit 1)
+
 # $(SED) expression to match C compiler messages about included files (used for auto-dependencies generation)
 INCLUDING_FILE_PATTERN_en := Note: including file:
 # utf8 "ÐÑÐ¸Ð¼ÐµÑÐ°Ð½Ð¸Ðµ: Ð²ÐºÐ»ÑÑÐµÐ½Ð¸Ðµ ÑÐ°Ð¹Ð»Ð°:"
@@ -53,7 +92,7 @@ INCLUDING_FILE_PATTERN_ru_cp866_bytes := \x8f\xe0\xa8\xac\xa5\xe7\xa0\xad\xa8\xa
 # $(SED) script to generate dependencies file from msvc compiler output
 # $1 - compiler with options (unused)
 # $2 - target object file, e.g. C:\build\obj\src.obj
-# $3 - source, e.g. C:\project\src\src1.c
+# $3 - path to the source, e.g. C:\project\src\src1.c
 # $4 - included header file search pattern - one of $(INCLUDING_FILE_PATTERN_...)
 # $5 - prefixes of system includes to filter out, e.g. $(UDEPS_INCLUDE_FILTER)/$(KDEPS_INCLUDE_FILTER)
 
@@ -69,12 +108,62 @@ SED_DEPS_SCRIPT = \
 -e "s/\x0d//;/^$(notdir $3)$$/d;/^$4 /!{p;d;}" \
 -e "s/^$4  *//;$(subst ?, ,$(foreach x,$5,\@^$x.*@Id;))s/ /\\ /g;s@.*@&:\n$2: &@;w $2.d"
 
+# code to define compiler wrapper macro
+define WRAP_COMPLIER_TEMPL
+
+# strip-off names of compiled sources
+# $1 - compiler with options
+# $2 - target object file or object files directory
+# $3 - path(s) to the source(s)
+# note: FILTER_OUTPUT sends command output to stderr
+# note: send output to stderr in VERBOSE mode, this is needed for build script generation
+ifndef NO_WRAP
+<WRAP_CC> = $(call FILTER_OUTPUT,$1,$(addprefix |findstr /VXC:,$(notdir $3)))
+else ifdef VERBOSE
+<WRAP_CC> = $1 >&2
+else
+<WRAP_CC> = $1
+endif
+
+# may auto-generate dependencies only if building sources sequentially, because /showIncludes option conflicts with /MP
+ifeq (,<MP_BUILD>)
+
+# call compiler and auto-generate dependencies
+# $1 - compiler with options
+# $2 - target object file
+# $3 - path to the source
+# note: send output to stderr in VERBOSE mode, this is needed for build script generation
+ifndef NO_WRAP
+ifndef NO_DEPS
+<WRAP_CC> = (($1 /showIncludes 2>&1 && set/p="C">&2<NUL)|$(SED) -n $(call \
+  SED_DEPS_SCRIPT,$1,$2,$3,<INCLUDING_FILE_PATTERN>,<UDEPS_INCLUDE_FILTER>) 2>&1 && set/p="S">&2<NUL)3>&2 2>&1 1>&3|findstr /BC:CS>NUL
+endif
+endif
+
+endif
+
+endef
+
+# define the compiler wrapper
+# $1 - compiler wrapper name, e.g. WRAP_CC
+# $2 - whenever /MP option is used for a complier, e.g. $(MP_BUILD) is non-empty
+# $3 - regular expression used to match paths to included headers, e.g. $(INCLUDING_FILE_PATTERN_en)
+# $4 - prefixes of system include paths to filter-out, e.g. $(subst \,\\,$(VSINCLUDE) $(UMINCLUDE))
+DEFINE_COMPILER_WRAPPER = $(eval $(subst <WRAP_CC>,$1,$(subst <MP_BUILD>,$2,$(subst \
+  <INCLUDING_FILE_PATTERN>,$3,$(subst <UDEPS_INCLUDE_FILTER>,$4,$(value WRAP_COMPLIER_TEMPL))))))
+
+# get dependencies of all sources, e.g.:
+# $(call TRG_ALL_SDEPS,s1|d1|d2 s2|d1|d3) -> /pr/d1 /pr/d2 /pr/d3
+#TRG_ALL_SDEPS = $(call fixpath,$(sort $(foreach d,$(SDEPS),$(wordlist 2,999999,$(subst |, ,$d)))))
+
 # protect variables from modifications in target makefiles
 # note: do not trace calls to these variables because they are used in ifdefs
 $(call SET_GLOBAL,NO_WRAP SEQ_BUILD,0)
 
 # protect variables from modifications in target makefiles
 $(call SET_GLOBAL,MCL_MAX_COUNT LINKER_STRIP_STRINGS_en LINKER_STRIP_STRINGS_ru_cp1251 \
-  LINKER_STRIP_STRINGS_ru_cp1251_as_cp866_to_cp1251 INCLUDING_FILE_PATTERN_en INCLUDING_FILE_PATTERN_ru_utf8 \
-  INCLUDING_FILE_PATTERN_ru_utf8_bytes INCLUDING_FILE_PATTERN_ru_cp1251 INCLUDING_FILE_PATTERN_ru_cp1251_bytes \
-  INCLUDING_FILE_PATTERN_ru_cp866 INCLUDING_FILE_PATTERN_ru_cp866_bytes SED_DEPS_SCRIPT)
+  LINKER_STRIP_STRINGS_ru_cp1251_as_cp866_to_cp1251 WRAP_LINKER_TEMPL DEFINE_LINKER_WRAPPER CHECK_EXP_CREATED \
+  INCLUDING_FILE_PATTERN_en INCLUDING_FILE_PATTERN_ru_utf8 INCLUDING_FILE_PATTERN_ru_utf8_bytes \
+  INCLUDING_FILE_PATTERN_ru_cp1251 INCLUDING_FILE_PATTERN_ru_cp1251_bytes \
+  INCLUDING_FILE_PATTERN_ru_cp866 INCLUDING_FILE_PATTERN_ru_cp866_bytes SED_DEPS_SCRIPT \
+  WRAP_COMPLIER_TEMPL DEFINE_COMPILER_WRAPPER)
