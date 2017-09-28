@@ -43,6 +43,16 @@ DEP_LIBRARY = $(firstword $(subst /, ,$3))$(call VARIANT_SUFFIX,$4,$($4_DEP_MAP)
 # $x - source
 ADD_OBJ_SDEPS = $(if $2,$(newline)$1/$(basename $(notdir $x))$(OBJ_SUFFIX): $2)
 
+/a/v/1/|d1|d2|d3 2/|d1|d2|d3
+
+# $1 - objdir
+# $2 - sources to compile
+# $3 - sdeps (result of FIX_SDEPS)
+a := $(subst |,| ,$(filter $(addsuffix /|%,$2),$3))
+l := $(patsubst %/|,$1/%$(OBJ_SUFFIX):,$(notdir $(filter %/|,$a)))
+r := $(subst | ,|,$(filter-out %/|,$a))
+d := $(subst |, ,$(addprefix $(newline),$(join $l,$r)))
+
 # call compiler: OBJ_CXX,OBJ_CC,OBJ_ASM,...
 # $1 - sources type: CXX,CC,ASM,...
 # $2 - sources to compile
