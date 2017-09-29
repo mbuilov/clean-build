@@ -127,7 +127,7 @@ DEF_DLL_LDFLAGS := -shared -Wl,--no-undefined $(CMN_LDFLAGS)
 # common linker options for EXE or DLL
 # $1 - path to target EXE or DLL
 # $2 - objects
-# $3 - target: EXE or DLL
+# $3 - target type: EXE or DLL
 # $4 - non-empty variant: R,P,D
 # target-specific: LIBS, DLLS, LIB_DIR
 CMN_LIBS = $(PIPE_OPTION) -o $1 $2 $(MK_RPATH_OPTION) $(MK_RPATH_LINK_OPTION) $(if $(firstword \
@@ -146,7 +146,7 @@ MK_SONAME_OPTION = $(addprefix $(WLPREFIX)-soname=$(notdir $1).,$(firstword $(su
 # linkers for each variant of EXE,DLL,LIB
 # $1 - path to target EXE,DLL,LIB
 # $2 - objects for linking the target
-# $3 - target: EXE,DLL,LIB
+# $3 - target type: EXE,DLL,LIB
 # $4 - non-empty variant: R,P,D
 # target-specific: TMD, VLDFLAGS
 # note: used by EXE_TEMPLATE, DLL_TEMPLATE, LIB_TEMPLATE from $(CLEAN_BUILD_DIR)/impl/_c.mk
@@ -169,7 +169,7 @@ DEF_CXXFLAGS := $(CMN_CFLAGS)
 # common options for application-level C/C++ compilers
 # $1 - target object file
 # $2 - source
-# $3 - target: EXE,DLL,LIB
+# $3 - target type: EXE,DLL,LIB
 # $4 - non-empty variant: R,P,D
 # target-specific: VDEFINES, VINCLUDE
 CMN_PARAMS = $(PIPE_OPTION) -c -o $1 $2 $(AUTO_DEPS_FLAGS) $(VDEFINES) $(VINCLUDE)
@@ -177,7 +177,7 @@ CMN_PARAMS = $(PIPE_OPTION) -c -o $1 $2 $(AUTO_DEPS_FLAGS) $(VDEFINES) $(VINCLUD
 # parameters of application-level C and C++ compilers
 # $1 - target object file
 # $2 - source
-# $3 - target: EXE,DLL,LIB
+# $3 - target type: EXE,DLL,LIB
 # $4 - non-empty variant: R,P,D
 # target-specific: TMD, VCFLAGS, VCXXFLAGS
 CC_PARAMS  = $($(TMD)CPU_CFLAGS) $(CMN_PARAMS) $(DEF_CFLAGS) $(VCFLAGS)
@@ -186,7 +186,7 @@ CXX_PARAMS = $($(TMD)CPU_CXXFLAGS) $(CMN_PARAMS) $(DEF_CXXFLAGS) $(VCXXFLAGS)
 # C/C++ compilers for each variant of EXE,DLL,LIB
 # $1 - target object file
 # $2 - source
-# $3 - target: EXE,DLL,LIB
+# $3 - target type: EXE,DLL,LIB
 # $4 - non-empty variant: R,P,D
 # target-specific: TMD
 # note: used by OBJ_RULES_BODY macro from $(CLEAN_BUILD_DIR)/impl/c_base.mk
@@ -204,7 +204,7 @@ endif
 # override C++ and C compilers to support compiling with precompiled header
 # $1 - target object file
 # $2 - source
-# $3 - target: EXE,DLL,LIB
+# $3 - target type: EXE,DLL,LIB
 # $4 - non-empty variant: R,P,D
 # note: $(basename $(notdir $(PCH)))_pch_cxx.h and $(basename $(notdir $(PCH)))_pch_c.h files are virtual (i.e. do not exist)
 # target-specific: CC_WITH_PCH, CXX_WITH_PCH, TMD, PCH
@@ -216,7 +216,7 @@ OBJ_CXX = $(if $(filter $2,$(CXX_WITH_PCH)),$(call SUP,$(TMD)PCXX,$2)$($(TMD)CXX
 # compilers of C/C++ precompiled header
 # $1 - target .gch (e.g. /build/obj/xxx_pch_c.h.gch or /build/obj/xxx_pch_cxx.h.gch)
 # $2 - source pch header (full path, e.g. /src/include/xxx.h)
-# $3 - target: EXE,DLL,LIB
+# $3 - target type: EXE,DLL,LIB
 # $4 - non-empty variant: R,P,D
 # target-specific: TMD
 # note: used by GCC_PCH_RULE_TEMPL macro from $(CLEAN_BUILD_DIR)/compilers/gcc_pch.mk
