@@ -627,12 +627,12 @@ GET_TARGET_NAME = $(firstword $($1))
 SUPPORTED_VARIANTS = $($1_SUPPORTED_VARIANTS)
 
 # filter-out unsupported variants of the target and return only supported ones (at least R)
-# $1 - target: EXE,LIB,...
+# $1 - target type: EXE,LIB,...
 # $2 - list of specified variants of the target (may be empty)
 FILTER_VARIANTS_LIST = $(call FILTER_VARIANTS_LIST_F,$1,$2,SUPPORTED_VARIANTS)
 
 # extended version of FILTER_VARIANTS_LIST
-# $1 - target: EXE,LIB,...
+# $1 - target type: EXE,LIB,...
 # $2 - list of specified variants of the target (may be empty)
 # $3 - name of function which returns list of supported by selected toolchain non-regular variants
 #  of given target type, function must be defined at time of $(eval)
@@ -643,17 +643,17 @@ FILTER_VARIANTS_LIST_F = $(patsubst ,R,$(filter R $($3),$2))
 # if target may be specified with variants, like LIB := my_lib R S
 #  then get variants of the target supported by selected toolchain
 # note: returns non-empty variants list, containing at least R (regular) variant
-# $1 - target: EXE,LIB,...
+# $1 - target type: EXE,LIB,...
 GET_VARIANTS = $(call GET_VARIANTS_F,$1,SUPPORTED_VARIANTS)
 
 # extended version of GET_VARIANTS
-# $1 - target: EXE,LIB,...
+# $1 - target type: EXE,LIB,...
 # $2 - name of function which returns list of supported by selected toolchain non-regular variants
 #  of given target type, function must be defined at time of $(eval)
 GET_VARIANTS_F = $(call FILTER_VARIANTS_LIST_F,$1,$(wordlist 2,999999,$($1)),$2)
 
 # determine target name suffix (in case if building multiple variants of the target, each variant must have unique file name)
-# $1 - target: EXE,LIB,...
+# $1 - target type: EXE,LIB,...
 # $2 - target variant: R,P,D,S... (one of variants supported by selected toolchain - result of $(GET_VARIANTS), may be empty)
 # note: no suffix if building R (regular) variant or variant is not specified (then assume R variant)
 # example:
