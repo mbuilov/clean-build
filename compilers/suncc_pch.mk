@@ -92,7 +92,7 @@ SUNCC_PCH_RULE = $(call SUNCC_PCH_RULE_TEMPL,$1,$2,$3,$4,$5,$6,$8,$6/$7_pch.$9,$
 # $7 - common objdir (for R-variant)
 # $8 - $(basename $(notdir $2))
 # $v - R,P,D
-PCH_TEMPLATEv1 = $(if \
+SUNCC_PCH_TEMPLATEv1 = $(if \
   $3,$(call SUNCC_PCH_RULE,$1,$2,$3,$5,$6,$7,$8,CC,c,.cpch))$(if \
   $4,$(call SUNCC_PCH_RULE,$1,$2,$4,$5,$6,$7,$8,CXX,cc,.Cpch))
 
@@ -105,7 +105,7 @@ PCH_TEMPLATEv1 = $(if \
 # $6 - $(call FORM_TRG,$1,$v)
 # $v - R,P,D
 # note: may use target-specific variables: PCH, CC_WITH_PCH, CXX_WITH_PCH in generated code
-PCH_TEMPLATEv = $(call PCH_TEMPLATEv1,$1,$2,$3,$4,$5,$6,$(call FORM_OBJ_DIR,$1),$(basename $(notdir $2)))
+SUNCC_PCH_TEMPLATEv = $(call SUNCC_PCH_TEMPLATEv1,$1,$2,$3,$4,$5,$6,$(call FORM_OBJ_DIR,$1),$(basename $(notdir $2)))
 
 # $1 - common objdir (for R-variant)
 # $2 - $(call fixpath,$(PCH))
@@ -144,7 +144,7 @@ SUNCC_PCH_GEN_RULE = $(call SUNCC_PCH_GEN_TEMPL,$1,$2,$1/$(basename $(notdir $2)
 # $2 - $(call fixpath,$(PCH))
 # $3 - $(filter $(CC_MASK),$(call fixpath,$(WITH_PCH)))
 # $4 - $(filter $(CXX_MASK),$(call fixpath,$(WITH_PCH)))
-PCH_TEMPLATEt1 = $(if \
+SUNCC_PCH_TEMPLATEt1 = $(if \
   $3,$(call SUNCC_PCH_GEN_RULE,$1,$2,$3,.c))$(if \
   $4,$(call SUNCC_PCH_GEN_RULE,$1,$2,$4,.cc))
 
@@ -153,12 +153,12 @@ PCH_TEMPLATEt1 = $(if \
 # $2 - $(call fixpath,$(PCH))
 # $3 - $(filter $(CC_MASK),$(call fixpath,$(WITH_PCH)))
 # $4 - $(filter $(CXX_MASK),$(call fixpath,$(WITH_PCH)))
-PCH_TEMPLATEgen = $(call PCH_TEMPLATEt1,$(call FORM_OBJ_DIR,$1),$2,$3,$4)
+SUNCC_PCH_TEMPLATEgen = $(call SUNCC_PCH_TEMPLATEt1,$(call FORM_OBJ_DIR,$1),$2,$3,$4)
 
 # code to eval to build with precompiled headers
 # $t - EXE,LIB,DLL,KLIB
 # note: defines target-specific variables: PCH, CC_WITH_PCH, CXX_WITH_PCH
-SUNCC_PCH_TEMPLATEt = $(call PCH_TEMPLATE,$t)
+SUNCC_PCH_TEMPLATEt = $(call PCH_TEMPLATE,$t,SUNCC_PCH_TEMPLATEv,SUNCC_PCH_TEMPLATEgen)
 
 else # clean
 
@@ -169,7 +169,7 @@ else # clean
 # $4 - $(filter $(CXX_MASK),$(WITH_PCH))
 # $5 - $(call FORM_OBJ_DIR,$1,$v)
 # $v - R,P,D
-PCH_TEMPLATEv = $(if \
+SUNCC_PCH_TEMPLATEv = $(if \
   $3,$(addprefix $5/,$2_pch_c$(OBJ_SUFFIX) $2_pch_c$(OBJ_SUFFIX).d $2_c.cpch)) $(if \
   $4,$(addprefix $5/,$2_pch_cc$(OBJ_SUFFIX) $2_pch_cc$(OBJ_SUFFIX).d $2_cc.Cpch))
 
@@ -178,7 +178,7 @@ PCH_TEMPLATEv = $(if \
 # $2 - $(basename $(notdir $(PCH)))
 # $3 - $(filter $(CC_MASK),$(WITH_PCH))
 # $4 - $(filter $(CXX_MASK),$(WITH_PCH))
-PCH_TEMPLATEt1 = $(if \
+SUNCC_PCH_TEMPLATEt1 = $(if \
   $3,$(addprefix $1/,$(addsuffix .c,$2_pch $(notdir $3)))) $(if \
   $4,$(addprefix $1/,$(addsuffix .cc,$2_pch $(notdir $4))))
 
@@ -187,14 +187,14 @@ PCH_TEMPLATEt1 = $(if \
 # $2 - $(basename $(notdir $(PCH)))
 # $3 - $(filter $(CC_MASK),$(WITH_PCH))
 # $4 - $(filter $(CXX_MASK),$(WITH_PCH))
-PCH_TEMPLATEgen = $(call PCH_TEMPLATEt1,$(call FORM_OBJ_DIR,$1),$2,$3,$4)
+SUNCC_PCH_TEMPLATEgen = $(call SUNCC_PCH_TEMPLATEt1,$(call FORM_OBJ_DIR,$1),$2,$3,$4)
 
 # cleanup objects created while building with precompiled header
 # $t - EXE,LIB,DLL,KLIB
-SUNCC_PCH_TEMPLATEt = $(call TOCLEAN,$(call PCH_TEMPLATE,$t))
+SUNCC_PCH_TEMPLATEt = $(call TOCLEAN,$(call PCH_TEMPLATE,$t,SUNCC_PCH_TEMPLATEv,SUNCC_PCH_TEMPLATEgen))
 
 endif # clean
 
 # protect variables from modifications in target makefiles
-$(call SET_GLOBAL,SUNCC_PCH_RULE_TEMPL=v SUNCC_PCH_RULE=v PCH_TEMPLATEv1=v PCH_TEMPLATEv=v \
-  SUNCC_PCH_GEN_TEMPL SUNCC_PCH_SRC_GEN=s SUNCC_PCH_GEN_RULE PCH_TEMPLATEt1 PCH_TEMPLATEgen SUNCC_PCH_TEMPLATEt=t)
+$(call SET_GLOBAL,SUNCC_PCH_RULE_TEMPL=v SUNCC_PCH_RULE=v SUNCC_PCH_TEMPLATEv1=v SUNCC_PCH_TEMPLATEv=v \
+  SUNCC_PCH_GEN_TEMPL SUNCC_PCH_SRC_GEN=s SUNCC_PCH_GEN_RULE SUNCC_PCH_TEMPLATEt1 SUNCC_PCH_TEMPLATEgen SUNCC_PCH_TEMPLATEt=t)

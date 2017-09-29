@@ -23,10 +23,6 @@ ifeq (,$(filter-out undefined environment,$(origin PCH_TEMPLATE)))
 include $(CLEAN_BUILD_DIR)/impl/pch.mk
 endif
 
-# macro used by PCH_TEMPLATE from $(CLEAN_BUILD_DIR)/impl/pch.mk
-# not used for msvc
-PCH_TEMPLATEgen:=
-
 ifndef TOCLEAN
 
 # $1 - EXE,LIB,DLL,KLIB
@@ -80,14 +76,14 @@ MSVC_PCH_RULE = $(call MSVC_PCH_RULE_TEMPL,$1,$2,$3,$4,$5,$7,$4/$6_pch_$8$(OBJ_S
 # $6 - $(call FORM_TRG,$1,$v)
 # $v - R,P,D
 # note: may use target-specific variables: PCH, CC_WITH_PCH, CXX_WITH_PCH in generated code
-PCH_TEMPLATEv = $(if \
+MSVC_PCH_TEMPLATEv = $(if \
   $3,$(call MSVC_PCH_RULE,$1,$2,$3,$5,$6,$5/$(basename $(notdir $2)),CC,c))$(if \
   $4,$(call MSVC_PCH_RULE,$1,$2,$4,$5,$6,$5/$(basename $(notdir $2)),CXX,cpp))
 
 # code to eval to build with precompiled headers
 # $t - EXE,LIB,DLL,KLIB
 # note: defines target-specific variables: PCH, CC_WITH_PCH, CXX_WITH_PCH
-MSVC_PCH_TEMPLATEt = $(call PCH_TEMPLATE,$t)
+MSVC_PCH_TEMPLATEt = $(call PCH_TEMPLATE,$t,MSVC_PCH_TEMPLATEv)
 
 else # clean
 
@@ -98,15 +94,21 @@ else # clean
 # $4 - $(filter $(CXX_MASK),$(WITH_PCH))
 # $5 - $(call FORM_OBJ_DIR,$1,$v)
 # $v - R,P,D
-PCH_TEMPLATEv = $(if \
+MSVC_PCH_TEMPLATEv = $(if \
   $3,$(addprefix $5/,$2_pch_c$(OBJ_SUFFIX) $2_pch_c$(OBJ_SUFFIX).d $2_c.pch)) $(if \
   $4,$(addprefix $5/,$2_pch_cpp$(OBJ_SUFFIX) $2_pch_cpp$(OBJ_SUFFIX).d $2_cpp.pch))
 
 # cleanup objects created while building with precompiled header
 # $t - EXE,LIB,DLL,KLIB
-MSVC_PCH_TEMPLATEt = $(call TOCLEAN,$(call PCH_TEMPLATE,$t))
+MSVC_PCH_TEMPLATEt = $(call TOCLEAN,$(call PCH_TEMPLATE,$t,MSVC_PCH_TEMPLATEv))
 
 endif # clean
 
+# options for use precompiled header
+# $1 - objdir/
+# $2 - generated pch suffix: c or cpp
+# target-specific: PCH
+MSVC_USE_PCH = $(addsuffix $(call ospath,$(PCH)),/FI /Yu) /Fp$(ospath)$(basename $(notdir $(PCH)))_$2.pch
+
 # protect variables from modifications in target makefiles
-$(call SET_GLOBAL,PCH_TEMPLATEgen MSVC_PCH_RULE_TEMPL=v MSVC_PCH_RULE=v PCH_TEMPLATEv=v MSVC_PCH_TEMPLATEt=t)
+$(call SET_GLOBAL,MSVC_PCH_RULE_TEMPL=v MSVC_PCH_RULE=v MSVC_PCH_TEMPLATEv=v MSVC_PCH_TEMPLATEt=t MSVC_USE_PCH)

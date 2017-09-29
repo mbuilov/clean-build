@@ -24,9 +24,9 @@
 # $(foreach x,$3,\@^$x.*@d;)      - delete lines started with system include paths, start new circle
 # s@.*@&:\$(newline)$2: &@;w $2.d - make dependencies, then write to generated dep-file
 
-SED_DEPS_SCRIPT = \
+SUNCC_DEPS_SCRIPT = \
 -e '/^$(tab)*\//!{p;d;}' \
 -e 's/^\$(tab)*//;$(foreach x,$3,\@^$x.*@d;)s@.*@&:\$(newline)$2: &@;w $2.d'
 
 # protect variables from modifications in target makefiles
-$(call SET_GLOBAL,SED_DEPS_SCRIPT)
+$(call SET_GLOBAL,SUNCC_DEPS_SCRIPT)

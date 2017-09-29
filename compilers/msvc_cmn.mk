@@ -26,11 +26,6 @@ else
 SEQ_BUILD:=
 endif
 
-# It is possible to exceed maximum command string length if compiling too many sources at once,
-#  to prevent this, split all sources of a module to groups, then compile groups one after each other.
-# Maximum number of sources in a group compiled at once.
-MCL_MAX_COUNT := 50
-
 # strings to strip off from link.exe output (spaces replaced with ?)
 LINKER_STRIP_STRINGS_en := Generating?code Finished?generating?code
 # cp1251 ".Ð¾Ð·Ð´Ð°Ð½Ð¸Ðµ?ÐºÐ¾Ð´Ð° .Ð¾Ð·Ð´Ð°Ð½Ð¸Ðµ?ÐºÐ¾Ð´Ð°?Ð·Ð°Ð²ÐµÑÑÐµÐ½Ð¾"
@@ -39,7 +34,7 @@ LINKER_STRIP_STRINGS_ru_cp1251 := .îçäàíèå?êîäà .îçäàíèå?êî�
 LINKER_STRIP_STRINGS_ru_cp1251_as_cp866_to_cp1251 := .þ÷ôðýøõ?úþôð .þ÷ôðýøõ?úþôð?÷ðòõ¨°õýþ
 
 # code to define linker wrapper macro
-define WRAP_LINKER_TEMPL
+define MSVC_WRAP_LINKER_TEMPL
 
 # call linker and strip-off diagnostic message and message about generated .exp-file
 # $1 - linker with options
@@ -68,8 +63,8 @@ endef
 # define the linker wrapper
 # $1 - linker wrapper name, e.g. WRAP_LINKER
 # $2 - strings to strip-off from link.exe output, e.g. $(LINKER_STRIP_STRINGS_en)
-DEFINE_LINKER_WRAPPER = $(eval $(subst <WRAP_LINKER>,$1,$(subst \
-  <STRIP_EXPR>,$(call qpath,$2,|findstr /VBRC:),$(value WRAP_LINKER_TEMPL))))
+MSVC_DEFINE_LINKER_WRAPPER = $(eval $(subst <WRAP_LINKER>,$1,$(subst \
+  <STRIP_EXPR>,$(call qpath,$2,|findstr /VBRC:),$(value MSVC_WRAP_LINKER_TEMPL))))
 
 # $(SED) expression to match C compiler messages about included files (used for auto-dependencies generation)
 INCLUDING_FILE_PATTERN_en := Note: including file:
@@ -85,34 +80,33 @@ INCLUDING_FILE_PATTERN_ru_cp866_bytes := \x8f\xe0\xa8\xac\xa5\xe7\xa0\xad\xa8\xa
 
 # $(SED) script to generate dependencies file from msvc compiler output
 # $1 - compiler with options (unused)
-# $2 - target object file, e.g. C:\build\obj\src.obj
-# $3 - path to the source, e.g. C:\project\src\src1.c
+# $2 - path to the source, e.g. C:\project\src\src1.c
+# $3 - target object file, e.g. C:\build\obj\src.obj
 # $4 - included header file search pattern - one of $(INCLUDING_FILE_PATTERN_...)
 # $5 - prefixes of system includes to filter out, e.g. $(UDEPS_INCLUDE_FILTER)/$(KDEPS_INCLUDE_FILTER)
 
 # s/\x0d//;                                - fix line endings - remove carriage-return (CR)
-# /^$(notdir $3)$$/d;                      - delete compiled source file name printed by cl.exe, start new circle
+# /^$(notdir $2)$$/d;                      - delete compiled source file name printed by cl.exe, start new circle
 # /^$4 /!{p;d;}                            - print all lines not started with $4 pattern and space, start new circle
 # s/^$4  *//;                              - strip-off leading $4 pattern with spaces
 # $(subst ?, ,$(foreach x,$5,\@^$x.*@Id;)) - delete lines started with system include paths, start new circle
 # s/ /\\ /g;                               - escape spaces in included file path
-# s@.*@&:\n$2: &@;w $2.d                   - make dependencies, then write to generated dep-file (e.g. C:\build\obj\src.obj.d)
+# s@.*@&:\n$3: &@;w $3.d                   - make dependencies, then write to generated dep-file (e.g. C:\build\obj\src.obj.d)
 
-SED_DEPS_SCRIPT = \
--e "s/\x0d//;/^$(notdir $3)$$/d;/^$4 /!{p;d;}" \
--e "s/^$4  *//;$(subst ?, ,$(foreach x,$5,\@^$x.*@Id;))s/ /\\ /g;s@.*@&:\n$2: &@;w $2.d"
+MSVC_DEPS_SCRIPT = \
+-e "s/\x0d//;/^$(notdir $2)$$/d;/^$4 /!{p;d;}" \
+-e "s/^$4  *//;$(subst ?, ,$(foreach x,$5,\@^$x.*@Id;))s/ /\\ /g;s@.*@&:\n$3: &@;w $3.d"
 
 # code to define compiler wrapper macro
-define WRAP_COMPLIER_TEMPL
+define MSVC_WRAP_COMPLIER_TEMPL
 
 # strip-off names of compiled sources
 # $1 - compiler with options
-# $2 - target object file or <empty>
-# $3 - path(s) to the source(s)
+# $2 - path(s) to the source(s)
 # note: FILTER_OUTPUT sends command output to stderr
 # note: send output to stderr in VERBOSE mode, this is needed for build script generation
 ifndef NO_WRAP
-<WRAP_CC> = $(call FILTER_OUTPUT,$1,$(addprefix |findstr /VXC:,$(notdir $3)))
+<WRAP_CC> = $(call FILTER_OUTPUT,$1,$(addprefix |findstr /VXC:,$(notdir $2)))
 else ifdef VERBOSE
 <WRAP_CC> = $1 >&2
 else
@@ -124,13 +118,13 @@ ifeq (,<MP_BUILD>)
 
 # call compiler and auto-generate dependencies
 # $1 - compiler with options
-# $2 - target object file
-# $3 - path to the source
+# $2 - path to the source
+# $3 - target object file
 # note: send output to stderr in VERBOSE mode, this is needed for build script generation
 ifndef NO_WRAP
 ifndef NO_DEPS
 <WRAP_CC> = (($1 /showIncludes 2>&1 && set/p="C">&2<NUL)|$(SED) -n $(call \
-  SED_DEPS_SCRIPT,$1,$2,$3,<INCLUDING_FILE_PATTERN>,<UDEPS_INCLUDE_FILTER>) 2>&1 && set/p="S">&2<NUL)3>&2 2>&1 1>&3|findstr /BC:CS>NUL
+  MSVC_DEPS_SCRIPT,$1,$2,$3,<INCLUDING_FILE_PATTERN>,<UDEPS_INCLUDE_FILTER>) 2>&1 && set/p="S">&2<NUL)3>&2 2>&1 1>&3|findstr /BC:CS>NUL
 endif
 endif
 
@@ -143,8 +137,8 @@ endef
 # $2 - whenever /MP option is used for a complier, e.g. $(MP_BUILD) is non-empty
 # $3 - regular expression used to match paths to included headers, e.g. $(INCLUDING_FILE_PATTERN_en)
 # $4 - prefixes of system include paths to filter-out, e.g. $(subst \,\\,$(VSINCLUDE) $(UMINCLUDE))
-DEFINE_COMPILER_WRAPPER = $(eval $(subst <WRAP_CC>,$1,$(subst <MP_BUILD>,$2,$(subst \
-  <INCLUDING_FILE_PATTERN>,$3,$(subst <UDEPS_INCLUDE_FILTER>,$4,$(value WRAP_COMPLIER_TEMPL))))))
+MSVC_DEFINE_COMPILER_WRAPPER = $(eval $(subst <WRAP_CC>,$1,$(subst <MP_BUILD>,$2,$(subst \
+  <INCLUDING_FILE_PATTERN>,$3,$(subst <UDEPS_INCLUDE_FILTER>,$4,$(value MSVC_WRAP_COMPLIER_TEMPL))))))
 
 # add source-file dependencies for the target,
 #  define target-specific variables: SRC, SDEPS, OBJ_DIR
@@ -170,14 +164,45 @@ $(eval define C_BASE_TEMPLATE_MP$(newline)$(subst $(newline)$$1:$$(call \
   OBJ_RULES,CXX,$$(filter $$(CXX_MASK),$$2),$$3,$$4),,$(value \
   C_BASE_TEMPLATE))$(newline)$$(MP_TARGET_SRC_DEPS)$(newline)endef)
 
+# get list of sources newer than the target (EXE,DLL,LIB,...)
+# target-specific: SRC, SDEPS
+# note: assume called in context of the rule creating target EXE,DLL,LIB,... (by the linker command, such as EXE_LD,DLL_LD,LIB_LD,...)
+# note: assume C_BASE_TEMPLATE_MP was used for the target EXE,DLL,LIB,.., so target-specific variables SRC, SDEPS, OBJ_DIR are defined
+NEWER_SOURCES = $(sort $(filter $(SRC),$? $(call R_FILTER_SDEPS,$?,$(SDEPS))))
+
+# It is possible to exceed maximum command string length if compiling too many sources at once,
+#  to prevent this, split all sources of a module to groups, then compile groups one after each other.
+# Maximum number of sources in a group compiled at once.
+MCL_MAX_COUNT := 50
+
+# compile multiple sources at once
+# $1 - target type: EXE,DLL,LIB,...
+# $2 - non-empty variant: R,S,RU,SU,...
+# $3 - C compiler macro
+# $4 - C++ compiler macro
+# $5 - sources (result of $(NEWER_SOURCES))
+CMN_MCL = $(call CMN_MCL1,$1,$2,$3,$4,$(filter $(CC_MASK),$5),$(filter $(CXX_MASK),$5))
+
+# $1 - target type: EXE,DLL,LIB,...
+# $2 - non-empty variant: R,S,RU,SU
+# $3 - C compiler macro
+# $4 - C++ compiler macro
+# $5 - C sources
+# $6 - C++ sources
+# note: called by MULTISOURCE_CL1 macro from $(CLEAN_BUILD_DIR)/compilers/msvc.mk
+CMN_MCL1 = $(if \
+  $5,$(call xcmd,$3,$5,$(MCL_MAX_COUNT),$1,$2)$(newline))$(if \
+  $6,$(call xcmd,$4,$6,$(MCL_MAX_COUNT),$1,$2)$(newline))
+
 # protect variables from modifications in target makefiles
 # note: do not trace calls to these variables because they are used in ifdefs
 $(call SET_GLOBAL,NO_WRAP SEQ_BUILD,0)
 
 # protect variables from modifications in target makefiles
-$(call SET_GLOBAL,MCL_MAX_COUNT LINKER_STRIP_STRINGS_en LINKER_STRIP_STRINGS_ru_cp1251 \
-  LINKER_STRIP_STRINGS_ru_cp1251_as_cp866_to_cp1251 WRAP_LINKER_TEMPL DEFINE_LINKER_WRAPPER \
+$(call SET_GLOBAL,LINKER_STRIP_STRINGS_en LINKER_STRIP_STRINGS_ru_cp1251 \
+  LINKER_STRIP_STRINGS_ru_cp1251_as_cp866_to_cp1251 MSVC_WRAP_LINKER_TEMPL MSVC_DEFINE_LINKER_WRAPPER \
   INCLUDING_FILE_PATTERN_en INCLUDING_FILE_PATTERN_ru_utf8 INCLUDING_FILE_PATTERN_ru_utf8_bytes \
   INCLUDING_FILE_PATTERN_ru_cp1251 INCLUDING_FILE_PATTERN_ru_cp1251_bytes \
-  INCLUDING_FILE_PATTERN_ru_cp866 INCLUDING_FILE_PATTERN_ru_cp866_bytes SED_DEPS_SCRIPT \
-  WRAP_COMPLIER_TEMPL DEFINE_COMPILER_WRAPPER MP_TARGET_SRC_DEPS C_BASE_TEMPLATE_MP)
+  INCLUDING_FILE_PATTERN_ru_cp866 INCLUDING_FILE_PATTERN_ru_cp866_bytes MSVC_DEPS_SCRIPT \
+  MSVC_WRAP_COMPLIER_TEMPL MSVC_DEFINE_COMPILER_WRAPPER MP_TARGET_SRC_DEPS C_BASE_TEMPLATE_MP \
+  NEWER_SOURCES MCL_MAX_COUNT CMN_MCL CMN_MCL1)
