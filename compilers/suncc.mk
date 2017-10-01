@@ -250,16 +250,16 @@ OBJ_CXX = $(if $(filter $2,$(CXX_WITH_PCH)),$(OBJ_PCXX),$(OBJ_NCXX))
 
 # compilers of C/C++ precompiled header
 # $1 - target object of generated source $3:
-#  /build/obj/xxx_pch_cc.o or
-#  /build/obj/xxx_pch_c.o
+#  /build/obj/xxx_pch_c.o or
+#  /build/obj/xxx_pch_cc.o
 # $2 - pch header (full path, e.g. /src/include/xxx.h)
 # $3 - generated source for precompiling header $2:
-#  $(pch_gen_dir)$(basename $(notdir $2))_pch.cc or
-#  $(pch_gen_dir)$(basename $(notdir $2))_pch.c
+#  $(pch_gen_dir)$(basename $(notdir $2))_pch.c or
+#  $(pch_gen_dir)$(basename $(notdir $2))_pch.cc
 # $4 - target type: EXE,DLL,LIB
 # $5 - non-empty variant: R,P,D
 # target-specific: TMD
-# note: pch object xxx_c.cpch or xxx_cc.Cpch will be created as a side-effect of this compilation
+# note: precompiled header xxx_c.cpch or xxx_cc.Cpch will be created as a side-effect of this compilation
 # note: used by SUNCC_PCH_RULE_TEMPL macro from $(CLEAN_BUILD_DIR)/compilers/suncc_pch.mk
 PCH_CC  = $(call SUP,$(TMD)PCHCC,$2)$(call WRAP_CC,$($(TMD)CC) -xpch=collect:$(dir $1)$(basename $(notdir \
   $2))_c $(call CC_PARAMS,$1,$3,$4,$5),$1,$(UDEPS_INCLUDE_FILTER))
