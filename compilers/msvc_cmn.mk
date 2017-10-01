@@ -48,7 +48,7 @@ endif
 # $1 - linker with options
 # note: FILTER_OUTPUT sends command output to stderr
 # note: no diagnostic message is printed in DEBUG
-# target-specific: IMP
+# target-specific: IMP (may be empty)
 ifndef NO_WRAP
 $(eval <WRAP_LINKER> = $$(if $$(IMP),$$(call FILTER_OUTPUT,$$1,|findstr /VC:$$(basename $$(notdir $$(IMP))).exp),$(value <WRAP_LINKER>)))
 ifndef DEBUG
@@ -167,7 +167,7 @@ $(eval define C_BASE_TEMPLATE_MP$(newline)$(subst $(newline)$$1:$$(call \
 # get list of sources newer than the target (EXE,DLL,LIB,...)
 # target-specific: SRC, SDEPS
 # note: assume called in context of the rule creating target EXE,DLL,LIB,... (by the linker command, such as EXE_LD,DLL_LD,LIB_LD,...)
-# note: assume C_BASE_TEMPLATE_MP was used for the target EXE,DLL,LIB,.., so target-specific variables SRC, SDEPS, OBJ_DIR are defined
+# note: assume C_BASE_TEMPLATE_MP was used for the target EXE,DLL,LIB,.., so target-specific variables SRC and SDEPS are defined
 NEWER_SOURCES = $(sort $(filter $(SRC),$? $(call R_FILTER_SDEPS,$?,$(SDEPS))))
 
 # It is possible to exceed maximum command string length if compiling too many sources at once,
@@ -180,8 +180,19 @@ MCL_MAX_COUNT := 50
 # $2 - non-empty variant: R,S,RU,SU,...
 # $3 - C compiler macro
 # $4 - C++ compiler macro
+# note: compiler macros called with parameters:
+#  $1 - sources
+#  $2 - target type: EXE,DLL,LIB,...
+#  $3 - non-empty variant: R,S,RU,SU,...
+CMN_MCL = $(call CMN_MCL1,$1,$2,$3,$4,$(NEWER_SOURCES))
+
+# compile multiple sources at once
+# $1 - target type: EXE,DLL,LIB,...
+# $2 - non-empty variant: R,S,RU,SU,...
+# $3 - C compiler macro
+# $4 - C++ compiler macro
 # $5 - sources (result of $(NEWER_SOURCES))
-CMN_MCL = $(call CMN_MCL1,$1,$2,$3,$4,$(filter $(CC_MASK),$5),$(filter $(CXX_MASK),$5))
+CMN_MCL1 = $(call CMN_MCL2,$1,$2,$3,$4,$(filter $(CC_MASK),$5),$(filter $(CXX_MASK),$5))
 
 # $1 - target type: EXE,DLL,LIB,...
 # $2 - non-empty variant: R,S,RU,SU
@@ -189,10 +200,43 @@ CMN_MCL = $(call CMN_MCL1,$1,$2,$3,$4,$(filter $(CC_MASK),$5),$(filter $(CXX_MAS
 # $4 - C++ compiler macro
 # $5 - C sources
 # $6 - C++ sources
-# note: called by MULTISOURCE_CL1 macro from $(CLEAN_BUILD_DIR)/compilers/msvc.mk
-CMN_MCL1 = $(if \
+CMN_MCL2 = $(if \
   $5,$(call xcmd,$3,$5,$(MCL_MAX_COUNT),$1,$2)$(newline))$(if \
   $6,$(call xcmd,$4,$6,$(MCL_MAX_COUNT),$1,$2)$(newline))
+
+# compile multiple sources at once
+# $1 - target type: EXE,DLL,LIB,...
+# $2 - non-empty variant: R,S,RU,SU,...
+# $3 - C compiler macro to compile not using precompiled header
+# $4 - C++ compiler macro to compile not using precompiled header
+# $5 - C compiler macro to compile with precompiled header
+# $6 - C++ compiler macro to compile with precompiled header
+# note: compiler macros called with parameters:
+#  $1 - sources
+#  $2 - target type: EXE,DLL,LIB,...
+#  $3 - non-empty variant: R,S,RU,SU,...
+CMN_PMCL = $(call CMN_PMCL1,$1,$2,$3,$4,$5,$6,$(NEWER_SOURCES))
+
+# $1 - target type: EXE,DLL,LIB,...
+# $2 - non-empty variant: R,S,RU,SU,...
+# $3 - C compiler macro to compile not using precompiled header
+# $4 - C++ compiler macro to compile not using precompiled header
+# $5 - C compiler macro to compile with precompiled header
+# $6 - C++ compiler macro to compile with precompiled header
+# $7 - sources (result of $(NEWER_SOURCES))
+# target-specific: CC_WITH_PCH, CXX_WITH_PCH
+CMN_PMCL1 = $(call CMN_PMCL2,$1,$2,$3,$4,$5,$6,$7,$(filter $7,$(CC_WITH_PCH)),$(filter $7,$(CXX_WITH_PCH)))
+
+# $1 - target type: EXE,DLL,LIB,...
+# $2 - non-empty variant: R,S,RU,SU,...
+# $3 - C compiler macro to compile not using precompiled header
+# $4 - C++ compiler macro to compile not using precompiled header
+# $5 - C compiler macro to compile with precompiled header
+# $6 - C++ compiler macro to compile with precompiled header
+# $7 - sources (result of $(NEWER_SOURCES))
+# $8 - $(filter $7,$(CC_WITH_PCH))
+# $9 - $(filter $7,$(CXX_WITH_PCH))
+CMN_PMCL2 = $(call CMN_MCL1,$1,$2,$3,$4,$(filter-out $8 $9,$7))$(call CMN_MCL2,$1,$2,$5,$6,$8,$9)
 
 # protect variables from modifications in target makefiles
 # note: do not trace calls to these variables because they are used in ifdefs
@@ -205,4 +249,4 @@ $(call SET_GLOBAL,LINKER_STRIP_STRINGS_en LINKER_STRIP_STRINGS_ru_cp1251 \
   INCLUDING_FILE_PATTERN_ru_cp1251 INCLUDING_FILE_PATTERN_ru_cp1251_bytes \
   INCLUDING_FILE_PATTERN_ru_cp866 INCLUDING_FILE_PATTERN_ru_cp866_bytes MSVC_DEPS_SCRIPT \
   MSVC_WRAP_COMPLIER_TEMPL MSVC_DEFINE_COMPILER_WRAPPER MP_TARGET_SRC_DEPS C_BASE_TEMPLATE_MP \
-  NEWER_SOURCES MCL_MAX_COUNT CMN_MCL CMN_MCL1)
+  NEWER_SOURCES MCL_MAX_COUNT CMN_MCL CMN_MCL1 CMN_MCL2 CMN_PMCL CMN_PMCL1 CMN_PMCL2)

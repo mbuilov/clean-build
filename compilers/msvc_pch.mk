@@ -33,7 +33,7 @@ ifndef TOCLEAN
 # $6 - pch compiler type: CC or CXX
 # $7 - pch object (e.g. /build/obj/xxx_pch_c.obj or /build/obj/xxx_pch_cpp.obj)
 # $8 - pch        (e.g. /build/obj/xxx_c.pch  or /build/obj/xxx_cpp.pch)
-# $v - R,P,D
+# $v - R,S,RU,SU
 # target-specific: PCH
 # note: while compiling pch header two objects are created: pch object - $7 and pch - $8
 # note: define target-specific variable $6_PCH_BUILT to check if pch header was already built
@@ -62,7 +62,7 @@ endif
 # $6  - $(basename $(notdir $2))
 # $7  - pch compiler type: CC or CXX
 # $8  - pch source type: c or cpp
-# $v  - R,P,D
+# $v  - R,S,RU,SU
 # note: pch object: $4/$6_pch_$8$(OBJ_SUFFIX)
 # note: pch:        $4/$6_$8.pch
 MSVC_PCH_RULE = $(call MSVC_PCH_RULE_TEMPL,$1,$2,$3,$4,$5,$7,$4/$6_pch_$8$(OBJ_SUFFIX),$4/$6_$8.pch)
@@ -74,7 +74,7 @@ MSVC_PCH_RULE = $(call MSVC_PCH_RULE_TEMPL,$1,$2,$3,$4,$5,$7,$4/$6_pch_$8$(OBJ_S
 # $4 - $(filter $(CXX_MASK),$(call fixpath,$(WITH_PCH)))
 # $5 - $(call FORM_OBJ_DIR,$1,$v)
 # $6 - $(call FORM_TRG,$1,$v)
-# $v - R,P,D
+# $v - R,S,RU,SU
 # note: may use target-specific variables: PCH, CC_WITH_PCH, CXX_WITH_PCH in generated code
 MSVC_PCH_TEMPLATEv = $(if \
   $3,$(call MSVC_PCH_RULE,$1,$2,$3,$5,$6,$5/$(basename $(notdir $2)),CC,c))$(if \
@@ -93,7 +93,7 @@ else # clean
 # $3 - $(filter $(CC_MASK),$(WITH_PCH))
 # $4 - $(filter $(CXX_MASK),$(WITH_PCH))
 # $5 - $(call FORM_OBJ_DIR,$1,$v)
-# $v - R,P,D
+# $v - R,S,RU,SU
 MSVC_PCH_TEMPLATEv = $(if \
   $3,$(addprefix $5/,$2_pch_c$(OBJ_SUFFIX) $2_pch_c$(OBJ_SUFFIX).d $2_c.pch)) $(if \
   $4,$(addprefix $5/,$2_pch_cpp$(OBJ_SUFFIX) $2_pch_cpp$(OBJ_SUFFIX).d $2_cpp.pch))
@@ -108,7 +108,24 @@ endif # clean
 # $1 - objdir/
 # $2 - generated pch suffix: c or cpp
 # target-specific: PCH
-MSVC_USE_PCH = $(addsuffix $(call ospath,$(PCH)),/FI /Yu) /Fp$(ospath)$(basename $(notdir $(PCH)))_$2.pch
+MSVC_USE_PCH = $(call MSVC_USE_PCH1,$(call qpath,$(call ospath,$(PCH))),$(ospath)$(basename $(notdir $(PCH)))_$2.pch)
+
+# $1 - $(call qpath,$(call ospath,$(PCH)))          e.g. "C:\aaa\b b\include\xxx.h"
+# $2 - $(ospath)$(basename $(notdir $(PCH)))_$2.pch e.g. C:\build\obj\xxx_c.pch
+MSVC_USE_PCH1 = /FI$1 /Yu$1 /Fp$2
+
+# options to create precompiled header
+# $1 - objdir/
+# $2 - generated pch suffix: c or cpp
+# target-specific: PCH
+MSVC_CREATE_PCH = $(call MSVC_CREATE_PCH,$(call qpath,$(call ospath,$(PCH))),$(ospath),$(basename $(notdir $(PCH))),$2)
+
+# $1 - $(call qpath,$(call ospath,$(PCH))) e.g. "C:\aaa\b b\include\xxx.h"
+# $2 - $(ospath)                           e.g. C:\build\obj\
+# $3 - $(basename $(notdir $(PCH)))        e.g. xxx
+# $4 - c or cpp
+MSVC_CREATE_PCH1 = /c /FI$1 /Yc$1 /Fp$2$3_$4.pch /Yl_$3_$4 /Fo$2$3_pch_$4$(OBJ_SUFFIX) $(if $(findstring cpp,$4),/TP,/TC) NUL
 
 # protect variables from modifications in target makefiles
-$(call SET_GLOBAL,MSVC_PCH_RULE_TEMPL=v MSVC_PCH_RULE=v MSVC_PCH_TEMPLATEv=v MSVC_PCH_TEMPLATEt=t MSVC_USE_PCH)
+$(call SET_GLOBAL,MSVC_PCH_RULE_TEMPL=v MSVC_PCH_RULE=v MSVC_PCH_TEMPLATEv=v MSVC_PCH_TEMPLATEt=t \
+  MSVC_USE_PCH MSVC_USE_PCH1 MSVC_CREATE_PCH MSVC_CREATE_PCH1)

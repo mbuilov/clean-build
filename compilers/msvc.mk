@@ -409,7 +409,7 @@ LIB_LD = $(call SUP,$(TMD)LIB,$1)$(VSLIB) /nologo /OUT:$(call ospath,$1 $2) $($(
 # check that LIB do not includes resources (.res - files)
 ifdef MCHECK
 $(eval LIB_LD = $$(if $$(filter %.res,$$^),$$(warning \
-  $$1: resources cannot be linked into the static library: $$(filter %.res,$$^)))$(value LIB_LD))
+  $$1: static library cannot contain resources: $$(filter %.res,$$^)))$(value LIB_LD))
 endif
 
 # note: send output to stderr in VERBOSE mode, this is needed for build script generation
@@ -543,7 +543,7 @@ OBJ_CXX = $(if $(filter $2,$(CXX_WITH_PCH)),$(OBJ_PCXX),$(OBJ_NCXX))
 
 endif # !NO_PCH
 
-else ifndef TOCLEAN
+else ifndef TOCLEAN # MP_BUILD
 
 # override templates defined in $(CLEAN_BUILD_DIR)/_c.mk:
 #  EXE_TEMPLATE, DLL_TEMPLATE and LIB_TEMPLATE will not call OBJ_RULES for C/C++ sources,
@@ -581,8 +581,7 @@ OBJ_MCXX = $(call SUP,$(TMD)CXX,$1)$(call WRAP_CC,$(VSCL) $(call CXX_PARAMS,$(OB
 # compile multiple sources at once
 # $1 - target type: EXE,DLL,LIB,...
 # $2 - non-empty variant: R,S,RU,SU,...
-# $3 - possibly empty list of sources newer than the target EXE,DLL,LIB,...
-MULTISOURCE_CL = $(call CMN_MCL,$1,$2,OBJ_MCC,OBJ_MCXX,$3)
+MULTISOURCE_CL = $(call CMN_MCL,$1,$2,OBJ_MCC,OBJ_MCXX)
 
 # redefine linkers to compile & link in one rule
 # $1 - path to target EXE,DLL,LIB
@@ -590,45 +589,24 @@ MULTISOURCE_CL = $(call CMN_MCL,$1,$2,OBJ_MCC,OBJ_MCXX,$3)
 # $3 - target type: EXE,DLL,LIB
 # $4 - non-empty variant: R,S,RU,SU
 # note: used by redefined above EXE_TEMPLATE, DLL_TEMPLATE and LIB_TEMPLATE
-EXE_LD = $(call MULTISOURCE_CL,$3,$4,$(NEWER_SOURCES))$(EXE_LD2)
-DLL_LD = $(call MULTISOURCE_CL,$3,$4,$(NEWER_SOURCES))$(DLL_LD2)
-LIB_LD = $(call MULTISOURCE_CL,$3,$4,$(NEWER_SOURCES))$(LIB_LD2)
+EXE_LD = $(call MULTISOURCE_CL,$3,$4)$(EXE_LD2)
+DLL_LD = $(call MULTISOURCE_CL,$3,$4)$(DLL_LD2)
+LIB_LD = $(call MULTISOURCE_CL,$3,$4)$(LIB_LD2)
 
 ifndef NO_PCH
-
-# C/C++ multi-source compilers for compiling without precompiled header
-$(eval OBJ_NMCC  = $(value OBJ_MCC))
-$(eval OBJ_NMCXX = $(value OBJ_MCXX))
 
 # C/C++ multi-source compilers for compiling using precompiled header
 # $1 - sources (non-empty list)
 # $2 - target type: EXE,DLL,LIB
 # $3 - non-empty variant: R,S,RU,SU
 # target-specific: TMD, OBJ_DIR
-OBJ_PMCC  = $(call SUP,$(TMD)PCC,$1)$(call WRAP_CC,$(VSCL) $(call MSVC_USE_PCH,$(OBJ_DIR)/,c) $(call CC_PARAMS,$(OBJ_DIR)/,$2,$3,$4),$1)
-OBJ_PMCXX = $(call SUP,$(TMD)PCXX,$1)$(call WRAP_CC,$(VSCL) $(call MSVC_USE_PCH,$(OBJ_DIR)/,cpp) $(call CC_PARAMS,$(OBJ_DIR)/,$2,$3,$4),$1)
+OBJ_PMCC  = $(call SUP,$(TMD)PCC,$1)$(call WRAP_CC,$(VSCL) $(call MSVC_USE_PCH,$(OBJ_DIR)/,c) $(call CC_PARAMS,$(OBJ_DIR)/,$1,$2,$3),$1)
+OBJ_PMCXX = $(call SUP,$(TMD)PCXX,$1)$(call WRAP_CC,$(VSCL) $(call MSVC_USE_PCH,$(OBJ_DIR)/,cpp) $(call CC_PARAMS,$(OBJ_DIR)/,$1,$2,$3),$1)
 
 # compile multiple sources at once
 # $1 - target type: EXE,DLL,LIB,...
 # $2 - non-empty variant: R,S,RU,SU,...
-# $3 - possibly empty list of sources newer than the target EXE,DLL,LIB,...
-# target-specific: CC_WITH_PCH, CXX_WITH_PCH
-MULTISOURCE_CL = $(call MULTISOURCE_CL1,$1,$2,$(filter \
-  $3,$(CC_WITH_PCH)),$(filter \
-  $3,$(CXX_WITH_PCH)),$(filter-out \
-  $3,$(CC_WITH_PCH)),$(filter-out \
-  $3,$(CXX_WITH_PCH)))
-
-# compile multiple sources at once
-# $1 - target type: EXE,DLL,LIB,...
-# $2 - non-empty variant: R,S,RU,SU,...
-# $3 - C sources to compile using pch header
-# $4 - C++ sources to compile using pch header
-# $5 - C sources to compile without pch header
-# $6 - C++ sources to compile without pch header
-MULTISOURCE_CL1 = $(call \
-  CMN_MCL1,$1,$2,OBJ_PMCC,OBJ_PMCXX,$3,$4)$(call \
-  CMN_MCL1,$1,$2,OBJ_NMCC,OBJ_NMCXX,$5,$6)
+MULTISOURCE_CL = $(call CMN_PMCL,$1,$2,OBJ_MCC,OBJ_MCXX,OBJ_PMCC,OBJ_PMCXX)
 
 endif # !NO_PCH
 
@@ -637,22 +615,16 @@ endif # MP_BUILD
 ifndef NO_PCH
 
 # compilers of C/C++ precompiled header
-# $1 - target object of generated source $3:
-#  /build/obj/xxx_pch_cc.o or
-#  /build/obj/xxx_pch_c.o
+# $1 - pch object (e.g. /build/obj/xxx_pch_c.obj or /build/obj/xxx_pch_cpp.obj)
 # $2 - pch header (full path, e.g. /src/include/xxx.h)
-# $3 - generated source for precompiling header $2:
-#  $(pch_gen_dir)$(basename $(notdir $2))_pch.cc or
-#  $(pch_gen_dir)$(basename $(notdir $2))_pch.c
+# $3 - pch        (e.g. /build/obj/xxx_c.pch  or /build/obj/xxx_cpp.pch)
 # $4 - target type: EXE,DLL,LIB
-# $5 - non-empty variant: R,P,D
+# $5 - non-empty variant: R,S,RU,SU
 # target-specific: TMD
-# note: pch object xxx_c.cpch or xxx_cc.Cpch will be created as a side-effect of this compilation
-# note: used by SUNCC_PCH_RULE_TEMPL macro from $(CLEAN_BUILD_DIR)/compilers/suncc_pch.mk
-PCH_CC  = $(call SUP,$(TMD)PCHCC,$2)$(call WRAP_CC,$($(TMD)CC) -xpch=collect:$(dir $1)$(basename $(notdir \
-  $2))_c $(call CC_PARAMS,$1,$3,$4,$5),$1,$(UDEPS_INCLUDE_FILTER))
-PCH_CXX = $(call SUP,$(TMD)PCHCXX,$2)$(call WRAP_CC,$($(TMD)CXX) -xpch=collect:$(dir $1)$(basename $(notdir \
-  $2))_cc $(call CXX_PARAMS,$1,$3,$4,$5),$1,$(UDEPS_INCLUDE_FILTER))
+# note: precompiled header xxx_c.pch or xxx_cpp.pch will be created as a side-effect of this compilation
+# note: used by MSVC_PCH_RULE_TEMPL macro from $(CLEAN_BUILD_DIR)/compilers/msvc_pch.mk
+PCH_CC  = $(call SUP,$(TMD)PCHCC,$2)$(call WRAP_CC,$(VSCL) $(call MSVC_CREATE_PCH,$(OBJ_DIR)/,c) $(call CC_PARAMS,$(OBJ_DIR)/,,$4,$5))
+PCH_CXX = $(call SUP,$(TMD)PCHCXX,$2)$(call WRAP_CC,$(VSCL) $(call MSVC_CREATE_PCH,$(OBJ_DIR)/,cpp) $(call CC_PARAMS,$(OBJ_DIR)/,,$4,$5))
 
 # reset additional variables
 # PCH - either absolute or makefile-related path to header to precompile
@@ -660,6 +632,7 @@ $(call append_simple,C_PREPARE_APP_VARS,$(newline)PCH:=)
 
 # for all application-level targets: add support for precompiled headers
 $(call define_prepend,DEFINE_C_APP_EVAL,$$(eval $$(foreach t,$(C_APP_TARGETS),$$(if $$($$t),$$(SUNCC_PCH_TEMPLATEt)))))
+
 
 endif # !NO_PCH
 
