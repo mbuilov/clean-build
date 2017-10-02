@@ -17,7 +17,7 @@
 #
 # $1 - compiler with options (unused)
 # $2 - target object file
-# $3 - prefixes of system includes to filter out, e.g. $(UDEPS_INCLUDE_FILTER)/$(KDEPS_INCLUDE_FILTER)
+# $3 - prefixes of system includes to filter out, e.g. /usr/include/
 
 # /^$(tab)*\//!{p;d;}             - print all lines not started with optional tabs and /, start new circle
 # s/^\$(tab)*//;                  - strip-off leading tabs
@@ -28,5 +28,15 @@ SUNCC_DEPS_SCRIPT = \
 -e '/^$(tab)*\//!{p;d;}' \
 -e 's/^\$(tab)*//;$(foreach x,$3,\@^$x.*@d;)s@.*@&:\$(newline)$2: &@;w $2.d'
 
+# either just call compiler or call compiler and auto-generate dependencies
+# $1 - compiler with options
+# $2 - target object file
+# $3 - prefixes of system includes to filter out, e.g. /usr/include/
+ifdef NO_DEPS
+WRAP_SUNCC = $1
+else
+WRAP_SUNCC = { { $1 -H 2>&1 && echo OK >&2; } | $(SED) -n $(SUNCC_DEPS_SCRIPT) 2>&1; } 3>&2 2>&1 1>&3 3>&- | grep OK > /dev/null
+endif
+
 # protect variables from modifications in target makefiles
-$(call SET_GLOBAL,SUNCC_DEPS_SCRIPT)
+$(call SET_GLOBAL,SUNCC_DEPS_SCRIPT WRAP_SUNCC)
