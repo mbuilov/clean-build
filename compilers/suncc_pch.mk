@@ -32,7 +32,7 @@ ifndef TOCLEAN
 
 # $1  - EXE,LIB,DLL,KLIB
 # $2  - $(call fixpath,$(PCH))
-# $3  - sources to build with precompiled header
+# $3  - sources to build with precompiled header (without directory part)
 # $4  - $(call FORM_OBJ_DIR,$1,$v)
 # $5  - $(call FORM_TRG,$1,$v)
 # $6  - common objdir (for R-variant)
@@ -40,7 +40,7 @@ ifndef TOCLEAN
 # $8  - pch source (e.g. /build/obj/xxx_pch.c   or /build/obj/xxx_pch.cc)
 # $9  - pch object (e.g. /build/obj/xxx_pch_c.o or /build/obj/xxx_pch_cc.o)
 # $10 - pch        (e.g. /build/obj/xxx_c.cpch  or /build/obj/xxx_cc.Cpch)
-# $11 - objects $(addprefix $4/,$(addsuffix $(OBJ_SUFFIX),$(basename $(notdir $3))))
+# $11 - objects $(addprefix $4/,$(addsuffix $(OBJ_SUFFIX),$(basename $3)))
 # $v  - R,P,D
 # target-specific: PCH
 # note: while compiling pch header two objects are created: pch object - $9 and pch - $(10)
@@ -56,7 +56,7 @@ $(11): $(10) $9
 $(10):| $9
 $9 $(10): $2 | $8 $4 $$(ORDER_DEPS)
 	$$(if $$($7_PCH_BUILT),,$$(eval $7_PCH_BUILT:=1)$$(call PCH_$7,$9,$$(PCH),$8,$1,$v))
-$(subst $(space),$(newline),$(join $(addsuffix :|,$(11)),$(addprefix $6/,$(addsuffix $(suffix $8),$(notdir $3)))))
+$(subst $(space),$(newline),$(join $(addsuffix :|,$(11)),$(addprefix $6/,$(addsuffix $(suffix $8),$3))))
 
 endef
 ifndef NO_DEPS
@@ -66,8 +66,8 @@ endif
 # define rule for building precompiled header
 # $1  - EXE,LIB,DLL,KLIB
 # $2  - $(call fixpath,$(PCH))
-# $3  - $(filter $(CC_MASK),$(call fixpath,$(WITH_PCH)))
-#   or $(filter $(CXX_MASK),$(call fixpath,$(WITH_PCH)))
+# $3  - $(notdir $(filter $(CC_MASK),$(call fixpath,$(WITH_PCH))))
+#   or $(notdir $(filter $(CXX_MASK),$(call fixpath,$(WITH_PCH))))
 # $4  - $(call FORM_OBJ_DIR,$1,$v)
 # $5  - $(call FORM_TRG,$1,$v)
 # $6  - common objdir (for R-variant)
@@ -80,7 +80,7 @@ endif
 # note: pch object: $4/$7_pch_$9$(OBJ_SUFFIX)
 # note: pch:        $4/$7_$9$(10)
 SUNCC_PCH_RULE = $(call SUNCC_PCH_RULE_TEMPL,$1,$2,$3,$4,$5,$6,$8,$6/$7_pch.$9,$4/$7_pch_$9$(OBJ_SUFFIX),$4/$7_$9$(10),$(addprefix \
-  $4/,$(addsuffix $(OBJ_SUFFIX),$(basename $(notdir $3)))))
+  $4/,$(addsuffix $(OBJ_SUFFIX),$(basename $3))))
 
 # define rule for building C/C++ precompiled header as assumed by PCH_TEMPLATE macro
 # $1 - EXE,LIB,DLL,KLIB
@@ -93,8 +93,8 @@ SUNCC_PCH_RULE = $(call SUNCC_PCH_RULE_TEMPL,$1,$2,$3,$4,$5,$6,$8,$6/$7_pch.$9,$
 # $8 - $(basename $(notdir $2))
 # $v - R,P,D
 SUNCC_PCH_TEMPLATEv1 = $(if \
-  $3,$(call SUNCC_PCH_RULE,$1,$2,$3,$5,$6,$7,$8,CC,c,.cpch))$(if \
-  $4,$(call SUNCC_PCH_RULE,$1,$2,$4,$5,$6,$7,$8,CXX,cc,.Cpch))
+  $3,$(call SUNCC_PCH_RULE,$1,$2,$(notdir $3),$5,$6,$7,$8,CC,c,.cpch))$(if \
+  $4,$(call SUNCC_PCH_RULE,$1,$2,$(notdir $4),$5,$6,$7,$8,CXX,cc,.Cpch))
 
 # define rule for building C/C++ precompiled header, as assumed by PCH_TEMPLATE macro
 # $1 - EXE,LIB,DLL,KLIB
@@ -170,8 +170,8 @@ else # clean
 # $5 - $(call FORM_OBJ_DIR,$1,$v)
 # $v - R,P,D
 SUNCC_PCH_TEMPLATEv = $(if \
-  $3,$(addprefix $5/,$2_pch_c$(OBJ_SUFFIX) $2_pch_c$(OBJ_SUFFIX).d $2_c.cpch)) $(if \
-  $4,$(addprefix $5/,$2_pch_cc$(OBJ_SUFFIX) $2_pch_cc$(OBJ_SUFFIX).d $2_cc.Cpch))
+  $3,$(addprefix $5/$2_,pch_c$(OBJ_SUFFIX) pch_c$(OBJ_SUFFIX).d c.cpch)) $(if \
+  $4,$(addprefix $5/$2_,pch_cc$(OBJ_SUFFIX) pch_cc$(OBJ_SUFFIX).d cc.Cpch))
 
 # return objects created while building with precompiled header to clean up
 # $1 - common objdir (for R-variant)
