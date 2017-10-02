@@ -66,7 +66,7 @@ endef
 MSVC_DEFINE_LINKER_WRAPPER = $(eval $(subst <WRAP_LINKER>,$1,$(subst \
   <STRIP_EXPR>,$(call qpath,$2,|findstr /VBRC:),$(value MSVC_WRAP_LINKER_TEMPL))))
 
-# $(SED) expression to match C compiler messages about included files (used for auto-dependencies generation)
+# $(SED) expression to match C compiler messages about included files (used for dependencies auto-generation)
 INCLUDING_FILE_PATTERN_en := Note: including file:
 # utf8 "ÐÑÐ¸Ð¼ÐµÑÐ°Ð½Ð¸Ðµ: Ð²ÐºÐ»ÑÑÐµÐ½Ð¸Ðµ ÑÐ°Ð¹Ð»Ð°:"
 INCLUDING_FILE_PATTERN_ru_utf8 := ÐÑÐ¸Ð¼ÐµÑÐ°Ð½Ð¸Ðµ: Ð²ÐºÐ»ÑÑÐµÐ½Ð¸Ðµ ÑÐ°Ð¹Ð»Ð°:
@@ -97,47 +97,46 @@ MSVC_DEPS_SCRIPT = \
 -e "s/\x0d//;/^$(notdir $2)$$/d;/^$4 /!{p;d;}" \
 -e "s/^$4  *//;$(subst ?, ,$(foreach x,$5,\@^$x.*@Id;))s/ /\\ /g;s@.*@&:\n$3: &@;w $3.d"
 
-# code to define compiler wrapper macro
+# code to define compiler wrapper macros
 define MSVC_WRAP_COMPLIER_TEMPL
 
-# strip-off names of compiled sources
+# just strip-off names of compiled sources
 # $1 - compiler with options
-# $2 - path(s) to the source(s)
+# $2 - path(s) to the source(s) (non-empty)
 # note: FILTER_OUTPUT sends command output to stderr
 # note: send output to stderr in VERBOSE mode, this is needed for build script generation
 ifndef NO_WRAP
-<WRAP_CC> = $(call FILTER_OUTPUT,$1,$(addprefix |findstr /VXC:,$(notdir $2)))
+<WRAP_CC_NODEP> = $(call FILTER_OUTPUT,$1,$(addprefix |findstr /VXC:,$(notdir $2)))
 else ifdef VERBOSE
-<WRAP_CC> = $1 >&2
+<WRAP_CC_NODEP> = $1 >&2
 else
-<WRAP_CC> = $1
+<WRAP_CC_NODEP> = $1
 endif
 
-# may auto-generate dependencies only if building sources sequentially, because /showIncludes option conflicts with /MP
-ifeq (,<MP_BUILD>)
+# if NO_DEPS is set, do not auto-generate dependencies
+$(eval <WRAP_CC_DEP> = $(value <WRAP_CC_NODEP>))
 
 # call compiler and auto-generate dependencies
 # $1 - compiler with options
 # $2 - path to the source
 # $3 - target object file
 # note: send output to stderr in VERBOSE mode, this is needed for build script generation
+# note: may auto-generate dependencies only if building sources sequentially, because /showIncludes option conflicts with /MP
 ifndef NO_WRAP
 ifndef NO_DEPS
-<WRAP_CC> = (($1 /showIncludes 2>&1 && set/p="C">&2<NUL)|$(SED) -n $(call \
+<WRAP_CC_DEP> = (($1 /showIncludes 2>&1 && set/p="C">&2<NUL)|$(SED) -n $(call \
   MSVC_DEPS_SCRIPT,$1,$2,$3,<INCLUDING_FILE_PATTERN>,<UDEPS_INCLUDE_FILTER>) 2>&1 && set/p="S">&2<NUL)3>&2 2>&1 1>&3|findstr /BC:CS>NUL
 endif
 endif
 
-endif
-
 endef
 
-# define the compiler wrapper
-# $1 - compiler wrapper name, e.g. WRAP_CC
-# $2 - whenever /MP option is used for a complier, e.g. $(MP_BUILD) is non-empty
+# define compiler wrappers
+# $1 - no-dep compiler wrapper name, e.g. WRAP_CC_NODEP
+# $2 - dep compiler no-dep wrapper name, e.g. WRAP_CC_DEP
 # $3 - regular expression used to match paths to included headers, e.g. $(INCLUDING_FILE_PATTERN_en)
 # $4 - prefixes of system include paths to filter-out, e.g. $(subst \,\\,$(VSINCLUDE) $(UMINCLUDE))
-MSVC_DEFINE_COMPILER_WRAPPER = $(eval $(subst <WRAP_CC>,$1,$(subst <MP_BUILD>,$2,$(subst \
+MSVC_DEFINE_COMPILER_WRAPPERS = $(eval $(subst <WRAP_CC_NODEP>,$1,$(subst <WRAP_CC_DEP>,$2,$(subst \
   <INCLUDING_FILE_PATTERN>,$3,$(subst <UDEPS_INCLUDE_FILTER>,$4,$(value MSVC_WRAP_COMPLIER_TEMPL))))))
 
 # add source-file dependencies for the target,
@@ -248,5 +247,5 @@ $(call SET_GLOBAL,LINKER_STRIP_STRINGS_en LINKER_STRIP_STRINGS_ru_cp1251 \
   INCLUDING_FILE_PATTERN_en INCLUDING_FILE_PATTERN_ru_utf8 INCLUDING_FILE_PATTERN_ru_utf8_bytes \
   INCLUDING_FILE_PATTERN_ru_cp1251 INCLUDING_FILE_PATTERN_ru_cp1251_bytes \
   INCLUDING_FILE_PATTERN_ru_cp866 INCLUDING_FILE_PATTERN_ru_cp866_bytes MSVC_DEPS_SCRIPT \
-  MSVC_WRAP_COMPLIER_TEMPL MSVC_DEFINE_COMPILER_WRAPPER MP_TARGET_SRC_DEPS C_BASE_TEMPLATE_MP \
+  MSVC_WRAP_COMPLIER_TEMPL MSVC_DEFINE_COMPILER_WRAPPERS MP_TARGET_SRC_DEPS C_BASE_TEMPLATE_MP \
   NEWER_SOURCES MCL_MAX_COUNT CMN_MCL CMN_MCL1 CMN_MCL2 CMN_PMCL CMN_PMCL1 CMN_PMCL2)

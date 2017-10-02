@@ -111,20 +111,18 @@ IMP_SUFFIX := .lib
 # /W3 - warning level 3
 CFLAGS := /W3
 
-# determine if building multiple sources at once
+# determine if may build multiple sources at once
+MP_BUILD:=
 ifndef SEQ_BUILD
 ifneq (,$(call is_less,8,$(VS_VER)))
 # >= Visual Studio 2008
 # /MP - compile all sources of a module at once
-CFLAGS += /MP
+MP_BUILD := /MP
 endif
 endif
-
-# $(MP_BUILD) will be non-empty if building multiple sources at once
-MP_BUILD := $(filter /MP,$(CFLAGS))
 
 # When using the /Zi option, the debug info of all compiled sources is stored in a single .pdb,
-# but this can lead to contentions accessing that .pdb during parallel compilation.
+#  but this can lead to contentions accessing that .pdb during parallel compilation.
 # To cope this problem, the /FS option was introduced in Visual Studio 2013.
 ifneq (,$(call is_less,11,$(VS_VER)))
 # >= Visual Studio 2013
@@ -189,8 +187,9 @@ endif
 ifneq (,$(call is_less,11,$(VS_VER)))
 # >= Visual Studio 2013
 # /Zc:inline - remove unreferenced internal functions from objs
+# /Gw         - package global data in individual comdat sections
 # note: /Zc:inline is ignored if /GL is specified
-CFLAGS += /Zc:inline
+CFLAGS += /Zc:inline /Gw
 endif
 
 endif # !DEBUG
@@ -426,8 +425,8 @@ INCLUDING_FILE_PATTERN := $(INCLUDING_FILE_PATTERN_en)
 # c:\\program?files?(x86)\\microsoft?visual?studio?10.0\\vc\\include\\
 UDEPS_INCLUDE_FILTER := $(subst \,\\,$(VSINCLUDE) $(UMINCLUDE))
 
-# define WRAP_CC - cl.exe wrapper
-$(call MSVC_DEFINE_COMPILER_WRAPPER,WRAP_CC,$(MP_BUILD),$(INCLUDING_FILE_PATTERN),$(UDEPS_INCLUDE_FILTER))
+# define WRAP_CCN and WRAP_CCD - cl.exe wrappers
+$(call MSVC_DEFINE_COMPILER_WRAPPERS,WRAP_CCN,WRAP_CCD,$(INCLUDING_FILE_PATTERN),$(UDEPS_INCLUDE_FILTER))
 
 # common flags for application-level C/C++ compilers
 # /EHsc - synchronous exception handling model, extern C functions never throw an exception
@@ -482,15 +481,15 @@ MK_INCLUDE_OPTION = $(addprefix /I,$(ospath))
 MK_DEFINES_OPTION1 = $(addprefix /D,$1)
 
 # common options for application-level C/C++ compilers
-# $1 - outdir/
+# $1 - outdir/ or obj file
 # $2 - sources
 # $3 - target type: EXE,DLL,LIB
 # $4 - non-empty variant: R,S,RU,SU
 # target-specific: VDEFINES, VINCLUDE
-CMN_PARAMS = /nologo /c /Fo$(ospath) /Fd$(ospath) $(call ospath,$2) $(VDEFINES) $(VINCLUDE)
+CMN_PARAMS = /nologo /c /Fo$(ospath) /Fd$(call ospath,$(dir $1) $2) $(VDEFINES) $(VINCLUDE)
 
 # parameters of application-level C and C++ compilers
-# $1 - outdir/
+# $1 - outdir/ or obj file
 # $2 - sources
 # $3 - target type: EXE,DLL,LIB
 # $4 - non-empty variant: R,S,RU,SU
@@ -514,8 +513,9 @@ ifndef MP_BUILD
 # $4 - non-empty variant: R,S,RU,SU
 # target-specific: TMD
 # note: used by OBJ_RULES_BODY macro from $(CLEAN_BUILD_DIR)/impl/c_base.mk
-OBJ_CC  = $(call SUP,$(TMD)CC,$2)$(call WRAP_CC,$(VSCL) $(call CC_PARAMS,$(dir $1),$2,$3,$4),$2,$1)
-OBJ_CXX = $(call SUP,$(TMD)CXX,$2)$(call WRAP_CC,$(VSCL) $(call CXX_PARAMS,$(dir $1),$2,$3,$4),$2,$1)
+# note: auto-generate dependencies
+OBJ_CC  = $(call SUP,$(TMD)CC,$2)$(call WRAP_CCD,$(VSCL) $(CC_PARAMS),$2,$1)
+OBJ_CXX = $(call SUP,$(TMD)CXX,$2)$(call WRAP_CCD,$(VSCL) $(CXX_PARAMS),$2,$1)
 
 ifndef NO_PCH
 
@@ -529,8 +529,9 @@ $(eval OBJ_NCXX = $(value OBJ_CXX))
 # $3 - target type: EXE,DLL,LIB
 # $4 - non-empty variant: R,S,RU,SU
 # target-specific: TMD
-OBJ_PCC  = $(call SUP,$(TMD)PCC,$2)$(call WRAP_CC,$(VSCL) $(call MSVC_USE_PCH,$(dir $1),c) $(call CC_PARAMS,$(dir $1),$2,$3,$4),$2,$1)
-OBJ_PCXX = $(call SUP,$(TMD)PCXX,$2)$(call WRAP_CC,$(VSCL) $(call MSVC_USE_PCH,$(dir $1),cpp) $(call CXX_PARAMS,$(dir $1),$2,$3,$4),$2,$1)
+# note: auto-generate dependencies
+OBJ_PCC  = $(call SUP,$(TMD)PCC,$2)$(call WRAP_CCD,$(VSCL) $(call MSVC_USE_PCH,$(dir $1),c) $(CC_PARAMS),$2,$1)
+OBJ_PCXX = $(call SUP,$(TMD)PCXX,$2)$(call WRAP_CCD,$(VSCL) $(call MSVC_USE_PCH,$(dir $1),cpp) $(CXX_PARAMS),$2,$1)
 
 # override C++ and C compilers to support compiling with precompiled header
 # $1 - target object file
@@ -569,20 +570,6 @@ EXE_LD2 = $(call EXE_LD1,$1,$(addprefix $(OBJ_DIR)/,$(addsuffix $(OBJ_SUFFIX),$(
 DLL_LD2 = $(call DLL_LD1,$1,$(addprefix $(OBJ_DIR)/,$(addsuffix $(OBJ_SUFFIX),$(basename $(notdir $(SRC))))) $2,$3,$4)
 LIB_LD2 = $(call LIB_LD1,$1,$(addprefix $(OBJ_DIR)/,$(addsuffix $(OBJ_SUFFIX),$(basename $(notdir $(SRC))))) $2,$3,$4)
 
-# C/C++ multi-source compilers for each variant of EXE,DLL,LIB
-# $1 - sources (non-empty list)
-# $2 - target type: EXE,DLL,LIB
-# $3 - non-empty variant: R,S,RU,SU
-# target-specific: TMD, OBJ_DIR
-# note: called by CMN_MCL macro from $(CLEAN_BUILD_DIR)/compilers/msvc_cmn.mk
-OBJ_MCC  = $(call SUP,$(TMD)CC,$1)$(call WRAP_CC,$(VSCL) $(call CC_PARAMS,$(OBJ_DIR)/,$1,$2,$3),$1)
-OBJ_MCXX = $(call SUP,$(TMD)CXX,$1)$(call WRAP_CC,$(VSCL) $(call CXX_PARAMS,$(OBJ_DIR)/,$1,$2,$3),$1)
-
-# compile multiple sources at once
-# $1 - target type: EXE,DLL,LIB,...
-# $2 - non-empty variant: R,S,RU,SU,...
-MULTISOURCE_CL = $(call CMN_MCL,$1,$2,OBJ_MCC,OBJ_MCXX)
-
 # redefine linkers to compile & link in one rule
 # $1 - path to target EXE,DLL,LIB
 # $2 - objects for linking the target (may be empty, if no .asm sources were assembled and pch is not used)
@@ -593,20 +580,53 @@ EXE_LD = $(call MULTISOURCE_CL,$3,$4)$(EXE_LD2)
 DLL_LD = $(call MULTISOURCE_CL,$3,$4)$(DLL_LD2)
 LIB_LD = $(call MULTISOURCE_CL,$3,$4)$(LIB_LD2)
 
+# compile multiple sources at once
+# $1 - target type: EXE,DLL,LIB,...
+# $2 - non-empty variant: R,S,RU,SU,...
+MULTISOURCE_CL = $(call CMN_MCL,$1,$2,OBJ_MCC,OBJ_MCXX)
+
+# parameters of multi-source application-level C and C++ compilers
+# $1 - sources
+# $2 - target type: EXE,DLL,LIB
+# $3 - non-empty variant: R,S,RU,SU
+# target-specific: OBJ_DIR
+CC_MPARAMS = $(MP_BUILD) $(call CC_PARAMS,$(OBJ_DIR)/,$1,$2,$3)
+CXX_MPARAMS = $(MP_BUILD) $(call CXX_PARAMS,$(OBJ_DIR)/,$1,$2,$3)
+
+# C/C++ multi-source compilers for each variant of EXE,DLL,LIB
+# $1 - sources (non-empty list)
+# $2 - target type: EXE,DLL,LIB
+# $3 - non-empty variant: R,S,RU,SU
+# target-specific: TMD
+# note: called by CMN_MCL macro from $(CLEAN_BUILD_DIR)/compilers/msvc_cmn.mk
+# note: do not auto-generate dependencies
+OBJ_MCC  = $(call SUP,$(TMD)CC,$1)$(call WRAP_CCN,$(VSCL) $(CC_MPARAMS),$1)
+OBJ_MCXX = $(call SUP,$(TMD)CXX,$1)$(call WRAP_CCN,$(VSCL) $(CXX_MPARAMS),$1)
+
 ifndef NO_PCH
+
+# compile multiple sources at once
+# $1 - target type: EXE,DLL,LIB,...
+# $2 - non-empty variant: R,S,RU,SU,...
+MULTISOURCE_CL = $(call CMN_PMCL,$1,$2,OBJ_MCC,OBJ_MCXX,OBJ_PMCC,OBJ_PMCXX)
 
 # C/C++ multi-source compilers for compiling using precompiled header
 # $1 - sources (non-empty list)
 # $2 - target type: EXE,DLL,LIB
 # $3 - non-empty variant: R,S,RU,SU
 # target-specific: TMD, OBJ_DIR
-OBJ_PMCC  = $(call SUP,$(TMD)PCC,$1)$(call WRAP_CC,$(VSCL) $(call MSVC_USE_PCH,$(OBJ_DIR)/,c) $(call CC_PARAMS,$(OBJ_DIR)/,$1,$2,$3),$1)
-OBJ_PMCXX = $(call SUP,$(TMD)PCXX,$1)$(call WRAP_CC,$(VSCL) $(call MSVC_USE_PCH,$(OBJ_DIR)/,cpp) $(call CC_PARAMS,$(OBJ_DIR)/,$1,$2,$3),$1)
+# note: do not auto-generate dependencies
+OBJ_PMCC  = $(call SUP,$(TMD)PCC,$1)$(call WRAP_CCN,$(VSCL) $(call MSVC_USE_PCH,$(OBJ_DIR)/,c) $(CC_MPARAMS),$1)
+OBJ_PMCXX = $(call SUP,$(TMD)PCXX,$1)$(call WRAP_CCN,$(VSCL) $(call MSVC_USE_PCH,$(OBJ_DIR)/,cpp) $(CXX_MPARAMS),$1)
 
-# compile multiple sources at once
-# $1 - target type: EXE,DLL,LIB,...
-# $2 - non-empty variant: R,S,RU,SU,...
-MULTISOURCE_CL = $(call CMN_PMCL,$1,$2,OBJ_MCC,OBJ_MCXX,OBJ_PMCC,OBJ_PMCXX)
+# In /MP build it is assumed that compiler is called sequentially to compile all C/C++ sources of a module
+#  - sources are split into groups and compiler internally parallelizes compilation of sources of a group.
+# Avoid calling another compiler to create precompiled header in parallel, this may lead to contention
+#  when writing to the same .pdb (e.g. fatal error C1041).
+# note: use global variables: OBJ_DIR, SRC, PCH
+$(addprefix $(OBJ_DIR)/,$(addsuffix $(OBJ_SUFFIX),$(basename $(notdir $(SRC))))):| $4/$6_pch_$8$(OBJ_SUFFIX)
+
+todo
 
 endif # !NO_PCH
 
@@ -615,16 +635,25 @@ endif # MP_BUILD
 ifndef NO_PCH
 
 # compilers of C/C++ precompiled header
-# $1 - pch object (e.g. /build/obj/xxx_pch_c.obj or /build/obj/xxx_pch_cpp.obj)
-# $2 - pch header (full path, e.g. /src/include/xxx.h)
-# $3 - pch        (e.g. /build/obj/xxx_c.pch  or /build/obj/xxx_cpp.pch)
+# $1 - pch object (e.g. C:/build/obj/xxx_pch_c.obj or C:/build/obj/xxx_pch_cpp.obj)
+# $2 - pch header (e.g. C:/project/include/xxx.h)
+# $3 - pch        (e.g. C:/build/obj/xxx_c.pch or C:/build/obj/xxx_cpp.pch)
 # $4 - target type: EXE,DLL,LIB
 # $5 - non-empty variant: R,S,RU,SU
 # target-specific: TMD
 # note: precompiled header xxx_c.pch or xxx_cpp.pch will be created as a side-effect of this compilation
 # note: used by MSVC_PCH_RULE_TEMPL macro from $(CLEAN_BUILD_DIR)/compilers/msvc_pch.mk
-PCH_CC  = $(call SUP,$(TMD)PCHCC,$2)$(call WRAP_CC,$(VSCL) $(call MSVC_CREATE_PCH,$(OBJ_DIR)/,c) $(call CC_PARAMS,$(OBJ_DIR)/,,$4,$5))
-PCH_CXX = $(call SUP,$(TMD)PCHCXX,$2)$(call WRAP_CC,$(VSCL) $(call MSVC_CREATE_PCH,$(OBJ_DIR)/,cpp) $(call CC_PARAMS,$(OBJ_DIR)/,,$4,$5))
+PCH_CC  = $(call SUP,$(TMD)PCHCC,$2)$(call WRAP_CC,$(VSCL) $(call MSVC_CREATE_PCH,$(dir $1)/,c) $(call CC_PARAMS,$1,,  ,$4,$5))
+PCH_CXX = $(call SUP,$(TMD)PCHCXX,$2)$(call WRAP_CC,$(VSCL) $(call MSVC_CREATE_PCH,$(dir $1)/,cpp) $(call CC_PARAMS,$1,,$4,$5))
+
+
+# parameters of application-level C and C++ compilers
+# $1 - outdir/ or obj file
+# $2 - sources
+# $3 - target type: EXE,DLL,LIB
+# $4 - non-empty variant: R,S,RU,SU
+# target-specific: TMD, VCFLAGS, VCXXFLAGS
+CC_PARAMS = $(CMN_PARAMS) $(DEF_CFLAGS) $(VCFLAGS)
 
 # reset additional variables
 # PCH - either absolute or makefile-related path to header to precompile
