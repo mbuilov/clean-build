@@ -11,6 +11,10 @@
 #  $(CLEAN_BUILD_DIR)/compilers/suncc_pch.mk
 #  $(CLEAN_BUILD_DIR)/compilers/msvc_pch.mk
 
+# reset additional variables at beginning of target makefile
+# PCH - either absolute or makefile-related path to header to precompile
+C_PREPARE_PCH_VARS := $(newline)PCH:=
+
 ifndef TOCLEAN
 
 # define target-specific variables: PCH, CC_WITH_PCH and CXX_WITH_PCH
@@ -134,5 +138,5 @@ TPCC_COLOR  := $(PCC_COLOR)
 TPCXX_COLOR := $(PCXX_COLOR)
 
 # protect variables from modifications in target makefiles
-$(call SET_GLOBAL,PCH_VARS_TEMPL WITH_PCH_RESET PCH_TEMPLATE3 PCH_TEMPLATE2 PCH_TEMPLATE1 PCH_TEMPLATE \
+$(call SET_GLOBAL,C_PREPARE_PCH_VARS PCH_VARS_TEMPL WITH_PCH_RESET PCH_TEMPLATE3 PCH_TEMPLATE2 PCH_TEMPLATE1 PCH_TEMPLATE \
   PCHCC_COLOR PCHCXX_COLOR TPCHCC_COLOR TPCHCXX_COLOR PCC_COLOR PCXX_COLOR TPCC_COLOR TPCXX_COLOR)
