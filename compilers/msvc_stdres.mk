@@ -8,7 +8,7 @@
 
 # reset additional variables at beginning of target makefile
 # NO_STD_RES - if non-empty, then do not add standard resource to the target
-C_PREPARE_MSVC_STDRES_VARS := NO_STD_RES:=
+C_PREPARE_MSVC_STDRES_VARS := $(newline)NO_STD_RES:=
 
 # standard version resource template
 # $1 - EXE,DLL,DRV,KDLL
@@ -218,11 +218,11 @@ STD_RES_TEMPLATE = $(if $(TMD),,$(if $(NO_STD_RES),,$(call STD_RES_TEMPLATE1,$1,
 
 else # clean
 
-# return list of standard resources to cleanup (e.g. /build/obj/std_ver_info.rc and /build/obj/std_ver_info.res)
+# cleanup standard resources (e.g. /build/obj/std_ver_info.rc and /build/obj/std_ver_info.res)
 # $1 - EXE,DLL,DRV,KDLL
 # note: don't cleanup standard resource in tool mode or if NO_STD_RES variable is set in target makefile
-STD_RES_TEMPLATE = $(if $(TMD),,$(if $(NO_STD_RES),,$(foreach \
-  v,$(GET_VARIANTS),$(addprefix $(call FORM_OBJ_DIR,$1,$v)/$(WIN_RC_STDRES_NAME).,rc res))))
+STD_RES_TEMPLATE = $(if $(TMD),,$(if $(NO_STD_RES),,$(call TOCLEAN,$(foreach \
+  v,$(GET_VARIANTS),$(addprefix $(call FORM_OBJ_DIR,$1,$v)/$(WIN_RC_STDRES_NAME).,rc res)))))
 
 endif # clean
 
