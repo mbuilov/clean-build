@@ -293,12 +293,12 @@ mk_dir_deps = $(subst :|,:| $2,$(addprefix $(newline)$2,$(filter-out %:|,$(join 
 lazy_simple = $(eval $(findstring override,$(origin $1)) $1:=$$2)$($1)
 
 # append/prepend text $2 to value of variable $1
-# note: do not adds a space between joined $1 and $2, like operator += does
+# note: do not adds a space between joined $1 and $2, unlike operator += does
 define_append = $(eval define $1$(newline)$(value $1)$2$(newline)endef)
 define_prepend = $(eval define $1$(newline)$2$(value $1)$(newline)endef)
 
 # append/prepend simple (already expanded) text $2 to value of variable $1
-# note: do not adds a space between joined $1 and $2, like operator += does
+# note: do not adds a space between joined $1 and $2, unlike operator += does
 append_simple = $(if $(findstring simple,$(flavor $1)),$(eval $1:=$$($1)$$2),$(define_append))
 prepend_simple = $(if $(findstring simple,$(flavor $1)),$(eval $1:=$$2$$($1)),$(define_prepend))
 
