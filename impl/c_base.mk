@@ -221,6 +221,9 @@ LIBS:=
 DLLS:=
 endef
 
+# optimization
+$(call try_make_simple,C_PREPARE_BASE_VARS,PRODUCT_VER)
+
 # this code is normally evaluated at end of target makefile
 C_RULES_EVAL = $(eval $(call C_RULES,$(TRG_SRC),$(TRG_SDEPS)))
 
@@ -270,9 +273,6 @@ $(call define_append,C_BASE_TEMPLATE,$(newline)$(value ASM_TEMPLATE))
 ASM_COLOR := [37m
 
 endif # ASSEMBLER_SUPPORT
-
-# optimization
-$(call try_make_simple,C_PREPARE_BASE_VARS,PRODUCT_VER)
 
 # protect variables from modifications in target makefiles
 $(call SET_GLOBAL,NO_PCH OBJ_SUFFIX CC_MASK CXX_MASK \
