@@ -115,7 +115,7 @@ TRG_SDEPS = $(call FIX_SDEPS,$(SDEPS))
 
 # make compiler options string to specify included headers search path
 # note: assume there are no spaces in include paths
-# note: MK_INCLUDE_OPTION is overridden in $(CLEAN_BUILD_DIR)/compilers/msvc.mk
+# note: MK_INCLUDE_OPTION is overridden in $(CLEAN_BUILD_DIR)/compilers/msvc_cmn.mk
 MK_INCLUDE_OPTION = $(addprefix -I,$1)
 
 # helper macro for passing define value containing special symbols (e.g. quoted string) to C-compiler
@@ -136,7 +136,7 @@ DEFINE_ESCAPE_VALUE = $1=$(call SHELL_ESCAPE,$(call tospaces,$(patsubst $1=%,%,$
 DEFINE_ESCAPE_VALUES = $(foreach d,$1,$(call DEFINE_ESCAPE_VALUE,$(firstword $(subst =, ,$d))))
 
 # make compiler options string to specify defines
-# note: MK_DEFINES_OPTION1 is overridden in $(CLEAN_BUILD_DIR)/compilers/msvc.mk
+# note: MK_DEFINES_OPTION1 is overridden in $(CLEAN_BUILD_DIR)/compilers/msvc_cmn.mk
 MK_DEFINES_OPTION1 = $(addprefix -D,$1)
 MK_DEFINES_OPTION = $(call DEFINE_ESCAPE_VALUES,$(MK_DEFINES_OPTION1))
 
