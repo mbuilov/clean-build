@@ -8,11 +8,11 @@
 
 # reset additional variables at beginning of target makefile
 # DEF - linker definitions file (used mostly to list exported symbols)
-C_PREPARE_MSVC_EXP_VARS := DEF:=
+C_PREPARE_MSVC_EXP_VARS := $(newline)DEF:=
 
 # for the target exporting symbols
 # $1 - $(call FORM_TRG,$t,$v), where $t - EXE,DLL,... $v - R,S,RU,SU..
-# $2 - path to import library, e.g. $(LIB_DIR)/$(IMP_PREFIX)$(basename $(notdir $1))$(IMP_SUFFIX)
+# $2 - path to the import library, e.g. $(LIB_DIR)/$(IMP_PREFIX)$(basename $(notdir $1))$(IMP_SUFFIX)
 # $3 - $(call fixpath,$(DEF))
 # note: C_BASE_TEMPLATE also changes CB_NEEDED_DIRS, so do not remember its new value here
 # note: target-specific IMP and DEF variables are inherited by the targets this target depends on,
@@ -24,11 +24,11 @@ $1: IMP := $2
 $1: DEF := $3
 $1: $3 | $(LIB_DIR)
 CB_NEEDED_DIRS += $(patsubst %/,%,$(dir $2))
-$2: $1
+$2:| $1
 
 endef
 else
-# just delete import library and possibly generated .exp file
+# just delete import library and possibly generated (in debug build) .exp file
 MOD_EXPORTS_TEMPLATE = $(call TOCLEAN,$2 $(basename $2).exp)
 endif
 
@@ -50,7 +50,7 @@ endif
 # support for targets (e.g. DLLs) that may export symbols
 # define target-specific variables: DEF and IMP
 # $1 - $(call FORM_TRG,$t,$v), where $t - EXE,DLL,... $v - R,S,RU,SU..
-# $2 - path to import library if target exports symbols, <empty> - otherwise
+# $2 - path to the import library if target exports symbols, <empty> - otherwise
 EXPORTS_TEMPLATE = $(if $2,$(call MOD_EXPORTS_TEMPLATE,$1,$2,$(call fixpath,$(DEF))),$(NO_EXPORTS_TEMPLATE))
 
 # DEF variable is used only if it's specified that target exports symbols
