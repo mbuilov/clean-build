@@ -203,40 +203,6 @@ CMN_MCL2 = $(if \
   $5,$(call xcmd,$3,$5,$(MCL_MAX_COUNT),$1,$2)$(newline))$(if \
   $6,$(call xcmd,$4,$6,$(MCL_MAX_COUNT),$1,$2)$(newline))
 
-# compile multiple sources at once
-# $1 - target type: EXE,DLL,LIB,...
-# $2 - non-empty variant: R,S,RU,SU,...
-# $3 - C compiler macro to compile not using precompiled header
-# $4 - C++ compiler macro to compile not using precompiled header
-# $5 - C compiler macro to compile with precompiled header
-# $6 - C++ compiler macro to compile with precompiled header
-# note: compiler macros called with parameters:
-#  $1 - sources
-#  $2 - target type: EXE,DLL,LIB,...
-#  $3 - non-empty variant: R,S,RU,SU,...
-CMN_PMCL = $(call CMN_PMCL1,$1,$2,$3,$4,$5,$6,$(NEWER_SOURCES))
-
-# $1 - target type: EXE,DLL,LIB,...
-# $2 - non-empty variant: R,S,RU,SU,...
-# $3 - C compiler macro to compile not using precompiled header
-# $4 - C++ compiler macro to compile not using precompiled header
-# $5 - C compiler macro to compile with precompiled header
-# $6 - C++ compiler macro to compile with precompiled header
-# $7 - sources (result of $(NEWER_SOURCES))
-# target-specific: CC_WITH_PCH, CXX_WITH_PCH
-CMN_PMCL1 = $(call CMN_PMCL2,$1,$2,$3,$4,$5,$6,$7,$(filter $7,$(CC_WITH_PCH)),$(filter $7,$(CXX_WITH_PCH)))
-
-# $1 - target type: EXE,DLL,LIB,...
-# $2 - non-empty variant: R,S,RU,SU,...
-# $3 - C compiler macro to compile not using precompiled header
-# $4 - C++ compiler macro to compile not using precompiled header
-# $5 - C compiler macro to compile with precompiled header
-# $6 - C++ compiler macro to compile with precompiled header
-# $7 - sources (result of $(NEWER_SOURCES))
-# $8 - $(filter $7,$(CC_WITH_PCH))
-# $9 - $(filter $7,$(CXX_WITH_PCH))
-CMN_PMCL2 = $(call CMN_MCL1,$1,$2,$3,$4,$(filter-out $8 $9,$7))$(call CMN_MCL2,$1,$2,$5,$6,$8,$9)
-
 # protect variables from modifications in target makefiles
 # note: do not trace calls to these variables because they are used in ifdefs
 $(call SET_GLOBAL,NO_WRAP SEQ_BUILD,0)
