@@ -57,9 +57,9 @@ $(addprefix $3/,$(addsuffix $(OBJ_SUFFIX),$(basename $(notdir $8)))): $7 $6
 $(MSVC_PCH_RULE_TEMPL_BASE)
 endef
 
-# do not start compiling sources until precompiled header is created
+# do not start compiling sources of a target $4 until precompiled header $7 is created
 define MSVC_PCH_RULE_TEMPL_MP
-$4: $7
+$4:| $7
 $(MSVC_PCH_RULE_TEMPL_BASE)
 endef
 
@@ -96,14 +96,16 @@ MSVC_PCH_TEMPLATEv = $(if \
   $3,$(call MSVC_PCH_RULE,$1,$2,$5,$6,$5/$(basename $(notdir $2)),CC,c,$3))$(if \
   $4,$(call MSVC_PCH_RULE,$1,$2,$5,$6,$5/$(basename $(notdir $2)),CXX,cpp,$4))
 
-# In /MP build it is assumed that compiler is called sequentially to compile all C/C++ sources of a module
-#  - sources are split into groups and compiler internally parallelizes compilation of sources of a group.
-# Avoid calling compilers creating precompiled headers for C and C++ in parallel,
-#  this may lead to contention when writing to the same .pdb (e.g. fatal error C1041).
+# In /MP build it is assumed that compiler is invoked sequentially to compile all C/C++ sources of a module
+#  - sources are split into groups and compiler internally parallelizes compilation of sources in each group.
+# This is needed to avoid contention (e.g. fatal error C1041) when writing to one (per-module) .pdb file - if
+#  compiler do not supports /FS option, also this will utilize processor more effectively.
+# Because target module (EXE,DLL,LIB,...) depends on precompiled headers, sources are will be compiled only
+#  after precompiled headers get created, but avoid compiling C and C++ precompiled headers in parallel.
 MSVC_PCH_TEMPLATE_MPv = $(if \
   $3,$(call MSVC_PCH_RULE_MP,$1,$2,$5,$6,$5/$(basename $(notdir $2)),CC,c))$(if \
   $4,$(call MSVC_PCH_RULE_MP,$1,$2,$5,$6,$5/$(basename $(notdir $2)),CXX,cpp)$(if \
-  $3,xyyyyyxx$(newline)))
+  $3,$(addprefix $5/$(basename $(notdir $2))_,pch_c$(OBJ_SUFFIX) c.pch:| pch_cpp$(OBJ_SUFFIX) cpp.pch)$(newline)))
 
 # code to eval to build with precompiled headers
 # $t - EXE,LIB,DLL,KLIB
@@ -126,7 +128,8 @@ MSVC_PCH_TEMPLATEv = $(if \
 
 # cleanup objects created while building with precompiled header
 # $t - EXE,LIB,DLL,KLIB
-MSVC_PCH_TEMPLATEt = $(call TOCLEAN,$(call PCH_TEMPLATE,$t,MSVC_PCH_TEMPLATEv))
+MSVC_PCH_TEMPLATEt    = $(call TOCLEAN,$(call PCH_TEMPLATE,$t,MSVC_PCH_TEMPLATEv))
+MSVC_PCH_TEMPLATE_MPt = $(MSVC_PCH_TEMPLATEt)
 
 endif # clean
 
@@ -136,25 +139,51 @@ endif # clean
 # target-specific: PCH (e.g. C:/project/include/xxx.h)
 MSVC_USE_PCH = $(addsuffix $(call ospath,$(PCH)),/FI /Yu) /Fp$(ospath)$(basename $(notdir $(PCH)))_$2.pch
 
-
-
-
-todo.....
-
-
-
 # options to create precompiled header
-# $1 - objdir/
-# $2 - generated pch suffix: c or cpp
-# target-specific: PCH (e.g. C:\aaa\b?b\include\xxx.h)
-MSVC_CREATE_PCH = $(call MSVC_CREATE_PCH1,$(call qpath,$(call ospath,$(PCH))),$(ospath),$(basename $(notdir $(PCH))),$2)
+# $1 - pch object (e.g. C:/build/obj/xxx_pch_c.obj or C:/build/obj/xxx_pch_cpp.obj)
+# $2 - pch header (e.g. C:/project/include/xxx.h)
+# $3 - pch        (e.g. C:/build/obj/xxx_c.pch or C:/build/obj/xxx_cpp.pch)
+MSVC_CREATE_PCH = $(addsuffix $(call ospath,$2),/FI /Yc) /Fp$(call ospath,$3) /Yl_$(basename $(notdir $3))
 
-# $1 - $(call qpath,$(call ospath,$(PCH))) e.g. "C:\aaa\b b\include\xxx.h"
-# $2 - $(ospath)                           e.g. C:\build\obj\
-# $3 - $(basename $(notdir $(PCH)))        e.g. xxx
-# $4 - c or cpp
-MSVC_CREATE_PCH1 = /c /FI$1 /Yc$1 /Fp$2$3_$4.pch /Yl_$3_$4 /Fo$2$3_pch_$4$(OBJ_SUFFIX) $(if $(findstring cpp,$4),/TP,/TC) NUL
+# compile multiple sources at once, some of them using precompiled header
+# $1 - target type: EXE,DLL,LIB,...
+# $2 - non-empty variant: R,S,RU,SU,...
+# $3 - C compiler macro to compile not using precompiled header
+# $4 - C++ compiler macro to compile not using precompiled header
+# $5 - C compiler macro to compile with precompiled header
+# $6 - C++ compiler macro to compile with precompiled header
+# target-specific: OBJ_DIR, PCH, CC_WITH_PCH, CXX_WITH_PCH
+# note: recompile all $(CC_WITH_PCH) or $(CXX_WITH_PCH) if corresponding pch header is newer than the target module
+# note: compiler macros called with parameters:
+#  $1 - sources
+#  $2 - target type: EXE,DLL,LIB,...
+#  $3 - non-empty variant: R,S,RU,SU,...
+CMN_PMCL = $(call CMN_PMCL1,$1,$2,$3,$4,$5,$6,$(sort $(NEWER_SOURCES) $(if \
+  $(filter $(OBJ_DIR)/$(basename $(notdir $(PCH)))_c$(OBJ_SUFFIX),$?),$(CC_WITH_PCH)) $(if \
+  $(filter $(OBJ_DIR)/$(basename $(notdir $(PCH)))_cpp$(OBJ_SUFFIX),$?),$(CXX_WITH_PCH))))
+
+# $1 - target type: EXE,DLL,LIB,...
+# $2 - non-empty variant: R,S,RU,SU,...
+# $3 - C compiler macro to compile not using precompiled header
+# $4 - C++ compiler macro to compile not using precompiled header
+# $5 - C compiler macro to compile with precompiled header
+# $6 - C++ compiler macro to compile with precompiled header
+# $7 - sources (result of $(NEWER_SOURCES))
+# target-specific: CC_WITH_PCH, CXX_WITH_PCH
+CMN_PMCL1 = $(call CMN_PMCL2,$1,$2,$3,$4,$5,$6,$7,$(filter $7,$(CC_WITH_PCH)),$(filter $7,$(CXX_WITH_PCH)))
+
+# $1 - target type: EXE,DLL,LIB,...
+# $2 - non-empty variant: R,S,RU,SU,...
+# $3 - C compiler macro to compile not using precompiled header
+# $4 - C++ compiler macro to compile not using precompiled header
+# $5 - C compiler macro to compile with precompiled header
+# $6 - C++ compiler macro to compile with precompiled header
+# $7 - sources (result of $(NEWER_SOURCES))
+# $8 - $(filter $7,$(CC_WITH_PCH))
+# $9 - $(filter $7,$(CXX_WITH_PCH))
+CMN_PMCL2 = $(call CMN_MCL1,$1,$2,$3,$4,$(filter-out $8 $9,$7))$(call CMN_MCL2,$1,$2,$5,$6,$8,$9)
 
 # protect variables from modifications in target makefiles
-$(call SET_GLOBAL,MSVC_PCH_RULE_TEMPL=v MSVC_PCH_RULE=v MSVC_PCH_TEMPLATEv=v MSVC_PCH_TEMPLATEt=t \
-  MSVC_USE_PCH MSVC_CREATE_PCH MSVC_CREATE_PCH1)
+$(call SET_GLOBAL,MSVC_PCH_RULE_TEMPL_BASE=v MSVC_PCH_RULE_TEMPL=v MSVC_PCH_RULE_TEMPL_MP=v MSVC_PCH_RULE=v MSVC_PCH_RULE_MP=v \
+  MSVC_PCH_TEMPLATEv=v MSVC_PCH_TEMPLATE_MPv=v MSVC_PCH_TEMPLATEt=t MSVC_PCH_TEMPLATE_MPt=t MSVC_USE_PCH MSVC_CREATE_PCH \
+  CMN_PMCL CMN_PMCL1 CMN_PMCL2)

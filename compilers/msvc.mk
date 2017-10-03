@@ -33,7 +33,9 @@ DEF_SUBSYSTEM_TYPE := CONSOLE
 # EXE_EXPORTS    - non-empty if EXE exports symbols
 # DLL_NO_EXPORTS - non-empty if DLL do not exports symbols (e.g. resource DLL)
 # SUBSYSTEM_TYPE - environment for the executable: CONSOLE, WINDOWS, etc.
+# note: first line must be empty
 define C_PREPARE_MSVC_APP_VARS
+
 EXE_EXPORTS:=
 DLL_NO_EXPORTS:=
 SUBSYSTEM_TYPE:=$(DEF_SUBSYSTEM_TYPE)
@@ -43,10 +45,7 @@ endef
 $(call try_make_simple,C_PREPARE_MSVC_APP_VARS,DEF_SUBSYSTEM_TYPE)
 
 # patch code executed at beginning of target makefile
-$(call define_append,C_PREPARE_APP_VARS,$(if \
-,)$(newline)$$(C_PREPARE_MSVC_APP_VARS)$(if \
-,)$(newline)$$(C_PREPARE_MSVC_STDRES_VARS)$(if \
-,)$(newline)$$(C_PREPARE_MSVC_EXP_VARS))
+$(call define_append,C_PREPARE_APP_VARS,$$(C_PREPARE_MSVC_APP_VARS)$$(C_PREPARE_MSVC_STDRES_VARS)$$(C_PREPARE_MSVC_EXP_VARS))
 
 # optimization
 $(call try_make_simple,C_PREPARE_APP_VARS,C_PREPARE_MSVC_APP_VARS C_PREPARE_MSVC_STDRES_VARS C_PREPARE_MSVC_EXP_VARS)
@@ -371,29 +370,32 @@ endif
 endif
 
 # for DLL and EXE, define target-specific variables: SUBSYSTEM, MODVER, IMP, DEF
-# $1 - $(call FORM_TRG,$t,$v)
+# $1 - $(call FORM_TRG,$3,$4)
 # $2 - path to import library if target exports symbols, <empty> - otherwise
 # $3 - EXE or DLL
 # $4 - variant: R,S,RU,SU
+# note: last line of $(EXPORTS_TEMPLATE) is empty
 define EXE_DLL_AUX_TEMPLATE
 $1:SUBSYSTEM := $(SUBSYSTEM_TYPE),$(DEF_SUBSYSTEM_VER)
 $1:MODVER    := $(MODVER)
 $(EXPORTS_TEMPLATE)
 endef
 
-# auxiliary defines for EXE: define target-specific SUBSYSTEM, MODVER, IMP, DEF
-# $1 - $(call FORM_TRG,$t,$v)
-# $t - EXE
-# $v - variant: R,S,RU,SU
-EXE_AUX_TEMPLATE = $(call EXE_DLL_AUX_TEMPLATE,$1,$(if \
+EXE_AUX_TEMPLATE = $(call EXE_DLL_AUX_TEMPLATE,$(call FORM_TRG,EXE,$v),$(if \
   $(EXE_EXPORTS),$(LIB_DIR)/$(IMP_PREFIX)$(call GET_TARGET_NAME,EXE)$(call LIB_VARIANT_SUFFIX,$v)$(IMP_SUFFIX)),EXE,$v)
 
-# auxiliary defines for DLL: define target-specific SUBSYSTEM, MODVER, IMP, DEF
-# $1 - $(call FORM_TRG,$t,$v)
-# $t - DLL
-# $v - variant: R,S,RU,SU
-DLL_AUX_TEMPLATE = $(call EXE_DLL_AUX_TEMPLATE,$1,$(if \
+DLL_AUX_TEMPLATE = $(call EXE_DLL_AUX_TEMPLATE,$(call FORM_TRG,DLL,$v),$(if \
   $(DLL_NO_EXPORTS),,$(LIB_DIR)/$(IMP_PREFIX)$(call GET_TARGET_NAME,DLL)$(call LIB_VARIANT_SUFFIX,$v)$(IMP_SUFFIX)),DLL,$v)
+
+# auxiliary defines for EXE and DLL: define target-specific SUBSYSTEM, MODVER, IMP, DEF
+$(call define_prepend,DEFINE_C_APP_EVAL,$$(eval \
+  $$(foreach t,EXE DLL,$$(if $$($$t),$$(foreach v,$$(call GET_VARIANTS,$$t),$$($$t_AUX_TEMPLATE))))))
+
+# DEF variable is used only when building EXE or DLL
+ifdef MCHECK
+DEF_VARIABLE_CHECK = $(if $(DEF),$(if $(LIB),$(if $(EXE)$(DLL),,$(warning DEF variable is not used when building a LIB))))
+$(call define_prepend,DEFINE_C_APP_EVAL,$$(DEF_VARIABLE_CHECK))
+endif
 
 # linker for each variant of LIB
 # $1 - path to target LIB
@@ -497,13 +499,6 @@ CMN_PARAMS = /nologo /c /Fo$(ospath) /Fd$(call ospath,$(dir $1) $2) $(VDEFINES) 
 CC_PARAMS = $(CMN_PARAMS) $(DEF_CFLAGS) $(VCFLAGS)
 CXX_PARAMS = $(CMN_PARAMS) $(DEF_CXXFLAGS) $(VCXXFLAGS)
 
-# add support for precompiled headers
-ifndef NO_PCH
-ifeq (,$(filter-out undefined environment,$(origin MSVC_PCH_TEMPLATEt)))
-include $(dir $(lastword $(MAKEFILE_LIST)))msvc_pch.mk
-endif
-endif
-
 ifndef MP_BUILD
 
 # C/C++ compilers for each variant of EXE,DLL,LIB
@@ -590,8 +585,8 @@ MULTISOURCE_CL = $(call CMN_MCL,$1,$2,OBJ_MCC,OBJ_MCXX)
 # $2 - target type: EXE,DLL,LIB
 # $3 - non-empty variant: R,S,RU,SU
 # target-specific: OBJ_DIR
-CC_MPARAMS = $(MP_BUILD) $(call CC_PARAMS,$(OBJ_DIR)/,$1,$2,$3)
-CXX_MPARAMS = $(MP_BUILD) $(call CXX_PARAMS,$(OBJ_DIR)/,$1,$2,$3)
+CC_PARAMS_MP = $(MP_BUILD) $(call CC_PARAMS,$(OBJ_DIR)/,$1,$2,$3)
+CXX_PARAMS_MP = $(MP_BUILD) $(call CXX_PARAMS,$(OBJ_DIR)/,$1,$2,$3)
 
 # C/C++ multi-source compilers for each variant of EXE,DLL,LIB
 # $1 - sources (non-empty list)
@@ -600,8 +595,8 @@ CXX_MPARAMS = $(MP_BUILD) $(call CXX_PARAMS,$(OBJ_DIR)/,$1,$2,$3)
 # target-specific: TMD
 # note: called by CMN_MCL macro from $(CLEAN_BUILD_DIR)/compilers/msvc_cmn.mk
 # note: do not auto-generate dependencies
-OBJ_MCC  = $(call SUP,$(TMD)CC,$1)$(call WRAP_CCN,$(VSCL) $(CC_MPARAMS),$1)
-OBJ_MCXX = $(call SUP,$(TMD)CXX,$1)$(call WRAP_CCN,$(VSCL) $(CXX_MPARAMS),$1)
+OBJ_MCC  = $(call SUP,$(TMD)CC,$1)$(call WRAP_CCN,$(VSCL) $(CC_PARAMS_MP),$1)
+OBJ_MCXX = $(call SUP,$(TMD)CXX,$1)$(call WRAP_CCN,$(VSCL) $(CXX_PARAMS_MP),$1)
 
 ifndef NO_PCH
 
@@ -616,23 +611,19 @@ MULTISOURCE_CL = $(call CMN_PMCL,$1,$2,OBJ_MCC,OBJ_MCXX,OBJ_PMCC,OBJ_PMCXX)
 # $3 - non-empty variant: R,S,RU,SU
 # target-specific: TMD, OBJ_DIR
 # note: do not auto-generate dependencies
-OBJ_PMCC  = $(call SUP,$(TMD)PCC,$1)$(call WRAP_CCN,$(VSCL) $(call MSVC_USE_PCH,$(OBJ_DIR)/,c) $(CC_MPARAMS),$1)
-OBJ_PMCXX = $(call SUP,$(TMD)PCXX,$1)$(call WRAP_CCN,$(VSCL) $(call MSVC_USE_PCH,$(OBJ_DIR)/,cpp) $(CXX_MPARAMS),$1)
-
-# In /MP build it is assumed that compiler is called sequentially to compile all C/C++ sources of a module
-#  - sources are split into groups and compiler internally parallelizes compilation of sources of a group.
-# Avoid calling another compiler to create precompiled header in parallel, this may lead to contention
-#  when writing to the same .pdb (e.g. fatal error C1041).
-# note: use global variables: OBJ_DIR, SRC, PCH
-$(addprefix $(OBJ_DIR)/,$(addsuffix $(OBJ_SUFFIX),$(basename $(notdir $(SRC))))):| $4/$6_pch_$8$(OBJ_SUFFIX)
-
-todo
+OBJ_PMCC  = $(call SUP,$(TMD)PCC,$1)$(call WRAP_CCN,$(VSCL) $(call MSVC_USE_PCH,$(OBJ_DIR)/,c) $(CC_PARAMS_MP),$1)
+OBJ_PMCXX = $(call SUP,$(TMD)PCXX,$1)$(call WRAP_CCN,$(VSCL) $(call MSVC_USE_PCH,$(OBJ_DIR)/,cpp) $(CXX_PARAMS_MP),$1)
 
 endif # !NO_PCH
 
 endif # MP_BUILD
 
+# add support for precompiled headers
 ifndef NO_PCH
+
+ifeq (,$(filter-out undefined environment,$(origin MSVC_USE_PCH)))
+include $(dir $(lastword $(MAKEFILE_LIST)))msvc_pch.mk
+endif
 
 # compilers of C/C++ precompiled header
 # $1 - pch object (e.g. C:/build/obj/xxx_pch_c.obj or C:/build/obj/xxx_pch_cpp.obj)
@@ -642,58 +633,39 @@ ifndef NO_PCH
 # $5 - non-empty variant: R,S,RU,SU
 # target-specific: TMD
 # note: precompiled header xxx_c.pch or xxx_cpp.pch will be created as a side-effect of this compilation
-# note: used by MSVC_PCH_RULE_TEMPL macro from $(CLEAN_BUILD_DIR)/compilers/msvc_pch.mk
-PCH_CC  = $(call SUP,$(TMD)PCHCC,$2)$(call WRAP_CC,$(VSCL) $(call MSVC_CREATE_PCH,$(dir $1)/,c) $(call CC_PARAMS,$1,,  ,$4,$5))
-PCH_CXX = $(call SUP,$(TMD)PCHCXX,$2)$(call WRAP_CC,$(VSCL) $(call MSVC_CREATE_PCH,$(dir $1)/,cpp) $(call CC_PARAMS,$1,,$4,$5))
-
-
-# parameters of application-level C and C++ compilers
-# $1 - outdir/ or obj file
-# $2 - sources
-# $3 - target type: EXE,DLL,LIB
-# $4 - non-empty variant: R,S,RU,SU
-# target-specific: TMD, VCFLAGS, VCXXFLAGS
-CC_PARAMS = $(CMN_PARAMS) $(DEF_CFLAGS) $(VCFLAGS)
+# note: used by MSVC_PCH_RULE_TEMPL_BASE macro from $(CLEAN_BUILD_DIR)/compilers/msvc_pch.mk
+PCH_CC  = $(call SUP,$(TMD)PCHCC,$2)$(call WRAP_CCD,$(VSCL) $(MSVC_CREATE_PCH) /TC $(call CC_PARAMS,$1,$2,$4,$5),$2,$1)
+PCH_CXX = $(call SUP,$(TMD)PCHCXX,$2)$(call WRAP_CCD,$(VSCL) $(MSVC_CREATE_PCH) /TP $(call CXX_PARAMS,$1,$2,$4,$5),$2,$1)
 
 # reset additional variables
-# PCH - either absolute or makefile-related path to header to precompile
-$(call append_simple,C_PREPARE_APP_VARS,$(newline)PCH:=)
+$(call define_append,C_PREPARE_APP_VARS,$(C_PREPARE_PCH_VARS))
+
+# optimization
+$(call try_make_simple,C_PREPARE_APP_VARS,C_PREPARE_PCH_VARS)
 
 # for all application-level targets: add support for precompiled headers
-$(call define_prepend,DEFINE_C_APP_EVAL,$$(eval $$(foreach t,$(C_APP_TARGETS),$$(if $$($$t),$$(SUNCC_PCH_TEMPLATEt)))))
-
+ifndef MP_BUILD
+$(call define_prepend,DEFINE_C_APP_EVAL,$$(eval $$(foreach t,$(C_APP_TARGETS),$$(if $$($$t),$$(MSVC_PCH_TEMPLATEt)))))
+else
+$(call define_prepend,DEFINE_C_APP_EVAL,$$(eval $$(foreach t,$(C_APP_TARGETS),$$(if $$($$t),$$(MSVC_PCH_TEMPLATE_MPt)))))
+endif
 
 endif # !NO_PCH
 
+# add standard version info resource to the target EXE or DLL
+$(call define_prepend,DEFINE_C_APP_EVAL,$$(eval $$(foreach t,EXE DLL,$$(call STD_RES_TEMPLATE,$$t))))
 
 
+todo:
+# cleanup generated vc*.pdb and .pdb in debug
+# define target-specific variables SRC, SDEPS and OBJ_DIR
+# $t - EXE,DLL,DRV or KDLL
+# $v - R,S
+ifdef TOCLEAN
+ifdef DEBUG
+$(call define_append,EXE_AUX_TEMPLATEv,$$(call TOCLEAN,$$5/vc*.pdb $$(4:$$($$t_SUFFIX)=.pdb)))
+$(call define_append,DLL_AUX_TEMPLATEv,$$(call TOCLEAN,$$5/vc*.pdb $$(4:$$($$t_SUFFIX)=.pdb)))
 
-
-
-
-
-
-
-
-
-??????????
-
-# call C compiler
-# $1 - outdir/
-# $2 - sources
-# $3 - flags
-# target-specific: TMD, DEFINES, INCLUDE, COMPILER
-CMN_CL1 = $(VS$(TMD)CL) /nologo /c $(APP_FLAGS) $(call SUBST_DEFINES,$(addprefix /D,$(APP_DEFINES) $(DEFINES))) $(call \
-  qpath,$(call ospath,$(INCLUDE)) $(VS$(TMD)INC) $(UM$(TMD)INC),/I) /Fo$(ospath) /Fd$(ospath) $3 $(call ospath,$2)
-
-# C compilers for different variants (R,S,RU,SU)
-# $1 - outdir/
-# $2 - sources
-# $3 - flags
-CMN_RCL  = $(CMN_CL1) /MD$(if $(DEBUG),d)
-CMN_SCL  = $(CMN_CL1) /MT$(if $(DEBUG),d)
-CMN_RUCL = $(CMN_RCL) /DUNICODE /D_UNICODE
-CMN_SUCL = $(CMN_SCL) /DUNICODE /D_UNICODE
 
 
 
