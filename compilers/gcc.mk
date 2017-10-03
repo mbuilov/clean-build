@@ -224,17 +224,15 @@ PCH_CC  = $(call SUP,$(TMD)PCHCC,$2)$($(TMD)CC) $(CC_PARAMS)
 PCH_CXX = $(call SUP,$(TMD)PCHCXX,$2)$($(TMD)CXX) $(CXX_PARAMS)
 
 # reset additional variables
-# PCH - either absolute or makefile-related path to header to precompile
-$(call append_simple,C_PREPARE_APP_VARS,$(newline)PCH:=)
+$(call define_append,C_PREPARE_APP_VARS,$(C_PREPARE_PCH_VARS))
+
+# optimization
+$(call try_make_simple,C_PREPARE_APP_VARS,C_PREPARE_PCH_VARS)
 
 # for all application-level targets: add support for precompiled headers
 $(call define_prepend,DEFINE_C_APP_EVAL,$$(eval $$(foreach t,$(C_APP_TARGETS),$$(if $$($$t),$$(GCC_PCH_TEMPLATEt)))))
 
 endif # !NO_PCH
-
-# for DLL:         define target-specific variable MODVER
-# for DLL and EXE: define target-specific variables RPATH and MAP
-$(call define_prepend,DEFINE_C_APP_EVAL,$$(eval $$(UNIX_MOD_AUX_APP)))
 
 # protect variables from modifications in target makefiles
 $(call SET_GLOBAL,CROSS_PREFIX CC CXX AR TCC TCXX TAR CFLAGS CXXFLAGS CPU_CFLAGS CPU_CXXFLAGS ARFLAGS LDFLAGS \
