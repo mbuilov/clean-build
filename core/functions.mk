@@ -166,8 +166,20 @@ padto = $(if $(findstring undefined,$(origin $1.^pad)),$(eval $1.^pad:=$$(padto1
 is_less1 = $(if $(filter-out $3,$(lastword $(sort $3 $4))),1,$(if $(filter $3,$4),$(filter-out $1,$(lastword $(sort $1 $2)))))
 
 # compare numbers: check if $1 < $2
-# NOTE: assume there are no leading zeros in $1 or $2
+# note: assume there are no leading zeros in $1 or $2
 is_less = $(call is_less1,$1,$2,$(repl09),$(call repl09,$2))
+
+# compare floating point numbers: check if $1 < $2, e.g. 1.21 < 2.4
+# 1) compare integer parts (that must be present)
+# 2) if they are equal, compare fractional parts (may be optional)
+# note: assume there are no leading zeros in integer parts of $1 or $2
+is_less_float6 = $(filter-out $1,$(lastword $(sort $1 $2)))
+is_less_float5 = $(subst $(space),,$(wordlist $(words . $1),999999,$2))
+is_less_float4 = $(call is_less_float6,$1$(call is_less_float5,$3,$4),$2$(call is_less_float5,$4,$3))
+is_less_float3 = $(call is_less_float4,$1,$2,$(subst .,0 ,$(repl09)),$(subst .,0 ,$(call repl09,$2)))
+is_less_float2 = $(if $(is_less),1,$(if $(filter $1,$2),$(call is_less_float3,$(word 2,$3 0),$(word 2,$4 0))))
+is_less_float1 = $(call is_less_float2,$(firstword $1),$(firstword $2),$1,$2)
+is_less_float  = $(call is_less_float1,$(subst ., ,$1),$(subst ., ,$2))
 
 # $1 - function
 # $2 - full arguments list
@@ -360,9 +372,9 @@ TARGET_MAKEFILE += $(call SET_GLOBAL, \
 # protect variables from modification in target makefiles
 # note: TARGET_MAKEFILE variable is used here temporary and will be redefined later
 TARGET_MAKEFILE += $(call SET_GLOBAL, \
-  unspaces tospaces ifaddq qpath tolower toupper repl09 repl09AZ padto1 padto \
-  is_less1 is_less xargs1 xargs xcmd trim normp2 normp1 normp \
-  cmn_path1 cmn_path back_prefix relpath2 relpath1 relpath \
+  unspaces tospaces ifaddq qpath tolower toupper repl09 repl09AZ padto1 padto is_less1 is_less \
+  is_less_float6 is_less_float5 is_less_float4 is_less_float3 is_less_float2 is_less_float1 is_less_float \
+  xargs1 xargs xcmd trim normp2 normp1 normp cmn_path1 cmn_path back_prefix relpath2 relpath1 relpath \
   ver_major ver_minor ver_patch ver_compatible1 ver_compatible \
   get_dir split_dirs1 split_dirs mk_dir_deps lazy_simple \
   define_append=$$1=$$1 define_prepend=$$1=$$1 append_simple=$$1=$$1 prepend_simple=$$1=$$1 \
