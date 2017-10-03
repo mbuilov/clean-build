@@ -17,10 +17,10 @@ RPATH:=
 
 # reset additional variables at beginning of target makefile
 # MAP - linker map file (used mostly to list exported symbols)
-C_PREPARE_UNIX_APP_VARS = MAP:=
+C_PREPARE_UNIX_APP_VARS = $(newline)MAP:=
 
 # patch code executed at beginning of target makefile
-$(call define_append,C_PREPARE_APP_VARS,$(newline)$$(C_PREPARE_UNIX_APP_VARS))
+$(call define_append,C_PREPARE_APP_VARS,$$(C_PREPARE_UNIX_APP_VARS))
 
 # optimization
 $(call try_make_simple,C_PREPARE_APP_VARS,C_PREPARE_UNIX_APP_VARS)
@@ -68,6 +68,10 @@ MAP_VARIABLE_CHECK = $(if $(MAP),$(if $(LIB),$(if $(EXE)$(DLL),,$(warning MAP va
 $(call define_prepend,UNIX_MOD_AUX_APP,$$(MAP_VARIABLE_CHECK))
 endif
 
+# for DLL:         define target-specific variable MODVER
+# for DLL and EXE: define target-specific variables RPATH and MAP
+$(call define_prepend,DEFINE_C_APP_EVAL,$$(eval $$(UNIX_MOD_AUX_APP)))
+
 # protect variables from modifications in target makefiles
 $(call SET_GLOBAL,RPATH C_PREPARE_UNIX_APP_VARS \
-  EXE_AUX_TEMPLATEv=t;v DLL_AUX_TEMPLATEv=t;v UNIX_MOD_AUX_APPt=t UNIX_MOD_AUX_APP, MAP_VARIABLE_CHECK)
+  EXE_AUX_TEMPLATEv=t;v DLL_AUX_TEMPLATEv=t;v UNIX_MOD_AUX_APPt=t UNIX_MOD_AUX_APP MAP_VARIABLE_CHECK)
