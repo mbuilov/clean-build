@@ -257,17 +257,15 @@ PCH_CXX = $(call SUP,$(TMD)PCHCXX,$2)$(call WRAP_SUNCC,$($(TMD)CXX) -xpch=collec
   $2))_cc $(call CXX_PARAMS,$1,$3,$4,$5),$1,$(UDEPS_INCLUDE_FILTER))
 
 # reset additional variables
-# PCH - either absolute or makefile-related path to header to precompile
-$(call append_simple,C_PREPARE_APP_VARS,$(newline)PCH:=)
+$(call define_append,C_PREPARE_APP_VARS,$(C_PREPARE_PCH_VARS))
+
+# optimization
+$(call try_make_simple,C_PREPARE_APP_VARS,C_PREPARE_PCH_VARS)
 
 # for all application-level targets: add support for precompiled headers
 $(call define_prepend,DEFINE_C_APP_EVAL,$$(eval $$(foreach t,$(C_APP_TARGETS),$$(if $$($$t),$$(SUNCC_PCH_TEMPLATEt)))))
 
 endif # !NO_PCH
-
-# for DLL:         define target-specific variable MODVER
-# for DLL and EXE: define target-specific variables RPATH and MAP
-$(call define_prepend,DEFINE_C_APP_EVAL,$$(eval $$(UNIX_MOD_AUX_APP)))
 
 # protect variables from modifications in target makefiles
 $(call CLEAN_BUILD_PROTECT_VARS,CC CXX AR TCC TCXX TAR CFLAGS CXXFLAGS CPU_CFLAGS CPU_CXXFLAGS \
