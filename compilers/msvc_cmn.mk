@@ -6,6 +6,33 @@
 
 # common msvc compiler definitions, included by $(CLEAN_BUILD_DIR)/compilers/msvc.mk
 
+# Visual C++ versions
+#---------------------------------------------------------------------------------
+# version _MSC_VER        name         C++ compiler default installation path
+#---------------------------------------------------------------------------------
+#  6.0     1200    Visual Studio 6.0   Microsoft Visual Studio\VC98\Bin\cl.exe
+#  7.0     1300    Visual Studio 2002  Microsoft Visual Studio .NET\VC7\bin\cl.exe
+#  7.1     1310    Visual Studio 2003  Microsoft Visual Studio .NET 2003\VC7\bin\cl.exe
+#  8.0     1400    Visual Studio 2005  Microsoft Visual Studio 8\VC\bin\cl.exe
+#  9.0     1500    Visual Studio 2008  Microsoft Visual Studio 9.0\VC\bin\cl.exe
+#  10.0    1600    Visual Studio 2010  Microsoft Visual Studio 10.0\VC\bin\cl.exe
+#  11.0    1700    Visual Studio 2012  Microsoft Visual Studio 11.0\VC\bin\cl.exe
+#  12.0    1800    Visual Studio 2013  Microsoft Visual Studio 12.0\VC\bin\cl.exe
+#  14.0    1900    Visual Studio 2015  Microsoft Visual Studio 14.0\VC\bin\cl.exe
+#  14.10   1910    Visual Studio 2017  Microsoft Visual Studio\2017\Community\VC\Tools\MSVC\14.10.25017\bin\HostX86\x86\cl.exe
+#  14.11   1911    Visual Studio 2017  Microsoft Visual Studio\2017\Community\VC\Tools\MSVC\14.11.25503\bin\HostX86\x86\cl.exe
+
+# map Visual Studio name -> Visual C++ version
+VS2002 := 7
+VS2003 := 7.1
+VS2005 := 8
+VS2008 := 9
+VS2010 := 10
+VS2012 := 11
+VS2013 := 12
+VS2015 := 14
+VS2017 := 14.1
+
 # Windows tools, such as rc.exe, mc.exe, cl.exe, link.exe, produce excessive output in stdout,
 #  by default, try to filter this output out by wrapping calls to the tools.
 # If not empty, then do not wrap tools
@@ -135,9 +162,25 @@ endef
 # $1 - no-dep compiler wrapper name, e.g. WRAP_CC_NODEP
 # $2 - dep compiler no-dep wrapper name, e.g. WRAP_CC_DEP
 # $3 - regular expression used to match paths to included headers, e.g. $(INCLUDING_FILE_PATTERN_en)
-# $4 - prefixes of system include paths to filter-out, e.g. $(subst \,\\,$(VSINCLUDE) $(UMINCLUDE))
+# $4 - prefixes of system include paths to filter-out, e.g. $(subst \,\\,$(VCINCLUDE) $(UMINCLUDE))
 MSVC_DEFINE_COMPILER_WRAPPERS = $(eval $(subst <WRAP_CC_NODEP>,$1,$(subst <WRAP_CC_DEP>,$2,$(subst \
   <INCLUDING_FILE_PATTERN>,$3,$(subst <UDEPS_INCLUDE_FILTER>,$4,$(value MSVC_WRAP_COMPLIER_TEMPL))))))
+
+# make version string: major.minor.patch -> major.minor
+# target-specific: MODVER
+MODVER_MAJOR_MINOR = $(subst $(space),.,$(wordlist 1,2,$(subst ., ,$(MODVER)) 0 0))
+
+# version of EXE,DLL,DRV,KDLL
+VERSION_OPTION = /VERSION:$(MODVER_MAJOR_MINOR)
+
+# make compiler options string to specify included headers search path
+# note: assume there are no spaces in include paths
+# note: override default implementation from $(CLEAN_BUILD_DIR)/impl/c_base.mk
+MK_INCLUDE_OPTION = $(addprefix /I,$(ospath))
+
+# make compiler options string to specify defines
+# note: override default implementation from $(CLEAN_BUILD_DIR)/impl/c_base.mk
+MK_DEFINES_OPTION1 = $(addprefix /D,$1)
 
 # add source-file dependencies for the target,
 #  define target-specific variables: SRC, SDEPS, OBJ_DIR
@@ -208,10 +251,13 @@ CMN_MCL2 = $(if \
 $(call SET_GLOBAL,NO_WRAP SEQ_BUILD,0)
 
 # protect variables from modifications in target makefiles
-$(call SET_GLOBAL,LINKER_STRIP_STRINGS_en LINKER_STRIP_STRINGS_ru_cp1251 \
-  LINKER_STRIP_STRINGS_ru_cp1251_as_cp866_to_cp1251 MSVC_WRAP_LINKER_TEMPL MSVC_DEFINE_LINKER_WRAPPER \
+$(call SET_GLOBAL,VS2002 VS2003 VS2005 VS2008 VS2010 VS2012 VS2013 VS2015 VS2017 \
+  LINKER_STRIP_STRINGS_en LINKER_STRIP_STRINGS_ru_cp1251 LINKER_STRIP_STRINGS_ru_cp1251_as_cp866_to_cp1251 \
+  MSVC_WRAP_LINKER_TEMPL MSVC_DEFINE_LINKER_WRAPPER \
   INCLUDING_FILE_PATTERN_en INCLUDING_FILE_PATTERN_ru_utf8 INCLUDING_FILE_PATTERN_ru_utf8_bytes \
   INCLUDING_FILE_PATTERN_ru_cp1251 INCLUDING_FILE_PATTERN_ru_cp1251_bytes \
   INCLUDING_FILE_PATTERN_ru_cp866 INCLUDING_FILE_PATTERN_ru_cp866_bytes MSVC_DEPS_SCRIPT \
-  MSVC_WRAP_COMPLIER_TEMPL MSVC_DEFINE_COMPILER_WRAPPERS MP_TARGET_SRC_DEPS C_BASE_TEMPLATE_MP \
-  NEWER_SOURCES MCL_MAX_COUNT CMN_MCL CMN_MCL1 CMN_MCL2 CMN_PMCL CMN_PMCL1 CMN_PMCL2)
+  MSVC_WRAP_COMPLIER_TEMPL MSVC_DEFINE_COMPILER_WRAPPERS \
+  MODVER_MAJOR_MINOR VERSION_OPTION MK_INCLUDE_OPTION MK_DEFINES_OPTION1 \
+  MP_TARGET_SRC_DEPS C_BASE_TEMPLATE_MP NEWER_SOURCES MCL_MAX_COUNT \
+  CMN_MCL CMN_MCL1 CMN_MCL2 CMN_PMCL CMN_PMCL1 CMN_PMCL2)

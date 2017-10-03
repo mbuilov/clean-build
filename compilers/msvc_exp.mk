@@ -18,7 +18,6 @@ C_PREPARE_MSVC_EXP_VARS := $(newline)DEF:=
 # note: target-specific IMP and DEF variables are inherited by the targets this target depends on,
 #  so dependencies _must_ define their own target-specific IMP and DEF variables to override inherited ones
 # note: last line must be empty
-ifndef TOCLEAN
 define MOD_EXPORTS_TEMPLATE
 $1: IMP := $2
 $1: DEF := $3
@@ -27,25 +26,17 @@ CB_NEEDED_DIRS += $(patsubst %/,%,$(dir $2))
 $2:| $1
 
 endef
-else
-# just delete import library and possibly generated (in debug build) .exp file
-MOD_EXPORTS_TEMPLATE = $(call TOCLEAN,$2 $(basename $2).exp)
-endif
 
 # if target may export symbols, but it's specified that target do not exports
 # $1 - $(call FORM_TRG,$t,$v), where $t - EXE,DLL,... $v - R,S,RU,SU..
 # note: define target's own target-specific IMP and DEF variables to override inherited
 #  target-specific IMP and DEF variables of the target which depends on this one
 # note: last line must be empty
-ifndef TOCLEAN
 define NO_EXPORTS_TEMPLATE
 $1:IMP:=
 $1:DEF:=
 
 endef
-else
-NO_EXPORTS_TEMPLATE:=
-endif
 
 # support for targets (e.g. DLLs) that may export symbols
 # define target-specific variables: DEF and IMP
@@ -61,6 +52,10 @@ DEF_VARIABLE_CHECK = $(if $2,,$(if $(DEF),$(warning DEF variable is ignored for 
 $(call define_prepend,EXPORTS_TEMPLATE,$$(DEF_VARIABLE_CHECK))
 endif
 
+# just return import library and .exp file
+# $1 - path to the import library
+EXPORTS_TO_CLEANUP = $1 $(basename $1).exp
+
 # check that target exports symbols - linker has created .exp file
 # $1 - path to the target (e.g. EXE or DLL)
 # target-specific: IMP
@@ -68,4 +63,5 @@ CHECK_EXP_CREATED = $(if $(IMP),$(newline)$(QUIET)if not exist $(call ospath,$(b
   $(IMP)).exp) (echo $(notdir $1) does not exports any symbols!) && cmd /c exit 1)
 
 # protect variables from modifications in target makefiles
-$(call SET_GLOBAL,C_PREPARE_MSVC_EXP_VARS MOD_EXPORTS_TEMPLATE NO_EXPORTS_TEMPLATE EXPORTS_TEMPLATE DEF_VARIABLE_CHECK CHECK_EXP_CREATED)
+$(call SET_GLOBAL,C_PREPARE_MSVC_EXP_VARS MOD_EXPORTS_TEMPLATE NO_EXPORTS_TEMPLATE EXPORTS_TEMPLATE \
+  DEF_VARIABLE_CHECK EXPORTS_TO_CLEANUP CHECK_EXP_CREATED)

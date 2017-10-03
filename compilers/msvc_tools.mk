@@ -66,7 +66,7 @@ endif
 endif
 
 # standard include paths - to include <winver.h>
-RC_STDINCLUDES := $(VSINCLUDE) $(UMINCLUDE)
+RC_STDINCLUDES := $(VCINCLUDE) $(UMINCLUDE)
 
 # resource compiler
 # $1 - target .res
