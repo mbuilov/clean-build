@@ -26,6 +26,33 @@ ifeq (,$(filter-out undefined environment,$(origin EXPORTS_TEMPLATE)))
 include $(dir $(lastword $(MAKEFILE_LIST)))msvc_exp.mk
 endif
 
+# version of Visual C++ we are using - see $(CLEAN_BUILD_DIR)/compilers/msvc_cmn.mk 'Visual C++ versions' table
+# assume we are using Visual C++ 6.0
+VC_VER := 6
+
+# paths compiler/linker and system libraries/headers
+#  - if not defined in project configuration makefile on in command line, try to autoconfigure
+#
+# VCCL      - path to cl.exe, should be in double-quotes if contains spaces
+# VCLIB     - path to lib.exe, should be in double-quotes if contains spaces
+# VCLINK    - path to link.exe, should be in double-quotes if contains spaces
+# VCLIBPATH - paths to Visual C++ libraries, spaces must be replaced with ?
+# VCINCLUDE - paths to Visual C++ headers, spaces must be replaced with ?
+# UMLIBPATH - paths to user-mode libraries, spaces must be replaced with ?
+# UMINCLUDE - paths to user-mode headers, spaces must be replaced with ?
+#
+ifneq (,$(filter undefined environment,$(foreach d,VCCL VCLIB VCLINK VCLIBPATH VCINCLUDE UMLIBPATH UMINCLUDE,$(origin $d))))
+include $(dir $(lastword $(MAKEFILE_LIST)))msvc_auto.mk
+endif
+
+# version of windows api to compile with
+# note: 0x0501 - WinXP, 0x0600 - Vista, etc.
+WINVER_DEFINES := WINVER=0x0501 _WIN32_WINNT=0x0501
+
+# minimum version of the operating system required to run built executables and dlls
+# note: 5.01 - WinXP(x86), 5.02 - WinXP(x64)
+SUBSYSTEM_VER := $(if $(CPU:%64=),5.01,5.02)
+
 # default subsystem type for EXE or DLL: CONSOLE, WINDOWS, etc.
 DEF_SUBSYSTEM_TYPE := CONSOLE
 
@@ -49,19 +76,6 @@ $(call define_append,C_PREPARE_APP_VARS,$$(C_PREPARE_MSVC_APP_VARS)$$(C_PREPARE_
 
 # optimization
 $(call try_make_simple,C_PREPARE_APP_VARS,C_PREPARE_MSVC_APP_VARS C_PREPARE_MSVC_STDRES_VARS C_PREPARE_MSVC_EXP_VARS)
-
-# version of Visual C++ we are using - see $(CLEAN_BUILD_DIR)/compilers/msvc_cmn.mk 'Visual C++ versions' table
-# by default, setup for Visual C++ 6.0
-VC_VER := 6
-
-# paths compiler/linker and system libraries/headers - must be defined in project configuration makefile
-VCCL      = $(error VCCL is not defined - path to cl.exe, should be in double-quotes if contains spaces)
-VCLIB     = $(error VCLIB is not defined - path to lib.exe, should be in double-quotes if contains spaces)
-VCLINK    = $(error VCLINK is not defined - path to link.exe, should be in double-quotes if contains spaces)
-VCLIBPATH = $(error VCLIBPATH is not defined - paths to Visual C++ libraries, spaces must be replaced with ?)
-VCINCLUDE = $(error VCINCLUDE is not defined - paths to Visual C++ headers, spaces must be replaced with ?)
-UMLIBPATH = $(error UMLIBPATH is not defined - paths to user-mode libraries, spaces must be replaced with ?)
-UMINCLUDE = $(error UMINCLUDE is not defined - paths to user-mode headers, spaces must be replaced with ?)
 
 # how to mark symbols exported from a DLL
 # note: override definition in $(CLEAN_BUILD_DIR)/impl/_c.mk
@@ -273,13 +287,9 @@ LIB_DEP_MAP = $(if $(filter uni,$(subst /, ,$3)),$2,$(2:U=))
 # the same logic as for the static library
 DLL_DEP_MAP = $(LIB_DEP_MAP)
 
-# minimum required version of the operating system
-# note: 5.01 - WinXP(x86), 5.02 - WinXP(x64)
-DEF_SUBSYSTEM_VER := $(if $(CPU:%64=),5.01,5.02)
-
 # define target-specific SUBSYSTEM variable
 # makefile-modifiable variable: SUBSYSTEM_TYPE
-TRG_SUBSYSTEM = $(SUBSYSTEM_TYPE),$(DEF_SUBSYSTEM_VER)
+TRG_SUBSYSTEM = $(SUBSYSTEM_TYPE),$(SUBSYSTEM_VER)
 
 # subsystem for EXE or DLL
 # target-specific: SUBSYSTEM
@@ -456,6 +466,9 @@ endif
 
 # paths to application-level system headers
 APPINCLUDE := $(VCINCLUDE) $(UMINCLUDE)
+
+# specify windows api version
+CMN_CFLAGS += $(addprefix /D,$(WINVER_DEFINES))
 
 # add standard include paths
 CMN_CFLAGS += $(call qpath,$(APPINCLUDE),/I)
@@ -667,9 +680,11 @@ endif # clean
 $(call SET_GLOBAL,MP_BUILD FORCE_SYNC_PDB,0)
 
 # protect variables from modifications in target makefiles
-$(call SET_GLOBAL,DEF_SUBSYSTEM_TYPE C_PREPARE_MSVC_APP_VARS VC_VER VCCL VCLIB VCLINK VCLIBPATH VCINCLUDE UMLIBPATH UMINCLUDE \
-  CFLAGS CXXFLAGS ARFLAGS LDFLAGS TCFLAGS TCXXFLAGS TARFLAGS TLDFLAGS WIN_SUPPORTED_VARIANTS WIN_VARIANT_SUFFIX WIN_VARIANT_CFLAGS \
-  DEF_SUBSYSTEM_VER TRG_SUBSYSTEM SUBSYSTEM_OPTION MANIFEST_EMBED_OPTION APPLIBPATH CMN_LDFLAGS DEF_EXE_LDFLAGS DEF_DLL_LDFLAGS \
+$(call SET_GLOBAL,VC_VER VCCL VCLIB VCLINK VCLIBPATH VCINCLUDE UMLIBPATH UMINCLUDE \
+  WINVER_DEFINES SUBSYSTEM_VER DEF_SUBSYSTEM_TYPE C_PREPARE_MSVC_APP_VARS \
+  CFLAGS CXXFLAGS ARFLAGS LDFLAGS TCFLAGS TCXXFLAGS TARFLAGS TLDFLAGS \
+  WIN_SUPPORTED_VARIANTS WIN_VARIANT_SUFFIX WIN_VARIANT_CFLAGS \
+  TRG_SUBSYSTEM SUBSYSTEM_OPTION MANIFEST_EMBED_OPTION APPLIBPATH CMN_LDFLAGS DEF_EXE_LDFLAGS DEF_DLL_LDFLAGS \
   CMN_LIBS LINKER_STRIP_STRINGS WRAP_LINKER EXE_LD DLL_LD EMBED_EXE_MANIFEST EMBED_DLL_MANIFEST EXE_DLL_FORM_IMPORT_LIB=t;v \
   EXE_DLL_AUX_TEMPLATE EXE_AUX_TEMPLATE=t;v DLL_AUX_TEMPLATE=t;v EXE_EXP_TOCLEAN=t;v DLL_EXP_TOCLEAN=t;v \
   LIB_DEF_VARIABLE_CHECK=DEF;LIB;EXE;DLL LIB_LD INCLUDING_FILE_PATTERN UDEPS_INCLUDE_FILTER CMN_CFLAGS APPINCLUDE \
