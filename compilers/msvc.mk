@@ -26,6 +26,11 @@ ifeq (,$(filter-out undefined environment,$(origin EXPORTS_TEMPLATE)))
 include $(dir $(lastword $(MAKEFILE_LIST)))msvc_exp.mk
 endif
 
+include $(dir $(lastword $(MAKEFILE_LIST)))msvc_conf.mk
+
+
+
+
 # version of Visual C++ we are using - see $(CLEAN_BUILD_DIR)/compilers/msvc_cmn.mk 'Visual C++ versions' table
 # assume we are using Visual C++ 6.0
 VC_VER := 6
@@ -47,13 +52,13 @@ endif
 
 # version of windows api to compile with
 # note: 0x0501 - WinXP, 0x0600 - Vista, etc.
-WINVER_DEFINES := WINVER=0x0501 _WIN32_WINNT=0x0501
+##WINVER_DEFINES := WINVER=0x0501 _WIN32_WINNT=0x0501
 
 # minimum version of the operating system required to run built executables and dlls
 # note: 5.01 - WinXP(x86), 5.02 - WinXP(x64)
-SUBSYSTEM_VER := $(if $(CPU:%64=),5.01,5.02)
+##SUBSYSTEM_VER := $(if $(CPU:%64=),5.01,5.02)
 
-# default subsystem type for EXE or DLL: CONSOLE, WINDOWS, etc.
+# default subsystem type for EXE and DLL: CONSOLE, WINDOWS, etc.
 DEF_SUBSYSTEM_TYPE := CONSOLE
 
 # reset additional variables
@@ -289,7 +294,8 @@ DLL_DEP_MAP = $(LIB_DEP_MAP)
 
 # define target-specific SUBSYSTEM variable
 # makefile-modifiable variable: SUBSYSTEM_TYPE
-TRG_SUBSYSTEM = $(SUBSYSTEM_TYPE),$(SUBSYSTEM_VER)
+# note: SUBSYSTEM_VER may be empty
+TRG_SUBSYSTEM = $(SUBSYSTEM_TYPE)$(addprefix $(comma),$(SUBSYSTEM_VER))
 
 # subsystem for EXE or DLL
 # target-specific: SUBSYSTEM
@@ -368,10 +374,10 @@ EXE_DLL_FORM_IMPORT_LIB = $(LIB_DIR)/$(IMP_PREFIX)$(call GET_TARGET_NAME,$t)$(ca
 ifndef TOCLEAN
 
 # for DLL and EXE, define target-specific variables: SUBSYSTEM, MODVER, IMP, DEF
-# $1 - $(call FORM_TRG,$3,$4)
+# $1 - $(call FORM_TRG,$t,$v)
 # $2 - path to import library if target exports symbols, <empty> - otherwise
-# $3 - EXE or DLL
-# $4 - variant: R,S,RU,SU
+# $t - EXE or DLL
+# $v - variant: R,S,RU,SU
 define EXE_DLL_AUX_TEMPLATE
 $1:SUBSYSTEM := $(TRG_SUBSYSTEM)
 $1:MODVER    := $(MODVER)
@@ -380,8 +386,8 @@ endef
 
 # $t - EXE or DLL
 # $v - variant: R,S,RU,SU
-EXE_AUX_TEMPLATE = $(call EXE_DLL_AUX_TEMPLATE,$(call FORM_TRG,EXE,$v),$(if $(EXE_EXPORTS),$(EXE_DLL_FORM_IMPORT_LIB)),EXE,$v)
-DLL_AUX_TEMPLATE = $(call EXE_DLL_AUX_TEMPLATE,$(call FORM_TRG,DLL,$v),$(if $(DLL_NO_EXPORTS),,$(EXE_DLL_FORM_IMPORT_LIB)),DLL,$v)
+EXE_AUX_TEMPLATE = $(call EXE_DLL_AUX_TEMPLATE,$(call FORM_TRG,EXE,$v),$(if $(EXE_EXPORTS),$(EXE_DLL_FORM_IMPORT_LIB)))
+DLL_AUX_TEMPLATE = $(call EXE_DLL_AUX_TEMPLATE,$(call FORM_TRG,DLL,$v),$(if $(DLL_NO_EXPORTS),,$(EXE_DLL_FORM_IMPORT_LIB)))
 
 # for DLL and EXE, define target-specific variables: SUBSYSTEM, MODVER, IMP, DEF
 $(call define_prepend,DEFINE_C_APP_EVAL,$$(eval \
@@ -468,6 +474,7 @@ endif
 APPINCLUDE := $(VCINCLUDE) $(UMINCLUDE)
 
 # specify windows api version
+# note: WINVER_DEFINES may be empty
 CMN_CFLAGS += $(addprefix /D,$(WINVER_DEFINES))
 
 # add standard include paths
