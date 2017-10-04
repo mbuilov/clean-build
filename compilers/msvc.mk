@@ -295,7 +295,8 @@ DLL_DEP_MAP = $(LIB_DEP_MAP)
 # define target-specific SUBSYSTEM variable
 # makefile-modifiable variable: SUBSYSTEM_TYPE
 # note: SUBSYSTEM_VER may be empty
-TRG_SUBSYSTEM = $(SUBSYSTEM_TYPE)$(addprefix $(comma),$(SUBSYSTEM_VER))
+# note: do not specify subsystem version when building tools
+TRG_SUBSYSTEM = $(SUBSYSTEM_TYPE)$(if $(TMD),,$(addprefix $(comma),$(SUBSYSTEM_VER)))
 
 # subsystem for EXE or DLL
 # target-specific: SUBSYSTEM
@@ -311,15 +312,17 @@ endif
 
 # paths to application-level system libraries
 APPLIBPATH := $(VCLIBPATH) $(UMLIBPATH)
+TAPPLIBPATH := $(TVCLIBPATH) $(TUMLIBPATH)
 
 # common link.exe flags for linking executables and dynamic libraries
-CMN_LDFLAGS := /INCREMENTAL:NO $(call qpath,$(APPLIBPATH),/LIBPATH:)
+# target-specific: TMD
+CMN_LDFLAGS = /INCREMENTAL:NO $(call qpath,$($(TMD)APPLIBPATH),/LIBPATH:)
 
 # default link.exe flags for linking an EXE
-DEF_EXE_LDFLAGS := $(CMN_LDFLAGS)
+DEF_EXE_LDFLAGS = $(CMN_LDFLAGS)
 
 # default link.exe flags for linking a DLL
-DEF_DLL_LDFLAGS := /DLL $(CMN_LDFLAGS)
+DEF_DLL_LDFLAGS = /DLL $(CMN_LDFLAGS)
 
 # common linker options for EXE or DLL
 # $1 - path to target EXE or DLL
@@ -348,8 +351,8 @@ $(call MSVC_DEFINE_LINKER_WRAPPER,WRAP_LINKER,$(LINKER_STRIP_STRINGS))
 # note: link.exe will not delete generated manifest file if failed to build target exe/dll, for example because of invalid DEF file
 # note: if EXE do not exports symbols (as usual), do not set in target makefile EXE_EXPORTS (empty by default)
 # note: if DLL do not exports symbols (unusual), set in target makefile DLL_NO_EXPORTS to non-empty value
-EXE_LD = $(call SUP,$(TMD)EXE,$1)$(call WRAP_LINKER,$(VCLINK) $(CMN_LIBS) $(DEF_EXE_LDFLAGS) $(VLDFLAGS))$(CHECK_EXP_CREATED)
-DLL_LD = $(call SUP,$(TMD)DLL,$1)$(call WRAP_LINKER,$(VCLINK) $(CMN_LIBS) $(DEF_DLL_LDFLAGS) $(VLDFLAGS))$(CHECK_EXP_CREATED)
+EXE_LD = $(call SUP,$(TMD)EXE,$1)$(call WRAP_LINKER,$($(TMD)VCLINK) $(CMN_LIBS) $(DEF_EXE_LDFLAGS) $(VLDFLAGS))$(CHECK_EXP_CREATED)
+DLL_LD = $(call SUP,$(TMD)DLL,$1)$(call WRAP_LINKER,$($(TMD)VCLINK) $(CMN_LIBS) $(DEF_DLL_LDFLAGS) $(VLDFLAGS))$(CHECK_EXP_CREATED)
 
 # manifest embedding
 # $1 - path to target EXE or DLL
@@ -420,7 +423,7 @@ endif
 # target-specific: TMD
 # note: used by LIB_TEMPLATE from $(CLEAN_BUILD_DIR)/impl/_c.mk
 # note: lib.exe does not support linking resources (.res - files) to a static library
-LIB_LD = $(call SUP,$(TMD)LIB,$1)$(VCLIB) /nologo /OUT:$(call ospath,$1 $2) $($(TMD)ARFLAGS)
+LIB_LD = $(call SUP,$(TMD)LIB,$1)$($(TMD)VCLIB) /nologo /OUT:$(call ospath,$1 $2) $($(TMD)ARFLAGS)
 
 # check that LIB do not includes resources (.res - files)
 ifdef MCHECK
@@ -473,15 +476,19 @@ endif
 # paths to application-level system headers
 APPINCLUDE := $(VCINCLUDE) $(UMINCLUDE)
 
+# add standard include paths
+CMN_CFLAGS += $(call qpath,$(APPINCLUDE),/I)
+
+# common flags for the tool mode
+# note: do not define WINVER and _WIN32_WINNT when building tools
+TCMN_CFLAGS := $(CMN_CFLAGS)
+
 # specify windows api version
 # note: WINVER_DEFINES may be empty
 CMN_CFLAGS += $(addprefix /D,$(WINVER_DEFINES))
 
-# add standard include paths
-CMN_CFLAGS += $(call qpath,$(APPINCLUDE),/I)
-
 # default flags for application-level C compiler
-DEF_CFLAGS := $(CMN_CFLAGS)
+DEF_CFLAGS = $($(TMD)CMN_CFLAGS)
 
 ifneq (,$(call is_less_float,$(VC_VER),$(VS2015)))
 # < Visual Studio 2015
@@ -490,7 +497,7 @@ DEF_CFLAGS += /Dinline=__inline
 endif
 
 # default flags for application-level C++ compiler
-DEF_CXXFLAGS := $(CMN_CFLAGS)
+DEF_CXXFLAGS = $($(TMD)CMN_CFLAGS)
 
 # common options for application-level C/C++ compilers
 # $1 - outdir/ or obj file
@@ -519,8 +526,8 @@ ifndef MP_BUILD
 # target-specific: TMD
 # note: used by OBJ_RULES_BODY macro from $(CLEAN_BUILD_DIR)/impl/c_base.mk
 # note: auto-generate dependencies
-OBJ_CC  = $(call SUP,$(TMD)CC,$2)$(call WRAP_CCD,$(VCCL) $(CC_PARAMS),$2,$1)
-OBJ_CXX = $(call SUP,$(TMD)CXX,$2)$(call WRAP_CCD,$(VCCL) $(CXX_PARAMS),$2,$1)
+OBJ_CC  = $(call SUP,$(TMD)CC,$2)$(call WRAP_CCD,$($(TMD)VCCL) $(CC_PARAMS),$2,$1)
+OBJ_CXX = $(call SUP,$(TMD)CXX,$2)$(call WRAP_CCD,$($(TMD)VCCL) $(CXX_PARAMS),$2,$1)
 
 ifndef NO_PCH
 
@@ -535,8 +542,8 @@ $(eval OBJ_NCXX = $(value OBJ_CXX))
 # $4 - non-empty variant: R,S,RU,SU
 # target-specific: TMD
 # note: auto-generate dependencies
-OBJ_PCC  = $(call SUP,$(TMD)PCC,$2)$(call WRAP_CCD,$(VCCL) $(call MSVC_USE_PCH,$(dir $1),c) $(CC_PARAMS),$2,$1)
-OBJ_PCXX = $(call SUP,$(TMD)PCXX,$2)$(call WRAP_CCD,$(VCCL) $(call MSVC_USE_PCH,$(dir $1),cpp) $(CXX_PARAMS),$2,$1)
+OBJ_PCC  = $(call SUP,$(TMD)PCC,$2)$(call WRAP_CCD,$($(TMD)VCCL) $(call MSVC_USE_PCH,$(dir $1),c) $(CC_PARAMS),$2,$1)
+OBJ_PCXX = $(call SUP,$(TMD)PCXX,$2)$(call WRAP_CCD,$($(TMD)VCCL) $(call MSVC_USE_PCH,$(dir $1),cpp) $(CXX_PARAMS),$2,$1)
 
 # override C++ and C compilers to support compiling with precompiled header
 # $1 - target object file
@@ -605,8 +612,8 @@ CXX_PARAMS_MP = $(MP_BUILD) $(call CXX_PARAMS,$(OBJ_DIR)/,$1,$2,$3)
 # target-specific: TMD
 # note: called by CMN_MCL macro from $(CLEAN_BUILD_DIR)/compilers/msvc_cmn.mk
 # note: do not auto-generate dependencies
-OBJ_MCC  = $(call SUP,$(TMD)CC,$1)$(call WRAP_CCN,$(VCCL) $(CC_PARAMS_MP),$1)
-OBJ_MCXX = $(call SUP,$(TMD)CXX,$1)$(call WRAP_CCN,$(VCCL) $(CXX_PARAMS_MP),$1)
+OBJ_MCC  = $(call SUP,$(TMD)CC,$1)$(call WRAP_CCN,$($(TMD)VCCL) $(CC_PARAMS_MP),$1)
+OBJ_MCXX = $(call SUP,$(TMD)CXX,$1)$(call WRAP_CCN,$($(TMD)VCCL) $(CXX_PARAMS_MP),$1)
 
 ifndef NO_PCH
 
@@ -621,8 +628,8 @@ MULTISOURCE_CL = $(call CMN_PMCL,$1,$2,OBJ_MCC,OBJ_MCXX,OBJ_PMCC,OBJ_PMCXX)
 # $3 - non-empty variant: R,S,RU,SU
 # target-specific: TMD, OBJ_DIR
 # note: do not auto-generate dependencies
-OBJ_PMCC  = $(call SUP,$(TMD)PCC,$1)$(call WRAP_CCN,$(VCCL) $(call MSVC_USE_PCH,$(OBJ_DIR)/,c) $(CC_PARAMS_MP),$1)
-OBJ_PMCXX = $(call SUP,$(TMD)PCXX,$1)$(call WRAP_CCN,$(VCCL) $(call MSVC_USE_PCH,$(OBJ_DIR)/,cpp) $(CXX_PARAMS_MP),$1)
+OBJ_PMCC  = $(call SUP,$(TMD)PCC,$1)$(call WRAP_CCN,$($(TMD)VCCL) $(call MSVC_USE_PCH,$(OBJ_DIR)/,c) $(CC_PARAMS_MP),$1)
+OBJ_PMCXX = $(call SUP,$(TMD)PCXX,$1)$(call WRAP_CCN,$($(TMD)VCCL) $(call MSVC_USE_PCH,$(OBJ_DIR)/,cpp) $(CXX_PARAMS_MP),$1)
 
 endif # !NO_PCH
 
@@ -644,8 +651,8 @@ endif
 # target-specific: TMD
 # note: precompiled header xxx_c.pch or xxx_cpp.pch will be created as a side-effect of this compilation
 # note: used by MSVC_PCH_RULE_TEMPL_BASE macro from $(CLEAN_BUILD_DIR)/compilers/msvc_pch.mk
-PCH_CC  = $(call SUP,$(TMD)PCHCC,$2)$(call WRAP_CCD,$(VCCL) $(MSVC_CREATE_PCH) /TC $(call CC_PARAMS,$1,$2,$4,$5),$2,$1)
-PCH_CXX = $(call SUP,$(TMD)PCHCXX,$2)$(call WRAP_CCD,$(VCCL) $(MSVC_CREATE_PCH) /TP $(call CXX_PARAMS,$1,$2,$4,$5),$2,$1)
+PCH_CC  = $(call SUP,$(TMD)PCHCC,$2)$(call WRAP_CCD,$($(TMD)VCCL) $(MSVC_CREATE_PCH) /TC $(call CC_PARAMS,$1,$2,$4,$5),$2,$1)
+PCH_CXX = $(call SUP,$(TMD)PCHCXX,$2)$(call WRAP_CCD,$($(TMD)VCCL) $(MSVC_CREATE_PCH) /TP $(call CXX_PARAMS,$1,$2,$4,$5),$2,$1)
 
 # reset additional variables
 $(call define_append,C_PREPARE_APP_VARS,$(C_PREPARE_PCH_VARS))
@@ -691,10 +698,10 @@ $(call SET_GLOBAL,VC_VER VCCL VCLIB VCLINK VCLIBPATH VCINCLUDE UMLIBPATH UMINCLU
   WINVER_DEFINES SUBSYSTEM_VER DEF_SUBSYSTEM_TYPE C_PREPARE_MSVC_APP_VARS \
   CFLAGS CXXFLAGS ARFLAGS LDFLAGS TCFLAGS TCXXFLAGS TARFLAGS TLDFLAGS \
   WIN_SUPPORTED_VARIANTS WIN_VARIANT_SUFFIX WIN_VARIANT_CFLAGS \
-  TRG_SUBSYSTEM SUBSYSTEM_OPTION MANIFEST_EMBED_OPTION APPLIBPATH CMN_LDFLAGS DEF_EXE_LDFLAGS DEF_DLL_LDFLAGS \
+  TRG_SUBSYSTEM SUBSYSTEM_OPTION MANIFEST_EMBED_OPTION APPLIBPATH TAPPLIBPATH CMN_LDFLAGS DEF_EXE_LDFLAGS DEF_DLL_LDFLAGS \
   CMN_LIBS LINKER_STRIP_STRINGS WRAP_LINKER EXE_LD DLL_LD EMBED_EXE_MANIFEST EMBED_DLL_MANIFEST EXE_DLL_FORM_IMPORT_LIB=t;v \
   EXE_DLL_AUX_TEMPLATE EXE_AUX_TEMPLATE=t;v DLL_AUX_TEMPLATE=t;v EXE_EXP_TOCLEAN=t;v DLL_EXP_TOCLEAN=t;v \
-  LIB_DEF_VARIABLE_CHECK=DEF;LIB;EXE;DLL LIB_LD INCLUDING_FILE_PATTERN UDEPS_INCLUDE_FILTER CMN_CFLAGS APPINCLUDE \
+  LIB_DEF_VARIABLE_CHECK=DEF;LIB;EXE;DLL LIB_LD INCLUDING_FILE_PATTERN UDEPS_INCLUDE_FILTER CMN_CFLAGS APPINCLUDE TCMN_CFLAGS \
   DEF_CFLAGS DEF_CXXFLAGS CMN_PARAMS CC_PARAMS CXX_PARAMS OBJ_CC OBJ_CXX OBJ_NCC OBJ_NCXX OBJ_PCC OBJ_PCXX \
   EXE_TEMPLATE DLL_TEMPLATE LIB_TEMPLATE EXE_LD1 DLL_LD1 LIB_LD1 EXE_LD2 DLL_LD2 LIB_LD2 MULTISOURCE_CL \
   CC_PARAMS_MP CXX_PARAMS_MP OBJ_MCC OBJ_MCXX OBJ_PMCC OBJ_PMCXX PCH_CC PCH_CXX EXE_DLL_LIB_PDB_CLEANUP=t;v \
