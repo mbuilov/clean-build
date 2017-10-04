@@ -169,17 +169,38 @@ is_less1 = $(if $(filter-out $3,$(lastword $(sort $3 $4))),1,$(if $(filter $3,$4
 # note: assume there are no leading zeros in $1 or $2
 is_less = $(call is_less1,$1,$2,$(repl09),$(call repl09,$2))
 
+# replace [0-9] characters with ' 0'
+repl090 = $(subst 9, 0,$(subst 8, 0,$(subst 7, 0,$(subst 6, 0,$(subst 5, 0,$(subst \
+  4, 0,$(subst 3, 0,$(subst 2, 0,$(subst 1, 0,$(subst 0, 0,$1))))))))))
+
 # compare floating point numbers: check if $1 < $2, e.g. 1.21 < 2.4
 # 1) compare integer parts (that must be present)
 # 2) if they are equal, compare fractional parts (may be optional)
 # note: assume there are no leading zeros in integer parts of $1 or $2
 is_less_float6 = $(filter-out $1,$(lastword $(sort $1 $2)))
-is_less_float5 = $(subst $(space),,$(wordlist $(words . $1),999999,$2))
+is_less_float5 = $(subst $(space),,$(wordlist $(words .$1),999999,$2))
 is_less_float4 = $(call is_less_float6,$1$(call is_less_float5,$3,$4),$2$(call is_less_float5,$4,$3))
-is_less_float3 = $(call is_less_float4,$1,$2,$(subst .,0 ,$(repl09)),$(subst .,0 ,$(call repl09,$2)))
+is_less_float3 = $(call is_less_float4,$1,$2,$(repl090),$(call repl090,$2))
 is_less_float2 = $(if $(is_less),1,$(if $(filter $1,$2),$(call is_less_float3,$(word 2,$3 0),$(word 2,$4 0))))
 is_less_float1 = $(call is_less_float2,$(firstword $1),$(firstword $2),$1,$2)
 is_less_float  = $(call is_less_float1,$(subst ., ,$1),$(subst ., ,$2))
+
+# strip leading zeros, e.g. 012 004 -> 12 4
+strip_leading0 = $(if $(findstring $(space)0, $1),$(call strip_leading0,$(patsubst 0%,%,$1)),$1)
+
+# sort numbers, e.g. 20 101 2 -> 2 20 101
+# 1) find longest number
+# 2) add leading zeros to numbers so all numbers will be of the same length
+# 3) sort numbers
+# 4) strip leading zeros
+# note: assume there are no leading zeros in numbers
+sort_numbers2 = $(sort $(foreach n,$1,$(subst $(space),,$(wordlist $(words .$(call repl090,$n)),999999,$2))$n))
+sort_numbers1 = $(call sort_numbers2,$1,$(subst ., 0,$(lastword $(sort $(repl09)))))
+sort_numbers  = $(call strip_leading0,$(sort_numbers1))
+
+# reverse the list, e.g. 2 20 101 -> 101 20 2
+# note: may return leading spaces
+reverse = $(if $(word 5,$1),$(call reverse,$(wordlist 5,999999,$1))) $(word 4,$1) $(word 3,$1) $(word 2,$1) $(word 1,$1)
 
 # $1 - function
 # $2 - full arguments list
@@ -372,8 +393,9 @@ TARGET_MAKEFILE += $(call SET_GLOBAL, \
 # protect variables from modification in target makefiles
 # note: TARGET_MAKEFILE variable is used here temporary and will be redefined later
 TARGET_MAKEFILE += $(call SET_GLOBAL, \
-  unspaces tospaces ifaddq qpath tolower toupper repl09 repl09AZ padto1 padto is_less1 is_less \
+  unspaces tospaces ifaddq qpath tolower toupper repl09 repl09AZ padto1 padto is_less1 is_less repl090 \
   is_less_float6 is_less_float5 is_less_float4 is_less_float3 is_less_float2 is_less_float1 is_less_float \
+  strip_leading0 sort_numbers2 sort_numbers1 sort_numbers reverse \
   xargs1 xargs xcmd trim normp2 normp1 normp cmn_path1 cmn_path back_prefix relpath2 relpath1 relpath \
   ver_major ver_minor ver_patch ver_compatible1 ver_compatible \
   get_dir split_dirs1 split_dirs mk_dir_deps lazy_simple \
