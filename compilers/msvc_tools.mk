@@ -6,9 +6,17 @@
 
 # msvc compiler tools, such as mc.exe and rc.exe, included by $(CLEAN_BUILD_DIR)/compilers/msvc.mk
 
-# paths to rc.exe and mc.exe should be defined in project configuration makefile
+# Message compiler
+# path to mc.exe, should be defined either in project configuration makefile or in command line
 MC = $(error MC is not defined - path to mc.exe, should be in double-quotes if contains spaces)
+
+# Resource compiler
+# path to rc.exe, should be defined either in project configuration makefile or in command line
 RC = $(error RC is not defined - path to rc.exe, should be in double-quotes if contains spaces)
+
+# Manifest Tool
+# path to mt.exe, should be defined either in project configuration makefile or in command line
+MT = $(error MT is not defined - path to mt.exe, should be in double-quotes if contains spaces)
 
 # strings to strip off from mc.exe output (findstr regular expression)
 # note: may be overridden either in project configuration makefile or in command line
@@ -79,9 +87,6 @@ RC_COMPILER = $(call SUP,$(TMD)RC,$1)$(call WRAP_RC,$(RC) $(RC_SUPPRESS_LOGO)$(i
 RC_COLOR  := $(GEN_COLOR)
 TRC_COLOR := $(GEN_COLOR)
 
-# Manifest Tool
-MT = $(error MT is not defined - path to mt.exe, should be in double-quotes if contains spaces)
-
 # protect variables from modifications in target makefiles
-$(call SET_GLOBAL,MC RC MC_STRIP_STRINGS WRAP_MC MC_COMPILER MC_COLOR TMC_COLOR \
-  RC_SUPPRESS_LOGO RC_LOGO_STRINGS WRAP_RC RC_STDINCLUDES RC_COMPILER RC_COLOR TRC_COLOR MT)
+$(call SET_GLOBAL,MC RC MT MC_STRIP_STRINGS WRAP_MC MC_COMPILER MC_COLOR TMC_COLOR \
+  RC_SUPPRESS_LOGO RC_LOGO_STRINGS WRAP_RC RC_STDINCLUDES RC_COMPILER RC_COLOR TRC_COLOR)
