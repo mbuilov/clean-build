@@ -28,7 +28,6 @@
 # VCINCLUDE := C:\Program?Files?(x86)\Microsoft?Visual?Studio?14.0\VC\include
 # UMLIBPATH := C:\Program?Files?(x86)\Windows?Kits\10\lib\10.0.15063.0\um\x86
 # UMINCLUDE := C:\Program?Files?(x86)\Windows?Kits\10\Include\10.0.15063.0\ucrt
-#
 
 # Windows variant to autoconfigure for 
 WINVARIANT := WINXP
@@ -53,7 +52,7 @@ else ifeq (WINXP,$(WINVARIANT))
 WINVER_DEFINES := WINVER=0x0501 _WIN32_WINNT=0x0501
 else
 # WINVER_DEFINES should be defined in project configuration makefile or in command line
-$(warning unable to auto-determine WINVER_DEFINES for WINVARIANT = $(WINVARIANT), supported WINVARIANTS = $(WINVARIANTS))
+$(warning unable to determine WINVER_DEFINES for WINVARIANT = $(WINVARIANT), supported WINVARIANTS = $(WINVARIANTS))
 WINVER_DEFINES:=
 endif
 
@@ -77,7 +76,7 @@ else ifeq (WINXP,$(WINVARIANT))
 SUBSYSTEM_VER := $(if $(CPU:%64=),5.01,5.02)
 else
 # SUBSYSTEM_VER may be defined in project configuration makefile or in command line
-$(warning unable to auto-determine SUBSYSTEM_VER for WINVARIANT = $(WINVARIANT))
+$(warning unable to determine SUBSYSTEM_VER for WINVARIANT = $(WINVARIANT))
 SUBSYSTEM_VER:=
 endif
 
@@ -107,19 +106,19 @@ ifneq (,$(filter override command,$(origin VS)))
 # prepare VS value for $(wildcard) function
 VS_WILD := $(subst $(space),\ ,$(subst \,/,$(VS)))
 
-# if file exists under Visual Studio directory, return path to it (in double quotes, if path contains spaces needed)
+# if file exists under Visual Studio directory, return path to it (in double quotes, if path contains spaces)
 # otherwise, return empty string
 # $1 - file to check, e.g. VC98/Bin/cl.exe
-VS_IS_FILE_EXISTS1 = $(if $1,$2,$(warning file $2 does not exists))
+VS_IS_FILE_EXISTS1 = $(if $1,$2,$(error file does not exist: $2))
 VS_IS_FILE_EXISTS = $(call VS_IS_FILE_EXISTS1,$(wildcard $(VS_WILD)/$1),$(call ifaddq,$(VS)\$(subst /,\,$1)))
 
 # if directory exists under Visual Studio directory, return path to it (with spaces replaced with ?)
 # otherwise, return empty string
 # $1 - directory to check, e.g. VC98/Lib
-VS_IS_DIR_EXISTS1 = $(if $1,$2,$(warning directory $2 does not exists))
+VS_IS_DIR_EXISTS1 = $(if $1,$2,$(error directory does not exist: $2))
 VS_IS_DIR_EXISTS = $(call VS_IS_DIR_EXISTS1,$(wildcard $(VS_WILD)/$1/.),$(subst $(space),?,$(VS)\$(subst /,\,$1)))
 
-# try to define paths to the tools (cl.exe, lib.exe or link.exe) and Visual C++ libraries and headers
+# try to define paths to Visual C++ tools (cl.exe, lib.exe or link.exe), libraries and headers
 # $1 - VC++ directory, e.g. VC98, VC7 or VC
 define VC_FIND_PATHS
 ifeq (,$(filter override command,$(origin VCCL)))
@@ -159,9 +158,15 @@ $(eval $(call VC_FIND_PATHS,VC7))
 
 else ifneq (,$(findstring \Microsoft Visual Studio ,$(VS)))
 
-# Visual Studio 8/9.0/10.0/11.0/12.0/14.0
+# Visual Studio 2005-2015
++amd64 support
 VC_VER := $(firstword $(subst ., ,$(lastword $(VS))))
 $(eval $(call VC_FIND_PATHS,VC))
+
+VSLIB  := $(VCN)\lib$(ONECORE)$(addprefix \,$(filter-out x86,$(CPU:x86_64=amd64)))
+
+
+
 
 
 ifneq (,$(findstring \Microsoft Visual Studio ,$(VS)))
