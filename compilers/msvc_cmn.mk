@@ -8,19 +8,19 @@
 
 # Microsoft Visual C++ (MSVC++) versions
 #---------------------------------------------------------------------------------
-# MSVC++ _MSC_VER    product name     C++ compiler default installation path
+# MSVC++ _MSC_VER    product name      C++ compiler default installation path
 #---------------------------------------------------------------------------------
-#  6       1200   Visual Studio 6.0   Microsoft Visual Studio\VC98\Bin\cl.exe
-#  7       1300   Visual Studio 2002  Microsoft Visual Studio .NET\VC7\bin\cl.exe
-#  7.1     1310   Visual Studio 2003  Microsoft Visual Studio .NET 2003\VC7\bin\cl.exe
-#  8       1400   Visual Studio 2005  Microsoft Visual Studio 8\VC\bin\cl.exe
-#  9       1500   Visual Studio 2008  Microsoft Visual Studio 9.0\VC\bin\cl.exe
-#  10      1600   Visual Studio 2010  Microsoft Visual Studio 10.0\VC\bin\cl.exe
-#  11      1700   Visual Studio 2012  Microsoft Visual Studio 11.0\VC\bin\cl.exe
-#  12      1800   Visual Studio 2013  Microsoft Visual Studio 12.0\VC\bin\cl.exe
-#  14      1900   Visual Studio 2015  Microsoft Visual Studio 14.0\VC\bin\cl.exe
-#  14.1    1910   Visual Studio 2017  Microsoft Visual Studio\2017\Community\VC\Tools\MSVC\14.10.25017\bin\HostX86\x86\cl.exe
-#  14.11   1911   Visual Studio 2017  Microsoft Visual Studio\2017\Community\VC\Tools\MSVC\14.11.25503\bin\HostX86\x86\cl.exe
+#  6.0     1200   Visual Studio 6.0    Microsoft Visual Studio\VC98\Bin\cl.exe
+#  7.0     1300   Visual Studio 2002   Microsoft Visual Studio .NET\VC7\bin\cl.exe
+#  7.1     1310   Visual Studio 2003   Microsoft Visual Studio .NET 2003\VC7\bin\cl.exe
+#  8.0     1400   Visual Studio 2005   Microsoft Visual Studio 8\VC\bin\cl.exe
+#  9.0     1500   Visual Studio 2008   Microsoft Visual Studio 9.0\VC\bin\cl.exe
+#  10.0    1600   Visual Studio 2010   Microsoft Visual Studio 10.0\VC\bin\cl.exe
+#  11.0    1700   Visual Studio 2012   Microsoft Visual Studio 11.0\VC\bin\cl.exe
+#  12.0    1800   Visual Studio 2013   Microsoft Visual Studio 12.0\VC\bin\cl.exe
+#  14.0    1900   Visual Studio 2015   Microsoft Visual Studio 14.0\VC\bin\cl.exe
+#  14.10   1910   Visual Studio 2017   Microsoft Visual Studio\2017\Community\VC\Tools\MSVC\14.10.25017\bin\HostX86\x86\cl.exe
+#  14.11   1911   Visual Studio 2017   Microsoft Visual Studio\2017\Community\VC\Tools\MSVC\14.11.25503\bin\HostX86\x86\cl.exe
 
 # map Visual Studio name -> MSVC++ version
 VS2002 := 7
