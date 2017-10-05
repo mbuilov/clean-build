@@ -22,12 +22,10 @@ TCC  := $(if $(CROSS_PREFIX),gcc,$(CC))
 TCXX := $(if $(CROSS_PREFIX),g++,$(CXX))
 TAR  := $(if $(CROSS_PREFIX),ar,$(AR))
 
-# how to mark symbols exported from a DLL
-# note: override definition in $(CLEAN_BUILD_DIR)/impl/_c.mk
-DLL_EXPORTS_DEFINE := $(call DEFINE_SPECIAL,__attribute__((visibility("default"))))
-
 # default values of user-defined C/C++ compiler flags
 # note: may be taken from the environment in project configuration makefile
+# note: CFLAGS   - used by EXE_CFLAGS,   LIB_CFLAGS,   DLL_CFLAGS   (from $(CLEAN_BUILD_DIR)/impl/_c.mk)
+# note: CXXFLAGS - used by EXE_CXXFLAGS, LIB_CXXFLAGS, DLL_CXXFLAGS (from $(CLEAN_BUILD_DIR)/impl/_c.mk)
 CFLAGS   := $(if $(DEBUG),-ggdb,-g -O2)
 CXXFLAGS := $(CFLAGS)
 
@@ -37,10 +35,12 @@ CPU_CXXFLAGS := $(CPU_CFLAGS)
 
 # flags for objects archiver
 # note: may be taken from the environment in project configuration makefile
+# note: used by LIB_LD
 ARFLAGS := -crs
 
 # default values of user-defined gcc flags for linking executables and shared libraries
 # note: may be taken from the environment in project configuration makefile
+# note: used by EXE_LDFLAGS, LIB_LDFLAGS, DLL_LDFLAGS from $(CLEAN_BUILD_DIR)/impl/_c.mk
 LDFLAGS:=
 
 # flags for the tool mode
