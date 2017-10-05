@@ -24,12 +24,10 @@ TCC  := $(CC)
 TCXX := $(CXX)
 TAR  := $(AR)
 
-# how to mark symbols exported from a DLL
-# note: override definition in $(CLEAN_BUILD_DIR)/impl/_c.mk
-DLL_EXPORTS_DEFINE := $(call DEFINE_SPECIAL,__attribute__((visibility("default"))))
-
 # default values of user-defined C/C++ compiler flags
 # note: may be taken from the environment in project configuration makefile
+# note: CFLAGS   - used by EXE_CFLAGS,   LIB_CFLAGS,   DLL_CFLAGS   (from $(CLEAN_BUILD_DIR)/impl/_c.mk)
+# note: CXXFLAGS - used by EXE_CXXFLAGS, LIB_CXXFLAGS, DLL_CXXFLAGS (from $(CLEAN_BUILD_DIR)/impl/_c.mk)
 CFLAGS   := $(if $(DEBUG),-g,-fast)
 CXXFLAGS := $(CFLAGS)
 
@@ -40,12 +38,14 @@ CPU_CXXFLAGS := $(CPU_CFLAGS) -xport64
 
 # flags for objects archiver
 # note: may be taken from the environment in project configuration makefile
-# note: for handling C++ templates, CC compiler is used to create C++ static libraries
+# note: used by LIB_LD
+# note: create C++ static libraries using C++ compiler - this is needed for handling C++ templates
 ARFLAGS     := -c -r
 CXX_ARFLAGS := -xar
 
 # default values of user-defined cc flags for linking executables and shared libraries
 # note: may be taken from the environment in project configuration makefile
+# note: used by EXE_LDFLAGS, LIB_LDFLAGS, DLL_LDFLAGS from $(CLEAN_BUILD_DIR)/impl/_c.mk
 # '-xs' - allows debugging by dbx after deleting object (.o) files
 LDFLAGS := $(if $(DEBUG),-xs)
 
