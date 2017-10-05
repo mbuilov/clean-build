@@ -84,18 +84,18 @@ endif
 # note: CXX compiler may compile C sources, but also links standard C++ libraries (like libstdc++)
 # $1 - target file: $(call FORM_TRG,$t,$v)
 # $2 - sources: $(TRG_SRC)
-# $t - EXE,LIB,DLL,DRV,KLIB,KDLL,...
+# $t - target type: EXE,LIB,DLL,DRV,KLIB,KDLL,...
 # $v - non-empty variant: R,P,D,S... (one of variants supported by selected toolchain)
 TRG_COMPILER = $(if $(filter $(CXX_MASK),$2),CXX,CC)
 
 # make absolute paths to include directories - we need absolute paths to headers in generated .d dependency file
-# $t - EXE,LIB,DLL,DRV,KLIB,KDLL,...
+# $t - target type: EXE,LIB,DLL,DRV,KLIB,KDLL,...
 # $v - non-empty variant: R,P,D,S... (one of variants supported by selected toolchain)
 # note: assume INCLUDE paths do not contain spaces
 TRG_INCLUDE = $(call fixpath,$(INCLUDE))
 
 # defines for the target
-# $t - EXE,LIB,DLL,DRV,KLIB,KDLL,...
+# $t - target type: EXE,LIB,DLL,DRV,KLIB,KDLL,...
 # $v - non-empty variant: R,P,D,S... (one of variants supported by selected toolchain)
 # note: this macro may be overridden in project configuration makefile, for example:
 # TRG_DEFINES = $(if $(DEBUG),_DEBUG) TARGET_$(TARGET:D=) $(foreach \
@@ -141,7 +141,7 @@ MK_DEFINES_OPTION1 = $(addprefix -D,$1)
 MK_DEFINES_OPTION = $(call DEFINE_ESCAPE_VALUES,$(MK_DEFINES_OPTION1))
 
 # C/C++ compiler and linker flags for the target
-# $t - EXE,LIB,DLL,DRV,KLIB,KDLL,...
+# $t - target type: EXE,LIB,DLL,DRV,KLIB,KDLL,...
 # $v - non-empty variant: R,P,D,S... (one of variants supported by selected toolchain)
 # $(TMD) - T in tool mode, empty otherwise
 # note: these flags should contain values of standard user-defined C/C++ compilers and linker flags, such as
@@ -188,7 +188,7 @@ C_REDEFINE = $(foreach t,$(C_TARGETS),$(if $($t),$(foreach v,$(call GET_VARIANTS
 # $2 - sources:     $(TRG_SRC)
 # $3 - sdeps:       $(TRG_SDEPS)
 # $4 - objdir:      $(call FORM_OBJ_DIR,$t,$v)
-# $t - EXE,DLL,LIB...
+# $t - target type: EXE,DLL,LIB...
 # $v - non-empty variant: R,P,D,S... (one of variants supported by selected toolchain)
 # note: define target-specific variable TRG - an unique namespace name, for use in C_REDEFINE
 # note: STD_TARGET_VARS also changes CB_NEEDED_DIRS, so do not remember its new value here
@@ -247,7 +247,7 @@ ASM_MASK := %.asm
 ASMFLAGS:=
 
 # assembler flags for the target
-# $t - EXE,DLL,LIB...
+# $t - target type: EXE,DLL,LIB...
 # $v - non-empty variant: R,P,D,S... (one of variants supported by selected toolchain)
 # note: these flags should contain value of ASMFLAGS - standard user-defined assembler flags,
 #  that are normally taken from the environment (in project configuration makefile),
@@ -259,7 +259,7 @@ TRG_ASMFLAGS = $($t_ASMFLAGS)
 # $2 - sources:     $(TRG_SRC)
 # $3 - sdeps:       $(TRG_SDEPS)
 # $4 - objdir:      $(call FORM_OBJ_DIR,$t,$v)
-# $t - EXE,DLL,LIB...
+# $t - target type: EXE,DLL,LIB...
 # $v - non-empty variant: R,P,D,S... (one of variants supported by selected toolchain)
 define ASM_TEMPLATE
 $1:$(call OBJ_RULES,ASM,$(filter $(ASM_MASK),$2),$3,$4)
