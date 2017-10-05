@@ -77,9 +77,11 @@ DLL_CXXFLAGS = $($(TMD)CXXFLAGS)
 DLL_LDFLAGS  = $($(TMD)LDFLAGS)
 
 # how to mark symbols exported from a DLL
-DLL_EXPORTS_DEFINE:=
+# note: overridden in $(CLEAN_BUILD_DIR)/compilers/msvc.mk
+DLL_EXPORTS_DEFINE := $(call DEFINE_SPECIAL,__attribute__((visibility("default"))))
 
 # how to mark symbols imported from a DLL
+# note: overridden in $(CLEAN_BUILD_DIR)/compilers/msvc.mk
 DLL_IMPORTS_DEFINE:=
 
 # executable file suffix
@@ -158,7 +160,7 @@ DEP_IMPS = $(foreach d,$(DLLS),$(IMP_PREFIX)$(call DEP_LIBRARY,$1,$2,$d,DLL)$(IM
 # $2 - sources:     $(TRG_SRC)
 # $3 - sdeps:       $(TRG_SDEPS)
 # $4 - objdir:      $(call FORM_OBJ_DIR,$t,$v)
-# $t - EXE or DLL
+# $t - target type: EXE or DLL
 # $v - non-empty variant: R,P,S,...
 # note: target-specific variables are passed to dependencies, so templates for dependent libs/dlls
 #  must set own values of COMPILER, VINCLUDE, VDEFINES, VCFLAGS and other sensible variables
@@ -182,7 +184,7 @@ $(eval define DLL_TEMPLATE$(newline)$(value EXE_TEMPLATE)$(newline)endef)
 # $2 - sources:     $(TRG_SRC)
 # $3 - sdeps:       $(TRG_SDEPS)
 # $4 - objdir:      $(call FORM_OBJ_DIR,$t,$v)
-# $t - LIB
+# $t - target type: LIB
 # $v - non-empty variant: R,P,D,S
 # note: $(CLEAN_BUILD_DIR)/compilers/msvc.mk redefines LIB_TEMPLATE
 define LIB_TEMPLATE
