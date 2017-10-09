@@ -37,28 +37,28 @@
 #   by default WINVARIANT=WINXP, other possible values: $(WINVARIANTS)
 #
 # 2) VS - Visual Studio installation path (without quotes),
-#  may be specified if autoconfiguration based of value(s) of VSINSTALLDIR and VS*COMNTOOLS environment variable(s) fails,
-#  for example: VS=C:\Program Files (x86)\Microsoft Visual Studio 14.0
+#   may be specified if autoconfiguration based of values of VSINSTALLDIR or VS*COMNTOOLS environment variables fails,
+#   for example: VS=C:\Program Files (x86)\Microsoft Visual Studio 14.0
 #
-#  Note: if pre-Visual Studio 2017 installation folder has non-default name, it is not possible
-#   to deduce Visual C++ version automatically - VC_VER must be specified explicitly, e.g. VC_VER=14.0
+#   Note: if pre-Visual Studio 2017 installation folder has non-default name, it is not possible
+#    to deduce Visual C++ version automatically - VC_VER must be specified explicitly, e.g. VC_VER=14.0
 #
-#  Note: for post-Visual Studio 2017, VS variable may be specified together with Visual Studio edition type,
-#   e.g., for Enterprise edition: VS=C:\Program Files\Microsoft Visual Studio\2017\Enterprise
+#   Note: for Visual Studio 2017, VS variable may be specified together with Visual Studio edition type,
+#    e.g., for Enterprise edition: VS=C:\Program Files\Microsoft Visual Studio\2017\Enterprise
 #
-# 3) MSVC - Visual C++ tools path (without quotes), for post-Visual Studio 2017
-#  may be specified instead of VS variable (VS is ignored then),
+# 3) MSVC - Visual C++ tools path (without quotes), for Visual Studio 2017
+#   may be specified instead of VS variable (VS is ignored then),
 #   e.g. MSVC=C:\Program Files\Microsoft Visual Studio\2017\Community\VC\Tools\MSVC
 #     or MSVC=C:\Program Files\Microsoft Visual Studio\2017\Community\VC\Tools\MSVC\14.11.25503
 #
 # 4) VCCL - path to Visual C++ compiler cl.exe
-#  may be specified instead of VS or MSVC variables (they are ignored then),
+#   may be specified instead of VS or MSVC variables (they are ignored then),
 #   e.g. VCCL=C:\Program Files\Microsoft Visual Studio 14.0\VC\bin\cl.exe
 #        VCCL=C:\Program Files\Microsoft Visual Studio 14.0\VC\bin\x86_amd64\cl.exe
 #        VCCL=C:\Program Files\Microsoft Visual Studio\2017\Community\VC\Tools\MSVC\14.11.25503\bin\HostX64\x86\cl.exe
 #
-# 5) VC_VER - Visual C++ version, known values are: 6.0, 7.0, 7.1, 8.0, 9.0, 10.0, 11.0, 12.0, 14.0, 14.10, 14.11
-#  may be specified explicitly if it's not possible to deduce VC_VER automatically
+# 5) VC_VER - Visual C++ version, e.g: 6.0, 7.0, 7.1, 8.0, 9.0, 10.0, 11.0, 12.0, 14.0, 14.10, 14.11
+#   may be specified explicitly if it's not possible to deduce VC_VER automatically
 #
 #################################################################################################################
 
@@ -69,8 +69,8 @@ WINVARIANT := WINXP
 WINVARIANTS := WINXP WINV WIN7 WIN8 WIN81 WIN10
 
 # WINVER_DEFINES - specifies version of Windows API to compile with
+# note: WINVER_DEFINES may be defined as empty in project configuration makefile or in command line
 ifneq (,$(filter undefined environment,$(origin WINVER_DEFINES)))
-
 ifeq (WIN10,$(WINVARIANT))
 WINVER_DEFINES := WINVER=0x0A00 _WIN32_WINNT=0x0A00
 else ifeq (WIN81,$(WINVARIANT))
@@ -88,13 +88,12 @@ else
 $(warning unable to determine WINVER_DEFINES for WINVARIANT=$(WINVARIANT), supported WINVARIANTS=$(WINVARIANTS))
 WINVER_DEFINES:=
 endif
-
 $(warning autoconfigured: WINVER_DEFINES=$(WINVER_DEFINES))
 endif # WINVER_DEFINES
 
 # SUBSYSTEM_VER - minimum Windows version required to run built targets
+# note: SUBSYSTEM_VER may be defined as empty in project configuration makefile or in command line
 ifneq (,$(filter undefined environment,$(origin SUBSYSTEM_VER)))
-
 ifeq (WIN10,$(WINVARIANT))
 SUBSYSTEM_VER := 6.03
 else ifeq (WIN81,$(WINVARIANT))
@@ -112,31 +111,32 @@ else
 $(warning unable to determine SUBSYSTEM_VER for WINVARIANT=$(WINVARIANT), supported WINVARIANTS=$(WINVARIANTS))
 SUBSYSTEM_VER:=
 endif
-
 $(warning autoconfigured: SUBSYSTEM_VER=$(SUBSYSTEM_VER))
 endif # SUBSYSTEM_VER
 
-# for pre-Visual Studio 2017, determine tool prefix for TCPU/CPU combination
-# $1 - target CPU, e.g. x86, x86_64 or arm
+# for pre-Visual Studio 2017
+# determine MSVC++ tools prefix for given TCPU/CPU combination
 #
-# TCPU\CPU |   x86       x86_64      arm
-# ---------|----------------------------------
-# x86      |  <none>     x86_amd64/ x86_arm/
-# x86_64   |  amd64_x86/ amd64/     amd64_arm/
+# TCPU\CPU |  x86        x86_64      arm
+# ---------|---------------------------------
+# x86      | <none>     x86_amd64/ x86_arm/
+# x86_64   | amd64_x86/ amd64/     amd64_arm/
 #
+# $1 - target CPU
 VC_TOOL_PREFIX_2005 = $(addsuffix /,$(filter-out x86_x86,$(subst amd64_amd64,amd64,$(TCPU:x86_64=amd64)_$(1:x86_64=amd64))))
 
-# for post-Visual Studio 2017, determine tool prefix for TCPU/CPU combination
-# $1 - target CPU, e.g. x86, x86_64 or arm
+# for Visual Studio 2017
+# determine MSVC++ tools prefix for given TCPU/CPU combination
 #
-# TCPU\CPU |   x86            x86_64      arm
-# ---------|----------------------------------
-# x86      |  HostX86/x86/ HostX86/x64/ HostX86/arm/
-# x86_64   |  HostX64/x86/ HostX64/x64/ HostX64/arm/
+# TCPU\CPU |   x86          x86_64        arm
+# ---------|---------------------------------------
+# x86      | HostX86/x86/ HostX86/x64/ HostX86/arm/
+# x86_64   | HostX64/x86/ HostX64/x64/ HostX64/arm/
 #
+# $1 - target CPU
 VC_TOOL_PREFIX_2017 = Host$(subst x,X,$(TCPU:x86_64=x64))/$(1:x86_64=x64)/
 
-# reset variables, if they are not defined in project configuration makefile or in command line
+# reset VCCL, if it's not defined in project configuration makefile or in command line
 ifneq (,$(filter undefined environment,$(origin VCCL)))
 VCCL:=
 else ifneq (,$(findstring $(space),$(VCCL)))
@@ -146,18 +146,21 @@ override VCCL := "$(VCCL)"
 endif
 endif
 
-# if VCCL is defined, then may deduce values of VCLIB and VCLIB from it
+# deduce values of VCLIB and VCLIB from $(VCCL)
 VCLIB  = $(call ifaddq,$(subst ?, ,$(addsuffix lib.exe,$(dir $(patsubst "%",%,$(subst $(space),?,$(VCCL)))))))
 VCLINK = $(call ifaddq,$(subst ?, ,$(addsuffix link.exe,$(dir $(patsubst "%",%,$(subst $(space),?,$(VCCL)))))))
 
+# reset VC_VER, if it's not defined in project configuration makefile or in command line
+VC_VER:=
+
 # we need next MSVC++ variables
 # (they are may be defined either in project configuration makefile or in command line)
-ifneq (,$(filter undefined environment,$(foreach v,VC_VER VCLIBPATH VCINCLUDE,$(origin $v)))$(if $(VCCL),,1))
+# note: VCLIBPATH or VCINCLUDE may be defined as <empty>
+ifneq (,$(filter undefined environment,$(foreach v,VCLIBPATH VCINCLUDE,$(origin $v)))$(if $(VCCL),,1)$(if $(VC_VER),,2))
 
 # reset variables, if they are not defined in project configuration makefile or in command line
 VS:=
 MSVC:=
-VC_VER:=
 VCLIBPATH:=
 VCINCLUDE:=
 
@@ -220,12 +223,14 @@ ifndef VCCL
 ifndef MSVC
 
 # if VS is not specified in project configuration makefile or in command line,
-#  try to deduce its value from $(VCCL) or from environment variable VSINSTALLDIR
+#  try to determine its value from environment variables VSINSTALLDIR or VS*COMNTOOLS
 ifndef VS
 
 # VSINSTALLDIR is normally set by the vcvars32.bat, e.g. VSINSTALLDIR=C:\Program Files (x86)\Microsoft Visual Studio 12.0\
 # note: likely with trailing slash
 VS := $(VSINSTALLDIR)
+
+endif
 
 ifndef VS
 
@@ -240,29 +245,26 @@ VS_COMNS := $(subst \,/,$(patsubst %\Common7\Tools\,%,$(foreach v,$(call reverse
 # find file in the paths
 # $1 - file to find, e.g. VC/bin/cl.exe
 # $2 - paths to look in, e.g. C:/Program?Files/Microsoft?Visual?Studio/2017/Community C:/Program?Files/Microsoft?Visual?Studio?14.0
-# result: C:\Program Files\Microsoft Visual Studio 14.0\VC\bin\cl.exe
+# result: C:/Program Files/Microsoft Visual Studio 14.0/VC/bin/cl.exe
 VS_FIND_FILE = $(if $2,$(call VS_FIND_FILE1,$1,$2,$(wildcard $(subst ?,\ ,$(firstword $2))/$1)))
-VS_FIND_FILE1 = $(if $3,$(subst /,\,$3),$(call VS_FIND_FILE,$1,$(wordlist 2,999999,$2)))
+VS_FIND_FILE1 = $(if $3,$3,$(call VS_FIND_FILE,$1,$(wordlist 2,999999,$2)))
 
-# try to find post-Visual Studio 2017 cl.exe in the paths of VS*COMNTOOLS variables,
-# e.g. C:\Program Files\Microsoft Visual Studio\2017\Community\VC\Tools\MSVC\14.11.25503\bin\HostX86\x86\cl.exe
+# try to find Visual Studio 2017 cl.exe in the paths of VS*COMNTOOLS variables,
+# e.g. C:/Program Files/Microsoft Visual Studio/2017/Community/VC/Tools/MSVC/14.11.25503/bin/HostX86/x86/cl.exe
 VCCL_2017_PREFIXED := /bin/$(call VS_TOOL_PREFIX_2017,$(CPU))cl.exe
 VCCL := $(call VS_FIND_FILE,VC/Tools/MSVC/*$(VCCL_2017_PREFIXED),$(VS_COMNS))
 
 ifdef VCCL
 
 # there may be more than one compiler found - take the latest one, e.g.
-#  VCCL=C:\Program Files\Microsoft Visual Studio\2017\Community\VC\Tools\MSVC\14.10.25017\bin\HostX86\x64\cl.exe \
-#       C:\Program Files\Microsoft Visual Studio\2017\Community\VC\Tools\MSVC\14.11.25503\bin\HostX86\x64\cl.exe
+#  VCCL=C:/Program Files/Microsoft Visual Studio/2017/Community/VC/Tools/MSVC/14.10.25017/bin/HostX86/x64/cl.exe /
+#       C:/Program Files/Microsoft Visual Studio/2017/Community/VC/Tools/MSVC/14.11.25503/bin/HostX86/x64/cl.exe
 VCCL_2017_VER := $(patsubst VC_Tools_MSVC_%,%,$(lastword $(sort $(filter \
-  VC_Tools_MSVC_%,$(subst \, ,$(subst \VC\Tools\MSVC\,\VC_Tools_MSVC_,$(VCCL)))))))
+  VC_Tools_MSVC_%,$(subst /, ,$(subst /VC/Tools/MSVC/,/VC_Tools_MSVC_,$(VCCL)))))))
 
-# /bin/HostX86/x64/cl.exe -> \bin\HostX86\x64\cl.exe
-VCCL_2017_PREFIXED := $(subst /,\,$(VCCL_2017_PREFIXED))
-
-# ?aaa\14.10.25017\bin\HostX86\x64\cl.exe?bbb\14.11.25503\bin\HostX86\x64\cl.exe -> ?aaa\14.10.25017 ?bbb\14.11.25503
-VCCL := $(call ifaddq,$(subst ?, ,$(patsubst ?%,%,$(filter %\VC\Tools\MSVC\$(VCCL_2017_VER),?$(subst \
-  $(VCCL_2017_PREFIXED), ,$(subst $(space),?,$(VCCL))))))$(VCCL_2017_PREFIXED))
+# ?aaa/14.10.25017/bin/HostX86/x64/cl.exe?bbb/14.11.25503/bin/HostX86/x64/cl.exe -> ?aaa/14.10.25017 ?bbb/14.11.25503
+VCCL := $(call ifaddq,$(subst /,\,$(subst ?, ,$(patsubst ?%,%,$(filter %/VC/Tools/MSVC/$(VCCL_2017_VER),?$(subst \
+  $(VCCL_2017_PREFIXED), ,$(subst $(space),?,$(VCCL))))))$(VCCL_2017_PREFIXED)))
 
 $(warning autoconfigured: VCCL=$(VCCL))
 
@@ -276,16 +278,34 @@ else ifneq ($(VC_VER),$(VC_VER_AUTO))
 $(warning VC_VER=$(VC_VER) do not matches autoconfigured one: $(VC_VER_AUTO))
 endif
 
-else
+else # !VCCL
 
-# C:\Program Files\Microsoft Visual Studio 14.0\VC\bin\amd64_x86\cl.exe
-
-# try to find post-Visual Studio 2005 cl.exe in the paths of VS*COMNTOOLS variables
-# e.g. C:\Program Files\Microsoft Visual Studio 14.0\VC\bin\x86_arm\cl.exe
+# try to find Visual Studio 2005 and later cl.exe in the paths of VS*COMNTOOLS variables
+# e.g. C:/Program Files/Microsoft Visual Studio 14.0/VC/bin/x86_arm/cl.exe
 VCCL_2005_PREFIXED := $(call VC_TOOL_PREFIX_2005,$(CPU))cl.exe
 VCCL := $(call VS_FIND_FILE,VC/bin/$(VCCL_2005_PREFIXED),$(VS_COMNS))
 
 ifdef VCCL
+
+# VCCL="C:\Program Files\Microsoft Visual Studio 14.0\VC\bin\x86_arm\cl.exe"
+VCCL := $(call ifaddq,$(subst /,\,$(VCCL)))
+
+$(warning autoconfigured: VCCL=$(VCCL))
+
+MSVCDir=C:\PROG~FBU\MICR~2ZC\VC98
+
+"%VS110COMNTOOLS%\vsvars32.bat"
+"%VS100COMNTOOLS%\vsvars32.bat"
+"%VS90COMNTOOLS%\vsvars32.bat"
+"%VS80COMNTOOLS%\vsvars32.bat"
+"%VS71COMNTOOLS%\vsvars32.bat"
+"%VS70COMNTOOLS%\vsvars32.bat"
+"%VCToolkitInstallDir%\vcvars32.bat"
+
+
+# also try to define Visual C++ version
+VC_VER_AUTO := $(subst $(space),.,$(wordlist 1,2,$(subst ., ,$(VCCL_2017_VER))))
+
 .............
 
 
