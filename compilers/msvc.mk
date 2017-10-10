@@ -26,37 +26,25 @@ ifeq (,$(filter-out undefined environment,$(origin EXPORTS_TEMPLATE)))
 include $(dir $(lastword $(MAKEFILE_LIST)))msvc_exp.mk
 endif
 
+# configure paths to compiler/linker and system libraries/headers, define variables:
+# WINVER_DEFINES - version of Windows API to compile with, e.g.: WINVER=0x0501 _WIN32_WINNT=0x0501
+# SUBSYSTEM_VER  - minimum Windows version required to run built targets, may be empty
+# VC_VER         - version of Visual C++ we are using - see $(CLEAN_BUILD_DIR)/compilers/msvc_cmn.mk 'MSVC++ versions' table
+# VCCL           - path to cl.exe, should be in double-quotes if contains spaces
+# VCLIB          - path to lib.exe, should be in double-quotes if contains spaces
+# VCLINK         - path to link.exe, should be in double-quotes if contains spaces
+# VCLIBPATH      - paths to Visual C++ libraries, spaces must be replaced with ?
+# VCINCLUDE      - paths to Visual C++ headers, spaces must be replaced with ?
+# UMLIBPATH      - paths to user-mode libraries, spaces must be replaced with ?
+# UMINCLUDE      - paths to user-mode headers, spaces must be replaced with ?
+# TVCCL          - VCCL for the tool mode
+# TVCLIB         - VCLIB for the tool mode
+# TVCLINK        - VCLINK for the tool mode
+# TVCLIBPATH     - VCLIBPATH for the tool mode
+# TUMLIBPATH     - UMLIBPATH for the tool mode
+ifeq (,$(filter-out undefined environment,$(origin VC_TOOL_PREFIX_2017)))
 include $(dir $(lastword $(MAKEFILE_LIST)))msvc_conf.mk
-
-
-
-
-# version of Visual C++ we are using - see $(CLEAN_BUILD_DIR)/compilers/msvc_cmn.mk 'Visual C++ versions' table
-# assume we are using Visual C++ 6.0
-VC_VER := 6
-
-# paths compiler/linker and system libraries/headers
-#  - if not defined in project configuration makefile on in command line, try to autoconfigure
-#
-# VCCL      - path to cl.exe, should be in double-quotes if contains spaces
-# VCLIB     - path to lib.exe, should be in double-quotes if contains spaces
-# VCLINK    - path to link.exe, should be in double-quotes if contains spaces
-# VCLIBPATH - paths to Visual C++ libraries, spaces must be replaced with ?
-# VCINCLUDE - paths to Visual C++ headers, spaces must be replaced with ?
-# UMLIBPATH - paths to user-mode libraries, spaces must be replaced with ?
-# UMINCLUDE - paths to user-mode headers, spaces must be replaced with ?
-#
-ifneq (,$(filter undefined environment,$(foreach d,VCCL VCLIB VCLINK VCLIBPATH VCINCLUDE UMLIBPATH UMINCLUDE,$(origin $d))))
-include $(dir $(lastword $(MAKEFILE_LIST)))msvc_auto.mk
 endif
-
-# version of windows api to compile with
-# note: 0x0501 - WinXP, 0x0600 - Vista, etc.
-##WINVER_DEFINES := WINVER=0x0501 _WIN32_WINNT=0x0501
-
-# minimum version of the operating system required to run built executables and dlls
-# note: 5.01 - WinXP(x86), 5.02 - WinXP(x64)
-##SUBSYSTEM_VER := $(if $(CPU:%64=),5.01,5.02)
 
 # default subsystem type for EXE and DLL: CONSOLE, WINDOWS, etc.
 DEF_SUBSYSTEM_TYPE := CONSOLE
@@ -698,8 +686,7 @@ endif # clean
 $(call SET_GLOBAL,MP_BUILD FORCE_SYNC_PDB,0)
 
 # protect variables from modifications in target makefiles
-$(call SET_GLOBAL,VC_VER VCCL VCLIB VCLINK VCLIBPATH VCINCLUDE UMLIBPATH UMINCLUDE TVCCL TVCLIB TVCLINK TVCLIBPATH TUMLIBPATH \
-  WINVER_DEFINES SUBSYSTEM_VER DEF_SUBSYSTEM_TYPE C_PREPARE_MSVC_APP_VARS \
+$(call SET_GLOBAL, DEF_SUBSYSTEM_TYPE C_PREPARE_MSVC_APP_VARS \
   CFLAGS CXXFLAGS ARFLAGS LDFLAGS TCFLAGS TCXXFLAGS TARFLAGS TLDFLAGS \
   WIN_SUPPORTED_VARIANTS WIN_VARIANT_SUFFIX WIN_VARIANT_CFLAGS \
   TRG_SUBSYSTEM SUBSYSTEM_OPTION MANIFEST_EMBED_OPTION APPLIBPATH TAPPLIBPATH CMN_LDFLAGS DEF_EXE_LDFLAGS DEF_DLL_LDFLAGS \
