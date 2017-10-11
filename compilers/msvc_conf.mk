@@ -16,6 +16,7 @@
 # VCLINK    - path to link.exe              (must be in double-quotes if contains spaces)
 # VCLIBPATH - paths to Visual C++ libraries (spaces must be replaced with ?)
 # VCINCLUDE - paths to Visual C++ headers   (spaces must be replaced with ?)
+# SDK_VER   - Windows SDK version, known values see below
 # UMLIBPATH - paths to user-mode libraries  (spaces must be replaced with ?)
 # UMINCLUDE - paths to user-mode headers    (spaces must be replaced with ?)
 #
@@ -27,6 +28,7 @@
 # VCLINK    := "C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\bin\link.exe"
 # VCLIBPATH := C:\Program?Files?(x86)\Microsoft?Visual?Studio?14.0\VC\lib
 # VCINCLUDE := C:\Program?Files?(x86)\Microsoft?Visual?Studio?14.0\VC\include
+# SDK_VER   := 8.1a
 # UMLIBPATH := C:\Program?Files?(x86)\Windows?Kits\10\lib\10.0.15063.0\um\x86
 # UMINCLUDE := C:\Program?Files?(x86)\Windows?Kits\10\Include\10.0.15063.0\ucrt
 
@@ -71,11 +73,23 @@
 #
 # 6) SDK - Software Development Kit path (without quotes)
 #   may be specified if autoconfiguration based on values of environment variables fails, e.g.:
-#     SDK=C:\Program Files\Microsoft SDKs\Windows\v6.0A
 #     SDK=C:\Program Files\Microsoft SDKs\Windows\v7.1A
+#     SDK=C:\Program Files\Windows Kits\8.1
 # 
-# 7) WDK - 
+# 7) SDK_VER - Windows SDK version, e.g: 6.0 6.0a 6.1 7.0 7.0a 7.1 7.1a 8.0 8.0a 8.1 8.1a 10
+#   may be specified explicitly if it's not possible to deduce SDK_VER automatically
+"/Microsoft SDKs/Windows/v6.0"
+"/Microsoft SDKs/Windows/v6.0a"
+"/Microsoft SDKs/Windows/v6.1"
+"/Microsoft SDKs/Windows/v7.0"
+"/Microsoft SDKs/Windows/v7.0a"
+"/Microsoft SDKs/Windows/v7.1"
+"/Microsoft SDKs/Windows/v7.1a"
+"/Windows Kits/8.0/Lib/win8/um/x86/kernel32.Lib"
+"/Windows Kits/8.1/Lib/winv6.3/um/x86/kernel32.Lib"
 
+
+#
 #################################################################################################################
 
 # By default, autoconfigure for Windows XP
@@ -450,7 +464,7 @@ ifndef VCCL
 ifndef MSVC
 ifndef VS
 
-  # check "Program Files" and "Program Files (x86)" directories and define VCCL
+  # at last, check "Program Files" and "Program Files (x86)" directories and define VCCL
 
   # get list of Visual Studio versions
   # $1 - C:/Program?Files
@@ -1088,12 +1102,45 @@ endif
 # note: UMLIBPATH or UMINCLUDE may be defined as <empty>, so do not reset them
 ifneq (,$(filter undefined environment,$(foreach v,UMLIBPATH UMINCLUDE,$(origin $v))))
 
-# reset variables, if they are not defined in project configuration makefile or in command line
+# reset variable, if it is not defined in project configuration makefile or in command line
 SDK:=
-WDK:=
+
+ifndef SDK
+
+  # WindowsSdkDir is normally set by the vcvars32.bat, e.g.:
+  #  WindowsSdkDir=C:\Program Files (x86)\Windows Kits\10\
+  # note: likely with trailing slash
+  ifneq (undefined,$(origin WindowsSdkDir))
+    SDK := $(WindowsSdkDir)
+
+  endif
+endif
+
+ifndef SDK
+
+  # at last, check "Program Files" and "Program Files (x86)" directories and define UMLIBPATH/UMINCLUDE
+
+  # get list of Windows Kits versions
+  # $1 - C:/Program?Files
+  # result: 10 8.0 8.1
+  KITS_FIND_VERSIONS = $(patsubst %/.,%,$(subst \
+    ?$1/Windows?Kits/, ,?$(subst $(space),?,$(wildcard $(subst ?,\ ,$1)/Windows\ Kits/*/.))))
+
+  # get list of Microsoft SDKs versions
+  # $1 - C:/Program?Files
+  # result: 5.0 6.0a 7.1a
+  SDKS_FIND_VERSIONS = $(patsubst %/.,%,$(subst \
+    ?$1/Microsoft?SDKs/Windows/v, ,?$(subst $(space),?,$(wildcard $(subst ?,\ ,$1)/Microsoft\ SDKs/Windows/v*/.))))
+
+  # filter and sort versions of Visual Studio 2005-2015
+  # $1 - .NET .NET?2003 8 9.0 10.0 11.0 12.0 14.0
+  # result: 14.0 12.0 11.0 10.0 9.0 8
+  KITS_SORT_VERSIONS_2012 = $(addsuffix .0,$(call reverse,$(call sort_numbers,$(subst \
+    .0,,$(filter 14.0 12.0 11.0 10.0 9.0,$1))))) $(filter 8,$1)
+
 
 # SDK:=C:\Program Files (x86)\Microsoft SDKs\Windows\v7.1A
-# WDK:=C:\Program Files (x86)\Windows Kits\8.1
+# SDK:=C:\Program Files (x86)\Windows Kits\8.1
 
 
 
