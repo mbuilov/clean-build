@@ -28,7 +28,7 @@
 # VCLINK    := "C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\bin\link.exe"
 # VCLIBPATH := C:\Program?Files?(x86)\Microsoft?Visual?Studio?14.0\VC\lib
 # VCINCLUDE := C:\Program?Files?(x86)\Microsoft?Visual?Studio?14.0\VC\include
-# SDK_VER   := 8.1a
+# SDK_VER   := 10
 # UMLIBPATH := C:\Program?Files?(x86)\Windows?Kits\10\lib\10.0.15063.0\um\x86
 # UMINCLUDE := C:\Program?Files?(x86)\Windows?Kits\10\Include\10.0.15063.0\ucrt
 
@@ -187,6 +187,11 @@ VCCL_GET_HOST_2005 = $(filter-out $(NATIVE_CPU),$(firstword $(subst _, ,$1)))
 #
 # $1 - target CPU
 VC_TOOL_PREFIX_2017 = Host$(subst x,X,$(TCPU:x86_64=x64))/$(1:x86_64=x64)/
+
+# get paths to "Program Files" and "Program Files (x86)" directories
+# result: C:/Program?Files C:/Program?Files?(x86)
+PROGRAM_FILES_DIRS = $(foreach v,ProgramFiles ProgramFiles$(open_brace)x86$(close_brace),$(if \
+  $(filter-out undefined,$(origin $v)),$(subst $(space),?,$(subst \,/,$($v)))))
 
 # reset VCCL, if it's not defined in project configuration makefile or in command line
 ifneq (,$(filter undefined environment,$(origin VCCL)))
@@ -467,10 +472,10 @@ ifndef VS
   # at last, check "Program Files" and "Program Files (x86)" directories and define VCCL
 
   # get list of Visual Studio versions
-  # $1 - C:/Program?Files
+  # $1 - C:/Program?Files/ C:/Program?Files?(x86)/
   # result: .NET .NET?2003 8 9.0 10.0 11.0 12.0 14.0
-  VS_FIND_VERSIONS = $(patsubst %/.,%,$(subst \
-    ?$1/Microsoft?Visual?Studio?, ,?$(subst $(space),?,$(wildcard $(subst ?,\ ,$1)/Microsoft\ Visual\ Studio\ */.))))
+  VS_FIND_VERSIONS = $(patsubst %/.,%,$(foreach d,$1,$(subst ?$dMicrosoft?Visual?Studio?, ,?$(subst \
+    $(space),?,$(wildcard $(subst ?,\ ,$d)Microsoft\ Visual\ Studio\ */.)))))
 
   # filter and sort versions of Visual Studio 2005-2015
   # $1 - .NET .NET?2003 8 9.0 10.0 11.0 12.0 14.0
@@ -479,40 +484,40 @@ ifndef VS
     .0,,$(filter 14.0 12.0 11.0 10.0 9.0,$1))))) $(filter 8,$1)
 
   # search cl.exe, checking the latest Visual Studio version directories first
-  # $1 - C:/Program?Files
+  # $1 - C:/Program?Files/ C:/Program?Files?(x86)/
   # $2 - VC/bin/x86_arm/cl.exe
   # result: C:/Program Files/Microsoft Visual Studio 14.0/VC/bin/x86_arm/cl.exe
   VS_SEARCH_OLD_CL = $(call VS_SEARCH_OLD_CL1,$(VS_FIND_VERSIONS),$1,$2)
 
   # $1 - .NET .NET?2003 8 9.0 10.0 11.0 12.0 14.0
-  # $2 - C:/Program?Files
+  # $2 - C:/Program?Files/ C:/Program?Files?(x86)/
   # $3 - VC/bin/x86_arm/cl.exe
   VS_SEARCH_OLD_CL1 = $(call VS_SEARCH_OLD_CL2,$1,$2,$(call \
-    VS_FIND_FILE,$3,$(patsubst %,$2/Microsoft?Visual?Studio?%/,$(VS_SORT_VERSIONS_2005))))
+    VS_FIND_FILE,$3,$(foreach v,$(VS_SORT_VERSIONS_2005),$(addsuffix Microsoft?Visual?Studio?$v/,$2))))
 
   # $1 - .NET .NET?2003 8 9.0 10.0 11.0 12.0 14.0
-  # $2 - C:/Program?Files
+  # $2 - C:/Program?Files/ C:/Program?Files?(x86)/
   # $3 - result of $(VS_FIND_FILE)
   VS_SEARCH_OLD_CL2 = $(if $3,$3,$(if \
-    $(filter $(NATIVE_CPU),$(CPU)),$(call VS_SEARCH_OLD_CL3,$1,$2,$(if $(filter .NET?2003,$1),$(wildcard \
-    $(subst ?,\ ,$2)/Microsoft\ Visual\ Studio\ .NET\ 2003/VC7/bin/cl.exe)))))
+    $(filter $(NATIVE_CPU),$(CPU)),$(call VS_SEARCH_OLD_CL3,$1,$2,$(if $(filter .NET?2003,$1),$(call \
+    VS_FIND_FILE,VC7/bin/cl.exe,$(addsuffix Microsoft?Visual?Studio?.NET?2003/,$2))))))
 
   # $1 - .NET .NET?2003 8 9.0 10.0 11.0 12.0 14.0
-  # $2 - C:/Program?Files
-  # $3 - result of $(wildcard)
-  VS_SEARCH_OLD_CL3 = $(if $3,$3,$(call VS_SEARCH_OLD_CL4,$1,$2,$(wildcard \
-    $(subst ?,\ ,$2)/Microsoft\ Visual\ C++\ Toolkit\ 2003/bin/cl.exe)))
+  # $2 - C:/Program?Files/ C:/Program?Files?(x86)/
+  # $3 - result of $(VS_FIND_FILE)
+  VS_SEARCH_OLD_CL3 = $(if $3,$3,$(call VS_SEARCH_OLD_CL4,$1,$2,$(call \
+    VS_FIND_FILE,bin/cl.exe,$(addsuffix Microsoft?Visual?C++?Toolkit?2003/,$2))))
 
   # $1 - .NET .NET?2003 8 9.0 10.0 11.0 12.0 14.0
-  # $2 - C:/Program?Files
-  # $3 - result of $(wildcard)
-  VS_SEARCH_OLD_CL4 = $(if $3,$3,$(call VS_SEARCH_OLD_CL5,$2,$(if $(filter .NET,$1),$(wildcard \
-    $(subst ?,\ ,$2)/Microsoft\ Visual\ Studio\ .NET/VC7/bin/cl.exe))))
+  # $2 - C:/Program?Files/ C:/Program?Files?(x86)/
+  # $3 - result of $(VS_FIND_FILE)
+  VS_SEARCH_OLD_CL4 = $(if $3,$3,$(call VS_SEARCH_OLD_CL5,$2,$(if $(filter .NET,$1),$(call \
+    VS_FIND_FILE,VC7/bin/cl.exe,$(addsuffix Microsoft?Visual?Studio?.NET/,$2)))))
 
-  # $1 - C:/Program?Files
-  # $2 - result of $(wildcard)
-  VS_SEARCH_OLD_CL5 = $(if $2,$2,$(wildcard \
-    $(subst ?,\ ,$1)/Microsoft\ Visual\ Studio/VC98/Bin/cl.exe))
+  # $1 - C:/Program?Files/ C:/Program?Files?(x86)/
+  # $2 - result of $(VS_FIND_FILE)
+  VS_SEARCH_OLD_CL5 = $(if $2,$2,$(call \
+    VS_FIND_FILE,VC98/Bin/cl.exe,$(addsuffix Microsoft?Visual?Studio/,$1)))
 
   # select appropriate compiler for the $(CPU)
   VCCL_2017_PREFIXED := bin/$(call VC_TOOL_PREFIX_2017,$(CPU))cl.exe
@@ -522,26 +527,17 @@ ifndef VS
   VCCL_2005_PREFIXED := VC/bin/$(call VC_TOOL_PREFIX_2005,$(CPU))cl.exe
 
   # find cl.exe, checking the latest Visual Studio versions first
-  # $1 - C:/Program?Files
+  # $1 - C:/Program?Files/ C:/Program?Files?(x86)/
   # first look for C:/Program Files/Microsoft Visual Studio/2017/Community/VC/Tools/MSVC/14.11.25503/bin/HostX86/x86/cl.exe
-  VS_SEARCH_CL = $(call VS_SEARCH_CL1,$1,$(call VS_2017_SELECT_LATEST_CL,$(wildcard \
-    $(subst ?,\ ,$1)/Microsoft\ Visual\ Studio/*/*/VC/Tools/MSVC/*/$(VCCL_2017_PREFIXED)),$(VCCL_2017_PREFIXED)))
+  VS_SEARCH_CL = $(call VS_SEARCH_CL1,$1,$(call VS_2017_SELECT_LATEST_CL,$(call \
+    VS_FIND_FILE,Microsoft\ Visual\ Studio/*/*/VC/Tools/MSVC/*/$(VCCL_2017_PREFIXED),$1),$(VCCL_2017_PREFIXED)))
 
-  # $1 - C:/Program?Files
+  # $1 - C:/Program?Files/ C:/Program?Files?(x86)/
   # $2 - result of $(VS_2017_SELECT_LATEST_CL)
   VS_SEARCH_CL1 = $(if $2,$2,$(call VS_SEARCH_OLD_CL,$1,$(VCCL_2005_PREFIXED)))
 
-  # check "Program Files" directory
-  ifneq (undefined,$(origin ProgramFiles))
-    VCCL := $(call VS_SEARCH_CL,$(subst $(space),?,$(subst \,/,$(ProgramFiles))))
-  endif
-
-  ifndef VCCL
-    # check "Program Files (x86)" directory
-    ifneq (undefined,$(origin ProgramFiles$(open_brace)x86$(close_brace)))
-      VCCL := $(call VS_SEARCH_CL,$(subst $(space),?,$(subst \,/,$(ProgramFiles$(open_brace)x86$(close_brace)))))
-    endif
-  endif
+  # check "Program Files" and "Program Files (x86)" directories
+  VCCL := $(call VS_SEARCH_CL,$(addsuffix /,$(PROGRAM_FILES_DIRS)))
 
   ifdef VCCL
     # C:/Program Files/Microsoft Visual Studio/2017/Community/VC/Tools/MSVC/14.11.25503/bin/HostX86/x86/cl.exe
@@ -579,7 +575,7 @@ endif
 ifndef VCCL
 ifndef MSVC
 
-  # define VCCL, VC_VER or MSVC from $(VS)
+  # define VCCL and, optionally, VC_VER from $(VS)
 
   # get Visual Studio folder name, e.g.:
   #  VS_PATH=C:/Program?Files/Microsoft?Visual?Studio?14.0
@@ -613,17 +609,16 @@ ifndef MSVC
     # select appropriate compiler for the $(CPU)
     VCCL_2017_PREFIXED := bin/$(call VC_TOOL_PREFIX_2017,$(CPU))cl.exe
 
-    # e.g. MSVC=C:\Program Files\Microsoft Visual Studio\2017\Community\VC
-    MSVC := $(subst /,\,$(call VS_DEDUCE_MSVC,$(wildcard $(VS_WILD)/*/VC/Tools/MSVC/*/$(VCCL_2017_PREFIXED))))
+    # e.g. VCCL=C:/Program Files/Microsoft Visual Studio/2017/Community/VC/Tools/MSVC/14.11.25503/bin/HostX64/x86/cl.exe
+    VCCL := $(call VS_DEDUCE_VCCL,$(wildcard $(VS_WILD)/*/VC/Tools/MSVC/*/$(VCCL_2017_PREFIXED)))
 
-    # if there are multiple Visual Studio editions, select the first one
+    # if there are multiple Visual Studio editions, select which have the latest compiler,
     #  or may be VS specified with Visual Studio edition type?
     # $1 - C:/Program Files/Microsoft Visual Studio/2017/Community/VC/Tools/MSVC/14.11.25503/bin/HostX64/x86/cl.exe
-    VS_DEDUCE_MSVC = $(subst ?, ,$(addsuffix /VC,$(firstword \
-      $(subst /VC/Tools/MSVC/, ,$(subst $(space),?,$(if $1,$1,$(wildcard \
-      $(VS_WILD)/VC/Tools/MSVC/*/$(VCCL_2017_PREFIXED))))))))
+    VS_DEDUCE_VCCL = $(call VS_2017_SELECT_LATEST_CL,$(if $1,$1,$(wildcard \
+      $(VS_WILD)/VC/Tools/MSVC/*/$(VCCL_2017_PREFIXED))),$(VCCL_2017_PREFIXED))
 
-    # if MSVC is defined, extract VC_VER and VCCL from it below
+    # if VCCL is defined, extract VC_VER from it below
   endif
 
   ifdef VCCL
@@ -633,7 +628,7 @@ ifndef MSVC
     endif
     VCCL := $(call ifaddq,$(subst /,\,$(VCCL)))
     $(warning autoconfigured: VCCL=$(VCCL))
-  else ifndef MSVC
+  else
     $(error unable to autoconfigure for TCPU/CPU=$(TCPU)/$(CPU) on NATIVE_CPU=$(NATIVE_CPU) with VS=$(VS),\
 please specify either MSVC or VCCL, e.g.:$(newline)$(if \
 ,)MSVC=C:\Program Files\Microsoft Visual Studio\VC98$(newline)$(if \
@@ -1155,46 +1150,6 @@ endif
 # protect variables from modifications in target makefiles
 $(call SET_GLOBAL,WINVARIANT WINVARIANTS WINVER_DEFINES SUBSYSTEM_VER VC_TOOL_PREFIX_2005 VC_LIB_PREFIX_2005 VCCL_GET_HOST_2005 \
   VC_TOOL_PREFIX_2017 VCCL VC_VER VC_LIB_TYPE_ONECORE VC_LIB_TYPE_STORE VCLIBPATH VCINCLUDE VCLIB VCLINK TVCCL TVCLIBPATH TVCLIB TVCLINK)
-
-
-/c/Program Files (x86)/Windows Kits/10/Lib/10.0.10240.0/um/arm/kernel32.Lib
-/c/Program Files (x86)/Windows Kits/10/Lib/10.0.10240.0/um/arm64/kernel32.Lib
-/c/Program Files (x86)/Windows Kits/10/Lib/10.0.10240.0/um/x64/kernel32.Lib
-/c/Program Files (x86)/Windows Kits/10/Lib/10.0.10240.0/um/x86/kernel32.Lib
-/c/Program Files (x86)/Windows Kits/10/Lib/10.0.10586.0/um/arm/kernel32.Lib
-/c/Program Files (x86)/Windows Kits/10/Lib/10.0.10586.0/um/arm64/kernel32.Lib
-/c/Program Files (x86)/Windows Kits/10/Lib/10.0.10586.0/um/x64/kernel32.Lib
-/c/Program Files (x86)/Windows Kits/10/Lib/10.0.10586.0/um/x86/kernel32.Lib
-/c/Program Files (x86)/Windows Kits/10/Lib/10.0.14393.0/um/arm/kernel32.Lib
-/c/Program Files (x86)/Windows Kits/10/Lib/10.0.14393.0/um/arm64/kernel32.Lib
-/c/Program Files (x86)/Windows Kits/10/Lib/10.0.14393.0/um/x64/kernel32.Lib
-/c/Program Files (x86)/Windows Kits/10/Lib/10.0.14393.0/um/x86/kernel32.Lib
-/c/Program Files (x86)/Windows Kits/10/Lib/10.0.15063.0/um/arm/kernel32.Lib
-/c/Program Files (x86)/Windows Kits/10/Lib/10.0.15063.0/um/arm64/kernel32.Lib
-/c/Program Files (x86)/Windows Kits/10/Lib/10.0.15063.0/um/x64/kernel32.Lib
-/c/Program Files (x86)/Windows Kits/10/Lib/10.0.15063.0/um/x86/kernel32.Lib
-/c/Program Files (x86)/Windows Kits/8.0/Lib/win8/um/arm/kernel32.Lib
-/c/Program Files (x86)/Windows Kits/8.0/Lib/win8/um/x64/kernel32.Lib
-/c/Program Files (x86)/Windows Kits/8.0/Lib/win8/um/x86/kernel32.Lib
-/c/Program Files (x86)/Windows Kits/8.1/Lib/winv6.3/um/arm/kernel32.Lib
-/c/Program Files (x86)/Windows Kits/8.1/Lib/winv6.3/um/x64/kernel32.Lib
-/c/Program Files (x86)/Windows Kits/8.1/Lib/winv6.3/um/x86/kernel32.Lib
-/c/opt/WDK71/lib/win7/amd64/kernel32.lib
-/c/opt/WDK71/lib/win7/i386/kernel32.lib
-/c/opt/WDK71/lib/win7/ia64/kernel32.lib
-/c/opt/WDK71/lib/wlh/amd64/kernel32.lib
-/c/opt/WDK71/lib/wlh/i386/kernel32.lib
-/c/opt/WDK71/lib/wlh/ia64/kernel32.lib
-/c/opt/WDK71/lib/wnet/amd64/kernel32.lib
-/c/opt/WDK71/lib/wnet/i386/kernel32.lib
-/c/opt/WDK71/lib/wnet/ia64/kernel32.lib
-/c/opt/WDK71/lib/wxp/i386/kernel32.lib
-/c/Program Files/Microsoft SDKs/Windows/v5.0/Lib/IA64/Kernel32.Lib
-/c/Program Files/Microsoft SDKs/Windows/v6.0A/Lib/Kernel32.Lib
-/c/Program Files/Microsoft SDKs/Windows/v6.0A/Lib/x64/Kernel32.Lib
-/c/Program Files/Microsoft SDKs/Windows/v7.1A/Lib/Kernel32.Lib
-/c/Program Files/Microsoft SDKs/Windows/v7.1A/Lib/x64/Kernel32.Lib
-
 
 WindowsSdkBinPath=C:\Program Files (x86)\Windows Kits\10\bin\
 WindowsSdkDir=C:\Program Files (x86)\Windows Kits\10\
