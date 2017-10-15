@@ -22,7 +22,7 @@
 #  14.10   1910   Visual Studio 2017   Microsoft Visual Studio\2017\Community\VC\Tools\MSVC\14.10.25017\bin\HostX86\x86\cl.exe
 #  14.11   1911   Visual Studio 2017   Microsoft Visual Studio\2017\Community\VC\Tools\MSVC\14.11.25503\bin\HostX86\x86\cl.exe
 
-# map Visual Studio name -> MSVC++ version
+# map Visual Studio version -> MSVC++ version
 VS2002 := 7
 VS2003 := 7.1
 VS2005 := 8

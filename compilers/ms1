@@ -1,60 +1,11 @@
-/cygdrive/c/opt/WDK71/lib/win7/amd64/kernel32.lib
-/cygdrive/c/opt/WDK71/lib/win7/i386/kernel32.lib
-/cygdrive/c/opt/WDK71/lib/win7/ia64/kernel32.lib
-/cygdrive/c/opt/WDK71/lib/wlh/amd64/kernel32.lib
-/cygdrive/c/opt/WDK71/lib/wlh/i386/kernel32.lib
-/cygdrive/c/opt/WDK71/lib/wlh/ia64/kernel32.lib
-/cygdrive/c/opt/WDK71/lib/wnet/amd64/kernel32.lib
-/cygdrive/c/opt/WDK71/lib/wnet/i386/kernel32.lib
-/cygdrive/c/opt/WDK71/lib/wnet/ia64/kernel32.lib
+/cygdrive/c/opt/WDK71/lib/win7/{i386,amd64,ia64}/kernel32.lib
+/cygdrive/c/opt/WDK71/lib/wlh/{i386,amd64,ia64}/kernel32.lib
+/cygdrive/c/opt/WDK71/lib/wnet/{i386,amd64,ia64}/kernel32.lib
 /cygdrive/c/opt/WDK71/lib/wxp/i386/kernel32.lib
-/cygdrive/c/Program Files (x86)/Microsoft SDKs/Windows/v5.0/Lib/IA64/Kernel32.Lib
-/cygdrive/c/Program Files (x86)/Microsoft SDKs/Windows/v7.1A/Lib/Kernel32.Lib
-/cygdrive/c/Program Files (x86)/Microsoft SDKs/Windows/v7.1A/Lib/x64/Kernel32.Lib
-/cygdrive/c/Program Files (x86)/Microsoft Visual Studio 12.0/VC/bin/cl.exe
-/cygdrive/c/Program Files (x86)/Microsoft Visual Studio 12.0/VC/bin/x86_amd64/cl.exe
-/cygdrive/c/Program Files (x86)/Microsoft Visual Studio 14.0/VC/bin/amd64/cl.exe
-/cygdrive/c/Program Files (x86)/Microsoft Visual Studio 14.0/VC/bin/amd64_arm/cl.exe
-/cygdrive/c/Program Files (x86)/Microsoft Visual Studio 14.0/VC/bin/amd64_x86/cl.exe
-/cygdrive/c/Program Files (x86)/Microsoft Visual Studio 14.0/VC/bin/cl.exe
-/cygdrive/c/Program Files (x86)/Microsoft Visual Studio 14.0/VC/bin/x86_amd64/cl.exe
-/cygdrive/c/Program Files (x86)/Microsoft Visual Studio 14.0/VC/bin/x86_arm/cl.exe
-/cygdrive/c/Program Files (x86)/Microsoft Visual Studio 9.0/VC/bin/amd64/cl.exe
-/cygdrive/c/Program Files (x86)/Microsoft Visual Studio 9.0/VC/bin/cl.exe
-/cygdrive/c/Program Files (x86)/Microsoft Visual Studio 9.0/VC/bin/x86_amd64/cl.exe
-/cygdrive/c/Program Files (x86)/Microsoft Visual Studio 9.0/VC/bin/x86_ia64/cl.exe
-/cygdrive/c/Program Files (x86)/Windows Kits/10/Lib/10.0.10240.0/um/arm/kernel32.Lib
-/cygdrive/c/Program Files (x86)/Windows Kits/10/Lib/10.0.10240.0/um/arm64/kernel32.Lib
-/cygdrive/c/Program Files (x86)/Windows Kits/10/Lib/10.0.10240.0/um/x64/kernel32.Lib
-/cygdrive/c/Program Files (x86)/Windows Kits/10/Lib/10.0.10240.0/um/x86/kernel32.Lib
-/cygdrive/c/Program Files (x86)/Windows Kits/10/Lib/10.0.10586.0/um/arm/kernel32.Lib
-/cygdrive/c/Program Files (x86)/Windows Kits/10/Lib/10.0.10586.0/um/arm64/kernel32.Lib
-/cygdrive/c/Program Files (x86)/Windows Kits/10/Lib/10.0.10586.0/um/x64/kernel32.Lib
-/cygdrive/c/Program Files (x86)/Windows Kits/10/Lib/10.0.10586.0/um/x86/kernel32.Lib
-/cygdrive/c/Program Files (x86)/Windows Kits/10/Lib/10.0.14393.0/um/arm/kernel32.Lib
-/cygdrive/c/Program Files (x86)/Windows Kits/10/Lib/10.0.14393.0/um/arm64/kernel32.Lib
-/cygdrive/c/Program Files (x86)/Windows Kits/10/Lib/10.0.14393.0/um/x64/kernel32.Lib
-/cygdrive/c/Program Files (x86)/Windows Kits/10/Lib/10.0.14393.0/um/x86/kernel32.Lib
-/cygdrive/c/Program Files (x86)/Windows Kits/10/Lib/10.0.15063.0/um/arm/kernel32.Lib
-/cygdrive/c/Program Files (x86)/Windows Kits/10/Lib/10.0.15063.0/um/arm64/kernel32.Lib
-/cygdrive/c/Program Files (x86)/Windows Kits/10/Lib/10.0.15063.0/um/x64/kernel32.Lib
-/cygdrive/c/Program Files (x86)/Windows Kits/10/Lib/10.0.15063.0/um/x86/kernel32.Lib
-/cygdrive/c/Program Files (x86)/Windows Kits/8.0/Lib/win8/um/arm/kernel32.Lib
-/cygdrive/c/Program Files (x86)/Windows Kits/8.0/Lib/win8/um/x64/kernel32.Lib
-/cygdrive/c/Program Files (x86)/Windows Kits/8.0/Lib/win8/um/x86/kernel32.Lib
-/cygdrive/c/Program Files (x86)/Windows Kits/8.1/Lib/winv6.3/um/arm/kernel32.Lib
-/cygdrive/c/Program Files (x86)/Windows Kits/8.1/Lib/winv6.3/um/x64/kernel32.Lib
-/cygdrive/c/Program Files (x86)/Windows Kits/8.1/Lib/winv6.3/um/x86/kernel32.Lib
-/cygdrive/c/Program Files/Microsoft SDKs/Windows/v6.0/Lib/Kernel32.Lib
-/cygdrive/c/Program Files/Microsoft SDKs/Windows/v6.0/Lib/x64/Kernel32.Lib
-/cygdrive/c/Program Files/Microsoft SDKs/Windows/v6.0/VC/Bin/cl.exe
-/cygdrive/c/Program Files/Microsoft SDKs/Windows/v6.0/VC/Bin/x64/cl.exe
-/cygdrive/c/Program Files/Microsoft SDKs/Windows/v6.0A/Lib/Kernel32.Lib
-/cygdrive/c/Program Files/Microsoft SDKs/Windows/v6.0A/Lib/x64/Kernel32.Lib
-/cygdrive/c/Program Files/Microsoft SDKs/Windows/v6.1/Lib/Kernel32.Lib
-/cygdrive/c/Program Files/Microsoft SDKs/Windows/v6.1/Lib/x64/Kernel32.Lib
-/cygdrive/c/Program Files/Microsoft SDKs/Windows/v7.0/Lib/Kernel32.Lib
-/cygdrive/c/Program Files/Microsoft SDKs/Windows/v7.0/Lib/x64/Kernel32.Lib
+
+/cygdrive/c/Program Files (x86)/Microsoft Visual Studio 12.0/VC/bin/{,x86_amd64/}cl.exe
+/cygdrive/c/Program Files (x86)/Microsoft Visual Studio 14.0/VC/bin/{,x86_amd64/,/x86_arm/,amd64/,md64_x86/,amd64_arm/}cl.exe
+/cygdrive/c/Program Files (x86)/Microsoft Visual Studio 9.0/VC/bin/{,amd64/,x86_amd64/,x86_ia64/}cl.exe
 
 VC98
 C:\Program Files\Microsoft Visual Studio\VC98\Lib\KERNEL32.LIB
@@ -63,7 +14,7 @@ C:\Program Files\Microsoft Visual Studio\VC98\Include\ERRNO.H
 C:\Program Files\Microsoft Visual Studio\VC98\Bin\CL.EXE           - Microsoft (R) 32-bit C/C++ Optimizing Compiler Version 12.00.8168 for 80x86
 note: cl.exe needs mspdb60.dll: set PATH=%PATH%;C:\Program Files\Microsoft Visual Studio\Common\MSDev98\Bin
 C:\Program Files\Microsoft Visual Studio\Common\MSDev98\Bin\RC.EXE - Microsoft (R) Windows 32 Resource Compiler, Version 5.00.1641.1 - Build 1641
-C:\Program Files\Microsoft Visual Studio\VC98\Bin\mc.exe           - Microsoft (R) Message Compiler  Version 1.00.5239
+C:\Program Files\Microsoft Visual Studio\VC98\Bin\MC.EXE           - Microsoft (R) Message Compiler  Version 1.00.5239
 INCLUDE=C:\Program Files\Microsoft Visual Studio\VC98\atl\include;C:\Program Files\Microsoft Visual Studio\VC98\mfc\include;C:\Program Files\Microsoft Visual Studio\VC98\include
 LIB=C:\Program Files\Microsoft Visual Studio\VC98\mfc\lib;C:\Program Files\Microsoft Visual Studio\VC98\lib
 MSDevDir=C:\Program Files\Microsoft Visual Studio\Common\MSDev98
@@ -80,14 +31,14 @@ C:\Program Files\Microsoft Visual Studio .NET 2003\Common7\Tools\Bin\RC.Exe - Mi
 C:\Program Files\Microsoft Visual Studio .NET 2003\Common7\Tools\Bin\MC.Exe - Microsoft (R) Message Compiler  Version 1.12.3668
 C:\Program Files\Microsoft Visual Studio .NET 2003\Common7\Tools\Bin\winnt\mt.exe - Microsoft (R) Side-By-Side Manifest Tool 1.0.0.0
 
-Microsoft Platform SDK February 2003:
-C:\Program Files\Microsoft SDK\Lib\{,IA64}\Kernel32.Lib
-C:\Program Files\Microsoft SDK\include\WinBase.h
-C:\Program Files\Microsoft SDK\Include\crt\errno.h ???????
-C:\Program Files\Microsoft SDK\Bin\Win64\CL.EXE                    - Microsoft (R) C/C++ Optimizing Compiler Version 13.10.2240.8 for IA-64
-C:\Program Files\Microsoft SDK\Bin\RC.EXE                          - Microsoft (R) Windows (R) Resource Compiler Version 5.2.3790.0
-C:\Program Files\Microsoft SDK\Bin\MC.EXE                          - Microsoft (R) Message Compiler  Version 1.12.3790
-C:\Program Files\Microsoft SDK\Bin\winnt\MT.EXE                    - Microsoft (R) Side-By-Side Manifest Tool 1.0.0.0
+-- Microsoft Platform SDK February 2003:
+-- C:\Program Files\Microsoft SDK\Lib\{,IA64\}Kernel32.Lib
+-- C:\Program Files\Microsoft SDK\include\WinBase.h
+-- C:\Program Files\Microsoft SDK\Include\crt\errno.h ???????
+-- C:\Program Files\Microsoft SDK\Bin\Win64\CL.EXE                    - Microsoft (R) C/C++ Optimizing Compiler Version 13.10.2240.8 for IA-64
+-- C:\Program Files\Microsoft SDK\Bin\RC.EXE                          - Microsoft (R) Windows (R) Resource Compiler Version 5.2.3790.0
+-- C:\Program Files\Microsoft SDK\Bin\MC.EXE                          - Microsoft (R) Message Compiler  Version 1.12.3790
+-- C:\Program Files\Microsoft SDK\Bin\winnt\MT.EXE                    - Microsoft (R) Side-By-Side Manifest Tool 1.0.0.0
 
 Microsoft Platform SDK for Windows XP SP2:
 C:\Program Files\Microsoft Platform SDK for Windows XP SP2\Lib\Kernel32.Lib
@@ -96,7 +47,7 @@ C:\Program Files\Microsoft Platform SDK for Windows XP SP2\Bin\RC.Exe - Microsof
 C:\Program Files\Microsoft Platform SDK for Windows XP SP2\Bin\MC.Exe - Microsoft (R) Message Compiler  Version 1.12.2505
 
 Microsoft Platform SDK for Windows Server 2003 R2:
-C:\Program Files\Microsoft Platform SDK for Windows Server 2003 R2\Lib\{,AMD64,IA64}\Kernel32.Lib
+C:\Program Files\Microsoft Platform SDK for Windows Server 2003 R2\Lib\{,AMD64\,IA64\}Kernel32.Lib
 C:\Program Files\Microsoft Platform SDK for Windows Server 2003 R2\Include\WinBase.h
 C:\Program Files\Microsoft Platform SDK for Windows Server 2003 R2\Include\crt\errno.h
 C:\Program Files\Microsoft Platform SDK for Windows Server 2003 R2\Bin\win64\cl.exe           - Microsoft (R) C/C++ Optimizing Compiler Version 14.00.40310.39 for IA-64
@@ -104,6 +55,17 @@ C:\Program Files\Microsoft Platform SDK for Windows Server 2003 R2\Bin\win64\x86
 C:\Program Files\Microsoft Platform SDK for Windows Server 2003 R2\Bin\RC.Exe                 - Microsoft (R) Windows (R) Resource Compiler Version 5.2.3690.0
 C:\Program Files\Microsoft Platform SDK for Windows Server 2003 R2\Bin\MC.Exe                 - Microsoft (R) Message Compiler  Version 1.12.2505
 C:\Program Files\Microsoft Platform SDK for Windows Server 2003 R2\Bin\mt.Exe                 - Microsoft (R) Manifest Tool version 6.0.4071.0
+
+Visual Studio 2005
+C:\Program Files\Microsoft Visual Studio 8\VC\PlatformSDK\Lib\{,AMD64\}Kernel32.Lib
+C:\Program Files\Microsoft Visual Studio 8\VC\PlatformSDK\Include\WinBase.h
+C:\Program Files\Microsoft Visual Studio 8\VC\include\errno.h
+C:\Program Files\Microsoft Visual Studio 8\VC\bin\cl.exe           - ???
+??note: cl.exe needs mspdb??.dll: set PATH=%PATH%;C:\Program Files\Microsoft Visual Studio 8\Common7\IDE
+??C:\Program Files\Microsoft Visual Studio 8\VC\bin\rc.exe            - ???
+??C:\Program Files\Microsoft Visual Studio 8\Common7\Tools\Bin\RC.Exe - ???
+??C:\Program Files\Microsoft Visual Studio 8\Common7\Tools\Bin\MC.Exe - ???
+??C:\Program Files\Microsoft Visual Studio 8\Common7\Tools\Bin\winnt\mt.exe - ???
 
 SDK 6.0
 C:\Program Files\Microsoft SDKs\Windows\v6.0\Include\WinBase.h
@@ -132,8 +94,8 @@ C:\Program Files (x86)\Microsoft Visual Studio 9.0\VC\include\errno.h
 C:\Program Files (x86)\Microsoft Visual Studio 9.0\VC\bin\cl.exe - Microsoft (R) 32-bit C/C++ Optimizing Compiler Version 15.00.21022.08 for 80x86
 note: cl.exe needs mspdb80.dll, set PATH=%PATH%;C:\Program Files (x86)\Microsoft Visual Studio 9.0\Common7\IDE
 C:\Program Files (x86)\Microsoft Visual Studio 9.0\VC\bin\amd64\cl.exe - Microsoft (R) C/C++ Optimizing Compiler Version 15.00.21022.08 for x64
-note: C:\Program Files (x86)\Microsoft Visual Studio 9.0\VC\bin\x86_amd64\cl.exe - Microsoft (R) C/C++ Optimizing Compiler Version 15.00.21022.08 for x64
-cl.exe needs mspdb80.dll, set PATH=%PATH%;C:\Program Files (x86)\Microsoft Visual Studio 9.0\Common7\IDE
+C:\Program Files (x86)\Microsoft Visual Studio 9.0\VC\bin\x86_amd64\cl.exe - Microsoft (R) C/C++ Optimizing Compiler Version 15.00.21022.08 for x64
+note: cl.exe needs mspdb80.dll, set PATH=%PATH%;C:\Program Files (x86)\Microsoft Visual Studio 9.0\Common7\IDE
 
 SDK 7.0
 C:\Program Files\Microsoft SDKs\Windows\v7.0\Include\WinBase.h
@@ -160,15 +122,14 @@ note: cl.exe needs mspdb100.dll, set PATH=%PATH%;C:\Program Files (x86)\Microsof
 
 SDK 7.1a - Included in Visual Studio 2012 Update 1 (or later)
 C:\Program Files (x86)\Microsoft SDKs\Windows\v7.1A\Include\WinBase.h
-C:\Program Files (x86)\Microsoft SDKs\Windows\v7.1A\Lib{,x64}\kernel32.lib
-C:\Program Files (x86)\Microsoft SDKs\Windows\v7.1A\Bin\x64\RC.Exe - Microsoft (R) Windows (R) Resource Compiler Version 6.1.7600.16385
-Microsoft (R) Message Compiler  Version 1.12.7600
-Microsoft (R) Manifest Tool version 6.1.7716.0
-..........
+C:\Program Files (x86)\Microsoft SDKs\Windows\v7.1A\Lib{,x64\}kernel32.lib
+C:\Program Files (x86)\Microsoft SDKs\Windows\v7.1A\Bin\{,x64\}RC.Exe - Microsoft (R) Windows (R) Resource Compiler Version 6.1.7600.16385
+C:\Program Files (x86)\Microsoft SDKs\Windows\v7.1A\Bin\{,x64\}MC.Exe - Microsoft (R) Message Compiler  Version 1.12.7600
+C:\Program Files (x86)\Microsoft SDKs\Windows\v7.1A\Bin\{,x64\}mt.Exe - Microsoft (R) Manifest Tool version 6.1.7716.0
 
 SDK 8.0
 C:\Program Files (x86)\Windows Kits\8.0\Include\um\WinBase.h
-C:\Program Files (x86)\Windows Kits\8.0\Lib\win8\um\{x64,x86,arm}\kernel32.Lib
+C:\Program Files (x86)\Windows Kits\8.0\Lib\win8\um\{x86,x64,arm}\kernel32.Lib
 C:\Program Files (x86)\Windows Kits\8.0\bin\{x86,x64}\rc.exe - Microsoft (R) Windows (R) Resource Compiler Version 6.2.9200.16384
 C:\Program Files (x86)\Windows Kits\8.0\bin\{x86,x64}\mc.exe - Microsoft (R) Message Compiler  Version 1.12.9200
 C:\Program Files (x86)\Windows Kits\8.0\bin\{x86,x64}\mt.exe - Microsoft (R) Manifest Tool version 6.2.9200.20522
@@ -178,7 +139,7 @@ SDK 8.0a - Included in Visual Studio 2012
 
 SDK 8.1
 C:\Program Files (x86)\Windows Kits\8.1\Include\um\WinBase.h
-C:\Program Files (x86)\Windows Kits\8.1\Lib\winv6.3\um\{x64,x86,arm}\kernel32.Lib
+C:\Program Files (x86)\Windows Kits\8.1\Lib\winv6.3\um\{x86,x64,arm}\kernel32.Lib
 C:\Program Files (x86)\Windows Kits\8.1\bin\{x86,x64}\rc.exe - Microsoft (R) Windows (R) Resource Compiler Version 6.3.9600.17336
 C:\Program Files (x86)\Windows Kits\8.1\bin\{x86,x64}\mc.exe - Microsoft (R) Message Compiler  Version 1.12.9600
 C:\Program Files (x86)\Windows Kits\8.2\bin\{x86,x64}\mt.exe - Microsoft (R) Manifest Tool version 6.3.9600.17336
@@ -189,25 +150,25 @@ SDK 8.1a - Included in Visual Studio 2013
 SDK 10
 C:\Program Files (x86)\Windows Kits\10\Include\10.0.10240.0\um\WinBase.h
 C:\Program Files (x86)\Windows Kits\10\Include\10.0.10240.0\ucrt\errno.h
-C:\Program Files (x86)\Windows Kits\10\Lib\10.0.10240.0\um\{arm,arm64,x64,x86}\kernel32.Lib
-C:\Program Files (x86)\Windows Kits\10\Lib\10.0.10240.0\ucrt\{arm,arm64,x64,x86}\ucrt.lib
+C:\Program Files (x86)\Windows Kits\10\Lib\10.0.10240.0\um\{x86,x64,arm,arm64}\kernel32.Lib
+C:\Program Files (x86)\Windows Kits\10\Lib\10.0.10240.0\ucrt\{x86,x64,arm,arm64}\ucrt.lib
 
 C:\Program Files (x86)\Windows Kits\10\Include\10.0.10586.0\um\WinBase.h
 C:\Program Files (x86)\Windows Kits\10\Include\10.0.10586.0\ucrt\errno.h
-C:\Program Files (x86)\Windows Kits\10\Lib\10.0.10586.0\um\{arm,arm64,x64,x86}\kernel32.Lib
-C:\Program Files (x86)\Windows Kits\10\Lib\10.0.10586.0\ucrt\{arm,arm64,x64,x86}\ucrt.lib
+C:\Program Files (x86)\Windows Kits\10\Lib\10.0.10586.0\um\{x86,x64,arm,arm64}\kernel32.Lib
+C:\Program Files (x86)\Windows Kits\10\Lib\10.0.10586.0\ucrt\{x86,x64,arm,arm64,}\ucrt.lib
 
 C:\Program Files (x86)\Windows Kits\10\Include\10.0.14393.0\um\WinBase.h
 C:\Program Files (x86)\Windows Kits\10\Include\10.0.14393.0\ucrt\errno.h
-C:\Program Files (x86)\Windows Kits\10\Lib\10.0.14393.0\um\{arm,arm64,x64,x86}\kernel32.Lib
-C:\Program Files (x86)\Windows Kits\10\Lib\10.0.14393.0\ucrt\{arm,arm64,x64,x86}\ucrt.lib
+C:\Program Files (x86)\Windows Kits\10\Lib\10.0.14393.0\um\{x86,x64,arm,arm64}\kernel32.Lib
+C:\Program Files (x86)\Windows Kits\10\Lib\10.0.14393.0\ucrt\{x86,x64,arm,arm64}\ucrt.lib
 C:\Program Files (x86)\Windows Kits\10\bin\{x86,x64,arm64}\rc.exe - Microsoft (R) Windows (R) Resource Compiler Version 10.0.10011.16384
 C:\Program Files (x86)\Windows Kits\10\bin\{x86,x64,arm64}\mc.exe - Microsoft (R) Message Compiler  Version 10.0.14393
 C:\Program Files (x86)\Windows Kits\10\bin\{x86,x64,arm64}\mt.exe - Microsoft (R) Manifest Tool
 
 C:\Program Files (x86)\Windows Kits\10\Include\10.0.15063.0\um\WinBase.h
 C:\Program Files (x86)\Windows Kits\10\Include\10.0.15063.0\ucrt\errno.h
-C:\Program Files (x86)\Windows Kits\10\Lib\10.0.15063.0\um\{arm,arm64,x64,x86}\kernel32.Lib
+C:\Program Files (x86)\Windows Kits\10\Lib\10.0.15063.0\um\{x86,x64,arm,arm64}\kernel32.Lib
 C:\Program Files (x86)\Windows Kits\10\Lib\10.0.15063.0\ucrt\{x86,x64,arm,arm64}\ucrt.lib
 C:\Program Files (x86)\Windows Kits\10\bin\10.0.15063.0\{x86,x64,arm64}\rc.exe - Microsoft (R) Windows (R) Resource Compiler Version 10.0.10011.16384
 C:\Program Files (x86)\Windows Kits\10\bin\10.0.15063.0\{x86,x64,arm64}\mc.exe - Microsoft (R) Message Compiler  Version 10.0.15063
@@ -215,7 +176,7 @@ C:\Program Files (x86)\Windows Kits\10\bin\10.0.15063.0\{x86,x64,arm64}\mt.exe -
 
 C:\Program Files (x86)\Windows Kits\10\Include\10.0.16299.0\um\WinBase.h
 C:\Program Files (x86)\Windows Kits\10\Include\10.0.16299.0\ucrt\errno.h
-C:\Program Files (x86)\Windows Kits\10\Lib\10.0.16299.0\um\{arm,arm64,x64,x86}\kernel32.Lib
+C:\Program Files (x86)\Windows Kits\10\Lib\10.0.16299.0\um\{x86,x64,arm,arm64}\kernel32.Lib
 C:\Program Files (x86)\Windows Kits\10\Lib\10.0.16299.0\ucrt\{x86,x64,arm,arm64}\ucrt.lib
 C:\Program Files (x86)\Windows Kits\10\bin\10.0.16299.0\{x86,x64,arm64}\rc.exe - Microsoft (R) Windows (R) Resource Compiler Version 10.0.10011.16384
 C:\Program Files (x86)\Windows Kits\10\bin\10.0.16299.0\{x86,x64,arm64}\mc.exe - Microsoft (R) Message Compiler  Version 10.0.16299
