@@ -26,24 +26,27 @@ ifeq (,$(filter-out undefined environment,$(origin EXPORTS_TEMPLATE)))
 include $(dir $(lastword $(MAKEFILE_LIST)))msvc_exp.mk
 endif
 
-# configure paths to compiler/linker and system libraries/headers, define variables:
+# configure paths to compiler/linker and libraries/headers, define variables:
+#
 # WINVER_DEFINES - version of Windows API to compile with, e.g.: WINVER=0x0501 _WIN32_WINNT=0x0501
 # SUBSYSTEM_VER  - minimum Windows version required to run built targets, may be empty
-# VC_VER         - version of Visual C++ we are using - see $(CLEAN_BUILD_DIR)/compilers/msvc_cmn.mk 'MSVC++ versions' table
-# VCCL           - path to cl.exe, should be in double-quotes if contains spaces
-# VCLIB          - path to lib.exe, should be in double-quotes if contains spaces
-# VCLINK         - path to link.exe, should be in double-quotes if contains spaces
-# VCLIBPATH      - paths to Visual C++ libraries, spaces must be replaced with ?
-# VCINCLUDE      - paths to Visual C++ headers, spaces must be replaced with ?
-# UMLIBPATH      - paths to user-mode libraries, spaces must be replaced with ?
-# UMINCLUDE      - paths to user-mode headers, spaces must be replaced with ?
-# TVCCL          - VCCL for the tool mode
-# TVCLIB         - VCLIB for the tool mode
-# TVCLINK        - VCLINK for the tool mode
-# TVCLIBPATH     - VCLIBPATH for the tool mode
-# TUMLIBPATH     - UMLIBPATH for the tool mode
+#
+# (variables prefixed with T - are for the tool mode)
+# VC_VER        - version of Visual C++ we are using - see $(CLEAN_BUILD_DIR)/compilers/msvc_cmn.mk 'MSVC++ versions' table
+# {,T}VCCL      - path to cl.exe, should be in double-quotes if contains spaces
+# {,T}VCLIB     - path to lib.exe, should be in double-quotes if contains spaces
+# {,T}VCLINK    - path to link.exe, should be in double-quotes if contains spaces
+# {,T}VCLIBPATH - paths to Visual C++ libraries, spaces must be replaced with ?
+# VCINCLUDE     - paths to Visual C++ headers, spaces must be replaced with ?
 ifeq (,$(filter-out undefined environment,$(origin VC_TOOL_PREFIX_2017)))
 include $(dir $(lastword $(MAKEFILE_LIST)))msvc_conf.mk
+endif
+
+# configure paths to system libraries/headers, define variables:
+# {,T}UMLIBPATH - paths to user-mode libraries, spaces must be replaced with ?
+# UMINCLUDE     - paths to user-mode headers, spaces must be replaced with ?
+ifeq (,$(filter-out undefined environment,$(origin ???)))
+include $(dir $(lastword $(MAKEFILE_LIST)))msvc_sdk.mk
 endif
 
 # default subsystem type for EXE and DLL: CONSOLE, WINDOWS, etc.
@@ -302,29 +305,28 @@ else
 MANIFEST_EMBED_OPTION:=
 endif
 
+# common link.exe flags for linking executables and dynamic libraries
+CMN_LDFLAGS := /INCREMENTAL:NO
+
+# default link.exe flags for linking an EXE
+DEF_EXE_LDFLAGS := $(CMN_LDFLAGS)
+
+# default link.exe flags for linking a DLL
+DEF_DLL_LDFLAGS := /DLL $(CMN_LDFLAGS)
+
 # paths to application-level system libraries
 APPLIBPATH := $(VCLIBPATH) $(UMLIBPATH)
 TAPPLIBPATH := $(TVCLIBPATH) $(TUMLIBPATH)
-
-# common link.exe flags for linking executables and dynamic libraries
-# target-specific: TMD
-CMN_LDFLAGS = /INCREMENTAL:NO $(call qpath,$($(TMD)APPLIBPATH),/LIBPATH:)
-
-# default link.exe flags for linking an EXE
-DEF_EXE_LDFLAGS = $(CMN_LDFLAGS)
-
-# default link.exe flags for linking a DLL
-DEF_DLL_LDFLAGS = /DLL $(CMN_LDFLAGS)
 
 # common linker options for EXE or DLL
 # $1 - path to target EXE or DLL
 # $2 - objects
 # $3 - target type: EXE or DLL
 # $4 - non-empty variant: R,S,RU,SU
-# target-specific: IMP, DEF, LIBS, DLLS, LIB_DIR
+# target-specific: TMD, IMP, DEF, LIBS, DLLS, LIB_DIR
 CMN_LIBS = /nologo /OUT:$(call ospath,$1 $2 $(filter %.res,$^)) $(VERSION_OPTION) $(SUBSYSTEM_OPTION) $(MANIFEST_EMBED_OPTION) \
   $(addprefix /IMPLIB:,$(call ospath,$(IMP))) $(addprefix /DEF:,$(call ospath,$(DEF))) $(if $(firstword $(LIBS)$(DLLS)),/LIBPATH:$(call \
-  ospath,$(LIB_DIR)) $(call DEP_LIBS,$3,$4) $(call DEP_IMPS,$3,$4))
+  ospath,$(LIB_DIR)) $(call DEP_LIBS,$3,$4) $(call DEP_IMPS,$3,$4)) $(call qpath,$($(TMD)APPLIBPATH),/LIBPATH:)
 
 # regular expression string for findstr.exe to match diagnostic linker message to strip-off
 # default value, may be overridden either in project configuration makefile or in command line
@@ -689,7 +691,7 @@ $(call SET_GLOBAL,MP_BUILD FORCE_SYNC_PDB,0)
 $(call SET_GLOBAL,DEF_SUBSYSTEM_TYPE C_PREPARE_MSVC_APP_VARS \
   CFLAGS CXXFLAGS ARFLAGS LDFLAGS TCFLAGS TCXXFLAGS TARFLAGS TLDFLAGS \
   WIN_SUPPORTED_VARIANTS WIN_VARIANT_SUFFIX WIN_VARIANT_CFLAGS \
-  TRG_SUBSYSTEM SUBSYSTEM_OPTION MANIFEST_EMBED_OPTION APPLIBPATH TAPPLIBPATH CMN_LDFLAGS DEF_EXE_LDFLAGS DEF_DLL_LDFLAGS \
+  TRG_SUBSYSTEM SUBSYSTEM_OPTION MANIFEST_EMBED_OPTION CMN_LDFLAGS DEF_EXE_LDFLAGS DEF_DLL_LDFLAGS APPLIBPATH TAPPLIBPATH \
   CMN_LIBS LINKER_STRIP_STRINGS WRAP_LINKER EXE_LD DLL_LD EMBED_EXE_MANIFEST EMBED_DLL_MANIFEST EXE_DLL_FORM_IMPORT_LIB=t;v \
   EXE_DLL_AUX_TEMPLATE EXE_AUX_TEMPLATE=t;v DLL_AUX_TEMPLATE=t;v EXE_EXP_TOCLEAN=t;v DLL_EXP_TOCLEAN=t;v \
   LIB_DEF_VARIABLE_CHECK=DEF;LIB;EXE;DLL LIB_LD INCLUDING_FILE_PATTERN UDEPS_INCLUDE_FILTER CMN_CFLAGS APPINCLUDE TCMN_CFLAGS \
