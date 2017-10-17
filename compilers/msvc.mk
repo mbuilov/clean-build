@@ -26,23 +26,27 @@ ifeq (,$(filter-out undefined environment,$(origin EXPORTS_TEMPLATE)))
 include $(dir $(lastword $(MAKEFILE_LIST)))msvc_exp.mk
 endif
 
-# configure paths to compiler/linker and libraries/headers, define variables:
-#
-# WINVER_DEFINES - version of Windows API to compile with, e.g.: WINVER=0x0501 _WIN32_WINNT=0x0501
-# SUBSYSTEM_VER  - minimum Windows version required to run built targets, may be empty
-#
+# define variables:
+# WINVER_DEFINES - version of Windows API to compile with, e.g.: WINVER=0x0501 _WIN32_WINNT=0x0501, may be empty
+# SUBSYSTEM_VER  - minimum Windows version required to run built targets, e.g.: SUBSYSTEM_VER=5.01, may be empty
+ifneq (,$(filter undefined environment,$(origin WINVER_DEFINES) $(origin SUBSYSTEM_VER)))
+include $(dir $(lastword $(MAKEFILE_LIST)))msvc_winver.mk
+endif
+
+# configure Visual C++ version, paths to compiler, linker and C/C++ libraries and headers:
 # (variables prefixed with T - are for the tool mode)
 # VC_VER        - version of Visual C++ we are using - see $(CLEAN_BUILD_DIR)/compilers/msvc_cmn.mk 'MSVC++ versions' table
-# {,T}VCCL      - path to cl.exe, should be in double-quotes if contains spaces
-# {,T}VCLIB     - path to lib.exe, should be in double-quotes if contains spaces
-# {,T}VCLINK    - path to link.exe, should be in double-quotes if contains spaces
+# {,T}VCCL      - path to cl.exe, must be in double-quotes if contains spaces
+# {,T}VCLIB     - path to lib.exe, must be in double-quotes if contains spaces
+# {,T}VCLINK    - path to link.exe, must be in double-quotes if contains spaces
 # {,T}VCLIBPATH - paths to Visual C++ libraries, spaces must be replaced with ?
 # VCINCLUDE     - paths to Visual C++ headers, spaces must be replaced with ?
 ifeq (,$(filter-out undefined environment,$(origin VC_TOOL_PREFIX_2017)))
 include $(dir $(lastword $(MAKEFILE_LIST)))msvc_conf.mk
 endif
 
-# configure paths to system libraries/headers, define variables:
+# configure paths to system libraries/headers:
+# (variables prefixed with T - are for the tool mode)
 # {,T}UMLIBPATH - paths to user-mode libraries, spaces must be replaced with ?
 # UMINCLUDE     - paths to user-mode headers, spaces must be replaced with ?
 ifeq (,$(filter-out undefined environment,$(origin ???)))

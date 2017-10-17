@@ -287,3 +287,48 @@ C:\Program Files\Microsoft Platform SDK for Windows Server 2003 R2\Bin\win64\msp
 /cygdrive/c/Program Files (x86)/Windows Kits/8.1/Lib/winv6.3/um/x64/kernel32.Lib
 /cygdrive/c/Program Files (x86)/Windows Kits/8.1/Lib/winv6.3/um/x86/kernel32.Lib
 
+
+C:\Program Files (x86)\Microsoft Visual Studio 8\VC\ce\bin\x86_sh\cl.exe - Microsoft (R) C/C++ Optimizing Compiler Version 14.00.50725 for Renesas SH
+note: cl.exe needs mspdb80.dll: set PATH=%PATH%;C:\Program Files (x86)\Microsoft Visual Studio 8\Common7\IDE
+C:\Program Files (x86)\Microsoft Visual Studio 8\VC\ce\bin\x86_mips\cl.exe - Microsoft (R) C/C++ Optimizing Compiler Version 14.00.50725 for MIPS R-Series
+note: cl.exe needs mspdb80.dll: set PATH=%PATH%;C:\Program Files (x86)\Microsoft Visual Studio 8\Common7\IDE
+C:\Program Files (x86)\Microsoft Visual Studio 8\VC\ce\bin\x86_arm\cl.exe - Microsoft (R) C/C++ Optimizing Compiler Version 14.00.50725 for ARM
+note: cl.exe needs mspdb80.dll: set PATH=%PATH%;C:\Program Files (x86)\Microsoft Visual Studio 8\Common7\IDE
+C:\Program Files (x86)\Microsoft Visual Studio 8\VC\bin\x86_ia64\cl.exe - Microsoft (R) C/C++ Optimizing Compiler Version 14.00.50727.42 for Itanium
+note: cl.exe needs mspdb80.dll: set PATH=%PATH%;C:\Program Files (x86)\Microsoft Visual Studio 8\Common7\IDE
+C:\Program Files (x86)\Microsoft Visual Studio 8\VC\bin\x86_amd64\cl.exe - Microsoft (R) C/C++ Optimizing Compiler Version 14.00.50727.42 for x64
+note: cl.exe needs mspdb80.dll: set PATH=%PATH%;C:\Program Files (x86)\Microsoft Visual Studio 8\Common7\IDE
+C:\Program Files (x86)\Microsoft Visual Studio 8\VC\bin\cl.exe - Microsoft (R) 32-bit C/C++ Optimizing Compiler Version 14.00.50727.42 for 80x86
+note: cl.exe needs mspdb80.dll: set PATH=%PATH%;C:\Program Files (x86)\Microsoft Visual Studio 8\Common7\IDE
+C:\Program Files (x86)\Microsoft Visual Studio 8\VC\bin\amd64\cl.exe - Microsoft (R) C/C++ Optimizing Compiler Version 14.00.50727.42 for x64
+C:\Program Files (x86)\Microsoft Visual Studio 8\VC\bin\ia64\cl.exe - ?????
+
+PE32+ executable (console) x86-64, for MS Windows
+C:\Program Files\Microsoft Visual Studio 8\VC\bin\cl.exe - Microsoft (R) C/C++ Optimizing Compiler Version 14.00.50727.42 for x64
+note: cl.exe needs mspdb80.dll: set PATH=%PATH%;C:\Program Files\Microsoft Visual Studio 8\Common7\IDE
+
+C:\Program Files (x86)\Microsoft Visual Studio 8\VC\lib\msvcrt.lib
+C:\Program Files (x86)\Microsoft Visual Studio 8\VC\lib\ia64\msvcrt.lib
+C:\Program Files (x86)\Microsoft Visual Studio 8\VC\lib\amd64\msvcrt.lib
+C:\Program Files (x86)\Microsoft Visual Studio 8\VC\ce\lib\x86\msvcrt.lib
+C:\Program Files (x86)\Microsoft Visual Studio 8\VC\ce\lib\sh4\msvcrt.lib
+C:\Program Files (x86)\Microsoft Visual Studio 8\VC\ce\lib\mipsiv_fp\msvcrt.lib
+C:\Program Files (x86)\Microsoft Visual Studio 8\VC\ce\lib\mipsiv\msvcrt.lib
+C:\Program Files (x86)\Microsoft Visual Studio 8\VC\ce\lib\mipsii_fp\msvcrt.lib
+C:\Program Files (x86)\Microsoft Visual Studio 8\VC\ce\lib\mipsii\msvcrt.lib
+C:\Program Files (x86)\Microsoft Visual Studio 8\VC\ce\lib\armv4i\msvcrt.lib
+C:\Program Files (x86)\Microsoft Visual Studio 8\VC\ce\lib\armv4\msvcrt.lib
+
+(likely for x86-64)
+C:\Program Files\Microsoft Visual Studio 8\VC\lib\msvcrt.lib
+
+C:\Program Files (x86)\Microsoft Visual Studio 8\VC\lib\kernel32.lib
+C:\Program Files (x86)\Microsoft Visual Studio 8\VC\PlatformSDK\Lib\AMD64\kernel32.lib
+C:\Program Files (x86)\Microsoft Visual Studio 8\VC\PlatformSDK\Lib\IA64\kernel32.lib
+C:\Program Files (x86)\Microsoft Visual Studio 8\VC\PlatformSDK\Lib\kernel32.lib
+
+C:\Program Files (x86)\Microsoft Visual Studio 8\VC\PlatformSDK\Include\WinBase.h
+
+C:\Program Files\Microsoft Visual Studio 8\VC\lib\amd64\kernel32.lib
+(WinBase.h is not found in C:\Program Files\Microsoft Visual Studio 8)
+
