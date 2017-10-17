@@ -143,7 +143,6 @@ MK_DEFINES_OPTION = $(call DEFINE_ESCAPE_VALUES,$(MK_DEFINES_OPTION1))
 # C/C++ compiler and linker flags for the target
 # $t - target type: EXE,LIB,DLL,DRV,KLIB,KDLL,...
 # $v - non-empty variant: R,P,D,S... (one of variants supported by selected toolchain)
-# $(TMD) - T in tool mode, empty otherwise
 # note: these flags should contain values of standard user-defined C/C++ compilers and linker flags, such as
 #  CFLAGS, CXXFLAGS, LDFLAGS and so on, that are normally taken from the environment (in project configuration makefile),
 #  their default values should be set in compiler-specific makefile, e.g.: $(CLEAN_BUILD_DIR)/compilers/gcc.mk.
