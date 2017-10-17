@@ -877,8 +877,7 @@ RUN_TOOL = $(if $2$4,$(if $2,$(eval \
   $$@:export $v:=$$($v)))$(if $(VERBOSE),$(show_tool_vars)@))$(if $3,$(call EXECUTE_IN,$3,$1),$1)$(if \
   $2$4,$(if $(VERBOSE),$(show_tool_vars_end)))
 
-# T in "tool mode" - TOOL_MODE variable was set to non-empty value prior evaluating $(DEF_HEAD_CODE),
-#  empty in normal mode.
+# T in "tool mode" - TOOL_MODE variable was set to non-empty value prior evaluating $(DEF_HEAD_CODE), empty in normal mode.
 # note: $(TOOL_MODE) should not be used in rule templates - use $(TMD) instead, because
 #  TOOL_MODE may be set to another value anywhere before $(DEFINE_TARGETS) or $(MAKE_CONTINUE),
 #  and so before rule templates evaluation.
@@ -928,7 +927,7 @@ endif
 # NOTE: $(MAKE_CONTINUE) before expanding $(DEF_HEAD_CODE) adds 2 to $(MAKE_CONT) list (which is normally empty or contains 1 1...)
 #  - so we know if $(DEF_HEAD_CODE) was expanded from $(MAKE_CONTINUE) - remove 2 from $(MAKE_CONT) in that case
 #  - if $(DEF_HEAD_CODE) was expanded not from $(MAKE_CONTINUE) - no 2 in $(MAKE_CONT) - reset MAKE_CONT
-# NOTE: set TMD to remember if we are in tool mode - TOOL_MODE variable may be changed before calling $(MAKE_CONTINUE)
+# NOTE: set TMD to remember if we are in tool mode - TOOL_MODE variable may be set to another value before calling $(MAKE_CONTINUE)
 define DEF_HEAD_CODE
 ifneq (,$(findstring 2,$(MAKE_CONT)))
 MAKE_CONT:=$$(subst 2,1,$$(MAKE_CONT))
