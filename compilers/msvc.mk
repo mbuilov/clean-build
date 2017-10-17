@@ -323,7 +323,7 @@ TAPPLIBPATH := $(TVCLIBPATH) $(TUMLIBPATH)
 # $2 - objects
 # $3 - target type: EXE or DLL
 # $4 - non-empty variant: R,S,RU,SU
-# target-specific: TMD, IMP, DEF, LIBS, DLLS, LIB_DIR
+# target-specific: IMP, DEF, LIBS, DLLS, LIB_DIR, TMD
 CMN_LIBS = /nologo /OUT:$(call ospath,$1 $2 $(filter %.res,$^)) $(VERSION_OPTION) $(SUBSYSTEM_OPTION) $(MANIFEST_EMBED_OPTION) \
   $(addprefix /IMPLIB:,$(call ospath,$(IMP))) $(addprefix /DEF:,$(call ospath,$(DEF))) $(if $(firstword $(LIBS)$(DLLS)),/LIBPATH:$(call \
   ospath,$(LIB_DIR)) $(call DEP_LIBS,$3,$4) $(call DEP_IMPS,$3,$4)) $(call qpath,$($(TMD)APPLIBPATH),/LIBPATH:)
