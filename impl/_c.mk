@@ -61,7 +61,7 @@ DLL_VARIANT_SUFFIX = _$1
 
 # C/C++ compiler and linker flags for the target
 # $1 - non-empty variant: R,P,D,S... (one of variants supported by selected toolchain)
-# $(TMD) - T in tool mode, empty otherwise
+# note: TMD - target-specific variable, T in tool mode, empty otherwise, defined by EXE_TEMPLATE/DLL_TEMPLATE/LIB_TEMPLATE
 # note: these flags should contain values of standard user-defined C/C++ compilers and linker flags, such as
 #  CFLAGS, CXXFLAGS, LDFLAGS and so on, that are normally taken from the environment (in project configuration makefile),
 #  their default values should be set in compiler-specific makefile, e.g.: $(CLEAN_BUILD_DIR)/compilers/gcc.mk.
@@ -162,6 +162,7 @@ DEP_IMPS = $(foreach d,$(DLLS),$(IMP_PREFIX)$(call DEP_LIBRARY,$1,$2,$d,DLL)$(IM
 # $4 - objdir:      $(call FORM_OBJ_DIR,$t,$v)
 # $t - target type: EXE or DLL
 # $v - non-empty variant: R,P,S,...
+# note: define target-specific variable TMD
 # note: target-specific variables are passed to dependencies, so templates for dependent libs/dlls
 #  must set own values of COMPILER, VINCLUDE, VDEFINES, VCFLAGS and other sensible variables
 # note: $(CLEAN_BUILD_DIR)/compilers/msvc.mk redefines EXE_TEMPLATE
@@ -186,6 +187,7 @@ $(eval define DLL_TEMPLATE$(newline)$(value EXE_TEMPLATE)$(newline)endef)
 # $4 - objdir:      $(call FORM_OBJ_DIR,$t,$v)
 # $t - target type: LIB
 # $v - non-empty variant: R,P,D,S
+# note: define target-specific variable TMD
 # note: $(CLEAN_BUILD_DIR)/compilers/msvc.mk redefines LIB_TEMPLATE
 define LIB_TEMPLATE
 $(C_BASE_TEMPLATE)
