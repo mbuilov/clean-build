@@ -53,7 +53,7 @@ else
 SEQ_BUILD:=
 endif
 
-# strings to strip off from link.exe output (spaces replaced with ?)
+# strings to strip off from link.exe output (spaces are replaced with ?)
 LINKER_STRIP_STRINGS_en := Generating?code Finished?generating?code
 # cp1251 ".Ð¾Ð·Ð´Ð°Ð½Ð¸Ðµ?ÐºÐ¾Ð´Ð° .Ð¾Ð·Ð´Ð°Ð½Ð¸Ðµ?ÐºÐ¾Ð´Ð°?Ð·Ð°Ð²ÐµÑÑÐµÐ½Ð¾"
 LINKER_STRIP_STRINGS_ru_cp1251 := .îçäàíèå?êîäà .îçäàíèå?êîäà?çàâåðøåíî
