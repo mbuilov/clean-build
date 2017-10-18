@@ -227,6 +227,10 @@ xcmd = $(call xargs,$1,$2,$3,$4,$5,$6,$7,$(newline))
 # return list $1 without last element
 trim = $(wordlist 2,$(words $1),x $1)
 
+# remove duplicates in list $1 preserving order of elements
+uniq = $(strip $(uniq1))
+uniq1 = $(if $1,$(firstword $1) $(call uniq1,$(filter-out $(firstword $1),$1)))
+
 # remove last path element
 # 1 2 3 -> 1 2, .. .. -> .. .. ..
 normp2 = $(if $(filter-out ..,$1),$(trim),$1 ..)
@@ -396,7 +400,7 @@ TARGET_MAKEFILE += $(call SET_GLOBAL, \
   unspaces tospaces ifaddq qpath tolower toupper repl09 repl09AZ padto1 padto is_less1 is_less repl090 \
   is_less_float6 is_less_float5 is_less_float4 is_less_float3 is_less_float2 is_less_float1 is_less_float \
   strip_leading0 sort_numbers2 sort_numbers1 sort_numbers reverse \
-  xargs1 xargs xcmd trim normp2 normp1 normp cmn_path1 cmn_path back_prefix relpath2 relpath1 relpath \
+  xargs1 xargs xcmd trim uniq uniq1 normp2 normp1 normp cmn_path1 cmn_path back_prefix relpath2 relpath1 relpath \
   ver_major ver_minor ver_patch ver_compatible1 ver_compatible \
   get_dir split_dirs1 split_dirs mk_dir_deps lazy_simple \
   define_append=$$1=$$1 define_prepend=$$1=$$1 append_simple=$$1=$$1 prepend_simple=$$1=$$1 \
