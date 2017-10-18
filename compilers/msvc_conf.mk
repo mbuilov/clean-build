@@ -82,7 +82,9 @@ VS_CPU   := x86
 VS_CPU64 := amd64
 
 # variable ProgramFiles(x86) is defined only under 64-bit Windows
-ifneq (undefined,$(origin ProgramFiles$(open_brace)x86$(close_brace)))
+IS_WIN_64 := $(filter-out undefined,$(origin ProgramFiles$(open_brace)x86$(close_brace)))
+
+ifdef IS_WIN_64
 # $1 - pattern, like C:/Program?Files?(x86)/A/B/C
 VS_SELECT_CPU = $(if $(findstring :/program?files/,$(tolower)),$(VS_CPU64),$(VS_CPU))
 else
@@ -312,7 +314,7 @@ ifndef VCCL
 ifndef MSVC
 ifndef VS
 
-  # define VCCL and, optionally, VC_VER from values of VS*COMNTOOLS environment variables
+  # define VCCL and, optionally, VC_VER from values of VS*COMNTOOLS environment variables (may be set by the vcvars32.bat)
 
   # try to extract Visual Studio installation paths from values of VS*COMNTOOLS variables,
   #  e.g. VS140COMNTOOLS=C:\Program Files\Microsoft Visual Studio 14.0\Common7\Tools\
@@ -352,6 +354,7 @@ ifndef VS
 
   ifndef VCCL
     ifdef VS_COMN_VERS
+      # define VC_VER at end of this section
 
       ifeq (,$(call is_less,$(firstword $(VS_COMN_VERS)),80))
         # Visual Studio 2005 or later
@@ -431,6 +434,7 @@ ifndef VS
         endif
         VCCL := $(wordlist 2,999999,$(VCCL))
       endif
+
     endif
   endif
 
@@ -449,7 +453,75 @@ ifndef VCCL
 ifndef MSVC
 ifndef VS
 
-  # at last, check "Program Files" and "Program Files (x86)" directories and define VCCL
+  # at last, check registry - to define VCCL
+
+  # query path to Visual Studio in registry
+  # $1 - sub key, e.g. VC7 or VS7
+  # $2 - parameter name, e.g.: 14.0
+  # result: for VC7 - C:/Program?Files?(x86)/Microsoft?Visual?Studio?14.0/VC/
+  # result: for VS7 - C:/Program?Files?(x86)/Microsoft?Visual?Studio?14.0/
+  # note: assume with trailing backslash
+  VS_REG_QUERY = $(subst \,/,$(subst ?$2?REG_SZ?,,$(call VS_REG_QUERY_WOW6432,$1,$2,$(lastword \
+    $(subst HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\VisualStudio\SxS\$1, ,$(subst \
+    $(space),?,$(strip $(shell reg query "HKLM\SOFTWARE\Microsoft\VisualStudio\SxS\$1" /v "$2" 2>NUL))))))))
+
+  # check Wow6432Node (on Win64)
+  # $1 - sub key, e.g. VC7 or VS7
+  # $2 - parameter name, e.g.: 14.0
+  # $3 - result of reg query
+  VS_REG_QUERY_WOW6432 = $(if $3,$3,$(if $(IS_WIN_64),$(lastword \
+    $(subst HKEY_LOCAL_MACHINE\SOFTWARE\Wow6432Node\Microsoft\VisualStudio\SxS\$1, ,$(subst \
+    $(space),?,$(strip $(shell reg query "HKLM\SOFTWARE\Wow6432Node\Microsoft\VisualStudio\SxS\$1" /v "$2" 2>NUL)))))))
+
+  # select appropriate compiler for the $(CPU)
+  VCCL_2017_PREFIXED := bin/$(call VC_TOOL_PREFIX_2017,$(CPU))cl.exe
+
+  VCCL := $(call VS_SEARCH_CL1,$(call VS_2017_SELECT_LATEST_CL,$(call \
+    VS_FIND_FILE,Tools/MSVC/*/$(VCCL_2017_PREFIXED),$(call VS_REG_QUERY,VC7,15.0)),$(VCCL_2017_PREFIXED)))
+
+  # $1 - result of $(VS_2017_SELECT_LATEST_CL)
+  VS_SEARCH_CL1 = $(if $1,$1,$(call VS_SEARCH_CL2,$(call VS_2017_SELECT_LATEST_CL,$(call \
+    VS_FIND_FILE,VC/Tools/MSVC/*/$(VCCL_2017_PREFIXED),$(call VS_REG_QUERY,VCS,15.0)),$(VCCL_2017_PREFIXED))))
+
+  # $1 - result of $(VS_2017_SELECT_LATEST_CL)
+  VS_SEARCH_CL2 = $(if $1,$1,$(call VS_SEARCH_CL3,$(call VS_SEARCH_CL_2005,8.0 9.0 10.0 11.0 12.0 14.0)))
+
+  VS_SEARCH_CL3 = $(if $1,$1,$(call VS_SEARCH_CL4,$(call VS_SEARCH_CL_DOT_NET,7.0 7.1)))
+
+
+
+  # check "Program Files" and "Program Files (x86)" directories
+  VCCL := $(call VS_SEARCH_CL,$(addsuffix /,$(GET_PROGRAM_FILES_DIRS)))
+
+  # find cl.exe, checking the latest Visual Studio versions first
+  # $1 - C:/Program?Files/ C:/Program?Files?(x86)/
+  # first look for C:/Program Files/Microsoft Visual Studio/2017/Community/VC/Tools/MSVC/14.11.25503/bin/HostX86/x86/cl.exe
+  VS_SEARCH_CL = $(call VS_SEARCH_CL1,$1,$(call VS_2017_SELECT_LATEST_CL,$(call \
+    VS_FIND_FILE,Microsoft\ Visual\ Studio/*/*/VC/Tools/MSVC/*/$(VCCL_2017_PREFIXED),$1),$(VCCL_2017_PREFIXED)))
+
+  # $1 - C:/Program?Files/ C:/Program?Files?(x86)/
+  # $2 - result of $(VS_2017_SELECT_LATEST_CL)
+  VS_SEARCH_CL1 = $(if $2,$2,$(call VS_SEARCH_CL2,$1,$(call VS_REG_QUERY,VC7,15.0)))
+
+  # $1 - C:/Program?Files/ C:/Program?Files?(x86)/
+  # $2 - result of $(call VS_REG_QUERY,VC7,15.0), e.g.: C:\Program?Files?(x86)\Microsoft?Visual?Studio\2017\Community\VC\
+  # note: assume with trailing slash
+  VS_SEARCH_CL2 = $(call VS_SEARCH_CL3,$1,$(if $2,$(call VS_2017_SELECT_LATEST_CL,$(call \
+    VS_FIND_FILE,Tools/MSVC/*/$(VCCL_2017_PREFIXED),$(subst \,/,$2)),$(VCCL_2017_PREFIXED))))
+
+  # $1 - C:/Program?Files/ C:/Program?Files?(x86)/
+  # $2 - result of $(VS_2017_SELECT_LATEST_CL)
+  VS_SEARCH_CL3 = $(if $2,$2,$(call VS_SEARCH_CL4,$1,$(call VS_REG_QUERY,VS7,15.0)))
+
+  # $1 - C:/Program?Files/ C:/Program?Files?(x86)/
+  # $2 - result of $(call VS_REG_QUERY,VS7,15.0), e.g.: C:\Program?Files?(x86)\Microsoft?Visual?Studio\2017\Community\
+  # note: assume with trailing slash
+  VS_SEARCH_CL4 = $(call VS_SEARCH_CL5,$1,$(if $2,$(call VS_2017_SELECT_LATEST_CL,$(call \
+    VS_FIND_FILE,VC/Tools/MSVC/*/$(VCCL_2017_PREFIXED),$(subst \,/,$2)),$(VCCL_2017_PREFIXED))))
+
+  # $1 - C:/Program?Files/ C:/Program?Files?(x86)/
+  # $2 - result of $(VS_2017_SELECT_LATEST_CL)
+  VS_SEARCH_CL5 = $(if $2,$2,$(VS_SEARCH_OLD_CL))
 
   # get list of Visual Studio versions
   # $1 - C:/Program?Files/ C:/Program?Files?(x86)/
@@ -470,13 +542,13 @@ ifndef VS
 
   # $2 - C:/Program?Files/Microsoft?Visual?Studio?14.0/ C:/Program?Files?(x86)/Microsoft?Visual?Studio?14.0/
   # result: VC/bin/x86_arm/cl.exe
-  VCCL_2005_PATTERN = VC/bin/$(call VC_TOOL_PREFIX_2005,$(CPU),$(call VS_SELECT_CPU,$(firstword $2)))cl.exe
+  VCCL_2005_PATTERN_GEN = VC/bin/$(call VC_TOOL_PREFIX_2005,$(CPU),$(call VS_SELECT_CPU,$(firstword $2)))cl.exe
 
   # search C++ compiler of Visual Studio 2005-2015
   # $1 - .NET .NET?2003 8 9.0 10.0 11.0 12.0 14.0
   # $2 - C:/Program?Files/ C:/Program?Files?(x86)/
   VS_SEARCH_OLD_CL1 = $(call VS_SEARCH_OLD_CL2,$1,$2,$(call \
-    VS_FIND_FILE_P,VCCL_2005_PATTERN,$(foreach v,$(VS_SORT_VERSIONS_2005),$(addsuffix Microsoft?Visual?Studio?$v/,$2))))
+    VS_FIND_FILE_P,VCCL_2005_PATTERN_GEN,$(foreach v,$(VS_SORT_VERSIONS_2005),$(addsuffix Microsoft?Visual?Studio?$v/,$2))))
 
   # check for Visual C++ compiler bundled in SDK6.0
   # $1 - .NET .NET?2003 8 9.0 10.0 11.0 12.0 14.0
@@ -513,22 +585,6 @@ ifndef VS
   # $2 - result of $(VS_FIND_FILE)
   VS_SEARCH_OLD_CL6 = $(if $2,$2,$(call \
     VS_FIND_FILE,VC98/Bin/cl.exe,$(addsuffix Microsoft?Visual?Studio/,$1)))
-
-  # select appropriate compiler for the $(CPU)
-  VCCL_2017_PREFIXED := bin/$(call VC_TOOL_PREFIX_2017,$(CPU))cl.exe
-
-  # find cl.exe, checking the latest Visual Studio versions first
-  # $1 - C:/Program?Files/ C:/Program?Files?(x86)/
-  # first look for C:/Program Files/Microsoft Visual Studio/2017/Community/VC/Tools/MSVC/14.11.25503/bin/HostX86/x86/cl.exe
-  VS_SEARCH_CL = $(call VS_SEARCH_CL1,$1,$(call VS_2017_SELECT_LATEST_CL,$(call \
-    VS_FIND_FILE,Microsoft\ Visual\ Studio/*/*/VC/Tools/MSVC/*/$(VCCL_2017_PREFIXED),$1),$(VCCL_2017_PREFIXED)))
-
-  # $1 - C:/Program?Files/ C:/Program?Files?(x86)/
-  # $2 - result of $(VS_2017_SELECT_LATEST_CL)
-  VS_SEARCH_CL1 = $(if $2,$2,$(call VS_SEARCH_OLD_CL,$1))
-
-  # check "Program Files" and "Program Files (x86)" directories
-  VCCL := $(call VS_SEARCH_CL,$(addsuffix /,$(GET_PROGRAM_FILES_DIRS)))
 
   ifdef VCCL
     # C:/Program Files/Microsoft Visual Studio/2017/Community/VC/Tools/MSVC/14.11.25503/bin/HostX86/x86/cl.exe
@@ -1166,6 +1222,6 @@ endif
 endif # !DO_NOT_ADJUST_PATH
 
 # protect variables from modifications in target makefiles
-$(call SET_GLOBAL,GET_PROGRAM_FILES_DIRS \
+$(call SET_GLOBAL,GET_PROGRAM_FILES_DIRS VS_CPU VS_CPU64 IS_WIN_64 \
   VC_VER VCCL VC_LIB_TYPE_ONECORE VC_LIB_TYPE_STORE VCLIBPATH VCINCLUDE VCLIB VCLINK TVCCL TVCLIBPATH TVCLIB TVCLINK \
   VCCL_PATH_APPEND)

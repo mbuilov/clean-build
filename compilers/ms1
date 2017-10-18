@@ -1,35 +1,18 @@
-/cygdrive/c/opt/WDK71/lib/win7/{i386,amd64,ia64}/kernel32.lib
-/cygdrive/c/opt/WDK71/lib/wlh/{i386,amd64,ia64}/kernel32.lib
-/cygdrive/c/opt/WDK71/lib/wnet/{i386,amd64,ia64}/kernel32.lib
-/cygdrive/c/opt/WDK71/lib/wxp/i386/kernel32.lib
-
-/cygdrive/c/Program Files (x86)/Microsoft Visual Studio 12.0/VC/bin/{,x86_amd64/}cl.exe
-/cygdrive/c/Program Files (x86)/Microsoft Visual Studio 14.0/VC/bin/{,x86_amd64/,/x86_arm/,amd64/,amd64_x86/,amd64_arm/}cl.exe
-
-C:\Program Files\Microsoft Visual Studio .NET 2003\Vc7\atlmfc\include\atlbase.h
-C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\atlmfc\include\atlbase.h
-C:\Program Files\Microsoft Visual Studio\VC98\ATL\Include\atlbase.h
-C:\Program Files\Microsoft Platform SDK for Windows Server 2003 R2\Include\atl\atlbase.h
-
----------------------------------
-
 VC98
-C:\Program Files\Microsoft Visual Studio\VC98\Lib\KERNEL32.LIB
-C:\Program Files\Microsoft Visual Studio\VC98\Include\WINBASE.H
 C:\Program Files\Microsoft Visual Studio\VC98\Include\ERRNO.H
 C:\Program Files\Microsoft Visual Studio\VC98\Lib\MSVCRT.LIB
 C:\Program Files\Microsoft Visual Studio\VC98\Bin\CL.EXE           - Microsoft (R) 32-bit C/C++ Optimizing Compiler Version 12.00.8168 for 80x86
-note: cl.exe needs mspdb60.dll: set PATH=%PATH%;C:\Program Files\Microsoft Visual Studio\Common\MSDev98\Bin
+note: cl.exe needs MSPDB60.DLL: set PATH=%PATH%;C:\Program Files\Microsoft Visual Studio\Common\MSDev98\Bin
 C:\Program Files\Microsoft Visual Studio\Common\MSDev98\Bin\RC.EXE - Microsoft (R) Windows 32 Resource Compiler, Version 5.00.1641.1 - Build 1641
 C:\Program Files\Microsoft Visual Studio\VC98\Bin\MC.EXE           - Microsoft (R) Message Compiler  Version 1.00.5239
-INCLUDE=C:\Program Files\Microsoft Visual Studio\VC98\atl\include;C:\Program Files\Microsoft Visual Studio\VC98\mfc\include;C:\Program Files\Microsoft Visual Studio\VC98\include
-LIB=C:\Program Files\Microsoft Visual Studio\VC98\mfc\lib;C:\Program Files\Microsoft Visual Studio\VC98\lib
-MSDevDir=C:\Program Files\Microsoft Visual Studio\Common\MSDev98
-path=C:\Program Files\Microsoft Visual Studio\Common\Tools\WinNT;C:\Program Files\Microsoft Visual Studio\Common\MSDev98\Bin;C:\Program Files\Microsoft Visual Studio\Common\Tools;C:\Program Files\Microsoft Visual Studio\VC98\bin
+C:\Program Files\Microsoft Visual Studio\VC98\Include\WINBASE.H
+C:\Program Files\Microsoft Visual Studio\VC98\Lib\KERNEL32.LIB
+#tip: INCLUDE=C:\Program Files\Microsoft Visual Studio\VC98\atl\include;C:\Program Files\Microsoft Visual Studio\VC98\mfc\include;C:\Program Files\Microsoft Visual Studio\VC98\include
+#tip: LIB=C:\Program Files\Microsoft Visual Studio\VC98\mfc\lib;C:\Program Files\Microsoft Visual Studio\VC98\lib
+#tip: MSDevDir=C:\Program Files\Microsoft Visual Studio\Common\MSDev98
+#tip: path=C:\Program Files\Microsoft Visual Studio\Common\Tools\WinNT;C:\Program Files\Microsoft Visual Studio\Common\MSDev98\Bin;C:\Program Files\Microsoft Visual Studio\Common\Tools;C:\Program Files\Microsoft Visual Studio\VC98\bin
 
 VS.NET2003
-C:\Program Files\Microsoft Visual Studio .NET 2003\Vc7\PlatformSDK\Lib\Kernel32.Lib
-C:\Program Files\Microsoft Visual Studio .NET 2003\Vc7\PlatformSDK\Include\WinBase.h
 C:\Program Files\Microsoft Visual Studio .NET 2003\Vc7\include\errno.h
 C:\Program Files\Microsoft Visual Studio .NET 2003\Vc7\lib\msvcrt.lib
 C:\Program Files\Microsoft Visual Studio .NET 2003\Vc7\bin\cl.exe           - Microsoft (R) 32-bit C/C++ Optimizing Compiler Version 13.10.3077 for 80x86
@@ -38,26 +21,28 @@ C:\Program Files\Microsoft Visual Studio .NET 2003\Vc7\bin\rc.exe           - Mi
 C:\Program Files\Microsoft Visual Studio .NET 2003\Common7\Tools\Bin\RC.Exe - Microsoft (R) Windows (R) Resource Compiler Version 5.2.3668.0
 C:\Program Files\Microsoft Visual Studio .NET 2003\Common7\Tools\Bin\MC.Exe - Microsoft (R) Message Compiler  Version 1.12.3668
 C:\Program Files\Microsoft Visual Studio .NET 2003\Common7\Tools\Bin\winnt\mt.exe - Microsoft (R) Side-By-Side Manifest Tool 1.0.0.0
+C:\Program Files\Microsoft Visual Studio .NET 2003\Vc7\PlatformSDK\Include\WinBase.h
+C:\Program Files\Microsoft Visual Studio .NET 2003\Vc7\PlatformSDK\Lib\Kernel32.Lib
 
+-- note: this SDK is removed by installer of "Microsoft Platform SDK for Windows Server 2003 R2"
 -- Microsoft Platform SDK February 2003:
--- C:\Program Files\Microsoft SDK\Lib\{,IA64\}Kernel32.Lib
 -- C:\Program Files\Microsoft SDK\include\WinBase.h
--- C:\Program Files\Microsoft SDK\Include\crt\errno.h ???????
+-- C:\Program Files\Microsoft SDK\Lib\{,IA64\}Kernel32.Lib
 -- C:\Program Files\Microsoft SDK\Bin\Win64\CL.EXE                    - Microsoft (R) C/C++ Optimizing Compiler Version 13.10.2240.8 for IA-64
 -- C:\Program Files\Microsoft SDK\Bin\RC.EXE                          - Microsoft (R) Windows (R) Resource Compiler Version 5.2.3790.0
 -- C:\Program Files\Microsoft SDK\Bin\MC.EXE                          - Microsoft (R) Message Compiler  Version 1.12.3790
 -- C:\Program Files\Microsoft SDK\Bin\winnt\MT.EXE                    - Microsoft (R) Side-By-Side Manifest Tool 1.0.0.0
 
 Microsoft Platform SDK for Windows XP SP2:
-C:\Program Files\Microsoft Platform SDK for Windows XP SP2\Lib\Kernel32.Lib
 C:\Program Files\Microsoft Platform SDK for Windows XP SP2\Include\WinBase.h
+C:\Program Files\Microsoft Platform SDK for Windows XP SP2\Lib\Kernel32.Lib
 C:\Program Files\Microsoft Platform SDK for Windows XP SP2\Bin\RC.Exe - Microsoft (R) Windows (R) Resource Compiler, Version 5.1.2264.1 - Build 2264
 C:\Program Files\Microsoft Platform SDK for Windows XP SP2\Bin\MC.Exe - Microsoft (R) Message Compiler  Version 1.12.2505
 
 Microsoft Platform SDK for Windows Server 2003 R2:
+C:\Program Files\Microsoft Platform SDK for Windows Server 2003 R2\Include\WinBase.h
 C:\Program Files\Microsoft Platform SDK for Windows Server 2003 R2\Lib\{,AMD64\,IA64\}Kernel32.Lib
 C:\Program Files\Microsoft Platform SDK for Windows Server 2003 R2\Lib\{AMD64,IA64}\msvcrt.Lib
-C:\Program Files\Microsoft Platform SDK for Windows Server 2003 R2\Include\WinBase.h
 C:\Program Files\Microsoft Platform SDK for Windows Server 2003 R2\Include\crt\errno.h
 C:\Program Files\Microsoft Platform SDK for Windows Server 2003 R2\Bin\win64\cl.exe           - Microsoft (R) C/C++ Optimizing Compiler Version 14.00.40310.39 for IA-64
 C:\Program Files\Microsoft Platform SDK for Windows Server 2003 R2\Bin\win64\x86\AMD64\cl.exe - Microsoft (R) C/C++ Optimizing Compiler Version 14.00.40310.41 for AMD64
@@ -65,16 +50,42 @@ C:\Program Files\Microsoft Platform SDK for Windows Server 2003 R2\Bin\RC.Exe   
 C:\Program Files\Microsoft Platform SDK for Windows Server 2003 R2\Bin\MC.Exe                 - Microsoft (R) Message Compiler  Version 1.12.2505
 C:\Program Files\Microsoft Platform SDK for Windows Server 2003 R2\Bin\mt.Exe                 - Microsoft (R) Manifest Tool version 6.0.4071.0
 
-Visual Studio 2005
-C:\Program Files\Microsoft Visual Studio 8\VC\PlatformSDK\Lib\{,AMD64\}Kernel32.Lib
-C:\Program Files\Microsoft Visual Studio 8\VC\PlatformSDK\Include\WinBase.h
+VS2005
+C:\Program Files (x86)\Microsoft Visual Studio 8\VC\include\errno.h
+C:\Program Files (x86)\Microsoft Visual Studio 8\VC\lib\{,amd64\,ia64\}msvcrt.lib
+C:\Program Files (x86)\Microsoft Visual Studio 8\VC\bin\cl.exe - Microsoft (R) 32-bit C/C++ Optimizing Compiler Version 14.00.50727.42 for 80x86
+note: cl.exe needs mspdb80.dll: set PATH=%PATH%;C:\Program Files (x86)\Microsoft Visual Studio 8\Common7\IDE
+C:\Program Files (x86)\Microsoft Visual Studio 8\VC\bin\amd64\cl.exe - Microsoft (R) C/C++ Optimizing Compiler Version 14.00.50727.42 for x64
+C:\Program Files (x86)\Microsoft Visual Studio 8\VC\bin\ia64\cl.exe - ?????
+C:\Program Files (x86)\Microsoft Visual Studio 8\VC\bin\rc.exe                         - Microsoft (R) Windows (R) Resource Compiler Version 5.2.3690.0
+C:\Program Files (x86)\Microsoft Visual Studio 8\VC\bin\mt.exe                         - Microsoft (R) Manifest Tool version 5.2.3790.2014
+C:\Program Files (x86)\Microsoft Visual Studio 8\Common7\Tools\Bin\RC.Exe              - Microsoft (R) Windows (R) Resource Compiler Version 5.2.3690.0
+C:\Program Files (x86)\Microsoft Visual Studio 8\Common7\Tools\Bin\MC.Exe              - Microsoft (R) Message Compiler  Version 1.12.2505
+C:\Program Files (x86)\Microsoft Visual Studio 8\Common7\Tools\Bin\mt.exe              - Microsoft (R) Manifest Tool version 6.0.4071.0
+C:\Program Files (x86)\Microsoft Visual Studio 8\VC\PlatformSDK\Include\WinBase.h
+C:\Program Files (x86)\Microsoft Visual Studio 8\VC\PlatformSDK\Lib\{,AMD64\,IA64\}kernel32.lib
+C:\Program Files (x86)\Microsoft Visual Studio 8\VC\PlatformSDK\Bin\win64\AMD64\rc.exe - Microsoft (R) Windows (R) Resource Compiler Version 5.2.3734.0
+C:\Program Files (x86)\Microsoft Visual Studio 8\VC\PlatformSDK\Bin\win64\IA64\rc.exe  - ?????
+C:\Program Files\Microsoft.NET\SDK\v2.0 64bit\Bin\mt.exe                               - Microsoft (R) Manifest Tool version 5.2.3790.2014
+C:\Program Files\Microsoft.NET\SDK\v2.0 64bit\Bin\rc.exe                               - Microsoft (R) Windows (R) Resource Compiler Version 5.2.3734.0
+
+# 64-bit compiler (PE32+ executable x86-64):
 C:\Program Files\Microsoft Visual Studio 8\VC\include\errno.h
-C:\Program Files\Microsoft Visual Studio 8\VC\bin\cl.exe           - ???
-??note: cl.exe needs mspdb??.dll: set PATH=%PATH%;C:\Program Files\Microsoft Visual Studio 8\Common7\IDE
-??C:\Program Files\Microsoft Visual Studio 8\VC\bin\rc.exe            - ???
-??C:\Program Files\Microsoft Visual Studio 8\Common7\Tools\Bin\RC.Exe - ???
-??C:\Program Files\Microsoft Visual Studio 8\Common7\Tools\Bin\MC.Exe - ???
-??C:\Program Files\Microsoft Visual Studio 8\Common7\Tools\Bin\winnt\mt.exe - ???
+C:\Program Files\Microsoft Visual Studio 8\VC\lib\msvcrt.lib
+C:\Program Files\Microsoft Visual Studio 8\VC\bin\cl.exe - Microsoft (R) C/C++ Optimizing Compiler Version 14.00.50727.42 for x64
+note: cl.exe needs mspdb80.dll: set PATH=%PATH%;C:\Program Files\Microsoft Visual Studio 8\Common7\IDE
+
+#ce: C:\Program Files (x86)\Microsoft Visual Studio 8\VC\ce\bin\x86_sh\cl.exe - Microsoft (R) C/C++ Optimizing Compiler Version 14.00.50725 for Renesas SH
+#ce: note: cl.exe needs mspdb80.dll: set PATH=%PATH%;C:\Program Files (x86)\Microsoft Visual Studio 8\Common7\IDE
+#ce: C:\Program Files (x86)\Microsoft Visual Studio 8\VC\ce\bin\x86_mips\cl.exe - Microsoft (R) C/C++ Optimizing Compiler Version 14.00.50725 for MIPS R-Series
+#ce: note: cl.exe needs mspdb80.dll: set PATH=%PATH%;C:\Program Files (x86)\Microsoft Visual Studio 8\Common7\IDE
+#ce: C:\Program Files (x86)\Microsoft Visual Studio 8\VC\ce\bin\x86_arm\cl.exe - Microsoft (R) C/C++ Optimizing Compiler Version 14.00.50725 for ARM
+#ce: note: cl.exe needs mspdb80.dll: set PATH=%PATH%;C:\Program Files (x86)\Microsoft Visual Studio 8\Common7\IDE
+#ce: C:\Program Files (x86)\Microsoft Visual Studio 8\VC\bin\x86_ia64\cl.exe - Microsoft (R) C/C++ Optimizing Compiler Version 14.00.50727.42 for Itanium
+#ce: note: cl.exe needs mspdb80.dll: set PATH=%PATH%;C:\Program Files (x86)\Microsoft Visual Studio 8\Common7\IDE
+#ce: C:\Program Files (x86)\Microsoft Visual Studio 8\VC\bin\x86_amd64\cl.exe - Microsoft (R) C/C++ Optimizing Compiler Version 14.00.50727.42 for x64
+#ce: note: cl.exe needs mspdb80.dll: set PATH=%PATH%;C:\Program Files (x86)\Microsoft Visual Studio 8\Common7\IDE
+#ce: C:\Program Files (x86)\Microsoft Visual Studio 8\VC\ce\lib\{x86,sh4,mipsiv_fp,mipsiv,mipsii_fp,mipsii,armv4i,armv4}\msvcrt.lib
 
 SDK 6.0
 C:\Program Files\Microsoft SDKs\Windows\v6.0\Include\WinBase.h
@@ -241,94 +252,74 @@ note: cl.exe needs mspdb140.dll: set PATH=%PATH%;d:\Program Files (x86)\Microsof
 /cygdrive/c/Program Files (x86)/Microsoft Visual Studio 9.0/VC/bin/amd64/mspdbcore.dll
 
 
-C:\Program Files\Microsoft SDKs\Windows\v6.0\VC\Bin\mspdbcore.dll
-C:\Program Files\Microsoft SDKs\Windows\v6.0\VC\Bin\mspdb80.dll
-C:\Program Files\Microsoft SDKs\Windows\v6.0\VC\Bin\x64\mspdbcore.dll
-C:\Program Files\Microsoft SDKs\Windows\v6.0\VC\Bin\x64\mspdb80.dll
-
-C:\Program Files (x86)\Microsoft Visual Studio 9.0\Common7\IDE\mspdb80.dll
-C:\Program Files (x86)\Microsoft Visual Studio 9.0\Common7\IDE\mspdbcore.dll
-C:\Program Files (x86)\Microsoft Visual Studio 9.0\VC\bin\amd64\mspdb80.dll
-C:\Program Files (x86)\Microsoft Visual Studio 9.0\VC\bin\amd64\mspdbcore.dll
-
-C:\Program Files (x86)\Microsoft Visual Studio 10.0\Common7\IDE\mspdb100.dll
-C:\Program Files (x86)\Microsoft Visual Studio 10.0\Common7\IDE\mspdbcore.dll
-C:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\bin\amd64\mspdb100.dll
-C:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\bin\amd64\mspdbcore.dll
-
-C:\Program Files\Microsoft Visual Studio\Common\MSDev98\Bin\MSPDB60.DLL
-C:\Program Files\Microsoft Visual Studio .NET 2003\Common7\IDE\mspdb71.dll
-C:\Program Files\Microsoft Platform SDK for Windows Server 2003 R2\Bin\win64\x86\AMD64\mspdb80.dll
-C:\Program Files\Microsoft Platform SDK for Windows Server 2003 R2\Bin\win64\mspdb80.dll
-C:\Program Files\Microsoft Platform SDK for Windows Server 2003 R2\Bin\win64\mspdbcore.dll
 
 
-/cygdrive/c/Program Files (x86)/Windows Kits/10/Lib/10.0.10240.0/um/arm/kernel32.Lib
-/cygdrive/c/Program Files (x86)/Windows Kits/10/Lib/10.0.10240.0/um/arm64/kernel32.Lib
-/cygdrive/c/Program Files (x86)/Windows Kits/10/Lib/10.0.10240.0/um/x64/kernel32.Lib
-/cygdrive/c/Program Files (x86)/Windows Kits/10/Lib/10.0.10240.0/um/x86/kernel32.Lib
-/cygdrive/c/Program Files (x86)/Windows Kits/10/Lib/10.0.10586.0/um/arm/kernel32.Lib
-/cygdrive/c/Program Files (x86)/Windows Kits/10/Lib/10.0.10586.0/um/arm64/kernel32.Lib
-/cygdrive/c/Program Files (x86)/Windows Kits/10/Lib/10.0.10586.0/um/x64/kernel32.Lib
-/cygdrive/c/Program Files (x86)/Windows Kits/10/Lib/10.0.10586.0/um/x86/kernel32.Lib
-/cygdrive/c/Program Files (x86)/Windows Kits/10/Lib/10.0.14393.0/um/arm/kernel32.Lib
-/cygdrive/c/Program Files (x86)/Windows Kits/10/Lib/10.0.14393.0/um/arm64/kernel32.Lib
-/cygdrive/c/Program Files (x86)/Windows Kits/10/Lib/10.0.14393.0/um/x64/kernel32.Lib
-/cygdrive/c/Program Files (x86)/Windows Kits/10/Lib/10.0.14393.0/um/x86/kernel32.Lib
-/cygdrive/c/Program Files (x86)/Windows Kits/10/Lib/10.0.15063.0/um/arm/kernel32.Lib
-/cygdrive/c/Program Files (x86)/Windows Kits/10/Lib/10.0.15063.0/um/arm64/kernel32.Lib
-/cygdrive/c/Program Files (x86)/Windows Kits/10/Lib/10.0.15063.0/um/x64/kernel32.Lib
-/cygdrive/c/Program Files (x86)/Windows Kits/10/Lib/10.0.15063.0/um/x86/kernel32.Lib
-
-/cygdrive/c/Program Files (x86)/Windows Kits/8.0/Lib/win8/um/arm/kernel32.Lib
-/cygdrive/c/Program Files (x86)/Windows Kits/8.0/Lib/win8/um/x64/kernel32.Lib
-/cygdrive/c/Program Files (x86)/Windows Kits/8.0/Lib/win8/um/x86/kernel32.Lib
-/cygdrive/c/Program Files (x86)/Windows Kits/8.1/Lib/winv6.3/um/arm/kernel32.Lib
-/cygdrive/c/Program Files (x86)/Windows Kits/8.1/Lib/winv6.3/um/x64/kernel32.Lib
-/cygdrive/c/Program Files (x86)/Windows Kits/8.1/Lib/winv6.3/um/x86/kernel32.Lib
 
 
-C:\Program Files (x86)\Microsoft Visual Studio 8\VC\ce\bin\x86_sh\cl.exe - Microsoft (R) C/C++ Optimizing Compiler Version 14.00.50725 for Renesas SH
-note: cl.exe needs mspdb80.dll: set PATH=%PATH%;C:\Program Files (x86)\Microsoft Visual Studio 8\Common7\IDE
-C:\Program Files (x86)\Microsoft Visual Studio 8\VC\ce\bin\x86_mips\cl.exe - Microsoft (R) C/C++ Optimizing Compiler Version 14.00.50725 for MIPS R-Series
-note: cl.exe needs mspdb80.dll: set PATH=%PATH%;C:\Program Files (x86)\Microsoft Visual Studio 8\Common7\IDE
-C:\Program Files (x86)\Microsoft Visual Studio 8\VC\ce\bin\x86_arm\cl.exe - Microsoft (R) C/C++ Optimizing Compiler Version 14.00.50725 for ARM
-note: cl.exe needs mspdb80.dll: set PATH=%PATH%;C:\Program Files (x86)\Microsoft Visual Studio 8\Common7\IDE
-C:\Program Files (x86)\Microsoft Visual Studio 8\VC\bin\x86_ia64\cl.exe - Microsoft (R) C/C++ Optimizing Compiler Version 14.00.50727.42 for Itanium
-note: cl.exe needs mspdb80.dll: set PATH=%PATH%;C:\Program Files (x86)\Microsoft Visual Studio 8\Common7\IDE
-C:\Program Files (x86)\Microsoft Visual Studio 8\VC\bin\x86_amd64\cl.exe - Microsoft (R) C/C++ Optimizing Compiler Version 14.00.50727.42 for x64
-note: cl.exe needs mspdb80.dll: set PATH=%PATH%;C:\Program Files (x86)\Microsoft Visual Studio 8\Common7\IDE
-C:\Program Files (x86)\Microsoft Visual Studio 8\VC\bin\cl.exe - Microsoft (R) 32-bit C/C++ Optimizing Compiler Version 14.00.50727.42 for 80x86
-note: cl.exe needs mspdb80.dll: set PATH=%PATH%;C:\Program Files (x86)\Microsoft Visual Studio 8\Common7\IDE
-C:\Program Files (x86)\Microsoft Visual Studio 8\VC\bin\amd64\cl.exe - Microsoft (R) C/C++ Optimizing Compiler Version 14.00.50727.42 for x64
-C:\Program Files (x86)\Microsoft Visual Studio 8\VC\bin\ia64\cl.exe - ?????
 
-PE32+ executable (console) x86-64, for MS Windows
-C:\Program Files\Microsoft Visual Studio 8\VC\bin\cl.exe - Microsoft (R) C/C++ Optimizing Compiler Version 14.00.50727.42 for x64
-note: cl.exe needs mspdb80.dll: set PATH=%PATH%;C:\Program Files\Microsoft Visual Studio 8\Common7\IDE
+/cygdrive/c/opt/WDK71/lib/win7/{i386,amd64,ia64}/kernel32.lib
+/cygdrive/c/opt/WDK71/lib/wlh/{i386,amd64,ia64}/kernel32.lib
+/cygdrive/c/opt/WDK71/lib/wnet/{i386,amd64,ia64}/kernel32.lib
+/cygdrive/c/opt/WDK71/lib/wxp/i386/kernel32.lib
 
-C:\Program Files (x86)\Microsoft Visual Studio 8\VC\lib\msvcrt.lib
-C:\Program Files (x86)\Microsoft Visual Studio 8\VC\lib\ia64\msvcrt.lib
-C:\Program Files (x86)\Microsoft Visual Studio 8\VC\lib\amd64\msvcrt.lib
-C:\Program Files (x86)\Microsoft Visual Studio 8\VC\ce\lib\x86\msvcrt.lib
-C:\Program Files (x86)\Microsoft Visual Studio 8\VC\ce\lib\sh4\msvcrt.lib
-C:\Program Files (x86)\Microsoft Visual Studio 8\VC\ce\lib\mipsiv_fp\msvcrt.lib
-C:\Program Files (x86)\Microsoft Visual Studio 8\VC\ce\lib\mipsiv\msvcrt.lib
-C:\Program Files (x86)\Microsoft Visual Studio 8\VC\ce\lib\mipsii_fp\msvcrt.lib
-C:\Program Files (x86)\Microsoft Visual Studio 8\VC\ce\lib\mipsii\msvcrt.lib
-C:\Program Files (x86)\Microsoft Visual Studio 8\VC\ce\lib\armv4i\msvcrt.lib
-C:\Program Files (x86)\Microsoft Visual Studio 8\VC\ce\lib\armv4\msvcrt.lib
+/cygdrive/c/Program Files (x86)/Microsoft Visual Studio 12.0/VC/bin/{,x86_amd64/}cl.exe
+/cygdrive/c/Program Files (x86)/Microsoft Visual Studio 14.0/VC/bin/{,x86_amd64/,/x86_arm/,amd64/,amd64_x86/,amd64_arm/}cl.exe
 
-(likely for x86-64)
-C:\Program Files\Microsoft Visual Studio 8\VC\lib\msvcrt.lib
+C:\Program Files\Microsoft Visual Studio .NET 2003\Vc7\atlmfc\include\atlbase.h
+C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\atlmfc\include\atlbase.h
+C:\Program Files\Microsoft Visual Studio\VC98\ATL\Include\atlbase.h
+C:\Program Files\Microsoft Platform SDK for Windows Server 2003 R2\Include\atl\atlbase.h
 
-C:\Program Files (x86)\Microsoft Visual Studio 8\VC\lib\kernel32.lib
-C:\Program Files (x86)\Microsoft Visual Studio 8\VC\PlatformSDK\Lib\AMD64\kernel32.lib
-C:\Program Files (x86)\Microsoft Visual Studio 8\VC\PlatformSDK\Lib\IA64\kernel32.lib
-C:\Program Files (x86)\Microsoft Visual Studio 8\VC\PlatformSDK\Lib\kernel32.lib
+---------------------------------
 
-C:\Program Files (x86)\Microsoft Visual Studio 8\VC\PlatformSDK\Include\WinBase.h
 
-C:\Program Files\Microsoft Visual Studio 8\VC\lib\amd64\kernel32.lib
-(WinBase.h is not found in C:\Program Files\Microsoft Visual Studio 8)
+
+
+
+
+
+
+
+ifndef VCCL
+ifndef MSVC
+ifndef VS
+
+  # known versions of Visual Studio
+  VS_VERSIONS := 7.0 7.1 8.0 9.0 10.0 11.0 12.0 14.0 15.0
+
+  # query registry for Visual Studio installation paths
+  VS_REG_QUERY = $(lastword \
+    $(subst HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\VisualStudio\SxS\VC7, ,$(subst \
+    $(space),?,$(strip $(shell reg query "HKLM\SOFTWARE\Microsoft\VisualStudio\SxS\VC7")))))$(if $(IS_WIN_64), $(lastword \
+    $(subst HKEY_LOCAL_MACHINE\SOFTWARE\Wow6432Node\Microsoft\VisualStudio\SxS\VC7, ,$(subst \
+    $(space),?,$(strip $(shell reg query "HKLM\SOFTWARE\Wow6432Node\Microsoft\VisualStudio\SxS\VC7"))))))
+
+  # $1 - 7.0 7.1 8.0 9.0 10.0 11.0 12.0 14.0 15.0
+  # $2 - ?9.0?REG_SZ?C:\Program?Files?(x86)\Microsoft?Visual?Studio?9.0\VC\?FrameworkDir32?REG_SZ?C:\Windows\Microsoft.NET\Framework\
+  #
+  VS_SUBST_PATHS = $(if $1,$(call VS_SUBST_PATHS,$(wordlist 2,999999,$1),$(subst ?$(firstword $1)?REG_SZ?, $(firstword $1)?,$2)),$2)
+
+  # get list of Visual Studio installation paths
+  VS_REG_PLACES = $(sort $(filter-out \
+    FrameworkVer% FrameworkDir%,$(subst \
+    ?FrameworkVer, FrameworkVer,$(subst \
+    ?FrameworkDir, FrameworkDir,$(call \
+    VS_SUBST_PATHS,$(VS_VERSIONS),$(VS_REG_QUERY))))))
+
+  # query registry for Visual Studio installation paths
+  VS6_REG_QUERY = $(lastword \
+    $(subst \SOFTWARE\Microsoft\VisualStudio\SxS\VC7, ,$(subst \
+    $(space),?,$(strip $(shell reg query "HKLM\SOFTWARE\Microsoft\VisualStudio\6.0\Setup\Microsoft Visual C++" /v ProductDir)))))$(if $(IS_WIN_64), $(lastword \
+    $(subst \SOFTWARE\Wow6432Node\Microsoft\VisualStudio\SxS\VC7, ,$(subst \
+    $(space),?,$(strip $(shell reg query "HKLM\SOFTWARE\Wow6432Node\Microsoft\VisualStudio\6.0\Setup\Microsoft Visual C++" /v ProductDir)
+
+
+  # check registry
+  MSVC := $(shell reg query "HKLM\SOFTWARE\Microsoft\VisualStudio\6.0\Setup\Microsoft Visual C++" /v ProductDir)
+
+
+! REG.EXE VERSION 3.0
+
+HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\VisualStudio\6.0\Setup\Microsoft Visual C++
+    ProductDir  REG_SZ  C:\Program Files\Microsoft Visual Studio\VC98
 
