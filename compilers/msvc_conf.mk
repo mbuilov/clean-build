@@ -72,15 +72,15 @@ PROGRAM_FILES_DIRS = $(call PROGRAM_FILES_DIRS1,$(foreach \
   $(filter-out undefined,$(origin $v)),$(subst $(space),?,$(subst \,/,$($v))))))
 
 # remove duplicates preserving sorting
-PROGRAM_FILES_DIRS1 = $(firstword $1) $(call PROGRAM_FILES_DIRS2,$(filter-out $(firstword $1),$1))
-PROGRAM_FILES_DIRS2 = $(firstword $1) $(filter-out $(firstword $1),$1)
+PROGRAM_FILES_DIRS1 = $(if $1,$(firstword $1) $(call PROGRAM_FILES_DIRS1,$(filter-out $(firstword $1),$1)))
 
 # base architecture of Visual Studio tools
 # note: TCPU likely has this value, but it is possible to have TCPU=x86_64 for VS_CPU=x86, if Visual Studio supports x86_64 tools
 # note: VS_CPU value depends on where Visual Studio is installed, e.g., on 64-bit Windows:
-#  C:\Program Files\Microsoft Visual Studio 8\VC\bin\cl.exe             - x86_64 compiler for x86_64, VS_CPU should be amd64
-#  C:\Program Files (x86)\Microsoft Visual Studio 8\VC\bin\cl.exe       - x86 compiler for x86,       VS_CPU should be x86
-#  C:\Program Files (x86)\Microsoft Visual Studio 8\VC\bin\amd64\cl.exe - x86_64 compiler for x86_64, VS_CPU should be x86
+#  C:\Program Files\Microsoft Visual Studio 8\VC\bin\cl.exe                 - base     x86_64 compiler for x86_64, VS_CPU should be amd64
+#  C:\Program Files (x86)\Microsoft Visual Studio 8\VC\bin\cl.exe           - base     x86    compiler for x86,    VS_CPU should be x86
+#  C:\Program Files (x86)\Microsoft Visual Studio 8\VC\bin\amd64\cl.exe     - prefixed x86_64 compiler for x86_64, VS_CPU should be x86
+#  C:\Program Files (x86)\Microsoft Visual Studio 8\VC\bin\x86_amd64\cl.exe - prefixed x86    compiler for x86_64, VS_CPU should be x86
 VS_CPU   := x86
 VS_CPU64 := amd64
 
@@ -869,7 +869,7 @@ ifneq (123,$(if \
         # C:\Program Files\Microsoft Visual Studio 14.0\VC\lib\onecore\msvcrt.lib
         # C:\Program Files\Microsoft Visual Studio 14.0\VC\lib\store\amd64\msvcrt.lib
         VCLIBPATH := $(VCCL_PARENT3)\lib$(VC_LIB_TYPE_ONECORE:%=\%)$(VC_LIB_TYPE_STORE:%=\%)$(call \
-          VCCL_GET_LIBS_2005,$(VCCL_ENTRY1l),$(call VS_SELECT_CPU,$(subst \,/,$(subst $(space),?,$(VCCL_PARENT3)))))
+          VCCL_GET_LIBS_2005,$(VCCL_ENTRY1l),$(call VS_SELECT_CPU,$(subst \,/,$(VCCL_PARENT3))))
         $(warning autoconfigured: VCLIBPATH=$(VCLIBPATH))
       endif
 
@@ -960,7 +960,9 @@ endif
 ifneq (,$(filter undefined environment,$(origin TVCLIBPATH))$(if $(TVCCL),,1))
 
   # deduce values of TVCCL and TVCLIBPATH from $(VCCL)
-  VCCL_PARENT1 := $(patsubst %\,%,$(dir $(patsubst "%",%,$(subst $(space),?,$(VCCL)))))
+  # note: assume compilers $(TVCCL) and $(VCCL) are from the same Visual Studio installation,
+  #  so have the same versions and use common header files
+  VCCL_PARENT1 := $(patsubst %\,%,$(dir $(patsubst "%",%,$(subst $(space),?,$(if $(TVCCL),$(TVCCL),$(VCCL))))))
 
   # reset
   TVCCL_AUTO:=
@@ -971,6 +973,7 @@ ifneq (,$(filter undefined environment,$(origin TVCLIBPATH))$(if $(TVCCL),,1))
     VCCL_PARENT2 := $(patsubst %\,%,$(dir $(VCCL_PARENT1)))
 
     # e.g. x86
+    # note: if TVCCL is not defined, then assume it will have the same host type as $(VCCL)
     VCCL_HOST := $(patsubst host%,%,$(call tolower,$(notdir $(VCCL_PARENT2))))
 
     ifndef TVCCL
@@ -999,7 +1002,8 @@ ifneq (,$(filter undefined environment,$(origin TVCLIBPATH))$(if $(TVCCL),,1))
       # amd64     -> amd64
       # amd64_x86 -> amd64
       # x86_amd64 ->
-      VCCL_HOST := $(call VCCL_GET_HOST_2005,$(VCCL_ENTRY1l),$(call VS_SELECT_CPU,$(subst \,/,$(subst $(space),?,$(VCCL_PARENT1)))))
+      # note: if TVCCL is not defined, then assume it will have the same host type as $(VCCL)
+      VCCL_HOST := $(call VCCL_GET_HOST_2005,$(VCCL_ENTRY1l),$(call VS_SELECT_CPU,$(subst \,/,$(VCCL_PARENT1))))
 
       ifndef TVCCL
         TVCCL_AUTO := $(dir $(VCCL_PARENT1))$(addsuffix \,$(VCCL_HOST))cl.exe
@@ -1017,7 +1021,7 @@ ifneq (,$(filter undefined environment,$(origin TVCLIBPATH))$(if $(TVCCL),,1))
 
   ifndef TVCCL
     ifeq ($(CPU),$(TCPU))
-      # do not check if $(TVCCL) exist
+      # do not check if $(VCCL) exist
       TVCCL := $(VCCL)
     else ifdef TVCCL_AUTO
       TVCCL := $(wildcard $(subst ?,\ ,$(subst \,/,$(TVCCL_AUTO))))
@@ -1100,7 +1104,7 @@ else ifeq (,$(call is_less_float,$(VC_VER),8))
     # amd64     -> VCCL_HOST_PREF=\amd64 VC_LIBS_PREF=\amd64
     # amd64_x86 -> VCCL_HOST_PREF=\amd64 VC_LIBS_PREF=
     # x86_amd64 -> VCCL_HOST_PREF=       VC_LIBS_PREF=\amd64
-    VCCL_CPU       := $(call VS_SELECT_CPU,$(subst \,/,$(subst $(space),?,$(VCCL_PARENT1))))
+    VCCL_CPU       := $(call VS_SELECT_CPU,$(subst \,/,$(VCCL_PARENT1)))
     VCCL_HOST_PREF := $(addprefix \,$(call VCCL_GET_HOST_2005,$(VCCL_ENTRY1l),$(VCCL_CPU)))
     VC_LIBS_PREF   := $(call VCCL_GET_LIBS_2005,$(VCCL_ENTRY1l),$(VCCL_CPU))
 
@@ -1169,7 +1173,7 @@ endif
 endif # !DO_NOT_ADJUST_PATH
 
 # protect variables from modifications in target makefiles
-$(call SET_GLOBAL,PROGRAM_FILES_DIRS PROGRAM_FILES_DIRS1 PROGRAM_FILES_DIRS2 VS_CPU VS_CPU64 VS_SELECT_CPU \
+$(call SET_GLOBAL,PROGRAM_FILES_DIRS PROGRAM_FILES_DIRS1 VS_CPU VS_CPU64 VS_SELECT_CPU \
   VC_TOOL_PREFIX_SDK6 VC_TOOL_PREFIX_2005 VCCL_GET_LIBS_2005 VCCL_GET_HOST_2005 VC_TOOL_PREFIX_2017 \
   VCCL VC_VER VC_LIB_TYPE_ONECORE VC_LIB_TYPE_STORE VCLIBPATH VCINCLUDE VS MSVC \
   VS_FIND_FILE VS_FIND_FILE1 VS_FIND_FILE_P VS_FIND_FILE_P1 VS_2017_SELECT_LATEST_CL VS_COMN_VERS VS_STRIP_COMN VS_COMNS_2017 \
