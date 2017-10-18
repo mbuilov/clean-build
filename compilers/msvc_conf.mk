@@ -67,12 +67,9 @@
 
 # get paths to "Program Files" and "Program Files (x86)" directories
 # result: C:/Program?Files C:/Program?Files?(x86)
-PROGRAM_FILES_DIRS = $(call PROGRAM_FILES_DIRS1,$(foreach \
+GET_PROGRAM_FILES_DIRS = $(call uniq,$(foreach \
   v,ProgramW6432 ProgramFiles ProgramFiles$(open_brace)x86$(close_brace),$(if \
   $(filter-out undefined,$(origin $v)),$(subst $(space),?,$(subst \,/,$($v))))))
-
-# remove duplicates preserving sorting
-PROGRAM_FILES_DIRS1 = $(if $1,$(firstword $1) $(call PROGRAM_FILES_DIRS1,$(filter-out $(firstword $1),$1)))
 
 # base architecture of Visual Studio tools
 # note: TCPU likely has this value, but it is possible to have TCPU=x86_64 for VS_CPU=x86, if Visual Studio supports x86_64 tools
@@ -531,7 +528,7 @@ ifndef VS
   VS_SEARCH_CL1 = $(if $2,$2,$(call VS_SEARCH_OLD_CL,$1))
 
   # check "Program Files" and "Program Files (x86)" directories
-  VCCL := $(call VS_SEARCH_CL,$(addsuffix /,$(PROGRAM_FILES_DIRS)))
+  VCCL := $(call VS_SEARCH_CL,$(addsuffix /,$(GET_PROGRAM_FILES_DIRS)))
 
   ifdef VCCL
     # C:/Program Files/Microsoft Visual Studio/2017/Community/VC/Tools/MSVC/14.11.25503/bin/HostX86/x86/cl.exe
@@ -1071,7 +1068,7 @@ DO_NOT_ADJUST_PATH:=
 ifndef DO_NOT_ADJUST_PATH
 
 # remember if environment variable PATH was changed
-PATH_CHANGED:=
+VCCL_PATH_APPEND:=
 
 # adjust environment variable PATH so cl.exe, lib.exe and link.exe will find their dlls
 VCCL_PARENT1 := $(patsubst %\,%,$(dir $(patsubst "%",%,$(subst $(space),?,$(VCCL)))))
@@ -1086,8 +1083,7 @@ ifneq (,$(call is_less_float,14,$(VC_VER)))
 
   # if cross-compiling, add path to host dlls
   ifneq ($(VCCL_HOST),$(VCCL_ENTRY1l))
-    override PATH := $(PATH);$(subst ?, ,$(VCCL_PARENT2))\$(VCCL_HOST)
-    PATH_CHANGED := 1
+    VCCL_PATH_APPEND := $(VCCL_PARENT2)\$(VCCL_HOST)
   endif
 
 else ifeq (,$(call is_less_float,$(VC_VER),8))
@@ -1114,8 +1110,7 @@ else ifeq (,$(call is_less_float,$(VC_VER),8))
     # if cross-compiling, add path to host dlls
     # note: some dlls are may be in $(VS)\Common7\IDE
     ifneq ($(VCCL_HOST_PREF),$(VC_LIBS_PREF))
-      override PATH := $(PATH);$(subst ?, ,$(VCCL_PARENT2))$(VCCL_HOST_PREF)
-      PATH_CHANGED := 1
+      VCCL_PATH_APPEND := $(VCCL_PARENT2)$(VCCL_HOST_PREF)
     endif
 
     ifndef VCCL_HOST_PREF
@@ -1127,8 +1122,7 @@ else ifeq (,$(call is_less_float,$(VC_VER),8))
         COMMON7_IDE_PATH := $(dir $(patsubst %\,%,$(dir $(VCCL_PARENT2))))Common7\IDE
 
         ifneq (,$(wildcard $(subst ?,\ ,$(subst \,/,$(COMMON7_IDE_PATH)))\.))
-          override PATH := $(PATH);$(subst ?, ,$(COMMON7_IDE_PATH))
-          PATH_CHANGED := 1
+          VCCL_PATH_APPEND := $(COMMON7_IDE_PATH)
         endif
       endif
     endif
@@ -1147,8 +1141,7 @@ ifeq (bin,$(VCCL_ENTRY1l))
       COMMON7_IDE_PATH := $(dir $(patsubst %\,%,$(dir $(VCCL_PARENT1))))Common7\IDE
 
       ifneq (,$(wildcard $(subst ?,\ ,$(subst \,/,$(COMMON7_IDE_PATH)))\.))
-        override PATH := $(PATH);$(subst ?, ,$(COMMON7_IDE_PATH))
-        PATH_CHANGED := 1
+        VCCL_PATH_APPEND := $(COMMON7_IDE_PATH)
       endif
     endif
 
@@ -1157,15 +1150,15 @@ ifeq (bin,$(VCCL_ENTRY1l))
     #  add path to $(VS)\Common\MSDev98\Bin
 
     # VCCL=C:\Program Files\Microsoft Visual Studio\VC98\Bin\cl.exe
-    override PATH := $(PATH);$(dir $(patsubst %\,%,$(dir $(VCCL_PARENT1))))Common\MSDev98\Bin
-    PATH_CHANGED := 1
+    VCCL_PATH_APPEND := $(dir $(patsubst %\,%,$(dir $(VCCL_PARENT1))))Common\MSDev98\Bin
   endif
 
 endif
 
+ifdef VCCL_PATH_APPEND
+override PATH := $(PATH);$(subst ?, ,$(VCCL_PATH_APPEND))
 # if PATH variable was changed, print it to generated batch file
 ifdef VERBOSE
-ifdef PATH_CHANGED
 $(info SET "PATH=$(PATH)")
 endif
 endif
@@ -1173,15 +1166,6 @@ endif
 endif # !DO_NOT_ADJUST_PATH
 
 # protect variables from modifications in target makefiles
-$(call SET_GLOBAL,PROGRAM_FILES_DIRS PROGRAM_FILES_DIRS1 VS_CPU VS_CPU64 VS_SELECT_CPU \
-  VC_TOOL_PREFIX_SDK6 VC_TOOL_PREFIX_2005 VCCL_GET_LIBS_2005 VCCL_GET_HOST_2005 VC_TOOL_PREFIX_2017 \
-  VCCL VC_VER VC_LIB_TYPE_ONECORE VC_LIB_TYPE_STORE VCLIBPATH VCINCLUDE VS MSVC \
-  VS_FIND_FILE VS_FIND_FILE1 VS_FIND_FILE_P VS_FIND_FILE_P1 VS_2017_SELECT_LATEST_CL VS_COMN_VERS VS_STRIP_COMN VS_COMNS_2017 \
-  VCCL_2017_PREFIXED VS_COMN_FIND_CL_2005 VS_COMN_FIND_CL_20051 VS_COMN_FIND_CL_20052 VS_COMN_FIND_CL VS_COMN_FIND_CL1 \
-  VS_FIND_VERSIONS VS_SORT_VERSIONS_2005 VS_SEARCH_OLD_CL VCCL_2005_PATTERN VS_SEARCH_OLD_CL1 VS_SEARCH_OLD_CL2 VS_SEARCH_OLD_CL3 \
-  VS_SEARCH_OLD_CL4 VS_SEARCH_OLD_CL5 VS_SEARCH_OLD_CL6 VS_SEARCH_CL VS_SEARCH_CL1 VS_PATH VS_NAME VS_WILD VC_VER_AUTO \
-  VS_DEDUCE_VCCL MSVC_PATH MSVC_NAME MSVC_WILD VCCL_PARENT1 VCCL_PARENT2 VCCL_ENTRY1l VCCL_PARENT2l VCCL_ENTRY2l VCCL_ENTRY3l \
-  VCCL_PARENT3 VCCL_ENTRY4l VCCL_PARENT4 VCLIB VCLINK TVCCL TVCLIBPATH TVCCL_AUTO
-
-  
-  TVCLIB TVCLINK) 
+$(call SET_GLOBAL,GET_PROGRAM_FILES_DIRS \
+  VC_VER VCCL VC_LIB_TYPE_ONECORE VC_LIB_TYPE_STORE VCLIBPATH VCINCLUDE VCLIB VCLINK TVCCL TVCLIBPATH TVCLIB TVCLINK \
+  VCCL_PATH_APPEND)
