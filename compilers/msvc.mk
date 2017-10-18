@@ -41,6 +41,7 @@ endif
 # {,T}VCLINK    - path to link.exe, must be in double-quotes if contains spaces
 # {,T}VCLIBPATH - paths to Visual C++ libraries, spaces must be replaced with ?
 # VCINCLUDE     - paths to Visual C++ headers, spaces must be replaced with ?
+# note: assume target and tool compilers are of the same version and differ only by the architecture of produced binaries
 ifeq (,$(filter-out undefined environment,$(origin VC_TOOL_PREFIX_2017)))
 include $(dir $(lastword $(MAKEFILE_LIST)))msvc_conf.mk
 endif
