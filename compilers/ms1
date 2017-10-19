@@ -323,3 +323,27 @@ ifndef VS
 HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\VisualStudio\6.0\Setup\Microsoft Visual C++
     ProductDir  REG_SZ  C:\Program Files\Microsoft Visual Studio\VC98
 
+
+
+
+HKLM\SOFTWARE\Microsoft\Microsoft SDKs\Windows\v6.0 InstallationFolder C:\Program Files\Microsoft SDKs\Windows\v6.0\
+HKLM\SOFTWARE\Microsoft\Microsoft SDKs\Windows\v6.0A InstallationFolder C:\Program Files\Microsoft SDKs\Windows\v6.0A\
+HKLM\SOFTWARE\Microsoft\Microsoft SDKs\Windows\v6.1 InstallationFolder C:\Program Files\Microsoft SDKs\Windows\v6.1\
+HKLM\SOFTWARE\Microsoft\Microsoft SDKs\Windows\v7.0 InstallationFolder C:\Program Files\Microsoft SDKs\Windows\v7.0\
+HKLM\SOFTWARE\Microsoft\Microsoft SDKs\Windows\v7.1 InstallationFolder C:\Program Files\Microsoft SDKs\Windows\v7.1\
+HKLM\SOFTWARE\Microsoft\Microsoft SDKs\Windows\v7.1A InstallationFolder C:\Program Files (x86)\Microsoft SDKs\Windows\v7.1A\
+HKLM\SOFTWARE\Microsoft\Microsoft SDKs\Windows\v8.0A --
+HKLM\SOFTWARE\Microsoft\Microsoft SDKs\Windows\v8.1A InstallationFolder C:\Program Files (x86)\Microsoft SDKs\Windows\v8.1A\
+
+HKLM\SOFTWARE\Wow6432Node\Microsoft\Microsoft SDKs\Windows\v10.0 InstallationFolder C:\Program Files (x86)\Windows Kits\10\
+HKLM\SOFTWARE\Wow6432Node\Microsoft\Microsoft SDKs\Windows\v6.0A InstallationFolder C:\Program Files\Microsoft SDKs\Windows\v6.0A\
+HKLM\SOFTWARE\Wow6432Node\Microsoft\Microsoft SDKs\Windows\v6.1 InstallationFolder C:\Program Files\Microsoft SDKs\Windows\v6.1\
+HKLM\SOFTWARE\Wow6432Node\Microsoft\Microsoft SDKs\Windows\v7.0 InstallationFolder C:\Program Files\Microsoft SDKs\Windows\v7.0\
+HKLM\SOFTWARE\Wow6432Node\Microsoft\Microsoft SDKs\Windows\v7.1 InstallationFolder C:\Program Files\Microsoft SDKs\Windows\v7.1\
+HKLM\SOFTWARE\Wow6432Node\Microsoft\Microsoft SDKs\Windows\v7.1A InstallationFolder C:\Program Files (x86)\Microsoft SDKs\Windows\v7.1A\
+HKLM\SOFTWARE\Wow6432Node\Microsoft\Microsoft SDKs\Windows\v8.0 InstallationFolder C:\Program Files (x86)\Windows Kits\8.0\
+HKLM\SOFTWARE\Wow6432Node\Microsoft\Microsoft SDKs\Windows\v8.0A InstallationFolder C:\Program Files (x86)\Microsoft SDKs\Windows\v8.0A\
+HKLM\SOFTWARE\Wow6432Node\Microsoft\Microsoft SDKs\Windows\v8.1 InstallationFolder C:\Program Files (x86)\Windows Kits\8.1\
+HKLM\SOFTWARE\Wow6432Node\Microsoft\Microsoft SDKs\Windows\v8.1A InstallationFolder C:\Program Files (x86)\Microsoft SDKs\Windows\v8.1A\
+
+
