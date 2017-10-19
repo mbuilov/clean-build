@@ -587,7 +587,7 @@ ifndef VS
     VCCL := $(call VS_SEARCH_2005,$(VCCL_2005_VERSIONS))
 
     ifndef VCCL
-      # cross compiler is not supported, but may compile x86_64 on x86_64
+      # cross compiler is not supported, but may compile x86_64 on x86_64 or x86 on x86
       ifeq ($(CPU),$(TCPU))
 
         # check for Visual C++ compiler bundled in SDK6.0
@@ -744,19 +744,23 @@ ifndef MSVC
     ifeq ($(VS_CPU)_$(VS_CPU),$(TCPU)_$(CPU))
       VCCL := $(wildcard $(VS_WILD)Vc7/bin/cl.exe)
     endif
+
   else ifeq (microsoft?visual?studio?.net?2003,$(VS_NAME))
     VC_VER_AUTO := 7.1
     ifeq ($(VS_CPU)_$(VS_CPU),$(TCPU)_$(CPU))
       VCCL := $(wildcard $(VS_WILD)Vc7/bin/cl.exe)
     endif
+
   else ifneq (,$(filter microsoft?visual?studio?%,$(VS_NAME)))
     VC_VER_AUTO := $(lastword $(subst ?, ,$(VS_NAME)))
     VCCL := $(wildcard $(VS_WILD)VC/bin/$(call VC_TOOL_PREFIX_2005,$(CPU),$(call VS_SELECT_CPU,$(VS_PATH)))cl.exe)
+
   else ifneq (,$(wildcard $(VS_WILD)VC98/.)
     VC_VER_AUTO := 6.0
     ifeq ($(VS_CPU)_$(VS_CPU),$(TCPU)_$(CPU))
       VCCL := $(wildcard $(VS_WILD)VC98/bin/cl.exe)
     endif
+
   else
     # assume Visual Studio 2017 or later
 
