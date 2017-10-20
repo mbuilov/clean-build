@@ -435,13 +435,14 @@ ifdef VERBOSE
 $(eval LIB_LD = $(value LIB_LD) >&2)
 endif
 
-# regular expression used to match paths to included headers from /showIncludes option output
+# $(SED) regular expression used to match paths to included headers from /showIncludes option output
 # default value, may be overridden either in project configuration makefile or in command line
 INCLUDING_FILE_PATTERN := $(INCLUDING_FILE_PATTERN_en)
 
-# prefixes of system include paths to filter-out while dependencies generation
+# prefixes of system include paths to filter-out by $(SED) while dependencies generation
 # note: may be overridden either in project configuration makefile or in command line
 # c:\\program?files?(x86)\\microsoft?visual?studio?10.0\\vc\\include\\
+# note: likely with trailing double-slash
 UDEPS_INCLUDE_FILTER := $(subst \,\\,$(VCINCLUDE) $(UMINCLUDE))
 
 # define WRAP_CCN and WRAP_CCD - cl.exe wrappers
