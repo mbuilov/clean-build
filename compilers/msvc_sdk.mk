@@ -17,6 +17,8 @@
 #
 # UMLIBPATH := C:\Program?Files?(x86)\Windows?Kits\8.1\Lib\winv6.3\um\x86
 # UMINCLUDE := C:\Program?Files?(x86)\Windows?Kits\8.1\Include\um
+#
+# note: UMLIBPATH or UMINCLUDE may be defined with empty values in project configuration makefile or in command line
 
 #################################################################################################################
 # input for autoconfiguration:
@@ -29,8 +31,8 @@
 #     SDK=C:\Program Files\Windows Kits\8.1
 #     SDK=C:\Program Files\Windows Kits\10
 #
-#   Note: Visual Studio 6.0 contains SDK libraries (e.g. KERNEL32.LIB) and headers (e.g. WINBASE.H) as a part of its installation,
-#     so SDK variable may be empty or not defined.
+#   Note: Visual Studio 6.0 ships with SDK libraries (e.g. KERNEL32.LIB) and headers (e.g. WINBASE.H) as a part of its installation,
+#     so SDK variable may be empty or not defined, UMLIBPATH and UMINCLUDE may be defined as empty.
 #
 # 2) SDK_VER - target operating system version, e.g.: win8 winv6.3 10.0.10240.0 10.0.10586.0 10.0.14393.0 10.0.15063.0 10.0.16299.0
 #   may be specified explicitly if it's not possible to deduce SDK_VER automatically
@@ -57,18 +59,16 @@ SDK_VER:=
 # C:\Program Files\Microsoft SDKs\Windows\v6.0A
 # C:\Program Files\Microsoft SDKs\Windows\v6.1
 # C:\Program Files\Microsoft SDKs\Windows\v7.0
-# C:\Program Files\Microsoft SDKs\Windows\v7.0a
+# C:\Program Files\Microsoft SDKs\Windows\v7.0a ???
 # C:\Program Files\Microsoft SDKs\Windows\v7.1
-# C:\Program Files (x86)\Microsoft SDKs\Windows\v7.1A\
+# C:\Program Files (x86)\Microsoft SDKs\Windows\v7.1a
 # C:\Program Files (x86)\Windows Kits\8.0
-# C:\Program Files (x86)\Windows Kits\8.0a
 # C:\Program Files (x86)\Windows Kits\8.1
-# C:\Program Files (x86)\Windows Kits\8.1a
 # C:\Program Files (x86)\Windows Kits\10
 
 ifndef SDK
 
-  # WindowsSdkDir is normally set by the vcvars32.bat (for Visual Studio 2015, e.g.:
+  # WindowsSdkDir is normally set by the vcvars32.bat (for Visual Studio 2015 and later), e.g.:
   #  WindowsSdkDir=C:\Program Files (x86)\Windows Kits\10\
   #  WindowsSdkDir=C:\Program Files (x86)\Windows Kits\8.1\
   # note: likely with trailing slash
@@ -91,7 +91,32 @@ endif
 
 ifndef SDK
 
-  # at last, check "Program Files" and "Program Files (x86)" directories and define UMLIBPATH/UMINCLUDE
+  # at last, check registry and standard places in Program Files - to define UMLIBPATH/UMINCLUDE
+
+  # select SDK taking into account values of VC_VER and WINVARIANT variables
+  ifeq (,$(call is_less_float,$(VC_VER),14)
+    # >= Visual Studio 2015
+
+    # check for SDK v10.0
+	HKLM\SOFTWARE\Wow6432Node\Microsoft\Microsoft SDKs\Windows\v10.0  InstallationFolder C:\Program Files (x86)\Windows Kits\10\
+	/cygdrive/c/Program Files (x86)/Windows Kits/10/Lib/10.0.16299.0/um/x86/kernel32.Lib
+
+    SDK := $(call VS_REG_FIND_FILE,Lib/*/um/x86/kernel32.Lib,Microsoft SDKs\Windows\v10.0,InstallationFolder)
+
+# find file by pattern in the path found in registry
+# $1 - file to find, e.g.: VC/bin/cl.exe (possibly be a mask, like: VC/Tools/MSVC/*/bin/HostX86/x86/cl.exe)
+# $2 - registry key sub path, e.g.: VisualStudio\SxS\VC7 or VisualStudio\SxS\VS7 or VisualStudio\6.0\Setup\Microsoft Visual C++
+# $3 - registry key name, e.g.: 14.0 or ProductDir
+# $4 - if not empty, then check Wow6432Node (only on Win64)
+# result (may be a list): C:/Program Files/Microsoft Visual Studio 14.0/VC/bin/cl.exe
+VS_REG_FIND_FILE  = $(call VS_REG_FIND_FILE1,$1,$(call VS_REG_QUERY,$2,$3),$2,$3,$4)
+
+
+	/cygdrive/c/Program\ Files\ \(x86\)/Microsoft\ SDKs/Windows/v7.1A/Lib/x64/Kernel32.Lib
+
+7.1a              HKLM\SOFTWARE\Microsoft\Microsoft SDKs\Windows\v7.1A  InstallationFolder C:\Program Files (x86)\Microsoft SDKs\Windows\v7.1A\  good
+7.1a  HKLM\SOFTWARE\Wow6432Node\Microsoft\Microsoft SDKs\Windows\v7.1A  InstallationFolder C:\Program Files (x86)\Microsoft SDKs\Windows\v7.1A\  good
+
 
 
 
