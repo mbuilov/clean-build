@@ -114,15 +114,17 @@ VS_FIND_FILE_P = $(if $2,$(call VS_FIND_FILE_P1,$1,$2,$(wildcard $(subst ?,\ ,$(
 VS_FIND_FILE_P1 = $(if $3,$3,$(call VS_FIND_FILE_P,$1,$(wordlist 2,999999,$2)))
 
 # query path value in the registry
-# $1 - registry key sub path, e.g.: VisualStudio\SxS\VC7 or VisualStudio\SxS\VS7 or VisualStudio\Setup\Microsoft Visual C++
+# $1 - registry key sub path, e.g.: VisualStudio\SxS\VC7 or VisualStudio\SxS\VS7 or VisualStudio\6.0\Setup\Microsoft Visual C++
 # $2 - registry key name, e.g.: 14.0 or ProductDir
 # $3 - empty or \Wow6432Node
 # result: for VC7 - C:/Program?Files?(x86)/Microsoft?Visual?Studio?14.0/VC/
 # result: for VS7 - C:/Program?Files?(x86)/Microsoft?Visual?Studio?14.0/
 # note: result will be with trailing backslash
-VS_REG_QUERY = $(patsubst %//,%/,$(subst \,/,$(subst ?$2?REG_SZ?,,$(lastword \
+# note: value of "VisualStudio\6.0\Setup\Microsoft Visual C++\ProductDir" key does not with slash, e.g:
+#  "C:\Program Files (x86)\Microsoft Visual Studio\VC98"
+VS_REG_QUERY = $(patsubst %//,%/,$(addsuffix /,$(subst \,/,$(subst ?$2?REG_SZ?,,$(lastword \
   $(subst HKEY_LOCAL_MACHINE\SOFTWARE$3\Microsoft\$1, ,$(subst $(space),?,$(strip $(shell \
-  reg query "HKLM\SOFTWARE$3\Microsoft\$1" /v "$2" 2>NUL)))))))/)
+  reg query "HKLM\SOFTWARE$3\Microsoft\$1" /v "$2" 2>NUL)))))))))
 
 # find file by pattern in the path found in registry
 # $1 - file to find, e.g.: VC/bin/cl.exe (possibly be a mask, like: VC/Tools/MSVC/*/bin/HostX86/x86/cl.exe)
@@ -326,7 +328,7 @@ MSVC:=
 #     C:/Program Files/Microsoft Visual Studio/2017/Enterprise/VC/Tools/MSVC/14.11.25503/bin/HostX86/x64/cl.exe
 # result: C:/Program Files/Microsoft Visual Studio/2017/Enterprise/VC/Tools/MSVC/14.11.25503/bin/HostX86/x64/cl.exe
 VS_2017_SELECT_LATEST_CL = $(subst ?, ,$(patsubst ?%,%$1,$(filter %/$(patsubst vc_tools_msvc_%,%,$(lastword $(sort $(filter \
-  vc_tools_msvc_%,$(subst /, ,$(subst /vc/tools/msvc/,/vc_tools_msvc_,$(tolower)))))))/,$(subst $1, ,?$(subst $(space),?,$2)))))
+  vc_tools_msvc_%,$(subst /, ,$(subst /vc/tools/msvc/,/vc_tools_msvc_,$(call tolower,$2)))))))/,$(subst $1, ,?$(subst $(space),?,$2)))))
 
 ifndef VCCL
 ifndef MSVC
