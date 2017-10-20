@@ -152,7 +152,7 @@ $(eval <WRAP_CC_DEP> = $(value <WRAP_CC_NODEP>))
 ifndef NO_WRAP
 ifndef NO_DEPS
 <WRAP_CC_DEP> = (($1 /showIncludes 2>&1 && set/p="C">&2<NUL)|$(SED) -n $(call \
-  MSVC_DEPS_SCRIPT,$1,$2,$3,<INCLUDING_FILE_PATTERN>,<UDEPS_INCLUDE_FILTER>) 2>&1 && set/p="S">&2<NUL)3>&2 2>&1 1>&3|findstr /BC:CS>NUL
+  MSVC_DEPS_SCRIPT,$1,$2,$3,<INCLUDING_FILE_PATTERN>,<DEPS_INCLUDE_FILTER>) 2>&1 && set/p="S">&2<NUL)3>&2 2>&1 1>&3|findstr /BC:CS>NUL
 endif
 endif
 
@@ -164,7 +164,7 @@ endef
 # $3 - regular expression used to match paths to included headers, e.g. $(INCLUDING_FILE_PATTERN_en)
 # $4 - prefixes of system include paths to filter-out, e.g. $(subst \,\\,$(VCINCLUDE) $(UMINCLUDE))
 MSVC_DEFINE_COMPILER_WRAPPERS = $(eval $(subst <WRAP_CC_NODEP>,$1,$(subst <WRAP_CC_DEP>,$2,$(subst \
-  <INCLUDING_FILE_PATTERN>,$3,$(subst <UDEPS_INCLUDE_FILTER>,$4,$(value MSVC_WRAP_COMPLIER_TEMPL))))))
+  <INCLUDING_FILE_PATTERN>,$3,$(subst <DEPS_INCLUDE_FILTER>,$4,$(value MSVC_WRAP_COMPLIER_TEMPL))))))
 
 # make version string: major.minor.patch -> major.minor
 # target-specific: MODVER
