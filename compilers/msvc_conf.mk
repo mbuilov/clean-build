@@ -25,12 +25,14 @@
 # VCLINK    := "C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\bin\link.exe"
 # VCLIBPATH := C:\Program?Files?(x86)\Microsoft?Visual?Studio?14.0\VC\lib
 # VCINCLUDE := C:\Program?Files?(x86)\Microsoft?Visual?Studio?14.0\VC\include
+#
+# note: VCLIBPATH or VCINCLUDE may be defined with empty values in project configuration makefile or in command line
 
 #################################################################################################################
 # input for autoconfiguration:
 #
 # 1) VS - Visual Studio installation path (without quotes),
-#   may be specified if autoconfiguration based on values of environment variables fails, e.g.:
+#   may be specified if autoconfiguration (based on values of environment variables or registry keys) fails, e.g.:
 #     VS=C:\Program Files\Microsoft Visual Studio
 #     VS=C:\Program Files\Microsoft Visual Studio .NET 2003
 #     VS=C:\Program Files\Microsoft Visual Studio 14.0
@@ -130,7 +132,7 @@ VS_REG_QUERY = $(patsubst %//,%/,$(addsuffix /,$(subst \,/,$(subst ?$2?REG_SZ?,,
 # $1 - file to find, e.g.: VC/bin/cl.exe (possibly be a mask, like: VC/Tools/MSVC/*/bin/HostX86/x86/cl.exe)
 # $2 - registry key sub path, e.g.: VisualStudio\SxS\VC7 or VisualStudio\SxS\VS7 or VisualStudio\6.0\Setup\Microsoft Visual C++
 # $3 - registry key name, e.g.: 14.0 or ProductDir
-# $4 - if not empty, then check Wow6432Node (only on Win64)
+# $4 - if not empty, then also check Wow6432Node (applicable only on Win64)
 # result (may be a list): C:/Program Files/Microsoft Visual Studio 14.0/VC/bin/cl.exe
 VS_REG_FIND_FILE  = $(call VS_REG_FIND_FILE1,$1,$(call VS_REG_QUERY,$2,$3),$2,$3,$4)
 VS_REG_FIND_FILE1 = $(call VS_REG_FIND_FILE2,$1,$(if $2,$(wildcard $(subst ?,\ ,$2)$1)),$3,$4,$5)
