@@ -32,12 +32,17 @@ C:\Program Files\Microsoft Visual Studio .NET 2003\Vc7\PlatformSDK\Lib\Kernel32.
 -- C:\Program Files\Microsoft SDK\Bin\RC.EXE                          - Microsoft (R) Windows (R) Resource Compiler Version 5.2.3790.0
 -- C:\Program Files\Microsoft SDK\Bin\MC.EXE                          - Microsoft (R) Message Compiler  Version 1.12.3790
 -- C:\Program Files\Microsoft SDK\Bin\winnt\MT.EXE                    - Microsoft (R) Side-By-Side Manifest Tool 1.0.0.0
+-- HKLM\SOFTWARE\Microsoft\MicrosoftSDK\InstalledSDKs\44EA8771-41C9-4767-8E5F-C3490C9E8C26 "Install Dir" C:\Program Files\Microsoft SDK\
 
 Microsoft Platform SDK for Windows XP SP2:
 C:\Program Files\Microsoft Platform SDK for Windows XP SP2\Include\WinBase.h
 C:\Program Files\Microsoft Platform SDK for Windows XP SP2\Lib\Kernel32.Lib
 C:\Program Files\Microsoft Platform SDK for Windows XP SP2\Bin\RC.Exe - Microsoft (R) Windows (R) Resource Compiler, Version 5.1.2264.1 - Build 2264
 C:\Program Files\Microsoft Platform SDK for Windows XP SP2\Bin\MC.Exe - Microsoft (R) Message Compiler  Version 1.12.2505
+HKLM\SOFTWARE\Microsoft\MicrosoftSDK\InstalledSDKs\B44C7E10-89BD-4A32-A3BF-D9D0BC4C9A05 "Install Dir" C:\Program Files\Microsoft Platform SDK for Windows XP SP2\
+
+Microsoft Platform SDK for Windows Server 2003 SP1 SDK: (installs to C:\Program Files\Microsoft Platform SDK)
+HKLM\SOFTWARE\Microsoft\MicrosoftSDK\InstalledSDKs\8F9E5EF3-A9A5-491B-A889-C58EFFECE8B3 "Install Dir" C:\Program Files\Microsoft Platform SDK\
 
 Microsoft Platform SDK for Windows Server 2003 R2:
 C:\Program Files\Microsoft Platform SDK for Windows Server 2003 R2\Include\WinBase.h
@@ -49,6 +54,7 @@ C:\Program Files\Microsoft Platform SDK for Windows Server 2003 R2\Bin\win64\x86
 C:\Program Files\Microsoft Platform SDK for Windows Server 2003 R2\Bin\RC.Exe                 - Microsoft (R) Windows (R) Resource Compiler Version 5.2.3690.0
 C:\Program Files\Microsoft Platform SDK for Windows Server 2003 R2\Bin\MC.Exe                 - Microsoft (R) Message Compiler  Version 1.12.2505
 C:\Program Files\Microsoft Platform SDK for Windows Server 2003 R2\Bin\mt.Exe                 - Microsoft (R) Manifest Tool version 6.0.4071.0
+HKLM\SOFTWARE\Microsoft\MicrosoftSDK\InstalledSDKs\D2FF9F89-8AA2-4373-8A31-C838BF4DBBE1 "Install Dir" C:\Program Files\Microsoft Platform SDK for Windows Server 2003 R2\
 
 VS2005
 C:\Program Files (x86)\Microsoft Visual Studio 8\VC\include\errno.h
@@ -129,7 +135,11 @@ C:\Program Files\Microsoft SDKs\Windows\v7.0\Bin\{,x64\}MC.Exe - Microsoft (R) M
 C:\Program Files\Microsoft SDKs\Windows\v7.0\Bin\{,x64\}mt.Exe - Microsoft (R) Manifest Tool version 5.2.3790.2076
 
 SDK 7.0a - Included in Visual Studio 2010
-.........
+C:\Program Files (x86)\Microsoft SDKs\Windows\v7.0A\Include\WinBase.h
+C:\Program Files (x86)\Microsoft SDKs\Windows\v7.0A\Lib\{,x64\,IA64\}kernel32.lib
+C:\Program Files (x86)\Microsoft SDKs\Windows\v7.0A\Bin\{,x64\}RC.Exe - Microsoft (R) Windows (R) Resource Compiler Version 6.1.7600.16385
+C:\Program Files (x86)\Microsoft SDKs\Windows\v7.0A\Bin\{,x64\}MC.Exe - Microsoft (R) Message Compiler  Version 1.12.7600
+C:\Program Files (x86)\Microsoft SDKs\Windows\v7.0A\Bin\{,x64\}mt.exe - Microsoft (R) Manifest Tool version 5.2.3790.2076
 
 SDK 7.1
 C:\Program Files\Microsoft SDKs\Windows\v7.1\Include\WinBase.h
@@ -149,7 +159,7 @@ note: cl.exe needs mspdb100.dll: set PATH=%PATH%;c:\Program Files (x86)\Microsof
 
 SDK 7.1a - Included in Visual Studio 2012 Update 1 (or later)
 C:\Program Files (x86)\Microsoft SDKs\Windows\v7.1A\Include\WinBase.h
-C:\Program Files (x86)\Microsoft SDKs\Windows\v7.1A\Lib{,x64\}kernel32.lib
+C:\Program Files (x86)\Microsoft SDKs\Windows\v7.1A\Lib\{,x64\}kernel32.lib
 C:\Program Files (x86)\Microsoft SDKs\Windows\v7.1A\Bin\{,x64\}RC.Exe - Microsoft (R) Windows (R) Resource Compiler Version 6.1.7600.16385
 C:\Program Files (x86)\Microsoft SDKs\Windows\v7.1A\Bin\{,x64\}MC.Exe - Microsoft (R) Message Compiler  Version 1.12.7600
 C:\Program Files (x86)\Microsoft SDKs\Windows\v7.1A\Bin\{,x64\}mt.Exe - Microsoft (R) Manifest Tool version 6.1.7716.0
@@ -162,7 +172,7 @@ C:\Program Files (x86)\Windows Kits\8.0\bin\{x86,x64}\mc.exe - Microsoft (R) Mes
 C:\Program Files (x86)\Windows Kits\8.0\bin\{x86,x64}\mt.exe - Microsoft (R) Manifest Tool version 6.2.9200.20522
 
 SDK 8.0a - Included in Visual Studio 2012
-...........
+not a Platform SDK, contains NETFX 4.0 Tools
 
 SDK 8.1
 C:\Program Files (x86)\Windows Kits\8.1\Include\um\WinBase.h
@@ -172,7 +182,7 @@ C:\Program Files (x86)\Windows Kits\8.1\bin\{x86,x64}\mc.exe - Microsoft (R) Mes
 C:\Program Files (x86)\Windows Kits\8.1\bin\{x86,x64}\mt.exe - Microsoft (R) Manifest Tool version 6.3.9600.17336
 
 SDK 8.1a - Included in Visual Studio 2013
-...........
+not a Platform SDK, contains NETFX 4.5.1 Tools
 
 SDK 10
 C:\Program Files (x86)\Windows Kits\10\Include\10.0.10150.0\ucrt\errno.h
@@ -211,6 +221,95 @@ C:\Program Files (x86)\Windows Kits\10\Lib\10.0.16299.0\ucrt\{x86,x64,arm,arm64}
 C:\Program Files (x86)\Windows Kits\10\bin\10.0.16299.0\{x86,x64,arm64}\rc.exe - Microsoft (R) Windows (R) Resource Compiler Version 10.0.10011.16384
 C:\Program Files (x86)\Windows Kits\10\bin\10.0.16299.0\{x86,x64,arm64}\mc.exe - Microsoft (R) Message Compiler  Version 10.0.16299
 C:\Program Files (x86)\Windows Kits\10\bin\10.0.16299.0\{x86,x64,arm64}\mt.exe - Microsoft (R) Manifest Tool
+
+SDK 10.0a - Included in Visual Studio 2015
+not a Platform SDK, contains NETFX 4.7 Tools
+
+----------------- 
+
+DDK for Windows XP
+C:\WINDDK\2600\lib\wxp\{i386,ia64}\kernel32.lib
+C:\WINDDK\2600\lib\wxp\{i386,ia64}\hal.lib
+C:\WINDDK\2600\lib\wxp\{i386,ia64}\msvcrt.lib
+C:\WINDDK\2600\inc\crt\WINBASE.H
+C:\WINDDK\2600\bin\x86\cl.exe                - Microsoft (R) 32-bit C/C++ Optimizing Compiler Version 13.00.9176 for 80x86
+C:\WINDDK\2600\bin\ia64\cl.exe               - ???
+C:\WINDDK\2600\inc\crt\errno.h
+C:\WINDDK\2600\inc\wxp\ntdef.h
+C:\WINDDK\2600\inc\ddk\wxp\ntdef.h
+C:\WINDDK\2600\inc\ddk\wxp\ntddk.h
+C:\WINDDK\2600\inc\ddk\wdm\wxp\wdm.h
+C:\WINDDK\2600\bin\x86\rc.exe                - Microsoft (R) Windows (R) Resource Compiler, Version 5.1.2264.1 - Build 2264
+C:\WINDDK\2600\bin\x86\mc.exe                - Microsoft (R) Message Compiler  Version 1.12.2505
+mt.exe - not found
+HKLM\SOFTWARE\Microsoft\WINDDK\2600 LFNDirectory C:\WINDDK\2600
+HKLM\SOFTWARE\Microsoft\WINDDK\2600 SFNDirectory C:\WINDDK\2600
+
+Windows Server 2003 SP1 DDK
+C:\WINDDK\3790.1830\lib\w2k\i386\kernel32.lib
+C:\WINDDK\3790.1830\lib\wxp\i386\kernel32.lib
+C:\WINDDK\3790.1830\lib\wnet\{i386,amd64,ia64}\kernel32.lib
+C:\WINDDK\3790.1830\lib\w2k\i386\hal.lib
+C:\WINDDK\3790.1830\lib\wxp\i386\hal.lib
+C:\WINDDK\3790.1830\lib\wnet\{i386,amd64,ia64}\hal.lib
+C:\WINDDK\3790.1830\lib\crt\{i386,amd64,ia64}\msvcrt.lib
+C:\WINDDK\3790.1830\inc\{w2k,wxp,wnet}\winbase.h
+C:\WINDDK\3790.1830\bin\x86\cl.exe                      - Microsoft (R) 32-bit C/C++ Optimizing Compiler Version 13.10.4035 for 80x86
+C:\WINDDK\3790.1830\bin\ia64\cl.exe                     - ?????
+C:\WINDDK\3790.1830\bin\win64\x86\cl.exe                - Microsoft (R) C/C++ Optimizing Compiler Version 14.00.40310.39 for IA-64
+C:\WINDDK\3790.1830\bin\win64\x86\amd64\cl.exe          - Microsoft (R) C/C++ Optimizing Compiler Version 14.00.40310.41 for AMD64
+C:\WINDDK\3790.1830\inc\crt\errno.h
+C:\WINDDK\3790.1830\inc\{w2k,wxp,wnet}\ntdef.h
+C:\WINDDK\3790.1830\inc\ddk\{w2k,wxp,wnet}\ntdef.h
+C:\WINDDK\3790.1830\inc\ddk\{w2k,wxp,wnet}\ntddk.h
+C:\WINDDK\3790.1830\inc\ddk\wdm\{w2k,wxp,wnet}\wdm.h
+C:\WINDDK\3790.1830\bin\x86\rc.exe                      - Microsoft (R) Windows (R) Resource Compiler Version 5.2.3690.0
+C:\WINDDK\3790.1830\bin\ia64\rc.exe                     - ????
+C:\WINDDK\3790.1830\bin\x86\mc.exe                      - Microsoft (R) Message Compiler  Version 1.12.2505
+C:\WINDDK\3790.1830\bin\ia64\mc.exe                     - ????
+mt.exe - not found
+HKLM\SOFTWARE\Microsoft\WINDDK\3790.1830 LFNDirectory C:\WINDDK\3790.1830
+HKLM\SOFTWARE\Microsoft\WINDDK\3790.1830 SFNDirectory C:\WINDDK\3790~1.183
+
+Windows Driver Kit version 7.1.0
+C:\opt\WDK71\lib\win7\{i386,amd64,ia64}\kernel32.lib
+C:\opt\WDK71\lib\wlh\{i386,amd64,ia64}\kernel32.lib
+C:\opt\WDK71\lib\wnet\{i386,amd64,ia64}\kernel32.lib
+C:\opt\WDK71\lib\wxp\i386\kernel32.lib
+C:\opt\WDK71\lib\win7\{i386,amd64,ia64}\hal.lib
+C:\opt\WDK71\lib\wlh\{i386,amd64,ia64}\hal.lib
+C:\opt\WDK71\lib\wnet\{i386,amd64,ia64}\hal.lib
+C:\opt\WDK71\lib\wxp\i386\hal.lib
+C:\opt\WDK71\lib\Crt\{i386,amd64,ia64}\msvcrt.lib
+C:\opt\WDK71\inc\api\WINBASE.H
+C:\opt\WDK71\bin\x86\x86\cl.exe              - Microsoft (R) 32-bit C/C++ Optimizing Compiler Version 15.00.30729.207 for 80x86
+C:\opt\WDK71\bin\x86\amd64\cl.exe            - Microsoft (R) C/C++ Optimizing Compiler Version 15.00.30729.207 for x64
+C:\opt\WDK71\bin\x86\ia64\cl.exe             - Microsoft (R) C/C++ Optimizing Compiler Version 15.00.30729.207 for Itanium
+C:\opt\WDK71\inc\crt\errno.h
+C:\opt\WDK71\inc\api\ntdef.h
+C:\opt\WDK71\inc\ddk\ntddk.h
+C:\opt\WDK71\inc\ddk\wdm.h
+C:\opt\WDK71\bin\x86\rc.exe               - Microsoft (R) Windows (R) Resource Compiler Version 6.1.6908.0
+C:\opt\WDK71\bin\x86\mc.exe               - Microsoft (R) Message Compiler  Version 1.12.7065
+mt.exe - not found
+HKLM\SOFTWARE\Microsoft\KitSetup\configured-kits\{B4285279-1846-49B4-B8FD-B9EAF0FF17DA}\{68656B6B-555E-5459-5E5D-6363635E5F61} setup-install-location C:\opt\WDK71\
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 ----------
@@ -283,52 +382,6 @@ C:\Program Files\Microsoft Platform SDK for Windows Server 2003 R2\Include\atl\a
 
 
 
-ifndef VCCL
-ifndef MSVC
-ifndef VS
-
-  # known versions of Visual Studio
-  VS_VERSIONS := 7.0 7.1 8.0 9.0 10.0 11.0 12.0 14.0 15.0
-
-  # query registry for Visual Studio installation paths
-  VS_REG_QUERY = $(lastword \
-    $(subst HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\VisualStudio\SxS\VC7, ,$(subst \
-    $(space),?,$(strip $(shell reg query "HKLM\SOFTWARE\Microsoft\VisualStudio\SxS\VC7")))))$(if $(IS_WIN_64), $(lastword \
-    $(subst HKEY_LOCAL_MACHINE\SOFTWARE\Wow6432Node\Microsoft\VisualStudio\SxS\VC7, ,$(subst \
-    $(space),?,$(strip $(shell reg query "HKLM\SOFTWARE\Wow6432Node\Microsoft\VisualStudio\SxS\VC7"))))))
-
-  # $1 - 7.0 7.1 8.0 9.0 10.0 11.0 12.0 14.0 15.0
-  # $2 - ?9.0?REG_SZ?C:\Program?Files?(x86)\Microsoft?Visual?Studio?9.0\VC\?FrameworkDir32?REG_SZ?C:\Windows\Microsoft.NET\Framework\
-  #
-  VS_SUBST_PATHS = $(if $1,$(call VS_SUBST_PATHS,$(wordlist 2,999999,$1),$(subst ?$(firstword $1)?REG_SZ?, $(firstword $1)?,$2)),$2)
-
-  # get list of Visual Studio installation paths
-  VS_REG_PLACES = $(sort $(filter-out \
-    FrameworkVer% FrameworkDir%,$(subst \
-    ?FrameworkVer, FrameworkVer,$(subst \
-    ?FrameworkDir, FrameworkDir,$(call \
-    VS_SUBST_PATHS,$(VS_VERSIONS),$(VS_REG_QUERY))))))
-
-  # query registry for Visual Studio installation paths
-  VS6_REG_QUERY = $(lastword \
-    $(subst \SOFTWARE\Microsoft\VisualStudio\SxS\VC7, ,$(subst \
-    $(space),?,$(strip $(shell reg query "HKLM\SOFTWARE\Microsoft\VisualStudio\6.0\Setup\Microsoft Visual C++" /v ProductDir)))))$(if $(IS_WIN_64), $(lastword \
-    $(subst \SOFTWARE\Wow6432Node\Microsoft\VisualStudio\SxS\VC7, ,$(subst \
-    $(space),?,$(strip $(shell reg query "HKLM\SOFTWARE\Wow6432Node\Microsoft\VisualStudio\6.0\Setup\Microsoft Visual C++" /v ProductDir)
-
-
-  # check registry
-  MSVC := $(shell reg query "HKLM\SOFTWARE\Microsoft\VisualStudio\6.0\Setup\Microsoft Visual C++" /v ProductDir)
-
-
-! REG.EXE VERSION 3.0
-
-HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\VisualStudio\6.0\Setup\Microsoft Visual C++
-    ProductDir  REG_SZ  C:\Program Files\Microsoft Visual Studio\VC98
-
-
-
-
 6.0               HKLM\SOFTWARE\Microsoft\Microsoft SDKs\Windows\v6.0   InstallationFolder C:\Program Files\Microsoft SDKs\Windows\v6.0\         good
 6.0a              HKLM\SOFTWARE\Microsoft\Microsoft SDKs\Windows\v6.0A  InstallationFolder C:\Program Files\Microsoft SDKs\Windows\v6.0A\        good
 6.0a  HKLM\SOFTWARE\Wow6432Node\Microsoft\Microsoft SDKs\Windows\v6.0A  InstallationFolder C:\Program Files\Microsoft SDKs\Windows\v6.0A\        good
@@ -351,7 +404,4 @@ HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\VisualStudio\6.0\Setup\Microsoft Visual C+
                                                                                            C:\Program Files (x86)\Microsoft SDKs\Windows\v6.0A   Bootstrapper
                                                                                            C:\Program Files (x86)\Microsoft SDKs\Windows\v7.0A   wsdl.exe
                                                                                            C:\Program Files (x86)\Microsoft SDKs\Windows\v8.0    ExtensionSDKs
-                                                                                           C:\Program Files (x86)\Microsoft SDKs\Windows\v8.1    ExtensionSDKs
-                                                                                           C:\Program Files (x86)\Microsoft SDKs\Windows\v10.0A  bin\NETFX 4.7 Tools
       
-

@@ -10,8 +10,8 @@
 #  paths to system libraries and headers
 #  - only if they are not defined in project configuration makefile or in command line
 #
-# UMLIBPATH - paths to user-mode libraries (spaces must be replaced with ?)
-# UMINCLUDE - paths to user-mode headers   (spaces must be replaced with ?)
+# UMLIBPATH - paths to user-mode libraries (without quotes, spaces must be replaced with ?)
+# UMINCLUDE - paths to user-mode headers   (without quotes, spaces must be replaced with ?)
 #
 # example:
 #
@@ -26,84 +26,154 @@
 # 1) SDK - Software Development Kit path (without quotes)
 #   may be specified if autoconfiguration based on values of environment variables fails, e.g.:
 #     SDK=C:\Program Files\Microsoft Visual Studio .NET 2003\Vc7\PlatformSDK
+#     SDK=C:\Program Files\Microsoft SDK
+#     SDK=C:\Program Files\Microsoft Platform SDK for Windows XP SP2
 #     SDK=C:\Program Files\Microsoft Platform SDK for Windows Server 2003 R2
-#     SDK=C:\Program Files\Microsoft SDKs\Windows\v7.1A
+#     SDK=C:\Program Files\Microsoft Visual Studio 8\VC\PlatformSDK
+#     SDK=C:\Program Files\Microsoft SDKs\Windows\v6.0
+#     SDK=C:\Program Files\Microsoft SDKs\Windows\v6.0a
+#     SDK=C:\Program Files\Microsoft SDKs\Windows\v6.1
+#     SDK=C:\Program Files\Microsoft SDKs\Windows\v7.0
+#     SDK=C:\Program Files\Microsoft SDKs\Windows\v7.0a
+#     SDK=C:\Program Files\Microsoft SDKs\Windows\v7.1
+#     SDK=C:\Program Files\Microsoft SDKs\Windows\v7.1a
+#     SDK=C:\Program Files\Windows Kits\8.0
 #     SDK=C:\Program Files\Windows Kits\8.1
 #     SDK=C:\Program Files\Windows Kits\10
 #
 #   Note: Visual Studio 6.0 ships with SDK libraries (e.g. KERNEL32.LIB) and headers (e.g. WINBASE.H) as a part of its installation,
 #     so SDK variable may be empty or not defined, UMLIBPATH and UMINCLUDE may be defined as empty.
 #
-# 2) SDK_VER - target operating system version, e.g.: win8 winv6.3 10.0.10240.0 10.0.10586.0 10.0.14393.0 10.0.15063.0 10.0.16299.0
+# 2) SDK_LIB - path (without quotes) to directory of user-mode libraries, such as kernel32.lib
+#   may be specified instead of SDK variable (it is ignored then), e.g.:
+#     SDK_LIB=C:\Program Files\Microsoft Visual Studio\VC98\Lib
+#     SDK_LIB=C:\Program Files\Microsoft Visual Studio .NET 2003\Vc7\PlatformSDK\Lib
+#     SDK_LIB=C:\Program Files\Microsoft SDK\Lib
+#     SDK_LIB=C:\Program Files\Microsoft Platform SDK for Windows XP SP2\Lib
+#     SDK_LIB=C:\Program Files\Microsoft Platform SDK for Windows Server 2003 R2\Lib
+#     SDK_LIB=C:\Program Files\Microsoft Visual Studio 8\VC\PlatformSDK\Lib
+#     SDK_LIB=C:\Program Files\Microsoft SDKs\Windows\v6.0\Lib
+#     SDK_LIB=C:\Program Files\Microsoft SDKs\Windows\v6.0a\Lib
+#     SDK_LIB=C:\Program Files\Microsoft SDKs\Windows\v6.1\Lib
+#     SDK_LIB=C:\Program Files\Microsoft SDKs\Windows\v7.0\Lib
+#     SDK_LIB=C:\Program Files\Microsoft SDKs\Windows\v7.0a\Lib
+#     SDK_LIB=C:\Program Files\Microsoft SDKs\Windows\v7.1\Lib
+#     SDK_LIB=C:\Program Files\Microsoft SDKs\Windows\v7.1a\Lib
+#     SDK_LIB=C:\Program Files\Windows Kits\8.0\Lib\win8
+#     SDK_LIB=C:\Program Files\Windows Kits\8.1\Lib\winv6.3
+#     SDK_LIB=C:\Program Files\Windows Kits\10\Lib\10.0.10240.0
+#
+# 3) SDK_VER - SDK version, e.g.: win8 winv6.3 10.0.10240.0 10.0.10586.0 10.0.14393.0 10.0.15063.0 10.0.16299.0
 #   may be specified explicitly to override one deduced automatically
 #
 #################################################################################################################
 
-# we need next SDK variables: UMLIBPATH and UMINCLUDE
+# we need next variables to be defined: UMLIBPATH and UMINCLUDE
 # (they are may be defined either in project configuration makefile or in command line)
 # note: UMLIBPATH or UMINCLUDE may be defined as <empty>, so do not reset them
 ifneq (,$(filter undefined environment,$(foreach v,UMLIBPATH UMINCLUDE,$(origin $v))))
 
 # reset variables, if they are not defined in project configuration makefile or in command line
 SDK:=
+SDK_LIB:=
 SDK_VER:=
 
-# SDK may be defined as:
-# --------------------------------------------------------------------------
-# C:\Program Files\Microsoft Visual Studio .NET 2003\Vc7\PlatformSDK
-# C:\Program Files\Microsoft SDK
-# C:\Program Files\Microsoft Platform SDK for Windows XP SP2
-# C:\Program Files\Microsoft Platform SDK for Windows Server 2003 R2
-# C:\Program Files\Microsoft Visual Studio 8\VC\PlatformSDK
-# C:\Program Files\Microsoft SDKs\Windows\v6.0
-# C:\Program Files\Microsoft SDKs\Windows\v6.0A
-# C:\Program Files\Microsoft SDKs\Windows\v6.1
-# C:\Program Files\Microsoft SDKs\Windows\v7.0
-# C:\Program Files\Microsoft SDKs\Windows\v7.0a ???
-# C:\Program Files\Microsoft SDKs\Windows\v7.1
-# C:\Program Files (x86)\Microsoft SDKs\Windows\v7.1a
-# C:\Program Files (x86)\Windows Kits\8.0
-# C:\Program Files (x86)\Windows Kits\8.1
-# C:\Program Files (x86)\Windows Kits\10
+ifndef SDK_LIB
+  ifndef SDK
 
+    # WindowsSdkDir is normally set by the vcvars32.bat (for Visual Studio 2015 and later), e.g.:
+    #  WindowsSdkDir=C:\Program Files (x86)\Windows Kits\10\
+    #  WindowsSdkDir=C:\Program Files (x86)\Windows Kits\8.1\
+    # note: likely with trailing slash
+     ifneq (undefined,$(origin WindowsSdkDir))
+      SDK := $(WindowsSdkDir)
+
+    endif
+  endif
+
+  ifndef SDK_VER
+
+    # WindowsSDKVersion is normally set by the vcvars32.bat (for Visual Studio 2015 and later), e.g.:
+    #  WindowsSDKVersion=10.0.16299.0\
+    # note: likely with trailing slash
+    ifneq (undefined,$(origin WindowsSDKVersion))
+      SDK_VER := $(WindowsSDKVersion:\=)
+
+    endif
+  endif
+endif # !SDK_LIB
+
+ifndef SDK_LIB
 ifndef SDK
 
-  # WindowsSdkDir is normally set by the vcvars32.bat (for Visual Studio 2015 and later), e.g.:
-  #  WindowsSdkDir=C:\Program Files (x86)\Windows Kits\10\
-  #  WindowsSdkDir=C:\Program Files (x86)\Windows Kits\8.1\
-  # note: likely with trailing slash
-  ifneq (undefined,$(origin WindowsSdkDir))
-    SDK := $(WindowsSdkDir)
+  # at last, check registry and standard places in Program Files - to define SDK_LIB
 
-  endif
-endif
+  # select SDK based on value of WINVARIANT variable
+  WINVARIANT_VER := $(_WIN32_WINNT_$(WINVARIANT))
 
-ifndef SDK_VER
-
-  # WindowsSDKVersion is normally set by the vcvars32.bat (for Visual Studio 2015 and later), e.g.:
-  #  WindowsSDKVersion=10.0.16299.0\
-  # note: likely with trailing slash
-  ifneq (undefined,$(origin WindowsSDKVersion))
-    SDK_VER := $(WindowsSDKVersion:\=)
-
-  endif
-endif
-
-ifndef SDK
-
-  # at last, check registry and standard places in Program Files - to define UMLIBPATH/UMINCLUDE
-
-  # select SDK taking into account values of VC_VER and WINVARIANT variables
-  ifeq (,$(call is_less_float,$(VC_VER),14)
-    # >= Visual Studio 2015
+  ifeq (,$(call is_less,$(WINVARIANT_VER),$(_WIN32_WINNT_WINTHRESHOLD)))
+    # need Windows 10 SDK
 
     # select appropriate kernel32.lib for the $(CPU)
-    KERNEL32LIB_SDK10_PREFIXED := um/$(CPU:x86_64=x64)/kernel32.Lib
+    KERNEL32LIB_SDK_PREFIXED := um/$(CPU:x86_64=x64)/kernel32.Lib
 
-    # check for SDK v10.0
-    # look for C:/Program?Files/Windows?Kits/10/Lib/10.0.16299.0/um/x86/kernel32.Lib
-    UMLIBPATH := $(call VS_2017_SELECT_LATEST,$(KERNEL32LIB_SDK10_PREFIXED),$(call \
-      VS_REG_FIND_FILE_WHERE,Lib/*/$(KERNEL32LIB_SDK10_PREFIXED),Microsoft SDKs\Windows\v10.0,InstallationFolder,$(IS_WIN_64)))
+    # look for C:/Program Files/Windows Kits/10/Lib/10.0.16299.0/um/x86/kernel32.Lib
+    SDK_LIB := $(call VS_2017_SELECT_LATEST_ENTRY,$(KERNEL32LIB_SDK_PREFIXED),$(call \
+      VS_REG_FIND_FILE_WHERE,Lib/$(SDK_VER)*/$(KERNEL32LIB_SDK_PREFIXED),Microsoft SDKs\Windows\v10.0,InstallationFolder,$(IS_WIN_64)))
+
+    ifndef SDK_LIB
+      # check standard places
+      # e.g.: C:/Program?Files/ C:/Program?Files?(x86)/
+      PROGRAM_FILES_PLACES := $(addsuffix /,$(GET_PROGRAM_FILES_DIRS))
+
+      # look for C:/Program Files/Windows Kits/10/Lib/10.0.16299.0/um/x86/kernel32.Lib
+      SDK_LIB := $(call VS_2017_SELECT_LATEST_ENTRY,$(KERNEL32LIB_SDK_PREFIXED),$(call \
+        VS_FIND_FILE_WHERE,Windows Kits/10/Lib/$(SDK_VER)*/$(KERNEL32LIB_SDK_PREFIXED),$(PROGRAM_FILES_PLACES)))
+    endif
+
+  else ifeq (,$(call is_less,$(WINVARIANT_VER),$(_WIN32_WINNT_WINBLUE)))
+    # need Win8.1 SDK
+
+    # select appropriate kernel32.lib for the $(CPU)
+    KERNEL32LIB_SDK_PREFIXED := um/$(CPU:x86_64=x64)/kernel32.Lib
+
+    # look for C:/Program Files/Windows Kits/8.1/Lib/winv6.3/um/x86/kernel32.lib
+    SDK_LIB := $(call VS_2017_SELECT_LATEST_ENTRY,$(KERNEL32LIB_SDK_PREFIXED),$(call \
+      VS_REG_FIND_FILE_WHERE,Lib/$(SDK_VER)*/$(KERNEL32LIB_SDK_PREFIXED),Microsoft SDKs\Windows\v8.1,InstallationFolder,$(IS_WIN_64)))
+
+    ifndef SDK_LIB
+      # check standard places
+      # e.g.: C:/Program?Files/ C:/Program?Files?(x86)/
+      PROGRAM_FILES_PLACES := $(addsuffix /,$(GET_PROGRAM_FILES_DIRS))
+
+      # look for C:/Program Files/Windows Kits/8.1/Lib/winv6.3/um/x86/kernel32.lib
+      SDK_LIB := $(call VS_2017_SELECT_LATEST_ENTRY,$(KERNEL32LIB_SDK_PREFIXED),$(call \
+        VS_FIND_FILE_WHERE,Windows Kits/8.1/Lib/$(SDK_VER)*/$(KERNEL32LIB_SDK_PREFIXED),$(PROGRAM_FILES_PLACES)))
+    endif
+
+  else ifeq (,$(call is_less,$(WINVARIANT_VER),$(_WIN32_WINNT_WIN8)))
+    # need Win8 SDK
+
+    # select appropriate kernel32.lib for the $(CPU)
+    KERNEL32LIB_SDK_PREFIXED := um/$(CPU:x86_64=x64)/kernel32.Lib
+
+    # look for C:/Program Files/Windows Kits/8.0/Lib/win8/um/x86/kernel32.lib
+    SDK_LIB := $(call VS_2017_SELECT_LATEST_ENTRY,$(KERNEL32LIB_SDK_PREFIXED),$(call \
+      VS_REG_FIND_FILE_WHERE,Lib/$(SDK_VER)*/$(KERNEL32LIB_SDK_PREFIXED),Microsoft SDKs\Windows\v8.0,InstallationFolder,$(IS_WIN_64)))
+
+    ifndef SDK_LIB
+      # check standard places
+      # e.g.: C:/Program?Files/ C:/Program?Files?(x86)/
+      PROGRAM_FILES_PLACES := $(addsuffix /,$(GET_PROGRAM_FILES_DIRS))
+
+      # look for C:/Program Files/Windows Kits/8.0/Lib/win8/um/x86/kernel32.lib
+      SDK_LIB := $(call VS_2017_SELECT_LATEST_ENTRY,$(KERNEL32LIB_SDK_PREFIXED),$(call \
+        VS_FIND_FILE_WHERE,Windows Kits/8.0/Lib/$(SDK_VER)*/$(KERNEL32LIB_SDK_PREFIXED),$(PROGRAM_FILES_PLACES)))
+    endif
+
+
+
+
 
     ifdef SDK
       SDK := $(notdir $(SDK:/$(KERNEL32LIB_SDK10_PREFIXED)=))
@@ -116,7 +186,7 @@ ifndef SDK
 
 
 
-	    VCCL := $(call VS_2017_SELECT_LATEST_CL,$(VCCL_2017_PREFIXED),$(call \
+	    VCCL := $(call VS_2017_SELECT_LATEST_ENTRY,$(VCCL_2017_PREFIXED),$(call \
 		    VS_REG_SEARCH,Tools/MSVC/*/$(VCCL_2017_PREFIXED),$(call VCCL_REG_KEYS_VC,15.0)))
 
 
@@ -198,3 +268,41 @@ WindowsSDKVersion=10.0.15063.0\
 
 C:\Program Files (x86)\Windows Kits\10\Include\10.0.10240.0\um
 C:\Program Files (x86)\Windows Kits\10\Lib\10.0.10240.0\um\x86
+
+#     SDK_LIB=C:\Program Files\Microsoft Visual Studio\VC98\Lib
+#     SDK_LIB=C:\Program Files\Microsoft Visual Studio .NET 2003\Vc7\PlatformSDK\Lib
+#     SDK_LIB=C:\Program Files\Microsoft SDK\Lib
+#     SDK_LIB=C:\Program Files\Microsoft SDK\Lib\IA64
+#     SDK_LIB=C:\Program Files\Microsoft Platform SDK for Windows XP SP2\Lib
+#     SDK_LIB=C:\Program Files\Microsoft Platform SDK for Windows Server 2003 R2\Lib
+#     SDK_LIB=C:\Program Files\Microsoft Platform SDK for Windows Server 2003 R2\Lib\AMD64
+#     SDK_LIB=C:\Program Files\Microsoft Platform SDK for Windows Server 2003 R2\Lib\IA64
+#     SDK_LIB=C:\Program Files (x86)\Microsoft Visual Studio 8\VC\PlatformSDK\Lib
+#     SDK_LIB=C:\Program Files (x86)\Microsoft Visual Studio 8\VC\PlatformSDK\Lib\AMD64
+#     SDK_LIB=C:\Program Files (x86)\Microsoft Visual Studio 8\VC\PlatformSDK\Lib\IA64
+#     SDK_LIB=C:\Program Files\Microsoft SDKs\Windows\v6.0\Lib
+#     SDK_LIB=C:\Program Files\Microsoft SDKs\Windows\v6.0\Lib\x64
+#     SDK_LIB=C:\Program Files\Microsoft SDKs\Windows\v6.0A\Lib
+#     SDK_LIB=C:\Program Files\Microsoft SDKs\Windows\v6.0A\Lib\x64
+#     SDK_LIB=C:\Program Files\Microsoft SDKs\Windows\v6.1\Lib
+#     SDK_LIB=C:\Program Files\Microsoft SDKs\Windows\v6.1\Lib\x64
+#     SDK_LIB=C:\Program Files\Microsoft SDKs\Windows\v7.0\Lib
+#     SDK_LIB=C:\Program Files\Microsoft SDKs\Windows\v7.0\Lib\x64
+#     SDK_LIB=C:\Program Files (x86)\Microsoft SDKs\Windows\v7.0A\Lib
+#     SDK_LIB=C:\Program Files (x86)\Microsoft SDKs\Windows\v7.0A\Lib\x64
+#     SDK_LIB=C:\Program Files (x86)\Microsoft SDKs\Windows\v7.0A\Lib\IA64
+#     SDK_LIB=C:\Program Files\Microsoft SDKs\Windows\v7.1\Lib
+#     SDK_LIB=C:\Program Files\Microsoft SDKs\Windows\v7.1\Lib\x64
+#     SDK_LIB=C:\Program Files (x86)\Microsoft SDKs\Windows\v7.1A\Lib
+#     SDK_LIB=C:\Program Files (x86)\Microsoft SDKs\Windows\v7.1A\Lib\x64
+#     SDK_LIB=C:\Program Files (x86)\Windows Kits\8.0\Lib\win8\um\x86
+#     SDK_LIB=C:\Program Files (x86)\Windows Kits\8.0\Lib\win8\um\x64
+#     SDK_LIB=C:\Program Files (x86)\Windows Kits\8.0\Lib\win8\um\arm
+#     SDK_LIB=C:\Program Files (x86)\Windows Kits\8.1\Lib\winv6.3\um\x86
+#     SDK_LIB=C:\Program Files (x86)\Windows Kits\8.1\Lib\winv6.3\um\x64
+#     SDK_LIB=C:\Program Files (x86)\Windows Kits\8.1\Lib\winv6.3\um\arm
+#     SDK_LIB=C:\Program Files (x86)\Windows Kits\10\Lib\10.0.10240.0\um\x86
+#     SDK_LIB=C:\Program Files (x86)\Windows Kits\10\Lib\10.0.10240.0\um\x64
+#     SDK_LIB=C:\Program Files (x86)\Windows Kits\10\Lib\10.0.10240.0\um\arm
+#     SDK_LIB=C:\Program Files (x86)\Windows Kits\10\Lib\10.0.10240.0\um\arm64
+#
