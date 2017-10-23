@@ -35,7 +35,7 @@
 #     so SDK variable may be empty or not defined, UMLIBPATH and UMINCLUDE may be defined as empty.
 #
 # 2) SDK_VER - target operating system version, e.g.: win8 winv6.3 10.0.10240.0 10.0.10586.0 10.0.14393.0 10.0.15063.0 10.0.16299.0
-#   may be specified explicitly if it's not possible to deduce SDK_VER automatically
+#   may be specified explicitly to override one deduced automatically
 #
 #################################################################################################################
 
@@ -97,7 +97,29 @@ ifndef SDK
   ifeq (,$(call is_less_float,$(VC_VER),14)
     # >= Visual Studio 2015
 
+    # select appropriate kernel32.lib for the $(CPU)
+    KERNEL32LIB_SDK10_PREFIXED := um/$(CPU:x86_64=x64)/kernel32.Lib
+
     # check for SDK v10.0
+    # look for C:/Program?Files/Windows?Kits/10/Lib/10.0.16299.0/um/x86/kernel32.Lib
+    UMLIBPATH := $(call VS_2017_SELECT_LATEST,$(KERNEL32LIB_SDK10_PREFIXED),$(call \
+      VS_REG_FIND_FILE_WHERE,Lib/*/$(KERNEL32LIB_SDK10_PREFIXED),Microsoft SDKs\Windows\v10.0,InstallationFolder,$(IS_WIN_64)))
+
+    ifdef SDK
+      SDK := $(notdir $(SDK:/$(KERNEL32LIB_SDK10_PREFIXED)=))
+      ifndef SDK_VER
+        SDK_VER := $(notdir $(SDK:/$(KERNEL32LIB_SDK10_PREFIXED)=))
+      endif
+
+
+
+
+
+
+	    VCCL := $(call VS_2017_SELECT_LATEST_CL,$(VCCL_2017_PREFIXED),$(call \
+		    VS_REG_SEARCH,Tools/MSVC/*/$(VCCL_2017_PREFIXED),$(call VCCL_REG_KEYS_VC,15.0)))
+
+
 	HKLM\SOFTWARE\Wow6432Node\Microsoft\Microsoft SDKs\Windows\v10.0  InstallationFolder C:\Program Files (x86)\Windows Kits\10\
 	/cygdrive/c/Program Files (x86)/Windows Kits/10/Lib/10.0.16299.0/um/x86/kernel32.Lib
 
