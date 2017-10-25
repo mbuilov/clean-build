@@ -111,6 +111,7 @@ IMP_SUFFIX := .lib
 CFLAGS := /W3
 
 # determine if may build multiple sources at once
+# note: SEQ_BUILD - defined in $(CLEAN_BUILD_DIR)/compilers/msvc_cmn.mk, takes value of command-line variable S
 MP_BUILD:=
 ifndef SEQ_BUILD
 ifeq (,$(call is_less_float,$(VC_VER),$(VS2008)))
