@@ -11,7 +11,7 @@
 #  - only if they are not defined in project configuration makefile or in command line
 #
 # VC_VER    - MSVC++ version, known values see in $(CLEAN_BUILD_DIR)/compilers/msvc_cmn.mk (or below)
-# VCCL      - path to cl.exe                (must be in double-quotes if contains spaces)
+# VCCL      - path to cl.exe                (may be in double-quotes, if contains spaces - double-quoted automatically)
 # VCLIB     - path to lib.exe               (must be in double-quotes if contains spaces)
 # VCLINK    - path to link.exe              (must be in double-quotes if contains spaces)
 # VCLIBPATH - paths to Visual C++ libraries (without quotes, spaces must be replaced with ?)
@@ -53,7 +53,7 @@
 #     MSVC=C:\Program Files\Microsoft Visual Studio\2017\Community\VC
 #     MSVC=C:\Program Files\Microsoft Visual Studio\2017\Community\VC\Tools\MSVC\14.11.25503
 #
-# 3) VCCL - path to Visual C++ compiler cl.exe
+# 3) VCCL - path to Visual C++ compiler cl.exe (may be in double-quotes, if contains spaces - double-quoted automatically)
 #   may be specified instead of VS or MSVC variables (they are ignored then), e.g.:
 #     VCCL=C:\Program Files\Microsoft Visual Studio\VC98\Bin\cl.exe
 #     VCCL=C:\Program Files\Microsoft Visual C++ Toolkit 2003\bin\cl.exe
@@ -66,6 +66,19 @@
 #   may be specified explicitly if it's not possible to deduce VC_VER automatically or to override one deduced automatically
 #
 #################################################################################################################
+
+# reset paths to DDK/WDK/SDK, e.g.:
+# WDK=C:\WinDDK\6001.18002
+# DDK=C:\WINDDK\2600.1106
+# SDK=C:\Program Files\Microsoft SDKs\Windows\v7.1
+# note: path must be specified without double-quotes
+# notes:
+#  1) DDK may be deduced from non-empty WDK, but if DDK is specified - it is preferred over WDK
+#  2) SDK may be deduced from non-empty WDK, but if SDK is specified - it is preferred over WDK or SDK from Visual Studio
+#  3) SDK may be deduced from Visual Studio path (only for Visual Studio 2005 and before)
+WDK:=
+DDK:=
+SDK:=
 
 # get paths to "Program Files" and "Program Files (x86)" directories
 # note: ProgramW6432 appear starting with Windows 7
@@ -151,7 +164,7 @@ VS_REG_FIND_FILE_WHERE4 = $(if $2,$1 $2)
 # result (may be a list): C:/Program Files/Microsoft Visual Studio 14.0/VC/bin/cl.exe
 VS_REG_FIND_FILE = $(wordlist 2,999999,$(VS_REG_FIND_FILE_WHERE))
 
-# like VS_REG_FIND_FILE, but $1 - name of macro that returns file to find
+# like VS_REG_FIND_FILE, but $1 - name of macro that returns file to find (VCCL_2005_PATTERN_GEN_VC or VCCL_2005_PATTERN_GEN_VS)
 # note: macro $1 may use $2 - path where the search is done
 VS_REG_FIND_FILE_P  = $(call VS_REG_FIND_FILE_P1,$1,$(call VS_REG_QUERY,$2,$3),$2,$3,$4)
 VS_REG_FIND_FILE_P1 = $(call VS_REG_FIND_FILE_P2,$1,$(if $2,$(wildcard $(subst ?,\ ,$2)$($1))),$3,$4,$5)
@@ -176,19 +189,33 @@ VS_REG_SEARCH_WHERE = $(call VS_REG_SEARCH_X,$1,$2,VS_REG_FIND_FILE_WHERE)
 # result (may be a list): C:/Program Files/Microsoft Visual Studio 14.0/VC/bin/cl.exe
 VS_REG_SEARCH = $(call VS_REG_SEARCH_X,$1,$2,VS_REG_FIND_FILE)
 
-# like VS_REG_SEARCH, but $1 - name of macro that returns file to find
+# like VS_REG_SEARCH, but $1 - name of macro that returns file to find (VCCL_2005_PATTERN_GEN_VC or VCCL_2005_PATTERN_GEN_VS)
 # note: macro $1 may use $2 - path where the search is done
 VS_REG_SEARCH_P = $(call VS_REG_SEARCH_X,$1,$2,VS_REG_FIND_FILE_P)
 
-# for use with VS_FIND_FILE_P or VS_REG_SEARCH_P
-# $2 - C:/Program?Files/Microsoft?Visual?Studio?14.0/VC/ C:/Program?Files?(x86)/Microsoft?Visual?Studio?14.0/VC/
-# result: bin/x86_arm/cl.exe (possible with spaces in result)
-VCCL_2005_PATTERN_GEN_VC = bin/$(call VC_TOOL_PREFIX_2005,$(CPU),$(call VS_SELECT_CPU,$(firstword $2)))cl.exe
+# for Visual C++ compiler from WDK 6-7 (Visual C++ 8.0-9.0 of Visual Studio 2005-2008)
+# determine MSVC++ tools prefix for given TCPU/CPU combination, e.g.:
+#  C:\WinDDK\6001.18001\bin\x86\x86\cl.exe   - Microsoft (R) 32-bit C/C++ Optimizing Compiler Version 14.00.50727.278 for 80x86
+#  C:\WinDDK\6001.18001\bin\x86\amd64\cl.exe - Microsoft (R) C/C++ Optimizing Compiler Version 14.00.50727.278 for x64
+#  C:\WinDDK\6001.18001\bin\x86\ia64\cl.exe  - Microsoft (R) C/C++ Optimizing Compiler Version 14.00.50727.283 for Itanium
+#  C:\WinDDK\6001.18001\bin\ia64\ia64\cl.exe - ????
+# $1 - $(CPU)
+CL_TOOL_PREFIX_WDK6_7 = $(TCPU:x86_64=amd64)/$(1:x86_64=amd64)/
 
-# for use with VS_FIND_FILE_P or VS_REG_SEARCH_P
-# $2 - C:/Program?Files/Microsoft?Visual?Studio?14.0/ C:/Program?Files?(x86)/Microsoft?Visual?Studio?14.0/
-# result: VC/bin/x86_arm/cl.exe (possible with spaces in result)
-VCCL_2005_PATTERN_GEN_VS = VC/bin/$(call VC_TOOL_PREFIX_2005,$(CPU),$(call VS_SELECT_CPU,$(firstword $2)))cl.exe
+# for Visual C++ compiler from DDK WinXP-Windows Server 2003 SP1 (Visual C++ 7.0-8.0 of Visual Studio .NET-2005)
+# determine MSVC++ tools prefix for given TCPU/CPU combination, e.g.:
+#  C:\WINDDK\3790.1830\bin\x86\cl.exe             - Microsoft (R) 32-bit C/C++ Optimizing Compiler Version 13.10.4035 for 80x86
+#  C:\WINDDK\3790.1830\bin\ia64\cl.exe            - ????
+#  C:\WINDDK\3790.1830\bin\win64\x86\cl.exe       - Microsoft (R) C/C++ Optimizing Compiler Version 14.00.40310.39 for IA-64
+#  C:\WINDDK\3790.1830\bin\win64\x86\amd64\cl.exe - Microsoft (R) C/C++ Optimizing Compiler Version 14.00.40310.41 for AMD64
+CL_TOOL_PREFIX_DDK = $(TCPU:x86_64=amd64)/$(1:x86_64=amd64)/
+
+
+
+
+
+
+
 
 # for Visual C++ compiler from SDK 6.0 (Visual C++ 8.0 of Visual Studio 2005)
 # determine MSVC++ tools prefix for given CPU
@@ -199,6 +226,16 @@ VCCL_2005_PATTERN_GEN_VS = VC/bin/$(call VC_TOOL_PREFIX_2005,$(CPU),$(call VS_SE
 # pref | <none>   x64/
 #
 VC_TOOL_PREFIX_SDK6 := $(addsuffix /,$(filter-out x86,$(TCPU:x86_64=x64)))
+
+# for use with VS_FIND_FILE_P or VS_REG_SEARCH_P
+# $2 - C:/Program?Files/Microsoft?Visual?Studio?14.0/VC/ C:/Program?Files?(x86)/Microsoft?Visual?Studio?14.0/VC/
+# result: bin/x86_arm/cl.exe (possible with spaces in result)
+VCCL_2005_PATTERN_GEN_VC = bin/$(call VC_TOOL_PREFIX_2005,$(CPU),$(call VS_SELECT_CPU,$(firstword $2)))cl.exe
+
+# for use with VS_FIND_FILE_P or VS_REG_SEARCH_P
+# $2 - C:/Program?Files/Microsoft?Visual?Studio?14.0/ C:/Program?Files?(x86)/Microsoft?Visual?Studio?14.0/
+# result: VC/bin/x86_arm/cl.exe (possible with spaces in result)
+VCCL_2005_PATTERN_GEN_VS = VC/bin/$(call VC_TOOL_PREFIX_2005,$(CPU),$(call VS_SELECT_CPU,$(firstword $2)))cl.exe
 
 # for Visual Studio 2005-2015
 # determine MSVC++ tools prefix for given TCPU/CPU combination
@@ -613,6 +650,19 @@ ifndef VS
 
     # result: 14.0 C:/Program Files/Microsoft Visual Studio 14.0/VC/bin/x86_arm/cl.exe
     VCCL := $(call VS_SEARCH_2005,$(VCCL_2005_VERSIONS))
+
+    ifndef VCCL
+      # check for C++ compiler bundled in WDK7.1.0
+
+	  C:\WinDDK\7600.16385.1\bin\x86\x86\cl.exe
+	  C:\WinDDK\7600.16385.1\bin\x86\amd64\cl.exe
+	  C:\WinDDK\7600.16385.1\bin\x86\ia64\cl.exe
+
+VCCL_2005_PATTERN_GEN_VC = bin/$(call VC_TOOL_PREFIX_2005,$(CPU),$(call VS_SELECT_CPU,$(firstword $2)))cl.exe
+
+      VCCL := $(call VS_REG_FIND_FILE,bin/x86/x86/cl.exe,KitSetup\configured-kits\{B4285279-1846-49B4-B8FD-B9EAF0FF17DA}\{68656B6B-555E-5459-5E5D-6363635E5F61},setup-install-location,$(IS_WIN_64))
+
+	  HKLM\SOFTWARE\Wow6432Node\Microsoft\KitSetup\configured-kits\{B4285279-1846-49B4-B8FD-B9EAF0FF17DA}\{68656B6B-555E-5459-5E5D-6363635E5F61} setup-install-location C:\WinDDK\7600.16385.1\
 
     ifndef VCCL
       # cross compiler is not supported, but may compile x86_64 on x86_64 or x86 on x86
