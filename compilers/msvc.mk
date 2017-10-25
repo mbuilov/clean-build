@@ -35,12 +35,12 @@ endif
 
 # configure Visual C++ version, paths to compiler, linker and C/C++ libraries and headers:
 # (variables prefixed with T - are for the tool mode)
-# VC_VER        - version of Visual C++ we are using - see $(CLEAN_BUILD_DIR)/compilers/msvc_cmn.mk 'MSVC++ versions' table
+# {,T}VC_VER    - version of Visual C++ we are using - see $(CLEAN_BUILD_DIR)/compilers/msvc_cmn.mk 'MSVC++ versions' table
 # {,T}VCCL      - path to cl.exe, must be in double-quotes if contains spaces
 # {,T}VCLIB     - path to lib.exe, must be in double-quotes if contains spaces
 # {,T}VCLINK    - path to link.exe, must be in double-quotes if contains spaces
 # {,T}VCLIBPATH - paths to Visual C++ libraries, spaces must be replaced with ?
-# VCINCLUDE     - paths to Visual C++ headers, spaces must be replaced with ?
+# {,T}VCINCLUDE - paths to Visual C++ headers, spaces must be replaced with ?
 # note: assume target and tool compilers are of the same version and differ only by the architecture of produced binaries
 ifeq (,$(filter-out undefined environment,$(origin GET_PROGRAM_FILES_DIRS)))
 include $(dir $(lastword $(MAKEFILE_LIST)))msvc_conf.mk
@@ -49,7 +49,7 @@ endif
 # configure paths to system libraries/headers:
 # (variables prefixed with T - are for the tool mode)
 # {,T}UMLIBPATH - paths to user-mode libraries, spaces must be replaced with ?
-# UMINCLUDE     - paths to user-mode headers, spaces must be replaced with ?
+# {,T}UMINCLUDE - paths to user-mode headers, spaces must be replaced with ?
 ifeq (,$(filter-out undefined environment,$(origin ???)))
 include $(dir $(lastword $(MAKEFILE_LIST)))msvc_sdk.mk
 endif
@@ -104,139 +104,27 @@ DLL_SUFFIX := .dll
 IMP_PREFIX:=
 IMP_SUFFIX := .lib
 
-# default values of user-defined C compiler flags
-# note: may be taken from the environment in project configuration makefile
-# note: used by EXE_CFLAGS, LIB_CFLAGS, DLL_CFLAGS (from $(CLEAN_BUILD_DIR)/impl/_c.mk)
-# /W3 - warning level 3
-CFLAGS := /W3
-
-# determine if may build multiple sources at once
-# note: SEQ_BUILD - defined in $(CLEAN_BUILD_DIR)/compilers/msvc_cmn.mk, takes value of command-line variable S
-MP_BUILD:=
-ifndef SEQ_BUILD
-ifeq (,$(call is_less_float,$(VC_VER),$(VS2008)))
-# >= Visual Studio 2008
-# /MP - compile all sources of a module at once
-MP_BUILD := /MP
-endif
-endif
-
-# When using the /Zi option, the debug info of all compiled sources is stored in a single .pdb,
-#  but this can lead to contentions accessing that .pdb during parallel compilation.
-# To cope this problem, the /FS option was introduced in Visual Studio 2013.
-ifeq (,$(call is_less_float,$(VC_VER),$(VS2013)))
-# >= Visual Studio 2013
-FORCE_SYNC_PDB := /FS
-else
-FORCE_SYNC_PDB:=
-endif
-
-ifdef DEBUG
-
-# set debug info format
-ifdef MP_BUILD
-# compiling sources of a module with /MP option:
-#  - groups of sources of a module are compiled sequentially, one group after each other
-#  - sources in a group are compiled in parallel by compiler threads, via single compiler invocation.
-# note: /MP option implies /FS option, if it's supported
-# /Zi option - store debug info (in new format) in single .pdb, assume compiler internally will serialize access to the .pdb
-CFLAGS += /Zi
-else ifndef FORCE_SYNC_PDB
-# /Z7 option - store debug info (in old format) in each .obj to avoid contention accessing .pdb during parallel compilation
-CFLAGS += /Z7
-else
-# /Zi option - store debug info (in new format) in single .pdb, compiler will serialize access to the .pdb via mspdbsrv.exe
-CFLAGS += $(FORCE_SYNC_PDB) /Zi
-endif
-
-# /Od - disable optimizations
-CFLAGS += /Od
-
-ifeq (,$(call is_less_float,$(VC_VER),$(VS2002)))
-# >= Visual Studio 2002
-# /RTCs - enables stack frame run-time error checking
-# /RTCu - reports when a variable is used without having been initialized
-# /GS   - buffer security check
-CFLAGS += /RTCsu /GS
-else
-# Visual Studio 6.0
-# /GZ - catch release-build errors in debug build
-CFLAGS += /GZ
-endif
-
-ifeq (,$(call is_less_float,$(VC_VER),$(VS2012)))
-# >= Visual Studio 2012
-# /sdl - additional security checks
-CFLAGS += /sdl
-endif
-
-else # !DEBUG
-
-# /Ox - maximum optimization
-# /GF - pool strings and place them in read-only memory
-# /Gy - enable function level linking
-CFLAGS += /Ox /GF /Gy
-
-ifeq (,$(call is_less_float,$(VC_VER),$(VS2002)))
-# >= Visual Studio 2002
-# /GS - buffer security check
-# /GL - whole program optimization, linker must be invoked with /LTCG
-CFLAGS += /GS- /GL
-endif
-
-ifeq (,$(call is_less_float,$(VC_VER),$(VS2013)))
-# >= Visual Studio 2013
-# /Zc:inline - remove unreferenced internal functions from objs
-# /Gw         - package global data in individual comdat sections
-# note: /Zc:inline is ignored if /GL is specified
-CFLAGS += /Zc:inline /Gw
-endif
-
-endif # !DEBUG
-
-ifeq (,$(call is_less_float,$(VC_VER),$(VS2005)))
-# >= Visual Studio 2005
-# /errorReport - report internal compiler errors
-CFLAGS += /errorReport:none
-endif
-
-# default values of user-defined C++ compiler flags
-# /Gm - enable minimal rebuild
-# note: may be taken from the environment in project configuration makefile
-# note: used by EXE_CXXFLAGS, LIB_CXXFLAGS, DLL_CXXFLAGS (from $(CLEAN_BUILD_DIR)/impl/_c.mk)
-CXXFLAGS := $(CFLAGS) /Gm-
-
-# /GR - enable run-time type information
-CFLAGS += /GR-
-
-ifdef DEBUG
-ifeq (,$(call is_less_float,$(VC_VER),$(VS2002)))
-# >= Visual Studio 2002
-# /RTCc - reports when a value is assigned to a smaller data type and results in a data loss
-# note: for C++ code, it may be needed to define /D_ALLOW_RTCc_IN_STL (starting with Visual Studio 2015)
-CFLAGS += /RTCc
-endif
-endif
-
-# lib.exe flags for linking a LIB
-# /LTCG - link-time code generation
-# note: may be taken from the environment in project configuration makefile
-# note: used by LIB_LD
-ARFLAGS := $(if $(DEBUG),,$(if $(filter /GL,$(CFLAGS)),/LTCG))
-
-# default values of user-defined link.exe flags for linking executables and shared libraries
-# note: may be taken from the environment in project configuration makefile
-# note: used by EXE_LDFLAGS, LIB_LDFLAGS, DLL_LDFLAGS from $(CLEAN_BUILD_DIR)/impl/_c.mk
-# /DEBUG   - generate debug info (in separate .pdb)
-# /RELEASE - set the checksum in PE-header
-# /LTCG    - link-time code generation
-LDFLAGS := $(if $(DEBUG),/DEBUG,/RELEASE$(if $(filter /GL,$(CFLAGS)), /LTCG))
-
-# flags for the tool mode
-TCFLAGS   := $(CFLAGS)
-TCXXFLAGS := $(CXXFLAGS)
-TARFLAGS  := $(ARFLAGS)
-TLDFLAGS  := $(LDFLAGS)
+# define:
+# {,T}CFLAGS
+# {,T}CXXFLAGS
+# {,T}ARFLAGS
+# {,T}LDFLAGS
+# {,T}MP_BUILD
+# {,T}FORCE_SYNC_PDB
+# {,T}MANIFEST_EMBED_OPTION
+# {,T}EMBED_EXE_MANIFEST
+# {,T}EMBED_DLL_MANIFEST
+# {,T}LINKER_STRIP_STRINGS
+# {,T}WRAP_LINKER
+# {,T}CMN_CFLAGS
+# {,T}APPINCLUDE
+# {,T}DEF_CFLAGS
+# {,T}DEF_CXXFLAGS
+# note: TMD was reset in $(CLEAN_BUILD_DIR)/core/_defs.mk and must be empty
+include $(dir $(lastword $(MAKEFILE_LIST)))msvc_cflags.mk
+TMD:=T
+include $(dir $(lastword $(MAKEFILE_LIST)))msvc_cflags.mk
+TMD:=
 
 # supported non-regular target variants:
 # (R - dynamically linked multi-threaded libc - default variant)
@@ -283,8 +171,8 @@ DLL_CXXFLAGS = $(WIN_VARIANT_CFLAGS) $($(TMD)CXXFLAGS)
 # note: override defaults from $(CLEAN_BUILD_DIR)/impl/_c.mk
 # note: use the same variant of dependent static library as target EXE or DLL (for example for S-EXE use S-LIB)
 # note: unicode variants of the target EXE or DLL may link with two kinds of libraries:
-#  1) with unicode support - normally built in 2 variants, e.g. mylib.lib and mylib_u.lib or mylib_s.lib and mylib_su.lib
-#  2) without unicode support - normally built in 1 variant, e.g. mylib.lib or mylib_s.lib
+#  1) with unicode support - normally built in x2 variants, e.g. mylib.lib and mylib_u.lib or mylib_s.lib and mylib_su.lib
+#  2) without unicode support - normally built in x1 variant, e.g. mylib.lib or mylib_s.lib
 #  so, for unicode (RU or SU) variant of target EXE or DLL, if dependent library is not specified with 'uni' flag
 #  - dependent library do not have unicode variant, so convert needed variant of library to non-unicode one: RU->R or SU->S
 LIB_DEP_MAP = $(if $(filter uni,$(subst /, ,$3)),$2,$(2:U=))
@@ -302,14 +190,6 @@ TRG_SUBSYSTEM = $(SUBSYSTEM_TYPE)$(if $(TMD),,$(addprefix $(comma),$(SUBSYSTEM_V
 # subsystem for EXE or DLL
 # target-specific: SUBSYSTEM
 SUBSYSTEM_OPTION = /SUBSYSTEM:$(SUBSYSTEM)
-
-# how to embed manifest into EXE or DLL
-ifeq (,$(call is_less_float,$(VC_VER),$(VS2012)))
-# >= Visual Studio 2012, linker may call mt.exe internally
-MANIFEST_EMBED_OPTION := /MANIFEST:EMBED
-else
-MANIFEST_EMBED_OPTION:=
-endif
 
 # common link.exe flags for linking executables and dynamic libraries
 CMN_LDFLAGS := /INCREMENTAL:NO
@@ -330,16 +210,9 @@ TAPPLIBPATH := $(TVCLIBPATH) $(TUMLIBPATH)
 # $3 - target type: EXE or DLL
 # $4 - non-empty variant: R,S,RU,SU
 # target-specific: IMP, DEF, LIBS, DLLS, LIB_DIR, TMD
-CMN_LIBS = /nologo /OUT:$(call ospath,$1 $2 $(filter %.res,$^)) $(VERSION_OPTION) $(SUBSYSTEM_OPTION) $(MANIFEST_EMBED_OPTION) \
+CMN_LIBS = /nologo /OUT:$(call ospath,$1 $2 $(filter %.res,$^)) $(VERSION_OPTION) $(SUBSYSTEM_OPTION) $($(TMD)MANIFEST_EMBED_OPTION) \
   $(addprefix /IMPLIB:,$(call ospath,$(IMP))) $(addprefix /DEF:,$(call ospath,$(DEF))) $(if $(firstword $(LIBS)$(DLLS)),/LIBPATH:$(call \
   ospath,$(LIB_DIR)) $(call DEP_LIBS,$3,$4) $(call DEP_IMPS,$3,$4)) $(call qpath,$($(TMD)APPLIBPATH),/LIBPATH:)
-
-# regular expression string for findstr.exe to match diagnostic linker message to strip-off
-# default value, may be overridden either in project configuration makefile or in command line
-LINKER_STRIP_STRINGS := $(LINKER_STRIP_STRINGS_en)
-
-# define WRAP_LINKER - link.exe wrapper
-$(call MSVC_DEFINE_LINKER_WRAPPER,WRAP_LINKER,$(LINKER_STRIP_STRINGS))
 
 # linkers for each variant of EXE or DLL
 # $1 - path to target EXE or DLL
@@ -351,23 +224,10 @@ $(call MSVC_DEFINE_LINKER_WRAPPER,WRAP_LINKER,$(LINKER_STRIP_STRINGS))
 # note: link.exe will not delete generated manifest file if failed to build target exe/dll, for example because of invalid DEF file
 # note: if EXE do not exports symbols (as usual), do not set in target makefile EXE_EXPORTS (empty by default)
 # note: if DLL do not exports symbols (unusual), set in target makefile DLL_NO_EXPORTS to non-empty value
-EXE_LD = $(call SUP,$(TMD)EXE,$1)$(call WRAP_LINKER,$($(TMD)VCLINK) $(CMN_LIBS) $(DEF_EXE_LDFLAGS) $(VLDFLAGS))$(CHECK_EXP_CREATED)
-DLL_LD = $(call SUP,$(TMD)DLL,$1)$(call WRAP_LINKER,$($(TMD)VCLINK) $(CMN_LIBS) $(DEF_DLL_LDFLAGS) $(VLDFLAGS))$(CHECK_EXP_CREATED)
-
-# manifest embedding
-# $1 - path to target EXE or DLL
-# note: in Visual Studio 2012 and above, linker may call mt.exe internally
-ifndef MANIFEST_EMBED_OPTION
-ifeq (,$(call is_less_float,$(VC_VER),$(VS2005)))
-# >= Visual Studio 2005
-EMBED_EXE_MANIFEST = if exist $(ospath).manifest $(MT) -nologo \
-  -manifest $(ospath).manifest -outputresource:$(ospath);1 && del $(ospath).manifest
-EMBED_DLL_MANIFEST = if exist $(ospath).manifest $(MT) -nologo \
-  -manifest $(ospath).manifest -outputresource:$(ospath);2 && del $(ospath).manifest
-$(call define_append,EXE_LD,$(newline)$(QUIET)$$(EMBED_EXE_MANIFEST))
-$(call define_append,DLL_LD,$(newline)$(QUIET)$$(EMBED_DLL_MANIFEST))
-endif
-endif
+EXE_LD = $(call SUP,$(TMD)EXE,$1)$(call \
+  $(TMD)WRAP_LINKER,$($(TMD)VCLINK) $(CMN_LIBS) $(DEF_EXE_LDFLAGS) $(VLDFLAGS))$(CHECK_EXP_CREATED)$(EMBED_EXE_MANIFEST)
+DLL_LD = $(call SUP,$(TMD)DLL,$1)$(call \
+  $(TMD)WRAP_LINKER,$($(TMD)VCLINK) $(CMN_LIBS) $(DEF_DLL_LDFLAGS) $(VLDFLAGS))$(CHECK_EXP_CREATED)$(EMBED_DLL_MANIFEST)
 
 # form path to the import library (if target exports symbols)
 # $t - EXE or DLL
@@ -435,6 +295,10 @@ endif
 ifdef VERBOSE
 $(eval LIB_LD = $(value LIB_LD) >&2)
 endif
+
+
+
+........
 
 # $(SED) regular expression used to match paths to included headers from /showIncludes option output
 # default value, may be overridden either in project configuration makefile or in command line
