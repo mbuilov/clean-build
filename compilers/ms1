@@ -352,7 +352,26 @@ Windows Driver Kit – Server 2008 (x86, x64, ia64) 	6001.18000 	Jan 2008
 ??????
 
 Windows Driver Kit – Server 2008 (x86, x64, ia64) 	6001.18001 	April 1, 2008
-???????
+C:\WinDDK\6001.18001\lib\{w2k,wxp}\i386\kernel32.lib
+C:\WinDDK\6001.18001\lib\{wnet,wlh}\{i386,amd64,ia64}\kernel32.lib
+C:\WinDDK\6001.18001\lib\{w2k,wxp}\i386\hal.lib
+C:\WinDDK\6001.18001\lib\{wnet,wlh}\{i386,amd64,ia64}\hal.lib
+C:\WinDDK\6001.18001\lib\crt\{i386,amd64,ia64}\msvcrt.lib
+C:\WinDDK\6001.18001\inc\crt\errno.h
+C:\WinDDK\6001.18001\inc\api\WINBASE.H
+C:\WinDDK\6001.18001\inc\api\ntdef.h
+C:\WinDDK\6001.18001\inc\ddk\ntddk.h
+C:\WinDDK\6001.18001\inc\ddk\wdm.h
+C:\WinDDK\6001.18001\bin\x86\x86\cl.exe        - Microsoft (R) 32-bit C/C++ Optimizing Compiler Version 14.00.50727.278 for 80x86
+C:\WinDDK\6001.18001\bin\x86\amd64\cl.exe      - Microsoft (R) C/C++ Optimizing Compiler Version 14.00.50727.278 for x64
+C:\WinDDK\6001.18001\bin\x86\ia64\cl.exe       - Microsoft (R) C/C++ Optimizing Compiler Version 14.00.50727.283 for Itanium
+C:\WinDDK\6001.18001\bin\ia64\ia64\cl.exe      - ????
+C:\WinDDK\6001.18001\bin\x86\rc.exe            - Microsoft (R) Windows (R) Resource Compiler Version 6.0.5724.0
+C:\WinDDK\6001.18001\bin\ia64\rc.exe           - ????
+C:\WinDDK\6001.18001\bin\x86\mc.exe            - Microsoft (R) Message Compiler  Version 1.12.5489
+C:\WinDDK\6001.18001\bin\ia64\mc.exe           - ????
+mt.exe - not found
+HKLM\SOFTWARE\Wow6432Node\Microsoft\WINDDK\6001.18001\Setup BUILD C:\WinDDK\6001.18001\
 
 Windows Driver Kit – Server 2008 Release SP1 (x86, x64, i64) 	6001.18002 	December 8, 2008
 C:\WinDDK\6001.18002\lib\{w2k,wxp}\i386\kernel32.lib
@@ -374,7 +393,7 @@ C:\WinDDK\6001.18002\bin\ia64\rc.exe              - ?????
 C:\WinDDK\6001.18002\bin\x86\mc.exe               - Microsoft (R) Message Compiler  Version 1.12.5489
 C:\WinDDK\6001.18002\bin\ia64\mc.exe              - ?????
 mt.exe - not found
-HKLM\SOFTWARE\Microsoft\KitSetup\configured-kits\{B4285279-1846-49B4-B8FD-B9EAF0FF17DA}\{515A5454-555D-5459-5B5D-616264656660} setup-install-location C:\WinDDK\6001.18002\
+HKLM\SOFTWARE\Wow6432Node\Microsoft\KitSetup\configured-kits\{B4285279-1846-49B4-B8FD-B9EAF0FF17DA}\{515A5454-555D-5459-5B5D-616264656660} setup-install-location C:\WinDDK\6001.18002\
 
 Windows Driver Kit 7.0.0 	7600.16385.0 	August 6, 2009
 C:\WinDDK\7600.16385.0\lib\wxp\i386\kernel32.lib
@@ -393,7 +412,7 @@ C:\WinDDK\7600.16385.0\bin\x86\ia64\cl.exe   - Microsoft (R) C/C++ Optimizing Co
 C:\WinDDK\7600.16385.0\bin\x86\rc.exe        - Microsoft (R) 32-bit C/C++ Optimizing Compiler Version 15.00.30729.207 for 80x86
 C:\WinDDK\7600.16385.0\bin\x86\mc.exe        - Microsoft (R) Message Compiler  Version 1.12.7065
 mt.exe - not found
-HKLM\SOFTWARE\Microsoft\KitSetup\configured-kits\{B4285279-1846-49B4-B8FD-B9EAF0FF17DA}\{676E6B70-5659-5459-5B5F-6063635E5F61} setup-install-location C:\WinDDK\7600.16385.0\
+HKLM\SOFTWARE\Wow6432Node\Microsoft\KitSetup\configured-kits\{B4285279-1846-49B4-B8FD-B9EAF0FF17DA}\{676E6B70-5659-5459-5B5F-6063635E5F61} setup-install-location C:\WinDDK\7600.16385.0\
 
 Windows Driver Kit version 7.1.0
 C:\WinDDK\7600.16385.1\lib\wxp\i386\kernel32.lib
@@ -401,6 +420,7 @@ C:\WinDDK\7600.16385.1\lib\{wnet,wlh,win7\{i386,amd64,ia64}\kernel32.lib
 C:\WinDDK\7600.16385.1\lib\wxp\i386\hal.lib
 C:\WinDDK\7600.16385.1\lib\{wnet,wlh,win7}\{i386,amd64,ia64}\hal.lib
 C:\WinDDK\7600.16385.1\lib\Crt\{i386,amd64,ia64}\msvcrt.lib
+C:\WinDDK\7600.16385.1\lib\wxp\i386\oldnames.lib
 C:\WinDDK\7600.16385.1\inc\crt\errno.h
 C:\WinDDK\7600.16385.1\inc\api\WINBASE.H
 C:\WinDDK\7600.16385.1\inc\api\ntdef.h
@@ -412,7 +432,9 @@ C:\WinDDK\7600.16385.1\bin\x86\ia64\cl.exe             - Microsoft (R) C/C++ Opt
 C:\WinDDK\7600.16385.1\bin\x86\rc.exe                  - Microsoft (R) Windows (R) Resource Compiler Version 6.1.6908.0
 C:\WinDDK\7600.16385.1\bin\x86\mc.exe                  - Microsoft (R) Message Compiler  Version 1.12.7065
 mt.exe - not found
-HKLM\SOFTWARE\Microsoft\KitSetup\configured-kits\{B4285279-1846-49B4-B8FD-B9EAF0FF17DA}\{68656B6B-555E-5459-5E5D-6363635E5F61} setup-install-location C:\WinDDK\7600.16385.1\
+HKLM\SOFTWARE\Wow6432Node\Microsoft\KitSetup\configured-kits\{B4285279-1846-49B4-B8FD-B9EAF0FF17DA}\{68656B6B-555E-5459-5E5D-6363635E5F61} setup-install-location C:\WinDDK\7600.16385.1\
+
+
 
 Windows Driver Kit 8.0 	8.59.25584 	August 15, 2012
 ???
@@ -431,8 +453,8 @@ cl.exe - not found
 C:\Program Files (x86)\Windows Kits\8.0\bin\{x86,x64}\rc.exe   - Microsoft (R) Windows (R) Resource Compiler Version 6.2.9200.20789
 C:\Program Files (x86)\Windows Kits\8.0\bin\{x86,x64}\mc.exe   - Microsoft (R) Message Compiler  Version 1.12.9200
 C:\Program Files (x86)\Windows Kits\8.0\bin\{x86,x64}\mt.exe   - Microsoft (R) Manifest Tool version 6.2.9200.20789
-HKLM\SOFTWARE\Microsoft\Windows Kits\Installed Roots KitsRoot C:\Program Files (x86)\Windows Kits\8.0\
-HKLM\SOFTWARE\Wow6432Node\Microsoft\Windows Kits\Installed Roots KitsRoot C:\Program Files (x86)\Windows Kits\8.0\
+"HKLM\SOFTWARE\Microsoft\Windows Kits\Installed Roots" KitsRoot C:\Program Files (x86)\Windows Kits\8.0\
+"HKLM\SOFTWARE\Wow6432Node\Microsoft\Windows Kits\Installed Roots" KitsRoot C:\Program Files (x86)\Windows Kits\8.0\
 
 Windows Driver Kit 8.1 	8.100.26638 	September 16, 2013
 ???
@@ -452,25 +474,67 @@ cl.exe - not found
 C:\Program Files (x86)\Windows Kits\8.1\bin\{x86,x64}\rc.exe      - Microsoft (R) Windows (R) Resource Compiler Version 6.3.9600.17336
 C:\Program Files (x86)\Windows Kits\8.1\bin\{x86,x64}\mc.exe      - Microsoft (R) Message Compiler  Version 1.12.9600
 C:\Program Files (x86)\Windows Kits\8.1\bin\{x86,x64}\mt.exe      - Microsoft (R) Manifest Tool version 6.3.9600.17336
-HKLM\SOFTWARE\Microsoft\Windows Kits\Installed Roots KitsRoot81 C:\Program Files (x86)\Windows Kits\8.1\
-HKLM\SOFTWARE\Wow6432Node\Microsoft\Windows Kits\Installed Roots KitsRoot81 C:\Program Files (x86)\Windows Kits\8.1\
+"HKLM\SOFTWARE\Microsoft\Windows Kits\Installed Roots" KitsRoot81 C:\Program Files (x86)\Windows Kits\8.1\
+"HKLM\SOFTWARE\Wow6432Node\Microsoft\Windows Kits\Installed Roots" KitsRoot81 C:\Program Files (x86)\Windows Kits\8.1\
 
 Windows Driver Kit 10, Version 1507 	10.0.26639 	July 2015
 ??????
-HKLM\SOFTWARE\Microsoft\Windows Kits\Installed Roots KitsRoot10 C:\Program Files (x86)\Windows Kits\10\
-HKLM\SOFTWARE\Wow6432Node\Microsoft\Windows Kits\Installed Roots KitsRoot10 C:\Program Files (x86)\Windows Kits\10\
 
 Windows Driver Kit 10, Version 1511 	10.1.10586 	November 2015
 ????
 
 Windows Driver Kit 10, Version 1607 	10.1.14393 	August 2016
-??????
+C:\Program Files (x86)\Windows Kits\10\Lib\10.0.10240.0\um\{x86,x64,arm,arm64}\kernel32.Lib
+C:\Program Files (x86)\Windows Kits\10\Lib\10.0.10586.0\um\{x86,x64,arm,arm64}\kernel32.Lib
+C:\Program Files (x86)\Windows Kits\10\Lib\10.0.14393.0\um\{x86,x64,arm,arm64}\kernel32.Lib
+C:\Program Files (x86)\Windows Kits\10\Lib\10.0.15063.0\um\{x86,x64,arm,arm64}\kernel32.Lib
+C:\Program Files (x86)\Windows Kits\10\Lib\10.0.16299.0\um\{x86,x64,arm,arm64}\kernel32.Lib
+C:\Program Files (x86)\Windows Kits\10\Lib\10.0.10240.0\km\{x86,x64,arm,arm64}\hal.Lib
+C:\Program Files (x86)\Windows Kits\10\Lib\10.0.14393.0\km\{x86,x64,arm,arm64}\hal.Lib
+C:\Program Files (x86)\Windows Kits\10\Lib\win7\km\{x86,x64}\hal.lib
+C:\Program Files (x86)\Windows Kits\10\Lib\win8\km\{x86,x64,arm}\hal.lib
+C:\Program Files (x86)\Windows Kits\10\Lib\winv6.3\km\{x86,x64,arm}\hal.lib
+msvcrt.lib - not found
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.10150.0\ucrt\errno.h
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.10240.0\ucrt\errno.h
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.10586.0\ucrt\errno.h
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.14393.0\ucrt\errno.h
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.15063.0\ucrt\errno.h
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.16299.0\ucrt\errno.h
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.10240.0\km\crt\errno.h
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.14393.0\km\crt\errno.h
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.14393.0\ucrt\string.h
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.10150.0\ucrt\string.h
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.10240.0\ucrt\string.h
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.10586.0\ucrt\string.h
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.14393.0\ucrt\string.h
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.15063.0\ucrt\string.h
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.16299.0\ucrt\string.h
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.10240.0\km\crt\string.h
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.14393.0\km\crt\string.h
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.10240.0\um\WinBase.h
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.10586.0\um\WinBase.h
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.14393.0\um\WinBase.h
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.15063.0\um\WinBase.h
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.16299.0\um\WinBase.h
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.10240.0\shared\ntdef.h
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.10586.0\shared\ntdef.h
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.14393.0\shared\ntdef.h
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.16299.0\shared\ntdef.h
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.10240.0\km\ntddk.h
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.14393.0\km\ntddk.h
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.10240.0\km\wdm.h
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.14393.0\km\wdm.h
+cl.exe - not found
+C:\Program Files (x86)\Windows Kits\10\bin\{x86,x64,arm64}\rc.exe    - Microsoft (R) Windows (R) Resource Compiler Version 10.0.10011.16384
+C:\Program Files (x86)\Windows Kits\10\bin\{x86,x64,arm64}\mc.exe    - Microsoft (R) Message Compiler  Version 10.0.14393
+C:\Program Files (x86)\Windows Kits\10\bin\{x86,x64,arm64}\mt.exe    - Microsoft (R) Manifest Tool
+"HKLM\SOFTWARE\Microsoft\Windows Kits\Installed Roots" KitsRoot10 C:\Program Files (x86)\Windows Kits\10\
+"HKLM\SOFTWARE\Wow6432Node\Microsoft\Windows Kits\Installed Roots" KitsRoot10 C:\Program Files (x86)\Windows Kits\10\
+"HKLM\SOFTWARE\Wow6432Node\Microsoft\Windows Kits\Installed Roots\10.0.14393.0" KitsRoot10 C:\Program Files (x86)\Windows Kits\10\
 
 Windows Driver Kit 10, Version 1703 	10.0.15063 	April 2017
 ??????
-
-
-
 
 
 
