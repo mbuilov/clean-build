@@ -53,7 +53,7 @@ endif
 # objects can be built only after creating precompiled header
 # $8 - sources to build with precompiled header
 define MSVC_PCH_RULE_TEMPL
-$(addprefix $3/,$(addsuffix $(OBJ_SUFFIX),$(basename $(notdir $8)))): $7 $6
+$(patsubst %,$3/%$(OBJ_SUFFIX),$(basename $(notdir $8))): $7 $6
 $(MSVC_PCH_RULE_TEMPL_BASE)
 endef
 
@@ -148,10 +148,10 @@ MSVC_CREATE_PCH = $(addsuffix $(call ospath,$2),/FI /Yc) /Fp$(call ospath,$3) /Y
 # compile multiple sources at once, some of them using precompiled header
 # $1 - target type: EXE,DLL,LIB,...
 # $2 - non-empty variant: R,S,RU,SU,...
-# $3 - C compiler macro to compile not using precompiled header
-# $4 - C++ compiler macro to compile not using precompiled header
-# $5 - C compiler macro to compile with precompiled header
-# $6 - C++ compiler macro to compile with precompiled header
+# $3 - C compiler macro to compile not using precompiled header, e.g. OBJ_MCC
+# $4 - C++ compiler macro to compile not using precompiled header, e.g. OBJ_MCXX
+# $5 - C compiler macro to compile with precompiled header, e.g. OBJ_PMCC
+# $6 - C++ compiler macro to compile with precompiled header, e.g. OBJ_PMCXX
 # target-specific: OBJ_DIR, PCH, CC_WITH_PCH, CXX_WITH_PCH
 # note: recompile all $(CC_WITH_PCH) or $(CXX_WITH_PCH) if corresponding pch header is newer than the target module
 # note: compiler macros called with parameters:
@@ -164,20 +164,20 @@ CMN_PMCL = $(call CMN_PMCL1,$1,$2,$3,$4,$5,$6,$(sort $(NEWER_SOURCES) $(if \
 
 # $1 - target type: EXE,DLL,LIB,...
 # $2 - non-empty variant: R,S,RU,SU,...
-# $3 - C compiler macro to compile not using precompiled header
-# $4 - C++ compiler macro to compile not using precompiled header
-# $5 - C compiler macro to compile with precompiled header
-# $6 - C++ compiler macro to compile with precompiled header
+# $3 - C compiler macro to compile not using precompiled header, e.g. OBJ_MCC
+# $4 - C++ compiler macro to compile not using precompiled header, e.g. OBJ_MCXX
+# $5 - C compiler macro to compile with precompiled header, e.g. OBJ_PMCC
+# $6 - C++ compiler macro to compile with precompiled header, e.g. OBJ_PMCXX
 # $7 - sources (result of $(NEWER_SOURCES))
 # target-specific: CC_WITH_PCH, CXX_WITH_PCH
 CMN_PMCL1 = $(call CMN_PMCL2,$1,$2,$3,$4,$5,$6,$7,$(filter $7,$(CC_WITH_PCH)),$(filter $7,$(CXX_WITH_PCH)))
 
 # $1 - target type: EXE,DLL,LIB,...
 # $2 - non-empty variant: R,S,RU,SU,...
-# $3 - C compiler macro to compile not using precompiled header
-# $4 - C++ compiler macro to compile not using precompiled header
-# $5 - C compiler macro to compile with precompiled header
-# $6 - C++ compiler macro to compile with precompiled header
+# $3 - C compiler macro to compile not using precompiled header, e.g. OBJ_MCC
+# $4 - C++ compiler macro to compile not using precompiled header, e.g. OBJ_MCXX
+# $5 - C compiler macro to compile with precompiled header, e.g. OBJ_PMCC
+# $6 - C++ compiler macro to compile with precompiled header, e.g. OBJ_PMCXX
 # $7 - sources (result of $(NEWER_SOURCES))
 # $8 - $(filter $7,$(CC_WITH_PCH))
 # $9 - $(filter $7,$(CXX_WITH_PCH))
