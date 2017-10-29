@@ -36,7 +36,7 @@ ifndef TOCLEAN
 # target-specific: PCH
 # note: last line must be empty
 define GCC_PCH_RULE_TEMPL
-$(addprefix $4/,$(addsuffix $(OBJ_SUFFIX),$(basename $(notdir $3)))): $5.gch
+$(patsubst %,$4/%$(OBJ_SUFFIX),$(basename $(notdir $3))): $5.gch
 $5.gch: $2 | $4 $$(ORDER_DEPS)
 	$$(call PCH_$6,$$@,$$(PCH),$1,$v)
 
