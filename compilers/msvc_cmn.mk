@@ -171,7 +171,7 @@ MSVC_DEFINE_COMPILER_WRAPPERS = $(eval $(subst <WRAP_CC_NODEP>,$1,$(subst <WRAP_
 MODVER_MAJOR_MINOR = $(subst $(space),.,$(wordlist 1,2,$(subst ., ,$(MODVER)) 0 0))
 
 # version of EXE,DLL,DRV,KDLL
-VERSION_OPTION = /VERSION:$(MODVER_MAJOR_MINOR)
+MK_VERSION_OPTION = /VERSION:$(MODVER_MAJOR_MINOR)
 
 # make compiler options string to specify included headers search path
 # note: assume there are no spaces in include paths
@@ -220,8 +220,8 @@ MCL_MAX_COUNT := 50
 # compile multiple sources at once
 # $1 - target type: EXE,DLL,LIB,...
 # $2 - non-empty variant: R,S,RU,SU,...
-# $3 - C compiler macro
-# $4 - C++ compiler macro
+# $3 - C compiler macro, e.g. OBJ_MCC
+# $4 - C++ compiler macro, e.g. OBJ_MCXX
 # note: compiler macros called with parameters:
 #  $1 - sources
 #  $2 - target type: EXE,DLL,LIB,...
@@ -231,15 +231,15 @@ CMN_MCL = $(call CMN_MCL1,$1,$2,$3,$4,$(NEWER_SOURCES))
 # compile multiple sources at once
 # $1 - target type: EXE,DLL,LIB,...
 # $2 - non-empty variant: R,S,RU,SU,...
-# $3 - C compiler macro
-# $4 - C++ compiler macro
+# $3 - C compiler macro, e.g. OBJ_MCC
+# $4 - C++ compiler macro, e.g. OBJ_MCXX
 # $5 - sources (result of $(NEWER_SOURCES))
 CMN_MCL1 = $(call CMN_MCL2,$1,$2,$3,$4,$(filter $(CC_MASK),$5),$(filter $(CXX_MASK),$5))
 
 # $1 - target type: EXE,DLL,LIB,...
 # $2 - non-empty variant: R,S,RU,SU
-# $3 - C compiler macro
-# $4 - C++ compiler macro
+# $3 - C compiler macro, e.g. OBJ_MCC or OBJ_PMCC
+# $4 - C++ compiler macro, e.g. OBJ_MCXX or OBJ_PMCXX
 # $5 - C sources
 # $6 - C++ sources
 CMN_MCL2 = $(if \
@@ -258,6 +258,5 @@ $(call SET_GLOBAL,VS2002 VS2003 VS2005 VS2008 VS2010 VS2012 VS2013 VS2015 VS2017
   INCLUDING_FILE_PATTERN_ru_cp1251 INCLUDING_FILE_PATTERN_ru_cp1251_bytes \
   INCLUDING_FILE_PATTERN_ru_cp866 INCLUDING_FILE_PATTERN_ru_cp866_bytes MSVC_DEPS_SCRIPT \
   MSVC_WRAP_COMPLIER_TEMPL MSVC_DEFINE_COMPILER_WRAPPERS \
-  MODVER_MAJOR_MINOR VERSION_OPTION MK_INCLUDE_OPTION MK_DEFINES_OPTION1 \
-  MP_TARGET_SRC_DEPS C_BASE_TEMPLATE_MP NEWER_SOURCES MCL_MAX_COUNT \
-  CMN_MCL CMN_MCL1 CMN_MCL2 CMN_PMCL CMN_PMCL1 CMN_PMCL2)
+  MODVER_MAJOR_MINOR MK_VERSION_OPTION MK_INCLUDE_OPTION MK_DEFINES_OPTION1 \
+  MP_TARGET_SRC_DEPS C_BASE_TEMPLATE_MP NEWER_SOURCES MCL_MAX_COUNT CMN_MCL CMN_MCL1 CMN_MCL2)
