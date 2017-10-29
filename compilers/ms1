@@ -93,7 +93,7 @@ note: cl.exe needs mspdb80.dll: set PATH=%PATH%;C:\Program Files\Microsoft Visua
 #ce: note: cl.exe needs mspdb80.dll: set PATH=%PATH%;C:\Program Files (x86)\Microsoft Visual Studio 8\Common7\IDE
 #ce: C:\Program Files (x86)\Microsoft Visual Studio 8\VC\ce\lib\{x86,sh4,mipsiv_fp,mipsiv,mipsii_fp,mipsii,armv4i,armv4}\msvcrt.lib
 
-SDK 6.0
+SDK 6.0 - 6.0.6000.16384 2006-10-30
 C:\Program Files\Microsoft SDKs\Windows\v6.0\Include\WinBase.h
 C:\Program Files\Microsoft SDKs\Windows\v6.0\Lib\{,x64\}kernel32.lib
 C:\Program Files\Microsoft SDKs\Windows\v6.0\Bin\{,x64\}RC.Exe - Microsoft (R) Windows (R) Resource Compiler Version 6.0.5724.0
