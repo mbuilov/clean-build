@@ -133,8 +133,8 @@ DEF_DLL_LDFLAGS := -G -zdefs $(CMN_LDFLAGS)
 # $4 - non-empty variant: R,P,D
 # target-specific: LIBS, DLLS, LIB_DIR
 CMN_LIBS = -o $1 $2 $(MK_RPATH_OPTION) $(if $(firstword \
-  $(LIBS)$(DLLS)),-L$(LIB_DIR) $(addprefix -l,$(DLLS)) $(if $(LIBS),$(BSTATIC_OPTION) $(addprefix \
-  -l,$(addsuffix $(call DEP_SUFFIX,$3,$4,LIB),$(LIBS))) $(BDYNAMIC_OPTION)))
+  $(LIBS)$(DLLS)),-L$(LIB_DIR) $(addprefix -l,$(DLLS)) $(if $(LIBS),$(BSTATIC_OPTION) $(patsubst \
+  %,-l%$(call DEP_SUFFIX,$3,$4,LIB),$(LIBS)) $(BDYNAMIC_OPTION)))
 
 # specify what symbols to export from a dll/exe
 # target-specific: MAP
