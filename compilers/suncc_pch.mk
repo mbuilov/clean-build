@@ -40,7 +40,7 @@ ifndef TOCLEAN
 # $8  - pch source (e.g. /build/obj/xxx_pch.c   or /build/obj/xxx_pch.cc)
 # $9  - pch object (e.g. /build/obj/xxx_pch_c.o or /build/obj/xxx_pch_cc.o)
 # $10 - pch        (e.g. /build/obj/xxx_c.cpch  or /build/obj/xxx_cc.Cpch)
-# $11 - objects $(addprefix $4/,$(addsuffix $(OBJ_SUFFIX),$(basename $3)))
+# $11 - objects $(patsubst %,$4/%$(OBJ_SUFFIX),$(basename $3))
 # $v  - R,P,D
 # target-specific: PCH
 # note: while compiling pch header two objects are created: pch object - $9 and pch - $(10)
@@ -56,7 +56,7 @@ $(11): $(10) $9
 $(10):| $9
 $9 $(10): $2 | $8 $4 $$(ORDER_DEPS)
 	$$(if $$($7_PCH_BUILT),,$$(eval $7_PCH_BUILT:=1)$$(call PCH_$7,$9,$$(PCH),$8,$1,$v))
-$(subst $(space),$(newline),$(join $(addsuffix :|,$(11)),$(addprefix $6/,$(addsuffix $(suffix $8),$3))))
+$(subst $(space),$(newline),$(join $(addsuffix :|,$(11)),$(patsubst %,$6/%$(suffix $8),$3)))
 
 endef
 ifndef NO_DEPS
@@ -79,8 +79,8 @@ endif
 # note: pch souce:  $6/$7_pch.$9
 # note: pch object: $4/$7_pch_$9$(OBJ_SUFFIX)
 # note: pch:        $4/$7_$9$(10)
-SUNCC_PCH_RULE = $(call SUNCC_PCH_RULE_TEMPL,$1,$2,$3,$4,$5,$6,$8,$6/$7_pch.$9,$4/$7_pch_$9$(OBJ_SUFFIX),$4/$7_$9$(10),$(addprefix \
-  $4/,$(addsuffix $(OBJ_SUFFIX),$(basename $3))))
+SUNCC_PCH_RULE = $(call SUNCC_PCH_RULE_TEMPL,$1,$2,$3,$4,$5,$6,$8,$6/$7_pch.$9,$4/$7_pch_$9$(OBJ_SUFFIX),$4/$7_$9$(10),$(patsubst \
+  %,$4/%$(OBJ_SUFFIX),$(basename $3)))
 
 # define rule for building C/C++ precompiled header as assumed by PCH_TEMPLATE macro
 # $1 - EXE,LIB,DLL,KLIB
@@ -179,8 +179,8 @@ SUNCC_PCH_TEMPLATEv = $(if \
 # $3 - $(filter $(CC_MASK),$(WITH_PCH))
 # $4 - $(filter $(CXX_MASK),$(WITH_PCH))
 SUNCC_PCH_TEMPLATEt1 = $(if \
-  $3,$(addprefix $1/,$(addsuffix .c,$2_pch $(notdir $3)))) $(if \
-  $4,$(addprefix $1/,$(addsuffix .cc,$2_pch $(notdir $4))))
+  $3,$(patsubst %,$1/%.c,$2_pch $(notdir $3))) $(if \
+  $4,$(patsubst %,$1/%.cc,$2_pch $(notdir $4)))
 
 # return files generated for building with precompiled header to clean up, as assumed by PCH_TEMPLATE macro
 # $1 - EXE,LIB,DLL,KLIB
