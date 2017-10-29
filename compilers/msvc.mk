@@ -114,13 +114,18 @@ IMP_SUFFIX := .lib
 # {,T}MANIFEST_EMBED_OPTION
 # {,T}EMBED_EXE_MANIFEST
 # {,T}EMBED_DLL_MANIFEST
-# {,T}LINKER_STRIP_STRINGS
-# {,T}WRAP_LINKER
 # {,T}CMN_CFLAGS
 # {,T}APPINCLUDE
+# {,T}APPLIBPATH
 # {,T}DEF_CFLAGS
 # {,T}DEF_CXXFLAGS
-# note: TMD was reset in $(CLEAN_BUILD_DIR)/core/_defs.mk and must be empty
+# {,T}LINKER_STRIP_STRINGS
+# {,T}WRAP_LINKER
+# {,T}INCLUDING_FILE_PATTERN
+# {,T}UDEPS_INCLUDE_FILTER
+# {,T}WRAP_CCN
+# {,T}WRAP_CCD
+# note: TMD was reset in $(CLEAN_BUILD_DIR)/core/_defs.mk and must be empty after we temporary redefine it below
 include $(dir $(lastword $(MAKEFILE_LIST)))msvc_cflags.mk
 TMD:=T
 include $(dir $(lastword $(MAKEFILE_LIST)))msvc_cflags.mk
@@ -179,9 +184,10 @@ LIB_DEP_MAP = $(if $(filter uni,$(subst /, ,$3)),$2,$(2:U=))
 
 # determine which variant of dynamic library to link with EXE or DLL
 # the same logic as for the static library
+# note: override defaults from $(CLEAN_BUILD_DIR)/impl/_c.mk
 DLL_DEP_MAP = $(LIB_DEP_MAP)
 
-# define target-specific SUBSYSTEM variable
+# used to define target-specific SUBSYSTEM variable
 # makefile-modifiable variable: SUBSYSTEM_TYPE
 # note: SUBSYSTEM_VER may be empty
 # note: do not specify subsystem version when building tools
@@ -189,7 +195,7 @@ TRG_SUBSYSTEM = $(SUBSYSTEM_TYPE)$(if $(TMD),,$(addprefix $(comma),$(SUBSYSTEM_V
 
 # subsystem for EXE or DLL
 # target-specific: SUBSYSTEM
-SUBSYSTEM_OPTION = /SUBSYSTEM:$(SUBSYSTEM)
+MK_SUBSYSTEM_OPTION = /SUBSYSTEM:$(SUBSYSTEM)
 
 # common link.exe flags for linking executables and dynamic libraries
 CMN_LDFLAGS := /INCREMENTAL:NO
@@ -200,17 +206,13 @@ DEF_EXE_LDFLAGS := $(CMN_LDFLAGS)
 # default link.exe flags for linking a DLL
 DEF_DLL_LDFLAGS := /DLL $(CMN_LDFLAGS)
 
-# paths to application-level system libraries
-APPLIBPATH := $(VCLIBPATH) $(UMLIBPATH)
-TAPPLIBPATH := $(TVCLIBPATH) $(TUMLIBPATH)
-
 # common linker options for EXE or DLL
 # $1 - path to target EXE or DLL
 # $2 - objects
 # $3 - target type: EXE or DLL
 # $4 - non-empty variant: R,S,RU,SU
 # target-specific: IMP, DEF, LIBS, DLLS, LIB_DIR, TMD
-CMN_LIBS = /nologo /OUT:$(call ospath,$1 $2 $(filter %.res,$^)) $(VERSION_OPTION) $(SUBSYSTEM_OPTION) $($(TMD)MANIFEST_EMBED_OPTION) \
+CMN_LIBS = /nologo /OUT:$(call ospath,$1 $2 $(filter %.res,$^)) $(MK_VERSION_OPTION) $(MK_SUBSYSTEM_OPTION) $($(TMD)MANIFEST_EMBED_OPTION) \
   $(addprefix /IMPLIB:,$(call ospath,$(IMP))) $(addprefix /DEF:,$(call ospath,$(DEF))) $(if $(firstword $(LIBS)$(DLLS)),/LIBPATH:$(call \
   ospath,$(LIB_DIR)) $(call DEP_LIBS,$3,$4) $(call DEP_IMPS,$3,$4)) $(call qpath,$($(TMD)APPLIBPATH),/LIBPATH:)
 
@@ -224,10 +226,10 @@ CMN_LIBS = /nologo /OUT:$(call ospath,$1 $2 $(filter %.res,$^)) $(VERSION_OPTION
 # note: link.exe will not delete generated manifest file if failed to build target exe/dll, for example because of invalid DEF file
 # note: if EXE do not exports symbols (as usual), do not set in target makefile EXE_EXPORTS (empty by default)
 # note: if DLL do not exports symbols (unusual), set in target makefile DLL_NO_EXPORTS to non-empty value
-EXE_LD = $(call SUP,$(TMD)EXE,$1)$(call \
-  $(TMD)WRAP_LINKER,$($(TMD)VCLINK) $(CMN_LIBS) $(DEF_EXE_LDFLAGS) $(VLDFLAGS))$(CHECK_EXP_CREATED)$(EMBED_EXE_MANIFEST)
-DLL_LD = $(call SUP,$(TMD)DLL,$1)$(call \
-  $(TMD)WRAP_LINKER,$($(TMD)VCLINK) $(CMN_LIBS) $(DEF_DLL_LDFLAGS) $(VLDFLAGS))$(CHECK_EXP_CREATED)$(EMBED_DLL_MANIFEST)
+EXE_LD1 = $(call SUP,$(TMD)EXE,$1)$(call \
+  $(TMD)WRAP_LINKER,$($(TMD)VCLINK) $(CMN_LIBS) $(DEF_EXE_LDFLAGS) $(VLDFLAGS))$(CHECK_EXP_CREATED)$($(TMD)EMBED_EXE_MANIFEST)
+DLL_LD1 = $(call SUP,$(TMD)DLL,$1)$(call \
+  $(TMD)WRAP_LINKER,$($(TMD)VCLINK) $(CMN_LIBS) $(DEF_DLL_LDFLAGS) $(VLDFLAGS))$(CHECK_EXP_CREATED)$($(TMD)EMBED_DLL_MANIFEST)
 
 # form path to the import library (if target exports symbols)
 # $t - EXE or DLL
@@ -283,86 +285,18 @@ endif
 # target-specific: TMD
 # note: used by LIB_TEMPLATE from $(CLEAN_BUILD_DIR)/impl/_c.mk
 # note: lib.exe does not support linking resources (.res - files) to a static library
-LIB_LD = $(call SUP,$(TMD)LIB,$1)$($(TMD)VCLIB) /nologo /OUT:$(call ospath,$1 $2) $($(TMD)ARFLAGS)
+LIB_LD1 = $(call SUP,$(TMD)LIB,$1)$($(TMD)VCLIB) /nologo /OUT:$(call ospath,$1 $2) $($(TMD)ARFLAGS)
 
-# check that LIB do not includes resources (.res - files)
+# check that LIB do not includes resources (.res-files)
 ifdef MCHECK
-$(eval LIB_LD = $$(if $$(filter %.res,$$^),$$(warning \
-  $$1: static library cannot contain resources: $$(filter %.res,$$^)))$(value LIB_LD))
+$(eval LIB_LD1 = $$(if $$(filter %.res,$$^),$$(warning \
+  $$1: static library cannot contain resources: $$(filter %.res,$$^)))$(value LIB_LD1))
 endif
 
 # note: send output to stderr in VERBOSE mode, this is needed for build script generation
 ifdef VERBOSE
-$(eval LIB_LD = $(value LIB_LD) >&2)
+$(eval LIB_LD1 = $(value LIB_LD1) >&2)
 endif
-
-
-
-........
-
-# $(SED) regular expression used to match paths to included headers from /showIncludes option output
-# default value, may be overridden either in project configuration makefile or in command line
-INCLUDING_FILE_PATTERN := $(INCLUDING_FILE_PATTERN_en)
-
-# prefixes of system include paths to filter-out by $(SED) while dependencies generation
-# note: may be overridden either in project configuration makefile or in command line
-# c:\\program?files?(x86)\\microsoft?visual?studio?10.0\\vc\\include\\
-# note: likely with trailing double-slash
-UDEPS_INCLUDE_FILTER := $(subst \,\\,$(VCINCLUDE) $(UMINCLUDE))
-
-# define WRAP_CCN and WRAP_CCD - cl.exe wrappers
-$(call MSVC_DEFINE_COMPILER_WRAPPERS,WRAP_CCN,WRAP_CCD,$(INCLUDING_FILE_PATTERN),$(UDEPS_INCLUDE_FILTER))
-
-# common flags for application-level C/C++ compilers
-# /EHsc - synchronous exception handling model, extern C functions never throw an exception
-# /X    - do not search include files in directories specified in the PATH and INCLUDE environment variables
-CMN_CFLAGS := /EHsc /X
-
-ifeq (,$(call is_less_float,$(VC_VER),$(VS2002)))
-# >= Visual Studio 2002
-# /Zc:wchar_t - wchar_t is native type
-CMN_CFLAGS += /Zc:wchar_t
-endif
-
-ifeq (,$(call is_less_float,$(VC_VER),$(VS2013)))
-# >= Visual Studio 2013
-# /Zc:rvalueCast    - enforce type conversion rules
-# /Zc:strictStrings - disable string literal type conversion 
-CMN_CFLAGS += /Zc:rvalueCast /Zc:strictStrings
-endif
-
-ifeq (,$(call is_less_float,$(VC_VER),$(VS2005)))
-# >= Visual Studio 2005
-# /D_CRT_SECURE_NO_DEPRECATE - disable warnings about use of 'non-secure' functions like strcpy()
-# note: add /D_CRT_NONSTDC_NO_DEPRECATE - to disable warnings about use of POSIX functions like access()
-CMN_CFLAGS += /D_CRT_SECURE_NO_DEPRECATE
-endif
-
-# paths to application-level system headers
-APPINCLUDE := $(VCINCLUDE) $(UMINCLUDE)
-
-# add standard include paths
-CMN_CFLAGS += $(call qpath,$(APPINCLUDE),/I)
-
-# common flags for the tool mode
-# note: do not define WINVER and _WIN32_WINNT when building tools
-TCMN_CFLAGS := $(CMN_CFLAGS)
-
-# specify windows api version
-# note: WINVER_DEFINES may be empty
-CMN_CFLAGS += $(addprefix /D,$(WINVER_DEFINES))
-
-# default flags for application-level C compiler
-DEF_CFLAGS = $($(TMD)CMN_CFLAGS)
-
-ifneq (,$(call is_less_float,$(VC_VER),$(VS2015)))
-# < Visual Studio 2015
-# allow 'inline' keyword in C code
-DEF_CFLAGS += /Dinline=__inline
-endif
-
-# default flags for application-level C++ compiler
-DEF_CXXFLAGS = $($(TMD)CMN_CFLAGS)
 
 # common options for application-level C/C++ compilers
 # $1 - outdir/ or obj file
@@ -378,10 +312,8 @@ CMN_PARAMS = /nologo /c /Fo$(ospath) /Fd$(call ospath,$(dir $1) $2) $(VDEFINES) 
 # $3 - target type: EXE,DLL,LIB
 # $4 - non-empty variant: R,S,RU,SU
 # target-specific: TMD, VCFLAGS, VCXXFLAGS
-CC_PARAMS = $(CMN_PARAMS) $(DEF_CFLAGS) $(VCFLAGS)
-CXX_PARAMS = $(CMN_PARAMS) $(DEF_CXXFLAGS) $(VCXXFLAGS)
-
-ifndef MP_BUILD
+CC_PARAMS  = $(CMN_PARAMS) $($(TMD)DEF_CFLAGS) $(VCFLAGS)
+CXX_PARAMS = $(CMN_PARAMS) $($(TMD)DEF_CXXFLAGS) $(VCXXFLAGS)
 
 # C/C++ compilers for each variant of EXE,DLL,LIB
 # $1 - target object file
@@ -391,8 +323,8 @@ ifndef MP_BUILD
 # target-specific: TMD
 # note: used by OBJ_RULES_BODY macro from $(CLEAN_BUILD_DIR)/impl/c_base.mk
 # note: auto-generate dependencies
-OBJ_CC  = $(call SUP,$(TMD)CC,$2)$(call WRAP_CCD,$($(TMD)VCCL) $(CC_PARAMS),$2,$1)
-OBJ_CXX = $(call SUP,$(TMD)CXX,$2)$(call WRAP_CCD,$($(TMD)VCCL) $(CXX_PARAMS),$2,$1)
+OBJ_CC  = $(call SUP,$(TMD)CC,$2)$(call $(TMD)WRAP_CCD,$($(TMD)VCCL) $(CC_PARAMS),$2,$1)
+OBJ_CXX = $(call SUP,$(TMD)CXX,$2)$(call $(TMD)WRAP_CCD,$($(TMD)VCCL) $(CXX_PARAMS),$2,$1)
 
 ifndef NO_PCH
 
@@ -407,8 +339,8 @@ $(eval OBJ_NCXX = $(value OBJ_CXX))
 # $4 - non-empty variant: R,S,RU,SU
 # target-specific: TMD
 # note: auto-generate dependencies
-OBJ_PCC  = $(call SUP,$(TMD)PCC,$2)$(call WRAP_CCD,$($(TMD)VCCL) $(call MSVC_USE_PCH,$(dir $1),c) $(CC_PARAMS),$2,$1)
-OBJ_PCXX = $(call SUP,$(TMD)PCXX,$2)$(call WRAP_CCD,$($(TMD)VCCL) $(call MSVC_USE_PCH,$(dir $1),cpp) $(CXX_PARAMS),$2,$1)
+OBJ_PCC  = $(call SUP,$(TMD)PCC,$2)$(call $(TMD)WRAP_CCD,$($(TMD)VCCL) $(call MSVC_USE_PCH,$(dir $1),c) $(CC_PARAMS),$2,$1)
+OBJ_PCXX = $(call SUP,$(TMD)PCXX,$2)$(call $(TMD)WRAP_CCD,$($(TMD)VCCL) $(call MSVC_USE_PCH,$(dir $1),cpp) $(CXX_PARAMS),$2,$1)
 
 # override C++ and C compilers to support compiling with precompiled header
 # $1 - target object file
@@ -421,54 +353,47 @@ OBJ_CXX = $(if $(filter $2,$(CXX_WITH_PCH)),$(OBJ_PCXX),$(OBJ_NCXX))
 
 endif # !NO_PCH
 
-else ifndef TOCLEAN # MP_BUILD
-
-# override templates defined in $(CLEAN_BUILD_DIR)/_c.mk:
-#  EXE_TEMPLATE, DLL_TEMPLATE and LIB_TEMPLATE will not call OBJ_RULES for C/C++ sources,
-#  instead, we will build the target module directly from sources,
-#  object files will be generated as a side-effect of this process
+# override templates defined in $(CLEAN_BUILD_DIR)/impl/_c.mk:
+#  EXE_TEMPLATE, DLL_TEMPLATE and LIB_TEMPLATE will not call OBJ_RULES for C/C++ sources if $(TMD)MP_BUILD is defined,
+#  instead, we will build the target module directly from sources, ignoring object files that are generated as a side-effect
 # note: $(C_BASE_TEMPLATE_MP) defines target-specific variables: SRC, SDEPS, OBJ_DIR
-$(eval define EXE_TEMPLATE$(newline)$(subst $$(C_BASE_TEMPLATE),$$(C_BASE_TEMPLATE_MP),$(value EXE_TEMPLATE))$(newline)endef)
-$(eval define DLL_TEMPLATE$(newline)$(subst $$(C_BASE_TEMPLATE),$$(C_BASE_TEMPLATE_MP),$(value DLL_TEMPLATE))$(newline)endef)
-$(eval define LIB_TEMPLATE$(newline)$(subst $$(C_BASE_TEMPLATE),$$(C_BASE_TEMPLATE_MP),$(value LIB_TEMPLATE))$(newline)endef)
+# note: here TMD - makefile variable defined by DEF_HEAD_CODE template from $(CLEAN_BUILD_DIR)/core/_defs.mk
+# note: {,T}MP_BUILD - global constant variable
+C_BASE_TEMPLATE_OR_MP = $(if $($(TMD)MP_BUILD),$(C_BASE_TEMPLATE_MP),$(C_BASE_TEMPLATE))
+$(eval define EXE_TEMPLATE$(newline)$(subst $$(C_BASE_TEMPLATE),$$(C_BASE_TEMPLATE_OR_MP),$(value EXE_TEMPLATE))$(newline)endef)
+$(eval define DLL_TEMPLATE$(newline)$(subst $$(C_BASE_TEMPLATE),$$(C_BASE_TEMPLATE_OR_MP),$(value DLL_TEMPLATE))$(newline)endef)
+$(eval define LIB_TEMPLATE$(newline)$(subst $$(C_BASE_TEMPLATE),$$(C_BASE_TEMPLATE_OR_MP),$(value LIB_TEMPLATE))$(newline)endef)
 
-# save original linkers
-$(eval EXE_LD1 = $(value EXE_LD))
-$(eval DLL_LD1 = $(value DLL_LD))
-$(eval LIB_LD1 = $(value LIB_LD))
-
-# pass sources converted to objects to the linker
+# compile & link in one rule
 # $1 - path to target EXE,DLL,LIB
 # $2 - objects for linking the target (may be empty, if no .asm sources were assembled and pch is not used)
 # $3 - target type: EXE,DLL,LIB
 # $4 - non-empty variant: R,S,RU,SU
-# target-specific: OBJ_DIR, SRC
-EXE_LD2 = $(call EXE_LD1,$1,$(addprefix $(OBJ_DIR)/,$(addsuffix $(OBJ_SUFFIX),$(basename $(notdir $(SRC))))) $2,$3,$4)
-DLL_LD2 = $(call DLL_LD1,$1,$(addprefix $(OBJ_DIR)/,$(addsuffix $(OBJ_SUFFIX),$(basename $(notdir $(SRC))))) $2,$3,$4)
-LIB_LD2 = $(call LIB_LD1,$1,$(addprefix $(OBJ_DIR)/,$(addsuffix $(OBJ_SUFFIX),$(basename $(notdir $(SRC))))) $2,$3,$4)
+# target-specific: OBJ_DIR, SRC (defined by C_BASE_TEMPLATE_MP)
+EXE_LD_MP = $(call MULTISOURCE_CL,$3,$4)$(call EXE_LD1,$1,$(patsubst %,$(OBJ_DIR)/%$(OBJ_SUFFIX),$(basename $(notdir $(SRC)))) $2,$3,$4)
+DLL_LD_MP = $(call MULTISOURCE_CL,$3,$4)$(call DLL_LD1,$1,$(patsubst %,$(OBJ_DIR)/%$(OBJ_SUFFIX),$(basename $(notdir $(SRC)))) $2,$3,$4)
+LIB_LD_MP = $(call MULTISOURCE_CL,$3,$4)$(call LIB_LD1,$1,$(patsubst %,$(OBJ_DIR)/%$(OBJ_SUFFIX),$(basename $(notdir $(SRC)))) $2,$3,$4)
 
-# redefine linkers to compile & link in one rule
+# define linkers
 # $1 - path to target EXE,DLL,LIB
 # $2 - objects for linking the target (may be empty, if no .asm sources were assembled and pch is not used)
 # $3 - target type: EXE,DLL,LIB
 # $4 - non-empty variant: R,S,RU,SU
+# target-specific: TMD
+# note: {,T}MP_BUILD - global constant variable
 # note: used by redefined above EXE_TEMPLATE, DLL_TEMPLATE and LIB_TEMPLATE
-EXE_LD = $(call MULTISOURCE_CL,$3,$4)$(EXE_LD2)
-DLL_LD = $(call MULTISOURCE_CL,$3,$4)$(DLL_LD2)
-LIB_LD = $(call MULTISOURCE_CL,$3,$4)$(LIB_LD2)
-
-# compile multiple sources at once
-# $1 - target type: EXE,DLL,LIB,...
-# $2 - non-empty variant: R,S,RU,SU,...
-MULTISOURCE_CL = $(call CMN_MCL,$1,$2,OBJ_MCC,OBJ_MCXX)
+EXE_LD = $(if $($(TMD)MP_BUILD),$(EXE_LD_MP),$(EXE_LD1))
+DLL_LD = $(if $($(TMD)MP_BUILD),$(DLL_LD_MP),$(DLL_LD1))
+LIB_LD = $(if $($(TMD)MP_BUILD),$(LIB_LD_MP),$(LIB_LD1))
 
 # parameters of multi-source application-level C and C++ compilers
 # $1 - sources
 # $2 - target type: EXE,DLL,LIB
 # $3 - non-empty variant: R,S,RU,SU
-# target-specific: OBJ_DIR
-CC_PARAMS_MP = $(MP_BUILD) $(call CC_PARAMS,$(OBJ_DIR)/,$1,$2,$3)
-CXX_PARAMS_MP = $(MP_BUILD) $(call CXX_PARAMS,$(OBJ_DIR)/,$1,$2,$3)
+# target-specific: TMD, OBJ_DIR (defined by C_BASE_TEMPLATE_MP)
+# note: {,T}MP_BUILD - global constant variable
+CC_PARAMS_MP  = $($(TMD)MP_BUILD) $(call CC_PARAMS,$(OBJ_DIR)/,$1,$2,$3)
+CXX_PARAMS_MP = $($(TMD)MP_BUILD) $(call CXX_PARAMS,$(OBJ_DIR)/,$1,$2,$3)
 
 # C/C++ multi-source compilers for each variant of EXE,DLL,LIB
 # $1 - sources (non-empty list)
@@ -476,29 +401,34 @@ CXX_PARAMS_MP = $(MP_BUILD) $(call CXX_PARAMS,$(OBJ_DIR)/,$1,$2,$3)
 # $3 - non-empty variant: R,S,RU,SU
 # target-specific: TMD
 # note: called by CMN_MCL macro from $(CLEAN_BUILD_DIR)/compilers/msvc_cmn.mk
-# note: do not auto-generate dependencies
-OBJ_MCC  = $(call SUP,$(TMD)CC,$1)$(call WRAP_CCN,$($(TMD)VCCL) $(CC_PARAMS_MP),$1)
-OBJ_MCXX = $(call SUP,$(TMD)CXX,$1)$(call WRAP_CCN,$($(TMD)VCCL) $(CXX_PARAMS_MP),$1)
+# note: do not auto-generate dependencies (because /showIncludes option conflicts with /MP)
+OBJ_MCC  = $(call SUP,$(TMD)CC,$1)$(call $(TMD)WRAP_CCN,$($(TMD)VCCL) $(CC_PARAMS_MP),$1)
+OBJ_MCXX = $(call SUP,$(TMD)CXX,$1)$(call $(TMD)WRAP_CCN,$($(TMD)VCCL) $(CXX_PARAMS_MP),$1)
 
-ifndef NO_PCH
+ifdef NO_PCH
+
+# compile multiple sources at once
+# $1 - target type: EXE,DLL,LIB,...
+# $2 - non-empty variant: R,S,RU,SU,...
+MULTISOURCE_CL = $(call CMN_MCL,$1,$2,OBJ_MCC,OBJ_MCXX)
+
+else # !NO_PCH
+
+# C/C++ multi-source compilers for compiling using precompiled header
+# $1 - sources (non-empty list)
+# $2 - target type: EXE,DLL,LIB
+# $3 - non-empty variant: R,S,RU,SU
+# target-specific: TMD, OBJ_DIR (defined by C_BASE_TEMPLATE_MP)
+# note: do not auto-generate dependencies
+OBJ_PMCC  = $(call SUP,$(TMD)PCC,$1)$(call $(TMD)WRAP_CCN,$($(TMD)VCCL) $(call MSVC_USE_PCH,$(OBJ_DIR)/,c) $(CC_PARAMS_MP),$1)
+OBJ_PMCXX = $(call SUP,$(TMD)PCXX,$1)$(call $(TMD)WRAP_CCN,$($(TMD)VCCL) $(call MSVC_USE_PCH,$(OBJ_DIR)/,cpp) $(CXX_PARAMS_MP),$1)
 
 # compile multiple sources at once
 # $1 - target type: EXE,DLL,LIB,...
 # $2 - non-empty variant: R,S,RU,SU,...
 MULTISOURCE_CL = $(call CMN_PMCL,$1,$2,OBJ_MCC,OBJ_MCXX,OBJ_PMCC,OBJ_PMCXX)
 
-# C/C++ multi-source compilers for compiling using precompiled header
-# $1 - sources (non-empty list)
-# $2 - target type: EXE,DLL,LIB
-# $3 - non-empty variant: R,S,RU,SU
-# target-specific: TMD, OBJ_DIR
-# note: do not auto-generate dependencies
-OBJ_PMCC  = $(call SUP,$(TMD)PCC,$1)$(call WRAP_CCN,$($(TMD)VCCL) $(call MSVC_USE_PCH,$(OBJ_DIR)/,c) $(CC_PARAMS_MP),$1)
-OBJ_PMCXX = $(call SUP,$(TMD)PCXX,$1)$(call WRAP_CCN,$($(TMD)VCCL) $(call MSVC_USE_PCH,$(OBJ_DIR)/,cpp) $(CXX_PARAMS_MP),$1)
-
 endif # !NO_PCH
-
-endif # MP_BUILD
 
 # add support for precompiled headers
 ifndef NO_PCH
@@ -516,8 +446,8 @@ endif
 # target-specific: TMD
 # note: precompiled header xxx_c.pch or xxx_cpp.pch will be created as a side-effect of this compilation
 # note: used by MSVC_PCH_RULE_TEMPL_BASE macro from $(CLEAN_BUILD_DIR)/compilers/msvc_pch.mk
-PCH_CC  = $(call SUP,$(TMD)PCHCC,$2)$(call WRAP_CCD,$($(TMD)VCCL) $(MSVC_CREATE_PCH) /TC $(call CC_PARAMS,$1,$2,$4,$5),$2,$1)
-PCH_CXX = $(call SUP,$(TMD)PCHCXX,$2)$(call WRAP_CCD,$($(TMD)VCCL) $(MSVC_CREATE_PCH) /TP $(call CXX_PARAMS,$1,$2,$4,$5),$2,$1)
+PCH_CC  = $(call SUP,$(TMD)PCHCC,$2)$(call $(TMD)WRAP_CCD,$($(TMD)VCCL) $(MSVC_CREATE_PCH) /TC $(call CC_PARAMS,$1,$2,$4,$5),$2,$1)
+PCH_CXX = $(call SUP,$(TMD)PCHCXX,$2)$(call $(TMD)WRAP_CCD,$($(TMD)VCCL) $(MSVC_CREATE_PCH) /TP $(call CXX_PARAMS,$1,$2,$4,$5),$2,$1)
 
 # reset additional variables
 $(call define_append,C_PREPARE_APP_VARS,$(C_PREPARE_PCH_VARS))
@@ -526,7 +456,8 @@ $(call define_append,C_PREPARE_APP_VARS,$(C_PREPARE_PCH_VARS))
 $(call try_make_simple,C_PREPARE_APP_VARS,C_PREPARE_PCH_VARS)
 
 # choose pch template for application-level targets (EXE,DLL,LIB)
-$(eval define MSVC_APP_PCH_TEMPLATE$(newline)$(value $(if $(MP_BUILD),MSVC_PCH_TEMPLATE_MPt,MSVC_PCH_TEMPLATEt))$(newline)endef)
+# note: here TMD - makefile variable defined by DEF_HEAD_CODE template from $(CLEAN_BUILD_DIR)/core/_defs.mk
+MSVC_APP_PCH_TEMPLATE = $(if $($(TMD)MP_BUILD),$(MSVC_PCH_TEMPLATE_MPt),$(MSVC_PCH_TEMPLATEt))
 
 # for all application-level targets: add support for precompiled headers
 $(call define_prepend,DEFINE_C_APP_EVAL,$$(eval $$(foreach t,$(C_APP_TARGETS),$$(if $$($$t),$$(MSVC_APP_PCH_TEMPLATE)))))
@@ -536,37 +467,33 @@ endif # !NO_PCH
 # add standard version info resource to the target EXE or DLL
 $(call define_prepend,DEFINE_C_APP_EVAL,$$(eval $$(foreach t,EXE DLL,$$(call STD_RES_TEMPLATE,$$t))))
 
-# cleanup generated vc*.pdb (if building with /Zi or /ZI option) and .pdb (for EXE or DLL, if /DEBUG is passed to link.exe)
 ifdef TOCLEAN
 
+# cleanup generated vc*0.pdb (if building with /Zi or /ZI option)
 # $t - EXE,DLL,LIB
 # $v - R,S,RU,SU
-EXE_DLL_LIB_PDB_CLEANUP = $(call FORM_OBJ_DIR,$t,$v)/vc*.pdb
+APP_PDB_CLEANUP = $(call FORM_OBJ_DIR,$t,$v)/vc*0.pdb
 
+# cleanup generated .pdb (for EXE or DLL, if /DEBUG is passed to link.exe)
 # $t - EXE,DLL,LIB
 # $v - R,S,RU,SU
-EXE_PDB_CLEANUP = $(EXE_DLL_LIB_PDB_CLEANUP)$(basename $(call FORM_TRG,EXE,$v)).pdb
-DLL_PDB_CLEANUP = $(EXE_DLL_LIB_PDB_CLEANUP)$(basename $(call FORM_TRG,DLL,$v)).pdb
-LIB_PDB_CLEANUP = $(EXE_DLL_LIB_PDB_CLEANUP)
+EXE_PDB_CLEANUP = $(APP_PDB_CLEANUP) $(basename $(call FORM_TRG,EXE,$v)).pdb
+DLL_PDB_CLEANUP = $(APP_PDB_CLEANUP) $(basename $(call FORM_TRG,DLL,$v)).pdb
+LIB_PDB_CLEANUP = $(APP_PDB_CLEANUP)
 
 $(call define_prepend,DEFINE_C_APP_EVAL,$$(call \
-  TOCLEAN,$$(foreach t,$$(C_APP_TARGETS),$$(if $$($$t),$$(foreach v,$$(call GET_VARIANTS,$$t),$$($$t_PDB_CLEANUP))))))
+  TOCLEAN,$$(foreach t,$(C_APP_TARGETS),$$(if $$($$t),$$(foreach v,$$(call GET_VARIANTS,$$t),$$($$t_PDB_CLEANUP))))))
 
-endif # clean
+endif # TOCLEAN
 
 # protect variables from modifications in target makefiles
 # note: do not trace calls to these variables because they are used in ifdefs
 $(call SET_GLOBAL,MP_BUILD FORCE_SYNC_PDB,0)
 
 # protect variables from modifications in target makefiles
-$(call SET_GLOBAL,DEF_SUBSYSTEM_TYPE C_PREPARE_MSVC_APP_VARS \
-  CFLAGS CXXFLAGS ARFLAGS LDFLAGS TCFLAGS TCXXFLAGS TARFLAGS TLDFLAGS \
-  WIN_SUPPORTED_VARIANTS WIN_VARIANT_SUFFIX WIN_VARIANT_CFLAGS \
-  TRG_SUBSYSTEM SUBSYSTEM_OPTION MANIFEST_EMBED_OPTION CMN_LDFLAGS DEF_EXE_LDFLAGS DEF_DLL_LDFLAGS APPLIBPATH TAPPLIBPATH \
-  CMN_LIBS LINKER_STRIP_STRINGS WRAP_LINKER EXE_LD DLL_LD EMBED_EXE_MANIFEST EMBED_DLL_MANIFEST EXE_DLL_FORM_IMPORT_LIB=t;v \
+$(call SET_GLOBAL,DEF_SUBSYSTEM_TYPE C_PREPARE_MSVC_APP_VARS WIN_SUPPORTED_VARIANTS WIN_VARIANT_SUFFIX WIN_VARIANT_CFLAGS \
+  TRG_SUBSYSTEM MK_SUBSYSTEM_OPTION CMN_LDFLAGS DEF_EXE_LDFLAGS DEF_DLL_LDFLAGS CMN_LIBS EXE_LD1 DLL_LD1 EXE_DLL_FORM_IMPORT_LIB=t;v \
   EXE_DLL_AUX_TEMPLATE EXE_AUX_TEMPLATE=t;v DLL_AUX_TEMPLATE=t;v EXE_EXP_TOCLEAN=t;v DLL_EXP_TOCLEAN=t;v \
-  LIB_DEF_VARIABLE_CHECK=DEF;LIB;EXE;DLL LIB_LD INCLUDING_FILE_PATTERN UDEPS_INCLUDE_FILTER CMN_CFLAGS APPINCLUDE TCMN_CFLAGS \
-  DEF_CFLAGS DEF_CXXFLAGS CMN_PARAMS CC_PARAMS CXX_PARAMS OBJ_CC OBJ_CXX OBJ_NCC OBJ_NCXX OBJ_PCC OBJ_PCXX \
-  EXE_TEMPLATE DLL_TEMPLATE LIB_TEMPLATE EXE_LD1 DLL_LD1 LIB_LD1 EXE_LD2 DLL_LD2 LIB_LD2 MULTISOURCE_CL \
-  CC_PARAMS_MP CXX_PARAMS_MP OBJ_MCC OBJ_MCXX OBJ_PMCC OBJ_PMCXX PCH_CC PCH_CXX EXE_DLL_LIB_PDB_CLEANUP=t;v \
-  EXE_PDB_CLEANUP=t;v DLL_PDB_CLEANUP=t;v LIB_PDB_CLEANUP=t;v)
+  LIB_DEF_VARIABLE_CHECK=DEF;LIB;EXE;DLL LIB_LD1 CMN_PARAMS CC_PARAMS CXX_PARAMS OBJ_CC OBJ_CXX OBJ_NCC OBJ_NCXX OBJ_PCC OBJ_PCXX \
+  C_BASE_TEMPLATE_OR_MP EXE_LD_MP DLL_LD_MP LIB_LD_MP EXE_LD DLL_LD LIB_LD CC_PARAMS_MP CXX_PARAMS_MP OBJ_MCC OBJ_MCXX MULTISOURCE_CL \
+  OBJ_PMCC OBJ_PMCXX PCH_CC PCH_CXX MSVC_APP_PCH_TEMPLATE APP_PDB_CLEANUP=t;v EXE_PDB_CLEANUP=t;v DLL_PDB_CLEANUP=t;v LIB_PDB_CLEANUP=t;v)
