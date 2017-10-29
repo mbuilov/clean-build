@@ -41,14 +41,14 @@ DEP_LIBRARY = $(firstword $(subst /, ,$3))$(call VARIANT_SUFFIX,$4,$($4_DEP_MAP)
 # $1 - source dependencies list, e.g. dir1/src1/| dir2/dep1| dep2 dir3/src2/| dep3
 # $2 - objdir
 ADD_OBJ_SDEPS = $(subst |, ,$(subst $(space),$(newline),$(join \
-  $(addprefix $2/,$(addsuffix $(OBJ_SUFFIX):,$(basename $(notdir $(filter %/|,$1))))),$(subst | ,|,$(filter-out %/|,$1)))))
+  $(patsubst %,$2/%$(OBJ_SUFFIX):,$(basename $(notdir $(filter %/|,$1)))),$(subst | ,|,$(filter-out %/|,$1)))))
 
 # call compiler: OBJ_CXX,OBJ_CC,OBJ_ASM,...
 # $1 - sources type: CXX,CC,ASM,...
 # $2 - sources to compile
 # $3 - sdeps (result of FIX_SDEPS)
 # $4 - objdir
-# $5 - objects: $(addsuffix $(OBJ_SUFFIX),$(addprefix $4/,$(basename $(notdir $2))))
+# $5 - objects: $(patsubst %,$4/%$(OBJ_SUFFIX),$(basename $(notdir $2)))
 # $t - target type: EXE,LIB,...
 # $v - non-empty variant: R,P,D,S... (one of variants supported by selected toolchain)
 # returns: list of object files
@@ -73,11 +73,11 @@ endif
 # $v - non-empty variant: R,P,D,S... (one of variants supported by selected toolchain)
 # returns: list of object files
 ifndef TOCLEAN
-OBJ_RULES = $(if $2,$(call OBJ_RULES_BODY,$1,$2,$3,$4,$(addprefix $4/,$(addsuffix $(OBJ_SUFFIX),$(basename $(notdir $2))))))
+OBJ_RULES = $(if $2,$(call OBJ_RULES_BODY,$1,$2,$3,$4,$(patsubst %,$4/%$(OBJ_SUFFIX),$(basename $(notdir $2)))))
 else
 # note: cleanup auto-generated dependencies
 OBJ_RULES1 = $(call TOCLEAN,$1 $(addsuffix .d,$1))
-OBJ_RULES = $(if $2,$(call OBJ_RULES1,$(addprefix $4/,$(addsuffix $(OBJ_SUFFIX),$(basename $(notdir $2))))))
+OBJ_RULES = $(if $2,$(call OBJ_RULES1,$(patsubst %,$4/%$(OBJ_SUFFIX),$(basename $(notdir $2)))))
 endif
 
 # which compiler type to use for the target: CXX or CC?
