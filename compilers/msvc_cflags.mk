@@ -4,7 +4,8 @@
 # Licensed under GPL version 2 or any later version, see COPYING
 #----------------------------------------------------------------------------------
 
-# define default values of next variables based on the value of {,T}VC_VER
+# define default values of next variables based on the value of {,T}VC_VER:
+#
 # {,T}CFLAGS
 # {,T}CXXFLAGS
 # {,T}ARFLAGS
@@ -14,18 +15,23 @@
 # {,T}MANIFEST_EMBED_OPTION
 # {,T}EMBED_EXE_MANIFEST
 # {,T}EMBED_DLL_MANIFEST
-# {,T}LINKER_STRIP_STRINGS
-# {,T}WRAP_LINKER
 # {,T}CMN_CFLAGS
 # {,T}APPINCLUDE
+# {,T}APPLIBPATH
 # {,T}DEF_CFLAGS
 # {,T}DEF_CXXFLAGS
+# {,T}LINKER_STRIP_STRINGS
+# {,T}WRAP_LINKER
+# {,T}INCLUDING_FILE_PATTERN
+# {,T}UDEPS_INCLUDE_FILTER
+# {,T}WRAP_CCN
+# {,T}WRAP_CCD
 
 # note: TMD must be defined, either as empty or as T
 VC_VER_tmp := $($(TMD)VC_VER)
 
 # default values of user-defined C compiler flags
-# note: may be taken from the environment in project configuration makefile
+# note: {,T}CFLAGS value may be taken from the environment in project configuration makefile
 # note: used by EXE_CFLAGS, LIB_CFLAGS, DLL_CFLAGS (from $(CLEAN_BUILD_DIR)/impl/_c.mk)
 # /W3 - warning level 3
 $(TMD)CFLAGS := /W3
@@ -36,7 +42,7 @@ $(TMD)MP_BUILD:=
 ifndef SEQ_BUILD
 ifeq (,$(call is_less_float,$(VC_VER_tmp),$(VS2008)))
 # >= Visual Studio 2008
-# /MP - compile all sources of a module at once
+# /MP - compile all sources of a module (EXE, DLL or a LIB) at once
 $(TMD)MP_BUILD := /MP
 endif
 endif
@@ -58,7 +64,7 @@ ifdef $(TMD)MP_BUILD
 # compiling sources of a module with /MP option:
 #  - groups of sources of a module are compiled sequentially, one group after each other
 #  - sources in a group are compiled in parallel by compiler threads, via single compiler invocation.
-# note: /MP option implies /FS option, if it's supported
+# note: /MP option implies /FS option, if it's supported by the cl.exe
 # /Zi option - store debug info (in new format) in single .pdb, assume compiler internally will serialize access to the .pdb
 $(TMD)CFLAGS += /Zi
 else ifndef $(TMD)FORCE_SYNC_PDB
@@ -100,7 +106,7 @@ $(TMD)CFLAGS += /Ox /GF /Gy
 ifeq (,$(call is_less_float,$(VC_VER_tmp),$(VS2002)))
 # >= Visual Studio 2002
 # /GS - buffer security check
-# /GL - whole program optimization, linker must be invoked with /LTCG
+# /GL - whole program optimization, link.exe or lib.exe must be invoked with /LTCG
 $(TMD)CFLAGS += /GS- /GL
 endif
 
@@ -122,7 +128,7 @@ endif
 
 # default values of user-defined C++ compiler flags
 # /Gm - enable minimal rebuild
-# note: may be taken from the environment in project configuration makefile
+# note: {,T}CXXFLAGS value may be taken from the environment in project configuration makefile
 # note: used by EXE_CXXFLAGS, LIB_CXXFLAGS, DLL_CXXFLAGS (from $(CLEAN_BUILD_DIR)/impl/_c.mk)
 $(TMD)CXXFLAGS := $($(TMD)CFLAGS) /Gm-
 
@@ -140,12 +146,12 @@ endif
 
 # lib.exe flags for linking a LIB
 # /LTCG - link-time code generation
-# note: may be taken from the environment in project configuration makefile
+# note: {,T}ARFLAGS value may be taken from the environment in project configuration makefile
 # note: used by LIB_LD
 $(TMD)ARFLAGS := $(if $(DEBUG),,$(if $(filter /GL,$($(TMD)CFLAGS)),/LTCG))
 
 # default values of user-defined link.exe flags for linking executables and shared libraries
-# note: may be taken from the environment in project configuration makefile
+# note: {,T}LDFLAGS value may be taken from the environment in project configuration makefile
 # note: used by EXE_LDFLAGS, LIB_LDFLAGS, DLL_LDFLAGS from $(CLEAN_BUILD_DIR)/impl/_c.mk
 # /DEBUG   - generate debug info (in separate .pdb)
 # /RELEASE - set the checksum in PE-header
@@ -175,13 +181,6 @@ $(TMD)EMBED_DLL_MANIFEST = $(newline)$(QUIET)if exist $(ospath).manifest $(MT) -
 endif
 endif
 
-# regular expression string for findstr.exe to match diagnostic linker message to strip-off
-# default value, may be overridden either in project configuration makefile or in command line
-$(TMD)LINKER_STRIP_STRINGS := $(LINKER_STRIP_STRINGS_en)
-
-# define WRAP_LINKER - link.exe wrapper
-$(call MSVC_DEFINE_LINKER_WRAPPER,$(TMD)WRAP_LINKER,$($(TMD)LINKER_STRIP_STRINGS))
-
 # common flags for application-level C/C++ compilers
 # /EHsc - synchronous exception handling model, extern C functions never throw an exception
 # /X    - do not search include files in directories specified in the PATH and INCLUDE environment variables
@@ -203,12 +202,13 @@ endif
 ifeq (,$(call is_less_float,$(VC_VER_tmp),$(VS2005)))
 # >= Visual Studio 2005
 # /D_CRT_SECURE_NO_DEPRECATE - disable warnings about use of 'non-secure' functions like strcpy()
-# note: add /D_CRT_NONSTDC_NO_DEPRECATE - to disable warnings about use of POSIX functions like access()
+# note: may add /D_CRT_NONSTDC_NO_DEPRECATE - to disable warnings about use of POSIX functions like access()
 $(TMD)CMN_CFLAGS += /D_CRT_SECURE_NO_DEPRECATE
 endif
 
-# paths to application-level system headers
+# paths to application-level system headers and libraries
 $(TMD)APPINCLUDE := $($(TMD)VCINCLUDE) $($(TMD)UMINCLUDE)
+$(TMD)APPLIBPATH := $($(TMD)VCLIBPATH) $($(TMD)UMLIBPATH)
 
 # add standard include paths
 $(TMD)CMN_CFLAGS += $(call qpath,$($(TMD)APPINCLUDE),/I)
@@ -231,3 +231,36 @@ ifneq (,$(call is_less_float,$(VC_VER_tmp),$(VS2015)))
 # allow 'inline' keyword in C code
 $(TMD)DEF_CFLAGS += /Dinline=__inline
 endif
+
+# regular expression for findstr.exe to match and strip-off diagnostic linker message
+# default value, may be overridden either in project configuration makefile or in command line
+ifndef TMD
+LINKER_STRIP_STRINGS := $(LINKER_STRIP_STRINGS_en)
+else
+TLINKER_STRIP_STRINGS := $(LINKER_STRIP_STRINGS)
+endif
+
+# define {,T}WRAP_LINKER - link.exe wrapper
+$(call MSVC_DEFINE_LINKER_WRAPPER,$(TMD)WRAP_LINKER,$($(TMD)LINKER_STRIP_STRINGS))
+
+# $(SED) regular expression used to match paths to included headers in output of cl.exe running with /showIncludes option
+# default value, may be overridden either in project configuration makefile or in command line
+ifndef TMD
+INCLUDING_FILE_PATTERN := $(INCLUDING_FILE_PATTERN_en)
+else
+TINCLUDING_FILE_PATTERN := $(INCLUDING_FILE_PATTERN)
+endif
+
+# prefixes of system include paths to filter-out by $(SED) while dependencies generation
+# note: may be overridden either in project configuration makefile or in command line
+# c:\\program?files?(x86)\\microsoft?visual?studio?10.0\\vc\\include\\
+# note: likely with trailing double-slash
+$(TMD)UDEPS_INCLUDE_FILTER := $(subst \,\\,$(patsubst %\\,%\,$(addsuffix \,$($(TMD)APPINCLUDE))))
+
+# define {,T}WRAP_CCN and {,T}WRAP_CCD - cl.exe wrappers
+$(call MSVC_DEFINE_COMPILER_WRAPPERS,$(TMD)WRAP_CCN,$(TMD)WRAP_CCD,$($(TMD)INCLUDING_FILE_PATTERN),$($(TMD)UDEPS_INCLUDE_FILTER))
+
+# protect variables from modifications in target makefiles
+$(call SET_GLOBAL,$(addprefix $(TMD),CFLAGS CXXFLAGS ARFLAGS LDFLAGS MP_BUILD FORCE_SYNC_PDB MANIFEST_EMBED_OPTION \
+  EMBED_EXE_MANIFEST EMBED_DLL_MANIFEST CMN_CFLAGS APPINCLUDE APPLIBPATH DEF_CFLAGS DEF_CXXFLAGS LINKER_STRIP_STRINGS WRAP_LINKER \
+  INCLUDING_FILE_PATTERN UDEPS_INCLUDE_FILTER WRAP_CCN WRAP_CCD))
