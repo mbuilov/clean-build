@@ -9,13 +9,14 @@
 # try to autoconfigure:
 #  Visual C++ version, paths to compiler, linker and C/C++ libraries and headers
 #  - only if they are not defined in project configuration makefile or in command line
+#  (variables prefixed with T - are for the tool mode)
 #
-# VC_VER    - MSVC++ version, known values see in $(CLEAN_BUILD_DIR)/compilers/msvc_cmn.mk (or below)
-# VCCL      - path to cl.exe                (may be in double-quotes, if contains spaces - double-quoted automatically)
-# VCLIB     - path to lib.exe               (must be in double-quotes if contains spaces)
-# VCLINK    - path to link.exe              (must be in double-quotes if contains spaces)
-# VCLIBPATH - paths to Visual C++ libraries (without quotes, spaces must be replaced with ?)
-# VCINCLUDE - paths to Visual C++ headers   (without quotes, spaces must be replaced with ?)
+# {,T}VC_VER    - MSVC++ version, known values see in $(CLEAN_BUILD_DIR)/compilers/msvc_cmn.mk (or below)
+# {,T}VCCL      - path to cl.exe                (may be in double-quotes, if contains spaces - double-quoted automatically)
+# {,T}VCLIB     - path to lib.exe               (must be in double-quotes if contains spaces)
+# {,T}VCLINK    - path to link.exe              (must be in double-quotes if contains spaces)
+# {,T}VCLIBPATH - paths to Visual C++ libraries (without quotes, spaces must be replaced with ?)
+# {,T}VCINCLUDE - paths to Visual C++ headers   (without quotes, spaces must be replaced with ?)
 #
 # example:
 #
@@ -41,7 +42,7 @@
 #
 #   Note: if pre-Visual Studio 2017 installation folder has non-default name, it is not possible to
 #     deduce Visual C++ version automatically - VC_VER must be specified explicitly, e.g.:
-#     VC_VER=14.0
+#     VC_VER=14.0 or VC_VER=vs2014
 #
 # 2) MSVC - Visual C++ tools path (without quotes),
 #   may be specified instead of VS variable (VS is ignored then), e.g.:
@@ -62,20 +63,22 @@
 #     VCCL=C:\Program Files\Microsoft Visual Studio 14.0\VC\bin\x86_amd64\cl.exe
 #     VCCL=C:\Program Files\Microsoft Visual Studio\2017\Community\VC\Tools\MSVC\14.11.25503\bin\HostX64\x86\cl.exe
 #
-# 4) VC_VER - Visual C++ version, e.g: 6.0 7.0 7.1 8.0 9.0 10.0 11.0 12.0 14.0 14.10 14.11
+# 4) VC_VER - Visual C++ version, e.g: 6.0 7.0 7.1 8.0 9.0 10.0 11.0 12.0 14.0 14.10 14.11,
+#    or, by Visual Studio name, e.g. vs2002, vs2003, vs2005, vs2008, vs2010, vs2012, vs2013, vs2015
 #   may be specified explicitly if it's not possible to deduce VC_VER automatically or to override one deduced automatically
 #
 #################################################################################################################
 
-# reset paths to DDK/WDK/SDK, e.g.:
-# WDK=C:\WinDDK\6001.18002
-# DDK=C:\WINDDK\2600.1106
-# SDK=C:\Program Files\Microsoft SDKs\Windows\v7.1
-# note: path must be specified without double-quotes
+# reset paths to DDK/WDK/SDK,
+# that may be specified in project configuration makefile or in command line e.g.:
+#  WDK=C:\WinDDK\6001.18002
+#  DDK=C:\WINDDK\2600.1106
+#  SDK=C:\Program Files\Microsoft SDKs\Windows\v7.1
+# note: paths must be specified without double-quotes
 # notes:
-#  1) DDK may be deduced from non-empty WDK, but if DDK is specified - it is preferred over WDK
-#  2) SDK may be deduced from non-empty WDK, but if SDK is specified - it is preferred over WDK or SDK from Visual Studio
-#  3) SDK may be deduced from Visual Studio path (only for Visual Studio 2005 and before)
+#  1) DDK may be deduced from WDK, but if DDK is specified - it is preferred over WDK
+#  2) SDK may be deduced from WDK, but if SDK is specified - it is preferred over WDK or SDK from Visual Studio
+#  3) SDK may be deduced from Visual Studio path (only for Visual Studio 2005 and earlier)
 WDK:=
 DDK:=
 SDK:=
@@ -130,7 +133,7 @@ VS_FIND_FILE_WHERE1 = $(if $3,$(firstword $2) $3,$(call VS_FIND_FILE_WHERE,$1,$(
 VS_FIND_FILE  = $(if $2,$(call VS_FIND_FILE1,$1,$2,$(wildcard $(subst ?,\ ,$(firstword $2))$1)))
 VS_FIND_FILE1 = $(if $3,$3,$(call VS_FIND_FILE,$1,$(wordlist 2,999999,$2)))
 
-# like VS_FIND_FILE, but $1 - name of macro that returns file to find
+# like VS_FIND_FILE, but $1 - name of macro that returns file to find (VCCL_2005_PATTERN_GEN_VC or VCCL_2005_PATTERN_GEN_VS)
 # note: macro $1 may use $(firstword $2) - path where the search is done
 VS_FIND_FILE_P  = $(if $2,$(call VS_FIND_FILE_P1,$1,$2,$(wildcard $(subst ?,\ ,$(firstword $2))$($1))))
 VS_FIND_FILE_P1 = $(if $3,$3,$(call VS_FIND_FILE_P,$1,$(wordlist 2,999999,$2)))
@@ -200,22 +203,22 @@ VS_REG_SEARCH_P = $(call VS_REG_SEARCH_X,$1,$2,VS_REG_FIND_FILE_P)
 #  C:\WinDDK\6001.18001\bin\x86\ia64\cl.exe  - Microsoft (R) C/C++ Optimizing Compiler Version 14.00.50727.283 for Itanium
 #  C:\WinDDK\6001.18001\bin\ia64\ia64\cl.exe - ????
 # $1 - $(CPU)
-CL_TOOL_PREFIX_WDK6_7 = $(TCPU:x86_64=amd64)/$(1:x86_64=amd64)/
+CL_TOOL_PREFIX_WDK6 = $(TCPU:x86_64=amd64)/$(1:x86_64=amd64)/
 
-# for Visual C++ compiler from DDK WinXP-Windows Server 2003 SP1 (Visual C++ 7.0-8.0 of Visual Studio .NET-2005)
-# determine MSVC++ tools prefix for given TCPU/CPU combination, e.g.:
-#  C:\WINDDK\3790.1830\bin\x86\cl.exe             - Microsoft (R) 32-bit C/C++ Optimizing Compiler Version 13.10.4035 for 80x86
-#  C:\WINDDK\3790.1830\bin\ia64\cl.exe            - ????
-#  C:\WINDDK\3790.1830\bin\win64\x86\cl.exe       - Microsoft (R) C/C++ Optimizing Compiler Version 14.00.40310.39 for IA-64
-#  C:\WINDDK\3790.1830\bin\win64\x86\amd64\cl.exe - Microsoft (R) C/C++ Optimizing Compiler Version 14.00.40310.41 for AMD64
-CL_TOOL_PREFIX_DDK = $(TCPU:x86_64=amd64)/$(1:x86_64=amd64)/
+# path prefix of msvcrt.lib
+#  C:\WinDDK\6001.18001\lib\crt\{i386,amd64,ia64}\msvcrt.lib
+# $1 - $(CPU)
+VC_LIB_PREFIX_WDK6 = crt/ i386,amd64,ia64
 
-
-
-
-
-
-
+C:\WinDDK\6001.18001\lib\{w2k,wxp}\i386\kernel32.lib
+C:\WinDDK\6001.18001\lib\{wnet,wlh}\{i386,amd64,ia64}\kernel32.lib
+C:\WinDDK\6001.18001\lib\{w2k,wxp}\i386\hal.lib
+C:\WinDDK\6001.18001\lib\{wnet,wlh}\{i386,amd64,ia64}\hal.lib
+C:\WinDDK\6001.18001\inc\crt\errno.h
+C:\WinDDK\6001.18001\inc\api\WINBASE.H
+C:\WinDDK\6001.18001\inc\api\ntdef.h
+C:\WinDDK\6001.18001\inc\ddk\ntddk.h
+C:\WinDDK\6001.18001\inc\ddk\wdm.h
 
 # for Visual C++ compiler from SDK 6.0 (Visual C++ 8.0 of Visual Studio 2005)
 # determine MSVC++ tools prefix for given CPU
@@ -300,7 +303,13 @@ else
 endif
 
 # reset VC_VER, if it's not defined in project configuration makefile or in command line
+ifneq (,$(filter undefined environment,$(origin VC_VER)))
 VC_VER:=
+else ifneq (,$(findstring vs,$(VC_VER)))
+  # map vs2015 -> 14, according VS... values defined in $(CLEAN_BUILD_DIR)/compilers/msvc_cmn.mk
+  override VC_VER := $(foreach v,$(subst vs,VS,$(VC_VER)),$(if $(filter undefined environment,$(origin $v)),$(error \
+    unknown VC_VER=$(VC_VER), please use one of: vs2002, vs2003, vs2005, vs2008, vs2010, vs2012, vs2013, vs2015),$($v)))
+endif
 
 # subdirectory of MSVC++ libraries: <empty> or onecore
 # note: for Visual Studio 14.0 and later
