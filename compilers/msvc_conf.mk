@@ -32,7 +32,7 @@
 #################################################################################################################
 # input for autoconfiguration:
 #
-# 1) VS - Visual Studio installation path (without quotes),
+# 1) VS - Visual Studio installation path
 #   may be specified if autoconfiguration (based on values of environment variables or registry keys) fails, e.g.:
 #     VS=C:\Program Files\Microsoft Visual Studio
 #     VS=C:\Program Files\Microsoft Visual Studio .NET 2003
@@ -41,10 +41,10 @@
 #     VS=C:\Program Files\Microsoft Visual Studio\2017\Enterprise
 #
 #   Note: if pre-Visual Studio 2017 installation folder has non-default name, it is not possible to
-#     deduce Visual C++ version automatically - VC_VER must be specified explicitly, e.g.:
-#     VC_VER=14.0 or VC_VER=vs2014
+#     deduce Visual C++ version automatically - VC_VER or VS_VER must be specified explicitly, e.g.:
+#     VC_VER=14.0 or VS_VER=vs2015
 #
-# 2) MSVC - Visual C++ tools path (without quotes),
+# 2) MSVC - Visual C++ tools path
 #   may be specified instead of VS variable (VS is ignored then), e.g.:
 #     MSVC=C:\Program Files\Microsoft Visual Studio\VC98
 #     MSVC=C:\Program Files\Microsoft Visual C++ Toolkit 2003
@@ -64,24 +64,28 @@
 #     VCCL=C:\Program Files\Microsoft Visual Studio\2017\Community\VC\Tools\MSVC\14.11.25503\bin\HostX64\x86\cl.exe
 #
 # 4) VC_VER - Visual C++ version, e.g: 6.0 7.0 7.1 8.0 9.0 10.0 11.0 12.0 14.0 14.10 14.11,
-#    or, by Visual Studio name, e.g. vs2002, vs2003, vs2005, vs2008, vs2010, vs2012, vs2013, vs2015
 #   may be specified explicitly if it's not possible to deduce VC_VER automatically or to override one deduced automatically
+#
+# 5) VS_VER - Visual Studio version, e.g. vs2002, vs2003, vs2005, vs2008, vs2010, vs2012, vs2013, vs2015
+#   may be specified instead of VC_VER - VC_VER will be deduced from VS_VER
+#
+# 6) SDK - path to Windows Software Development Kit,
+#   may be specified if cannot to override one deduced automatically, e.g.:
+#     SDK=C:\Program Files\Microsoft SDKs\Windows\v6.0
+#
+#   Note: newer versions of SDK are the part of WDK
+#
+# 7) WDK - path to Windows Driver Kit,
+#   may be specified to override one deduced automatically, e.g.:
+#     WDK=C:\WinDDK\7600.16385.1
+#
+#
 #
 #################################################################################################################
 
-# reset paths to DDK/WDK/SDK,
-# that may be specified in project configuration makefile or in command line e.g.:
-#  WDK=C:\WinDDK\6001.18002
-#  DDK=C:\WINDDK\2600.1106
-#  SDK=C:\Program Files\Microsoft SDKs\Windows\v7.1
-# note: paths must be specified without double-quotes
-# notes:
-#  1) DDK may be deduced from WDK, but if DDK is specified - it is preferred over WDK
-#  2) SDK may be deduced from WDK, but if SDK is specified - it is preferred over WDK or SDK from Visual Studio
-#  3) SDK may be deduced from Visual Studio path (only for Visual Studio 2005 and earlier)
-WDK:=
-DDK:=
-SDK:=
+# normalize path: replace spaces with ?, remove double-quotes, make all slashes backward, add trailing back-slash, e.g.:
+#  "a\b\c d\e" -> a/b/c?d/e/
+NOMALIZE_PATH = $(patsubst %//,%/,$(addsuffix /,$(subst \,/,$(patsubst "%",%,$(subst $(space),?,$1)))))
 
 # get paths to "Program Files" and "Program Files (x86)" directories
 # note: ProgramW6432 appear starting with Windows 7
@@ -208,17 +212,10 @@ CL_TOOL_PREFIX_WDK6 = $(TCPU:x86_64=amd64)/$(1:x86_64=amd64)/
 # path prefix of msvcrt.lib
 #  C:\WinDDK\6001.18001\lib\crt\{i386,amd64,ia64}\msvcrt.lib
 # $1 - $(CPU)
-VC_LIB_PREFIX_WDK6 = crt/ i386,amd64,ia64
-
-C:\WinDDK\6001.18001\lib\{w2k,wxp}\i386\kernel32.lib
-C:\WinDDK\6001.18001\lib\{wnet,wlh}\{i386,amd64,ia64}\kernel32.lib
-C:\WinDDK\6001.18001\lib\{w2k,wxp}\i386\hal.lib
-C:\WinDDK\6001.18001\lib\{wnet,wlh}\{i386,amd64,ia64}\hal.lib
-C:\WinDDK\6001.18001\inc\crt\errno.h
-C:\WinDDK\6001.18001\inc\api\WINBASE.H
-C:\WinDDK\6001.18001\inc\api\ntdef.h
-C:\WinDDK\6001.18001\inc\ddk\ntddk.h
-C:\WinDDK\6001.18001\inc\ddk\wdm.h
+#  x86    -> /crt/i386
+#  x86_64 -> /crt/amd64
+#  ia64   -> /crt/ia64
+VC_LIB_PREFIX_WDK6 = crt/$(patsubst x86,i386,$(1:x86_64=amd64))/
 
 # for Visual C++ compiler from SDK 6.0 (Visual C++ 8.0 of Visual Studio 2005)
 # determine MSVC++ tools prefix for given CPU
@@ -597,7 +594,7 @@ ifndef VCCL
 ifndef MSVC
 ifndef VS
 
-  # at last, check registry and standard places in Program Files - to define VCCL and, optionally, VC_VER
+  # check registry and standard places in Program Files - to define VCCL and, optionally, VC_VER
 
   # get registry keys of Visual C++ installation paths for VS_REG_SEARCH
   # $1 - Visual Studio version, e.g.: 7.0 7.1 8.0 9.0 10.0 11.0 12.0 14.0 15.0
@@ -661,17 +658,36 @@ ifndef VS
     VCCL := $(call VS_SEARCH_2005,$(VCCL_2005_VERSIONS))
 
     ifndef VCCL
-      # check for C++ compiler bundled in WDK7.1.0
+      # check for C++ compiler bundled in WDK7.1
+      WDK_71_REG_PATH := KitSetup\configured-kits\{B4285279-1846-49B4-B8FD-B9EAF0FF17DA}\{68656B6B-555E-5459-5E5D-6363635E5F61}
 
-	  C:\WinDDK\7600.16385.1\bin\x86\x86\cl.exe
-	  C:\WinDDK\7600.16385.1\bin\x86\amd64\cl.exe
-	  C:\WinDDK\7600.16385.1\bin\x86\ia64\cl.exe
+      # look for:
+      #  C:\WinDDK\7600.16385.1\bin\x86\x86\cl.exe   - Microsoft (R) 32-bit C/C++ Optimizing Compiler Version 15.00.30729.207 for 80x86
+      #  C:\WinDDK\7600.16385.1\bin\x86\amd64\cl.exe - Microsoft (R) C/C++ Optimizing Compiler Version 15.00.30729.207 for x64
+      #  C:\WinDDK\7600.16385.1\bin\x86\ia64\cl.exe  - Microsoft (R) C/C++ Optimizing Compiler Version 15.00.30729.207 for Itanium
+      VCCL := $(call VS_REG_FIND_FILE,bin/$(call CL_TOOL_PREFIX_WDK6,$(CPU))cl.exe,$(WDK_71_REG_PATH),setup-install-location,$(IS_WIN_64))
 
-VCCL_2005_PATTERN_GEN_VC = bin/$(call VC_TOOL_PREFIX_2005,$(CPU),$(call VS_SELECT_CPU,$(firstword $2)))cl.exe
+      ifndef VCCL
+        ifdef WDK
+          ifeq (7.1,$(WDK_VER))
+# find file in the paths by pattern
+# $1 - file to find, e.g.: VC/bin/cl.exe (possibly be a mask, like: VC/Tools/MSVC/*/bin/HostX86/x86/cl.exe, may be with spaces)
+# $2 - paths to look in, e.g. C:/Program?Files/Microsoft?Visual?Studio/2017/Community/ C:/Program?Files/Microsoft?Visual?Studio?14.0/
+# result (may be a list): C:/Program Files/Microsoft Visual Studio 14.0/VC/bin/cl.exe
 
-      VCCL := $(call VS_REG_FIND_FILE,bin/x86/x86/cl.exe,KitSetup\configured-kits\{B4285279-1846-49B4-B8FD-B9EAF0FF17DA}\{68656B6B-555E-5459-5E5D-6363635E5F61},setup-install-location,$(IS_WIN_64))
 
-	  HKLM\SOFTWARE\Wow6432Node\Microsoft\KitSetup\configured-kits\{B4285279-1846-49B4-B8FD-B9EAF0FF17DA}\{68656B6B-555E-5459-5E5D-6363635E5F61} setup-install-location C:\WinDDK\7600.16385.1\
+VS_FIND_FILE  = $(if $2,$(call VS_FIND_FILE1,$1,$2,$(wildcard $(subst ?,\ ,$(firstword $2))$1)))
+
+            VCCL := $(call VS_FIND_FILE,Microsoft Visual Studio/*/*/VC/Tools/MSVC/$(VC_VER)*/$(VCCL_2017_PREFIXED),$(subst \,/,$(subst $(space),?,$(WDK))))
+          endif
+        endif
+      endif
+
+      ifdef VCCL
+        # compiler from WDK7.1 has the version 15.00.30729.207 (corresponds to Visual Studio 2008)
+        VCCL := 9.0 $(VCCL)
+      endif
+    endif
 
     ifndef VCCL
       # cross compiler is not supported, but may compile x86_64 on x86_64 or x86 on x86

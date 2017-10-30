@@ -2,6 +2,7 @@ VC98
 C:\Program Files\Microsoft Visual Studio\VC98\Include\ERRNO.H
 C:\Program Files\Microsoft Visual Studio\VC98\Lib\MSVCRT.LIB
 C:\Program Files\Microsoft Visual Studio\VC98\Bin\CL.EXE           - Microsoft (R) 32-bit C/C++ Optimizing Compiler Version 12.00.8168 for 80x86
+                                                                     Microsoft (R) 32-bit C/C++ Optimizing Compiler Version 12.00.8804 for 80x86 (sp6)
 note: cl.exe needs MSPDB60.DLL: set PATH=%PATH%;C:\Program Files\Microsoft Visual Studio\Common\MSDev98\Bin
 C:\Program Files\Microsoft Visual Studio\Common\MSDev98\Bin\RC.EXE - Microsoft (R) Windows 32 Resource Compiler, Version 5.00.1641.1 - Build 1641
 C:\Program Files\Microsoft Visual Studio\VC98\Bin\MC.EXE           - Microsoft (R) Message Compiler  Version 1.00.5239
@@ -252,8 +253,8 @@ HKLM\SOFTWARE\Wow6432Node\Microsoft\Microsoft SDKs\Windows\v10.0  InstallationFo
 ----------------- 
 
 DDK for Windows XP
-C:\WINDDK\2600\lib\wxp\{i386,ia64}\kernel32.lib
 C:\WINDDK\2600\lib\wxp\{i386,ia64}\hal.lib
+C:\WINDDK\2600\lib\wxp\{i386,ia64}\kernel32.lib
 C:\WINDDK\2600\lib\wxp\{i386,ia64}\msvcrt.lib
 C:\WINDDK\2600\inc\crt\errno.h
 C:\WINDDK\2600\inc\crt\WINBASE.H
@@ -270,11 +271,11 @@ HKLM\SOFTWARE\Microsoft\WINDDK\2600 LFNDirectory C:\WINDDK\2600
 HKLM\SOFTWARE\Microsoft\WINDDK\2600 SFNDirectory C:\WINDDK\2600
 
 Windows XP SP1 DDK 2600.1106
-C:\WINDDK\2600.1106\lib\w2k\i386\kernel32.lib
-C:\WINDDK\2600.1106\lib\wxp\{i386,ia64}\kernel32.lib
 C:\WINDDK\2600.1106\lib\w2k\i386\hal.lib
-C:\WINDDK\2600.1106\lib\wxp\{i386,ia64}\hal.lib
+C:\WINDDK\2600.1106\lib\w2k\i386\kernel32.lib
 C:\WINDDK\2600.1106\lib\w2k\i386\msvcrt.lib
+C:\WINDDK\2600.1106\lib\wxp\{i386,ia64}\hal.lib
+C:\WINDDK\2600.1106\lib\wxp\{i386,ia64}\kernel32.lib
 C:\WINDDK\2600.1106\lib\wxp\{i386,ia64}\msvcrt.lib
 C:\WINDDK\2600.1106\inc\crt\errno.h
 C:\WINDDK\2600.1106\inc\crt\winbase.h
@@ -294,14 +295,14 @@ HKLM\SOFTWARE\Microsoft\WINDDK\2600.1106 LFNDirectory C:\WINDDK\2600.1106
 HKLM\SOFTWARE\Microsoft\WINDDK\2600.1106 SFNDirectory C:\WINDDK\2600~1.110
 
 Windows Server 2003 DDK 3790
-C:\WINDDK\3790\lib\w2k\i386\kernel32.lib
-C:\WINDDK\3790\lib\wxp\{i386,ia64}\kernel32.lib
-C:\WINDDK\3790\lib\wnet\{i386,amd64,ia64}\kernel32.lib
 C:\WINDDK\3790\lib\w2k\i386\hal.lib
-C:\WINDDK\3790\lib\wxp\{i386,ia64}\hal.lib
-C:\WINDDK\3790\lib\wnet\{i386,amd64,ia64}\hal.lib
+C:\WINDDK\3790\lib\w2k\i386\kernel32.lib
 C:\WINDDK\3790\lib\w2k\i386\msvcrt.lib
+C:\WINDDK\3790\lib\wxp\{i386,ia64}\hal.lib
+C:\WINDDK\3790\lib\wxp\{i386,ia64}\kernel32.lib
 C:\WINDDK\3790\lib\wxp\{i386,ia64}\msvcrt.lib
+C:\WINDDK\3790\lib\wnet\{i386,amd64,ia64}\hal.lib
+C:\WINDDK\3790\lib\wnet\{i386,amd64,ia64}\kernel32.lib
 C:\WINDDK\3790\lib\wnet\{i386,amd64,ia64}\msvcrt.lib
 C:\WINDDK\3790\inc\crt\errno.h
 C:\WINDDK\3790\inc\{w2k,wxp,wnet}\winbase.h
@@ -322,10 +323,10 @@ HKLM\SOFTWARE\Microsoft\WINDDK\3790.1830 LFNDirectory C:\WINDDK\3790
 HKLM\SOFTWARE\Microsoft\WINDDK\3790.1830 SFNDirectory C:\WINDDK\3790
 
 Windows Server 2003 SP1 DDK
-C:\WINDDK\3790.1830\lib\{w2k,wxp}\i386\kernel32.lib
-C:\WINDDK\3790.1830\lib\wnet\{i386,amd64,ia64}\kernel32.lib
 C:\WINDDK\3790.1830\lib\{w2k,wxp}\i386\hal.lib
+C:\WINDDK\3790.1830\lib\{w2k,wxp}\i386\kernel32.lib
 C:\WINDDK\3790.1830\lib\wnet\{i386,amd64,ia64}\hal.lib
+C:\WINDDK\3790.1830\lib\wnet\{i386,amd64,ia64}\kernel32.lib
 C:\WINDDK\3790.1830\lib\crt\{i386,amd64,ia64}\msvcrt.lib
 C:\WINDDK\3790.1830\inc\crt\errno.h
 C:\WINDDK\3790.1830\inc\{w2k,wxp,wnet}\winbase.h
@@ -352,10 +353,10 @@ Windows Driver Kit – Server 2008 (x86, x64, ia64) 	6001.18000 	Jan 2008
 ??????
 
 Windows Driver Kit – Server 2008 (x86, x64, ia64) 	6001.18001 	April 1, 2008
-C:\WinDDK\6001.18001\lib\{w2k,wxp}\i386\kernel32.lib
-C:\WinDDK\6001.18001\lib\{wnet,wlh}\{i386,amd64,ia64}\kernel32.lib
 C:\WinDDK\6001.18001\lib\{w2k,wxp}\i386\hal.lib
+C:\WinDDK\6001.18001\lib\{w2k,wxp}\i386\kernel32.lib
 C:\WinDDK\6001.18001\lib\{wnet,wlh}\{i386,amd64,ia64}\hal.lib
+C:\WinDDK\6001.18001\lib\{wnet,wlh}\{i386,amd64,ia64}\kernel32.lib
 C:\WinDDK\6001.18001\lib\crt\{i386,amd64,ia64}\msvcrt.lib
 C:\WinDDK\6001.18001\inc\crt\errno.h
 C:\WinDDK\6001.18001\inc\api\WINBASE.H
@@ -374,10 +375,10 @@ mt.exe - not found
 HKLM\SOFTWARE\Wow6432Node\Microsoft\WINDDK\6001.18001\Setup BUILD C:\WinDDK\6001.18001\
 
 Windows Driver Kit – Server 2008 Release SP1 (x86, x64, i64) 	6001.18002 	December 8, 2008
-C:\WinDDK\6001.18002\lib\{w2k,wxp}\i386\kernel32.lib
-C:\WinDDK\6001.18002\lib\{wnet,wlh}\{i386,amd64,ia64}\kernel32.lib
 C:\WinDDK\6001.18002\lib\{w2k,wxp}\i386\hal.lib
+C:\WinDDK\6001.18002\lib\{w2k,wxp}\i386\kernel32.lib
 C:\WinDDK\6001.18002\lib\{wnet,wlh}\{i386,amd64,ia64}\hal.lib
+C:\WinDDK\6001.18002\lib\{wnet,wlh}\{i386,amd64,ia64}\kernel32.lib
 C:\WinDDK\6001.18002\lib\crt\{i386,amd64,ia64}\msvcrt.lib
 C:\WinDDK\6001.18002\inc\crt\errno.h
 C:\WinDDK\6001.18002\inc\api\WINBASE.H
@@ -396,10 +397,10 @@ mt.exe - not found
 HKLM\SOFTWARE\Wow6432Node\Microsoft\KitSetup\configured-kits\{B4285279-1846-49B4-B8FD-B9EAF0FF17DA}\{515A5454-555D-5459-5B5D-616264656660} setup-install-location C:\WinDDK\6001.18002\
 
 Windows Driver Kit 7.0.0 	7600.16385.0 	August 6, 2009
-C:\WinDDK\7600.16385.0\lib\wxp\i386\kernel32.lib
-C:\WinDDK\7600.16385.0\lib\{wnet,wlh,win7}\{i386,amd64,ia64}\kernel32.lib
 C:\WinDDK\7600.16385.0\lib\wxp\i386\hal.lib
+C:\WinDDK\7600.16385.0\lib\wxp\i386\kernel32.lib
 C:\WinDDK\7600.16385.0\lib\{wnet,wlh,win7}\{i386,amd64,ia64}\hal.lib
+C:\WinDDK\7600.16385.0\lib\{wnet,wlh,win7}\{i386,amd64,ia64}\kernel32.lib
 C:\WinDDK\7600.16385.0\lib\Crt\{i386,amd64,ia64}\msvcrt.lib
 C:\WinDDK\7600.16385.0\inc\crt\errno.h
 C:\WinDDK\7600.16385.0\inc\api\WINBASE.H
@@ -409,18 +410,18 @@ C:\WinDDK\7600.16385.0\inc\ddk\wdm.h
 C:\WinDDK\7600.16385.0\bin\x86\x86\cl.exe    - Microsoft (R) 32-bit C/C++ Optimizing Compiler Version 15.00.30729.207 for 80x86
 C:\WinDDK\7600.16385.0\bin\x86\amd64\cl.exe  - Microsoft (R) C/C++ Optimizing Compiler Version 15.00.30729.207 for x64
 C:\WinDDK\7600.16385.0\bin\x86\ia64\cl.exe   - Microsoft (R) C/C++ Optimizing Compiler Version 15.00.30729.207 for Itanium
-C:\WinDDK\7600.16385.0\bin\x86\rc.exe        - Microsoft (R) 32-bit C/C++ Optimizing Compiler Version 15.00.30729.207 for 80x86
+C:\WinDDK\7600.16385.0\bin\x86\rc.exe        - Microsoft (R) Windows (R) Resource Compiler Version 6.1.6908.0
 C:\WinDDK\7600.16385.0\bin\x86\mc.exe        - Microsoft (R) Message Compiler  Version 1.12.7065
 mt.exe - not found
 HKLM\SOFTWARE\Wow6432Node\Microsoft\KitSetup\configured-kits\{B4285279-1846-49B4-B8FD-B9EAF0FF17DA}\{676E6B70-5659-5459-5B5F-6063635E5F61} setup-install-location C:\WinDDK\7600.16385.0\
 
 Windows Driver Kit version 7.1.0
-C:\WinDDK\7600.16385.1\lib\wxp\i386\kernel32.lib
-C:\WinDDK\7600.16385.1\lib\{wnet,wlh,win7\{i386,amd64,ia64}\kernel32.lib
 C:\WinDDK\7600.16385.1\lib\wxp\i386\hal.lib
-C:\WinDDK\7600.16385.1\lib\{wnet,wlh,win7}\{i386,amd64,ia64}\hal.lib
-C:\WinDDK\7600.16385.1\lib\Crt\{i386,amd64,ia64}\msvcrt.lib
+C:\WinDDK\7600.16385.1\lib\wxp\i386\kernel32.lib
 C:\WinDDK\7600.16385.1\lib\wxp\i386\oldnames.lib
+C:\WinDDK\7600.16385.1\lib\{wnet,wlh,win7}\{i386,amd64,ia64}\hal.lib
+C:\WinDDK\7600.16385.1\lib\{wnet,wlh,win7}\{i386,amd64,ia64}\kernel32.lib
+C:\WinDDK\7600.16385.1\lib\Crt\{i386,amd64,ia64}\msvcrt.lib
 C:\WinDDK\7600.16385.1\inc\crt\errno.h
 C:\WinDDK\7600.16385.1\inc\api\WINBASE.H
 C:\WinDDK\7600.16385.1\inc\api\ntdef.h
@@ -440,8 +441,8 @@ Windows Driver Kit 8.0 	8.59.25584 	August 15, 2012
 ???
 
 Windows Driver Kit 8.0 	8.59.29757 	August 15, 2012
-C:\Program Files (x86)\Windows Kits\8.0\Lib\win8\um\{x86,x64,arm}\kernel32.Lib
 C:\Program Files (x86)\Windows Kits\8.0\Lib\{wlh,win7,win8}\km\{x86,x64}\hal.lib
+C:\Program Files (x86)\Windows Kits\8.0\Lib\win8\um\{x86,x64,arm}\kernel32.Lib
 msvcrt.lib - not found
 C:\Program Files (x86)\Windows Kits\8.0\Include\km\crt\errno.h
 C:\Program Files (x86)\Windows Kits\8.0\Include\km\crt\string.h
@@ -460,9 +461,9 @@ Windows Driver Kit 8.1 	8.100.26638 	September 16, 2013
 ???
 
 Windows Driver Kit 8.1 Update 	8.100.26846 	August 20, 2014
-C:\Program Files (x86)\Windows Kits\8.1\Lib\winv6.3\um\{x86,x64,arm}\kernel32.lib
 C:\Program Files (x86)\Windows Kits\8.1\Lib\win7\km\{x86,x64}\hal.lib
 C:\Program Files (x86)\Windows Kits\8.1\Lib\{win8,winv6.3}\km\{x86,x64,arm}\hal.lib
+C:\Program Files (x86)\Windows Kits\8.1\Lib\winv6.3\um\{x86,x64,arm}\kernel32.lib
 msvcrt.lib - not found
 C:\Program Files (x86)\Windows Kits\8.1\Include\km\crt\errno.h
 C:\Program Files (x86)\Windows Kits\8.1\Include\km\crt\string.h
@@ -484,16 +485,16 @@ Windows Driver Kit 10, Version 1511 	10.1.10586 	November 2015
 ????
 
 Windows Driver Kit 10, Version 1607 	10.1.14393 	August 2016
-C:\Program Files (x86)\Windows Kits\10\Lib\10.0.10240.0\um\{x86,x64,arm,arm64}\kernel32.Lib
-C:\Program Files (x86)\Windows Kits\10\Lib\10.0.10586.0\um\{x86,x64,arm,arm64}\kernel32.Lib
-C:\Program Files (x86)\Windows Kits\10\Lib\10.0.14393.0\um\{x86,x64,arm,arm64}\kernel32.Lib
-C:\Program Files (x86)\Windows Kits\10\Lib\10.0.15063.0\um\{x86,x64,arm,arm64}\kernel32.Lib
-C:\Program Files (x86)\Windows Kits\10\Lib\10.0.16299.0\um\{x86,x64,arm,arm64}\kernel32.Lib
-C:\Program Files (x86)\Windows Kits\10\Lib\10.0.10240.0\km\{x86,x64,arm,arm64}\hal.Lib
-C:\Program Files (x86)\Windows Kits\10\Lib\10.0.14393.0\km\{x86,x64,arm,arm64}\hal.Lib
 C:\Program Files (x86)\Windows Kits\10\Lib\win7\km\{x86,x64}\hal.lib
 C:\Program Files (x86)\Windows Kits\10\Lib\win8\km\{x86,x64,arm}\hal.lib
 C:\Program Files (x86)\Windows Kits\10\Lib\winv6.3\km\{x86,x64,arm}\hal.lib
+C:\Program Files (x86)\Windows Kits\10\Lib\10.0.10240.0\km\{x86,x64,arm,arm64}\hal.Lib
+C:\Program Files (x86)\Windows Kits\10\Lib\10.0.10240.0\um\{x86,x64,arm,arm64}\kernel32.Lib
+C:\Program Files (x86)\Windows Kits\10\Lib\10.0.10586.0\um\{x86,x64,arm,arm64}\kernel32.Lib
+C:\Program Files (x86)\Windows Kits\10\Lib\10.0.14393.0\km\{x86,x64,arm,arm64}\hal.Lib
+C:\Program Files (x86)\Windows Kits\10\Lib\10.0.14393.0\um\{x86,x64,arm,arm64}\kernel32.Lib
+C:\Program Files (x86)\Windows Kits\10\Lib\10.0.15063.0\um\{x86,x64,arm,arm64}\kernel32.Lib
+C:\Program Files (x86)\Windows Kits\10\Lib\10.0.16299.0\um\{x86,x64,arm,arm64}\kernel32.Lib
 msvcrt.lib - not found
 C:\Program Files (x86)\Windows Kits\10\Include\10.0.10150.0\ucrt\errno.h
 C:\Program Files (x86)\Windows Kits\10\Include\10.0.10240.0\ucrt\errno.h
@@ -607,6 +608,8 @@ C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\atlmfc\include\atlbase.h
 C:\Program Files\Microsoft Visual Studio\VC98\ATL\Include\atlbase.h
 C:\Program Files\Microsoft Platform SDK for Windows Server 2003 R2\Include\atl\atlbase.h
 
+WDK 7.0.6801.1 {B4285279-1846-49B4-B8FD-B9EAF0FF17DA}:{515A535D-5659-545A-595D-5B62655E6060} ??????
+
 ---------------------------------
 
 
@@ -616,4 +619,29 @@ C:\Program Files\Microsoft Platform SDK for Windows Server 2003 R2\Include\atl\a
 
 
 
+
+# 4) WDK - path to Windows Driver Kit,
+#   if VS/MSVC/VCCL variables are not specified and it is unable to find Visual C++ compiler by checking environment variables,
+#   registry and Program Files folders, check for cl.exe bundled in WDK (only for WDK 7600.16385.1 aka WDK 7.1.0), e.g.:
+#     WDK=C:\WinDDK\7600.16385.1
+#
+# 5) SDK - path to Windows Software Development Kit,
+#   if VS/MSVC/VCCL variables are not specified and it is unable to find cl.exe even in WDK,
+#   at last, check for cl.exe bundled in SDK (only for SDK6.0), e.g.:
+#     SDK=C:\Program Files\Microsoft SDKs\Windows\v6.0
+#
+# 7) WDK_VER - WDK version, e.g.: 6001.18001 6001.18002 7600.16385.0 7600.16385.1 8.0 8.1 10.0.10150.0 10.0.16299.0
+#   may be specified explicitly if it's not possible to deduce it automatically or to override one deduced automatically
+#
+
+# reset paths to WDK/SDK, that may be specified in project configuration makefile or in command line e.g.:
+#   WDK=C:\WinDDK\7600.16385.1
+#   SDK=C:\Program Files\Microsoft SDKs\Windows\v7.1
+# note: paths must be specified without double-quotes
+# notes:
+#  - may use SDK libraries/headers from WDK, but if SDK is specified - it is preferred over WDK or SDK from Visual Studio
+#  - may use SDK libraries/headers from Visual Studio (only for Visual Studio 2005 and earlier)
+WDK:=
+SDK:=
+WDK_VER:=
 
