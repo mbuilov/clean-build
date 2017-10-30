@@ -485,34 +485,38 @@ Windows Driver Kit 10, Version 1511 	10.1.10586 	November 2015
 ????
 
 Windows Driver Kit 10, Version 1607 	10.1.14393 	August 2016
-C:\Program Files (x86)\Windows Kits\10\Lib\win7\km\{x86,x64}\hal.lib
-C:\Program Files (x86)\Windows Kits\10\Lib\win8\km\{x86,x64,arm}\hal.lib
-C:\Program Files (x86)\Windows Kits\10\Lib\winv6.3\km\{x86,x64,arm}\hal.lib
+C:\Program Files (x86)\Windows Kits\10\Lib\        win7\km\{x86,x64}\hal.lib
+C:\Program Files (x86)\Windows Kits\10\Lib\        win8\km\{x86,x64,arm}\hal.lib
+C:\Program Files (x86)\Windows Kits\10\Lib\     winv6.3\km\{x86,x64,arm}\hal.lib
 C:\Program Files (x86)\Windows Kits\10\Lib\10.0.10240.0\km\{x86,x64,arm,arm64}\hal.Lib
+C:\Program Files (x86)\Windows Kits\10\Lib\10.0.14393.0\km\{x86,x64,arm,arm64}\hal.Lib
+
 C:\Program Files (x86)\Windows Kits\10\Lib\10.0.10240.0\um\{x86,x64,arm,arm64}\kernel32.Lib
 C:\Program Files (x86)\Windows Kits\10\Lib\10.0.10586.0\um\{x86,x64,arm,arm64}\kernel32.Lib
-C:\Program Files (x86)\Windows Kits\10\Lib\10.0.14393.0\km\{x86,x64,arm,arm64}\hal.Lib
 C:\Program Files (x86)\Windows Kits\10\Lib\10.0.14393.0\um\{x86,x64,arm,arm64}\kernel32.Lib
 C:\Program Files (x86)\Windows Kits\10\Lib\10.0.15063.0\um\{x86,x64,arm,arm64}\kernel32.Lib
 C:\Program Files (x86)\Windows Kits\10\Lib\10.0.16299.0\um\{x86,x64,arm,arm64}\kernel32.Lib
 msvcrt.lib - not found
 C:\Program Files (x86)\Windows Kits\10\Include\10.0.10150.0\ucrt\errno.h
-C:\Program Files (x86)\Windows Kits\10\Include\10.0.10240.0\ucrt\errno.h
-C:\Program Files (x86)\Windows Kits\10\Include\10.0.10586.0\ucrt\errno.h
-C:\Program Files (x86)\Windows Kits\10\Include\10.0.14393.0\ucrt\errno.h
-C:\Program Files (x86)\Windows Kits\10\Include\10.0.15063.0\ucrt\errno.h
-C:\Program Files (x86)\Windows Kits\10\Include\10.0.16299.0\ucrt\errno.h
-C:\Program Files (x86)\Windows Kits\10\Include\10.0.10240.0\km\crt\errno.h
-C:\Program Files (x86)\Windows Kits\10\Include\10.0.14393.0\km\crt\errno.h
-C:\Program Files (x86)\Windows Kits\10\Include\10.0.14393.0\ucrt\string.h
 C:\Program Files (x86)\Windows Kits\10\Include\10.0.10150.0\ucrt\string.h
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.10240.0\ucrt\errno.h
 C:\Program Files (x86)\Windows Kits\10\Include\10.0.10240.0\ucrt\string.h
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.10586.0\ucrt\errno.h
 C:\Program Files (x86)\Windows Kits\10\Include\10.0.10586.0\ucrt\string.h
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.14393.0\ucrt\errno.h
 C:\Program Files (x86)\Windows Kits\10\Include\10.0.14393.0\ucrt\string.h
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.15063.0\ucrt\errno.h
 C:\Program Files (x86)\Windows Kits\10\Include\10.0.15063.0\ucrt\string.h
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.16299.0\ucrt\errno.h
 C:\Program Files (x86)\Windows Kits\10\Include\10.0.16299.0\ucrt\string.h
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.10240.0\km\crt\errno.h
 C:\Program Files (x86)\Windows Kits\10\Include\10.0.10240.0\km\crt\string.h
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.14393.0\km\crt\errno.h
 C:\Program Files (x86)\Windows Kits\10\Include\10.0.14393.0\km\crt\string.h
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.10240.0\km\ntddk.h
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.14393.0\km\ntddk.h
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.10240.0\km\wdm.h
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.14393.0\km\wdm.h
 C:\Program Files (x86)\Windows Kits\10\Include\10.0.10240.0\um\WinBase.h
 C:\Program Files (x86)\Windows Kits\10\Include\10.0.10586.0\um\WinBase.h
 C:\Program Files (x86)\Windows Kits\10\Include\10.0.14393.0\um\WinBase.h
@@ -522,10 +526,6 @@ C:\Program Files (x86)\Windows Kits\10\Include\10.0.10240.0\shared\ntdef.h
 C:\Program Files (x86)\Windows Kits\10\Include\10.0.10586.0\shared\ntdef.h
 C:\Program Files (x86)\Windows Kits\10\Include\10.0.14393.0\shared\ntdef.h
 C:\Program Files (x86)\Windows Kits\10\Include\10.0.16299.0\shared\ntdef.h
-C:\Program Files (x86)\Windows Kits\10\Include\10.0.10240.0\km\ntddk.h
-C:\Program Files (x86)\Windows Kits\10\Include\10.0.14393.0\km\ntddk.h
-C:\Program Files (x86)\Windows Kits\10\Include\10.0.10240.0\km\wdm.h
-C:\Program Files (x86)\Windows Kits\10\Include\10.0.14393.0\km\wdm.h
 cl.exe - not found
 C:\Program Files (x86)\Windows Kits\10\bin\{x86,x64,arm64}\rc.exe    - Microsoft (R) Windows (R) Resource Compiler Version 10.0.10011.16384
 C:\Program Files (x86)\Windows Kits\10\bin\{x86,x64,arm64}\mc.exe    - Microsoft (R) Message Compiler  Version 10.0.14393

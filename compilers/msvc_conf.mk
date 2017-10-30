@@ -63,23 +63,25 @@
 #     VCCL=C:\Program Files\Microsoft Visual Studio 14.0\VC\bin\x86_amd64\cl.exe
 #     VCCL=C:\Program Files\Microsoft Visual Studio\2017\Community\VC\Tools\MSVC\14.11.25503\bin\HostX64\x86\cl.exe
 #
-# 4) VC_VER - Visual C++ version, e.g: 6.0 7.0 7.1 8.0 9.0 10.0 11.0 12.0 14.0 14.10 14.11,
-#   may be specified explicitly if it's not possible to deduce VC_VER automatically or to override one deduced automatically
+# 4) VC_VER - Visual C++ version, e.g: 6.0 7.0 7.1 8.0 9.0 10.0 11.0 12.0 14.0 14.10 14.11
+#   may be specified explicitly if it's not possible to deduce VC_VER automatically or to override automatically deduced value
 #
-# 5) VS_VER - Visual Studio version, e.g. vs2002, vs2003, vs2005, vs2008, vs2010, vs2012, vs2013, vs2015
-#   may be specified instead of VC_VER - VC_VER will be deduced from VS_VER
+# 5) VS_VER - Visual Studio version, e.g. vs2002 vs2003 vs2005 vs2008 vs2010 vs2012 vs2013 vs2015
+#   may be specified instead of VC_VER - then VC_VER will be deduced from VS_VER
 #
 # 6) SDK - path to Windows Software Development Kit,
-#   may be specified if cannot to override one deduced automatically, e.g.:
+#   may be specified explicitly if failed to determine it automatically or to override automatically defined value, e.g.:
 #     SDK=C:\Program Files\Microsoft SDKs\Windows\v6.0
 #
-#   Note: newer versions of SDK are the part of WDK
+# 7) DDK - path to Windows Driver Development Kit,
+#   may be specified instead of SDK, because DDK contains SDK headers and libraries necessary for building simple console applications, e.g.:
+#     DDK=C:\WinDDK\7600.16385.1
 #
-# 7) WDK - path to Windows Driver Kit,
-#   may be specified to override one deduced automatically, e.g.:
-#     WDK=C:\WinDDK\7600.16385.1
+# 8) WDK - path to Windows Development Kit,
+#   newer versions of SDK and DDK (8.0 and later) are combined in the WDK, e.g.:
+#     WDK=C:\Program Files (x86)\Windows Kits\8.0
 #
-#
+# 9) WDK_VER - WDK version, 
 #
 #################################################################################################################
 
