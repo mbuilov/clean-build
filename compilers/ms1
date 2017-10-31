@@ -319,8 +319,8 @@ C:\WINDDK\3790\bin\ia64\rc.exe                           - ????
 C:\WINDDK\3790\bin\x86\mc.exe                            - Microsoft (R) Message Compiler  Version 1.12.2505
 C:\WINDDK\3790\bin\ia64\mc.exe                           - ????
 mt.exe - not found
-HKLM\SOFTWARE\Microsoft\WINDDK\3790.1830 LFNDirectory C:\WINDDK\3790
-HKLM\SOFTWARE\Microsoft\WINDDK\3790.1830 SFNDirectory C:\WINDDK\3790
+HKLM\SOFTWARE\Microsoft\WINDDK\3790 LFNDirectory C:\WINDDK\3790
+HKLM\SOFTWARE\Microsoft\WINDDK\3790 SFNDirectory C:\WINDDK\3790
 
 Windows Server 2003 SP1 DDK
 C:\WINDDK\3790.1830\lib\{w2k,wxp}\i386\hal.lib
@@ -435,8 +435,6 @@ C:\WinDDK\7600.16385.1\bin\x86\mc.exe                  - Microsoft (R) Message C
 mt.exe - not found
 HKLM\SOFTWARE\Wow6432Node\Microsoft\KitSetup\configured-kits\{B4285279-1846-49B4-B8FD-B9EAF0FF17DA}\{68656B6B-555E-5459-5E5D-6363635E5F61} setup-install-location C:\WinDDK\7600.16385.1\
 
-
-
 Windows Driver Kit 8.0 	8.59.25584 	August 15, 2012
 ???
 
@@ -485,51 +483,54 @@ Windows Driver Kit 10, Version 1511 	10.1.10586 	November 2015
 ????
 
 Windows Driver Kit 10, Version 1607 	10.1.14393 	August 2016
-C:\Program Files (x86)\Windows Kits\10\Lib\        win7\km\{x86,x64}\hal.lib
-C:\Program Files (x86)\Windows Kits\10\Lib\        win8\km\{x86,x64,arm}\hal.lib
-C:\Program Files (x86)\Windows Kits\10\Lib\     winv6.3\km\{x86,x64,arm}\hal.lib
+C:\Program Files (x86)\Windows Kits\10\Lib\win7\km\{x86,x64}\hal.lib
+C:\Program Files (x86)\Windows Kits\10\Lib\win8\km\{x86,x64,arm}\hal.lib
+C:\Program Files (x86)\Windows Kits\10\Lib\winv6.3\km\{x86,x64,arm}\hal.lib
 C:\Program Files (x86)\Windows Kits\10\Lib\10.0.10240.0\km\{x86,x64,arm,arm64}\hal.Lib
 C:\Program Files (x86)\Windows Kits\10\Lib\10.0.14393.0\km\{x86,x64,arm,arm64}\hal.Lib
-
-C:\Program Files (x86)\Windows Kits\10\Lib\10.0.10240.0\um\{x86,x64,arm,arm64}\kernel32.Lib
-C:\Program Files (x86)\Windows Kits\10\Lib\10.0.10586.0\um\{x86,x64,arm,arm64}\kernel32.Lib
-C:\Program Files (x86)\Windows Kits\10\Lib\10.0.14393.0\um\{x86,x64,arm,arm64}\kernel32.Lib
-C:\Program Files (x86)\Windows Kits\10\Lib\10.0.15063.0\um\{x86,x64,arm,arm64}\kernel32.Lib
-C:\Program Files (x86)\Windows Kits\10\Lib\10.0.16299.0\um\{x86,x64,arm,arm64}\kernel32.Lib
+C:\Program Files (x86)\Windows Kits\10\Lib\10.0.16299.0\km\{x86,x64,arm,arm64}\hal.Lib
+C:\Program Files (x86)\Windows Kits\10\Lib\10.0.10240.0\um\{x86,x64,arm,arm64}\kernel32.Lib     (sdk)
+C:\Program Files (x86)\Windows Kits\10\Lib\10.0.10586.0\um\{x86,x64,arm,arm64}\kernel32.Lib     (sdk)
+C:\Program Files (x86)\Windows Kits\10\Lib\10.0.14393.0\um\{x86,x64,arm,arm64}\kernel32.Lib     (sdk)
+C:\Program Files (x86)\Windows Kits\10\Lib\10.0.15063.0\um\{x86,x64,arm,arm64}\kernel32.Lib     (sdk)
+C:\Program Files (x86)\Windows Kits\10\Lib\10.0.16299.0\um\{x86,x64,arm,arm64}\kernel32.Lib     (sdk)
 msvcrt.lib - not found
-C:\Program Files (x86)\Windows Kits\10\Include\10.0.10150.0\ucrt\errno.h
-C:\Program Files (x86)\Windows Kits\10\Include\10.0.10150.0\ucrt\string.h
-C:\Program Files (x86)\Windows Kits\10\Include\10.0.10240.0\ucrt\errno.h
-C:\Program Files (x86)\Windows Kits\10\Include\10.0.10240.0\ucrt\string.h
-C:\Program Files (x86)\Windows Kits\10\Include\10.0.10586.0\ucrt\errno.h
-C:\Program Files (x86)\Windows Kits\10\Include\10.0.10586.0\ucrt\string.h
-C:\Program Files (x86)\Windows Kits\10\Include\10.0.14393.0\ucrt\errno.h
-C:\Program Files (x86)\Windows Kits\10\Include\10.0.14393.0\ucrt\string.h
-C:\Program Files (x86)\Windows Kits\10\Include\10.0.15063.0\ucrt\errno.h
-C:\Program Files (x86)\Windows Kits\10\Include\10.0.15063.0\ucrt\string.h
-C:\Program Files (x86)\Windows Kits\10\Include\10.0.16299.0\ucrt\errno.h
-C:\Program Files (x86)\Windows Kits\10\Include\10.0.16299.0\ucrt\string.h
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.10150.0\ucrt\errno.h       (sdk)
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.10150.0\ucrt\string.h      (sdk)
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.10240.0\ucrt\errno.h       (sdk)
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.10240.0\ucrt\string.h      (sdk)
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.10586.0\ucrt\errno.h       (sdk)
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.10586.0\ucrt\string.h      (sdk)
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.14393.0\ucrt\errno.h       (sdk)
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.14393.0\ucrt\string.h      (sdk)
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.15063.0\ucrt\errno.h       (sdk)
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.15063.0\ucrt\string.h      (sdk)
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.16299.0\ucrt\errno.h       (sdk)
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.16299.0\ucrt\string.h      (sdk)
 C:\Program Files (x86)\Windows Kits\10\Include\10.0.10240.0\km\crt\errno.h
 C:\Program Files (x86)\Windows Kits\10\Include\10.0.10240.0\km\crt\string.h
 C:\Program Files (x86)\Windows Kits\10\Include\10.0.14393.0\km\crt\errno.h
 C:\Program Files (x86)\Windows Kits\10\Include\10.0.14393.0\km\crt\string.h
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.16299.0\km\crt\errno.h
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.16299.0\km\crt\string.h
 C:\Program Files (x86)\Windows Kits\10\Include\10.0.10240.0\km\ntddk.h
 C:\Program Files (x86)\Windows Kits\10\Include\10.0.14393.0\km\ntddk.h
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.16299.0\km\ntddk.h
 C:\Program Files (x86)\Windows Kits\10\Include\10.0.10240.0\km\wdm.h
 C:\Program Files (x86)\Windows Kits\10\Include\10.0.14393.0\km\wdm.h
-C:\Program Files (x86)\Windows Kits\10\Include\10.0.10240.0\um\WinBase.h
-C:\Program Files (x86)\Windows Kits\10\Include\10.0.10586.0\um\WinBase.h
-C:\Program Files (x86)\Windows Kits\10\Include\10.0.14393.0\um\WinBase.h
-C:\Program Files (x86)\Windows Kits\10\Include\10.0.15063.0\um\WinBase.h
-C:\Program Files (x86)\Windows Kits\10\Include\10.0.16299.0\um\WinBase.h
-C:\Program Files (x86)\Windows Kits\10\Include\10.0.10240.0\shared\ntdef.h
-C:\Program Files (x86)\Windows Kits\10\Include\10.0.10586.0\shared\ntdef.h
-C:\Program Files (x86)\Windows Kits\10\Include\10.0.14393.0\shared\ntdef.h
-C:\Program Files (x86)\Windows Kits\10\Include\10.0.16299.0\shared\ntdef.h
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.16299.0\km\wdm.h
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.10240.0\um\WinBase.h       (sdk)
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.10586.0\um\WinBase.h       (sdk)
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.14393.0\um\WinBase.h       (sdk)
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.15063.0\um\WinBase.h       (sdk)
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.16299.0\um\WinBase.h       (sdk)
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.10240.0\shared\ntdef.h     (sdk)
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.10586.0\shared\ntdef.h     (sdk)
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.14393.0\shared\ntdef.h     (sdk)
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.15063.0\shared\ntdef.h     (sdk)
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.16299.0\shared\ntdef.h     (sdk)
 cl.exe - not found
-C:\Program Files (x86)\Windows Kits\10\bin\{x86,x64,arm64}\rc.exe    - Microsoft (R) Windows (R) Resource Compiler Version 10.0.10011.16384
-C:\Program Files (x86)\Windows Kits\10\bin\{x86,x64,arm64}\mc.exe    - Microsoft (R) Message Compiler  Version 10.0.14393
-C:\Program Files (x86)\Windows Kits\10\bin\{x86,x64,arm64}\mt.exe    - Microsoft (R) Manifest Tool
+rc.exe, mc.exe, mt.exe - part of sdk
 "HKLM\SOFTWARE\Microsoft\Windows Kits\Installed Roots" KitsRoot10 C:\Program Files (x86)\Windows Kits\10\
 "HKLM\SOFTWARE\Wow6432Node\Microsoft\Windows Kits\Installed Roots" KitsRoot10 C:\Program Files (x86)\Windows Kits\10\
 "HKLM\SOFTWARE\Wow6432Node\Microsoft\Windows Kits\Installed Roots\10.0.14393.0" KitsRoot10 C:\Program Files (x86)\Windows Kits\10\
