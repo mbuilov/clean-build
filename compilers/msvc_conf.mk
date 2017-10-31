@@ -49,19 +49,19 @@
 #     SDK=C:\Program Files\Microsoft SDKs\Windows\v6.0
 #
 # 6) DDK - path to Windows Driver Development Kit,
-#   may be specified instead of SDK, because DDK contains SDK headers and libraries necessary for building simple console
-#   applications, also DDK may include C++ compilers, e.g.:
+#   may be specified instead of SDK - because DDK contains SDK headers and libraries necessary for building simple console applications,
+#   may be specified together with SDK - for building drivers, e.g.:
 #     DDK=C:\WinDDK\7600.16385.1
 #
 # 7) WDK - path to Windows Development Kit,
 #   may be specified instead of SDK and DDK - newer versions of SDK and DDK (8.0 and later) are combined under the same WDK path, e.g.:
 #     WDK=C:\Program Files (x86)\Windows Kits\8.0
+#     WDK=C:\Program Files (x86)\Windows Kits\10.0
 #
-# 8) SDK_VER/DDK_VER/WDK_VER - SDK/DDK/WDK versions,
-#   may be specified explicitly if failed to determine them automatically or to override automatically defined values, e.g. one of:
-#     SDK_VER=7.1 10.0.10240.0
-#     DDK_VER=2600 2600.1106 3790 3790.1830 6000 6001.18000 6001.18001 6001.18002 7600.16385.0 7600.16385.1 7.0.0 7.1.0 8.0 8.1 10.0.10240.0
-#     WDK_VER=10.0.16299.0
+#   Note: SDK/DDK values, if non-empty, are preferred over WDK.
+#
+# 8) WDK_VER - WDK10 target platform version, e.g. one of: 10.0.10240.0 10.0.10586.0 10.0.14393.0 10.0.15063.0 10.0.16299.0
+#   may be specified explicitly if failed to determine it automatically or to override automatically defined value
 #
 #################################################################################################################
 
@@ -89,8 +89,8 @@
 # note: VCLIBPATH or VCINCLUDE may be defined with empty values in project configuration makefile or in command line
 
 # normalize path: replace spaces with ?, remove double-quotes, make all slashes backward, add trailing back-slash, e.g.:
-#  "a\b\c d\e" -> a/b/c?d/e/
-NOMALIZE_PATH = $(patsubst %//,%/,$(addsuffix /,$(subst \,/,$(patsubst "%",%,$(subst $(space),?,$1)))))
+#  "a\b\c d\e\" -> a/b/c?d/e
+NORMALIZE_PATH = $(patsubst %/,%,$(subst \,/,$(patsubst "%",%,$(subst $(space),?,$1))))
 
 # get paths to "Program Files" and "Program Files (x86)" directories
 # note: ProgramW6432 appear starting with Windows 7
@@ -147,7 +147,7 @@ VS_FIND_FILE1 = $(if $3,$3,$(call VS_FIND_FILE,$1,$(wordlist 2,999999,$2)))
 VS_FIND_FILE_P  = $(if $2,$(call VS_FIND_FILE_P1,$1,$2,$(wildcard $(subst ?,\ ,$(firstword $2))$($1))))
 VS_FIND_FILE_P1 = $(if $3,$3,$(call VS_FIND_FILE_P,$1,$(wordlist 2,999999,$2)))
 
-# query path value in the registry
+# query path value in the registry under "HKLM\SOFTWARE\Microsoft\" or "HKLM\SOFTWARE\Wow6432Node\Microsoft\"
 # $1 - registry key sub path, e.g.: VisualStudio\SxS\VC7 or VisualStudio\SxS\VS7 or VisualStudio\6.0\Setup\Microsoft Visual C++
 # $2 - registry key name, e.g.: 14.0 or ProductDir
 # $3 - empty or \Wow6432Node
@@ -205,22 +205,46 @@ VS_REG_SEARCH = $(call VS_REG_SEARCH_X,$1,$2,VS_REG_FIND_FILE)
 # note: macro $1 may use $2 - path where the search is done
 VS_REG_SEARCH_P = $(call VS_REG_SEARCH_X,$1,$2,VS_REG_FIND_FILE_P)
 
-# for Visual C++ compiler from WDK 6-7 (Visual C++ 8.0-9.0 of Visual Studio 2005-2008)
+# there may be more than one file found - take the newer one, e.g.:
+#  $1=bin/HostX86/x64/cl.exe
+#  $2=C:/Program?Files/Microsoft?Visual?Studio/2017/Community/ \
+#     C:/Program Files/Microsoft Visual Studio/2017/Community/VC/Tools/MSVC/14.10.25017/bin/HostX86/x64/cl.exe \
+#     C:/Program Files/Microsoft Visual Studio/2017/Community/VC/Tools/MSVC/14.11.25503/bin/HostX86/x64/cl.exe
+# result: C:/Program?Files/Microsoft?Visual?Studio/2017/Community/VC/Tools/MSVC/14.11.25503/bin/HostX86/x64/cl.exe
+VS_SELECT_LATEST1 = $(patsubst %,$2%$1,$(lastword $(sort $(subst $1?$2, ,$(patsubst %,$1?%?$2,$(subst $(space),?,$3))))))
+VS_SELECT_LATEST  = $(call VS_SELECT_LATEST1,$1,$(firstword $2),$(wordlist 2,999999,$2))
+
+# for Visual C++ compiler from Windows Server 2003 DDK
+# determine MSVC++ tools prefix for given TCPU/CPU combination, e.g.:
+#  C:\WINDDK\3790\bin\x86\cl.exe             - Microsoft (R) 32-bit C/C++ Optimizing Compiler Version 13.10.2179 for 80x86
+#  C:\WINDDK\3790\bin\ia64\cl.exe            - ???
+#  C:\WINDDK\3790\bin\win64\x86\cl.exe       - Microsoft (R) C/C++ Optimizing Compiler Version 13.10.2240.8 for IA-64
+#  C:\WINDDK\3790\bin\win64\x86\amd64\cl.exe - Microsoft (R) C/C++ Optimizing Compiler Version 14.00.2207 for AMD64
+#
+# TCPU\CPU |  x86       x86_64        ia64
+# ---------|---------------------------------
+# x86      |  x86  win64/x86/amd64  win64/x86
+# ia64     |   ?          ?           ia64
+#
+# $1 - $(CPU)
+CL_TOOL_PREFIX_DDK_3790 = $(if $(filter $1,$(TCPU)),$1,$(if $(filter %64,$1),win64/)$(TCPU:x86_64=amd64)/$(if $(filter x86_64,$1),amd64/))
+
+# for Visual C++ compiler from Windows Driver Kit 6-7 (Visual C++ 8.0-9.0 of Visual Studio 2005-2008)
 # determine MSVC++ tools prefix for given TCPU/CPU combination, e.g.:
 #  C:\WinDDK\6001.18001\bin\x86\x86\cl.exe   - Microsoft (R) 32-bit C/C++ Optimizing Compiler Version 14.00.50727.278 for 80x86
 #  C:\WinDDK\6001.18001\bin\x86\amd64\cl.exe - Microsoft (R) C/C++ Optimizing Compiler Version 14.00.50727.278 for x64
 #  C:\WinDDK\6001.18001\bin\x86\ia64\cl.exe  - Microsoft (R) C/C++ Optimizing Compiler Version 14.00.50727.283 for Itanium
 #  C:\WinDDK\6001.18001\bin\ia64\ia64\cl.exe - ????
 # $1 - $(CPU)
-CL_TOOL_PREFIX_WDK6 = $(TCPU:x86_64=amd64)/$(1:x86_64=amd64)/
+CL_TOOL_PREFIX_DDK6 = $(TCPU:x86_64=amd64)/$(1:x86_64=amd64)/
 
-# path prefix of msvcrt.lib
-#  C:\WinDDK\6001.18001\lib\crt\{i386,amd64,ia64}\msvcrt.lib
-# $1 - $(CPU)
-#  x86    -> /crt/i386
-#  x86_64 -> /crt/amd64
-#  ia64   -> /crt/ia64
-VC_LIB_PREFIX_WDK6 = crt/$(patsubst x86,i386,$(1:x86_64=amd64))/
+### path prefix of msvcrt.lib
+###  C:\WinDDK\6001.18001\lib\crt\{i386,amd64,ia64}\msvcrt.lib
+### $1 - $(CPU)
+###  x86    -> /crt/i386
+###  x86_64 -> /crt/amd64
+###  ia64   -> /crt/ia64
+##VC_LIB_PREFIX_WDK6 = crt/$(patsubst x86,i386,$(1:x86_64=amd64))/
 
 # for Visual C++ compiler from SDK 6.0 (Visual C++ 8.0 of Visual Studio 2005)
 # determine MSVC++ tools prefix for given CPU
@@ -321,6 +345,27 @@ VC_LIB_TYPE_ONECORE:=
 # note: for Visual Studio 14.0 and later
 VC_LIB_TYPE_STORE:=
 
+# reset variables, if they are not defined in project configuration makefile or in command line
+SDK:=
+DDK:=
+WDK:=
+WDK_VER:=
+
+ifdef SDK
+# SDK=C:/Program?Files/Microsoft?SDKs/Windows/v6.0
+override SDK := $(call NORMALIZE_PATH,$(SDK))
+endif
+
+ifdef DDK
+# DDK=C:/WinDDK/7600.16385.1
+override DDK := $(call NORMALIZE_PATH,$(DDK))
+endif
+
+ifdef WDK
+# WDK=C:/Program?Files?(x86)/Windows?Kits/8.0
+override WDK := $(call NORMALIZE_PATH,$(WDK))
+endif
+
 # we need next MSVC++ variables to be defined: VC_VER, VCCL, VCLIBPATH and VCINCLUDE
 # (they are may be defined either in project configuration makefile or in command line)
 # note: VCLIBPATH or VCINCLUDE may be defined as <empty>, so do not reset them
@@ -387,22 +432,13 @@ MSVC:=
 # C:\Program Files\Microsoft Visual Studio\2017\Community\VC\Tools\MSVC\14.11.25503\lib\x64\store\msvcrt.lib
 # C:\Program Files\Microsoft Visual Studio\2017\Community\VC\Tools\MSVC\14.11.25503\lib\arm\store\msvcrt.lib
 
-# there may be more than one file found - take the newer one, e.g.
-#  $1=bin/HostX86/x64/cl.exe
-#  $2=C:/Program?Files/Microsoft?Visual?Studio/2017/Community/ \
-#     C:/Program Files/Microsoft Visual Studio/2017/Community/VC/Tools/MSVC/14.10.25017/bin/HostX86/x64/cl.exe \
-#     C:/Program Files/Microsoft Visual Studio/2017/Community/VC/Tools/MSVC/14.11.25503/bin/HostX86/x64/cl.exe
-# result: C:/Program?Files/Microsoft?Visual?Studio/2017/Community/VC/Tools/MSVC/14.11.25503/bin/HostX86/x64/cl.exe
-VS_2017_SELECT_LATEST1 = $(patsubst %,$2%$1,$(lastword $(sort $(subst $1?$2, ,$(patsubst %,$1?%?$2,$(subst $(space),?,$3))))))
-VS_2017_SELECT_LATEST  = $(call VS_2017_SELECT_LATEST1,$1,$(firstword $2),$(wordlist 2,999999,$2))
-
 # take the newer one found cl.exe, e.g.:
 #  $1=bin/HostX86/x64/cl.exe
 #  $2=C:/Program?Files/Microsoft?Visual?Studio/2017/Community/ \
 #     C:/Program Files/Microsoft Visual Studio/2017/Community/VC/Tools/MSVC/14.10.25017/bin/HostX86/x64/cl.exe \
 #     C:/Program Files/Microsoft Visual Studio/2017/Community/VC/Tools/MSVC/14.11.25503/bin/HostX86/x64/cl.exe
 # result: C:/Program Files/Microsoft Visual Studio/2017/Community/VC/Tools/MSVC/14.11.25503/bin/HostX86/x64/cl.exe
-VS_2017_SELECT_LATEST_ENTRY = $(subst ?, ,$(VS_2017_SELECT_LATEST))
+VS_2017_SELECT_LATEST_ENTRY = $(subst ?, ,$(VS_SELECT_LATEST))
 
 ifndef VCCL
 ifndef MSVC
@@ -448,6 +484,18 @@ ifndef VS
 
   endif
 endif
+endif
+endif
+
+ifdef MSVC
+# MSVC=C:/Program?Files/Microsoft?Visual?Studio/2017/Community/VC
+override MSVC := $(call NORMALIZE_PATH,$(MSVC))
+endif
+
+ifndef MSVC
+ifdef VS
+# VS=C:/Program?Files/Microsoft?Visual?Studio?12.0
+override VS := $(call NORMALIZE_PATH,$(VS))
 endif
 endif
 
@@ -639,6 +687,10 @@ ifndef VS
   ifndef VCCL
     # define VC_VER at end of this section
 
+    # may auto-define SDK or DDK in this section
+    SDK_AUTO:=
+    DDK_AUTO:=
+
     # versions of Visual C++ starting with Visual Studio 2005
     VCCL_2005_VERSIONS := 14.0 12.0 11.0 10.0 9.0 8.0
 
@@ -663,128 +715,289 @@ ifndef VS
     VCCL := $(call VS_SEARCH_2005,$(VCCL_2005_VERSIONS))
 
     ifndef VCCL
-      # check for C++ compiler bundled in WDK7.1
-      WDK_71_REG_PATH := KitSetup\configured-kits\{B4285279-1846-49B4-B8FD-B9EAF0FF17DA}\{68656B6B-555E-5459-5E5D-6363635E5F61}
+      # check for C++ compiler bundled in Windows Driver Kit 7.1.0 or 7.0.0
+      CL_DDK6 := bin/$(call CL_TOOL_PREFIX_DDK6,$(CPU))cl.exe
 
       # look for:
       #  C:\WinDDK\7600.16385.1\bin\x86\x86\cl.exe   - Microsoft (R) 32-bit C/C++ Optimizing Compiler Version 15.00.30729.207 for 80x86
       #  C:\WinDDK\7600.16385.1\bin\x86\amd64\cl.exe - Microsoft (R) C/C++ Optimizing Compiler Version 15.00.30729.207 for x64
       #  C:\WinDDK\7600.16385.1\bin\x86\ia64\cl.exe  - Microsoft (R) C/C++ Optimizing Compiler Version 15.00.30729.207 for Itanium
-      VCCL := $(call VS_REG_FIND_FILE,bin/$(call CL_TOOL_PREFIX_WDK6,$(CPU))cl.exe,$(WDK_71_REG_PATH),setup-install-location,$(IS_WIN_64))
+      ifdef DDK
 
-      ifndef VCCL
-        ifdef WDK
-          ifeq (7.1,$(WDK_VER))
-# find file in the paths by pattern
-# $1 - file to find, e.g.: VC/bin/cl.exe (possibly be a mask, like: VC/Tools/MSVC/*/bin/HostX86/x86/cl.exe, may be with spaces)
-# $2 - paths to look in, e.g. C:/Program?Files/Microsoft?Visual?Studio/2017/Community/ C:/Program?Files/Microsoft?Visual?Studio?14.0/
-# result (may be a list): C:/Program Files/Microsoft Visual Studio 14.0/VC/bin/cl.exe
-
-
-VS_FIND_FILE  = $(if $2,$(call VS_FIND_FILE1,$1,$2,$(wildcard $(subst ?,\ ,$(firstword $2))$1)))
-
-            VCCL := $(call VS_FIND_FILE,Microsoft Visual Studio/*/*/VC/Tools/MSVC/$(VC_VER)*/$(VCCL_2017_PREFIXED),$(subst \,/,$(subst $(space),?,$(WDK))))
+        # check for 7600.16385.1 or 7600.16385.0
+        ifneq (,$(filter 7600.16385.%,$(notdir $(DDK))))
+          VCCL := $(wildcard $(subst ?,\ ,$(DDK))/$(CL_DDK6))
+          ifdef VCCL
+            # result: 9.0 C:/my ddks/WinDDK/7600.16385.1/bin/x86/x86/cl.exe
+            VCCL := 9.0 $(VCCL)
           endif
         endif
-      endif
 
-      ifdef VCCL
-        # compiler from WDK7.1 has the version 15.00.30729.207 (corresponds to Visual Studio 2008)
-        VCCL := 9.0 $(VCCL)
+      else ifndef WDK # WDK may be used instead of DDK
+
+        # check registry for Windows Driver Kit 7.1.0 or 7.0.0
+        DDK_71_REG_PATH := KitSetup\configured-kits\{B4285279-1846-49B4-B8FD-B9EAF0FF17DA}\{68656B6B-555E-5459-5E5D-6363635E5F61}
+        DDK_70_REG_PATH := KitSetup\configured-kits\{B4285279-1846-49B4-B8FD-B9EAF0FF17DA}\{676E6B70-5659-5459-5B5F-6063635E5F61}
+
+        # e.g.: C:/my ddks/WinDDK/7600.16385.1/bin/x86/x86/cl.exe
+        VCCL := $(call VS_REG_FIND_FILE,$(CL_DDK6),$(DDK_71_REG_PATH),setup-install-location,$(IS_WIN_64))
+        ifndef VCCL
+          VCCL := $(call VS_REG_FIND_FILE,$(CL_DDK6),$(DDK_70_REG_PATH),setup-install-location,$(IS_WIN_64))
+        endif
+
+        ifdef VCCL
+          # e.g.: C:/my?ddks/WinDDK/7600.16385.1
+          DDK_AUTO := $(patsubst %/$(CL_DDK6),%,$(subst $(space),?,$(VCCL)))
+
+          # result: 9.0 C:/my ddks/WinDDK/7600.16385.1/bin/x86/x86/cl.exe
+          VCCL := 9.0 $(VCCL)
+        endif
+
       endif
     endif
 
     ifndef VCCL
-      # cross compiler is not supported, but may compile x86_64 on x86_64 or x86 on x86
+      # cross compiler is not supported by SDK6.0, but may compile x86_64 on x86_64 or x86 on x86
       ifeq ($(CPU),$(TCPU))
 
         # check for Visual C++ compiler bundled in SDK6.0
+        CL_SDK6 := VC/Bin/$(VC_TOOL_PREFIX_SDK6)cl.exe
 
-        # look for C:/Program Files/Microsoft SDKs/Windows/v6.0/VC/Bin/x64/cl.exe
-        VCCL := $(call VS_REG_FIND_FILE,VC/Bin/$(VC_TOOL_PREFIX_SDK6)cl.exe,Microsoft SDKs\Windows\v6.0,InstallationFolder)
+        # look for C:/Program Files/Microsoft SDKs/Windows/v6.0/VC/Bin/x64/cl.exe - Microsoft Compiler Version 14.00.50727.762 for x64
+        ifdef SDK
 
+          # check for v6.0
+          ifeq (v6.0,$(notdir $(SDK)))
+            VCCL := $(wildcard $(subst ?,\ ,$(SDK))/$(CL_SDK6))
+            ifdef VCCL
+              # result: 8.0 C:/Program Files/Microsoft SDKs/Windows/v6.0/VC/Bin/x64/cl.exe
+              VCCL := 8.0 $(VCCL)
+            endif
+          endif
+
+        else ifndef WDK # WDK may be used instead of SDK
+
+          # look for C:/Program Files/Microsoft SDKs/Windows/v6.0/VC/Bin/x64/cl.exe - Microsoft Compiler Version 14.00.50727.762 for x64
+          VCCL := $(call VS_REG_FIND_FILE,$(CL_SDK6),Microsoft SDKs\Windows\v6.0,InstallationFolder)
+
+          ifndef VCCL
+            # look in Program Files
+            VCCL := $(call VS_FIND_FILE,$(CL_SDK6),$(addsuffix Microsoft?SDKs/Windows/v6.0/,$(PROGRAM_FILES_PLACES)))
+          endif
+
+          ifdef VCCL
+            # e.g.: C:/Program?Files/Microsoft?SDKs/Windows/v6.0
+            SDK_AUTO := $(patsubst %/$(CL_SDK6),%,$(subst $(space),?,$(VCCL)))
+
+            # compiler from SDK6.0 is the same as in Visual Studio 2005
+            VCCL := 8.0 $(VCCL)
+          endif
+
+        endif
+      endif
+    endif
+
+    ifndef VCCL
+      # check for C++ compiler bundled in Windows Driver Kit – Server 2008 Release SP1 (x86, x64, i64) 6001.18002 December 8, 2008
+      # check for C++ compiler bundled in Windows Driver Kit – Server 2008 (x86, x64, ia64) 6001.18001 April 1, 2008
+
+      # look for:
+      #  C:\WinDDK\6001.18002\bin\x86\x86\cl.exe - Microsoft (R) 32-bit C/C++ Optimizing Compiler Version 14.00.50727.278 for 80x86
+      ifdef DDK
+
+        # check for 6001.18002 or 6001.18001
+        ifneq (,$(filter 6001.1800%,$(notdir $(DDK))))
+          VCCL := $(wildcard $(subst ?,\ ,$(DDK))/$(CL_DDK6))
+          ifdef VCCL
+            # result: 8.0 C:/my ddks/WinDDK/6001.18002/bin/x86/x86/cl.exe
+            VCCL := 8.0 $(VCCL)
+          endif
+        endif
+
+      else ifndef WDK # WDK may be used instead of DDK
+
+        # check registry for Windows Driver Kit – Server 2008 Release SP1 (x86, x64, i64) 6001.18002  December 8, 2008
+        DDK_62_REG_PATH := KitSetup\configured-kits\{B4285279-1846-49B4-B8FD-B9EAF0FF17DA}\{515A5454-555D-5459-5B5D-616264656660}
+
+        # e.g.: C:/my ddks/WinDDK/6001.18002/bin/x86/x86/cl.exe
+        VCCL := $(call VS_REG_FIND_FILE,$(CL_DDK6),$(DDK_62_REG_PATH),setup-install-location,$(IS_WIN_64))
         ifndef VCCL
-          # look in Program Files
-          VCCL := $(call VS_FIND_FILE,VC/Bin/$(VC_TOOL_PREFIX_SDK6)cl.exe,$(addsuffix \
-            Microsoft?SDKs/Windows/v6.0/,$(PROGRAM_FILES_PLACES)))
+          # check registry for Windows Driver Kit – Server 2008 (x86, x64, ia64)   6001.18001  April 1, 2008
+          VCCL := $(call VS_REG_FIND_FILE,$(CL_DDK6),WINDDK\6001.18001\Setup,BUILD,$(IS_WIN_64))
         endif
 
         ifdef VCCL
-          # compiler from SDK6.0 is the same as in Visual Studio 2005
+          # e.g.: C:/my?ddks/WinDDK/6001.18002
+          DDK_AUTO := $(patsubst %/$(CL_DDK6),%,$(subst $(space),?,$(VCCL)))
+
+          # result: 8.0 C:/my ddks/WinDDK/6001.18002/bin/x86/x86/cl.exe
           VCCL := 8.0 $(VCCL)
         endif
 
+      endif
+    endif
+
+    ifndef VCCL
+      # cross compiler is not supported by Visual Studio .NET 2003, may compile only x86 on x86
+      ifeq ($(CPU) $(VS_CPU),$(TCPU) $(CPU))
+
+        # search Visual C++ .NET 2003 compiler
+        VCCL := $(call VS_REG_SEARCH,bin/cl.exe,$(call VCCL_REG_KEYS_VC,7.1))
+
         ifndef VCCL
-          # cross compiler is not supported, may compile only x86 on x86
-          ifeq ($(VS_CPU),$(CPU))
-
-            # search Visual C++ .NET 2003 compiler
-            VCCL := $(call VS_REG_SEARCH,bin/cl.exe,$(call VCCL_REG_KEYS_VC,7.1))
-
-            ifndef VCCL
-              VCCL := $(call VS_REG_SEARCH,Vc7/bin/cl.exe,$(call VCCL_REG_KEYS_VS,7.1))
-            endif
-
-            ifndef VCCL
-              # look in Program Files
-              VCCL := $(call VS_FIND_FILE,Vc7/bin/cl.exe,$(addsuffix \
-                Microsoft?Visual?Studio?.NET?2003/,$(PROGRAM_FILES_PLACES)))
-            endif
-
-            ifdef VCCL
-              VCCL := 7.1 $(VCCL)
-            endif
-
-            ifndef VCCL
-              # look in Program Files for Visual C++ compiler of Microsoft Visual C++ Toolkit 2003
-              VCCL := $(call VS_FIND_FILE,bin/cl.exe,$(addsuffix \
-                Microsoft?Visual?C++?Toolkit?2003/,$(PROGRAM_FILES_PLACES)))
-
-              ifdef VCCL
-                VCCL := 7.1 $(VCCL)
-              endif
-            endif
-
-            ifndef VCCL
-              # search Visual C++ .NET compiler
-              VCCL := $(call VS_REG_SEARCH,bin/cl.exe,$(call VCCL_REG_KEYS_VC,7.0))
-
-              ifndef VCCL
-                VCCL := $(call VS_REG_SEARCH,Vc7/bin/cl.exe,$(call VCCL_REG_KEYS_VS,7.0))
-              endif
-
-              ifndef VCCL
-                # look in Program Files
-                VCCL := $(call VS_FIND_FILE,Vc7/bin/cl.exe,$(addsuffix \
-                  Microsoft?Visual?Studio?.NET/,$(PROGRAM_FILES_PLACES)))
-              endif
-
-              ifdef VCCL
-                VCCL := 7.0 $(VCCL)
-              endif
-            endif
-
-            ifndef VCCL
-              # search Visual 6.0 compiler
-              VCCL := $(call VS_REG_FIND_FILE,Bin/cl.exe,VisualStudio\6.0\Setup\Microsoft Visual C++,ProductDir,$(IS_WIN_64))
-
-              ifndef VCCL
-                VCCL := $(call VS_REG_FIND_FILE,VC98/Bin/cl.exe,VisualStudio\6.0\Setup\Microsoft Visual Studio,ProductDir,$(IS_WIN_64))
-              endif
-
-              ifndef VCCL
-                # look in Program Files
-                VCCL := $(call VS_FIND_FILE,VC98/Bin/cl.exe,$(addsuffix \
-                  Microsoft?Visual?Studio/,$(PROGRAM_FILES_PLACES)))
-              endif
-
-              ifdef VCCL
-                VCCL := 6.0 $(VCCL)
-              endif
-            endif
-
-          endif # ifeq ($(VS_CPU),$(CPU))
+          VCCL := $(call VS_REG_SEARCH,Vc7/bin/cl.exe,$(call VCCL_REG_KEYS_VS,7.1))
         endif
+
+        ifndef VCCL
+          # look in Program Files
+          VCCL := $(call VS_FIND_FILE,Vc7/bin/cl.exe,$(addsuffix Microsoft?Visual?Studio?.NET?2003/,$(PROGRAM_FILES_PLACES)))
+        endif
+
+        ifdef VCCL
+          VCCL := 7.1 $(VCCL)
+        endif
+
+      endif
+    endif
+
+    ifndef VCCL
+      # check for C++ compiler bundled in Windows Server 2003 SP1 DDK
+      # check for C++ compiler bundled in Windows Server 2003 DDK 3790
+      CL_DDK_3790 := bin/$(call CL_TOOL_PREFIX_DDK_3790,$(CPU))cl.exe
+
+      # look for:
+      #  C:\WINDDK\3790.1830\bin\x86\cl.exe - Microsoft (R) 32-bit C/C++ Optimizing Compiler Version 13.10.4035 for 80x86
+      ifdef DDK
+
+        # check for 3790.1830 or 3790
+        ifneq (,$(filter 3790.1830 3790,$(notdir $(DDK))))
+          VCCL := $(wildcard $(subst ?,\ ,$(DDK))/$(CL_DDK_3790))
+          ifdef VCCL
+            # result: 7.1 C:/my ddks/WinDDK/3790.1830/bin/x86/cl.exe
+            VCCL := 8.0 $(VCCL)
+          endif
+        endif
+
+      else ifndef WDK # WDK may be used instead of DDK
+
+        # check registry for Windows Server 2003 SP1 DDK
+        # e.g.: C:/my ddks/WinDDK/3790.1830/bin/x86/cl.exe
+        VCCL := $(call VS_REG_FIND_FILE,$(CL_DDK_3790),WINDDK\3790.1830,LFNDirectory,$(IS_WIN_64))
+        ifndef VCCL
+          # check registry for Windows Server 2003 DDK 3790
+          VCCL := $(call VS_REG_FIND_FILE,$(CL_DDK_3790),WINDDK\3790,LFNDirectory,$(IS_WIN_64))
+        endif
+
+        ifdef VCCL
+          # e.g.: C:/my?ddks/WinDDK/3790.1830
+          DDK_AUTO := $(patsubst %/$(CL_DDK_3790),%,$(subst $(space),?,$(VCCL)))
+
+          # result: 7.1 C:/my ddks/WinDDK/3790.1830/bin/x86/cl.exe
+          # result: 8.0 C:/my ddks/WinDDK/3790.1830/bin/win64/x86/amd64/cl.exe
+          VCCL := $(if $(filter %64,$(CPU)),8.0,7.1) $(VCCL)
+        endif
+
+      endif
+    endif
+
+    ifndef VCCL
+      # cross compiler is not supported, may compile only x86 on x86
+      ifeq ($(CPU) $(VS_CPU),$(TCPU) $(CPU))
+
+        # look in Program Files for Visual C++ compiler of Microsoft Visual C++ Toolkit 2003
+        VCCL := $(call VS_FIND_FILE,bin/cl.exe,$(addsuffix Microsoft?Visual?C++?Toolkit?2003/,$(PROGRAM_FILES_PLACES)))
+
+        ifdef VCCL
+          VCCL := 7.1 $(VCCL)
+        endif
+
+      endif
+    endif
+
+    ifndef VCCL
+      # cross compiler is not supported, may compile only x86 on x86
+      ifeq ($(CPU) $(VS_CPU),$(TCPU) $(CPU))
+
+        # check for C++ compiler bundled in Windows XP SP1 DDK 2600.1106
+        # check for C++ compiler bundled in DDK for Windows XP
+        CL_DDK_2600 := bin/$(TCPU)/cl.exe
+
+        # look for:
+        #  C:\WINDDK\2600.1106\bin\x86\cl.exe - Microsoft (R) 32-bit C/C++ Optimizing Compiler Version 13.00.9176 for 80x86
+        ifdef DDK
+
+          # check for 2600.1106 or 2600
+          ifneq (,$(filter 2600.1106 2600,$(notdir $(DDK))))
+            VCCL := $(wildcard $(subst ?,\ ,$(DDK))/$(CL_DDK_2600))
+            ifdef VCCL
+              # result: 7.0 C:/my ddks/WinDDK/2600.1106/bin/x86/cl.exe
+              VCCL := 7.0 $(VCCL)
+            endif
+          endif
+
+        else ifndef WDK # WDK may be used instead of DDK
+
+          # check registry for Windows XP SP1 DDK 2600.1106
+          # e.g.: C:/my ddks/WinDDK/2600.1106/bin/x86/cl.exe
+          VCCL := $(call VS_REG_FIND_FILE,$(CL_DDK_2600),WINDDK\2600.1106,LFNDirectory,$(IS_WIN_64))
+          ifndef VCCL
+            # check registry for DDK for Windows XP
+            VCCL := $(call VS_REG_FIND_FILE,$(CL_DDK_2600),WINDDK\2600,LFNDirectory,$(IS_WIN_64))
+          endif
+
+          ifdef VCCL
+            # e.g.: C:/my?ddks/WinDDK/2600.1106
+            DDK_AUTO := $(patsubst %/$(CL_DDK_2600),%,$(subst $(space),?,$(VCCL)))
+
+            # result: 7.0 C:/my ddks/WinDDK/2600.1106/bin/x86/cl.exe
+            VCCL := 7.0 $(VCCL)
+          endif
+
+        endif
+      endif
+    endif
+
+    ifndef VCCL
+      # cross compiler is not supported, may compile only x86 on x86
+      ifeq ($(CPU) $(VS_CPU),$(TCPU) $(CPU))
+
+        # search Visual C++ .NET compiler
+        VCCL := $(call VS_REG_SEARCH,bin/cl.exe,$(call VCCL_REG_KEYS_VC,7.0))
+
+        ifndef VCCL
+          VCCL := $(call VS_REG_SEARCH,Vc7/bin/cl.exe,$(call VCCL_REG_KEYS_VS,7.0))
+        endif
+
+        ifndef VCCL
+          # look in Program Files
+          VCCL := $(call VS_FIND_FILE,Vc7/bin/cl.exe,$(addsuffix Microsoft?Visual?Studio?.NET/,$(PROGRAM_FILES_PLACES)))
+        endif
+
+        ifdef VCCL
+          VCCL := 7.0 $(VCCL)
+        endif
+      endif
+
+      ifndef VCCL
+        # search Visual 6.0 compiler
+        VCCL := $(call VS_REG_FIND_FILE,Bin/cl.exe,VisualStudio\6.0\Setup\Microsoft Visual C++,ProductDir,$(IS_WIN_64))
+
+        ifndef VCCL
+          VCCL := $(call VS_REG_FIND_FILE,VC98/Bin/cl.exe,VisualStudio\6.0\Setup\Microsoft Visual Studio,ProductDir,$(IS_WIN_64))
+        endif
+
+        ifndef VCCL
+          # look in Program Files
+          VCCL := $(call VS_FIND_FILE,VC98/Bin/cl.exe,$(addsuffix Microsoft?Visual?Studio/,$(PROGRAM_FILES_PLACES)))
+        endif
+
+        ifdef VCCL
+          VCCL := 6.0 $(VCCL)
+        endif
+      endif
+
+    endif
+  endif
 
       endif # ifeq ($(CPU),$(TCPU))
     endif
@@ -1443,10 +1656,12 @@ endif
 endif # !DO_NOT_ADJUST_PATH
 
 # protect variables from modifications in target makefiles
-$(call SET_GLOBAL,GET_PROGRAM_FILES_DIRS VS_CPU VS_CPU64 IS_WIN_64 VS_FIND_FILE_WHERE VS_FIND_FILE VS_FIND_FILE_P VS_REG_QUERY \
-  VS_REG_FIND_FILE_WHERE VS_REG_FIND_FILE VS_REG_FIND_FILE_P VS_REG_SEARCH_X VS_REG_SEARCH_WHERE VS_REG_SEARCH VS_REG_SEARCH_P \
-  VCCL_2005_PATTERN_GEN_VC VCCL_2005_PATTERN_GEN_VS VC_TOOL_PREFIX_SDK6 \
+$(call SET_GLOBAL,NORMALIZE_PATH GET_PROGRAM_FILES_DIRS VS_CPU VS_CPU64 IS_WIN_64 VS_FIND_FILE_WHERE VS_FIND_FILE VS_FIND_FILE_P \
+  VS_REG_QUERY VS_REG_FIND_FILE_WHERE VS_REG_FIND_FILE VS_REG_FIND_FILE_P \
+  VS_REG_SEARCH_X VS_REG_SEARCH_WHERE VS_REG_SEARCH VS_REG_SEARCH_P \
+  VS_SELECT_LATEST1 VS_SELECT_LATEST VC_TOOL_PREFIX_SDK6 VCCL_2005_PATTERN_GEN_VC VCCL_2005_PATTERN_GEN_VS \
   VC_TOOL_PREFIX_2005 VCCL_GET_LIBS_2005 VCCL_GET_HOST_2005 VC_TOOL_PREFIX_2017 \
-  VC_VER VCCL VC_LIB_TYPE_ONECORE VC_LIB_TYPE_STORE VS_2017_SELECT_LATEST1 VS_2017_SELECT_LATEST VS_2017_SELECT_LATEST_ENTRY \
-  VCLIBPATH VCINCLUDE VCLIB VCLINK TVCCL TVCLIBPATH TVCLIB TVCLINK \
+  VC_LIB_TYPE_ONECORE VC_LIB_TYPE_STORE VS_2017_SELECT_LATEST_ENTRY \
+  VC_VER VCCL VCLIB VCLINK VCLIBPATH VCINCLUDE \
+  TVC_VER TVCCL TVCLIB TVCLINK TVCLIBPATH TVCINCLUDE \
   VCCL_PATH_APPEND)
