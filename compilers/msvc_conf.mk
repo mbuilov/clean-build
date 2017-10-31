@@ -6,6 +6,65 @@
 
 # msvc compiler auto-configuration (app-level), included by $(CLEAN_BUILD_DIR)/compilers/msvc.mk
 
+#################################################################################################################
+# input for autoconfiguration:
+#
+# 1) VS - Visual Studio installation path
+#   may be specified if autoconfiguration (based on values of environment variables or registry keys) fails, e.g.:
+#     VS=C:\Program Files\Microsoft Visual Studio
+#     VS=C:\Program Files\Microsoft Visual Studio .NET 2003
+#     VS=C:\Program Files\Microsoft Visual Studio 14.0
+#     VS=C:\Program Files\Microsoft Visual Studio\2017
+#     VS=C:\Program Files\Microsoft Visual Studio\2017\Enterprise
+#
+#   Note: if pre-Visual Studio 2017 installation folder has non-default name, it is not possible to
+#     deduce Visual C++ version automatically - VC_VER must be specified explicitly, e.g.:
+#     VC_VER=14.0 or VC_VER=vs2015
+#
+# 2) MSVC - Visual C++ tools path
+#   may be specified instead of VS variable (VS is ignored then), e.g.:
+#     MSVC=C:\Program Files\Microsoft Visual Studio\VC98
+#     MSVC=C:\Program Files\Microsoft Visual C++ Toolkit 2003
+#     MSVC=C:\Program Files\Microsoft Visual Studio .NET 2003\Vc7
+#     MSVC=C:\Program Files\Microsoft SDKs\Windows\v6.0\VC
+#     MSVC=C:\Program Files\Microsoft Visual Studio 14.0\VC
+#     MSVC=C:\Program Files\Microsoft Visual Studio\2017\Community\VC
+#     MSVC=C:\Program Files\Microsoft Visual Studio\2017\Community\VC\Tools\MSVC\14.11.25503
+#
+# 3) VCCL - path to Visual C++ compiler cl.exe (may be in double-quotes, if contains spaces - double-quoted automatically)
+#   may be specified instead of VS or MSVC variables (they are ignored then), e.g.:
+#     VCCL=C:\Program Files\Microsoft Visual Studio\VC98\Bin\cl.exe
+#     VCCL=C:\Program Files\Microsoft Visual C++ Toolkit 2003\bin\cl.exe
+#     VCCL=C:\Program Files\Microsoft Visual Studio .NET 2003\Vc7\bin\cl.exe
+#     VCCL=C:\Program Files\Microsoft SDKs\Windows\v6.0\VC\Bin\x64\cl.exe
+#     VCCL=C:\Program Files\Microsoft Visual Studio 14.0\VC\bin\x86_amd64\cl.exe
+#     VCCL=C:\Program Files\Microsoft Visual Studio\2017\Community\VC\Tools\MSVC\14.11.25503\bin\HostX64\x86\cl.exe
+#
+# 4) VC_VER - Visual C++ version, e.g. one of: 6.0 7.0 7.1 8.0 9.0 10.0 11.0 12.0 14.0 14.10 14.11
+#   or by Visual Studio version, one of: vs2002 vs2003 vs2005 vs2008 vs2010 vs2012 vs2013 vs2015
+#   may be specified explicitly if it's not possible to deduce VC_VER automatically or to override automatically deduced value
+#
+# 5) SDK - path to Windows Software Development Kit,
+#   may be specified explicitly if failed to determine it automatically or to override automatically defined value, e.g.:
+#     SDK=C:\Program Files\Microsoft SDKs\Windows\v6.0
+#
+# 6) DDK - path to Windows Driver Development Kit,
+#   may be specified instead of SDK, because DDK contains SDK headers and libraries necessary for building simple console
+#   applications, also DDK may include C++ compilers, e.g.:
+#     DDK=C:\WinDDK\7600.16385.1
+#
+# 7) WDK - path to Windows Development Kit,
+#   may be specified instead of SDK and DDK - newer versions of SDK and DDK (8.0 and later) are combined under the same WDK path, e.g.:
+#     WDK=C:\Program Files (x86)\Windows Kits\8.0
+#
+# 8) SDK_VER/DDK_VER/WDK_VER - SDK/DDK/WDK versions,
+#   may be specified explicitly if failed to determine them automatically or to override automatically defined values, e.g. one of:
+#     SDK_VER=7.1 10.0.10240.0
+#     DDK_VER=2600 2600.1106 3790 3790.1830 6000 6001.18000 6001.18001 6001.18002 7600.16385.0 7600.16385.1 7.0.0 7.1.0 8.0 8.1 10.0.10240.0
+#     WDK_VER=10.0.16299.0
+#
+#################################################################################################################
+
 # try to autoconfigure:
 #  Visual C++ version, paths to compiler, linker and C/C++ libraries and headers
 #  - only if they are not defined in project configuration makefile or in command line
@@ -28,62 +87,6 @@
 # VCINCLUDE := C:\Program?Files?(x86)\Microsoft?Visual?Studio?14.0\VC\include
 #
 # note: VCLIBPATH or VCINCLUDE may be defined with empty values in project configuration makefile or in command line
-
-#################################################################################################################
-# input for autoconfiguration:
-#
-# 1) VS - Visual Studio installation path
-#   may be specified if autoconfiguration (based on values of environment variables or registry keys) fails, e.g.:
-#     VS=C:\Program Files\Microsoft Visual Studio
-#     VS=C:\Program Files\Microsoft Visual Studio .NET 2003
-#     VS=C:\Program Files\Microsoft Visual Studio 14.0
-#     VS=C:\Program Files\Microsoft Visual Studio\2017
-#     VS=C:\Program Files\Microsoft Visual Studio\2017\Enterprise
-#
-#   Note: if pre-Visual Studio 2017 installation folder has non-default name, it is not possible to
-#     deduce Visual C++ version automatically - VC_VER or VS_VER must be specified explicitly, e.g.:
-#     VC_VER=14.0 or VS_VER=vs2015
-#
-# 2) MSVC - Visual C++ tools path
-#   may be specified instead of VS variable (VS is ignored then), e.g.:
-#     MSVC=C:\Program Files\Microsoft Visual Studio\VC98
-#     MSVC=C:\Program Files\Microsoft Visual C++ Toolkit 2003
-#     MSVC=C:\Program Files\Microsoft Visual Studio .NET 2003\Vc7
-#     MSVC=C:\Program Files\Microsoft SDKs\Windows\v6.0\VC
-#     MSVC=C:\Program Files\Microsoft Visual Studio 14.0\VC
-#     MSVC=C:\Program Files\Microsoft Visual Studio\2017\Community\VC
-#     MSVC=C:\Program Files\Microsoft Visual Studio\2017\Community\VC\Tools\MSVC\14.11.25503
-#
-# 3) VCCL - path to Visual C++ compiler cl.exe (may be in double-quotes, if contains spaces - double-quoted automatically)
-#   may be specified instead of VS or MSVC variables (they are ignored then), e.g.:
-#     VCCL=C:\Program Files\Microsoft Visual Studio\VC98\Bin\cl.exe
-#     VCCL=C:\Program Files\Microsoft Visual C++ Toolkit 2003\bin\cl.exe
-#     VCCL=C:\Program Files\Microsoft Visual Studio .NET 2003\Vc7\bin\cl.exe
-#     VCCL=C:\Program Files\Microsoft SDKs\Windows\v6.0\VC\Bin\x64\cl.exe
-#     VCCL=C:\Program Files\Microsoft Visual Studio 14.0\VC\bin\x86_amd64\cl.exe
-#     VCCL=C:\Program Files\Microsoft Visual Studio\2017\Community\VC\Tools\MSVC\14.11.25503\bin\HostX64\x86\cl.exe
-#
-# 4) VC_VER - Visual C++ version, e.g: 6.0 7.0 7.1 8.0 9.0 10.0 11.0 12.0 14.0 14.10 14.11
-#   may be specified explicitly if it's not possible to deduce VC_VER automatically or to override automatically deduced value
-#
-# 5) VS_VER - Visual Studio version, e.g. vs2002 vs2003 vs2005 vs2008 vs2010 vs2012 vs2013 vs2015
-#   may be specified instead of VC_VER - then VC_VER will be deduced from VS_VER
-#
-# 6) SDK - path to Windows Software Development Kit,
-#   may be specified explicitly if failed to determine it automatically or to override automatically defined value, e.g.:
-#     SDK=C:\Program Files\Microsoft SDKs\Windows\v6.0
-#
-# 7) DDK - path to Windows Driver Development Kit,
-#   may be specified instead of SDK, because DDK contains SDK headers and libraries necessary for building simple console applications, e.g.:
-#     DDK=C:\WinDDK\7600.16385.1
-#
-# 8) WDK - path to Windows Development Kit,
-#   newer versions of SDK and DDK (8.0 and later) are combined in the WDK, e.g.:
-#     WDK=C:\Program Files (x86)\Windows Kits\8.0
-#
-# 9) WDK_VER - WDK version, 
-#
-#################################################################################################################
 
 # normalize path: replace spaces with ?, remove double-quotes, make all slashes backward, add trailing back-slash, e.g.:
 #  "a\b\c d\e" -> a/b/c?d/e/
@@ -307,7 +310,7 @@ VC_VER:=
 else ifneq (,$(findstring vs,$(VC_VER)))
   # map vs2015 -> 14, according VS... values defined in $(CLEAN_BUILD_DIR)/compilers/msvc_cmn.mk
   override VC_VER := $(foreach v,$(subst vs,VS,$(VC_VER)),$(if $(filter undefined environment,$(origin $v)),$(error \
-    unknown VC_VER=$(VC_VER), please use one of: vs2002, vs2003, vs2005, vs2008, vs2010, vs2012, vs2013, vs2015),$($v)))
+    unknown VC_VER=$(VC_VER), please use one of: vs2002 vs2003 vs2005 vs2008 vs2010 vs2012 vs2013 vs2015),$($v)))
 endif
 
 # subdirectory of MSVC++ libraries: <empty> or onecore
