@@ -33,6 +33,16 @@ VS2013 := 12
 VS2015 := 14
 VS2017 := 14.1
 
+# map _MSC_VER major -> MSVC++ version major
+MSC_VER_12 := 6
+MSC_VER_13 := 7
+MSC_VER_14 := 8
+MSC_VER_15 := 9
+MSC_VER_16 := 10
+MSC_VER_17 := 11
+MSC_VER_18 := 12
+MSC_VER_19 := 14
+
 # Windows tools, such as rc.exe, mc.exe, cl.exe, link.exe, produce excessive output in stdout,
 #  by default, try to filter this output out by wrapping calls to the tools.
 # If not empty, then do not wrap tools

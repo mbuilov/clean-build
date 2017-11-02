@@ -566,35 +566,25 @@ rc.exe, mc.exe, mt.exe - part of sdk
 "HKLM\SOFTWARE\Wow6432Node\Microsoft\Windows Kits\Installed Roots" KitsRoot10 C:\Program Files (x86)\Windows Kits\10\
 "HKLM\SOFTWARE\Wow6432Node\Microsoft\Windows Kits\Installed Roots\10.0.14393.0" KitsRoot10 C:\Program Files (x86)\Windows Kits\10\
 
-Windows Driver Kit 10, Version 1703 	10.0.15063 	April 2017
-??????
-
-
-
-
-
-
-
-
-
-
-
-
 ----------
 
-"d:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Tools\MSVC\14.11.25503\bin\HostX86\x86\cl.exe" - Microsoft (R) C/C++ Optimizing Compiler Version 19.11.25508.2 for x86
-"d:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Tools\MSVC\14.11.25503\bin\HostX86\x64\cl.exe" - Microsoft (R) C/C++ Optimizing Compiler Version 19.11.25508.2 for x64
+d:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Tools\MSVC\14.11.25503\bin\HostX86\x86\cl.exe - Microsoft (R) C/C++ Optimizing Compiler Version 19.11.25508.2 for x86
+d:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Tools\MSVC\14.11.25503\bin\HostX86\x64\cl.exe - Microsoft (R) C/C++ Optimizing Compiler Version 19.11.25508.2 for x64
 note: cl.exe needs mspdb140.dll: set PATH=%PATH%;d:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Tools\MSVC\14.11.25503\bin\HostX86\x86
-"d:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Tools\MSVC\14.11.25503\bin\HostX86\arm\cl.exe" - Microsoft (R) C/C++ Optimizing Compiler Version 19.11.25508.2 for ARM
+d:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Tools\MSVC\14.11.25503\bin\HostX86\arm\cl.exe - Microsoft (R) C/C++ Optimizing Compiler Version 19.11.25508.2 for ARM
 note: cl.exe needs mspdb140.dll: set PATH=%PATH%;d:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Tools\MSVC\14.11.25503\bin\HostX86\x86
 
-"d:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Tools\MSVC\14.11.25503\bin\HostX64\x64\cl.exe" - Microsoft (R) C/C++ Optimizing Compiler Version 19.11.25508.2 for x64
-"d:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Tools\MSVC\14.11.25503\bin\HostX64\x86\cl.exe" - Microsoft (R) C/C++ Optimizing Compiler Version 19.11.25508.2 for x86
+d:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Tools\MSVC\14.11.25503\bin\HostX64\x64\cl.exe - Microsoft (R) C/C++ Optimizing Compiler Version 19.11.25508.2 for x64
+d:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Tools\MSVC\14.11.25503\bin\HostX64\x86\cl.exe - Microsoft (R) C/C++ Optimizing Compiler Version 19.11.25508.2 for x86
 note: cl.exe needs mspdb140.dll: set PATH=%PATH%;d:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Tools\MSVC\14.11.25503\bin\HostX64\x64
-"d:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Tools\MSVC\14.11.25503\bin\HostX64\arm\cl.exe" - Microsoft (R) C/C++ Optimizing Compiler Version 19.11.25508.2 for ARM
+d:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Tools\MSVC\14.11.25503\bin\HostX64\arm\cl.exe - Microsoft (R) C/C++ Optimizing Compiler Version 19.11.25508.2 for ARM
 note: cl.exe needs mspdb140.dll: set PATH=%PATH%;d:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Tools\MSVC\14.11.25503\bin\HostX64\x64
 
-"c:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin\cl.exe" - Microsoft (R) C/C++ Optimizing Compiler Version 18.00.31101 for x86
+d:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Tools\MSVC\14.11.25503\include\varargs.h
+
+c:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin\cl.exe           - Microsoft (R) C/C++ Optimizing Compiler Version 18.00.31101 for x86
+c:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\bin\amd64_x86\cl.exe - Microsoft (R) C/C++ Optimizing Compiler Version 19.00.24215.1 for x86
+note: cl.exe needs mspdb140.dll: set PATH=%PATH%;c:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\bin\amd64
 
 /cygdrive/c/Program Files (x86)/Microsoft Visual Studio 10.0/VC/bin/amd64/mspdb100.dll
 /cygdrive/c/Program Files (x86)/Microsoft Visual Studio 10.0/VC/bin/amd64/mspdbcore.dll
@@ -706,3 +696,28 @@ C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\bin>x86_arm\cl.exe   - Mi
 /cygdrive/d/Program Files (x86)/Microsoft Visual Studio/2017/Community/VC/Tools/MSVC/14.11.25503/lib/onecore/{x86,x64,arm,arm64}/msvcrt.lib
 /cygdrive/d/Program Files (x86)/Microsoft Visual Studio/2017/Community/VC/Tools/MSVC/14.11.25503/lib/{x86,x64,arm,arm64}/msvcrt.lib
 /cygdrive/d/Program Files (x86)/Microsoft Visual Studio/2017/Community/VC/Tools/MSVC/14.11.25503/lib/{x86,x64,arm,arm64}/store/msvcrt.lib
+
+
+
+
+# reset VC_VER, if it's not defined in project configuration makefile or in command line
+ifneq (,$(filter undefined environment,$(origin VC_VER)))
+VC_VER:=
+else ifneq (,$(findstring vs,$(VC_VER)))
+  # map vs2015 -> 14, according VS... values defined in $(CLEAN_BUILD_DIR)/compilers/msvc_cmn.mk
+  override VC_VER := $(foreach v,$(subst vs,VS,$(VC_VER)),$(if $(filter undefined environment,$(origin $v)),$(error \
+    unknown VC_VER=$(VC_VER), please use one of: vs2002 vs2003 vs2005 vs2008 vs2010 vs2012 vs2013 vs2015),$($v)))
+else ifneq (,$(word 3,$(subst ., ,$(VC_VER))))
+  # map 12.00.8168 -> 6
+  override VC_VER := $(foreach m,$(firstword $(subst ., ,$(VC_VER))),$(foreach n,$(word 2,$(subst ., ,$(VC_VER))),$(if $(filter \
+    12,$m),6,$(if $(filter \
+    13,$m),$(if $(filter 10,$n),7.1,7),$(if $(filter \
+    14,$m),8,$(if $(filter \
+    15,$m),9,$(if $(filter \
+    16,$m),10,$(if $(filter \
+    17,$m),11,$(if $(filter \
+    18,$m),12,$(if $(filter \
+    19,$m),$(if $(filter 00,$n),14,14.1),$(error \
+    unrecognized VC_VER=$(VC_VER), please specify it as 14.0 or vs2015 or 19.00.24215.1)))))))))))
+endif
+#ifneq (,$(filter undefined environment,$(origin VCLIBPATH) $(origin VCINCLUDE))$(if $(VCCL),,1)$(if $(VC_VER),,2))
