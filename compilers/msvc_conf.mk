@@ -82,6 +82,8 @@
 #
 # note: VCLIBPATH or VCINCLUDE may be defined with empty values in project configuration makefile or in command line
 
+# ============================ functions ==============================
+
 # normalize path: replace spaces with ?, remove double-quotes, make all slashes backward, remove trailing back-slash, e.g.:
 #  "a\b\c d\e\" -> a/b/c?d/e
 NORMALIZE_PATH = $(patsubst %/,%,$(subst \,/,$(patsubst "%",%,$(subst $(space),?,$1))))
@@ -309,33 +311,55 @@ VCCL_GET_HOST_2005 = $(filter-out $2,$(firstword $(subst _, ,$1)))
 # $1 - $(CPU)
 VC_TOOL_PREFIX_2017 = Host$(subst x,X,$(TCPU:x86_64=x64))/$(1:x86_64=x64)/
 
-# reset VC_VER, if it's not defined in project configuration makefile or in command line
-VC_VER:=
+# Оптимизирующий 32-разрядный компилятор Microsoft (R) C/C++ версии 15.00.30729.01 для 80x86 -> 15 00 30729 01
+# $1 - "C:\Program Files\Microsoft Visual Studio 14.0\VC\bin\x86_amd64\cl.exe"
+CL_GET_VER = $(call CL_GET_VER1,$1,$(subst ., ,$(lastword $(foreach v,$(filter \
+  0% 1% 2% 3% 4% 5% 6% 7% 8% 9%,$(shell $(subst \,/,$1) 2>&1)),$(if $(word 3,$(subst ., ,$v)),$v)))))
 
-# reset VCCL, if it's not defined in project configuration makefile or in command line
+# map 15 00 30729 01 -> 9.00
+# $1 - "C:\Program Files\Microsoft Visual Studio 14.0\VC\bin\x86_amd64\cl.exe"
+# $2 - 15 00 30729 01
+# note: use MSC_VER_... constants defined in $(CLEAN_BUILD_DIR)/compilers/msvc_cmn.mk
+CL_GET_VER1 = $(if $2,$(if $(filter undefined environment,$(origin MSC_VER_$(firstword $2))),$(error \
+  unknown major version number $(firstword $2) of $1),$(MSC_VER_$(firstword $2)).$(word 2,$2)),$(error \
+  unable to determine version of $1))
+
+# VCCL path must use forward slashes, must be in double-quotes if contains spaces
+NORMALIZE_VCCL_PATH = $(call ifaddq,$(subst ?, ,$(patsubst "%",%,$(subst $(space),?,$(subst /,\,$1)))))
+
+# ======================== end of functions ===========================
+
+# reset {,T}VC_VER, if it's not defined in project configuration makefile or in command line
+VC_VER:=
+TVC_VER:=
+
+# reset {,T}VCCL, if it's not defined in project configuration makefile or in command line
 VCCL:=
+TVCCL:=
 
 # if VCCL is defined in project configuration makefile or in command line, check its value
 ifdef VCCL
-  # VCCL path must use forward slashes
-  override VCCL := $(subst /,\,$(VCCL))
-  ifneq (,$(findstring $(space),$(VCCL)))
-    # if $(VCCL) contains a space, it must be in double quotes
-    ifeq ($(subst $(space),?,$(VCCL)),$(patsubst "%",%,$(subst $(space),?,$(VCCL))))
-      override VCCL := "$(VCCL)"
-    endif
-  endif
+  override VCCL := $(call NORMALIZE_VCCL_PATH,$(VCCL))
 else ifdef VC_VER
   $(error VC_VER=$(VC_VER) is defined, but VCCL does not)
+endif
+
+# if TVCCL is defined in project configuration makefile or in command line, check its value
+ifdef TVCCL
+  override TVCCL := $(call NORMALIZE_VCCL_PATH,$(TVCCL))
+else ifdef TVC_VER
+  $(error TVC_VER=$(TVC_VER) is defined, but TVCCL does not)
 endif
 
 # subdirectory of MSVC++ libraries: <empty> or onecore
 # note: for Visual Studio 14.0 and later
 VC_LIB_TYPE_ONECORE:=
+TVC_LIB_TYPE_ONECORE:=
 
 # subdirectory of MSVC++ libraries: <empty> or store
 # note: for Visual Studio 14.0 and later
 VC_LIB_TYPE_STORE:=
+TVC_LIB_TYPE_STORE:=
 
 # reset variables, if they are not defined in project configuration makefile or in command line
 SDK:=
@@ -349,11 +373,20 @@ WDK_VER:=
 SDK_AUTO:=
 DDK_AUTO:=
 
+# hints of automatically defined SDK/DDK
+#  SDK_VER_AUTO - version of automatically defined SDK, e.g.: v6.0
+#  DDK_VER_AUTO - version of automatically defined DDK, e.g.:
+#    7600.16385.1 7600.16385.0 6001.18002 6001.18001 6001.18000 6000 3790.1830 3790 2600.1106 2600
+SDK_VER_AUTO:=
+DDK_VER_AUTO:=
+
 # autoconfigured paths to Visual C++ libraries and headers:
-#  VCLIBPATH_AUTO is set only if VCLIBPATH was not defined (possibly with empty value) before VCLIBPATH_AUTO was set
-#  VCINCLUDE_AUTO is set only if VCINCLUDE was not defined (possibly with empty value) before VCINCLUDE_AUTO was set
+#  {,T}VCLIBPATH_AUTO is set only if {,T}VCLIBPATH was not defined (possibly with empty value) before {,T}VCLIBPATH_AUTO was set
+#  {,T}VCINCLUDE_AUTO is set only if {,T}VCINCLUDE was not defined (possibly with empty value) before {,T}VCINCLUDE_AUTO was set
 VCLIBPATH_AUTO:=
 VCINCLUDE_AUTO:=
+TVCLIBPATH_AUTO:=
+TVCINCLUDE_AUTO:=
 
 ifdef SDK
 # SDK=C:/Program?Files/Microsoft?SDKs/Windows/v6.0
@@ -381,6 +414,8 @@ endif
 # we need next MSVC++ variables to be defined: VC_VER, VCCL, VCLIBPATH and VCINCLUDE
 # (they are may be defined either in project configuration makefile or in command line)
 # note: VCLIBPATH or VCINCLUDE may be defined as <empty>, so do not reset them
+
+# first define C++ compiler
 ifndef VCCL
 
 # reset variables, if they are not defined in project configuration makefile or in command line
@@ -427,7 +462,7 @@ MSVC:=
 # C:\Program Files\Microsoft Visual Studio\2017\Community\VC\Tools\MSVC\14.11.25503\lib\onecore\{x86,x64,arm}\msvcrt.lib
 # C:\Program Files\Microsoft Visual Studio\2017\Community\VC\Tools\MSVC\14.11.25503\lib\{x86,x64,arm}\store\msvcrt.lib
 
-# take the newer one found cl.exe, e.g.:
+# take the newer cl.exe among found ones, e.g.:
 #  $1=bin/HostX86/x64/cl.exe
 #  $2=C:/Program?Files/Microsoft?Visual?Studio/2017/Community/ \
 #     C:/Program Files/Microsoft Visual Studio/2017/Community/VC/Tools/MSVC/14.10.25017/bin/HostX86/x64/cl.exe \
@@ -435,7 +470,6 @@ MSVC:=
 # result: C:/Program Files/Microsoft Visual Studio/2017/Community/VC/Tools/MSVC/14.11.25503/bin/HostX86/x64/cl.exe
 VS_2017_SELECT_LATEST_ENTRY = $(subst ?, ,$(VS_SELECT_LATEST))
 
-ifndef VCCL
 ifndef MSVC
 ifndef VS
 
@@ -464,9 +498,7 @@ ifndef VS
   endif
 endif
 endif
-endif
 
-ifndef VCCL
 ifndef MSVC
 ifndef VS
 
@@ -478,7 +510,6 @@ ifndef VS
     VS := $(VSINSTALLDIR)
 
   endif
-endif
 endif
 endif
 
@@ -494,12 +525,11 @@ override VS := $(call NORMALIZE_PATH,$(VS))
 endif
 endif
 
-ifndef VCCL
 ifndef MSVC
 ifndef VS
-  # define VCCL from values of VS*COMNTOOLS environment variables (that may be set by the vcvars32.bat)
+  # try to define VCCL from values of VS*COMNTOOLS environment variables (that may be set by the vcvars32.bat)
 
-  # try to extract Visual Studio installation paths from values of VS*COMNTOOLS variables,
+  # extract Visual Studio installation paths from values of VS*COMNTOOLS variables,
   #  e.g. VS140COMNTOOLS=C:\Program Files\Microsoft Visual Studio 14.0\Common7\Tools\
   #   or  VS150COMNTOOLS=C:\Program Files\Microsoft Visual Studio\2017\Community\Common7\Tools\
   # note: return sorted values, starting from the greatest tools version
@@ -626,7 +656,6 @@ ifndef VS
 
 endif
 endif
-endif
 
 ifndef VCCL
 ifndef MSVC
@@ -710,8 +739,13 @@ ifndef VS
 
       # e.g.: C:/my ddks/WinDDK/7600.16385.1/bin/x86/x86/cl.exe
       VCCL := $(call VS_REG_FIND_FILE,$(CL_DDK6),$(DDK_71_REG_PATH),setup-install-location,$(IS_WIN_64))
-      ifndef VCCL
+      ifdef VCCL
+        DDK_VER_AUTO := 7600.16385.1
+      else
         VCCL := $(call VS_REG_FIND_FILE,$(CL_DDK6),$(DDK_70_REG_PATH),setup-install-location,$(IS_WIN_64))
+        ifdef VCCL
+          DDK_VER_AUTO := 7600.16385.0
+        endif
       endif
 
       ifdef VCCL
@@ -746,6 +780,7 @@ ifndef VS
         ifdef VCCL
           # e.g.: C:/Program?Files/Microsoft?SDKs/Windows/v6.0
           SDK_AUTO := $(patsubst %/$(CL_SDK6),%,$(subst $(space),?,$(VCCL)))
+          SDK_VER_AUTO := v6.0
         endif
 
       endif
@@ -768,9 +803,26 @@ ifndef VS
 
       # e.g.: C:/my ddks/WinDDK/6001.18002/bin/x86/x86/cl.exe
       VCCL := $(call VS_REG_FIND_FILE,$(CL_DDK6),$(DDK_62_REG_PATH),setup-install-location,$(IS_WIN_64))
-      ifndef VCCL
+      ifdef VCCL
+        DDK_VER_AUTO := 6001.18002
+      else
         # check registry for Windows Driver Kit – Server 2008 (x86, x64, ia64)   6001.18001  April 1, 2008
         VCCL := $(call VS_REG_FIND_FILE,$(CL_DDK6),WINDDK\6001.18001\Setup,BUILD,$(IS_WIN_64))
+        ifdef VCCL
+          DDK_VER_AUTO := 6001.18001
+        else
+          # check registry for Windows Driver Kit – Server 2008 (x86, x64, ia64)  6001.18000  Jan 2008
+          VCCL := $(call VS_REG_FIND_FILE,$(CL_DDK6),WINDDK\6001.18000\Setup,BUILD,$(IS_WIN_64))
+          ifdef VCCL
+            DDK_VER_AUTO := 6001.18000
+          else
+            # check registry for Windows Driver Kit for Windows Vista 6000 November 29, 2006
+            VCCL := $(call VS_REG_FIND_FILE,$(CL_DDK6),WINDDK\6000\Setup,BUILD,$(IS_WIN_64))
+            ifdef VCCL
+              DDK_VER_AUTO := 6000
+            endif
+          endif
+        endif
       endif
 
       ifdef VCCL
@@ -815,9 +867,14 @@ ifndef VS
       # check registry for Windows Server 2003 SP1 DDK
       # e.g.: C:/my ddks/WinDDK/3790.1830/bin/x86/cl.exe
       VCCL := $(call VS_REG_FIND_FILE,$(CL_DDK_3790),WINDDK\3790.1830,LFNDirectory,$(IS_WIN_64))
-      ifndef VCCL
+      ifdef VCCL
+        DDK_VER_AUTO := 3790.1830
+      else
         # check registry for Windows Server 2003 DDK 3790
         VCCL := $(call VS_REG_FIND_FILE,$(CL_DDK_3790),WINDDK\3790,LFNDirectory,$(IS_WIN_64))
+        ifdef VCCL
+          DDK_VER_AUTO := 3790
+        endif
       endif
 
       ifdef VCCL
@@ -856,9 +913,14 @@ ifndef VS
         # check registry for Windows XP SP1 DDK 2600.1106
         # e.g.: C:/my ddks/WinDDK/2600.1106/bin/x86/cl.exe
         VCCL := $(call VS_REG_FIND_FILE,$(CL_DDK_2600),WINDDK\2600.1106,LFNDirectory,$(IS_WIN_64))
-        ifndef VCCL
+        ifdef VCCL
+          DDK_VER_AUTO := 2600.1106
+        else
           # check registry for DDK for Windows XP
           VCCL := $(call VS_REG_FIND_FILE,$(CL_DDK_2600),WINDDK\2600,LFNDirectory,$(IS_WIN_64))
+          ifdef VCCL
+            DDK_VER_AUTO := 2600
+          endif
         endif
 
         ifdef VCCL
@@ -967,14 +1029,14 @@ ifndef MSVC
   # select appropriate compiler for the $(CPU)
   VCCL_2017_PREFIXED := bin/$(call VC_TOOL_PREFIX_2017,$(CPU))cl.exe
 
-  # e.g. VCCL=C:/Program Files/Microsoft Visual Studio/2017/Community/VC/Tools/MSVC/14.11.25503/bin/HostX64/x86/cl.exe
-  VCCL := $(call VS_DEDUCE_VCCL,$(wildcard $(VS_WILD)*/VC/Tools/MSVC/*/$(VCCL_2017_PREFIXED)))
-
   # if there are multiple Visual Studio editions, select which have the latest compiler,
   #  or may be VS specified with Visual Studio edition type?
   # $1 - C:/Program Files/Microsoft Visual Studio/2017/Community/VC/Tools/MSVC/14.11.25503/bin/HostX64/x86/cl.exe
   VS_DEDUCE_VCCL = $(call VS_2017_SELECT_LATEST_ENTRY,$(VCCL_2017_PREFIXED),$(VS)/ $(if \
     $1,$1,$(wildcard $(VS_WILD)VC/Tools/MSVC/*/$(VCCL_2017_PREFIXED))))
+
+  # e.g. VCCL=C:/Program Files/Microsoft Visual Studio/2017/Community/VC/Tools/MSVC/14.11.25503/bin/HostX64/x86/cl.exe
+  VCCL := $(call VS_DEDUCE_VCCL,$(wildcard $(VS_WILD)*/VC/Tools/MSVC/*/$(VCCL_2017_PREFIXED)))
 
   ifndef VCCL
     # may be Visual Studio 2005-2015?
@@ -1053,6 +1115,7 @@ ifndef VCCL
       ifndef WDK
         # e.g.: C:/Program?Files/Microsoft?SDKs/Windows/v6.0
         SDK_AUTO := $(MSVC_PARENT)
+        SDK_VER_AUTO := v6.0
       endif
       endif
       endif
@@ -1110,387 +1173,24 @@ endif # define VCCL from $(MSVC)
 
 endif # !VCCL
 
-# ok, VCCL is defined,
-# deduce VC_VER, VCLIBPATH and VCINCLUDE values from $(VCCL)
 
-# by default, allow adjusting environment variable PATH so cl.exe may find needed dlls
-CL_DO_NOT_ADJUST_PATH:=
 
-ifndef CL_DO_NOT_ADJUST_PATH
 
-  # remember if environment variable PATH was changed
-  VCCL_PATH_APPEND:=
 
-  # compilers that need additional paths:
-  #  C:\Program Files\Microsoft Visual Studio                                                  VC98\Bin\cl.exe
-  #  C:\Program Files\Microsoft Visual Studio .NET 2003                                        Vc7\bin\cl.exe
-  #  C:\Program Files\Microsoft Visual Studio 8                                                VC\bin\cl.exe
-  #  C:\Program Files\Microsoft Visual Studio 8                                                VC\bin\x86_amd64\cl.exe
-  #  C:\Program Files\Microsoft Visual Studio 8                                                VC\bin\x86_ia64\cl.exe
-  #  C:\Program Files\Microsoft Visual Studio 8                                                VC\bin\amd64\cl.exe
-  #  C:\Program Files\Microsoft Visual Studio 8                                                VC\bin\ia64\cl.exe
-  #  C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Tools\MSVC\14.11.25503   bin\HostX86\x86\cl.exe
-  #  C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Tools\MSVC\14.11.25503   bin\HostX86\x64\cl.exe
-  #  C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Tools\MSVC\14.11.25503   bin\HostX86\arm\cl.exe
-  #  C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Tools\MSVC\14.11.25503   bin\HostX64\x64\cl.exe
-  #  C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Tools\MSVC\14.11.25503   bin\HostX64\x86\cl.exe
-  #  C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Tools\MSVC\14.11.25503   bin\HostX64\arm\cl.exe
 
-  # adjust environment variable PATH so cl.exe, lib.exe and link.exe will find their dlls
-  VCCL_PARENT1 := $(patsubst %\,%,$(dir $(patsubst "%",%,$(subst $(space),?,$(VCCL)))))
-  VCCL_PARENT2 := $(patsubst %\,%,$(dir $(VCCL_PARENT1)))
-  VCCL_PARENT3 := $(patsubst %\,%,$(dir $(VCCL_PARENT2)))
-  VCCL_ENTRY1l := $(call tolower,$(notdir $(VCCL_PARENT1)))
-  VCCL_ENTRY2l := $(call tolower,$(notdir $(VCCL_PARENT2)))
-  VCCL_ENTRY3l := $(call tolower,$(notdir $(VCCL_PARENT3)))
 
-  ifneq (,$(filter host%,$(VCCL_ENTRY2l)))
-    # Visual Studio 2017 or later:
-    #  VCCL="C:\Program Files\Microsoft Visual Studio\2017\Community\VC\Tools\MSVC\14.11.25503\bin\HostX64\x86\cl.exe"
 
-    VCCL_HOST := $(patsubst host%,%,$(VCCL_ENTRY2l))
 
-    # if cross-compiling, add path to host dlls
-    ifneq ($(VCCL_HOST),$(VCCL_ENTRY1l))
-      VCCL_PATH_APPEND := $(VCCL_PARENT2)\$(VCCL_HOST)
-    endif
-
-  else ifeq (vc bin,$(VCCL_ENTRY2l) $(VCCL_ENTRY1l))
-    # Visual Studio 2005-2015:
-    #  VCCL="C:\Program Files\Microsoft Visual Studio 8\VC\bin\cl.exe"
-    #  VCCL="C:\Program Files\Microsoft SDKs\Windows\v6.0\VC\Bin\cl.exe"
-
-    #  add path to $(VS)\Common7\IDE if compiling on x86 host
-    COMMON7_IDE_PATH := $(VCCL_PARENT3)\Common7\IDE
-
-    # note: Visual Studio 2013 does not contain mspdb120.dll in $(VS)\Common7\IDE directory
-    ifneq (,$(wildcard $(subst ?,\ ,$(subst \,/,$(COMMON7_IDE_PATH)))/mspdb*0.dll))
-      VCCL_PATH_APPEND := $(COMMON7_IDE_PATH)
-    endif
-
-  else ifeq (vc7 bin,$(VCCL_ENTRY2l) $(VCCL_ENTRY1l))
-    # for Visual Studio 2002-2003
-    VCCL_PATH_APPEND := $(VCCL_PARENT3)\Common7\IDE
-
-  else ifeq (vc98 bin,$(VCCL_ENTRY2l) $(VCCL_ENTRY1l))
-    # for Visual Studio 6.0
-    VCCL_PATH_APPEND := $(VCCL_PARENT3)\Common\MSDev98\Bin
-
-  else ifeq (vc bin,$(VCCL_ENTRY3l) $(VCCL_ENTRY2l))
-    # Visual Studio 2005-2015:
-    #  VCCL="C:\Program Files\Microsoft Visual Studio 8\VC\bin\x86_amd64\cl.exe"
-    #  VCCL="C:\Program Files\Microsoft SDKs\Windows\v6.0\VC\Bin\x64\cl.exe"
-
-    # x64       -> VCCL_HOST_PREF=\x64   VC_LIBS_PREF=\x64
-    # amd64     -> VCCL_HOST_PREF=\amd64 VC_LIBS_PREF=\amd64
-    # amd64_x86 -> VCCL_HOST_PREF=\amd64 VC_LIBS_PREF=
-    # x86_amd64 -> VCCL_HOST_PREF=       VC_LIBS_PREF=\amd64
-    VCCL_CPU       := $(call VS_SELECT_CPU,$(subst \,/,$(VCCL_PARENT1)))
-    VCCL_HOST_PREF := $(addprefix \,$(call VCCL_GET_HOST_2005,$(VCCL_ENTRY1l),$(VCCL_CPU)))
-    VC_LIBS_PREF   := $(call VCCL_GET_LIBS_2005,$(VCCL_ENTRY1l),$(VCCL_CPU))
-
-    # if cross-compiling, add path to host dlls
-    # note: some dlls are may be in $(VS)\Common7\IDE
-    ifneq ($(VCCL_HOST_PREF),$(VC_LIBS_PREF))
-      VCCL_PATH_APPEND := $(VCCL_PARENT2)$(VCCL_HOST_PREF)
-    endif
-
-    ifndef VCCL_HOST_PREF
-      # add path to $(VS)\Common7\IDE if compiling on $(VS_CPU) host
-      # note: needed only for Visual Studio 2012 and before
-
-      # VCCL="C:\Program Files\Microsoft Visual Studio 14.0\VC\bin\x86_amd64\cl.exe"
-      COMMON7_IDE_PATH := $(dir $(VCCL_PARENT3))Common7\IDE
-
-      ifneq (,$(wildcard $(subst ?,\ ,$(subst \,/,$(COMMON7_IDE_PATH)))/mspdb*0.dll))
-        VCCL_PATH_APPEND := $(COMMON7_IDE_PATH)
-      endif
-    endif
-
-  endif
-
-  ifdef VCCL_PATH_APPEND
-    override PATH := $(PATH);$(subst ?, ,$(VCCL_PATH_APPEND))
-  endif
-
-  # PATH was adjusted, do not adjust it if read PATH variable from generated project configuration makefile
-  CL_DO_NOT_ADJUST_PATH := 1
-
-endif # !CL_DO_NOT_ADJUST_PATH
+# ok, VCCL is defined, deduce VC_VER from it, but first ensure that cl.exe will run
+include $(CLEAN_BUILD_DIR)/compilers/msvc_cl_path.mk
 
 ifndef VC_VER
-  # Оптимизирующий 32-разрядный компилятор Microsoft (R) C/C++ версии 15.00.30729.01 для 80x86   ->  15 00
-  CL_VER := $(wordlist 1,2,$(subst ., ,$(lastword $(foreach v,$(filter \
-    0% 1% 2% 3% 4% 5% 6% 7% 8% 9%,$(shell $(subst \,/,$(VCCL)) 2>&1)),$(if $(word 3,$(subst ., ,$v)),$v)))))
-
-  ifndef CL_VER
-    $(error unable to determine version of VCCL=$(VCCL))
-  endif
-
-  # map 12 00 -> 6.00
-  VC_VER := $(foreach m,$(firstword $(CL_VER)),$(if $(filter undefined environment,$(origin MSC_VER_$m)),$(error \
-    unknown VCCL=$(VCCL) compiler major version number: $m),$(MSC_VER_$m).$(lastword $(CL_VER))))
-
+  VC_VER := $(call CL_GET_VER,$(VCCL))
   $(warning autoconfigured: VC_VER=$(VC_VER))
 endif
 
-# define VCLIBPATH_AUTO and VCINCLUDE_AUTO
-ifneq (,$(filter undefined environment,$(origin VCLIBPATH) $(origin VCINCLUDE)))
-
-  # paths to cl.exe:
-  #  C:\Program Files\Microsoft Visual Studio                                                  VC98\Bin\cl.exe
-  #  C:\Program Files\Microsoft Visual Studio .NET 2003                                        Vc7\bin\cl.exe
-  #  C:\Program Files\Microsoft Visual C++ Toolkit 2003                                        bin\cl.exe
-  #  C:\Program Files\Microsoft Platform SDK for Windows Server 2003 R2                        Bin\win64\cl.exe           -- do not handle
-  #  C:\Program Files\Microsoft Platform SDK for Windows Server 2003 R2                        Bin\win64\x86\AMD64\cl.exe -- do not handle
-  #  C:\Program Files\Microsoft Visual Studio 8                                                VC\bin\cl.exe
-  #  C:\Program Files\Microsoft Visual Studio 8                                                VC\bin\x86_amd64\cl.exe
-  #  C:\Program Files\Microsoft Visual Studio 8                                                VC\bin\x86_ia64\cl.exe
-  #  C:\Program Files\Microsoft Visual Studio 8                                                VC\bin\amd64\cl.exe
-  #  C:\Program Files\Microsoft Visual Studio 8                                                VC\bin\ia64\cl.exe
-  #  C:\Program Files\Microsoft SDKs\Windows                                                   v6.0\VC\Bin\cl.exe
-  #  C:\Program Files\Microsoft SDKs\Windows                                                   v6.0\VC\Bin\x64\cl.exe
-  #  C:\WINDDK\3790.1830                                                                       bin\x86\cl.exe
-  #  C:\WINDDK\3790.1830                                                                       bin\ia64\cl.exe
-  #  C:\WINDDK\3790.1830                                                                       bin\win64\x86\cl.exe
-  #  C:\WINDDK\3790.1830                                                                       bin\win64\x86\amd64\cl.exe
-  #  C:\WinDDK\6001.18002                                                                      bin\x86\x86\cl.exe
-  #  C:\WinDDK\6001.18002                                                                      bin\x86\amd64\cl.exe
-  #  C:\WinDDK\6001.18002                                                                      bin\x86\ia64\cl.exe
-  #  C:\WinDDK\6001.18002                                                                      bin\ia64\ia64\cl.exe
-  #  C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Tools\MSVC\14.11.25503   bin\HostX86\x86\cl.exe
-  #  C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Tools\MSVC\14.11.25503   bin\HostX86\x64\cl.exe
-  #  C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Tools\MSVC\14.11.25503   bin\HostX86\arm\cl.exe
-  #  C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Tools\MSVC\14.11.25503   bin\HostX64\x64\cl.exe
-  #  C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Tools\MSVC\14.11.25503   bin\HostX64\x86\cl.exe
-  #  C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Tools\MSVC\14.11.25503   bin\HostX64\arm\cl.exe
-
-  # VCCL="C:\Program Files\Microsoft Visual Studio\VC98\Bin\cl.exe"
-  VCCL_PARENT1 := $(patsubst %/,%,$(dir $(subst \,/,$(patsubst "%",%,$(subst $(space),?,$(VCCL))))))
-  VCCL_PARENT2 := $(patsubst %/,%,$(dir $(VCCL_PARENT1)))
-  VCCL_PARENT3 := $(patsubst %/,%,$(dir $(VCCL_PARENT2)))
-  VCCL_PARENT4 := $(patsubst %/,%,$(dir $(VCCL_PARENT3)))
-  VCCL_ENTRY1l := $(call tolower,$(notdir $(VCCL_PARENT1)))
-  VCCL_ENTRY2l := $(call tolower,$(notdir $(VCCL_PARENT2)))
-  VCCL_ENTRY3l := $(call tolower,$(notdir $(VCCL_PARENT3)))
-
-  ifeq (bin,$(VCCL_ENTRY3l))
-    ifneq (,$(filter host%,$(VCCL_ENTRY2l)))
-      # VCCL="C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Tools\MSVC\14.11.25503\bin\HostX86\x86\cl.exe"
-      # VCCL="C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Tools\MSVC\14.11.25503\bin\HostX86\x64\cl.exe"
-      # VCCL="C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Tools\MSVC\14.11.25503\bin\HostX86\arm\cl.exe"
-      # VCCL="C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Tools\MSVC\14.11.25503\bin\HostX64\x64\cl.exe"
-      # VCCL="C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Tools\MSVC\14.11.25503\bin\HostX64\x86\cl.exe"
-      # VCCL="C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Tools\MSVC\14.11.25503\bin\HostX64\arm\cl.exe"
-
-      ifneq (,$(filter undefined environment,$(origin VCLIBPATH)))
-        # C:\Program Files\Microsoft Visual Studio\2017\Community\VC\Tools\MSVC\14.11.25503\lib\x64\msvcrt.lib
-        # C:\Program Files\Microsoft Visual Studio\2017\Community\VC\Tools\MSVC\14.11.25503\lib\x64\store\msvcrt.lib
-        # C:\Program Files\Microsoft Visual Studio\2017\Community\VC\Tools\MSVC\14.11.25503\lib\onecore\x64\msvcrt.lib
-        MSVCRTLIB_PATH := $(VCCL_PARENT4)/lib$(VC_LIB_TYPE_ONECORE:%=/%)/$(VCCL_ENTRY1l)$(VC_LIB_TYPE_STORE:%=/%)/msvcrt.lib
-        VCLIBPATH_AUTO := $(call CHECK_FILE_PATH,$(MSVCRTLIB_PATH))
-
-        ifndef VCLIBPATH_AUTO
-          $(error unable to autoconfigure VCLIBPATH for VCCL=$(VCCL): file does not exist:$(if \
-            ,)$(newline)$(call PATH_PRINTABLE,$(MSVCRTLIB_PATH))$(if \
-            ,)$(newline)please specify VCLIBPATH explicitly, e.g.:$(if \
-            ,)$(newline)VCLIBPATH=$(subst /,\,$(VCCL_PARENT4))\lib\$(CPU:x86_64=x64))
-        endif
-      endif
-
-      ifneq (,$(filter undefined environment,$(origin VCINCLUDE)))
-        # C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Tools\MSVC\14.11.25503\include\varargs.h
-        VARARGS_H_PATH := $(VCCL_PARENT4)/include/varargs.h
-        VCINCLUDE_AUTO := $(call CHECK_FILE_PATH,$(VARARGS_H_PATH))
-
-        ifndef VCINCLUDE_AUTO
-          $(error unable to autoconfigure VCINCLUDE for VCCL=$(VCCL): file does not exist:$(if \
-            ,)$(newline)$(call PATH_PRINTABLE,$(VARARGS_H_PATH))$(if \
-            ,)$(newline)please specify VCINCLUDE explicitly, e.g.:$(if \
-            ,)$(newline)VCINCLUDE=$(subst /,\,$(VCCL_PARENT4))\include)
-        endif
-      endif
-
-    endif
-  endif
-
-  ifeq (bin,$(VCCL_ENTRY1l))
-    # VCCL="C:\Program Files\Microsoft Visual Studio\VC98\Bin\cl.exe"
-    # VCCL="C:\Program Files\Microsoft Visual Studio .NET\Vc7\bin\cl.exe"
-    # VCCL="C:\Program Files\Microsoft Visual Studio .NET 2003\Vc7\bin\cl.exe"
-    # VCCL="C:\Program Files\Microsoft Visual C++ Toolkit 2003\bin\cl.exe"
-    # VCCL="C:\Program Files\Microsoft SDKs\Windows\v6.0\VC\Bin\cl.exe"
-    # VCCL="C:\Program Files\Microsoft Visual Studio 14.0\VC\bin\cl.exe"
-
-    ifneq (,$(filter undefined environment,$(origin VCLIBPATH)))
-      MSVCRTLIB_PATH := $(VCCL_PARENT2)/lib/msvcrt.lib
-      VCLIBPATH_AUTO := $(call CHECK_FILE_PATH,$(MSVCRTLIB_PATH))
-
-      ifndef VCLIBPATH_AUTO
-        $(error unable to autoconfigure VCLIBPATH for VCCL=$(VCCL): file does not exist:$(if \
-          ,)$(newline)$(call PATH_PRINTABLE,$(MSVCRTLIB_PATH))$(if \
-          ,)$(newline)please specify VCLIBPATH explicitly, e.g.:$(if \
-          ,)$(newline)VCLIBPATH=$(subst /,\,$(VCCL_PARENT2))\lib)
-      endif
-    endif
-
-    ifneq (,$(filter undefined environment,$(origin VCINCLUDE)))
-      VARARGS_H_PATH := $(VCCL_PARENT2)/include/varargs.h
-      VCINCLUDE_AUTO := $(call CHECK_FILE_PATH,$(VARARGS_H_PATH))
-
-      ifndef VCINCLUDE_AUTO
-        $(error unable to autoconfigure VCINCLUDE for VCCL=$(VCCL): file does not exist:$(if \
-          ,)$(newline)$(call PATH_PRINTABLE,$(VARARGS_H_PATH))$(if \
-          ,)$(newline)please specify VCINCLUDE explicitly, e.g.:$(if \
-          ,)$(newline)VCINCLUDE=$(subst /,\,$(VCCL_PARENT2))\include)
-      endif
-    endif
-
-  endif
-
-  ifeq (vc bin,$(VCCL_ENTRY3l) $(VCCL_ENTRY2l))
-    # VCCL="C:\Program Files\Microsoft SDKs\Windows\v6.0\VC\Bin\x64\cl.exe"
-    # VCCL="C:\Program Files\Microsoft Visual Studio 14.0\VC\bin\x86_amd64\cl.exe"
-
-    ifneq (,$(filter undefined environment,$(origin VCLIBPATH)))
-      # C:\Program Files\Microsoft SDKs\Windows\v6.0\VC\LIB\x64\msvcrt.lib
-      # C:\Program Files\Microsoft Visual Studio 14.0\VC\lib\onecore\arm\msvcrt.lib
-      # C:\Program Files\Microsoft Visual Studio 14.0\VC\lib\onecore\msvcrt.lib
-      # C:\Program Files\Microsoft Visual Studio 14.0\VC\lib\store\amd64\msvcrt.lib
-      MSVCRTLIB_PATH := $(VCCL_PARENT3)/lib$(VC_LIB_TYPE_ONECORE:%=/%)$(VC_LIB_TYPE_STORE:%=/%)$(call \
-        VCCL_GET_LIBS_2005,$(VCCL_ENTRY1l),$(call VS_SELECT_CPU,$(VCCL_PARENT3)))/msvcrt.lib
-      VCLIBPATH_AUTO := $(call CHECK_FILE_PATH,$(MSVCRTLIB_PATH))
-
-      ifndef VCLIBPATH_AUTO
-        $(error unable to autoconfigure VCLIBPATH for VCCL=$(VCCL): file does not exist:$(if \
-          ,)$(newline)$(call PATH_PRINTABLE,$(MSVCRTLIB_PATH))$(if \
-          ,)$(newline)please specify VCLIBPATH explicitly, e.g.:$(if \
-          ,)$(newline)VCLIBPATH=$(subst /,\,$(VCCL_PARENT3))\lib\$(CPU:x86_64=amd64))
-      endif
-    endif
-
-    ifneq (,$(filter undefined environment,$(origin VCINCLUDE)))
-      # C:\Program Files\Microsoft SDKs\Windows\v6.0\VC\INCLUDE\varargs.h
-      # C:\Program Files\Microsoft Visual Studio 14.0\VC\include\varargs.h
-      VARARGS_H_PATH := $(VCCL_PARENT3)/include/varargs.h
-      VCINCLUDE_AUTO := $(call CHECK_FILE_PATH,$(VARARGS_H_PATH))
-
-      ifndef VCINCLUDE_AUTO
-        $(error unable to autoconfigure VCINCLUDE for VCCL=$(VCCL): file does not exist:$(if \
-          ,)$(newline)$(call PATH_PRINTABLE,$(VARARGS_H_PATH))$(if \
-          ,)$(newline)please specify VCINCLUDE explicitly, e.g.:$(if \
-          ,)$(newline)VCINCLUDE=$(subst /,\,$(VCCL_PARENT3))\include)
-      endif
-    endif
-
-  endif
-
-  ifeq (bin,$(VCCL_ENTRY3l)
-    ifeq (,$(filter win64 host%,$(VCCL_ENTRY2l)))
-      # VCCL="C:\WinDDK\6001.18002\bin\x86\x86\cl.exe"
-      # VCCL="C:\WinDDK\6001.18002\bin\x86\amd64\cl.exe"
-      # VCCL="C:\WinDDK\6001.18002\bin\x86\ia64\cl.exe"
-      # VCCL="C:\WinDDK\6001.18002\bin\ia64\ia64\cl.exe"
-
-      ifneq (,$(filter undefined environment,$(origin VCLIBPATH)))
-        # C:\WinDDK\6001.18001\lib\crt\{i386,amd64,ia64}\msvcrt.lib
-        MSVCRTLIB_PATH := $(VCCL_PARENT4)/lib/crt/$(patsubst x86,i386,$(CPU:x86_64=amd64))/msvcrt.lib
-        VCLIBPATH_AUTO := $(call CHECK_FILE_PATH,$(MSVCRTLIB_PATH))
-
-        ifndef VCLIBPATH_AUTO
-          $(error unable to autoconfigure VCLIBPATH for VCCL=$(VCCL): file does not exist:$(if \
-            ,)$(newline)$(call PATH_PRINTABLE,$(MSVCRTLIB_PATH))$(if \
-            ,)$(newline)please specify VCLIBPATH explicitly, e.g.:$(if \
-            ,)$(newline)VCLIBPATH=$(subst /,\,$(VCCL_PARENT4))\lib\crt\$(patsubst x86,i386,$(CPU:x86_64=amd64)))
-        endif
-      endif
-
-    ifneq (,$(filter undefined environment,$(origin VCINCLUDE)))
-      # C:\WinDDK\6001.18001\inc\crt\varargs.h
-      VARARGS_H_PATH := $(VCCL_PARENT4)/inc/crt/varargs.h
-      VCINCLUDE_AUTO := $(call CHECK_FILE_PATH,$(VARARGS_H_PATH))
-
-      ifndef VCINCLUDE_AUTO
-        $(error unable to autoconfigure VCINCLUDE for VCCL=$(VCCL): file does not exist:$(if \
-          ,)$(newline)$(call PATH_PRINTABLE,$(VARARGS_H_PATH))$(if \
-          ,)$(newline)please specify VCINCLUDE explicitly, e.g.:$(if \
-          ,)$(newline)VCINCLUDE=$(subst /,\,$(VCCL_PARENT4))\inc\crt)
-      endif
-    endif
-
-  endif
-
-  ifndef VCLIBPATH_AUTO
-  ifndef VCINCLUDE_AUTO
-    # VCCL="C:\WINDDK\3790.1830\bin\x86\cl.exe"
-    # VCCL="C:\WINDDK\3790.1830\bin\ia64\cl.exe"
-    # VCCL="C:\WINDDK\3790.1830\bin\win64\x86\cl.exe"
-    # VCCL="C:\Program Files\Microsoft Platform SDK for Windows Server 2003 R2\Bin\win64\x86\AMD64\cl.exe"
-    # VCCL="C:\WINDDK\3790.1830\bin\win64\x86\amd64\cl.exe"
-
-    ifeq (bin,$(VCCL_ENTRY2l))
-      VCCL_PARENTx := $(VCCL_PARENT3)
-    else ifeq (bin,$(VCCL_ENTRY3l))
-      VCCL_PARENTx := $(VCCL_PARENT4)
-    else
-      VCCL_PARENTx := $(patsubst %/,%,$(dir $(VCCL_PARENT4)))
-    endif
-
-    ifneq (,$(filter undefined environment,$(origin VCLIBPATH)))
-      # C:\WINDDK\3790.1830\lib\crt\{i386,amd64,ia64}\msvcrt.lib
-      MSVCRTLIB_PATH1 := $(VCCL_PARENTx)/lib/crt/$(patsubst x86,i386,$(CPU:x86_64=amd64))/msvcrt.lib
-      VCLIBPATH_AUTO := $(call CHECK_FILE_PATH,$(MSVCRTLIB_PATH1))
-
-      ifndef VCLIBPATH_AUTO
-        # C:\WINDDK\2600\lib\wxp\{i386,ia64}\msvcrt.lib
-        # C:\WINDDK\2600.1106\lib\wxp\{i386,ia64}\msvcrt.lib
-        # C:\WINDDK\3790\lib\wxp\{i386,ia64}\msvcrt.lib
-        # C:\WINDDK\3790\lib\wnet\{i386,amd64,ia64}\msvcrt.lib
-        MSVCRTLIB_PATH2 := $(VCCL_PARENTx)/lib/$(call \
-          WIN_NAME_FROM_WINVARIANT,$(WINVARIANT))/$(patsubst x86,i386,$(CPU:x86_64=amd64))/msvcrt.lib
-        VCLIBPATH_AUTO := $(call CHECK_FILE_PATH,$(MSVCRTLIB_PATH2))
-
-        ifndef VCLIBPATH_AUTO
-          # C:\Program Files\Microsoft Platform SDK for Windows Server 2003 R2\Lib\{AMD64,IA64}\msvcrt.Lib
-          MSVCRTLIB_PATH3 := $(VCCL_PARENTx)/lib/$(CPU:x86_64=amd64)/msvcrt.lib
-          VCLIBPATH_AUTO := $(call CHECK_FILE_PATH,$(MSVCRTLIB_PATH3))
-
-          ifndef VCLIBPATH_AUTO
-            $(error unable to autoconfigure VCLIBPATH for VCCL=$(VCCL): files do not exist:$(if \
-              ,)$(newline)$(call PATH_PRINTABLE,$(MSVCRTLIB_PATH1))$(if \
-              ,)$(newline)$(call PATH_PRINTABLE,$(MSVCRTLIB_PATH2))$(if \
-              ,)$(newline)$(call PATH_PRINTABLE,$(MSVCRTLIB_PATH3))$(if \
-              ,)$(newline)please specify VCLIBPATH explicitly, e.g.:$(if \
-              ,)$(newline)VCLIBPATH=$(subst /,\,$(VCCL_PARENTx))\lib\crt\$(patsubst x86,i386,$(CPU:x86_64=amd64)))
-          endif
-        endif
-      endif
-    endif
-
-    ifneq (,$(filter undefined environment,$(origin VCINCLUDE)))
-      # C:\WINDDK\3790.1830\inc\crt\varargs.h
-      VARARGS_H_PATH1 := $(VCCL_PARENTx)/inc/crt/varargs.h
-      VCINCLUDE_AUTO := $(call CHECK_FILE_PATH,$(VARARGS_H_PATH1))
-
-      ifndef VCINCLUDE_AUTO
-        # C:\Program Files\Microsoft Platform SDK for Windows Server 2003 R2\Include\crt\varargs.h
-        VARARGS_H_PATH2 := $(VCCL_PARENTx)/Include/crt/varargs.h
-        VCINCLUDE_AUTO := $(call CHECK_FILE_PATH,$(VARARGS_H_PATH2))
-
-        ifndef VCINCLUDE_AUTO
-          $(error unable to autoconfigure VCINCLUDE for VCCL=$(VCCL): files do not exist:$(if \
-            ,)$(newline)$(call PATH_PRINTABLE,$(VARARGS_H_PATH1))$(if \
-            ,)$(newline)$(call PATH_PRINTABLE,$(VARARGS_H_PATH2))$(if \
-            ,)$(newline)please specify VCINCLUDE explicitly, e.g.:$(if \
-            ,)$(newline)VCINCLUDE=$(subst /,\,$(VCCL_PARENTx))\inc\crt)
-        endif
-      endif
-    endif
-
-  endif
-  endif
-
-endif # define VCLIBPATH_AUTO and VCINCLUDE_AUTO
+# define VCLIBPATH_AUTO and VCINCLUDE_AUTO values from $(VCCL)
+include $(CLEAN_BUILD_DIR)/compilers/msvc_cl_libs.mk
 
 # reset variables, if they are not defined in project configuration makefile or in command line
 VCLIB:=
@@ -1508,23 +1208,6 @@ $(warning autoconfigured: VCLINK=$(VCLINK))
 endif
 
 # ----------------- tool mode ------------------
-
-# reset TVCCL, if it's not defined in project configuration makefile or in command line
-TVCCL:=
-
-# if TVCCL is defined in project configuration makefile or in command line, check its value
-ifdef TVCCL
-  # TVCCL path must use forward slashes
-  override TVCCL := $(subst /,\,$(TVCCL))
-  ifneq (,$(findstring $(space),$(TVCCL)))
-    # if $(TVCCL) contains a space, it must be in double quotes
-    ifeq ($(subst $(space),?,$(TVCCL)),$(patsubst "%",%,$(subst $(space),?,$(TVCCL))))
-      override TVCCL := "$(TVCCL)"
-    endif
-  endif
-else ifdef TVC_VER
-  $(error TVC_VER=$(TVC_VER) is defined, but TVCCL does not)
-endif
 
 # deduce value of TVCCL from $(VCCL)
 ifndef TVCCL
