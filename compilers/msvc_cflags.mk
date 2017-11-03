@@ -4,6 +4,8 @@
 # Licensed under GPL version 2 or any later version, see COPYING
 #----------------------------------------------------------------------------------
 
+# included by $(CLEAN_BUILD_DIR)/compilers/msvc.mk
+
 # define default values of next variables based on the value of {,T}VC_VER:
 #
 # {,T}CFLAGS
@@ -237,7 +239,7 @@ endif
 ifndef TMD
 LINKER_STRIP_STRINGS := $(LINKER_STRIP_STRINGS_en)
 else
-TLINKER_STRIP_STRINGS := $(LINKER_STRIP_STRINGS)
+$(TMD)LINKER_STRIP_STRINGS := $(LINKER_STRIP_STRINGS)
 endif
 
 # define {,T}WRAP_LINKER - link.exe wrapper
@@ -248,7 +250,7 @@ $(call MSVC_DEFINE_LINKER_WRAPPER,$(TMD)WRAP_LINKER,$($(TMD)LINKER_STRIP_STRINGS
 ifndef TMD
 INCLUDING_FILE_PATTERN := $(INCLUDING_FILE_PATTERN_en)
 else
-TINCLUDING_FILE_PATTERN := $(INCLUDING_FILE_PATTERN)
+$(TMD)INCLUDING_FILE_PATTERN := $(INCLUDING_FILE_PATTERN)
 endif
 
 # prefixes of system include paths to filter-out by $(SED) while dependencies generation
