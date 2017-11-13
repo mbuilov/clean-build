@@ -8,34 +8,29 @@
 
 # common msvc compiler definitions
 ifeq (,$(filter-out undefined environment,$(origin INCLUDING_FILE_PATTERN_en)))
-include $(dir $(lastword $(MAKEFILE_LIST)))msvc_cmn.mk
+include $(dir $(lastword $(MAKEFILE_LIST)))msvc/cmn.mk
 endif
 
 # add definitions of standard resource with module version information
 ifeq (,$(filter-out undefined environment,$(origin STD_RES_TEMPLATE)))
-include $(dir $(lastword $(MAKEFILE_LIST)))msvc_stdres.mk
+include $(dir $(lastword $(MAKEFILE_LIST)))msvc/stdres.mk
 endif
 
 # add support for exporting symbols (from a dll or exe)
 ifeq (,$(filter-out undefined environment,$(origin EXPORTS_TEMPLATE)))
-include $(dir $(lastword $(MAKEFILE_LIST)))msvc_exp.mk
+include $(dir $(lastword $(MAKEFILE_LIST)))msvc/exp.mk
 endif
 
 # define variables:
-# WINVER_DEFINES - version of Windows API to compile with, e.g.: WINVER=0x0501 _WIN32_WINNT=0x0501, may be empty
+# WINVER_DEFINES - version of Windows API to compile with, e.g.: _WIN32_WINNT=0x0501, may be empty
 # SUBSYSTEM_VER  - minimum Windows version required to run built targets, e.g.: SUBSYSTEM_VER=5.01, may be empty
 ifneq (,$(filter undefined environment,$(origin WINVER_DEFINES) $(origin SUBSYSTEM_VER)))
-include $(dir $(lastword $(MAKEFILE_LIST)))msvc_winver.mk
-endif
-
-# add definitions of RC_COMPILER (needed by STD_RES_TEMPLATE) and MC_COMPILER
-ifeq (,$(filter-out undefined environment,$(origin MC_COMPILER)))
-include $(dir $(lastword $(MAKEFILE_LIST)))msvc_tools.mk
+include $(dir $(lastword $(MAKEFILE_LIST)))msvc/winver.mk
 endif
 
 # configure Visual C++ version, paths to compiler, linker and C/C++ libraries and headers:
 # (variables prefixed with T - are for the tool mode)
-# {,T}VC_VER    - version of Visual C++ we are using - see $(CLEAN_BUILD_DIR)/compilers/msvc_cmn.mk 'MSVC++ versions' table
+# {,T}VC_VER    - version of Visual C++ we are using - see $(CLEAN_BUILD_DIR)/compilers/msvc/cmn.mk 'MSVC++ versions' table
 # {,T}VCCL      - path to cl.exe, must be in double-quotes if contains spaces
 # {,T}VCLIB     - path to lib.exe, must be in double-quotes if contains spaces
 # {,T}VCLINK    - path to link.exe, must be in double-quotes if contains spaces
@@ -43,7 +38,16 @@ endif
 # {,T}VCINCLUDE - paths to Visual C++ headers, spaces must be replaced with ?
 # note: assume target and tool compilers are of the same version and differ only by the architecture of produced binaries
 ifeq (,$(filter-out undefined environment,$(origin GET_PROGRAM_FILES_DIRS)))
-include $(dir $(lastword $(MAKEFILE_LIST)))msvc_conf.mk
+include $(dir $(lastword $(MAKEFILE_LIST)))msvc/conf.mk
+endif
+
+
+
+
+
+# add definitions of RC_COMPILER (needed by STD_RES_TEMPLATE) and MC_COMPILER
+ifeq (,$(filter-out undefined environment,$(origin MC_COMPILER)))
+include $(dir $(lastword $(MAKEFILE_LIST)))msvc/tools.mk
 endif
 
 # configure paths to system libraries/headers:
@@ -51,7 +55,7 @@ endif
 # {,T}UMLIBPATH - paths to user-mode libraries, spaces must be replaced with ?
 # {,T}UMINCLUDE - paths to user-mode headers, spaces must be replaced with ?
 ifeq (,$(filter-out undefined environment,$(origin ???)))
-include $(dir $(lastword $(MAKEFILE_LIST)))msvc_sdk.mk
+include $(dir $(lastword $(MAKEFILE_LIST)))msvc/sdk.mk
 endif
 
 # default subsystem type for EXE and DLL: CONSOLE, WINDOWS, etc.
@@ -125,11 +129,11 @@ IMP_SUFFIX := .lib
 # {,T}UDEPS_INCLUDE_FILTER
 # {,T}WRAP_CCN
 # {,T}WRAP_CCD
-# note: TMD was reset in $(CLEAN_BUILD_DIR)/core/_defs.mk and must be empty after we temporary redefine it below
-include $(dir $(lastword $(MAKEFILE_LIST)))msvc_cflags.mk
-TMD:=T
-include $(dir $(lastword $(MAKEFILE_LIST)))msvc_cflags.mk
-TMD:=
+# note: temporary variable _ - variables name prefix - must be defined, either as empty or as T
+_:=
+include $(dir $(lastword $(MAKEFILE_LIST)))msvc/cflags.mk
+_:=T
+include $(dir $(lastword $(MAKEFILE_LIST)))msvc/cflags.mk
 
 # supported non-regular target variants:
 # (R - dynamically linked multi-threaded libc - default variant)
@@ -400,7 +404,7 @@ CXX_PARAMS_MP = $($(TMD)MP_BUILD) $(call CXX_PARAMS,$(OBJ_DIR)/,$1,$2,$3)
 # $2 - target type: EXE,DLL,LIB
 # $3 - non-empty variant: R,S,RU,SU
 # target-specific: TMD
-# note: called by CMN_MCL macro from $(CLEAN_BUILD_DIR)/compilers/msvc_cmn.mk
+# note: called by CMN_MCL macro from $(CLEAN_BUILD_DIR)/compilers/msvc/cmn.mk
 # note: do not auto-generate dependencies (because /showIncludes option conflicts with /MP)
 OBJ_MCC  = $(call SUP,$(TMD)CC,$1)$(call $(TMD)WRAP_CCN,$($(TMD)VCCL) $(CC_PARAMS_MP),$1)
 OBJ_MCXX = $(call SUP,$(TMD)CXX,$1)$(call $(TMD)WRAP_CCN,$($(TMD)VCCL) $(CXX_PARAMS_MP),$1)
@@ -434,7 +438,7 @@ endif # !NO_PCH
 ifndef NO_PCH
 
 ifeq (,$(filter-out undefined environment,$(origin MSVC_USE_PCH)))
-include $(dir $(lastword $(MAKEFILE_LIST)))msvc_pch.mk
+include $(dir $(lastword $(MAKEFILE_LIST)))msvc/pch.mk
 endif
 
 # compilers of C/C++ precompiled header
@@ -445,7 +449,7 @@ endif
 # $5 - non-empty variant: R,S,RU,SU
 # target-specific: TMD
 # note: precompiled header xxx_c.pch or xxx_cpp.pch will be created as a side-effect of this compilation
-# note: used by MSVC_PCH_RULE_TEMPL_BASE macro from $(CLEAN_BUILD_DIR)/compilers/msvc_pch.mk
+# note: used by MSVC_PCH_RULE_TEMPL_BASE macro from $(CLEAN_BUILD_DIR)/compilers/msvc/pch.mk
 PCH_CC  = $(call SUP,$(TMD)PCHCC,$2)$(call $(TMD)WRAP_CCD,$($(TMD)VCCL) $(MSVC_CREATE_PCH) /TC $(call CC_PARAMS,$1,$2,$4,$5),$2,$1)
 PCH_CXX = $(call SUP,$(TMD)PCHCXX,$2)$(call $(TMD)WRAP_CCD,$($(TMD)VCCL) $(MSVC_CREATE_PCH) /TP $(call CXX_PARAMS,$1,$2,$4,$5),$2,$1)
 

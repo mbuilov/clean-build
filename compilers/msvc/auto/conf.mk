@@ -108,25 +108,8 @@ GET_PROGRAM_FILES_DIRS = $(call uniq,$(foreach \
   v,ProgramFiles ProgramFiles$(open_brace)x86$(close_brace) ProgramW6432,$(if \
   $(filter-out undefined,$(origin $v)),$(subst $(space),?,$(subst \,/,$($v))))))
 
-# base architecture of Visual Studio tools
-# note: TCPU likely has this value, but it is possible to have TCPU=x86_64 for VS_CPU=x86, if Visual Studio supports x86_64 tools
-# note: VS_CPU value depends on where Visual Studio is installed, e.g., on 64-bit Windows:
-#  C:\Program Files\Microsoft Visual Studio 8\VC\bin\cl.exe                 - base     x86_64 compiler for x86_64, VS_CPU should be amd64
-#  C:\Program Files (x86)\Microsoft Visual Studio 8\VC\bin\cl.exe           - base     x86    compiler for x86,    VS_CPU should be x86
-#  C:\Program Files (x86)\Microsoft Visual Studio 8\VC\bin\amd64\cl.exe     - prefixed x86_64 compiler for x86_64, VS_CPU should be x86
-#  C:\Program Files (x86)\Microsoft Visual Studio 8\VC\bin\x86_amd64\cl.exe - prefixed x86    compiler for x86_64, VS_CPU should be x86
-VS_CPU   := x86
-VS_CPU64 := amd64
-
 # variable ProgramFiles(x86) is defined only under 64-bit Windows
 IS_WIN_64 := $(filter-out undefined,$(origin ProgramFiles$(open_brace)x86$(close_brace)))
-
-ifdef IS_WIN_64
-# $1 - pattern, like C:/Program?Files?(x86)/A/B/C
-VS_SELECT_CPU = $(if $(findstring :/program?files/,$(tolower)),$(VS_CPU64),$(VS_CPU))
-else
-VS_SELECT_CPU := $(VS_CPU)
-endif
 
 # check if file exist and if it is, return path to parent directory of that file
 # $1 - path to file, e.g.: C:/Program?Files?(x86)/Microsoft?Visual?Studio?9.0/VC/lib/amd64/msvcrt.lib
@@ -218,98 +201,6 @@ VS_REG_SEARCH_P = $(call VS_REG_SEARCH_X,$1,$2,VS_REG_FIND_FILE_P)
 # result: C:/Program?Files/Microsoft?Visual?Studio/2017/Community/VC/Tools/MSVC/14.11.25503/bin/HostX86/x64/cl.exe
 VS_SELECT_LATEST1 = $(patsubst %,$2%$1,$(lastword $(sort $(subst $1?$2, ,$(patsubst %,$1?%?$2,$(subst $(space),?,$3))))))
 VS_SELECT_LATEST  = $(call VS_SELECT_LATEST1,$1,$(firstword $2),$(wordlist 2,999999,$2))
-
-# for Visual C++ compiler from Windows Server 2003 DDK
-# determine MSVC++ tools prefix for given TCPU/CPU combination, e.g.:
-#  C:\WINDDK\3790\bin\x86\cl.exe             - Microsoft (R) 32-bit C/C++ Optimizing Compiler Version 13.10.2179 for 80x86
-#  C:\WINDDK\3790\bin\ia64\cl.exe            - ???
-#  C:\WINDDK\3790\bin\win64\x86\cl.exe       - Microsoft (R) C/C++ Optimizing Compiler Version 13.10.2240.8 for IA-64
-#  C:\WINDDK\3790\bin\win64\x86\amd64\cl.exe - Microsoft (R) C/C++ Optimizing Compiler Version 14.00.2207 for AMD64
-#
-# TCPU\CPU |  x86       x86_64        ia64
-# ---------|---------------------------------
-# x86      |  x86  win64/x86/amd64  win64/x86
-# ia64     |   ?          ?           ia64
-#
-# $1 - $(CPU)
-CL_TOOL_PREFIX_DDK_3790 = $(if $(filter $1,$(TCPU)),$1,$(if $(filter %64,$1),win64/)$(TCPU:x86_64=amd64)/$(if $(filter x86_64,$1),amd64/))
-
-# for Visual C++ compiler from Windows Driver Kit 6-7 (Visual C++ 8.0-9.0 of Visual Studio 2005-2008)
-# determine MSVC++ tools prefix for given TCPU/CPU combination, e.g.:
-#  C:\WinDDK\6001.18001\bin\x86\x86\cl.exe   - Microsoft (R) 32-bit C/C++ Optimizing Compiler Version 14.00.50727.278 for 80x86
-#  C:\WinDDK\6001.18001\bin\x86\amd64\cl.exe - Microsoft (R) C/C++ Optimizing Compiler Version 14.00.50727.278 for x64
-#  C:\WinDDK\6001.18001\bin\x86\ia64\cl.exe  - Microsoft (R) C/C++ Optimizing Compiler Version 14.00.50727.283 for Itanium
-#  C:\WinDDK\6001.18001\bin\ia64\ia64\cl.exe - ????
-# $1 - $(CPU)
-CL_TOOL_PREFIX_DDK6 = $(TCPU:x86_64=amd64)/$(1:x86_64=amd64)/
-
-# for Visual C++ compiler from SDK 6.0 (Visual C++ 8.0 of Visual Studio 2005)
-# determine MSVC++ tools prefix for given CPU
-# note: $(TCPU) _must_ match $(CPU)
-#
-# CPU  |  x86    x86_64
-# -----|-------------------------------------
-# pref | <none>   x64/
-#
-VC_TOOL_PREFIX_SDK6 := $(addsuffix /,$(filter-out x86,$(TCPU:x86_64=x64)))
-
-# for use with VS_FIND_FILE_P or VS_REG_SEARCH_P
-# $2 - C:/Program?Files/Microsoft?Visual?Studio?14.0/VC/ C:/Program?Files?(x86)/Microsoft?Visual?Studio?14.0/VC/
-# result: bin/x86_arm/cl.exe (possible with spaces in result)
-VCCL_2005_PATTERN_GEN_VC = bin/$(call VC_TOOL_PREFIX_2005,$(CPU),$(call VS_SELECT_CPU,$(firstword $2)))cl.exe
-
-# for use with VS_FIND_FILE_P or VS_REG_SEARCH_P
-# $2 - C:/Program?Files/Microsoft?Visual?Studio?14.0/ C:/Program?Files?(x86)/Microsoft?Visual?Studio?14.0/
-# result: VC/bin/x86_arm/cl.exe (possible with spaces in result)
-VCCL_2005_PATTERN_GEN_VS = VC/bin/$(call VC_TOOL_PREFIX_2005,$(CPU),$(call VS_SELECT_CPU,$(firstword $2)))cl.exe
-
-# for Visual Studio 2005-2015
-# determine MSVC++ tools prefix for given TCPU/CPU combination
-#
-# TCPU\CPU |  x86        x86_64      arm
-# ---------|---------------------------------
-# x86      | <none>     x86_amd64/ x86_arm/
-# x86_64   | amd64_x86/ amd64/     amd64_arm/
-#
-# $1 - $(CPU)
-# $2 - $(VS_CPU)
-VC_TOOL_PREFIX_2005 = $(addsuffix /,$(filter-out \
-  $2,$(TCPU:x86_64=amd64)$(addprefix _,$(subst x86_64,amd64,$(filter-out $(TCPU),$1)))))
-
-# convert prefix of cl.exe $1 to libraries prefix:
-#  <none>    -> <none>
-#  x86_amd64 -> /amd64
-#  x86_arm   -> /arm
-#  amd64_x86 -> <none>
-#  amd64     -> /amd64
-#  amd64_arm -> /arm
-#  x64       -> /x64
-# $1 - cl.exe prefix
-# $2 - $(VS_CPU)
-VCCL_GET_LIBS_2005 = $(addprefix /,$(filter-out $2,$(lastword $(subst _, ,$1))))
-
-# get host of cl.exe $1:
-#  <none>    -> <none>
-#  x86_amd64 -> <none>
-#  x86_arm   -> <none>
-#  amd64_x86 -> amd64
-#  amd64     -> amd64
-#  amd64_arm -> amd64
-#  x64       -> x64
-# $1 - cl.exe prefix
-# $2 - $(VS_CPU)
-VCCL_GET_HOST_2005 = $(filter-out $2,$(firstword $(subst _, ,$1)))
-
-# for Visual Studio 2017
-# determine MSVC++ tools prefix for given TCPU/CPU combination
-#
-# TCPU\CPU |   x86          x86_64        arm
-# ---------|---------------------------------------
-# x86      | HostX86/x86/ HostX86/x64/ HostX86/arm/
-# x86_64   | HostX64/x86/ HostX64/x64/ HostX64/arm/
-#
-# $1 - $(CPU)
-VC_TOOL_PREFIX_2017 = Host$(subst x,X,$(TCPU:x86_64=x64))/$(1:x86_64=x64)/
 
 # Оптимизирующий 32-разрядный компилятор Microsoft (R) C/C++ версии 15.00.30729.01 для 80x86 -> 15 00 30729 01
 # $1 - "C:\Program Files\Microsoft Visual Studio 14.0\VC\bin\x86_amd64\cl.exe"

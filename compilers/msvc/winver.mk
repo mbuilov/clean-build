@@ -73,14 +73,13 @@ WINVARIANT_FROM_NTDDI = $(if $(filter \
 
 # WINVER_DEFINES - specifies version of Windows API to compile with
 # note: WINVER_DEFINES may be defined as <empty> in project configuration makefile or in command line
-ifneq (,$(filter undefined environment,$(origin WINVER_DEFINES)))
+ifeq (,$(filter-out undefined environment,$(origin WINVER_DEFINES)))
 ifdef NTDDI
 # note: if NTDDI_VERSION is defined, _WIN32_WINNT must also be defined
 WINVER_DEFINES := NTDDI_VERSION=$(NTDDI_$(NTDDI)) _WIN32_WINNT=$(_WIN32_WINNT_$(WINVARIANT))
 else
 WINVER_DEFINES := _WIN32_WINNT=$(_WIN32_WINNT_$(WINVARIANT))
 endif
-$(warning autoconfigured: WINVER_DEFINES=$(WINVER_DEFINES))
 endif
 
 # https://msdn.microsoft.com/en-us/library/windows/hardware/hh965708(v=vs.120).aspx/html
@@ -102,9 +101,8 @@ SUBSYSTEM_FROM_WINVARIANT = $(if $(filter \
 
 # SUBSYSTEM_VER - minimum Windows version required to run built targets
 # note: SUBSYSTEM_VER may be defined as <empty> in project configuration makefile or in command line
-ifneq (,$(filter undefined environment,$(origin SUBSYSTEM_VER)))
+ifeq (,$(filter-out undefined environment,$(origin SUBSYSTEM_VER)))
 SUBSYSTEM_VER := $(SUBSYSTEM_VER_$(call SUBSYSTEM_FROM_WINVARIANT,$(WINVARIANT)))
-$(warning autoconfigured: SUBSYSTEM_VER=$(SUBSYSTEM_VER))
 endif
 
 # map WINVARIANT -> Windows DDK folder name
@@ -116,7 +114,7 @@ WIN_NAME_FROM_WINVARIANT = $(if $(filter \
   WS08 VISTA LONGHORN WIN6,$1),wlh,$(if $(filter \
   WS03,$1),wnet,$(if $(filter \
   WINXP,$1),wxp,$(if $(filter \
-  WIN2K,$1),w2k,$(error unknown Windows name: $1)))))))))
+  WIN2K,$1),w2k,$(error unknown Windows variant name: $1)))))))))
 
 # protect variables from modifications in target makefiles
 $(call SET_GLOBAL,NTDDI WINVARIANT \

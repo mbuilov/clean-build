@@ -8,7 +8,7 @@
 
 # common suncc compiler definitions
 ifeq (,$(filter-out undefined environment,$(origin WRAP_SUNCC)))
-include $(dir $(lastword $(MAKEFILE_LIST)))suncc_cmn.mk
+include $(dir $(lastword $(MAKEFILE_LIST)))suncc/cmn.mk
 endif
 
 # define RPATH and target-specific MAP and MODVER (for DLLs) variables
@@ -210,7 +210,7 @@ ifndef NO_PCH
 # add support for precompiled headers
 
 ifeq (,$(filter-out undefined environment,$(origin SUNCC_PCH_TEMPLATEt)))
-include $(dir $(lastword $(MAKEFILE_LIST)))suncc_pch.mk
+include $(dir $(lastword $(MAKEFILE_LIST)))suncc/pch.mk
 endif
 
 # C/C++ compilers for compiling without precompiled header
@@ -250,7 +250,7 @@ OBJ_CXX = $(if $(filter $2,$(CXX_WITH_PCH)),$(OBJ_PCXX),$(OBJ_NCXX))
 # $5 - non-empty variant: R,P,D
 # target-specific: TMD
 # note: precompiled header xxx_c.cpch or xxx_cc.Cpch will be created as a side-effect of this compilation
-# note: used by SUNCC_PCH_RULE_TEMPL macro from $(CLEAN_BUILD_DIR)/compilers/suncc_pch.mk
+# note: used by SUNCC_PCH_RULE_TEMPL macro from $(CLEAN_BUILD_DIR)/compilers/suncc/pch.mk
 PCH_CC  = $(call SUP,$(TMD)PCHCC,$2)$(call WRAP_SUNCC,$($(TMD)CC) -xpch=collect:$(dir $1)$(basename $(notdir \
   $2))_c $(call CC_PARAMS,$1,$3,$4,$5),$1,$(UDEPS_INCLUDE_FILTER))
 PCH_CXX = $(call SUP,$(TMD)PCHCXX,$2)$(call WRAP_SUNCC,$($(TMD)CXX) -xpch=collect:$(dir $1)$(basename $(notdir \

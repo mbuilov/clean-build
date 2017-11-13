@@ -198,7 +198,7 @@ ifndef NO_PCH
 # add support for precompiled headers
 
 ifeq (,$(filter-out undefined environment,$(origin GCC_PCH_TEMPLATEt)))
-include $(dir $(lastword $(MAKEFILE_LIST)))gcc_pch.mk
+include $(dir $(lastword $(MAKEFILE_LIST)))gcc/pch.mk
 endif
 
 # override C++ and C compilers to support compiling with precompiled header
@@ -219,7 +219,7 @@ OBJ_CXX = $(if $(filter $2,$(CXX_WITH_PCH)),$(call SUP,$(TMD)PCXX,$2)$($(TMD)CXX
 # $3 - target type: EXE,DLL,LIB
 # $4 - non-empty variant: R,P,D
 # target-specific: TMD
-# note: used by GCC_PCH_RULE_TEMPL macro from $(CLEAN_BUILD_DIR)/compilers/gcc_pch.mk
+# note: used by GCC_PCH_RULE_TEMPL macro from $(CLEAN_BUILD_DIR)/compilers/gcc/pch.mk
 PCH_CC  = $(call SUP,$(TMD)PCHCC,$2)$($(TMD)CC) $(CC_PARAMS)
 PCH_CXX = $(call SUP,$(TMD)PCHCXX,$2)$($(TMD)CXX) $(CXX_PARAMS)
 
