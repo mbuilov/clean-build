@@ -88,7 +88,8 @@ endif
 $(eval $(foreach v,$(PROJECT_VARS_NAMES),override $(if $(findstring simple,$(flavor \
   $v)),$v:=$$($v),define $v$(newline)$(value $v)$(newline)endef)$(newline)))
 
-# clean-build supported goals
+# list of clean-build supported goals
+# note: may be updated if necessary in makefiles
 CLEAN_BUILD_GOALS := all conf clean distclean check tests
 
 # initialize PASS_ENV_VARS - list of variables to export to subprocesses
