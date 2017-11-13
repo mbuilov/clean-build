@@ -155,7 +155,7 @@ endif
 # OS must be non-recursive (simple), because it is used to create simple variable TARGET_TRIPLET
 override OS := $(OS)
 
-# CPU - processor architecture we are building applications for (x86, sparc64, armv5, mips24k, etc.)
+# CPU - processor architecture we are building the package for (x86, sparc64, armv5, mips24k, etc.)
 # note: equivalent of '--host' Gnu Autoconf configure script option
 # note: CPU specification may also encode format of executable files, e.g. CPU=m68k-coff, it is checked by the C compiler
 # note: normally CPU get overridden by specifying it in command line
@@ -170,14 +170,20 @@ endif
 # CPU must be non-recursive (simple), because it is used to create simple variable TARGET_TRIPLET
 override CPU := $(CPU)
 
-# TCPU - processor architecture for build tools (may be different from $(CPU) if cross-compiling)
+# TCPU - processor architecture of build helper tools created while the build (may be different from $(CPU) if cross-compiling)
 # note: equivalent of '--build' Gnu Autoconf configure script option
-# note: TCPU specification may also encode format of executable files, e.g. CPU=m68k-coff, it is checked by the C compiler
+# note: TCPU specification may also encode format of executable files, e.g. TCPU=m68k-coff, it is checked by the C compiler
 # note: normally TCPU get overridden by specifying it in command line
 TCPU := $(CPU)
 
 # TCPU must be non-recursive (simple), because it is used to create simple variable TOOL_OVERRIDE_DIRS
 override TCPU := $(TCPU)
+
+# TOOLCHAIN_CPU  - processor architecture of system toolchain (compilers, linkers, etc.) used for building the package
+# TOOLCHAIN_TCPU - processor architecture of system toolchain (compilers, linkers, etc.) used for creating build helper tools
+# note: usable with MSVC, where x86 compiler may be used to create x86_64 build helper tools, e.g.: VC\bin\x86_amd64\cl.exe
+TOOLCHAIN_CPU  := $(TCPU)
+TOOLCHAIN_TCPU := $(TOOLCHAIN_CPU)
 
 # UTILS - flavor of system shell utilities (such as cp, mv, rm, etc.)
 # note: $(UTILS) value is used only to form name of standard makefile with definitions of shell utilities
@@ -1107,7 +1113,7 @@ $(call SET_GLOBAL,MAKEFLAGS CLEAN_BUILD_GOALS $(PASS_ENV_VARS) PATH SHELL CLEAN_
 # protect macros from modifications in target makefiles, allow tracing calls to them
 $(call SET_GLOBAL,PROJECT_VARS_NAMES PASS_ENV_VARS \
   CLEAN_BUILD_VERSION CLEAN_BUILD_DIR CLEAN_BUILD_REQUIRED_VERSION \
-  BUILD SUPPORTED_TARGETS TARGET OS CPU TCPU UTILS UTILS_MK TARGET_MAKEFILE \
+  BUILD SUPPORTED_TARGETS TARGET OS CPU TCPU TOOLCHAIN_CPU TOOLCHAIN_TCPU UTILS UTILS_MK TARGET_MAKEFILE \
   ospath nonrelpath TOOL_SUFFIX PATHSEP DLL_PATH_VAR show_tool_vars1 show_tool_vars show_tool_vars_end SED_MULTI_EXPR \
   GEN_COLOR MGEN_COLOR CP_COLOR RM_COLOR RMDIR_COLOR MKDIR_COLOR TOUCH_COLOR CAT_COLOR SED_COLOR \
   PRINT_PERCENTS COLORIZE SHOWN_REMAINDER ADD_SHOWN_PERCENTS==SHOWN_REMAINDER \
