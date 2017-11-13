@@ -11,7 +11,7 @@
 #  $(CLEAN_BUILD_DIR)/compilers/suncc_pch.mk
 #  $(CLEAN_BUILD_DIR)/compilers/msvc_pch.mk
 
-# reset additional variables at beginning of target makefile
+# reset additional user-modifiable variables at beginning of target makefile
 # PCH - either absolute or makefile-related path to header to precompile
 C_PREPARE_PCH_VARS := $(newline)PCH:=
 

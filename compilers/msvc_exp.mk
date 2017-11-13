@@ -6,7 +6,7 @@
 
 # support for exporting symbols from a target (e.g. dll), included by $(CLEAN_BUILD_DIR)/compilers/msvc.mk
 
-# reset additional variables at beginning of target makefile
+# reset additional user-modifiable variables at beginning of target makefile
 # DEF - linker definitions file (used mostly to list exported symbols)
 C_PREPARE_MSVC_EXP_VARS := $(newline)DEF:=
 

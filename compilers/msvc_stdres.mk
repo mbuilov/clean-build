@@ -6,7 +6,7 @@
 
 # standard version resource file generation, included by $(CLEAN_BUILD_DIR)/compilers/msvc.mk
 
-# reset additional variables at beginning of target makefile
+# reset additional user-modifiable variables at beginning of target makefile
 # NO_STD_RES - if non-empty, then do not add standard resource to the target
 C_PREPARE_MSVC_STDRES_VARS := $(newline)NO_STD_RES:=
 

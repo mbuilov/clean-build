@@ -15,7 +15,7 @@
 #  $(call C_REDEFINE,RPATH,$(RPATH) my_rpath)
 RPATH:=
 
-# reset additional variables at beginning of target makefile
+# reset additional user-modifiable variables at beginning of target makefile
 # MAP - linker map file (used mostly to list exported symbols)
 C_PREPARE_UNIX_APP_VARS = $(newline)MAP:=
 

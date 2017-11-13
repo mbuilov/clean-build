@@ -7,12 +7,12 @@
 # define WINVER_DEFINES and SUBSYSTEM_VER variables, included by $(CLEAN_BUILD_DIR)/compilers/msvc.mk
 
 # if NTDDI is non-empty, deduce default WINVARIANT value from it
-# note: possible values - suffix of NTDDI_... constants
+# note: possible values - suffix of NTDDI_... constants listed below, e.g.: NTDDI=WINXPSP3
 # note: NTDDI may be overridden in project configuration makefile or in command line
 NTDDI:=
 
-# by default, configure for Windows XP on x86 and for Windows XP SP2 on x86_64
-# note: possible values - suffix of _WIN32_WINNT_... constants
+# by default, configure for Windows XP if target arch is x86 and for Windows XP SP2 if target arch is x86_64
+# note: possible values - suffix of _WIN32_WINNT_... constants listed below, e.g.: WINVARIANT=WINXP
 # note: WINVARIANT may be overridden in project configuration makefile or in command line
 ifdef NTDDI
 WINVARIANT := $(call WINVARIANT_FROM_NTDDI,$(NTDDI))
@@ -20,7 +20,7 @@ else
 WINVARIANT := $(if $(CPU:%64=),WINXP,WS03)
 endif
 
-# WINVARIANT possible values - suffix of _WIN32_WINNT_... constants
+# WINVARIANT possible values - suffix of next _WIN32_WINNT_... constants
 # sdkddkver.h
 _WIN32_WINNT_WIN2K        := 0x0500 # Windows 2000
 _WIN32_WINNT_WINXP        := 0x0501 # Windows Server 2003, Windows XP
@@ -35,7 +35,7 @@ _WIN32_WINNT_WINBLUE      := 0x0603 # Windows 8.1
 _WIN32_WINNT_WIN10        := 0x0A00 # Windows 10
 _WIN32_WINNT_WINTHRESHOLD := 0x0A00 # Windows 10
 
-# NTDDI possible values - suffix of NTDDI_... constants
+# NTDDI possible values - suffix of next NTDDI_... constants
 # https://msdn.microsoft.com/en-us/library/windows/desktop/aa383745(v=vs.85).aspx
 NTDDI_WIN2K        := $(_WIN32_WINNT_WIN2K)0000   # Windows 2000
 NTDDI_WINXP        := $(_WIN32_WINNT_WINXP)0000   # Windows XP
@@ -61,6 +61,7 @@ NTDDI_WIN10_RS2    := $(_WIN32_WINNT_WIN10)0003   # Windows Redstone 2
 NTDDI_WIN10_RS3    := $(_WIN32_WINNT_WIN10)0004   # Windows Redstone 3
 
 # map NTDDI -> WINVARIANT
+# e.g.: WINXPSP3 -> WINXP
 WINVARIANT_FROM_NTDDI = $(if $(filter \
   WIN10_RS3 WIN10_RS2 WIN10_RS1 WIN10_TH2 WINTHRESHOLD WIN10,$1),WIN10,$(if $(filter \
   WINBLUE,$1),WINBLUE,$(if $(filter \
@@ -91,7 +92,7 @@ SUBSYSTEM_VER_WS08  := 6.01 # Windows Server 2008
 SUBSYSTEM_VER_WIN7  := 6.01 # Windows 7
 SUBSYSTEM_VER_WIN8  := 6.02 # Windows 8
 
-# map WINVARIANT -> SUBSYSTEM
+# map WINVARIANT -> SUBSYSTEM version name
 SUBSYSTEM_FROM_WINVARIANT = $(if $(filter \
   WINTHRESHOLD WIN10 WINBLUE WIN8,$1),WIN8,$(if $(filter \
   WIN7 WS08,$1),WS08,$(if $(filter \
@@ -115,7 +116,7 @@ WIN_NAME_FROM_WINVARIANT = $(if $(filter \
   WS08 VISTA LONGHORN WIN6,$1),wlh,$(if $(filter \
   WS03,$1),wnet,$(if $(filter \
   WINXP,$1),wxp,$(if $(filter \
-  WIN2K,$1),w2k,unknown))))))))
+  WIN2K,$1),w2k,$(error unknown Windows name: $1)))))))))
 
 # protect variables from modifications in target makefiles
 $(call SET_GLOBAL,NTDDI WINVARIANT \

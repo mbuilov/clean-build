@@ -223,7 +223,7 @@ OBJ_CXX = $(if $(filter $2,$(CXX_WITH_PCH)),$(call SUP,$(TMD)PCXX,$2)$($(TMD)CXX
 PCH_CC  = $(call SUP,$(TMD)PCHCC,$2)$($(TMD)CC) $(CC_PARAMS)
 PCH_CXX = $(call SUP,$(TMD)PCHCXX,$2)$($(TMD)CXX) $(CXX_PARAMS)
 
-# reset additional variables
+# reset additional user-modifiable variables
 $(call define_append,C_PREPARE_APP_VARS,$(C_PREPARE_PCH_VARS))
 
 # optimization

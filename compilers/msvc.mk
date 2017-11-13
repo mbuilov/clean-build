@@ -11,11 +11,6 @@ ifeq (,$(filter-out undefined environment,$(origin INCLUDING_FILE_PATTERN_en)))
 include $(dir $(lastword $(MAKEFILE_LIST)))msvc_cmn.mk
 endif
 
-# add definitions of RC_COMPILER (needed by STD_RES_TEMPLATE) and MC_COMPILER
-ifeq (,$(filter-out undefined environment,$(origin MC_COMPILER)))
-include $(dir $(lastword $(MAKEFILE_LIST)))msvc_tools.mk
-endif
-
 # add definitions of standard resource with module version information
 ifeq (,$(filter-out undefined environment,$(origin STD_RES_TEMPLATE)))
 include $(dir $(lastword $(MAKEFILE_LIST)))msvc_stdres.mk
@@ -31,6 +26,11 @@ endif
 # SUBSYSTEM_VER  - minimum Windows version required to run built targets, e.g.: SUBSYSTEM_VER=5.01, may be empty
 ifneq (,$(filter undefined environment,$(origin WINVER_DEFINES) $(origin SUBSYSTEM_VER)))
 include $(dir $(lastword $(MAKEFILE_LIST)))msvc_winver.mk
+endif
+
+# add definitions of RC_COMPILER (needed by STD_RES_TEMPLATE) and MC_COMPILER
+ifeq (,$(filter-out undefined environment,$(origin MC_COMPILER)))
+include $(dir $(lastword $(MAKEFILE_LIST)))msvc_tools.mk
 endif
 
 # configure Visual C++ version, paths to compiler, linker and C/C++ libraries and headers:
@@ -57,7 +57,7 @@ endif
 # default subsystem type for EXE and DLL: CONSOLE, WINDOWS, etc.
 DEF_SUBSYSTEM_TYPE := CONSOLE
 
-# reset additional variables
+# reset additional user-modifiable variables
 # EXE_EXPORTS    - non-empty if EXE exports symbols
 # DLL_NO_EXPORTS - non-empty if DLL do not exports symbols (e.g. resource DLL)
 # SUBSYSTEM_TYPE - environment for the executable: CONSOLE, WINDOWS, etc.

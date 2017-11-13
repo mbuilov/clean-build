@@ -256,7 +256,7 @@ PCH_CC  = $(call SUP,$(TMD)PCHCC,$2)$(call WRAP_SUNCC,$($(TMD)CC) -xpch=collect:
 PCH_CXX = $(call SUP,$(TMD)PCHCXX,$2)$(call WRAP_SUNCC,$($(TMD)CXX) -xpch=collect:$(dir $1)$(basename $(notdir \
   $2))_cc $(call CXX_PARAMS,$1,$3,$4,$5),$1,$(UDEPS_INCLUDE_FILTER))
 
-# reset additional variables
+# reset additional user-modifiable variables
 $(call define_append,C_PREPARE_APP_VARS,$(C_PREPARE_PCH_VARS))
 
 # optimization
