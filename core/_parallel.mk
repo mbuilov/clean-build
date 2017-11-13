@@ -8,9 +8,22 @@ ifeq (,$(filter-out undefined environment,$(origin DEF_TAIL_CODE)))
 include $(dir $(lastword $(MAKEFILE_LIST)))_defs.mk
 endif
 
-# make absolute paths to makefiles $1 with suffix $2:
-# add path to directory of $(TARGET_MAKEFILE) if makefile path is not absolute, add /Makefile if makefile path is a directory
-NORM_MAKEFILES = $(patsubst %.mk/Makefile$2,%.mk$2,$(addsuffix /Makefile$2,$(patsubst %/Makefile,%,$(call fixpath,$1))))
+# name of file to look for if makefile is specified by directory path
+DEFAULT_MAKEFILE_NAME := Makefile
+
+# recognized extensions and names of makefiles
+MAKEFILE_PATTERNS := .mk .mak /makefile /$(DEFAULT_MAKEFILE_NAME)
+
+# generate code of NORM_MAKEFILES macro - multiple patsubsts, such as:
+# $(patsubst %/Makefile/Makefile,%/Makefile,$(patsubst %.mak/Makefile,%.mak,...))
+NORM_MAKEFILES = $(if $1,$(call NORM_MAKEFILES,$(wordlist 2,999999,$1),$$(patsubst \
+  %$(firstword $1)/$(DEFAULT_MAKEFILE_NAME),%$(firstword $1),$2)),$2)
+
+# NORM_MAKEFILES - make absolute paths to makefiles $1, assuming some of them may be specified by directory path:
+# 1) add path to directory of $(TARGET_MAKEFILE) if makefile path is not absolute
+# 2) add /Makefile if makefile path do not ends with any of $(MAKEFILE_PATTERNS) (i.e. specified by a directory)
+# e.g.: $(call NORM_MAKEFILES,/d/aa bb.mk) -> /d/aa/Makefile /c/bb.mk
+$(eval NORM_MAKEFILES = $(call NORM_MAKEFILES,$(MAKEFILE_PATTERNS),$$(addsuffix /$(DEFAULT_MAKEFILE_NAME),$$(call fixpath,$$1))))
 
 # $m - absolute path to makefile to include
 # note: TOOL_MODE value may be changed (set) in included makefile, so restore TOOL_MODE before including next makefile
@@ -57,11 +70,11 @@ $(eval define CB_INCLUDE_TEMPLATE$(newline)$(subst include,$$(call \
 endif
 
 # append makefiles (really PHONY targets created from them) to ORDER_DEPS list
-# note: argument - list of makefiles (or directories, where Makefile is searched)
+# note: argument $1 - list of makefiles (or directories, where Makefile is searched)
 # note: add empty rules for makefile dependencies (absolute paths of dependency makefiles with '-' suffix):
 #  don't complain if order deps are not resolved when build started in sub-directory
 ADD_MDEPS1 = $(if $1,$(eval $1:$(newline)ORDER_DEPS+=$1))
-ADD_MDEPS = $(call ADD_MDEPS1,$(filter-out $(ORDER_DEPS),$(call NORM_MAKEFILES,$1,-)))
+ADD_MDEPS = $(call ADD_MDEPS1,$(filter-out $(ORDER_DEPS),$(NORM_MAKEFILES:=-)))
 
 # remember new value of ORDER_DEPS, without tracing calls to it because it is incremented
 ifdef MCHECK
@@ -101,12 +114,12 @@ endif # clean && MDEBUG
 # note: process result of DEF_TAIL_CODE with separate $(eval) - for the checks performed while expanding $(eval argument)
 PROCESS_SUBMAKES_EVAL = $(eval $(value CB_PARALLEL_CODE))$(eval $(call DEF_TAIL_CODE,@))
 
-# generate code for including and processing given makefiles - in $(CB_PARALLEL_CODE),
+# generate code for including and processing given list of makefiles $1 - in $(CB_PARALLEL_CODE),
 #  then evaluate it via call without parameters - to hide $1 argument from makefiles
 # at end, check if need to include $(CLEAN_BUILD_DIR)/core/all.mk
-# note: make absolute paths to makefiles $1 to include
-PROCESS_SUBMAKES = $(eval define CB_PARALLEL_CODE$(newline)$(call CLEAN_BUILD_PARALLEL,$(call \
-  NORM_MAKEFILES,$1,))$(newline)endef)$(call PROCESS_SUBMAKES_EVAL)
+# note: make absolute paths to makefiles to include
+PROCESS_SUBMAKES = $(eval define CB_PARALLEL_CODE$(newline)$(call \
+  CLEAN_BUILD_PARALLEL,$(NORM_MAKEFILES))$(newline)endef)$(call PROCESS_SUBMAKES_EVAL)
 
 # set CLEAN_BUILD_NEED_PARALLEL before including sub-makefiles:
 # each of processed sub-makefiles must include $(CLEAN_BUILD_DIR)/parallel.mk or $(CLEAN_BUILD_DIR)/c.mk, etc...
@@ -132,6 +145,6 @@ $(call SET_GLOBAL,CLEAN_BUILD_FIRST_PHASE_VARS,0)
 # protect variables from modifications in target makefiles
 # note: do not complain about new ADD_MDEPS and ADD_ADEPS values
 # - replace ADD_MDEPS and ADD_ADEPS values defined in $(CLEAN_BUILD_DIR)/core/_defs.mk with new ones
-$(call SET_GLOBAL,NORM_MAKEFILES CB_INCLUDE_TEMPLATE=ORDER_DEPS;TOOL_MODE;m CLEAN_BUILD_PARALLEL \
-  ADD_MDEPS1 ADD_MDEPS=ORDER_DEPS=ORDER_DEPS ADD_ADEPS=ORDER_DEPS=ORDER_DEPS \
+$(call SET_GLOBAL,DEFAULT_MAKEFILE_NAME MAKEFILE_PATTERNS NORM_MAKEFILES CB_INCLUDE_TEMPLATE=ORDER_DEPS;TOOL_MODE;m \
+  CLEAN_BUILD_PARALLEL ADD_MDEPS1 ADD_MDEPS=ORDER_DEPS=ORDER_DEPS ADD_ADEPS=ORDER_DEPS=ORDER_DEPS \
   PROCESS_SUBMAKES_EVAL=CB_PARALLEL_CODE PROCESS_SUBMAKES CLEAN_BUILD_PARALLEL_EVAL)
