@@ -86,11 +86,11 @@
 
 # normalize path: replace spaces with ?, remove double-quotes, make all slashes backward, remove trailing back-slash, e.g.:
 #  "a\b\c d\e\" -> a/b/c?d/e
-NORMALIZE_PATH = $(patsubst %/,%,$(subst \,/,$(patsubst "%",%,$(subst $(space),?,$1))))
+CONF_NORMALIZE_PATH = $(patsubst %/,%,$(subst \,/,$(patsubst "%",%,$(subst $(space),?,$1))))
 
 # convert path to printable form
 # a/b/c?d/e -> "a\b\c d\e"
-PATH_PRINTABLE = $(call ifaddq,$(subst /,\,$(subst ?, ,$1)))
+CONF_PATH_PRINTABLE = $(call ifaddq,$(subst /,\,$(subst ?, ,$1)))
 
 # get paths to "Program Files" and "Program Files (x86)" directories
 # note: ProgramW6432 appear starting with Windows 7
@@ -120,20 +120,20 @@ CHECK_FILE_PATH := $(subst /,\,$(patsubst %/,%,$(dir $(subst $(space),?,$(wildca
 # $1 - file to find, e.g.: VC/bin/cl.exe (possibly be a mask, like: VC/Tools/MSVC/*/bin/HostX86/x86/cl.exe, may be with spaces)
 # $2 - paths to look in, e.g. C:/Program?Files/Microsoft?Visual?Studio/2017/Community/ C:/Program?Files/Microsoft?Visual?Studio?14.0/
 # result (may be a list): C:/Program?Files/Microsoft?Visual?Studio?14.0/ C:/Program Files/Microsoft Visual Studio 14.0/VC/bin/cl.exe
-VS_FIND_FILE_WHERE  = $(if $2,$(call VS_FIND_FILE_WHERE1,$1,$2,$(wildcard $(subst ?,\ ,$(firstword $2))$1)))
-VS_FIND_FILE_WHERE1 = $(if $3,$(firstword $2) $3,$(call VS_FIND_FILE_WHERE,$1,$(wordlist 2,999999,$2)))
+CONF_FIND_FILE_WHERE  = $(if $2,$(call CONF_FIND_FILE_WHERE1,$1,$2,$(wildcard $(subst ?,\ ,$(firstword $2))$1)))
+CONF_FIND_FILE_WHERE1 = $(if $3,$(firstword $2) $3,$(call CONF_FIND_FILE_WHERE,$1,$(wordlist 2,999999,$2)))
 
 # find file in the paths by pattern
 # $1 - file to find, e.g.: VC/bin/cl.exe (possibly be a mask, like: VC/Tools/MSVC/*/bin/HostX86/x86/cl.exe, may be with spaces)
 # $2 - paths to look in, e.g. C:/Program?Files/Microsoft?Visual?Studio/2017/Community/ C:/Program?Files/Microsoft?Visual?Studio?14.0/
 # result (may be a list): C:/Program Files/Microsoft Visual Studio 14.0/VC/bin/cl.exe
-VS_FIND_FILE  = $(if $2,$(call VS_FIND_FILE1,$1,$2,$(wildcard $(subst ?,\ ,$(firstword $2))$1)))
-VS_FIND_FILE1 = $(if $3,$3,$(call VS_FIND_FILE,$1,$(wordlist 2,999999,$2)))
+CONF_FIND_FILE  = $(if $2,$(call CONF_FIND_FILE1,$1,$2,$(wildcard $(subst ?,\ ,$(firstword $2))$1)))
+CONF_FIND_FILE1 = $(if $3,$3,$(call CONF_FIND_FILE,$1,$(wordlist 2,999999,$2)))
 
-# like VS_FIND_FILE, but $1 - name of macro that returns file to find (VCCL_2005_PATTERN_GEN_VC or VCCL_2005_PATTERN_GEN_VS)
+# like CONF_FIND_FILE, but $1 - name of macro that returns file to find (VCCL_2005_PATTERN_GEN_VC or VCCL_2005_PATTERN_GEN_VS)
 # note: macro $1 may use $(firstword $2) - path where the search is done
-VS_FIND_FILE_P  = $(if $2,$(call VS_FIND_FILE_P1,$1,$2,$(wildcard $(subst ?,\ ,$(firstword $2))$($1))))
-VS_FIND_FILE_P1 = $(if $3,$3,$(call VS_FIND_FILE_P,$1,$(wordlist 2,999999,$2)))
+CONF_FIND_FILE_P  = $(if $2,$(call CONF_FIND_FILE_P1,$1,$2,$(wildcard $(subst ?,\ ,$(firstword $2))$($1))))
+CONF_FIND_FILE_P1 = $(if $3,$3,$(call CONF_FIND_FILE_P,$1,$(wordlist 2,999999,$2)))
 
 # query path value in the registry under "HKLM\SOFTWARE\Microsoft\" or "HKLM\SOFTWARE\Wow6432Node\Microsoft\"
 # $1 - registry key sub path, e.g.: VisualStudio\SxS\VC7 or VisualStudio\SxS\VS7 or VisualStudio\6.0\Setup\Microsoft Visual C++
@@ -144,7 +144,7 @@ VS_FIND_FILE_P1 = $(if $3,$3,$(call VS_FIND_FILE_P,$1,$(wordlist 2,999999,$2)))
 # note: result will be with trailing backslash
 # note: value of "VisualStudio\6.0\Setup\Microsoft Visual C++\ProductDir" key does not end with slash, e.g:
 #  "C:\Program Files (x86)\Microsoft Visual Studio\VC98"
-VS_REG_QUERY = $(patsubst %//,%/,$(addsuffix /,$(subst \,/,$(subst ?$2?REG_SZ?,,$(word \
+MS_REG_QUERY = $(patsubst %//,%/,$(addsuffix /,$(subst \,/,$(subst ?$2?REG_SZ?,,$(word \
   2,$(subst HKEY_LOCAL_MACHINE\SOFTWARE$3\Microsoft\$1, ,xxx$(subst $(space),?,$(strip $(shell \
   reg query "HKLM\SOFTWARE$3\Microsoft\$1" /v "$2" 2>&1)))))))))
 
@@ -154,44 +154,44 @@ VS_REG_QUERY = $(patsubst %//,%/,$(addsuffix /,$(subst \,/,$(subst ?$2?REG_SZ?,,
 # $3 - registry key name, e.g.: 14.0 or ProductDir
 # $4 - if not empty, then also check Wow6432Node (applicable only on Win64), tip: use $(IS_WIN_64)
 # result (may be a list): C:/Program?Files?(x86)/Microsoft?Visual?Studio?14.0/ C:/Program Files/Microsoft Visual Studio 14.0/VC/bin/cl.exe
-VS_REG_FIND_FILE_WHERE  = $(call VS_REG_FIND_FILE_WHERE1,$1,$(call VS_REG_QUERY,$2,$3),$2,$3,$4)
-VS_REG_FIND_FILE_WHERE1 = $(call VS_REG_FIND_FILE_WHERE2,$1,$2,$(if $2,$(wildcard $(subst ?,\ ,$2)$1)),$3,$4,$5)
-VS_REG_FIND_FILE_WHERE2 = $(if $3,$2 $3,$(if $6,$(call VS_REG_FIND_FILE_WHERE3,$1,$(call VS_REG_QUERY,$4,$5,\Wow6432Node))))
-VS_REG_FIND_FILE_WHERE3 = $(if $2,$(call VS_REG_FIND_FILE_WHERE4,$2,$(wildcard $(subst ?,\ ,$2)$1)))
-VS_REG_FIND_FILE_WHERE4 = $(if $2,$1 $2)
+MS_REG_FIND_FILE_WHERE  = $(call MS_REG_FIND_FILE_WHERE1,$1,$(call MS_REG_QUERY,$2,$3),$2,$3,$4)
+MS_REG_FIND_FILE_WHERE1 = $(call MS_REG_FIND_FILE_WHERE2,$1,$2,$(if $2,$(wildcard $(subst ?,\ ,$2)$1)),$3,$4,$5)
+MS_REG_FIND_FILE_WHERE2 = $(if $3,$2 $3,$(if $6,$(call MS_REG_FIND_FILE_WHERE3,$1,$(call MS_REG_QUERY,$4,$5,\Wow6432Node))))
+MS_REG_FIND_FILE_WHERE3 = $(if $2,$(call MS_REG_FIND_FILE_WHERE4,$2,$(wildcard $(subst ?,\ ,$2)$1)))
+MS_REG_FIND_FILE_WHERE4 = $(if $2,$1 $2)
 
-# same as VS_REG_FIND_FILE_WHERE, but do not return path where file was found
+# same as MS_REG_FIND_FILE_WHERE, but do not return path where file was found
 # result (may be a list): C:/Program Files/Microsoft Visual Studio 14.0/VC/bin/cl.exe
-VS_REG_FIND_FILE = $(wordlist 2,999999,$(VS_REG_FIND_FILE_WHERE))
+MS_REG_FIND_FILE = $(wordlist 2,999999,$(MS_REG_FIND_FILE_WHERE))
 
-# like VS_REG_FIND_FILE, but $1 - name of macro that returns file to find (VCCL_2005_PATTERN_GEN_VC or VCCL_2005_PATTERN_GEN_VS)
+# like MS_REG_FIND_FILE, but $1 - name of macro that returns file to find (VCCL_2005_PATTERN_GEN_VC or VCCL_2005_PATTERN_GEN_VS)
 # note: macro $1 may use $2 - path where the search is done
-VS_REG_FIND_FILE_P  = $(call VS_REG_FIND_FILE_P1,$1,$(call VS_REG_QUERY,$2,$3),$2,$3,$4)
-VS_REG_FIND_FILE_P1 = $(call VS_REG_FIND_FILE_P2,$1,$(if $2,$(wildcard $(subst ?,\ ,$2)$($1))),$3,$4,$5)
-VS_REG_FIND_FILE_P2 = $(if $2,$2,$(if $5,$(call VS_REG_FIND_FILE_P3,$1,$(call VS_REG_QUERY,$3,$4,\Wow6432Node))))
-VS_REG_FIND_FILE_P3 = $(if $2,$(wildcard $(subst ?,\ ,$2)$($1)))
+MS_REG_FIND_FILE_P  = $(call MS_REG_FIND_FILE_P1,$1,$(call MS_REG_QUERY,$2,$3),$2,$3,$4)
+MS_REG_FIND_FILE_P1 = $(call MS_REG_FIND_FILE_P2,$1,$(if $2,$(wildcard $(subst ?,\ ,$2)$($1))),$3,$4,$5)
+MS_REG_FIND_FILE_P2 = $(if $2,$2,$(if $5,$(call MS_REG_FIND_FILE_P3,$1,$(call MS_REG_QUERY,$3,$4,\Wow6432Node))))
+MS_REG_FIND_FILE_P3 = $(if $2,$(wildcard $(subst ?,\ ,$2)$($1)))
 
 # find file by pattern in the paths found in registry
 # $1 - file to find, e.g.: VC/bin/cl.exe (possibly be a mask, like: VC/Tools/MSVC/*/bin/HostX86/x86/cl.exe, may be with spaces)
 # $2 - registry key sub paths and corresponding key names, e.g. VisualStudio\14.0\Setup\VC?ProductDir VisualStudio\SxS\VC7?14.0
-# $3 - VS_REG_FIND_FILE_WHERE, VS_REG_FIND_FILE or VS_REG_FIND_FILE_P
-VS_REG_SEARCH_X  = $(if $2,$(call VS_REG_SEARCH_X1,$1,$2,$3,$(subst ?, ,$(firstword $2))))
-VS_REG_SEARCH_X1 = $(call VS_REG_SEARCH_X2,$1,$2,$3,$(call $3,$1,$(firstword $4),$(lastword $4),$(IS_WIN_64)))
-VS_REG_SEARCH_X2 = $(if $4,$4,$(call VS_REG_SEARCH_X,$1,$(wordlist 2,999999,$2),$3))
+# $3 - MS_REG_FIND_FILE_WHERE, MS_REG_FIND_FILE or MS_REG_FIND_FILE_P
+MS_REG_SEARCH_X  = $(if $2,$(call MS_REG_SEARCH_X1,$1,$2,$3,$(subst ?, ,$(firstword $2))))
+MS_REG_SEARCH_X1 = $(call MS_REG_SEARCH_X2,$1,$2,$3,$(call $3,$1,$(firstword $4),$(lastword $4),$(IS_WIN_64)))
+MS_REG_SEARCH_X2 = $(if $4,$4,$(call MS_REG_SEARCH_X,$1,$(wordlist 2,999999,$2),$3))
 
 # find file by pattern in the paths found in registry
 # $1 - file to find, e.g.: VC/bin/cl.exe (possibly be a mask, like: VC/Tools/MSVC/*/bin/HostX86/x86/cl.exe, may be with spaces)
 # $2 - registry key sub paths and corresponding key names, e.g. VisualStudio\14.0\Setup\VC?ProductDir VisualStudio\SxS\VC7?14.0
 # result (may be a list): C:/Program?Files?(x86)/Microsoft?Visual?Studio?14.0/ C:/Program Files/Microsoft Visual Studio 14.0/VC/bin/cl.exe
-VS_REG_SEARCH_WHERE = $(call VS_REG_SEARCH_X,$1,$2,VS_REG_FIND_FILE_WHERE)
+MS_REG_SEARCH_WHERE = $(call MS_REG_SEARCH_X,$1,$2,MS_REG_FIND_FILE_WHERE)
 
-# same as VS_REG_SEARCH_WHERE, but do not return path where file was found
+# same as MS_REG_SEARCH_WHERE, but do not return path where file was found
 # result (may be a list): C:/Program Files/Microsoft Visual Studio 14.0/VC/bin/cl.exe
-VS_REG_SEARCH = $(call VS_REG_SEARCH_X,$1,$2,VS_REG_FIND_FILE)
+MS_REG_SEARCH = $(call MS_REG_SEARCH_X,$1,$2,MS_REG_FIND_FILE)
 
-# like VS_REG_SEARCH, but $1 - name of macro that returns file to find (VCCL_2005_PATTERN_GEN_VC or VCCL_2005_PATTERN_GEN_VS)
+# like MS_REG_SEARCH, but $1 - name of macro that returns file to find (VCCL_2005_PATTERN_GEN_VC or VCCL_2005_PATTERN_GEN_VS)
 # note: macro $1 may use $2 - path where the search is done
-VS_REG_SEARCH_P = $(call VS_REG_SEARCH_X,$1,$2,VS_REG_FIND_FILE_P)
+MS_REG_SEARCH_P = $(call MS_REG_SEARCH_X,$1,$2,MS_REG_FIND_FILE_P)
 
 # there may be more than one file found - take the newer one, e.g.:
 #  $1=bin/HostX86/x64/cl.exe
@@ -199,8 +199,8 @@ VS_REG_SEARCH_P = $(call VS_REG_SEARCH_X,$1,$2,VS_REG_FIND_FILE_P)
 #     C:/Program Files/Microsoft Visual Studio/2017/Community/VC/Tools/MSVC/14.10.25017/bin/HostX86/x64/cl.exe \
 #     C:/Program Files/Microsoft Visual Studio/2017/Community/VC/Tools/MSVC/14.11.25503/bin/HostX86/x64/cl.exe
 # result: C:/Program?Files/Microsoft?Visual?Studio/2017/Community/VC/Tools/MSVC/14.11.25503/bin/HostX86/x64/cl.exe
-VS_SELECT_LATEST1 = $(patsubst %,$2%$1,$(lastword $(sort $(subst $1?$2, ,$(patsubst %,$1?%?$2,$(subst $(space),?,$3))))))
-VS_SELECT_LATEST  = $(call VS_SELECT_LATEST1,$1,$(firstword $2),$(wordlist 2,999999,$2))
+CONF_SELECT_LATEST1 = $(patsubst %,$2%$1,$(lastword $(sort $(subst $1?$2, ,$(patsubst %,$1?%?$2,$(subst $(space),?,$3))))))
+CONF_SELECT_LATEST  = $(call CONF_SELECT_LATEST1,$1,$(firstword $2),$(wordlist 2,999999,$2))
 
 # Оптимизирующий 32-разрядный компилятор Microsoft (R) C/C++ версии 15.00.30729.01 для 80x86 -> 15 00 30729 01
 # $1 - "C:\Program Files\Microsoft Visual Studio 14.0\VC\bin\x86_amd64\cl.exe"
@@ -281,17 +281,17 @@ TVCINCLUDE_AUTO:=
 
 ifdef SDK
 # SDK=C:/Program?Files/Microsoft?SDKs/Windows/v6.0
-override SDK := $(call NORMALIZE_PATH,$(SDK))
+override SDK := $(call CONF_NORMALIZE_PATH,$(SDK))
 endif
 
 ifdef DDK
 # DDK=C:/WinDDK/7600.16385.1
-override DDK := $(call NORMALIZE_PATH,$(DDK))
+override DDK := $(call CONF_NORMALIZE_PATH,$(DDK))
 endif
 
 ifdef WDK
 # WDK=C:/Program?Files?(x86)/Windows?Kits/8.0
-override WDK := $(call NORMALIZE_PATH,$(WDK))
+override WDK := $(call CONF_NORMALIZE_PATH,$(WDK))
 ifdef MCHECK
 ifdef SDK
 ifdef DDK
@@ -359,7 +359,7 @@ MSVC:=
 #     C:/Program Files/Microsoft Visual Studio/2017/Community/VC/Tools/MSVC/14.10.25017/bin/HostX86/x64/cl.exe \
 #     C:/Program Files/Microsoft Visual Studio/2017/Community/VC/Tools/MSVC/14.11.25503/bin/HostX86/x64/cl.exe
 # result: C:/Program Files/Microsoft Visual Studio/2017/Community/VC/Tools/MSVC/14.11.25503/bin/HostX86/x64/cl.exe
-VS_2017_SELECT_LATEST_ENTRY = $(subst ?, ,$(VS_SELECT_LATEST))
+VS_2017_SELECT_LATEST_ENTRY = $(subst ?, ,$(CONF_SELECT_LATEST))
 
 ifndef MSVC
 ifndef VS
@@ -406,13 +406,13 @@ endif
 
 ifdef MSVC
 # MSVC=C:/Program?Files/Microsoft?Visual?Studio/2017/Community/VC
-override MSVC := $(call NORMALIZE_PATH,$(MSVC))
+override MSVC := $(call CONF_NORMALIZE_PATH,$(MSVC))
 endif
 
 ifndef MSVC
 ifdef VS
 # VS=C:/Program?Files/Microsoft?Visual?Studio?12.0
-override VS := $(call NORMALIZE_PATH,$(VS))
+override VS := $(call CONF_NORMALIZE_PATH,$(VS))
 endif
 endif
 
@@ -445,7 +445,7 @@ ifndef VS
       # try to find Visual Studio 2017 cl.exe in the paths of VS*COMNTOOLS variables, e.g.:
       #  C:/Program Files/Microsoft Visual Studio/2017/Community/VC/Tools/MSVC/14.11.25503/bin/HostX86/x86/cl.exe
       VCCL := $(call VS_2017_SELECT_LATEST_ENTRY,$(VCCL_2017_PREFIXED),$(call \
-        VS_FIND_FILE_WHERE,VC/Tools/MSVC/*/$(VCCL_2017_PREFIXED),$(VS_COMNS_2017)))
+        CONF_FIND_FILE_WHERE,VC/Tools/MSVC/*/$(VCCL_2017_PREFIXED),$(VS_COMNS_2017)))
 
       ifndef VCCL
         # filter-out Visual Studio 2017 or later
@@ -553,13 +553,13 @@ ifndef MSVC
 ifndef VS
   # check registry and standard places in Program Files - to define VCCL
 
-  # get registry keys of Visual C++ installation paths for VS_REG_SEARCH
+  # get registry keys of Visual C++ installation paths for MS_REG_SEARCH
   # $1 - Visual Studio version, e.g.: 7.0 7.1 8.0 9.0 10.0 11.0 12.0 14.0 15.0
   # note: for Visual Studio 2005 and later - check VCExpress key
   VCCL_REG_KEYS_VC = VisualStudio\$1\Setup\VC?ProductDir $(if $(call \
     is_less_float,$1,8.0),,VCExpress\$1\Setup\VC?ProductDir) VisualStudio\SxS\VC7?$1
 
-  # get registry keys of Visual Studio installation paths for VS_REG_SEARCH
+  # get registry keys of Visual Studio installation paths for MS_REG_SEARCH
   VCCL_REG_KEYS_VS = VisualStudio\$1\Setup\VS?ProductDir $(if $(call \
     is_less_float,$1,8.0),,VCExpress\$1\Setup\VS?ProductDir) VisualStudio\SxS\VS7?$1
 
@@ -568,12 +568,12 @@ ifndef VS
 
   # look for C:/Program Files/Microsoft Visual Studio/2017/Community/VC/Tools/MSVC/14.11.25503/bin/HostX86/x86/cl.exe
   VCCL := $(call VS_2017_SELECT_LATEST_ENTRY,$(VCCL_2017_PREFIXED),$(call \
-    VS_REG_SEARCH_WHERE,Tools/MSVC/*/$(VCCL_2017_PREFIXED),$(call VCCL_REG_KEYS_VC,15.0)))
+    MS_REG_SEARCH_WHERE,Tools/MSVC/*/$(VCCL_2017_PREFIXED),$(call VCCL_REG_KEYS_VC,15.0)))
 
   ifndef VCCL
     # look for C:/Program Files/Microsoft Visual Studio/2017/Community/VC/Tools/MSVC/14.11.25503/bin/HostX86/x86/cl.exe
     VCCL := $(call VS_2017_SELECT_LATEST_ENTRY,$(VCCL_2017_PREFIXED),$(call \
-      VS_REG_SEARCH_WHERE,VC/Tools/MSVC/*/$(VCCL_2017_PREFIXED),$(call VCCL_REG_KEYS_VS,15.0)))
+      MS_REG_SEARCH_WHERE,VC/Tools/MSVC/*/$(VCCL_2017_PREFIXED),$(call VCCL_REG_KEYS_VS,15.0)))
   endif
 
   ifndef VCCL
@@ -583,7 +583,7 @@ ifndef VS
 
     # look for C:/Program Files/Microsoft Visual Studio/2017/Community/VC/Tools/MSVC/14.11.25503/bin/HostX86/x86/cl.exe
     VCCL := $(call VS_2017_SELECT_LATEST_ENTRY,$(VCCL_2017_PREFIXED),$(call \
-      VS_FIND_FILE_WHERE,Microsoft Visual Studio/*/*/VC/Tools/MSVC/*/$(VCCL_2017_PREFIXED),$(PROGRAM_FILES_PLACES)))
+      CONF_FIND_FILE_WHERE,Microsoft Visual Studio/*/*/VC/Tools/MSVC/*/$(VCCL_2017_PREFIXED),$(PROGRAM_FILES_PLACES)))
   endif
 
   ifndef VCCL
@@ -593,15 +593,15 @@ ifndef VS
     # $1 - 14.0 12.0 11.0 10.0 9.0 8.0
     # result: 14.0 C:/Program Files/Microsoft Visual Studio 14.0/VC/bin/x86_arm/cl.exe
     VS_SEARCH_2005  = $(if $1,$(call VS_SEARCH_20051,$1,$(call \
-      VS_REG_SEARCH_P,VCCL_2005_PATTERN_GEN_VC,$(call VCCL_REG_KEYS_VC,$(firstword $1)))))
+      MS_REG_SEARCH_P,VCCL_2005_PATTERN_GEN_VC,$(call VCCL_REG_KEYS_VC,$(firstword $1)))))
 
     # look in Visual Studio installation paths
     VS_SEARCH_20051 = $(if $2,$2,$(call VS_SEARCH_20052,$1,$(call \
-      VS_REG_SEARCH_P,VCCL_2005_PATTERN_GEN_VS,$(call VCCL_REG_KEYS_VS,$(firstword $1)))))
+      MS_REG_SEARCH_P,VCCL_2005_PATTERN_GEN_VS,$(call VCCL_REG_KEYS_VS,$(firstword $1)))))
 
     # check standard places
     VS_SEARCH_20052 = $(if $2,$2,$(call VS_SEARCH_20053,$1,$(call \
-      VS_FIND_FILE_P,VCCL_2005_PATTERN_GEN_VS,$(addsuffix \
+      CONF_FIND_FILE_P,VCCL_2005_PATTERN_GEN_VS,$(addsuffix \
       Microsoft?Visual?Studio?$(subst 8.0,8,$(firstword $1))/,$(PROGRAM_FILES_PLACES)))))
 
     # recursion
@@ -629,11 +629,11 @@ ifndef VS
       DDK_70_REG_PATH := KitSetup\configured-kits\{B4285279-1846-49B4-B8FD-B9EAF0FF17DA}\{676E6B70-5659-5459-5B5F-6063635E5F61}
 
       # e.g.: C:/my ddks/WinDDK/7600.16385.1/bin/x86/x86/cl.exe
-      VCCL := $(call VS_REG_FIND_FILE,$(CL_DDK6),$(DDK_71_REG_PATH),setup-install-location,$(IS_WIN_64))
+      VCCL := $(call MS_REG_FIND_FILE,$(CL_DDK6),$(DDK_71_REG_PATH),setup-install-location,$(IS_WIN_64))
       ifdef VCCL
         DDK_VER_AUTO := 7600.16385.1
       else
-        VCCL := $(call VS_REG_FIND_FILE,$(CL_DDK6),$(DDK_70_REG_PATH),setup-install-location,$(IS_WIN_64))
+        VCCL := $(call MS_REG_FIND_FILE,$(CL_DDK6),$(DDK_70_REG_PATH),setup-install-location,$(IS_WIN_64))
         ifdef VCCL
           DDK_VER_AUTO := 7600.16385.0
         endif
@@ -661,11 +661,11 @@ ifndef VS
       else ifndef WDK # WDK may be used instead of SDK, but WDK comes without bundled compiler
 
         # look for C:/Program Files/Microsoft SDKs/Windows/v6.0/VC/Bin/x64/cl.exe - Microsoft Compiler Version 14.00.50727.762 for x64
-        VCCL := $(call VS_REG_FIND_FILE,$(CL_SDK6),Microsoft SDKs\Windows\v6.0,InstallationFolder)
+        VCCL := $(call MS_REG_FIND_FILE,$(CL_SDK6),Microsoft SDKs\Windows\v6.0,InstallationFolder)
 
         ifndef VCCL
           # look in Program Files
-          VCCL := $(call VS_FIND_FILE,$(CL_SDK6),$(addsuffix Microsoft?SDKs/Windows/v6.0/,$(PROGRAM_FILES_PLACES)))
+          VCCL := $(call CONF_FIND_FILE,$(CL_SDK6),$(addsuffix Microsoft?SDKs/Windows/v6.0/,$(PROGRAM_FILES_PLACES)))
         endif
 
         ifdef VCCL
@@ -693,22 +693,22 @@ ifndef VS
       DDK_62_REG_PATH := KitSetup\configured-kits\{B4285279-1846-49B4-B8FD-B9EAF0FF17DA}\{515A5454-555D-5459-5B5D-616264656660}
 
       # e.g.: C:/my ddks/WinDDK/6001.18002/bin/x86/x86/cl.exe
-      VCCL := $(call VS_REG_FIND_FILE,$(CL_DDK6),$(DDK_62_REG_PATH),setup-install-location,$(IS_WIN_64))
+      VCCL := $(call MS_REG_FIND_FILE,$(CL_DDK6),$(DDK_62_REG_PATH),setup-install-location,$(IS_WIN_64))
       ifdef VCCL
         DDK_VER_AUTO := 6001.18002
       else
         # check registry for Windows Driver Kit – Server 2008 (x86, x64, ia64)   6001.18001  April 1, 2008
-        VCCL := $(call VS_REG_FIND_FILE,$(CL_DDK6),WINDDK\6001.18001\Setup,BUILD,$(IS_WIN_64))
+        VCCL := $(call MS_REG_FIND_FILE,$(CL_DDK6),WINDDK\6001.18001\Setup,BUILD,$(IS_WIN_64))
         ifdef VCCL
           DDK_VER_AUTO := 6001.18001
         else
           # check registry for Windows Driver Kit – Server 2008 (x86, x64, ia64)  6001.18000  Jan 2008
-          VCCL := $(call VS_REG_FIND_FILE,$(CL_DDK6),WINDDK\6001.18000\Setup,BUILD,$(IS_WIN_64))
+          VCCL := $(call MS_REG_FIND_FILE,$(CL_DDK6),WINDDK\6001.18000\Setup,BUILD,$(IS_WIN_64))
           ifdef VCCL
             DDK_VER_AUTO := 6001.18000
           else
             # check registry for Windows Driver Kit for Windows Vista 6000 November 29, 2006
-            VCCL := $(call VS_REG_FIND_FILE,$(CL_DDK6),WINDDK\6000\Setup,BUILD,$(IS_WIN_64))
+            VCCL := $(call MS_REG_FIND_FILE,$(CL_DDK6),WINDDK\6000\Setup,BUILD,$(IS_WIN_64))
             ifdef VCCL
               DDK_VER_AUTO := 6000
             endif
@@ -729,15 +729,15 @@ ifndef VS
     ifeq ($(CPU) $(VS_CPU),$(TCPU) $(CPU))
 
       # search Visual C++ .NET 2003 compiler
-      VCCL := $(call VS_REG_SEARCH,bin/cl.exe,$(call VCCL_REG_KEYS_VC,7.1))
+      VCCL := $(call MS_REG_SEARCH,bin/cl.exe,$(call VCCL_REG_KEYS_VC,7.1))
 
       ifndef VCCL
-        VCCL := $(call VS_REG_SEARCH,Vc7/bin/cl.exe,$(call VCCL_REG_KEYS_VS,7.1))
+        VCCL := $(call MS_REG_SEARCH,Vc7/bin/cl.exe,$(call VCCL_REG_KEYS_VS,7.1))
       endif
 
       ifndef VCCL
         # look in Program Files
-        VCCL := $(call VS_FIND_FILE,Vc7/bin/cl.exe,$(addsuffix Microsoft?Visual?Studio?.NET?2003/,$(PROGRAM_FILES_PLACES)))
+        VCCL := $(call CONF_FIND_FILE,Vc7/bin/cl.exe,$(addsuffix Microsoft?Visual?Studio?.NET?2003/,$(PROGRAM_FILES_PLACES)))
       endif
 
     endif
@@ -757,12 +757,12 @@ ifndef VS
 
       # check registry for Windows Server 2003 SP1 DDK
       # e.g.: C:/my ddks/WinDDK/3790.1830/bin/x86/cl.exe
-      VCCL := $(call VS_REG_FIND_FILE,$(CL_DDK_3790),WINDDK\3790.1830,LFNDirectory,$(IS_WIN_64))
+      VCCL := $(call MS_REG_FIND_FILE,$(CL_DDK_3790),WINDDK\3790.1830,LFNDirectory,$(IS_WIN_64))
       ifdef VCCL
         DDK_VER_AUTO := 3790.1830
       else
         # check registry for Windows Server 2003 DDK 3790
-        VCCL := $(call VS_REG_FIND_FILE,$(CL_DDK_3790),WINDDK\3790,LFNDirectory,$(IS_WIN_64))
+        VCCL := $(call MS_REG_FIND_FILE,$(CL_DDK_3790),WINDDK\3790,LFNDirectory,$(IS_WIN_64))
         ifdef VCCL
           DDK_VER_AUTO := 3790
         endif
@@ -781,7 +781,7 @@ ifndef VS
     ifeq ($(CPU) $(VS_CPU),$(TCPU) $(CPU))
 
       # look in Program Files for Visual C++ compiler of Microsoft Visual C++ Toolkit 2003
-      VCCL := $(call VS_FIND_FILE,bin/cl.exe,$(addsuffix Microsoft?Visual?C++?Toolkit?2003/,$(PROGRAM_FILES_PLACES)))
+      VCCL := $(call CONF_FIND_FILE,bin/cl.exe,$(addsuffix Microsoft?Visual?C++?Toolkit?2003/,$(PROGRAM_FILES_PLACES)))
 
     endif
   endif
@@ -803,12 +803,12 @@ ifndef VS
 
         # check registry for Windows XP SP1 DDK 2600.1106
         # e.g.: C:/my ddks/WinDDK/2600.1106/bin/x86/cl.exe
-        VCCL := $(call VS_REG_FIND_FILE,$(CL_DDK_2600),WINDDK\2600.1106,LFNDirectory,$(IS_WIN_64))
+        VCCL := $(call MS_REG_FIND_FILE,$(CL_DDK_2600),WINDDK\2600.1106,LFNDirectory,$(IS_WIN_64))
         ifdef VCCL
           DDK_VER_AUTO := 2600.1106
         else
           # check registry for DDK for Windows XP
-          VCCL := $(call VS_REG_FIND_FILE,$(CL_DDK_2600),WINDDK\2600,LFNDirectory,$(IS_WIN_64))
+          VCCL := $(call MS_REG_FIND_FILE,$(CL_DDK_2600),WINDDK\2600,LFNDirectory,$(IS_WIN_64))
           ifdef VCCL
             DDK_VER_AUTO := 2600
           endif
@@ -828,28 +828,28 @@ ifndef VS
     ifeq ($(CPU) $(VS_CPU),$(TCPU) $(CPU))
 
       # search Visual C++ .NET compiler
-      VCCL := $(call VS_REG_SEARCH,bin/cl.exe,$(call VCCL_REG_KEYS_VC,7.0))
+      VCCL := $(call MS_REG_SEARCH,bin/cl.exe,$(call VCCL_REG_KEYS_VC,7.0))
 
       ifndef VCCL
-        VCCL := $(call VS_REG_SEARCH,Vc7/bin/cl.exe,$(call VCCL_REG_KEYS_VS,7.0))
+        VCCL := $(call MS_REG_SEARCH,Vc7/bin/cl.exe,$(call VCCL_REG_KEYS_VS,7.0))
       endif
 
       ifndef VCCL
         # look in Program Files
-        VCCL := $(call VS_FIND_FILE,Vc7/bin/cl.exe,$(addsuffix Microsoft?Visual?Studio?.NET/,$(PROGRAM_FILES_PLACES)))
+        VCCL := $(call CONF_FIND_FILE,Vc7/bin/cl.exe,$(addsuffix Microsoft?Visual?Studio?.NET/,$(PROGRAM_FILES_PLACES)))
       endif
 
       ifndef VCCL
         # search Visual 6.0 compiler
-        VCCL := $(call VS_REG_FIND_FILE,Bin/cl.exe,VisualStudio\6.0\Setup\Microsoft Visual C++,ProductDir,$(IS_WIN_64))
+        VCCL := $(call MS_REG_FIND_FILE,Bin/cl.exe,VisualStudio\6.0\Setup\Microsoft Visual C++,ProductDir,$(IS_WIN_64))
 
         ifndef VCCL
-          VCCL := $(call VS_REG_FIND_FILE,VC98/Bin/cl.exe,VisualStudio\6.0\Setup\Microsoft Visual Studio,ProductDir,$(IS_WIN_64))
+          VCCL := $(call MS_REG_FIND_FILE,VC98/Bin/cl.exe,VisualStudio\6.0\Setup\Microsoft Visual Studio,ProductDir,$(IS_WIN_64))
         endif
 
         ifndef VCCL
           # look in Program Files
-          VCCL := $(call VS_FIND_FILE,VC98/Bin/cl.exe,$(addsuffix Microsoft?Visual?Studio/,$(PROGRAM_FILES_PLACES)))
+          VCCL := $(call CONF_FIND_FILE,VC98/Bin/cl.exe,$(addsuffix Microsoft?Visual?Studio/,$(PROGRAM_FILES_PLACES)))
         endif
       endif
 
@@ -951,7 +951,7 @@ ifndef MSVC
 
   ifndef VCCL
     $(error unable to find C++ compiler for TCPU/CPU=$(TCPU)/$(CPU) on VS_CPU/VS_CPU64=$(VS_CPU)/$(VS_CPU64) with VS=$(call \
-  PATH_PRINTABLE,$(VS)), please specify either MSVC or VCCL, e.g.:$(newline)$(if \
+  CONF_PATH_PRINTABLE,$(VS)), please specify either MSVC or VCCL, e.g.:$(newline)$(if \
 ,)MSVC=C:\Program Files\Microsoft Visual Studio\VC98$(newline)$(if \
 ,)MSVC=C:\Program Files\Microsoft Visual C++ Toolkit 2003$(newline)$(if \
 ,)MSVC=C:\Program Files\Microsoft SDKs\Windows\v6.0\VC$(newline)$(if \
@@ -1039,7 +1039,7 @@ ifndef VCCL
 
   ifndef VCCL
     $(error unable to find C++ compiler for TCPU/CPU=$(TCPU)/$(CPU) on VS_CPU/VS_CPU64=$(VS_CPU)/$(VS_CPU64) with MSVC=$(call \
-  PATH_PRINTABLE,$(MSVC)), please specify VCCL, e.g.:$(newline)$(if \
+  CONF_PATH_PRINTABLE,$(MSVC)), please specify VCCL, e.g.:$(newline)$(if \
 ,)VCCL=C:\Program Files\Microsoft Visual Studio\VC98\Bin\cl.exe$(newline)$(if \
 ,)VCCL=C:\Program Files\Microsoft SDKs\Windows\v6.0\VC\Bin\x64\cl.exe$(newline)$(if \
 ,)VCCL=C:\WINDDK\3790\bin\x86\cl.exe$(newline)$(if \
@@ -1272,12 +1272,41 @@ $(warning autoconfigured: TVCLINK=$(TVCLINK))
 endif
 
 # protect variables from modifications in target makefiles
-$(call SET_GLOBAL,NORMALIZE_PATH GET_PROGRAM_FILES_DIRS VS_CPU VS_CPU64 IS_WIN_64 VS_FIND_FILE_WHERE VS_FIND_FILE VS_FIND_FILE_P \
-  VS_REG_QUERY VS_REG_FIND_FILE_WHERE VS_REG_FIND_FILE VS_REG_FIND_FILE_P \
-  VS_REG_SEARCH_X VS_REG_SEARCH_WHERE VS_REG_SEARCH VS_REG_SEARCH_P \
-  VS_SELECT_LATEST1 VS_SELECT_LATEST VC_TOOL_PREFIX_SDK6 VCCL_2005_PATTERN_GEN_VC VCCL_2005_PATTERN_GEN_VS \
+$(call SET_GLOBAL,CONF_NORMALIZE_PATH GET_PROGRAM_FILES_DIRS VS_CPU VS_CPU64 IS_WIN_64 CONF_FIND_FILE_WHERE CONF_FIND_FILE CONF_FIND_FILE_P \
+  MS_REG_QUERY MS_REG_FIND_FILE_WHERE MS_REG_FIND_FILE MS_REG_FIND_FILE_P \
+  MS_REG_SEARCH_X MS_REG_SEARCH_WHERE MS_REG_SEARCH MS_REG_SEARCH_P \
+  CONF_SELECT_LATEST1 CONF_SELECT_LATEST VC_TOOL_PREFIX_SDK6 VCCL_2005_PATTERN_GEN_VC VCCL_2005_PATTERN_GEN_VS \
   VC_TOOL_PREFIX_2005 VCCL_GET_LIBS_2005 VCCL_GET_HOST_2005 VC_TOOL_PREFIX_2017 \
   VC_LIB_TYPE_ONECORE VC_LIB_TYPE_STORE VS_2017_SELECT_LATEST_ENTRY \
   VC_VER VCCL VCLIB VCLINK VCLIBPATH VCINCLUDE \
   TVC_VER TVCCL TVCLIB TVCLINK TVCLIBPATH TVCINCLUDE \
   VCCL_PATH_APPEND)
+
+# convert prefix of cl.exe $1 to libraries prefix:
+#
+#  <none>    -> <none>
+#  x86_amd64 -> /amd64
+#  x86_arm   -> /arm
+#  amd64_x86 -> <none>
+#  amd64     -> /amd64
+#  amd64_arm -> /arm
+#  x64       -> /x64
+#
+# $1 - cl.exe prefix
+# $2 - $(VS_CPU)
+VCCL_GET_LIBS_2005 = $(addprefix /,$(filter-out $2,$(lastword $(subst _, ,$1))))
+
+# get host of cl.exe $1:
+#
+#  <none>    -> <none>
+#  x86_amd64 -> <none>
+#  x86_arm   -> <none>
+#  amd64_x86 -> amd64
+#  amd64     -> amd64
+#  amd64_arm -> amd64
+#  x64       -> x64
+#
+# $1 - cl.exe prefix
+# $2 - $(VS_CPU)
+VCCL_GET_HOST_2005 = $(filter-out $2,$(firstword $(subst _, ,$1)))
+
