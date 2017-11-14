@@ -4,7 +4,7 @@
 # Licensed under GPL version 2 or any later version, see COPYING
 #----------------------------------------------------------------------------------
 
-# find and define VCCL - MSVC C/C++ compiler, included by $(CLEAN_BUILD_DIR)/compilers/msvc/auto/conf.mk
+# find and define VCCL - MSVC C/C++ compiler executable, included by $(CLEAN_BUILD_DIR)/compilers/msvc/auto/conf.mk
 
 # note: may also define SDK_AUTO, DDK_AUTO, SDK_VER_AUTO, DDK_VER_AUTO, SDK and DDK
 
@@ -133,7 +133,7 @@ MSVC:=
 #     C:/Program Files/Microsoft Visual Studio/2017/Community/VC/Tools/MSVC/14.10.25017/bin/HostX86/x64/cl.exe \
 #     C:/Program Files/Microsoft Visual Studio/2017/Community/VC/Tools/MSVC/14.11.25503/bin/HostX86/x64/cl.exe
 # result: C:/Program Files/Microsoft Visual Studio/2017/Community/VC/Tools/MSVC/14.11.25503/bin/HostX86/x64/cl.exe
-VS_2017_SELECT_LATEST_ENTRY = $(subst ?, ,$(CONF_SELECT_LATEST))
+VS_2017_SELECT_LATEST_CL = $(subst ?, ,$(CONF_SELECT_LATEST))
 
 ifndef MSVC
 ifndef VS
@@ -218,7 +218,7 @@ ifndef VS
 
       # try to find Visual Studio 2017 cl.exe in the paths of VS*COMNTOOLS variables, e.g.:
       #  C:/Program Files/Microsoft Visual Studio/2017/Community/VC/Tools/MSVC/14.11.25503/bin/HostX86/x86/cl.exe
-      VCCL := $(call VS_2017_SELECT_LATEST_ENTRY,$(VCCL_2017_PREFIXED),$(call \
+      VCCL := $(call VS_2017_SELECT_LATEST_CL,$(VCCL_2017_PREFIXED),$(call \
         CONF_FIND_FILE_WHERE,VC/Tools/MSVC/*/$(VCCL_2017_PREFIXED),$(VS_COMNS_2017)))
 
       ifndef VCCL
@@ -334,12 +334,12 @@ ifndef VS
   VCCL_2017_PREFIXED := bin/$(call VC_TOOL_PREFIX_2017,$(TOOLCHAIN_CPU),$(CPU))cl.exe
 
   # look for C:/Program Files/Microsoft Visual Studio/2017/Community/VC/Tools/MSVC/14.11.25503/bin/HostX86/x86/cl.exe
-  VCCL := $(call VS_2017_SELECT_LATEST_ENTRY,$(VCCL_2017_PREFIXED),$(call \
+  VCCL := $(call VS_2017_SELECT_LATEST_CL,$(VCCL_2017_PREFIXED),$(call \
     MS_REG_SEARCH_WHERE,Tools/MSVC/*/$(VCCL_2017_PREFIXED),$(call VCCL_REG_KEYS_VC,15.0)))
 
   ifndef VCCL
     # look for C:/Program Files/Microsoft Visual Studio/2017/Community/VC/Tools/MSVC/14.11.25503/bin/HostX86/x86/cl.exe
-    VCCL := $(call VS_2017_SELECT_LATEST_ENTRY,$(VCCL_2017_PREFIXED),$(call \
+    VCCL := $(call VS_2017_SELECT_LATEST_CL,$(VCCL_2017_PREFIXED),$(call \
       MS_REG_SEARCH_WHERE,VC/Tools/MSVC/*/$(VCCL_2017_PREFIXED),$(call VCCL_REG_KEYS_VS,15.0)))
   endif
 
@@ -349,7 +349,7 @@ ifndef VS
     PROGRAM_FILES_PLACES := $(addsuffix /,$(GET_PROGRAM_FILES_DIRS))
 
     # look for C:/Program Files/Microsoft Visual Studio/2017/Community/VC/Tools/MSVC/14.11.25503/bin/HostX86/x86/cl.exe
-    VCCL := $(call VS_2017_SELECT_LATEST_ENTRY,$(VCCL_2017_PREFIXED),$(call \
+    VCCL := $(call VS_2017_SELECT_LATEST_CL,$(VCCL_2017_PREFIXED),$(call \
       CONF_FIND_FILE_WHERE,Microsoft Visual Studio/*/*/VC/Tools/MSVC/*/$(VCCL_2017_PREFIXED),$(PROGRAM_FILES_PLACES)))
   endif
 
@@ -670,7 +670,7 @@ ifndef MSVC
   # if there are multiple Visual Studio editions, select which have the latest compiler,
   #  or may be VS specified with Visual Studio edition type?
   # $1 - C:/Program Files/Microsoft Visual Studio/2017/Community/VC/Tools/MSVC/14.11.25503/bin/HostX64/x86/cl.exe
-  VS_DEDUCE_VCCL = $(call VS_2017_SELECT_LATEST_ENTRY,$(VCCL_2017_PREFIXED),$(VS)/ $(if \
+  VS_DEDUCE_VCCL = $(call VS_2017_SELECT_LATEST_CL,$(VCCL_2017_PREFIXED),$(VS)/ $(if \
     $1,$1,$(wildcard $(VS_WILD)VC/Tools/MSVC/*/$(VCCL_2017_PREFIXED))))
 
   # e.g. VCCL=C:/Program Files/Microsoft Visual Studio/2017/Community/VC/Tools/MSVC/14.11.25503/bin/HostX64/x86/cl.exe
@@ -760,7 +760,7 @@ ifndef VCCL
       VCCL_2017_PREFIXED := bin/$(call VC_TOOL_PREFIX_2017,$(TOOLCHAIN_CPU),$(CPU))cl.exe
 
       # find cl.exe and choose the newest one
-      VCCL := $(call VS_2017_SELECT_LATEST_ENTRY,$(VCCL_2017_PREFIXED),$(MSVC)/ $(wildcard \
+      VCCL := $(call VS_2017_SELECT_LATEST_CL,$(VCCL_2017_PREFIXED),$(MSVC)/ $(wildcard \
         $(MSVC_WILD)Tools/MSVC/*/$(VCCL_2017_PREFIXED)))
 
       ifndef VCCL
@@ -812,4 +812,4 @@ $(warning autoconfigured: VCCL=$(VCCL))
 # protect variables from modifications in target makefiles
 $(call SET_GLOBAL,VS_CPU32 VS_CPU64 VS_CPU CL_TOOL_PREFIX_DDK_3790 CL_TOOL_PREFIX_DDK6 VC_TOOL_PREFIX_SDK6 \
   VC_TOOL_PREFIX_2005 VCCL_2005_PATTERN_GEN_VC VCCL_2005_PATTERN_GEN_VS VC_TOOL_PREFIX_2017 VS MSVC \
-  VS_2017_SELECT_LATEST_ENTRY DDK_71_REG_PATH DDK_70_REG_PATH DDK_62_REG_PATH)
+  VS_2017_SELECT_LATEST_CL DDK_71_REG_PATH DDK_70_REG_PATH DDK_62_REG_PATH)
