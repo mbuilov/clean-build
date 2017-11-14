@@ -105,7 +105,7 @@ ifeq (,$(filter-out undefined environment,$(origin SUBSYSTEM_VER)))
 SUBSYSTEM_VER := $(SUBSYSTEM_VER_$(call SUBSYSTEM_FROM_WINVARIANT,$(WINVARIANT)))
 endif
 
-# map WINVARIANT -> Windows DDK folder name
+# map WINVARIANT -> Windows name (DDK folder name)
 WIN_NAME_FROM_WINVARIANT = $(if $(filter \
   WINTHRESHOLD WIN10,$1),10.0.*,$(if $(filter \
   WINBLUE,$1),winv6.3,$(if $(filter \
