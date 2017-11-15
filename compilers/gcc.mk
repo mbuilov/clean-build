@@ -198,7 +198,7 @@ ifndef NO_PCH
 # add support for precompiled headers
 
 ifeq (,$(filter-out undefined environment,$(origin GCC_PCH_TEMPLATEt)))
-include $(dir $(lastword $(MAKEFILE_LIST)))gcc/pch.mk
+include $(CLEAN_BUILD_DIR)/compilers/gcc/pch.mk
 endif
 
 # override C++ and C compilers to support compiling with precompiled header
