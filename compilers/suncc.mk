@@ -6,13 +6,13 @@
 
 # suncc compiler toolchain (app-level), included by $(CLEAN_BUILD_DIR)/impl/_c.mk
 
-# common suncc compiler definitions
-ifeq (,$(filter-out undefined environment,$(origin WRAP_SUNCC)))
-include $(dir $(lastword $(MAKEFILE_LIST)))suncc/cmn.mk
-endif
-
 # define RPATH and target-specific MAP and MODVER (for DLLs) variables
 include $(dir $(lastword $(MAKEFILE_LIST)))unixcc.mk
+
+# common suncc compiler definitions
+ifeq (,$(filter-out undefined environment,$(origin WRAP_SUNCC)))
+include $(CLEAN_BUILD_DIR)/compilers/suncc/cmn.mk
+endif
 
 # target compilers/linkers
 CC  := cc
@@ -210,7 +210,7 @@ ifndef NO_PCH
 # add support for precompiled headers
 
 ifeq (,$(filter-out undefined environment,$(origin SUNCC_PCH_TEMPLATEt)))
-include $(dir $(lastword $(MAKEFILE_LIST)))suncc/pch.mk
+include $(CLEAN_BUILD_DIR)/compilers/suncc/pch.mk
 endif
 
 # C/C++ compilers for compiling without precompiled header
