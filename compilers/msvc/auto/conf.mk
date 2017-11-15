@@ -10,7 +10,7 @@
 # input for autoconfiguration:
 #
 # 1) VS - Visual Studio installation path
-#   may be specified if autoconfiguration (based on values of environment variables or registry keys) fails, e.g.:
+#   may be specified if autoconfiguration based on values of environment variables and registry keys fails, e.g.:
 #     VS=C:\Program Files\Microsoft Visual Studio
 #     VS=C:\Program Files\Microsoft Visual Studio .NET 2003
 #     VS=C:\Program Files\Microsoft Visual Studio 14.0
@@ -41,57 +41,68 @@
 # 4) SDK - path to Windows Software Development Kit,
 #   may be specified explicitly if failed to determine it automatically or to override automatically defined value, e.g.:
 #     SDK=C:\Program Files\Microsoft SDKs\Windows\v6.0
+#     SDK=C:\Program Files (x86)\Windows Kits\8.0
+#     SDK=C:\Program Files (x86)\Windows Kits\10.0
 #
 # 5) DDK - path to Windows Driver Development Kit,
 #   may be specified instead of SDK - because DDK contains SDK headers and libraries necessary for building simple console applications,
-#   but may be specified together with SDK - for building drivers, e.g.:
+#   but also may be specified together with SDK - for building drivers, e.g.:
 #     DDK=C:\WinDDK\7600.16385.1
+#     DDK=C:\Program Files (x86)\Windows Kits\8.0
+#     DDK=C:\Program Files (x86)\Windows Kits\10.0
 #
 # 6) WDK - path to Windows Development Kit,
 #   may be specified instead of SDK and DDK - newer versions of SDK and DDK (8.0 and later) are combined under the same WDK path, e.g.:
 #     WDK=C:\Program Files (x86)\Windows Kits\8.0
 #     WDK=C:\Program Files (x86)\Windows Kits\10.0
 #
-#   Note: SDK/DDK values, if non-empty, are preferred over WDK.
-#
-# 7) UMVER - minimum Windows version required to run built user-mode applications (starting with WDK8),
-#   may be specified explicitly to override one deduced automatically, e.g.:
-#     win8 winv6.3 10.0.10240.0 10.0.10586.0 10.0.14393.0 10.0.15063.0 10.0.16299.0
+#   Note: SDK/DDK values, if not defined, are will be set to point to WDK.
+#   Note: defining SDK is not enough for Visual Studio 2015 and later - it requires WDK - for ucrt libraries.
 #
 #################################################################################################################
 
 # try to autoconfigure:
-#  Visual C++ version, paths to compiler, linker, system libraries and headers
+#  target Windows version, Visual C++ version, paths to compiler, linker, system libraries and headers
 #  - only if they are not defined in project configuration makefile or in command line
 #  (variables prefixed with T - are for the tool mode)
 #
-# {,T}VC_VER    - MSVC++ version, known values see in $(CLEAN_BUILD_DIR)/compilers/msvc/cmn.mk
+# WINVER        - minimal Windows version required to run build executables
+# {,T}VC_VER    - MSVC++ version, known values see in $(CLEAN_BUILD_DIR)/compilers/msvc/cmn.mk 'MSVC++ versions' table
 # {,T}VCCL      - path to cl.exe                (may be in double-quotes, if contains spaces - double-quoted automatically)
-# {,T}VCLIB     - path to lib.exe               (must be in double-quotes if contains spaces)
-# {,T}VCLINK    - path to link.exe              (must be in double-quotes if contains spaces)
-# {,T}VCLIBPATH - paths to Visual C++ libraries (without quotes, spaces must be replaced with ?)
-# {,T}VCINCLUDE - paths to Visual C++ headers   (without quotes, spaces must be replaced with ?)
-# {,T}UMLIBPATH - paths to user-mode libraries  (without quotes, spaces must be replaced with ?)
-# {,T}UMINCLUDE - paths to user-mode headers    (without quotes, spaces must be replaced with ?)
+# {,T}VCLIB     - path to lib.exe               (must be in double-quotes if contains spaces, may be deduced from VCCL)
+# {,T}VCLINK    - path to link.exe              (must be in double-quotes if contains spaces, may be deduced from VCCL)
+# {,T}VCINCLUDE - paths to Visual C++ headers   (such as varargs.h,    without quotes, spaces must be replaced with ?)
+# {,T}VCLIBPATH - paths to Visual C++ libraries (such as msvcrt.lib,   without quotes, spaces must be replaced with ?)
+# {,T}UMINCLUDE - paths to user-mode headers    (such as winbase.h,    without quotes, spaces must be replaced with ?)
+# {,T}UMLIBPATH - paths to user-mode libraries  (such as kernel32.lib, without quotes, spaces must be replaced with ?)
+# RC            - path to rc.exe                (may be in double-quotes, if contains spaces - double-quoted automatically)
 #
 # example:
 #
+# WINVER    := WINBLUE
 # VC_VER    := 14.0
 # VCCL      := "C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\bin\cl.exe"
 # VCLIB     := "C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\bin\lib.exe"
 # VCLINK    := "C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\bin\link.exe"
-# VCLIBPATH := C:\Program?Files?(x86)\Microsoft?Visual?Studio?14.0\VC\lib
 # VCINCLUDE := C:\Program?Files?(x86)\Microsoft?Visual?Studio?14.0\VC\include
-# UMLIBPATH := C:\Program?Files?(x86)\Windows?Kits\8.1\Lib\winv6.3\um\x86
-# UMINCLUDE := C:\Program?Files?(x86)\Windows?Kits\8.1\Include\um
+# VCLIBPATH := C:\Program?Files?(x86)\Microsoft?Visual?Studio?14.0\VC\lib
+# UMINCLUDE := C:\Program?Files?(x86)\Windows?Kits\8.1\Include\um C:\Program?Files?(x86)\Windows?Kits\10\Include\10.0.10240.0\ucrt
+# UMLIBPATH := C:\Program?Files?(x86)\Windows?Kits\8.1\Lib\winv6.3\um\x86 C:\Program?Files?(x86)\Windows?Kits\10\Lib\10.0.10240.0\ucrt\x86
+# RC        := "C:\Program Files (x86)\Windows Kits\8.1\bin\x86\rc.exe"
 #
-# note: VCLIBPATH, VCINCLUDE, UMLIBPATH or UMINCLUDE may be defined with empty values in project configuration makefile or in command line
+# note: VCINCLUDE, VCLIBPATH, UMINCLUDE or UMLIBPATH may be defined with empty values in project configuration makefile or in command line
+
+
 
 # ============================ functions ==============================
 
-# normalize path: replace spaces with ?, remove double-quotes, make all slashes backward, remove trailing back-slash, e.g.:
+# tool path must use forward slashes, must be in double-quotes if contains spaces, e.g.:
+# "C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\bin\cl.exe"
+CONF_NORMALIZE_TOOL = $(call ifaddq,$(subst ?, ,$(subst /,\,$(patsubst "%",%,$(subst $(space),?,$1)))))
+
+# normalize directory path: replace spaces with ?, remove double-quotes, make all slashes backward, remove trailing back-slash, e.g.:
 #  "a\b\c d\e\" -> a/b/c?d/e
-CONF_NORMALIZE_PATH = $(patsubst %/,%,$(subst \,/,$(patsubst "%",%,$(subst $(space),?,$1))))
+CONF_NORMALIZE_DIR = $(patsubst %/,%,$(subst \,/,$(patsubst "%",%,$(subst $(space),?,$1))))
 
 # convert path to printable form
 # a/b/c?d/e -> "a\b\c d\e"
@@ -119,24 +130,24 @@ IS_WIN_64 := $(filter-out undefined,$(origin ProgramFiles$(open_brace)x86$(close
 # check if file exist and if it is, return path to parent directory of that file
 # $1 - path to file, e.g.: C:/Program?Files?(x86)/Microsoft?Visual?Studio?9.0/VC/lib/amd64/msvcrt.lib
 # returns: C:\Program?Files?(x86)\Microsoft?Visual?Studio?9.0\VC\lib\amd64
-CHECK_FILE_PATH := $(subst /,\,$(patsubst %/,%,$(dir $(subst $(space),?,$(wildcard $(subst ?,\ ,$1))))))
+CONF_CHECK_FILE_PATH := $(subst /,\,$(patsubst %/,%,$(dir $(subst $(space),?,$(wildcard $(subst ?,\ ,$1))))))
 
-# find file in the paths by pattern, return path where file was found
+# find file(s) in the paths by pattern, return a path where file(s) were found
 # $1 - file to find, e.g.: VC/bin/cl.exe (possibly be a mask, like: VC/Tools/MSVC/*/bin/HostX86/x86/cl.exe, may be with spaces)
 # $2 - paths to look in, e.g. C:/Program?Files/Microsoft?Visual?Studio/2017/Community/ C:/Program?Files/Microsoft?Visual?Studio?14.0/
 # result (may be a list): C:/Program?Files/Microsoft?Visual?Studio?14.0/ C:/Program Files/Microsoft Visual Studio 14.0/VC/bin/cl.exe
 CONF_FIND_FILE_WHERE  = $(if $2,$(call CONF_FIND_FILE_WHERE1,$1,$2,$(wildcard $(subst ?,\ ,$(firstword $2))$1)))
 CONF_FIND_FILE_WHERE1 = $(if $3,$(firstword $2) $3,$(call CONF_FIND_FILE_WHERE,$1,$(wordlist 2,999999,$2)))
 
-# find file in the paths by pattern
+# find file(s) in the paths by pattern
 # $1 - file to find, e.g.: VC/bin/cl.exe (possibly be a mask, like: VC/Tools/MSVC/*/bin/HostX86/x86/cl.exe, may be with spaces)
 # $2 - paths to look in, e.g. C:/Program?Files/Microsoft?Visual?Studio/2017/Community/ C:/Program?Files/Microsoft?Visual?Studio?14.0/
 # result (may be a list): C:/Program Files/Microsoft Visual Studio 14.0/VC/bin/cl.exe
 CONF_FIND_FILE  = $(if $2,$(call CONF_FIND_FILE1,$1,$2,$(wildcard $(subst ?,\ ,$(firstword $2))$1)))
 CONF_FIND_FILE1 = $(if $3,$3,$(call CONF_FIND_FILE,$1,$(wordlist 2,999999,$2)))
 
-# like CONF_FIND_FILE, but $1 - name of macro that returns file to find (VCCL_2005_PATTERN_GEN_VC or VCCL_2005_PATTERN_GEN_VS)
-# note: macro $1 may use $(firstword $2) - path where the search is done
+# like CONF_FIND_FILE, but $1 - name of the macro that returns file to find (VCCL_2005_PATTERN_GEN_VC or VCCL_2005_PATTERN_GEN_VS)
+# note: macro $1 may use $(firstword $2) - path where the search takes place
 CONF_FIND_FILE_P  = $(if $2,$(call CONF_FIND_FILE_P1,$1,$2,$(wildcard $(subst ?,\ ,$(firstword $2))$($1))))
 CONF_FIND_FILE_P1 = $(if $3,$3,$(call CONF_FIND_FILE_P,$1,$(wordlist 2,999999,$2)))
 
@@ -149,19 +160,19 @@ CONF_FIND_FILE_P1 = $(if $3,$3,$(call CONF_FIND_FILE_P,$1,$(wordlist 2,999999,$2
 # note: result will be with trailing backslash
 # note: value of "VisualStudio\6.0\Setup\Microsoft Visual C++\ProductDir" key does not end with slash, e.g:
 #  "C:\Program Files (x86)\Microsoft Visual Studio\VC98"
-MS_REG_QUERY = $(patsubst %//,%/,$(addsuffix /,$(subst \,/,$(subst ?$2?REG_SZ?,,$(word \
+MS_REG_QUERY_PATH = $(addsuffix /,$(patsubst %/,%,$(subst \,/,$(subst ?$2?REG_SZ?,,$(word \
   2,$(subst HKEY_LOCAL_MACHINE\SOFTWARE$3\Microsoft\$1, ,xxx$(subst $(space),?,$(strip $(shell \
   reg query "HKLM\SOFTWARE$3\Microsoft\$1" /v "$2" 2>&1)))))))))
 
-# find file by pattern in the path found in registry
+# find file(s) by pattern in the path found in registry
 # $1 - file to find, e.g.: VC/bin/cl.exe (possibly be a mask, like: VC/Tools/MSVC/*/bin/HostX86/x86/cl.exe, may be with spaces)
 # $2 - registry key sub path, e.g.: VisualStudio\SxS\VC7 or VisualStudio\SxS\VS7 or VisualStudio\6.0\Setup\Microsoft Visual C++
 # $3 - registry key name, e.g.: 14.0 or ProductDir
 # $4 - if not empty, then also check Wow6432Node (applicable only on Win64), tip: use $(IS_WIN_64)
 # result (may be a list): C:/Program?Files?(x86)/Microsoft?Visual?Studio?14.0/ C:/Program Files/Microsoft Visual Studio 14.0/VC/bin/cl.exe
-MS_REG_FIND_FILE_WHERE  = $(call MS_REG_FIND_FILE_WHERE1,$1,$(call MS_REG_QUERY,$2,$3),$2,$3,$4)
+MS_REG_FIND_FILE_WHERE  = $(call MS_REG_FIND_FILE_WHERE1,$1,$(call MS_REG_QUERY_PATH,$2,$3),$2,$3,$4)
 MS_REG_FIND_FILE_WHERE1 = $(call MS_REG_FIND_FILE_WHERE2,$1,$2,$(if $2,$(wildcard $(subst ?,\ ,$2)$1)),$3,$4,$5)
-MS_REG_FIND_FILE_WHERE2 = $(if $3,$2 $3,$(if $6,$(call MS_REG_FIND_FILE_WHERE3,$1,$(call MS_REG_QUERY,$4,$5,\Wow6432Node))))
+MS_REG_FIND_FILE_WHERE2 = $(if $3,$2 $3,$(if $6,$(call MS_REG_FIND_FILE_WHERE3,$1,$(call MS_REG_QUERY_PATH,$4,$5,\Wow6432Node))))
 MS_REG_FIND_FILE_WHERE3 = $(if $2,$(call MS_REG_FIND_FILE_WHERE4,$2,$(wildcard $(subst ?,\ ,$2)$1)))
 MS_REG_FIND_FILE_WHERE4 = $(if $2,$1 $2)
 
@@ -170,21 +181,21 @@ MS_REG_FIND_FILE_WHERE4 = $(if $2,$1 $2)
 MS_REG_FIND_FILE = $(wordlist 2,999999,$(MS_REG_FIND_FILE_WHERE))
 
 # like MS_REG_FIND_FILE, but $1 - name of macro that returns file to find (VCCL_2005_PATTERN_GEN_VC or VCCL_2005_PATTERN_GEN_VS)
-# note: macro $1 may use $2 - path where the search is done
-MS_REG_FIND_FILE_P  = $(call MS_REG_FIND_FILE_P1,$1,$(call MS_REG_QUERY,$2,$3),$2,$3,$4)
+# note: macro $1 may use $2 - path where the search takes place
+MS_REG_FIND_FILE_P  = $(call MS_REG_FIND_FILE_P1,$1,$(call MS_REG_QUERY_PATH,$2,$3),$2,$3,$4)
 MS_REG_FIND_FILE_P1 = $(call MS_REG_FIND_FILE_P2,$1,$(if $2,$(wildcard $(subst ?,\ ,$2)$($1))),$3,$4,$5)
-MS_REG_FIND_FILE_P2 = $(if $2,$2,$(if $5,$(call MS_REG_FIND_FILE_P3,$1,$(call MS_REG_QUERY,$3,$4,\Wow6432Node))))
+MS_REG_FIND_FILE_P2 = $(if $2,$2,$(if $5,$(call MS_REG_FIND_FILE_P3,$1,$(call MS_REG_QUERY_PATH,$3,$4,\Wow6432Node))))
 MS_REG_FIND_FILE_P3 = $(if $2,$(wildcard $(subst ?,\ ,$2)$($1)))
 
-# find file by pattern in the paths found in registry
+# find file(s) by pattern in the paths found in registry
 # $1 - file to find, e.g.: VC/bin/cl.exe (possibly be a mask, like: VC/Tools/MSVC/*/bin/HostX86/x86/cl.exe, may be with spaces)
 # $2 - registry key sub paths and corresponding key names, e.g. VisualStudio\14.0\Setup\VC?ProductDir VisualStudio\SxS\VC7?14.0
-# $3 - MS_REG_FIND_FILE_WHERE, MS_REG_FIND_FILE or MS_REG_FIND_FILE_P
+# $3 - macro to call: MS_REG_FIND_FILE_WHERE, MS_REG_FIND_FILE or MS_REG_FIND_FILE_P
 MS_REG_SEARCH_X  = $(if $2,$(call MS_REG_SEARCH_X1,$1,$2,$3,$(subst ?, ,$(firstword $2))))
 MS_REG_SEARCH_X1 = $(call MS_REG_SEARCH_X2,$1,$2,$3,$(call $3,$1,$(firstword $4),$(lastword $4),$(IS_WIN_64)))
 MS_REG_SEARCH_X2 = $(if $4,$4,$(call MS_REG_SEARCH_X,$1,$(wordlist 2,999999,$2),$3))
 
-# find file by pattern in the paths found in registry
+# find file(s) by pattern in the paths found in registry
 # $1 - file to find, e.g.: VC/bin/cl.exe (possibly be a mask, like: VC/Tools/MSVC/*/bin/HostX86/x86/cl.exe, may be with spaces)
 # $2 - registry key sub paths and corresponding key names, e.g. VisualStudio\14.0\Setup\VC?ProductDir VisualStudio\SxS\VC7?14.0
 # result (may be a list): C:/Program?Files?(x86)/Microsoft?Visual?Studio?14.0/ C:/Program Files/Microsoft Visual Studio 14.0/VC/bin/cl.exe
@@ -207,21 +218,19 @@ MS_REG_SEARCH_P = $(call MS_REG_SEARCH_X,$1,$2,MS_REG_FIND_FILE_P)
 CONF_SELECT_LATEST1 = $(patsubst %,$2%$1,$(lastword $(sort $(subst $1?$2, ,$(patsubst %,$1?%?$2,$(subst $(space),?,$3))))))
 CONF_SELECT_LATEST  = $(call CONF_SELECT_LATEST1,$1,$(firstword $2),$(wordlist 2,999999,$2))
 
+# query version of cl.exe
 # Оптимизирующий 32-разрядный компилятор Microsoft (R) C/C++ версии 15.00.30729.01 для 80x86 -> 15 00 30729 01
 # $1 - "C:\Program Files\Microsoft Visual Studio 14.0\VC\bin\x86_amd64\cl.exe"
-CL_GET_VER = $(call CL_GET_VER1,$1,$(subst ., ,$(lastword $(foreach v,$(filter \
-  0% 1% 2% 3% 4% 5% 6% 7% 8% 9%,$(shell $(subst \,/,$1) 2>&1)),$(if $(word 3,$(subst ., ,$v)),$v)))))
+CL_GET_VER = $(subst ., ,$(lastword $(foreach v,$(filter 0% 1% 2% 3% 4% 5% 6% 7% 8% 9%,$(shell \
+  $(subst \,/,$1) 2>&1)),$(if $(word 3,$(subst ., ,$v)),$v))))
 
-# map 15 00 30729 01 -> 9.00
+# query version of cl.exe and map it to MSVC++ version, e.g.: 15 00 30729 01 -> 9.00
 # $1 - "C:\Program Files\Microsoft Visual Studio 14.0\VC\bin\x86_amd64\cl.exe"
-# $2 - 15 00 30729 01
-# note: use MSC_VER_... constants defined in $(CLEAN_BUILD_DIR)/compilers/msvc_cmn.mk
-CL_GET_VER1 = $(if $2,$(if $(filter undefined environment,$(origin MSC_VER_$(firstword $2))),$(error \
+# note: use MSC_VER_... constants defined in $(CLEAN_BUILD_DIR)/compilers/msvc/cmn.mk
+CL_GET_MSVC_VER  = $(call CL_GET_MSVC_VER1,$1,$(CL_GET_VER))
+CL_GET_MSVC_VER1 = $(if $2,$(if $(filter undefined environment,$(origin MSC_VER_$(firstword $2))),$(error \
   unknown major version number $(firstword $2) of $1),$(MSC_VER_$(firstword $2)).$(word 2,$2)),$(error \
   unable to determine version of $1))
-
-# VCCL path must use forward slashes, must be in double-quotes if contains spaces
-NORMALIZE_VCCL_PATH = $(call ifaddq,$(subst ?, ,$(patsubst "%",%,$(subst $(space),?,$(subst /,\,$1)))))
 
 # ======================== end of functions ===========================
 
@@ -286,17 +295,17 @@ TVCINCLUDE_AUTO:=
 
 ifdef SDK
 # SDK=C:/Program?Files/Microsoft?SDKs/Windows/v6.0
-override SDK := $(call CONF_NORMALIZE_PATH,$(SDK))
+override SDK := $(call CONF_NORMALIZE_DIR,$(SDK))
 endif
 
 ifdef DDK
 # DDK=C:/WinDDK/7600.16385.1
-override DDK := $(call CONF_NORMALIZE_PATH,$(DDK))
+override DDK := $(call CONF_NORMALIZE_DIR,$(DDK))
 endif
 
 ifdef WDK
 # WDK=C:/Program?Files?(x86)/Windows?Kits/8.0
-override WDK := $(call CONF_NORMALIZE_PATH,$(WDK))
+override WDK := $(call CONF_NORMALIZE_DIR,$(WDK))
 ifdef MCHECK
 ifdef SDK
 ifdef DDK
@@ -526,8 +535,8 @@ $(warning autoconfigured: TVCLINK=$(TVCLINK))
 endif
 
 # protect variables from modifications in target makefiles
-$(call SET_GLOBAL,CONF_NORMALIZE_PATH GET_PROGRAM_FILES_DIRS VS_CPU VS_CPU64 IS_WIN_64 CONF_FIND_FILE_WHERE CONF_FIND_FILE CONF_FIND_FILE_P \
-  MS_REG_QUERY MS_REG_FIND_FILE_WHERE MS_REG_FIND_FILE MS_REG_FIND_FILE_P \
+$(call SET_GLOBAL,CONF_NORMALIZE_TOOL CONF_NORMALIZE_DIR GET_PROGRAM_FILES_DIRS VS_CPU VS_CPU64 IS_WIN_64 CONF_FIND_FILE_WHERE CONF_FIND_FILE CONF_FIND_FILE_P \
+  MS_REG_QUERY_PATH MS_REG_FIND_FILE_WHERE MS_REG_FIND_FILE MS_REG_FIND_FILE_P \
   MS_REG_SEARCH_X MS_REG_SEARCH_WHERE MS_REG_SEARCH MS_REG_SEARCH_P \
   CONF_SELECT_LATEST1 CONF_SELECT_LATEST VC_TOOL_PREFIX_SDK6 VCCL_2005_PATTERN_GEN_VC VCCL_2005_PATTERN_GEN_VS \
   VC_TOOL_PREFIX_2005 VCCL_GET_LIBS_2005 VCCL_GET_HOST_2005 VC_TOOL_PREFIX_2017 \
@@ -576,4 +585,19 @@ VCCL_GET_HOST_2005 = $(filter-out $2,$(firstword $(subst _, ,$1)))
 # C:\Program Files\Microsoft Visual Studio\2017\Community\VC\Tools\MSVC\14.11.25503\lib\{x86,x64,arm}\msvcrt.lib
 # C:\Program Files\Microsoft Visual Studio\2017\Community\VC\Tools\MSVC\14.11.25503\lib\onecore\{x86,x64,arm}\msvcrt.lib
 # C:\Program Files\Microsoft Visual Studio\2017\Community\VC\Tools\MSVC\14.11.25503\lib\{x86,x64,arm}\store\msvcrt.lib
+
+# 7) UMVER - name of the Windows version-specific folder containing user-mode libraries (e.g. kernel32.lib) and headers (e.g. WinBase.h),
+#   may be specified explicitly to override one deduced automatically, e.g.:
+#     wxp wnet wlh win7 win8 winv6.3 10.0.10240.0 10.0.10586.0 10.0.14393.0 10.0.15063.0 10.0.16299.0
+#
+#   Note: by default, assuming that SDKs are backward-compatible, the newest SDK is used.
+#
+
+# configure paths to system libraries/headers:
+# (variables prefixed with T - are for the tool mode)
+# {,T}UMLIBPATH - paths to user-mode libraries, spaces must be replaced with ?
+# {,T}UMINCLUDE - paths to user-mode headers, spaces must be replaced with ?
+ifeq (,$(filter-out undefined environment,$(origin ???)))
+include $(dir $(lastword $(MAKEFILE_LIST)))msvc/sdk.mk
+endif
 

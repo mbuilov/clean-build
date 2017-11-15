@@ -180,13 +180,13 @@ endif
 
 ifdef MSVC
 # MSVC=C:/Program?Files/Microsoft?Visual?Studio/2017/Community/VC
-override MSVC := $(call CONF_NORMALIZE_PATH,$(MSVC))
+override MSVC := $(call CONF_NORMALIZE_DIR,$(MSVC))
 endif
 
 ifndef MSVC
 ifdef VS
 # VS=C:/Program?Files/Microsoft?Visual?Studio?12.0
-override VS := $(call CONF_NORMALIZE_PATH,$(VS))
+override VS := $(call CONF_NORMALIZE_DIR,$(VS))
 endif
 endif
 

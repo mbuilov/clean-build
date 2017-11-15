@@ -8,57 +8,55 @@
 
 # common msvc compiler definitions
 ifeq (,$(filter-out undefined environment,$(origin INCLUDING_FILE_PATTERN_en)))
-include $(dir $(lastword $(MAKEFILE_LIST)))msvc/cmn.mk
+include $(CLEAN_BUILD_DIR)/compilers/msvc/cmn.mk
 endif
 
 # add definitions of standard resource with module version information
 ifeq (,$(filter-out undefined environment,$(origin STD_RES_TEMPLATE)))
-include $(dir $(lastword $(MAKEFILE_LIST)))msvc/stdres.mk
+include $(CLEAN_BUILD_DIR)/compilers/msvc/stdres.mk
 endif
 
 # add support for exporting symbols (from a dll or exe)
 ifeq (,$(filter-out undefined environment,$(origin EXPORTS_TEMPLATE)))
-include $(dir $(lastword $(MAKEFILE_LIST)))msvc/exp.mk
+include $(CLEAN_BUILD_DIR)/compilers/msvc/exp.mk
 endif
 
-# define variables:
-# WINVER_DEFINES - version of Windows API to compile with, e.g.: _WIN32_WINNT=0x0501, may be empty
-# SUBSYSTEM_VER  - minimum Windows version required to run built targets, e.g.: SUBSYSTEM_VER=5.01, may be empty
-ifneq (,$(filter undefined environment,$(origin WINVER_DEFINES) $(origin SUBSYSTEM_VER)))
-include $(dir $(lastword $(MAKEFILE_LIST)))msvc/winver.mk
+# define macros:
+# FORM_WINVER_DEFINES - specifies version of Windows API to compile with, e.g.: "/D_WIN32_WINNT=0x0501", may be empty
+# FORM_SUBSYSTEM_VER  - minimum Windows version required to run built targets, e.g.: "/SUBSYSTEM:CONSOLE,5.01", may be empty
+ifeq (,$(filter-out undefined environment,$(origin FORM_WINVER_DEFINES)))
+include $(CLEAN_BUILD_DIR)/compilers/msvc/winver.mk
 endif
 
-# configure Visual C++ version, paths to compiler, linker and C/C++ libraries and headers:
-# (variables prefixed with T - are for the tool mode)
-# {,T}VC_VER    - version of Visual C++ we are using - see $(CLEAN_BUILD_DIR)/compilers/msvc/cmn.mk 'MSVC++ versions' table
-# {,T}VCCL      - path to cl.exe, must be in double-quotes if contains spaces
-# {,T}VCLIB     - path to lib.exe, must be in double-quotes if contains spaces
-# {,T}VCLINK    - path to link.exe, must be in double-quotes if contains spaces
-# {,T}VCLIBPATH - paths to Visual C++ libraries, spaces must be replaced with ?
-# {,T}VCINCLUDE - paths to Visual C++ headers, spaces must be replaced with ?
-# note: assume target and tool compilers are of the same version and differ only by the architecture of produced binaries
-ifeq (,$(filter-out undefined environment,$(origin GET_PROGRAM_FILES_DIRS)))
-include $(dir $(lastword $(MAKEFILE_LIST)))msvc/conf.mk
+# autoconfigure:
+#  target Windows version, Visual C++ version, paths to compiler, linker, system libraries, headers and tools:
+#  (variables prefixed with T - are for the tool mode)
+#
+# WINVER        - minimal Windows version required to run build executables
+# {,T}VC_VER    - MSVC++ version, known values see in $(CLEAN_BUILD_DIR)/compilers/msvc/cmn.mk 'MSVC++ versions' table
+# {,T}VCCL      - path to cl.exe                (may be in double-quotes, if contains spaces - double-quoted automatically)
+# {,T}VCLIB     - path to lib.exe               (must be in double-quotes if contains spaces, may be deduced from VCCL)
+# {,T}VCLINK    - path to link.exe              (must be in double-quotes if contains spaces, may be deduced from VCCL)
+# {,T}VCINCLUDE - paths to Visual C++ headers   (such as varargs.h,    without quotes, spaces must be replaced with ?)
+# {,T}VCLIBPATH - paths to Visual C++ libraries (such as msvcrt.lib,   without quotes, spaces must be replaced with ?)
+# {,T}UMINCLUDE - paths to user-mode headers    (such as winbase.h,    without quotes, spaces must be replaced with ?)
+# {,T}UMLIBPATH - paths to user-mode libraries  (such as kernel32.lib, without quotes, spaces must be replaced with ?)
+# RC            - path to rc.exe                (may be in double-quotes, if contains spaces - double-quoted automatically)
+# MC            - path to mc.exe                (may be in double-quotes, if contains spaces - double-quoted automatically)
+# MT            - path to mt.exe                (may be in double-quotes, if contains spaces - double-quoted automatically)
+#
+ifneq (,$(filter undefined environment,$(foreach v,WINVER \
+  VC_VER VCCL VCLIB VCLINK VCINCLUDE VCLIBPATH UMINCLUDE UMLIBPATH \
+  TVC_VER TVCCL TVCLIB TVCLINK TVCINCLUDE TVCLIBPATH TUMINCLUDE TUMLIBPATH RC MC MT,$(origin $v))))
+include $(CLEAN_BUILD_DIR)/compilers/msvc/conf.mk
 endif
-
-
-
-
 
 # add definitions of RC_COMPILER (needed by STD_RES_TEMPLATE) and MC_COMPILER
 ifeq (,$(filter-out undefined environment,$(origin MC_COMPILER)))
-include $(dir $(lastword $(MAKEFILE_LIST)))msvc/tools.mk
+include $(CLEAN_BUILD_DIR)/compilers/msvc/tools.mk
 endif
 
-# configure paths to system libraries/headers:
-# (variables prefixed with T - are for the tool mode)
-# {,T}UMLIBPATH - paths to user-mode libraries, spaces must be replaced with ?
-# {,T}UMINCLUDE - paths to user-mode headers, spaces must be replaced with ?
-ifeq (,$(filter-out undefined environment,$(origin ???)))
-include $(dir $(lastword $(MAKEFILE_LIST)))msvc/sdk.mk
-endif
-
-# default subsystem type for EXE and DLL: CONSOLE, WINDOWS, etc.
+# default subsystem type for EXE and DLL: CONSOLE or WINDOWS
 DEF_SUBSYSTEM_TYPE := CONSOLE
 
 # reset additional user-modifiable variables
@@ -108,7 +106,7 @@ DLL_SUFFIX := .dll
 IMP_PREFIX:=
 IMP_SUFFIX := .lib
 
-# define:
+# define default values of next variables based on the value of {,T}VC_VER:
 # {,T}CFLAGS
 # {,T}CXXFLAGS
 # {,T}ARFLAGS
@@ -131,9 +129,9 @@ IMP_SUFFIX := .lib
 # {,T}WRAP_CCD
 # note: temporary variable _ - variables name prefix - must be defined, either as empty or as T
 _:=
-include $(dir $(lastword $(MAKEFILE_LIST)))msvc/cflags.mk
+include $(CLEAN_BUILD_DIR)/compilers/msvc/cflags.mk
 _:=T
-include $(dir $(lastword $(MAKEFILE_LIST)))msvc/cflags.mk
+include $(CLEAN_BUILD_DIR)/compilers/msvc/cflags.mk
 
 # supported non-regular target variants:
 # (R - dynamically linked multi-threaded libc - default variant)
@@ -438,7 +436,7 @@ endif # !NO_PCH
 ifndef NO_PCH
 
 ifeq (,$(filter-out undefined environment,$(origin MSVC_USE_PCH)))
-include $(dir $(lastword $(MAKEFILE_LIST)))msvc/pch.mk
+include $(CLEAN_BUILD_DIR)/compilers/msvc/pch.mk
 endif
 
 # compilers of C/C++ precompiled header
