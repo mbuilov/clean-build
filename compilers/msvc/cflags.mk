@@ -171,15 +171,18 @@ endif
 # manifest embedding
 # $1 - path to target EXE or DLL
 # note: in Visual Studio 2012 and above, linker may call mt.exe internally
+# note: there is no mt.exe tool in DDK, so MT may be defined with empty value
 $_EMBED_EXE_MANIFEST:=
 $_EMBED_DLL_MANIFEST:=
 ifndef $_MANIFEST_EMBED_OPTION
+ifdef MT
 ifeq (,$(call is_less_float,$(VC_VER_tmp),$(VS2005)))
 # >= Visual Studio 2005
 $_EMBED_EXE_MANIFEST = $(newline)$(QUIET)if exist $(ospath).manifest $(MT) -nologo \
   -manifest $(ospath).manifest -outputresource:$(ospath);1 && del $(ospath).manifest
 $_EMBED_DLL_MANIFEST = $(newline)$(QUIET)if exist $(ospath).manifest $(MT) -nologo \
   -manifest $(ospath).manifest -outputresource:$(ospath);2 && del $(ospath).manifest
+endif
 endif
 endif
 
