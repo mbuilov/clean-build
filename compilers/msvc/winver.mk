@@ -4,7 +4,7 @@
 # Licensed under GPL version 2 or any later version, see COPYING
 #----------------------------------------------------------------------------------
 
-# define WINVER_DEFINES and SUBSYSTEM_VER variables, included by $(CLEAN_BUILD_DIR)/compilers/msvc.mk
+# define FORM_WINVER_DEFINES and FORM_SUBSYSTEM_VER macros, included by $(CLEAN_BUILD_DIR)/compilers/msvc.mk
 
 # NTDDI - Windows device driver interface version
 # note: possible values - suffix of NTDDI_... constants listed below, e.g.: NTDDI=WINXPSP3
@@ -69,6 +69,8 @@ NTDDI_GET_WINVER = $(if $(filter \
 # note: WINVER may be overridden in project configuration makefile or in command line
 ifdef NTDDI
 WINVER := $(call NTDDI_GET_WINVER,$(NTDDI))
+else
+WINVER:=
 endif
 
 # https://msdn.microsoft.com/en-us/library/windows/hardware/hh965708(v=vs.120).aspx/html
