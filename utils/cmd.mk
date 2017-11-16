@@ -55,11 +55,7 @@ endif
 
 # save exported variables in generated config
 # note: SHELL may be overridden just above, save it's new value also
-ifdef CONFIG
-ifneq (,$(filter conf,$(MAKECMDGOALS)))
-conf: override CONFIG_TEXT += $(foreach v,SHELL $(WIN_EXPORTED),$(OVERRIDE_VAR_TEMPLATE))
-endif
-endif
+$(call CONFIG_REMEMBER_VARS,SHELL $(WIN_EXPORTED))
 
 # strip off Cygwin paths - to use only native windows tools
 # for example, sed.exe from Cygwin handles quotes in format string differently than C:/GnuWin32/bin/sed.exe
