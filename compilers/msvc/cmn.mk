@@ -87,10 +87,11 @@ endif
 # note: no diagnostic message is printed in DEBUG
 # target-specific: IMP (may be empty)
 ifndef NO_WRAP
-$(eval <WRAP_LINKER> = $$(if $$(IMP),$$(call FILTER_OUTPUT,$$1,|findstr /VC:$$(basename $$(notdir $$(IMP))).exp),$(value <WRAP_LINKER>)))
+$(eval <WRAP_LINKER> = $$(if $$(IMP),$$(call \
+  FILTER_OUTPUT,$$1,|$(FINDSTR) /VC:$$(basename $$(notdir $$(IMP))).exp),$(value <WRAP_LINKER>)))
 ifndef DEBUG
 ifneq (,<STRIP_EXPR>)
-<WRAP_LINKER> = $(call FILTER_OUTPUT,$1,<STRIP_EXPR>$(patsubst %, |findstr /VC:%.exp,$(basename $(notdir $(IMP)))))
+<WRAP_LINKER> = $(call FILTER_OUTPUT,$1,<STRIP_EXPR>$(patsubst %, |$(FINDSTR) /VC:%.exp,$(basename $(notdir $(IMP)))))
 endif
 endif
 endif
@@ -101,9 +102,14 @@ endef
 # $1 - linker wrapper name, e.g. WRAP_LINKER
 # $2 - strings to strip-off from link.exe output, e.g. $(LINKER_STRIP_STRINGS_en)
 MSVC_DEFINE_LINKER_WRAPPER = $(eval $(subst <WRAP_LINKER>,$1,$(subst \
-  <STRIP_EXPR>,$(call qpath,$2,|findstr /VBRC:),$(value MSVC_WRAP_LINKER_TEMPL))))
+  <STRIP_EXPR>,$(call qpath,$2,|$(FINDSTR) /VBRC:),$(value MSVC_WRAP_LINKER_TEMPL))))
 
 # $(SED) expression to match C compiler messages about included files (used for dependencies auto-generation)
+# NOTE: /showIncludes compiler option is available only for Visual Studio .NET and later!
+# how to get pattern:
+#  V := C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\include\varargs.h
+#  X := $(wordlist 2,999999,$(shell cl.exe /nologo /showIncludes /FI "$V" /TC /c "$V" /E 2>&1 >NUL))
+#  P := $(subst ?, ,$(firstword $(subst $(subst $(space),?,$V), ,$(subst $(space),?,$X))))
 INCLUDING_FILE_PATTERN_en := Note: including file:
 # utf8 "ÐÑÐ¸Ð¼ÐµÑÐ°Ð½Ð¸Ðµ: Ð²ÐºÐ»ÑÑÐµÐ½Ð¸Ðµ ÑÐ°Ð¹Ð»Ð°:"
 INCLUDING_FILE_PATTERN_ru_utf8 := ÐÑÐ¸Ð¼ÐµÑÐ°Ð½Ð¸Ðµ: Ð²ÐºÐ»ÑÑÐµÐ½Ð¸Ðµ ÑÐ°Ð¹Ð»Ð°:
@@ -125,14 +131,14 @@ INCLUDING_FILE_PATTERN_ru_cp866_bytes := \x8f\xe0\xa8\xac\xa5\xe7\xa0\xad\xa8\xa
 # s/\x0d//;                                - fix line endings - remove carriage-return (CR)
 # /^$(notdir $2)$$/d;                      - delete compiled source file name printed by cl.exe, start new circle
 # /^$4 /!{p;d;}                            - print all lines not started with $4 pattern and space, start new circle
-# s/^$4  *//;                              - strip-off leading $4 pattern with spaces
+# s/^$4 *//;                               - strip-off leading $4 pattern with spaces
 # $(subst ?, ,$(foreach x,$5,\@^$x.*@Id;)) - delete lines started with system include paths, start new circle
 # s/ /\\ /g;                               - escape spaces in included file path
 # s@.*@&:\n$3: &@;w $3.d                   - make dependencies, then write to generated dep-file (e.g. C:\build\obj\src.obj.d)
 
 MSVC_DEPS_SCRIPT = \
 -e "s/\x0d//;/^$(notdir $2)$$/d;/^$4 /!{p;d;}" \
--e "s/^$4  *//;$(subst ?, ,$(foreach x,$5,\@^$x.*@Id;))s/ /\\ /g;s@.*@&:\n$3: &@;w $3.d"
+-e "s/^$4 *//;$(subst ?, ,$(foreach x,$5,\@^$x.*@Id;))s/ /\\ /g;s@.*@&:\n$3: &@;w $3.d"
 
 # code to define compiler wrapper macros
 define MSVC_WRAP_COMPLIER_TEMPL
@@ -143,7 +149,7 @@ define MSVC_WRAP_COMPLIER_TEMPL
 # note: FILTER_OUTPUT sends command output to stderr
 # note: send output to stderr in VERBOSE mode, this is needed for build script generation
 ifndef NO_WRAP
-<WRAP_CC_NODEP> = $(call FILTER_OUTPUT,$1,$(addprefix |findstr /VXC:,$(notdir $2)))
+<WRAP_CC_NODEP> = $(call FILTER_OUTPUT,$1,$(addprefix |$(FINDSTR) /VXC:,$(notdir $2)))
 else ifdef VERBOSE
 <WRAP_CC_NODEP> = $1 >&2
 else
@@ -162,7 +168,7 @@ $(eval <WRAP_CC_DEP> = $(value <WRAP_CC_NODEP>))
 ifndef NO_WRAP
 ifndef NO_DEPS
 <WRAP_CC_DEP> = (($1 /showIncludes 2>&1 && set/p="C">&2<NUL)|$(SED) -n $(call \
-  MSVC_DEPS_SCRIPT,$1,$2,$3,<INCLUDING_FILE_PATTERN>,<DEPS_INCLUDE_FILTER>) 2>&1 && set/p="S">&2<NUL)3>&2 2>&1 1>&3|findstr /BC:CS>NUL
+  MSVC_DEPS_SCRIPT,$1,$2,$3,<INCLUDING_FILE_PATTERN>,<DEPS_INCLUDE_FILTER>) 2>&1 && set/p="S">&2<NUL)3>&2 2>&1 1>&3|$(FINDSTR) /BC:CS>NUL
 endif
 endif
 
