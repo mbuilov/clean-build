@@ -218,7 +218,7 @@ $_APPLIBPATH := $($_VCLIBPATH) $($_UMLIBPATH)
 # add standard include paths
 $_CMN_CFLAGS += $(call qpath,$($_APPINCLUDE),/I)
 
-ifndef VPR
+ifndef _
 # specify windows api version
 # note: not for tool mode
 # note: WINVER_DEFINES may be empty
@@ -239,7 +239,7 @@ endif
 
 # regular expression for findstr.exe to match and strip-off diagnostic linker message
 # default value, may be overridden either in project configuration makefile or in command line
-ifndef VPR
+ifndef _
 LINKER_STRIP_STRINGS := $(LINKER_STRIP_STRINGS_en)
 else
 $_LINKER_STRIP_STRINGS := $(LINKER_STRIP_STRINGS)
@@ -250,7 +250,7 @@ $(call MSVC_DEFINE_LINKER_WRAPPER,$_WRAP_LINKER,$($_LINKER_STRIP_STRINGS))
 
 # $(SED) regular expression used to match paths to included headers in output of cl.exe running with /showIncludes option
 # default value, may be overridden either in project configuration makefile or in command line
-ifndef VPR
+ifndef _
 INCLUDING_FILE_PATTERN := $(INCLUDING_FILE_PATTERN_en)
 else
 $_INCLUDING_FILE_PATTERN := $(INCLUDING_FILE_PATTERN)
@@ -264,6 +264,12 @@ $_UDEPS_INCLUDE_FILTER := $(subst \,\\,$(patsubst %\\,%\,$(addsuffix \,$($_APPIN
 
 # define {,T}WRAP_CCN and {,T}WRAP_CCD - cl.exe wrappers
 $(call MSVC_DEFINE_COMPILER_WRAPPERS,$_WRAP_CCN,$_WRAP_CCD,$($_INCLUDING_FILE_PATTERN),$($_UDEPS_INCLUDE_FILTER))
+
+ifneq (,$(call is_less_float,$(VC_VER_tmp),$(VS2002)))
+# < Visual Studio .NET
+# cl.exe supports /showIncludes option only starting with Visual Studio .NET
+$(eval $_WRAP_CCD = $(value $_WRAP_CCN))
+endif
 
 # protect variables from modifications in target makefiles
 $(call SET_GLOBAL,$(addprefix $_,CFLAGS CXXFLAGS ARFLAGS LDFLAGS MP_BUILD FORCE_SYNC_PDB MANIFEST_EMBED_OPTION \
