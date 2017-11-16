@@ -12,6 +12,9 @@
 # CONFIG = $(BUILD)/conf.mk
 CONFIG:=
 
+# helper to remember autoconfigured variables in generated config file
+CONFIG_REMEMBER_VARS:=
+
 ifdef CONFIG
 
 # CONFIG variable should be simple
@@ -29,7 +32,7 @@ conf: override CF := $(CONFIG)
 # generate text of $(CONFIG) file so that by including it any variable specified there
 # will be restored with saved value, except for variables specified in command line
 # $v - variable name
-define OVERRIDE_VAR_TEMPLATE
+define CONFIG_OVERRIDE_VAR_TEMPLATE
 
 ifneq (command line,$$(origin $v))
 $(keyword_define) $v
@@ -47,7 +50,7 @@ endef
 conf: override CONFIG_TEXT := $(foreach v,$(filter-out \
   PATH SHELL $(PASS_ENV_VARS) GNUMAKEFLAGS CLEAN_BUILD_VERSION CONFIG $(dump_max),$(.VARIABLES)),$(if \
   $(findstring command line,$(origin $v))$(findstring override,$(origin \
-  $v)),$(OVERRIDE_VAR_TEMPLATE)))$(foreach v,PATH SHELL $(PASS_ENV_VARS),$(OVERRIDE_VAR_TEMPLATE))
+  $v)),$(CONFIG_OVERRIDE_VAR_TEMPLATE)))$(foreach v,PATH SHELL $(PASS_ENV_VARS),$(CONFIG_OVERRIDE_VAR_TEMPLATE))
 
 # write by that number of lines at a time while generating config file
 # note: with too many lines it is possible to exceed maximum command string length
@@ -70,9 +73,12 @@ $(patsubst %/,%,$(dir $(CONFIG))):
 	$(error config file directory '$@' does not exist, it is not under '$(BUILD)', so should be created manually)
 endif
 
+# helper to remember autoconfigured variables in generated config file
+CONFIG_REMEMBER_VARS = $(eval conf: override CONFIG_TEXT += $(foreach v,$1,$(CONFIG_OVERRIDE_VAR_TEMPLATE)))
+
 endif # conf
 endif # CONFIG
 
 # protect variables from modification in target makefiles
 # note: TARGET_MAKEFILE variable is used here temporary and will be redefined later
-TARGET_MAKEFILE += $(call SET_GLOBAL,CONFIG CONFSUP_WRITE_BY_LINES)
+TARGET_MAKEFILE += $(call SET_GLOBAL,CONFIG CONFIG_REMEMBER_VARS CONFIG_OVERRIDE_VAR_TEMPLATE CONFSUP_WRITE_BY_LINES)
