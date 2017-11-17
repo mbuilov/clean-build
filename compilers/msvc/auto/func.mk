@@ -37,6 +37,10 @@ GET_PROGRAM_FILES_DIRS = $(call uniq,$(foreach \
 # variable ProgramFiles(x86) is defined only under 64-bit Windows
 IS_WIN_64 := $(filter-out undefined,$(origin ProgramFiles$(open_brace)x86$(close_brace)))
 
+# list of processor architectures of executables that may be run on build host
+# note: 64-bit Windows can run x86 executables
+TOOLCHAIN_CPUS := $(TCPU)$(if $(filter x86_64,$(TCPU)), x86)$(if $(IS_WIN_64),$(if $(filter x86,$(TCPU)), x86_64))
+
 # check if file exist and if it is, return path to parent directory of that file
 # $1 - path to file, e.g.: C:/Program?Files?(x86)/Microsoft?Visual?Studio?9.0/VC/lib/amd64/msvcrt.lib
 # returns: C:\Program?Files?(x86)\Microsoft?Visual?Studio?9.0\VC\lib\amd64
@@ -143,8 +147,9 @@ CL_QUERY_MSVC_VER1 = $(if $2,$(if $(filter undefined environment,$(origin MSC_VE
   unable to determine version of $1))
 
 # protect variables from modifications in target makefiles
-$(call SET_GLOBAL,CONF_NORMALIZE_TOOL CONF_NORMALIZE_DIR CONF_PATH_PRINTABLE GET_PROGRAM_FILES_DIRS IS_WIN_64 CONF_CHECK_FILE_PATH \
-  CONF_FIND_FILE_WHERE CONF_FIND_FILE_WHERE1 CONF_FIND_FILE CONF_FIND_FILE1 CONF_FIND_FILE_P CONF_FIND_FILE_P1 MS_REG_QUERY_PATH \
+$(call SET_GLOBAL,CONF_NORMALIZE_TOOL CONF_NORMALIZE_DIR CONF_PATH_PRINTABLE GET_PROGRAM_FILES_DIRS \
+  IS_WIN_64 TOOLCHAIN_CPUS CONF_CHECK_FILE_PATH CONF_FIND_FILE_WHERE CONF_FIND_FILE_WHERE1 \
+  CONF_FIND_FILE CONF_FIND_FILE1 CONF_FIND_FILE_P CONF_FIND_FILE_P1 MS_REG_QUERY_PATH \
   MS_REG_FIND_FILE_WHERE MS_REG_FIND_FILE_WHERE1 MS_REG_FIND_FILE_WHERE2 MS_REG_FIND_FILE_WHERE3 MS_REG_FIND_FILE_WHERE4 \
   MS_REG_FIND_FILE MS_REG_FIND_FILE_P MS_REG_FIND_FILE_P1 MS_REG_FIND_FILE_P2 MS_REG_FIND_FILE_P3 \
   MS_REG_SEARCH_X MS_REG_SEARCH_X1 MS_REG_SEARCH_X2 MS_REG_SEARCH_WHERE MS_REG_SEARCH MS_REG_SEARCH_P \
