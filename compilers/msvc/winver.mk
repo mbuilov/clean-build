@@ -64,7 +64,7 @@ NTDDI_GET_WINVER = $(if $(filter \
   WS03SP2 WS03SP1 WS03,$1),WS03,$(if $(filter \
   WINXPSP3 WINXPSP2 WINXPSP1 WINXP,$1),WINXP,WIN2K)))))))
 
-# WINVER - minimal Windows version required to run build executables
+# WINVER - minimal Windows version required to run built executables
 # note: possible values - suffix of _WIN32_WINNT_... constants listed above, e.g.: WINVER=WINXP
 # note: WINVER may be overridden in project configuration makefile or in command line
 ifdef NTDDI
