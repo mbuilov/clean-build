@@ -11,7 +11,7 @@ include $(dir $(lastword $(MAKEFILE_LIST)))inst_utils.mk
 endif
 
 ifeq (,$(filter-out undefined environment,$(origin INSTALL_TEXT)))
-include $(dir $(lastword $(MAKEFILE_LIST)))inst_text.mk
+include $(CLEAN_BUILD_DIR)/install/impl/inst_text.mk
 endif
 
 # next NO_... macros are used to form default configuration of libraries installation,
@@ -213,7 +213,7 @@ endif
 
 # INSTALL_LIB_MK - makefile with definition of $(OS)-specific INSTALL_LIB macro
 # note: INSTALL_OS_TYPE defined in $(CLEAN_BUILD_DIR)/install/impl/inst_dirs.mk
-INSTALL_LIB_MK := $(dir $(lastword $(MAKEFILE_LIST)))install_lib_$(INSTALL_OS_TYPE).mk
+INSTALL_LIB_MK := $(CLEAN_BUILD_DIR)/install/impl/install_lib_$(INSTALL_OS_TYPE).mk
 
 ifeq (,$(wildcard $(INSTALL_LIB_MK)))
 $(error file $(INSTALL_LIB_MK) was not found, check value of INSTALL_LIB_MK variable)
