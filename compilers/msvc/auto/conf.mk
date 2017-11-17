@@ -57,16 +57,16 @@
 #     WDK=C:\Program Files (x86)\Windows Kits\10.0
 #
 #   Note: SDK/DDK values, if not defined, are will be set to point to WDK.
-#   Note: defining SDK is not enough for Visual Studio 2015 and later - it requires WDK - for ucrt libraries.
+#   Note: defining SDK is not enough for Visual Studio 2015 and later - it requires WDK (version 10) - for ucrt libraries.
 #
 #################################################################################################################
 
 # try to autoconfigure:
-#  target Windows version, Visual C++ version, paths to compiler, linker, system libraries and headers
+#  target Windows version, Visual C++ version, paths to compiler, linker, system libraries, headers and tools:
 #  - only if they are not defined in project configuration makefile or in command line
 #  (variables prefixed with T - are for the tool mode)
 #
-# WINVER        - minimal Windows version required to run build executables
+# WINVER        - minimal Windows version required to run built executables
 # {,T}VC_VER    - MSVC++ version, known values see in $(CLEAN_BUILD_DIR)/compilers/msvc/cmn.mk 'MSVC++ versions' table
 # {,T}VCCL      - path to cl.exe                (may be in double-quotes, if contains spaces - double-quoted automatically)
 # {,T}VCLIB     - path to lib.exe               (must be in double-quotes if contains spaces, may be deduced from VCCL)
@@ -76,6 +76,8 @@
 # {,T}UMINCLUDE - paths to user-mode headers    (such as winbase.h,    without quotes, spaces must be replaced with ?)
 # {,T}UMLIBPATH - paths to user-mode libraries  (such as kernel32.lib, without quotes, spaces must be replaced with ?)
 # RC            - path to rc.exe                (may be in double-quotes, if contains spaces - double-quoted automatically)
+# MC            - path to mc.exe                (may be in double-quotes, if contains spaces - double-quoted automatically)
+# MT            - path to mt.exe                (may be in double-quotes, if contains spaces - double-quoted automatically)
 #
 # example:
 #
@@ -89,6 +91,8 @@
 # UMINCLUDE := C:\Program?Files?(x86)\Windows?Kits\8.1\Include\um C:\Program?Files?(x86)\Windows?Kits\10\Include\10.0.10240.0\ucrt
 # UMLIBPATH := C:\Program?Files?(x86)\Windows?Kits\8.1\Lib\winv6.3\um\x86 C:\Program?Files?(x86)\Windows?Kits\10\Lib\10.0.10240.0\ucrt\x86
 # RC        := "C:\Program Files (x86)\Windows Kits\8.1\bin\x86\rc.exe"
+# MC        := "C:\Program Files (x86)\Windows Kits\8.1\bin\x86\mc.exe"
+# MT        := "C:\Program Files (x86)\Windows Kits\8.1\bin\x86\mt.exe"
 #
 # note: VCINCLUDE, VCLIBPATH, UMINCLUDE or UMLIBPATH may be defined with empty values in project configuration makefile or in command line
 
