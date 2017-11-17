@@ -115,16 +115,19 @@ DELETE_FILES_IN  = $(call xcmd,DELETE_FILES_IN1,$(call ospath,$2),$(PATH_ARGS_LI
 DEL_FILES_OR_DIRS1 = $(if $6,$(QUIET))for %%f in ($1) do if exist %%f\* (rd /S/Q %%f) else if exist %%f (del /F/Q %%f)
 DEL_FILES_OR_DIRS  = $(call xcmd,DEL_FILES_OR_DIRS1,$(ospath),$(PATH_ARGS_LIMIT),,,,)
 
+# findstr tool
+FINDSTR := findstr
+
 # code for suppressing output of copy command, like
 # "        1 file(s) copied."
 # "Скопировано файлов:         1."
-SUPPRESS_COPY_OUTPUT := | findstr /VC:"        1" & if errorlevel 1 (cmd /c exit 0) else (cmd /c exit 1)
+SUPPRESS_COPY_OUTPUT := | $(FINDSTR) /VC:"        1" & if errorlevel 1 (cmd /c exit 0) else (cmd /c exit 1)
 
 # code for suppressing output of move command, like
 # "        1 file(s) moved."
 # "Перемещено файлов:         1."
 # note: WinXP's move doesn't output anything on success
-SUPPRESS_MOVE_OUTPUT := | findstr /VC:"        1" & if errorlevel 1 (cmd /c exit 0) else (cmd /c exit 1)
+SUPPRESS_MOVE_OUTPUT := | $(FINDSTR) /VC:"        1" & if errorlevel 1 (cmd /c exit 0) else (cmd /c exit 1)
 
 # copy file(s) (long list) preserving modification date:
 # - file(s) $1 to directory $2 (paths to files $1 _must_ be without spaces, but path to directory $2 may contain spaces) or
@@ -280,8 +283,8 @@ endif
 
 # filter command's output through pipe, then send it to stderr
 # $1 - command
-# $2 - pipe expression for filtering stdout, must be non-empty, for example: |findstr /BC:ABC |findstr /BC:CDE
-FILTER_OUTPUT = (($1 2>&1 && echo OK>&2)$2)3>&2 2>&1 1>&3|findstr /BC:OK>NUL
+# $2 - pipe expression for filtering stdout, must be non-empty, for example: |$(FINDSTR) /BC:ABC |$(FINDSTR) /BC:CDE
+FILTER_OUTPUT = (($1 2>&1 && echo OK>&2)$2)3>&2 2>&1 1>&3|$(FINDSTR) /BC:OK>NUL
 
 # protect variables from modifications in target makefiles
 # note: do not trace calls to these variables because they are either exported or used in ifdefs
@@ -291,7 +294,7 @@ $(call SET_GLOBAL,$(sort $(WIN_REQUIRED_VARS) $(WIN_EXPORTED)) PATH NO_RPATH,0)
 # note: caller will protect variables: MAKEFLAGS SHELL PATH ospath nonrelpath1 nonrelpath
 #  TOOL_SUFFIX PATHSEP DLL_PATH_VAR show_tool_vars, show_tool_vars_end, PRINT_PERCENTS, COLORIZE
 $(call SET_GLOBAL,WIN_REQUIRED_VARS WIN_EXPORTED PRINT_ENV PATH_ARGS_LIMIT nonrelpath1 NUL DELETE_FILES DELETE_DIRS TRY_DELETE_DIRS \
-  DELETE_FILES_IN1 DELETE_FILES_IN DEL_FILES_OR_DIRS1 DEL_FILES_OR_DIRS SUPPRESS_COPY_OUTPUT SUPPRESS_MOVE_OUTPUT \
+  DELETE_FILES_IN1 DELETE_FILES_IN DEL_FILES_OR_DIRS1 DEL_FILES_OR_DIRS FINDSTR SUPPRESS_COPY_OUTPUT SUPPRESS_MOVE_OUTPUT \
   COPY_FILES1 COPY_FILES MOVE_FILES1 MOVE_FILES TOUCH_FILES1 TOUCH_FILES CREATE_DIR COMPARE_FILES SHELL_ESCAPE SED SED_EXPR \
   CAT_FILE ECHO_LINE_ESCAPE ECHO_LINE ECHO_LINES ECHO_TEXT WRITE_TEXT CREATE_SIMLINK CHANGE_MODE \
   EXECUTE_IN DEL_ON_FAIL INSTALL INSTALL_DIR INSTALL_FILES FILTER_OUTPUT)
