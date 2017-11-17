@@ -32,7 +32,7 @@ endif
 #  target Windows version, Visual C++ version, paths to compiler, linker, system libraries, headers and tools:
 #  (variables prefixed with T - are for the tool mode)
 #
-# WINVER        - minimal Windows version required to run build executables
+# WINVER        - minimal Windows version required to run built executables
 # {,T}VC_VER    - MSVC++ version, known values see in $(CLEAN_BUILD_DIR)/compilers/msvc/cmn.mk 'MSVC++ versions' table
 # {,T}VCCL      - path to cl.exe                (may be in double-quotes, if contains spaces - double-quoted automatically)
 # {,T}VCLIB     - path to lib.exe               (must be in double-quotes if contains spaces, may be deduced from VCCL)
@@ -44,7 +44,6 @@ endif
 # RC            - path to rc.exe                (may be in double-quotes, if contains spaces - double-quoted automatically)
 # MC            - path to mc.exe                (may be in double-quotes, if contains spaces - double-quoted automatically)
 # MT            - path to mt.exe                (may be in double-quotes, if contains spaces - double-quoted automatically)
-#
 ifneq (,$(filter undefined environment,$(foreach v,WINVER \
   VC_VER VCCL VCLIB VCLINK VCINCLUDE VCLIBPATH UMINCLUDE UMLIBPATH \
   TVC_VER TVCCL TVCLIB TVCLINK TVCINCLUDE TVCLIBPATH TUMINCLUDE TUMLIBPATH RC MC MT,$(origin $v))))
@@ -52,7 +51,8 @@ include $(CLEAN_BUILD_DIR)/compilers/msvc/conf.mk
 endif
 
 # add definitions of RC_COMPILER (needed by STD_RES_TEMPLATE) and MC_COMPILER
-ifeq (,$(filter-out undefined environment,$(origin MC_COMPILER)))
+# note: RC - Resource compiler executable - must be defined
+ifeq (,$(filter-out undefined environment,$(origin RC_COMPILER)))
 include $(CLEAN_BUILD_DIR)/compilers/msvc/tools.mk
 endif
 
