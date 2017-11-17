@@ -214,12 +214,15 @@ ifndef VS
         $(call is_less,$v,150),,$(subst $(space),?,$(VS$vCOMNTOOLS)))))
 
       # select appropriate compiler for the $(CPU)
-      VCCL_2017_PREFIXED := bin/$(call VC_TOOL_PREFIX_2017,$(TOOLCHAIN_CPU),$(CPU))cl.exe
+      # $1 - $(TOOLCHAIN_CPUS)
+      VS_SEARCH_CL_2017  = $(if $1,$(call VS_SEARCH_CL_20171,$1,bin/$(call VC_TOOL_PREFIX_2017,$(firstword $1),$(CPU))cl.exe))
+      VS_SEARCH_CL_20171 = $(call VS_SEARCH_CL_20172,$1,$(call \
+        VS_2017_SELECT_LATEST_CL,$2,$(call CONF_FIND_FILE_WHERE,VC/Tools/MSVC/*/$2,$(VS_COMNS_2017))))
+      VS_SEARCH_CL_20172 = $(if $2,$2,$(call VS_SEARCH_CL_2017,$(wordlist 2,999999,$1)))
 
       # try to find Visual Studio 2017 cl.exe in the paths of VS*COMNTOOLS variables, e.g.:
       #  C:/Program Files/Microsoft Visual Studio/2017/Community/VC/Tools/MSVC/14.11.25503/bin/HostX86/x86/cl.exe
-      VCCL := $(call VS_2017_SELECT_LATEST_CL,$(VCCL_2017_PREFIXED),$(call \
-        CONF_FIND_FILE_WHERE,VC/Tools/MSVC/*/$(VCCL_2017_PREFIXED),$(VS_COMNS_2017)))
+      VCCL := $(call VS_SEARCH_CL_2017,$(TOOLCHAIN_CPUS))
 
       ifndef VCCL
         # filter-out Visual Studio 2017 or later
@@ -242,12 +245,21 @@ ifndef VS
 
         # $1 - MSVC versions, e.g. 140,120,110,100,90,80
         # $2 - C:/Program?Files/Microsoft?Visual?Studio?14.0/
-        VS_COMN_FIND_CL_20051 = $(call VS_COMN_FIND_CL_20052,$1,$(wildcard $(subst ?,\ ,$2)VC/bin/$(call \
-          VC_TOOL_PREFIX_2005,$(TOOLCHAIN_CPU),$(CPU),$(call VS_CPU,$2))cl.exe))
+        VS_COMN_FIND_CL_20051 = $(call VS_COMN_FIND_CL_20054,$1,$(call VS_COMN_FIND_CL_20052,$(TOOLCHAIN_CPUS),$2))
+
+        # $1 - x86 x86_64
+        # $2 - C:/Program?Files/Microsoft?Visual?Studio?14.0/
+        VS_COMN_FIND_CL_20052 = $(if $1,$(call VS_COMN_FIND_CL_20053,$1,$2,$(wildcard $(subst ?,\ ,$2)VC/bin/$(call \
+          VC_TOOL_PREFIX_2005,$(firstword $1),$(CPU),$(call VS_CPU,$2))cl.exe)))
+
+        # $1 - x86 x86_64
+        # $2 - C:/Program?Files/Microsoft?Visual?Studio?14.0/
+        # $3 - C:/Program Files/Microsoft Visual Studio 14.0/VC/bin/x86_arm/cl.exe
+        VS_COMN_FIND_CL_20053 = $(if $3,$3,$(call VS_COMN_FIND_CL_20052,$(wordlist 2,999999,$1),$2))
 
         # $1 - MSVC versions, e.g. 140,120,110,100,90,80
-        # $2 - C:/Program?Files/Microsoft?Visual?Studio?14.0/VC/bin/x86_arm/cl.exe
-        VS_COMN_FIND_CL_20052 = $(if $2,$2,$(call VS_COMN_FIND_CL_2005,$(wordlist 2,999999,$1)))
+        # $2 - C:/Program Files/Microsoft Visual Studio 14.0/VC/bin/x86_arm/cl.exe
+        VS_COMN_FIND_CL_20054 = $(if $2,$2,$(call VS_COMN_FIND_CL_2005,$(wordlist 2,999999,$1)))
 
         # select appropriate compiler for the $(CPU), e.g.:
         # C:/Program Files/Microsoft Visual Studio 14.0/VC/bin/x86_arm/cl.exe
@@ -281,7 +293,7 @@ ifndef VS
         # Visual Studio .NET or later
 
         # may compile only for x86 on x86
-        ifeq ($(CPU) $(VS_CPU32),$(TOOLCHAIN_CPU) $(CPU))
+        ifeq ($(CPU) $(VS_CPU32),$(filter $(CPU),$(TOOLCHAIN_CPUS)) $(CPU))
           VCCL := $(call VS_COMN_FIND_CL,$(foreach v,$(VS_COMN_VERS),$(if $(call is_less,$v,70),,$v)),Vc7/bin/cl.exe)
         endif
 
@@ -299,7 +311,7 @@ ifndef VS
       ifeq (,$(call is_less,$(firstword $(VS_COMN_VERS)),60))
         # Visual Studio 6.0 or later
 
-        ifeq ($(CPU) $(VS_CPU32),$(TOOLCHAIN_CPU) $(CPU))
+        ifeq ($(CPU) $(VS_CPU32),$(filter $(CPU),$(TOOLCHAIN_CPUS)) $(CPU))
           VCCL := $(call VS_COMN_FIND_CL,$(foreach v,$(VS_COMN_VERS),$(if $(call is_less,$v,60),,$v)),VC98/Bin/cl.exe)
         endif
 
@@ -331,11 +343,16 @@ ifndef VS
     is_less_float,$1,8.0),,VCExpress\$1\Setup\VS?ProductDir) VisualStudio\SxS\VS7?$1
 
   # select appropriate compiler for the $(CPU)
-  VCCL_2017_PREFIXED := bin/$(call VC_TOOL_PREFIX_2017,$(TOOLCHAIN_CPU),$(CPU))cl.exe
+  # $1 - $(TOOLCHAIN_CPUS)
+  VS_REG_SEARCH_CL_2017  = $(if $1,$(call VS_REG_SEARCH_CL_20171,$1,bin/$(call VC_TOOL_PREFIX_2017,$(firstword $1),$(CPU))cl.exe))
+  VS_REG_SEARCH_CL_20171 = $(call VS_REG_SEARCH_CL_20172,$1,$(call \
+    VS_2017_SELECT_LATEST_CL,$2,$(call MS_REG_SEARCH_WHERE,Tools/MSVC/*/$2,$(call VCCL_REG_KEYS_VC,15.0))))
+  VS_REG_SEARCH_CL_20172 = $(if $2,$2,$(call VS_REG_SEARCH_CL_2017,$(wordlist 2,999999,$1)))
 
   # look for C:/Program Files/Microsoft Visual Studio/2017/Community/VC/Tools/MSVC/14.11.25503/bin/HostX86/x86/cl.exe
-  VCCL := $(call VS_2017_SELECT_LATEST_CL,$(VCCL_2017_PREFIXED),$(call \
-    MS_REG_SEARCH_WHERE,Tools/MSVC/*/$(VCCL_2017_PREFIXED),$(call VCCL_REG_KEYS_VC,15.0)))
+  VCCL := $(call VS_REG_SEARCH_CL_2017,$(TOOLCHAIN_CPUS))
+
+..............
 
   ifndef VCCL
     # look for C:/Program Files/Microsoft Visual Studio/2017/Community/VC/Tools/MSVC/14.11.25503/bin/HostX86/x86/cl.exe
@@ -793,21 +810,30 @@ ifndef VCCL
 endif # !VCCL
 
 ifdef SDK_AUTO
-# e.g.: C:/Program?Files/Microsoft?SDKs/Windows/v6.0
-SDK := $(SDK_AUTO)
-$(warning autoconfigured: SDK=$(SDK))
+  # e.g.: C:/Program?Files/Microsoft?SDKs/Windows/v6.0
+  SDK := $(SDK_AUTO)
+  $(warning autoconfigured: SDK=$(SDK))
+
+  # save autoconfigured SDK value in generated config
+  $(call CONFIG_REMEMBER_VARS,SDK)
 endif
 
 ifdef DDK_AUTO
-# e.g.: C:/my?ddks/WinDDK/6001.18002
-DDK := $(DDK_AUTO)
-$(warning autoconfigured: DDK=$(DDK))
+  # e.g.: C:/my?ddks/WinDDK/6001.18002
+  DDK := $(DDK_AUTO)
+  $(warning autoconfigured: DDK=$(DDK))
+
+  # save autoconfigured SDK value in generated config
+  $(call CONFIG_REMEMBER_VARS,SDK)
 endif
 
 # C:/Program Files/Microsoft Visual Studio/2017/Community/VC/Tools/MSVC/14.11.25503/bin/HostX86/x86/cl.exe
 # "C:\Program Files\Microsoft Visual Studio\2017\Community\VC\Tools\MSVC\14.11.25503\bin\HostX86\x86\cl.exe"
 VCCL := $(call ifaddq,$(subst /,\,$(VCCL)))
 $(warning autoconfigured: VCCL=$(VCCL))
+
+# save autoconfigured VCCL value in generated config
+$(call CONFIG_REMEMBER_VARS,VCCL)
 
 # protect variables from modifications in target makefiles
 $(call SET_GLOBAL,VS_CPU32 VS_CPU64 VS_CPU CL_TOOL_PREFIX_DDK_3790 CL_TOOL_PREFIX_DDK6 VC_TOOL_PREFIX_SDK6 \
