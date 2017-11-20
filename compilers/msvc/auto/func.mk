@@ -41,29 +41,38 @@ IS_WIN_64 := $(filter-out undefined,$(origin ProgramFiles$(open_brace)x86$(close
 # note: 64-bit Windows can run x86 executables
 TOOLCHAIN_CPUS := $(TCPU)$(if $(filter x86_64,$(TCPU)), x86)$(if $(IS_WIN_64),$(if $(filter x86,$(TCPU)), x86_64))
 
-# check if file exist and if it is, return path to parent directory of that file
+# check if file exist and if it is, return path to the parent directory of that file
 # $1 - path to file, e.g.: C:/Program?Files?(x86)/Microsoft?Visual?Studio?9.0/VC/lib/amd64/msvcrt.lib
 # returns: C:\Program?Files?(x86)\Microsoft?Visual?Studio?9.0\VC\lib\amd64
 CONF_CHECK_FILE_PATH = $(subst /,\,$(patsubst %/,%,$(dir $(subst $(space),?,$(wildcard $(subst ?,\ ,$1))))))
 
-# find file(s) in the paths by pattern, return a path where file(s) were found
-# $1 - file to find, e.g.: VC/bin/cl.exe (possibly be a mask, like: VC/Tools/MSVC/*/bin/HostX86/x86/cl.exe, may be with spaces)
+# find files in the paths by patterns, return a path where the files were found
+# $1 - files to find, e.g.: VC/bin/cl.exe (possibly be a mask, like: VC/Tools/MSVC/*/bin/HostX86/x86/cl.exe, spaces replaced with ?)
 # $2 - paths to look in, e.g. C:/Program?Files/Microsoft?Visual?Studio/2017/Community/ C:/Program?Files/Microsoft?Visual?Studio?14.0/
 # result (may be a list): C:/Program?Files/Microsoft?Visual?Studio?14.0/ C:/Program Files/Microsoft Visual Studio 14.0/VC/bin/cl.exe
-CONF_FIND_FILE_WHERE  = $(if $2,$(call CONF_FIND_FILE_WHERE1,$1,$2,$(wildcard $(subst ?,\ ,$(firstword $2))$1)))
-CONF_FIND_FILE_WHERE1 = $(if $3,$(firstword $2) $3,$(call CONF_FIND_FILE_WHERE,$1,$(wordlist 2,999999,$2)))
+CONF_FIND_FILES_W   = $(if $1,$(call CONF_FIND_FILES_W1,$1,$2,$(call CONF_FIND_FILES_W_1,$(firstword $1),$2)))
+CONF_FIND_FILES_W_1 = $(if $2,$(call CONF_FIND_FILES_W_2,$1,$2,$(wildcard $(subst ?,\ ,$(firstword $2)$1))))
+CONF_FIND_FILES_W_2 = $(if $3,$(firstword $2) $3,$(call CONF_FIND_FILES_W_1,$1,$(wordlist 2,999999,$2)))
+CONF_FIND_FILES_W1  = $(if $3,$3,$(call CONF_FIND_FILES_W,$(wordlist 2,999999,$1),$2))
 
-# find file(s) in the paths by pattern
-# $1 - file to find, e.g.: VC/bin/cl.exe (possibly be a mask, like: VC/Tools/MSVC/*/bin/HostX86/x86/cl.exe, may be with spaces)
+# find files in the paths by patterns
+# $1 - files to find, e.g.: VC/bin/cl.exe (possibly be a mask, like: VC/Tools/MSVC/*/bin/HostX86/x86/cl.exe, spaces replaced with ?)
 # $2 - paths to look in, e.g. C:/Program?Files/Microsoft?Visual?Studio/2017/Community/ C:/Program?Files/Microsoft?Visual?Studio?14.0/
 # result (may be a list): C:/Program Files/Microsoft Visual Studio 14.0/VC/bin/cl.exe
-CONF_FIND_FILE  = $(if $2,$(call CONF_FIND_FILE1,$1,$2,$(wildcard $(subst ?,\ ,$(firstword $2))$1)))
-CONF_FIND_FILE1 = $(if $3,$3,$(call CONF_FIND_FILE,$1,$(wordlist 2,999999,$2)))
+CONF_FIND_FILES   = $(if $1,$(call CONF_FIND_FILES1,$1,$2,$(call CONF_FIND_FILES_1,$(firstword $1),$2)))
+CONF_FIND_FILES_1 = $(if $2,$(call CONF_FIND_FILES_2,$1,$2,$(wildcard $(subst ?,\ ,$(firstword $2)$1))))
+CONF_FIND_FILES_2 = $(if $3,$3,$(call CONF_FIND_FILES_1,$1,$(wordlist 2,999999,$2)))
+CONF_FIND_FILES1  = $(if $3,$3,$(call CONF_FIND_FILES,$(wordlist 2,999999,$1),$2))
 
-# like CONF_FIND_FILE, but $1 - name of the macro that returns file to find (VCCL_2005_PATTERN_GEN_VC or VCCL_2005_PATTERN_GEN_VS)
-# note: macro $1 may use $(firstword $2) - path where the search takes place
-CONF_FIND_FILE_P  = $(if $2,$(call CONF_FIND_FILE_P1,$1,$2,$(wildcard $(subst ?,\ ,$(firstword $2))$($1))))
-CONF_FIND_FILE_P1 = $(if $3,$3,$(call CONF_FIND_FILE_P,$1,$(wordlist 2,999999,$2)))
+# like CONF_FIND_FILES, but $1 - name of the macro that returns file patterns (VCCL_2005_PATTERN_GEN_VC or VCCL_2005_PATTERN_GEN_VS)
+# $2 - paths to look in, e.g. C:/Program?Files/Microsoft?Visual?Studio/2017/Community/ C:/Program?Files/Microsoft?Visual?Studio?14.0/
+# $3 - list of second parameters for the macro $1
+# note: first parameter for the macro $1 will be the path where the search takes place, second parameter - one of $3
+# result (may be a list): C:/Program Files/Microsoft Visual Studio 14.0/VC/bin/cl.exe
+CONF_FIND_FILES_P   = $(if $3,$(call CONF_FIND_FILES_P1,$1,$2,$3,$(call CONF_FIND_FILES_P_1,$1,$2,$(firstword $3))))
+CONF_FIND_FILES_P_1 = $(if $2,$(call CONF_FIND_FILES_P_2,$1,$2,$3,$(wildcard $(subst ?,\ ,$(firstword $2)$(call $1,$(firstword $2),$3)))))
+CONF_FIND_FILES_P_2 = $(if $4,$4,$(call CONF_FIND_FILES_P_1,$1,$(wordlist 2,999999,$2),$3))
+CONF_FIND_FILES_P1  = $(if $4,$4,$(call CONF_FIND_FILES_P,$1,$2,$(wordlist 2,999999,$3)))
 
 # query path value in the registry under "HKLM\SOFTWARE\Microsoft\" or "HKLM\SOFTWARE\Wow6432Node\Microsoft\"
 # $1 - registry key sub path, e.g.: VisualStudio\SxS\VC7 or VisualStudio\SxS\VS7 or VisualStudio\6.0\Setup\Microsoft Visual C++
@@ -78,50 +87,64 @@ MS_REG_QUERY_PATH = $(addsuffix /,$(patsubst %/,%,$(subst \,/,$(subst ?$2?REG_SZ
   2,$(subst HKEY_LOCAL_MACHINE\SOFTWARE$3\Microsoft\$1, ,xxx$(subst $(space),?,$(strip $(shell \
   reg query "HKLM\SOFTWARE$3\Microsoft\$1" /v "$2" 2>&1)))))))))
 
-# find file(s) by pattern in the path found in registry
-# $1 - file to find, e.g.: VC/bin/cl.exe (possibly be a mask, like: VC/Tools/MSVC/*/bin/HostX86/x86/cl.exe, may be with spaces)
+# find files by patterns in the paths found in registry
+# $1 - files to find, e.g.: VC/bin/cl.exe (possibly be a mask, like: VC/Tools/MSVC/*/bin/HostX86/x86/cl.exe, spaces replaced with ?)
 # $2 - registry key sub path, e.g.: VisualStudio\SxS\VC7 or VisualStudio\SxS\VS7 or VisualStudio\6.0\Setup\Microsoft Visual C++
 # $3 - registry key name, e.g.: 14.0 or ProductDir
 # $4 - if not empty, then also check Wow6432Node (applicable only on Win64), tip: use $(IS_WIN_64)
 # result (may be a list): C:/Program?Files?(x86)/Microsoft?Visual?Studio?14.0/ C:/Program Files/Microsoft Visual Studio 14.0/VC/bin/cl.exe
-MS_REG_FIND_FILE_WHERE  = $(call MS_REG_FIND_FILE_WHERE1,$1,$(call MS_REG_QUERY_PATH,$2,$3),$2,$3,$4)
-MS_REG_FIND_FILE_WHERE1 = $(call MS_REG_FIND_FILE_WHERE2,$1,$2,$(if $2,$(wildcard $(subst ?,\ ,$2)$1)),$3,$4,$5)
-MS_REG_FIND_FILE_WHERE2 = $(if $3,$2 $3,$(if $6,$(call MS_REG_FIND_FILE_WHERE3,$1,$(call MS_REG_QUERY_PATH,$4,$5,\Wow6432Node))))
-MS_REG_FIND_FILE_WHERE3 = $(if $2,$(call MS_REG_FIND_FILE_WHERE4,$2,$(wildcard $(subst ?,\ ,$2)$1)))
-MS_REG_FIND_FILE_WHERE4 = $(if $2,$1 $2)
+MS_REG_FIND_FILES_W  = $(call MS_REG_FIND_FILES_W1,$1,$2,$3,$4,$(call MS_REG_QUERY_PATH,$2,$3))
+MS_REG_FIND_FILES_W1 = $(call MS_REG_FIND_FILES_W2,$1,$2,$3,$4,$5,$(if $5,$(wildcard $(subst ?,\ ,$5$(firstword $1)))))
+MS_REG_FIND_FILES_W2 = $(if $6,$5 $6,$(call MS_REG_FIND_FILES_W3,$1,$5,$(if $4,$(call MS_REG_QUERY_PATH,$2,$3,\Wow6432Node))))
+MS_REG_FIND_FILES_W3 = $(call MS_REG_FIND_FILESW4,$1,$2,$3,$(if $3,$(wildcard $(subst ?,\ ,$3$(firstword $1)))))
+MS_REG_FIND_FILESW4 = $(if $4,$3 $4,$(call MS_REG_FIND_FILESW5,$(wordlist 2,999999,$1),$2,$3))
+MS_REG_FIND_FILESW5 = $(if $1,$(call MS_REG_FIND_FILESW6,$1,$2,$3,$(if $2,$(wildcard $(subst ?,\ ,$2$(firstword $1))))))
+MS_REG_FIND_FILESW6 = $(if $4,$2 $4,$(call MS_REG_FIND_FILESW4,$1,$2,$3,$(if $3,$(wildcard $(subst ?,\ ,$3$(firstword $1))))))
 
-# same as MS_REG_FIND_FILE_WHERE, but do not return path where file was found
+# same as MS_REG_FIND_FILES_W, but do not return a path where the files were found
 # result (may be a list): C:/Program Files/Microsoft Visual Studio 14.0/VC/bin/cl.exe
-MS_REG_FIND_FILE = $(wordlist 2,999999,$(MS_REG_FIND_FILE_WHERE))
+MS_REG_FIND_FILES = $(wordlist 2,999999,$(MS_REG_FIND_FILES_W))
 
-# like MS_REG_FIND_FILE, but $1 - name of macro that returns file to find (VCCL_2005_PATTERN_GEN_VC or VCCL_2005_PATTERN_GEN_VS)
-# note: macro $1 may use $2 - path where the search takes place
-MS_REG_FIND_FILE_P  = $(call MS_REG_FIND_FILE_P1,$1,$(call MS_REG_QUERY_PATH,$2,$3),$2,$3,$4)
-MS_REG_FIND_FILE_P1 = $(call MS_REG_FIND_FILE_P2,$1,$(if $2,$(wildcard $(subst ?,\ ,$2)$($1))),$3,$4,$5)
-MS_REG_FIND_FILE_P2 = $(if $2,$2,$(if $5,$(call MS_REG_FIND_FILE_P3,$1,$(call MS_REG_QUERY_PATH,$3,$4,\Wow6432Node))))
-MS_REG_FIND_FILE_P3 = $(if $2,$(wildcard $(subst ?,\ ,$2)$($1)))
+# like MS_REG_FIND_FILES, but $1 - name of the macro that returns file patterns (VCCL_2005_PATTERN_GEN_VC or VCCL_2005_PATTERN_GEN_VS)
+# $2 - registry key sub path, e.g.: VisualStudio\SxS\VC7 or VisualStudio\SxS\VS7 or VisualStudio\6.0\Setup\Microsoft Visual C++
+# $3 - registry key name, e.g.: 14.0 or ProductDir
+# $4 - if not empty, then also check Wow6432Node (applicable only on Win64), tip: use $(IS_WIN_64)
+# $5 - list of second parameters for the macro $1
+# note: first parameter for the macro $1 will be the path where the search takes place
+# result (may be a list): C:/Program Files/Microsoft Visual Studio 14.0/VC/bin/cl.exe
+MS_REG_FIND_FILES_P  = $(call MS_REG_FIND_FILES_P1,$1,$2,$3,$4,$5,$(call MS_REG_QUERY_PATH,$2,$3))
+MS_REG_FIND_FILES_P1 = $(call MS_REG_FIND_FILES_P2,$1,$2,$3,$4,$5,$6,$(if $6,$(wildcard $(subst ?,\ ,$6$(call $1,$6,$(firstword $5))))))
+MS_REG_FIND_FILES_P2 = $(if $7,$7,$(call MS_REG_FIND_FILES_P3,$1,$5,$6,$(if $4,$(call MS_REG_QUERY_PATH,$2,$3,\Wow6432Node))))
+MS_REG_FIND_FILES_P3 = $(call MS_REG_FIND_FILESP4,$1,$2,$3,$4,$(if $4,$(wildcard $(subst ?,\ ,$4$(call $1,$4,$(firstword $2))))))
+MS_REG_FIND_FILESP4 = $(if $5,$5,$(call MS_REG_FIND_FILESP5,$1,$(wordlist 2,999999,$2),$3,$4))
+MS_REG_FIND_FILESP5 = $(if $2,$(call MS_REG_FIND_FILESP6,$1,$2,$3,$4,$(if $3,$(wildcard $(subst ?,\ ,$3$(call $1,$3,$(firstword $2)))))))
+MS_REG_FIND_FILESP6 = $(if $5,$5,$(call MS_REG_FIND_FILESP4,$1,$2,$3,$4,$(if $4,$(wildcard $(subst ?,\ ,$4$(call $1,$4,$(firstword $2)))))))
 
-# find file(s) by pattern in the paths found in registry
-# $1 - file to find, e.g.: VC/bin/cl.exe (possibly be a mask, like: VC/Tools/MSVC/*/bin/HostX86/x86/cl.exe, may be with spaces)
+# find files by patterns in the paths found in registry
+# $1 - files to find, e.g.: VC/bin/cl.exe (possibly be a mask, like: VC/Tools/MSVC/*/bin/HostX86/x86/cl.exe, may be with spaces)
 # $2 - registry key sub paths and corresponding key names, e.g. VisualStudio\14.0\Setup\VC?ProductDir VisualStudio\SxS\VC7?14.0
-# $3 - macro to call: MS_REG_FIND_FILE_WHERE, MS_REG_FIND_FILE or MS_REG_FIND_FILE_P
-MS_REG_SEARCH_X  = $(if $2,$(call MS_REG_SEARCH_X1,$1,$2,$3,$(subst ?, ,$(firstword $2))))
-MS_REG_SEARCH_X1 = $(call MS_REG_SEARCH_X2,$1,$2,$3,$(call $3,$1,$(firstword $4),$(lastword $4),$(IS_WIN_64)))
-MS_REG_SEARCH_X2 = $(if $4,$4,$(call MS_REG_SEARCH_X,$1,$(wordlist 2,999999,$2),$3))
+# $3 - macro to call: MS_REG_FIND_FILES_W, MS_REG_FIND_FILES or MS_REG_FIND_FILES_P
+# $4 - if $1 - is a macro, then $4 - list of second parameters for that macro
+MS_REG_SEARCH_X  = $(if $2,$(call MS_REG_SEARCH_X1,$1,$2,$3,$4,$(subst ?, ,$(firstword $2))))
+MS_REG_SEARCH_X1 = $(call MS_REG_SEARCH_X2,$1,$2,$3,$4,$(call $3,$1,$(firstword $5),$(lastword $5),$(IS_WIN_64),$4))
+MS_REG_SEARCH_X2 = $(if $5,$5,$(call MS_REG_SEARCH_X,$1,$(wordlist 2,999999,$2),$3,$4))
 
-# find file(s) by pattern in the paths found in registry
-# $1 - file to find, e.g.: VC/bin/cl.exe (possibly be a mask, like: VC/Tools/MSVC/*/bin/HostX86/x86/cl.exe, may be with spaces)
+# find files by pattern in the paths found in registry
+# $1 - files to find, e.g.: VC/bin/cl.exe (possibly be a mask, like: VC/Tools/MSVC/*/bin/HostX86/x86/cl.exe, spaces replaced with ?)
 # $2 - registry key sub paths and corresponding key names, e.g. VisualStudio\14.0\Setup\VC?ProductDir VisualStudio\SxS\VC7?14.0
 # result (may be a list): C:/Program?Files?(x86)/Microsoft?Visual?Studio?14.0/ C:/Program Files/Microsoft Visual Studio 14.0/VC/bin/cl.exe
-MS_REG_SEARCH_WHERE = $(call MS_REG_SEARCH_X,$1,$2,MS_REG_FIND_FILE_WHERE)
+MS_REG_SEARCH_W = $(call MS_REG_SEARCH_X,$1,$2,MS_REG_FIND_FILES_W)
 
-# same as MS_REG_SEARCH_WHERE, but do not return path where file was found
+# same as MS_REG_SEARCH_W, but do not return a path where the files were found
 # result (may be a list): C:/Program Files/Microsoft Visual Studio 14.0/VC/bin/cl.exe
-MS_REG_SEARCH = $(call MS_REG_SEARCH_X,$1,$2,MS_REG_FIND_FILE)
+MS_REG_SEARCH = $(call MS_REG_SEARCH_X,$1,$2,MS_REG_FIND_FILES)
 
-# like MS_REG_SEARCH, but $1 - name of macro that returns file to find (VCCL_2005_PATTERN_GEN_VC or VCCL_2005_PATTERN_GEN_VS)
-# note: macro $1 may use $2 - path where the search is done
-MS_REG_SEARCH_P = $(call MS_REG_SEARCH_X,$1,$2,MS_REG_FIND_FILE_P)
+# like MS_REG_SEARCH, but $1 - name of the macro that returns file to find (VCCL_2005_PATTERN_GEN_VC or VCCL_2005_PATTERN_GEN_VS)
+# $2 - registry key sub paths and corresponding key names, e.g. VisualStudio\14.0\Setup\VC?ProductDir VisualStudio\SxS\VC7?14.0
+# $3 - list of second parameters for the macro $1
+# note: first parameter for the macro $1 will be the path where the search takes place
+# result (may be a list): C:/Program Files/Microsoft Visual Studio 14.0/VC/bin/cl.exe
+MS_REG_SEARCH_P = $(call MS_REG_SEARCH_X,$1,$2,MS_REG_FIND_FILES_P,$3)
 
 # there may be more than one file found - take the newer one, e.g.:
 #  $1=bin/HostX86/x64/cl.exe
@@ -148,9 +171,13 @@ CL_QUERY_MSVC_VER1 = $(if $2,$(if $(filter undefined environment,$(origin MSC_VE
 
 # protect variables from modifications in target makefiles
 $(call SET_GLOBAL,CONF_NORMALIZE_TOOL CONF_NORMALIZE_DIR CONF_PATH_PRINTABLE GET_PROGRAM_FILES_DIRS \
-  IS_WIN_64 TOOLCHAIN_CPUS CONF_CHECK_FILE_PATH CONF_FIND_FILE_WHERE CONF_FIND_FILE_WHERE1 \
-  CONF_FIND_FILE CONF_FIND_FILE1 CONF_FIND_FILE_P CONF_FIND_FILE_P1 MS_REG_QUERY_PATH \
-  MS_REG_FIND_FILE_WHERE MS_REG_FIND_FILE_WHERE1 MS_REG_FIND_FILE_WHERE2 MS_REG_FIND_FILE_WHERE3 MS_REG_FIND_FILE_WHERE4 \
-  MS_REG_FIND_FILE MS_REG_FIND_FILE_P MS_REG_FIND_FILE_P1 MS_REG_FIND_FILE_P2 MS_REG_FIND_FILE_P3 \
-  MS_REG_SEARCH_X MS_REG_SEARCH_X1 MS_REG_SEARCH_X2 MS_REG_SEARCH_WHERE MS_REG_SEARCH MS_REG_SEARCH_P \
+  IS_WIN_64 TOOLCHAIN_CPUS CONF_CHECK_FILE_PATH \
+  CONF_FIND_FILES_W CONF_FIND_FILES_W_1 CONF_FIND_FILES_W_2 CONF_FIND_FILES_W1 \
+  CONF_FIND_FILES CONF_FIND_FILES_1 CONF_FIND_FILES_2 CONF_FIND_FILES1 \
+  CONF_FIND_FILES_P CONF_FIND_FILES_P_1 CONF_FIND_FILES_P_2 CONF_FIND_FILES_P1 MS_REG_QUERY_PATH \
+  MS_REG_FIND_FILES_W MS_REG_FIND_FILES_W1 MS_REG_FIND_FILES_W2 MS_REG_FIND_FILES_W3 \
+  MS_REG_FIND_FILESW4 MS_REG_FIND_FILESW5 MS_REG_FIND_FILESW6 MS_REG_FIND_FILES \
+  MS_REG_FIND_FILES_P MS_REG_FIND_FILES_P1 MS_REG_FIND_FILES_P2 MS_REG_FIND_FILES_P3 \
+  MS_REG_FIND_FILESP4 MS_REG_FIND_FILESP5 MS_REG_FIND_FILESP6 \
+  MS_REG_SEARCH_X MS_REG_SEARCH_X1 MS_REG_SEARCH_X2 MS_REG_SEARCH_W MS_REG_SEARCH MS_REG_SEARCH_P \
   CONF_SELECT_LATEST1 CONF_SELECT_LATEST CL_QUERY_VER CL_QUERY_MSVC_VER CL_QUERY_MSVC_VER1)
