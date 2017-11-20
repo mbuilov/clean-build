@@ -135,6 +135,24 @@ trim = $(wordlist 2,$(words $1),x $1)
 uniq = $(strip $(uniq1))
 uniq1 = $(if $1,$(firstword $1) $(call uniq1,$(filter-out $(firstword $1),$1)))
 
+# apply multiple pattern substitutions to a text
+# $1 - list of patterns
+# $2 - replacement
+# $3 - text
+# example:
+#  $(call patsubst_multiple,a% b%,%,a1 b2) -> 1 2
+#  $(call patsubst_multiple,%1 %2,%,a1 b2) -> a b
+patsubst_multiple = $(if $1,$(call patsubst_multiple,$(wordlist 2,999999,$1),$2,$(patsubst $(firstword $1),$2,$3)),$3)
+
+# delete tails/heads
+# $1 - list of tails/heads
+# $2 - text
+# example:
+#  $(call cut_heads,a b,a1 b2) -> 1 2
+#  $(call cut_tails,1 2,a1 b2) -> a b
+cut_heads = $(call patsubst_multiple,$(addsuffix %,$1),%,$2)
+cut_tails = $(call patsubst_multiple,$(addprefix %,$1),%,$2)
+
 # remove last path element
 # 1 2 3 -> 1 2, .. .. -> .. .. ..
 normp2 = $(if $(filter-out ..,$1),$(trim),$1 ..)
@@ -304,7 +322,8 @@ TARGET_MAKEFILE += $(call SET_GLOBAL, \
   unspaces tospaces ifaddq qpath tolower toupper repl09 repl09AZ padto1 padto is_less1 is_less repl090 \
   is_less_float6 is_less_float5 is_less_float4 is_less_float3 is_less_float2 is_less_float1 is_less_float \
   strip_leading0 sort_numbers2 sort_numbers1 sort_numbers reverse \
-  xargs1 xargs xcmd trim uniq uniq1 normp2 normp1 normp cmn_path1 cmn_path back_prefix relpath2 relpath1 relpath \
+  xargs1 xargs xcmd trim uniq uniq1 patsubst_multiple cut_heads cut_tails \
+  normp2 normp1 normp cmn_path1 cmn_path back_prefix relpath2 relpath1 relpath \
   ver_major ver_minor ver_patch ver_compatible1 ver_compatible \
   get_dir split_dirs1 split_dirs mk_dir_deps lazy_simple \
   define_append=$$1=$$1 define_prepend=$$1=$$1 append_simple=$$1=$$1 prepend_simple=$$1=$$1 \
