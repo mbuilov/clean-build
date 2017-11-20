@@ -75,12 +75,14 @@ VC_TOOL_PREFIX_SDK6 = $(addsuffix /,$(filter-out x86,$(1:x86_64=x64)))
 VC_TOOL_PREFIX_2005 = $(addsuffix /,$(filter-out $3,$(1:x86_64=amd64)$(addprefix _,$(subst x86_64,amd64,$(filter-out $1,$2)))))
 
 # for use with CONF_FIND_FILE_P or MS_REG_SEARCH_P
-# $2 - C:/Program?Files/Microsoft?Visual?Studio?14.0/VC/ C:/Program?Files?(x86)/Microsoft?Visual?Studio?14.0/VC/
+# $1 - C:/Program?Files/Microsoft?Visual?Studio?14.0/VC/ C:/Program?Files?(x86)/Microsoft?Visual?Studio?14.0/VC/
+# $2 - $(TOOLCHAIN_CPU)
 # result: bin/x86_arm/cl.exe (possible with spaces in result)
-VCCL_2005_PATTERN_GEN_VC = bin/$(call VC_TOOL_PREFIX_2005,$(TOOLCHAIN_CPU),$(CPU),$(call VS_CPU,$(firstword $2)))cl.exe
+VCCL_2005_PATTERN_GEN_VC = bin/$(call VC_TOOL_PREFIX_2005,$2,$(CPU),$(VS_CPU))cl.exe
 
 # for use with CONF_FIND_FILE_P or MS_REG_SEARCH_P
-# $2 - C:/Program?Files/Microsoft?Visual?Studio?14.0/ C:/Program?Files?(x86)/Microsoft?Visual?Studio?14.0/
+# $1 - C:/Program?Files/Microsoft?Visual?Studio?14.0/ C:/Program?Files?(x86)/Microsoft?Visual?Studio?14.0/
+# $2 - $(TOOLCHAIN_CPU)
 # result: VC/bin/x86_arm/cl.exe (possible with spaces in result)
 VCCL_2005_PATTERN_GEN_VS = VC/$(VCCL_2005_PATTERN_GEN_VC)
 
@@ -92,9 +94,10 @@ VCCL_2005_PATTERN_GEN_VS = VC/$(VCCL_2005_PATTERN_GEN_VC)
 #       x86         | HostX86/x86/ HostX86/x64/ HostX86/arm/
 #       x86_64      | HostX64/x86/ HostX64/x64/ HostX64/arm/
 #
-# $1 - $(TOOLCHAIN_CPU)
+# $1 - $(TOOLCHAIN_CPUS)
 # $2 - $(CPU)
-VC_TOOL_PREFIX_2017 = Host$(subst x,X,$(1:x86_64=x64))/$(2:x86_64=x64)/
+# result: HostX64/x86/ HostX86/x86/
+VC_TOOL_PREFIXES_2017 = $(addsuffix /$(2:x86_64=x64)/,$(addprefix Host,$(subst x,X,$(1:x86_64=x64))))
 
 # reset variables, if they are not defined in project configuration makefile or in command line
 VS:=
@@ -208,21 +211,19 @@ ifndef VS
     ifeq (,$(call is_less,$(firstword $(VS_COMN_VERS)),150))
       # Visual Studio 2017 or later
 
-      # note: result will look like:
+      # note: result (may be a list) will look like:
       #  C:/Program?Files/Microsoft?Visual?Studio/2017/Community/
       VS_COMNS_2017 := $(call VS_STRIP_COMN,$(foreach v,$(VS_COMN_VERS),$(if \
         $(call is_less,$v,150),,$(subst $(space),?,$(VS$vCOMNTOOLS)))))
 
       # select appropriate compiler for the $(CPU)
-      # $1 - $(TOOLCHAIN_CPUS)
-      VS_SEARCH_CL_2017  = $(if $1,$(call VS_SEARCH_CL_20171,$1,bin/$(call VC_TOOL_PREFIX_2017,$(firstword $1),$(CPU))cl.exe))
-      VS_SEARCH_CL_20171 = $(call VS_SEARCH_CL_20172,$1,$(call \
-        VS_2017_SELECT_LATEST_CL,$2,$(call CONF_FIND_FILE_WHERE,VC/Tools/MSVC/*/$2,$(VS_COMNS_2017))))
-      VS_SEARCH_CL_20172 = $(if $2,$2,$(call VS_SEARCH_CL_2017,$(wordlist 2,999999,$1)))
+      # e.g.: HostX64/x86/ HostX86/x86/
+      VCCL_2017_PREFIXES := $(call VC_TOOL_PREFIXES_2017,$(TOOLCHAIN_CPUS),$(CPU))
 
       # try to find Visual Studio 2017 cl.exe in the paths of VS*COMNTOOLS variables, e.g.:
       #  C:/Program Files/Microsoft Visual Studio/2017/Community/VC/Tools/MSVC/14.11.25503/bin/HostX86/x86/cl.exe
-      VCCL := $(call VS_SEARCH_CL_2017,$(TOOLCHAIN_CPUS))
+      VCCL := $(call VS_2017_SELECT_LATEST_CL,cl.exe,$(call \
+        CONF_FIND_FILES_W,$(VCCL_2017_PREFIXES:%=VC/Tools/MSVC/*/bin/%cl.exe),$(VS_COMNS_2017)))
 
       ifndef VCCL
         # filter-out Visual Studio 2017 or later
@@ -245,21 +246,12 @@ ifndef VS
 
         # $1 - MSVC versions, e.g. 140,120,110,100,90,80
         # $2 - C:/Program?Files/Microsoft?Visual?Studio?14.0/
-        VS_COMN_FIND_CL_20051 = $(call VS_COMN_FIND_CL_20054,$1,$(call VS_COMN_FIND_CL_20052,$(TOOLCHAIN_CPUS),$2))
+        VS_COMN_FIND_CL_20051 = $(call VS_COMN_FIND_CL_20052,$1,$(call CONF_FIND_FILES_P,VCCL_2005_PATTERN_GEN_VS,$2,$(TOOLCHAIN_CPUS)))
 
-        # $1 - x86 x86_64
-        # $2 - C:/Program?Files/Microsoft?Visual?Studio?14.0/
-        VS_COMN_FIND_CL_20052 = $(if $1,$(call VS_COMN_FIND_CL_20053,$1,$2,$(wildcard $(subst ?,\ ,$2)VC/bin/$(call \
-          VC_TOOL_PREFIX_2005,$(firstword $1),$(CPU),$(call VS_CPU,$2))cl.exe)))
-
-        # $1 - x86 x86_64
-        # $2 - C:/Program?Files/Microsoft?Visual?Studio?14.0/
-        # $3 - C:/Program Files/Microsoft Visual Studio 14.0/VC/bin/x86_arm/cl.exe
-        VS_COMN_FIND_CL_20053 = $(if $3,$3,$(call VS_COMN_FIND_CL_20052,$(wordlist 2,999999,$1),$2))
-
+        # recursion
         # $1 - MSVC versions, e.g. 140,120,110,100,90,80
-        # $2 - C:/Program Files/Microsoft Visual Studio 14.0/VC/bin/x86_arm/cl.exe
-        VS_COMN_FIND_CL_20054 = $(if $2,$2,$(call VS_COMN_FIND_CL_2005,$(wordlist 2,999999,$1)))
+        # $2 - C:/Program?Files/Microsoft?Visual?Studio?14.0/VC/bin/x86_arm/cl.exe
+        VS_COMN_FIND_CL_20052 = $(if $2,$2,$(call VS_COMN_FIND_CL_2005,$(wordlist 2,999999,$1)))
 
         # select appropriate compiler for the $(CPU), e.g.:
         # C:/Program Files/Microsoft Visual Studio 14.0/VC/bin/x86_arm/cl.exe
@@ -284,6 +276,7 @@ ifndef VS
       VS_COMN_FIND_CL = $(if $1,$(call VS_COMN_FIND_CL1,$1,$2,$(wildcard \
         $(subst ?,\ ,$(call VS_STRIP_COMN,$(subst $(space),?,$(VS$(firstword $1)COMNTOOLS))))$2)))
 
+      # recursion
       # $1 - MSVC versions, e.g. 71,70,60
       # $2 - Vc7/bin/cl.exe or VC98/Bin/cl.exe
       # $3 - C:/Program Files/Microsoft Visual Studio .NET 2003/Vc7/bin/cl.exe
@@ -343,21 +336,17 @@ ifndef VS
     is_less_float,$1,8.0),,VCExpress\$1\Setup\VS?ProductDir) VisualStudio\SxS\VS7?$1
 
   # select appropriate compiler for the $(CPU)
-  # $1 - $(TOOLCHAIN_CPUS)
-  VS_REG_SEARCH_CL_2017  = $(if $1,$(call VS_REG_SEARCH_CL_20171,$1,bin/$(call VC_TOOL_PREFIX_2017,$(firstword $1),$(CPU))cl.exe))
-  VS_REG_SEARCH_CL_20171 = $(call VS_REG_SEARCH_CL_20172,$1,$(call \
-    VS_2017_SELECT_LATEST_CL,$2,$(call MS_REG_SEARCH_WHERE,Tools/MSVC/*/$2,$(call VCCL_REG_KEYS_VC,15.0))))
-  VS_REG_SEARCH_CL_20172 = $(if $2,$2,$(call VS_REG_SEARCH_CL_2017,$(wordlist 2,999999,$1)))
+  # e.g.: HostX64/x86/ HostX86/x86/
+  VCCL_2017_PREFIXES := $(call VC_TOOL_PREFIXES_2017,$(TOOLCHAIN_CPUS),$(CPU))
 
   # look for C:/Program Files/Microsoft Visual Studio/2017/Community/VC/Tools/MSVC/14.11.25503/bin/HostX86/x86/cl.exe
-  VCCL := $(call VS_REG_SEARCH_CL_2017,$(TOOLCHAIN_CPUS))
-
-..............
+  VCCL := $(call VS_2017_SELECT_LATEST_CL,cl.exe,$(call \
+    MS_REG_SEARCH_W,$(VCCL_2017_PREFIXES:%=Tools/MSVC/*/bin/%cl.exe),$(call VCCL_REG_KEYS_VC,15.0)))
 
   ifndef VCCL
     # look for C:/Program Files/Microsoft Visual Studio/2017/Community/VC/Tools/MSVC/14.11.25503/bin/HostX86/x86/cl.exe
-    VCCL := $(call VS_2017_SELECT_LATEST_CL,$(VCCL_2017_PREFIXED),$(call \
-      MS_REG_SEARCH_WHERE,VC/Tools/MSVC/*/$(VCCL_2017_PREFIXED),$(call VCCL_REG_KEYS_VS,15.0)))
+    VCCL := $(call VS_2017_SELECT_LATEST_CL,cl.exe,$(call \
+      MS_REG_SEARCH_W,$(VCCL_2017_PREFIXES:%=VC/Tools/MSVC/*/bin/%cl.exe),$(call VCCL_REG_KEYS_VS,15.0)))
   endif
 
   ifndef VCCL
@@ -366,28 +355,29 @@ ifndef VS
     PROGRAM_FILES_PLACES := $(addsuffix /,$(GET_PROGRAM_FILES_DIRS))
 
     # look for C:/Program Files/Microsoft Visual Studio/2017/Community/VC/Tools/MSVC/14.11.25503/bin/HostX86/x86/cl.exe
-    VCCL := $(call VS_2017_SELECT_LATEST_CL,$(VCCL_2017_PREFIXED),$(call \
-      CONF_FIND_FILE_WHERE,Microsoft Visual Studio/*/*/VC/Tools/MSVC/*/$(VCCL_2017_PREFIXED),$(PROGRAM_FILES_PLACES)))
+    VCCL := $(call VS_2017_SELECT_LATEST_CL,cl.exe,$(call \
+      CONF_FIND_FILES_W,$(VCCL_2017_PREFIXES:%=Microsoft Visual Studio/*/*/VC/Tools/MSVC/*/bin/%cl.exe),$(PROGRAM_FILES_PLACES)))
   endif
 
   ifndef VCCL
     # versions of Visual C++ starting with Visual Studio 2005
     VCCL_2005_VERSIONS := 14.0 12.0 11.0 10.0 9.0 8.0
 
+    # look in the paths found in registry
     # $1 - 14.0 12.0 11.0 10.0 9.0 8.0
-    # result: 14.0 C:/Program Files/Microsoft Visual Studio 14.0/VC/bin/x86_arm/cl.exe
-    VS_SEARCH_2005  = $(if $1,$(call VS_SEARCH_20051,$1,$(call \
-      MS_REG_SEARCH_P,VCCL_2005_PATTERN_GEN_VC,$(call VCCL_REG_KEYS_VC,$(firstword $1)))))
+    # result: C:/Program Files/Microsoft Visual Studio 14.0/VC/bin/x86_arm/cl.exe
+    VS_SEARCH_2005 = $(if $1,$(call VS_SEARCH_20051,$1,$(call \
+      MS_REG_SEARCH_P,VCCL_2005_PATTERN_GEN_VC,$(call VCCL_REG_KEYS_VC,$(firstword $1)),$(TOOLCHAIN_CPUS))))
 
-    # look in Visual Studio installation paths
+    # check VS registry keys (like VisualStudio\SxS\VS7)
     VS_SEARCH_20051 = $(if $2,$2,$(call VS_SEARCH_20052,$1,$(call \
-      MS_REG_SEARCH_P,VCCL_2005_PATTERN_GEN_VS,$(call VCCL_REG_KEYS_VS,$(firstword $1)))))
+      MS_REG_SEARCH_P,VCCL_2005_PATTERN_GEN_VS,$(call VCCL_REG_KEYS_VS,$(firstword $1)),$(TOOLCHAIN_CPUS))))
 
     # check standard places
+    # $1 - 14.0 12.0 11.0 10.0 9.0 8.0
     # note: for Visual Studio 2005 registry key ends with 8.0, but directory in Program Files ends with just 8
-    VS_SEARCH_20052 = $(if $2,$2,$(call VS_SEARCH_20053,$1,$(call \
-      CONF_FIND_FILE_P,VCCL_2005_PATTERN_GEN_VS,$(addsuffix \
-      Microsoft?Visual?Studio?$(subst 8.0,8,$(firstword $1))/,$(PROGRAM_FILES_PLACES)))))
+    VS_SEARCH_20052 = $(if $2,$2,$(call VS_SEARCH_20053,$1,$(call CONF_FIND_FILES_P,VCCL_2005_PATTERN_GEN_VS,$(addsuffix \
+      Microsoft?Visual?Studio?$(subst 8.0,8,$(firstword $1))/,$(PROGRAM_FILES_PLACES)),$(TOOLCHAIN_CPUS))))
 
     # recursion
     VS_SEARCH_20053 = $(if $2,$2,$(call VS_SEARCH_2005,$(wordlist 2,999999,$1)))
@@ -396,16 +386,20 @@ ifndef VS
     VCCL := $(call VS_SEARCH_2005,$(VCCL_2005_VERSIONS))
   endif
 
+
+
   ifndef VCCL
     # check for C++ compiler bundled in Windows Driver Kit 7.1.0 or 7.0.0
-    CL_DDK6 := bin/$(call CL_TOOL_PREFIX_DDK6,$(TOOLCHAIN_CPU),$(CPU))cl.exe
+    # e.g. bin/x86/x86/ bin/amd64/x86/
+    CL_DDK6_PATHS := $(foreach c,$(TOOLCHAIN_CPUS),bin/$(call CL_TOOL_PREFIX_DDK6,$c,$(CPU)))
 
     # look for:
     #  C:\WinDDK\7600.16385.1\bin\x86\x86\cl.exe   - Microsoft (R) 32-bit C/C++ Optimizing Compiler Version 15.00.30729.207 for 80x86
     #  C:\WinDDK\7600.16385.1\bin\x86\amd64\cl.exe - Microsoft (R) C/C++ Optimizing Compiler Version 15.00.30729.207 for x64
     #  C:\WinDDK\7600.16385.1\bin\x86\ia64\cl.exe  - Microsoft (R) C/C++ Optimizing Compiler Version 15.00.30729.207 for Itanium
+    # note: DDK may be defined as: C:/WinDDK/7600.16385.1
     ifdef DDK
-      VCCL := $(wildcard $(subst ?,\ ,$(DDK))/$(CL_DDK6))
+      VCCL := $(call CONF_FIND_FILE,cl.exe,$(addprefix $(DDK)/,$(CL_DDK6_PATHS)))
 
     else ifndef WDK # WDK may be used instead of DDK, but WDK comes without bundled compiler
 
