@@ -13,7 +13,7 @@
 # anyway, LIB and DLL variables are _must_ be defined before expanding INSTALL_LIB
 
 ifeq (,$(filter-out undefined environment,$(origin INSTALL_LIB)))
-include $(dir $(lastword $(MAKEFILE_LIST)))/impl/_install_lib.mk
+include $(dir $(lastword $(MAKEFILE_LIST)))impl/_install_lib.mk
 endif
 
 # reset variables - they may be redefined in target makefile before expanding INSTALL_LIB
