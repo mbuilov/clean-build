@@ -247,7 +247,7 @@ endif
 # note: C_COMPILER may be overridden by specifying either in in command line or in project configuration makefile
 C_COMPILER := $(if \
   $(filter WIN%,$(OS)),msvc,$(if \
-  $(filter SOL%,$(OS)),suncc,gcc))
+  $(filter SUN%,$(OS)),suncc,gcc))
 
 # C_COMPILER_MK - makefile with definition of C/C++ compiler
 C_COMPILER_MK := $(CLEAN_BUILD_DIR)/compilers/$(C_COMPILER).mk
