@@ -25,8 +25,8 @@
 # 5) trace_calls - replace macros with their traced equivalents, example:
 #   $(call trace_calls,macro1 macro2=b1;b2;b3;$$1=e1;e2 macro3 ...)
 #
-#  Note: trace_calls changes flavor of traced macros - they are become 'recursive'
-#  Note: trace_calls changes origin of traced macros - 'command line' -> 'override'
+#  Note: trace_calls changes $(flavor) of traced macros - they are become 'recursive'
+#  Note: trace_calls changes $(origin) of traced macros - 'command line' -> 'override'
 
 empty:=
 space:= $(empty) $(empty)
