@@ -6,6 +6,13 @@
 
 # MSVC auto-configuration helper functions, included by $(CLEAN_BUILD_DIR)/compilers/msvc/auto/conf.mk
 
+# variable ProgramFiles(x86) is defined only under 64-bit Windows
+IS_WIN_64 := $(filter-out undefined,$(origin ProgramFiles$(open_brace)x86$(close_brace)))
+
+# list of processor architectures of executables that may be run on build host
+# note: 64-bit Windows can run x86 executables
+TOOLCHAIN_CPUS := $(TCPU)$(if $(filter x86_64,$(TCPU)), x86)$(if $(IS_WIN_64),$(if $(filter x86,$(TCPU)), x86_64))
+
 # tool path must use forward slashes, must be in double-quotes if contains spaces, e.g.:
 # "C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\bin\cl.exe"
 CONF_NORMALIZE_TOOL = $(call ifaddq,$(subst ?, ,$(subst /,\,$(patsubst "%",%,$(subst $(space),?,$1)))))
@@ -33,13 +40,6 @@ CONF_PATH_PRINTABLE = $(call ifaddq,$(subst ?, ,$(subst /,\,$1)))
 GET_PROGRAM_FILES_DIRS = $(call uniq,$(foreach \
   v,ProgramFiles ProgramFiles$(open_brace)x86$(close_brace) ProgramW6432,$(if \
   $(filter-out undefined,$(origin $v)),$(subst $(space),?,$(subst \,/,$($v))))))
-
-# variable ProgramFiles(x86) is defined only under 64-bit Windows
-IS_WIN_64 := $(filter-out undefined,$(origin ProgramFiles$(open_brace)x86$(close_brace)))
-
-# list of processor architectures of executables that may be run on build host
-# note: 64-bit Windows can run x86 executables
-TOOLCHAIN_CPUS := $(TCPU)$(if $(filter x86_64,$(TCPU)), x86)$(if $(IS_WIN_64),$(if $(filter x86,$(TCPU)), x86_64))
 
 # check if file exist and if it is, return path to the parent directory of that file
 # $1 - path to file, e.g.: C:/Program?Files?(x86)/Microsoft?Visual?Studio?9.0/VC/lib/amd64/msvcrt.lib
@@ -173,8 +173,8 @@ CL_QUERY_MSVC_VER1 = $(if $2,$(if $(filter undefined environment,$(origin MSC_VE
   unable to determine version of $1))
 
 # protect variables from modifications in target makefiles
-$(call SET_GLOBAL,CONF_NORMALIZE_TOOL CONF_NORMALIZE_DIR CONF_PATH_PRINTABLE GET_PROGRAM_FILES_DIRS \
-  IS_WIN_64 TOOLCHAIN_CPUS CONF_CHECK_FILE_PATH \
+$(call SET_GLOBAL,IS_WIN_64 TOOLCHAIN_CPUS \
+  CONF_NORMALIZE_TOOL CONF_NORMALIZE_DIR CONF_PATH_PRINTABLE GET_PROGRAM_FILES_DIRS CONF_CHECK_FILE_PATH \
   CONF_SEARCH_FILE_W CONF_SEARCH_FILE_W_1 CONF_SEARCH_FILE_W_2 CONF_SEARCH_FILE_W1 \
   CONF_SEARCH_FILE CONF_SEARCH_FILE_1 CONF_SEARCH_FILE_2 CONF_SEARCH_FILE1 \
   CONF_SEARCH_FILE_P CONF_SEARCH_FILE_P_1 CONF_SEARCH_FILE_P_2 CONF_SEARCH_FILE_P1 MS_REG_QUERY_PATH \
