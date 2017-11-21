@@ -31,7 +31,7 @@ PROJECT_VARS_NAMES := $(filter-out \
 # For consistent builds, build results should not depend on environment,
 #  only on settings specified in configuration files.
 # Environment variables are visible as exported makefile variables,
-#  their use is discouraged, so unexport and later reset them.
+#  their use is discouraged, so unexport and later reset them (before including first target makefile).
 # Also unexport variables specified in command line.
 # Note: do not touch only variables needed for executing shell commands:
 #  PATH, SHELL and project-specific variables named in $(PASS_ENV_VARS).
@@ -141,30 +141,44 @@ TARGET := RELEASE
 # TARGET must be non-recursive (simple), because it is used to create simple variable TARGET_TRIPLET
 override TARGET := $(TARGET)
 
+# do not try to determine OS value if it is already defined (in project configuration makefile or in command line)
+ifeq (,$(filter-out undefined environment,$(origin OS)))
+
 # operating system we are building for (WIN7, DEBIAN6, SOLARIS10, etc.)
 # note: normally OS get overridden by specifying it in command line
-# note: some predefined OS values (e.g. CYGWIN, WINDOWS, SOLARIS) affect default values of other variables (TCPU, UTILS, etc.)
+# note: OS value may affect default values of other variables (TCPU, UTILS, etc.)
 ifneq (,$(filter /cygdrive/%,$(CURDIR)))
 OS := CYGWIN
 else ifneq (environment,$(origin OS))
-OS := LINUX
+OS := $(call toupper,$(shell uname))
 else ifeq (Windows_NT,$(OS))
 OS := WINDOWS
 else
+# unknown, should be defined in project configuration makefile or in command line
+# note: use of environment variables to configure the build is discouraged
 OS:=
 endif
 
+# remember autoconfigured OS value
+$(call CONFIG_REMEMBER_VARS,OS)
+
+endif # !OS
+
 # OS must be non-recursive (simple), because it is used to create simple variable TARGET_TRIPLET
 override OS := $(OS)
+
+# do not try to determine TCPU value if it is already defined (in project configuration makefile or in command line)
+ifeq (,$(filter-out undefined environment,$(origin TCPU)))
 
 # TCPU - processor architecture of build helper tools created while the build
 # note: TCPU likely is the native processor architecture of the build toolchain
 # note: equivalent of '--build' Gnu Autoconf configure script option
 # note: TCPU specification may also encode format of executable files, e.g. TCPU=m68k-coff, it is checked by the C compiler
 # note: normally TCPU get overridden by specifying it in command line
-ifeq (,$(filter CYGWIN WIN%,$(OS)))
-# non-windows
+ifndef OS
 TCPU := x86
+else ifeq (,$(filter WIN%,$(OS)))
+TCPU := $(shell uname -m)
 else ifeq (AMD64,$(if $(filter environment,$(origin PROCESSOR_ARCHITECTURE)),$(PROCESSOR_ARCHITECTURE)))
 # win64
 TCPU := x86_64
@@ -175,6 +189,11 @@ else
 # win32
 TCPU := x86
 endif
+
+# remember autoconfigured TCPU value
+$(call CONFIG_REMEMBER_VARS,TCPU)
+
+endif # TCPU
 
 # TCPU variable must be non-recursive (simple), because it is used to create simple variable TOOL_OVERRIDE_DIRS
 override TCPU := $(TCPU)
@@ -193,7 +212,7 @@ override CPU := $(CPU)
 # note: normally UTILS get overridden by specifying it in command line, for example: UTILS:=gnu
 UTILS := $(if \
   $(filter WIN%,$(OS)),cmd,$(if \
-  $(filter SOL%,$(OS)),unix,gnu))
+  $(filter LIN%,$(OS)),gnu,unix))
 
 # UTILS_MK - makefile with definitions of shell utilities
 UTILS_MK := $(CLEAN_BUILD_DIR)/utils/$(UTILS).mk
