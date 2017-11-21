@@ -47,7 +47,7 @@ endif
 ifneq (,$(filter undefined environment,$(foreach v,WINVER \
   VC_VER VCCL VCLIB VCLINK VCINCLUDE VCLIBPATH UMINCLUDE UMLIBPATH \
   TVC_VER TVCCL TVCLIB TVCLINK TVCINCLUDE TVCLIBPATH TUMINCLUDE TUMLIBPATH RC MC MT,$(origin $v))))
-include $(CLEAN_BUILD_DIR)/compilers/msvc/conf.mk
+include $(CLEAN_BUILD_DIR)/compilers/msvc/auto/conf.mk
 endif
 
 # add definitions of RC_COMPILER (needed by STD_RES_TEMPLATE) and MC_COMPILER
