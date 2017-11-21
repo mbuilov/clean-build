@@ -51,7 +51,7 @@
 #     DDK=C:\Program Files (x86)\Windows Kits\8.0
 #     DDK=C:\Program Files (x86)\Windows Kits\10.0
 #
-# 6) WDK - path to Windows Development Kit,
+# 6) WDK - path to Windows Development Kit (8.0 or later),
 #   may be specified instead of SDK and DDK - newer versions of SDK and DDK (8.0 and later) are combined under the same WDK path, e.g.:
 #     WDK=C:\Program Files (x86)\Windows Kits\8.0
 #     WDK=C:\Program Files (x86)\Windows Kits\10.0
@@ -96,11 +96,11 @@
 #
 # note: VCINCLUDE, VCLIBPATH, UMINCLUDE or UMLIBPATH may be defined with empty values in project configuration makefile or in command line
 
-ifeq (,$(filter-out undefined environment,$(origin CONF_NORMALIZE_TOOL)))
+ifeq (,$(filter-out undefined environment,$(origin CONF_NORMALIZE_DIR)))
 include $(CLEAN_BUILD_DIR)/compilers/msvc/auto/func.mk
 endif
 
-# reset variables - they are may be defined in $(CLEAN_BUILD_DIR)/compilers/msvc/auto/cl.mk
+# reset variables - they are may be defined by $(CLEAN_BUILD_DIR)/compilers/msvc/auto/cl.mk
 SDK:=
 DDK:=
 WDK:=
@@ -130,7 +130,7 @@ override VCCL := $(call CONF_NORMALIZE_TOOL,$(VCCL))
 else
 # try to find cl.exe
 # note: if WDK is defined, do not define SDK and DDK to point to it yet - to avoid
-#  unnecessary lookups for cl.exe in WDK (WDK 8.0 and later do not contains a compiler)
+#  unnecessary lookups for cl.exe in WDK (WDK - 8.0 and later do not contains a compiler)
 include $(CLEAN_BUILD_DIR)/compilers/msvc/auto/cl.mk
 endif
 
