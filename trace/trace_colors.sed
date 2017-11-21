@@ -2,9 +2,9 @@
 #  make -f test.mk 2>&1 | sed -f trace_colors.sed
 
 # test.mk:1: tracefn: $(macrox) {
-s/ tracefn: \($([^)]*)\) {$/ [33;1mtracefn:[m [32;1m\1[m [36m{[m/;t
+s/ tracefn: \($([^)]*)\) {$/ [35;1mtracefn:[m [32;1m\1[m [36m{[m/;t
 # tracefn: } $(macrox)
-s/^tracefn: } \($([^)]*)\)$/[33;1mtracefn:[m [36m}[m [31;1m\1[m/;t
+s/^tracefn: } \($([^)]*)\)$/[35;1mtracefn:[m [36m}[m [31;1m\1[m/;t
 # test.mk:1:  macroX-> macroY-> $(macroZ) 2{
 s/ \($([^)]*)\) \([0-9][0-9]*\){$/ [32;1m\1[m [36m\2{[m/;t
 # <------- }2 $(macroZ)
@@ -16,7 +16,7 @@ s/^--- \([^ ]*\) result--->$/[33m---[m [32m\1[m [33mresult--->[m/;t
 # 0<xxxx>
 s/^[0-9][0-9]*</[36m&[m/
 # macrox: dump: A:=<B>
-s/^\([^=: ][^=: ]*\): dump: \([^=: ][^=: ]*\)\([:]\)=/[32m\1[m: [31mdump[m: [34;1m\2[m\3=/
+s/^\([^=: ][^=: ]*\): dump: \([^=: ][^=: ]*\)\([:]\)=/[32m\1[m: [35;1mdump[m: [34;1m\2[m\3=/
 s/^d</[31m&[m/
 s/$(if /$([33;1mif[m /g
 s/$(or /$([33;1mor[m /g
