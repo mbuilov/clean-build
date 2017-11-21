@@ -6,7 +6,10 @@
 
 # msvc compiler tools wrappers, such as mc.exe and rc.exe, included by $(CLEAN_BUILD_DIR)/compilers/msvc.mk
 
-# note: RC - Resource compiler executable - must be defined
+# RC - Resource compiler executable - must be defined
+ifndef RC
+$(error RC - Resource compiler executable - is not defined!)
+endif
 
 # strings to strip off from mc.exe output - $(FINDSTR) regular expression
 # note: may be overridden either in project configuration makefile or in command line
