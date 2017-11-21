@@ -86,9 +86,9 @@ PKG_CONFIG_DIR := $(LIBDIR)/pkgconfig
 INSTALL_OS := $(OS)
 
 # installation tools
-ifneq (WINDOWS,$(INSTALL_OS))
-INSTALL  := $(if $(filter SOLARIS,$(OS)),/usr/ucb/install,install)
-LDCONFIG := $(if $(filter LINUX,$(OS)),/sbin/ldconfig)
+ifeq (,$(filter WIN%,$(INSTALL_OS)))
+INSTALL  := $(if $(filter SUN%,$(OS)),/usr/ucb/install,install)
+LDCONFIG := $(if $(filter LIN%,$(OS)),/sbin/ldconfig)
 endif
 
 # create directory while installing things
