@@ -1,6 +1,9 @@
+include trace/trace.mk
+
 space:=
 space := $(space) $(space)
-WWW = $(info wildcard: $1)C:/Program Files/Microsoft Visual Studio/2017/Community/VC/Tools/MSVC/12.32.12/bin/HostX64/x86/cl.exe C:/Program Files/Microsoft Visual Studio/2017/Community/VC/Tools/MSVC/13.32.12/bin/HostX64/x86/cl.exe
+WWW = C:/Program Files/Microsoft Visual Studio/2017/Community/VC/Tools/MSVC/12.32.12/bin/HostX64/x86/cl.exe C:/Program Files/Microsoft Visual Studio/2017/Community/VC/Tools/MSVC/13.32.12/bin/HostX64/x86/cl.exe
+$(call trace_calls,WWW)
 
 # replace [0-9] characters with .
 repl09 = $(subst 0,.,$(subst 1,.,$(subst 2,.,$(subst 3,.,$(subst 4,.,$(subst \
@@ -46,19 +49,20 @@ IS_WIN_64:=1
 # $1 - $(TOOLCHAIN_CPU)
 # $2 - $(CPU)
 # $3 - $(VS_CPU)
-VC_TOOL_PREFIX_2005 = $(addsuffix /,$(filter-out $3,$(1:x86_64=amd64)$(addprefix _,$(subst x86_64,amd64,$(filter-out $1,$2)))))
+VC_TOOL_PREFIX_2005 = $(tracefn)$(addsuffix /,$(filter-out $3,$(1:x86_64=amd64)$(addprefix _,$(subst x86_64,amd64,$(filter-out $1,$2)))))
 
 # for use with CONF_FIND_FILE_P or MS_REG_SEARCH_P
 # $1 - C:/Program?Files/Microsoft?Visual?Studio?14.0/VC/ C:/Program?Files?(x86)/Microsoft?Visual?Studio?14.0/VC/
 # $2 - $(TOOLCHAIN_CPU)
 # result: bin/x86_arm/cl.exe (possible with spaces in result)
-VCCL_2005_PATTERN_GEN_VC = $(info VCCL_2005_PATTERN_GEN_VC: $$2=$2)bin/$(call VC_TOOL_PREFIX_2005,$2,$(CPU),$(VS_CPU))cl.exe
+VCCL_2005_PATTERN_GEN_VC = bin/$(call VC_TOOL_PREFIX_2005,$2,$(CPU),$(VS_CPU))cl.exe
 
 # for use with CONF_FIND_FILE_P or MS_REG_SEARCH_P
 # $1 - C:/Program?Files/Microsoft?Visual?Studio?14.0/ C:/Program?Files?(x86)/Microsoft?Visual?Studio?14.0/
 # $2 - $(TOOLCHAIN_CPU)
 # result: VC/bin/x86_arm/cl.exe (possible with spaces in result)
 VCCL_2005_PATTERN_GEN_VS = VC/$(VCCL_2005_PATTERN_GEN_VC)
+$(call trace_calls,VCCL_2005_PATTERN_GEN_VS=CPU=VS_CPU VC_TOOL_PREFIX_2005)
 
 # for Visual Studio 2017
 # determine MSVC tools prefix for given TOOLCHAIN_CPU/CPU combination
@@ -122,9 +126,10 @@ CONF_FIND_FILES_P1  = $(if $4,$4,$(call CONF_FIND_FILES_P,$1,$2,$(wordlist 2,999
 # note: result will be with trailing backslash
 # note: value of "VisualStudio\6.0\Setup\Microsoft Visual C++\ProductDir" key does not end with slash, e.g:
 #  "C:\Program Files (x86)\Microsoft Visual Studio\VC98"
-MS_REG_QUERY_PATH = $(info MS_REG_QUERY_PATH: 1=$1)$(info MS_REG_QUERY_PATH: 2=$2)$(info MS_REG_QUERY_PATH: 3=$3)C:/Program?Files/Microsoft?Visual?Studio/2017/Community/VC/$3#$(addsuffix /,$(patsubst %/,%,$(subst \,/,$(subst ?$2?REG_SZ?,,$(word \
+MS_REG_QUERY_PATH = C:/Program?Files/Microsoft?Visual?Studio/2017/Community/VC/$3#$(addsuffix /,$(patsubst %/,%,$(subst \,/,$(subst ?$2?REG_SZ?,,$(word \
   2,$(subst HKEY_LOCAL_MACHINE\SOFTWARE$3\Microsoft\$1, ,xxx$(subst $(space),?,$(strip $(shell \
   reg query "HKLM\SOFTWARE$3\Microsoft\$1" /v "$2" 2>&1)))))))))
+$(call trace_calls,MS_REG_QUERY_PATH)
 
 # find files by patterns in the paths found in registry
 # $1 - files to find, e.g.: VC/bin/cl.exe (possibly be a mask, like: VC/Tools/MSVC/*/bin/HostX86/x86/cl.exe, spaces replaced with ?)
@@ -211,6 +216,8 @@ VS_COMN_FIND_CL_20051 = $(call VS_COMN_FIND_CL_20052,$1,$(call CONF_FIND_FILES_P
 # $2 - C:/Program?Files/Microsoft?Visual?Studio?14.0/VC/bin/x86_arm/cl.exe
 VS_COMN_FIND_CL_20052 = $(if $2,$2,$(call VS_COMN_FIND_CL_2005,$(wordlist 2,999999,$1)))
 
+$(call trace_calls,VS_COMN_FIND_CL_2005 VS_COMN_FIND_CL_20051 VS_COMN_FIND_CL_20052)
+
 # select appropriate compiler for the $(CPU), e.g.:
 # C:/Program Files/Microsoft Visual Studio 14.0/VC/bin/x86_arm/cl.exe
 VCCL := $(call VS_COMN_FIND_CL_2005,140)
@@ -238,6 +245,7 @@ PROGRAM_FILES_PLACES := C:/Program?Files/ C:/Program?Files?(x86)/
 
 # versions of Visual C++ starting with Visual Studio 2005
 VCCL_2005_VERSIONS := 14.0 12.0 11.0 10.0 9.0 8.0
+$(call trace_calls,VCCL_2005_VERSIONS)
 
 # look in the paths found in registry
 # $1 - 14.0 12.0 11.0 10.0 9.0 8.0
@@ -262,3 +270,20 @@ VS_SEARCH_20053 = $(if $2,$2,$(call VS_SEARCH_2005,$(wordlist 2,999999,$1)))
 VCCL := $(call VS_SEARCH_2005,$(VCCL_2005_VERSIONS))
 
 $(info VCCL=$(VCCL))
+
+define TEXT
+A
+B
+C
+endef
+
+$(call dump,TEXT)
+
+XX := $(TEXT)
+
+$(call trace_calls,XX)
+
+$(call VC_TOOL_PREFIX_2005,$(TEXT),1,2)
+
+$(info ======$(XX)----)
+$(info ======$(VCCL_2005_VERSIONS)----)
