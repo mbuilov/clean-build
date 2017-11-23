@@ -136,11 +136,11 @@ endif
 # $(call dump,VAR1,Q: ) -> print 'Q: dump: VAR1=<xxx>'
 # note: surround dump with fake $(if) to avoid any text in result of $(dump)
 ifndef TRACE_IN_COLOR
-dump = $(if $(foreach dm=,$1,$(warning $2dump: $(dm=)$(if $(findstring \
-  simple,$(flavor $(dm=))),:)=$(call format_traced_value,$(value $(dm=)),<,>,\,))),)
+dump = $(if $(foreach =,$1,$(warning $2dump: $=$(if $(findstring \
+  simple,$(flavor $=)),:)=$(call format_traced_value,$(value $=),<,>,\,))),)
 else
-dump = $(if $(foreach dm=,$1,$(warning $2[35;1mdump[m: [34;1m$(dm=)[36m$(if $(findstring \
-  simple,$(flavor $(dm=))),:)=[35m$(call format_traced_value,$(value $(dm=)),<[m,[35;1m>,\,)[m)),)
+dump = $(if $(foreach =,$1,$(warning $2[35;1mdump[m: [34;1m$=[36m$(if $(findstring \
+  simple,$(flavor $=)),:)=[35m$(call format_traced_value,$(value $=),<[m,[35;1m>,\,)[m)),)
 endif
 
 # maximum number of arguments of any macro
@@ -172,8 +172,8 @@ endif
 # trace level
 cb_trace_level^:=
 
-# encode variable name $v so that it may be used in $(eval $(encoded_name)=...)
-encode_traced_var_name = $(subst $(close_brace),^c@,$(subst $(open_brace),^o@,$(subst :,^d@,$(subst !,^e@,$v)))).^t
+# encode variable name $= so that it may be used in $(eval $(encoded_name)=...)
+encode_traced_var_name = $(subst $(close_brace),^c@,$(subst $(open_brace),^o@,$(subst :,^d@,$(subst !,^e@,$=)))).^t
 
 # helper template for trace_calls macro
 # $1 - macro name, must accept no more than $(dump_max) arguments
@@ -197,12 +197,12 @@ $(keyword_define) $2
 $(value $1)
 $(keyword_endef)
 $3 $(keyword_define) $1
-$$(foreach w=,$$(words $$(cb_trace_level^)),$$(warning \
-  $$(cb_trace_level^) $$$$($1) $$(w=){$$(dump_args))$$(call dump,$4,--> )$$(warning \
+$$(foreach =,$$(words $$(cb_trace_level^)),$$(warning \
+  $$(cb_trace_level^) $$$$($1) $$={$$(dump_args))$$(call dump,$4,--> )$$(warning \
   --- $1 value---->$$(newline)$$(call format_traced_value,$$(value $2),<,>))$$(warning \
   --- $1 result--->)$$(eval cb_trace_level^+=$1->)$$(call \
-  infofn,$$(call $2,_dump_params_),$$(w=))$$(call dump,$5,<-- )$$(eval \
-  cb_trace_level^:=$$(wordlist 1,$$(w=),$$(cb_trace_level^)))$$(warning <===== }$$(w=) $$$$($1)))
+  infofn,$$(call $2,_dump_params_),$$=)$$(call dump,$5,<-- )$$(eval \
+  cb_trace_level^:=$$(wordlist 1,$$=,$$(cb_trace_level^)))$$(warning <===== }$$= $$$$($1)))
 $(keyword_endef)
 endif
 endif
@@ -219,12 +219,12 @@ $(keyword_define) $2
 $(value $1)
 $(keyword_endef)
 $3 $(keyword_define) $1
-$$(foreach w=,$$(words $$(cb_trace_level^)),$$(warning \
-  $$(cb_trace_level^) [32;1m$$$$($1) [;32m$$(w=)[36m{[m$$(dump_args))$$(call dump,$4,[34;1m-->[m )$$(warning \
-  [32;1m--- $1 [33mvalue---->[m$$(newline)[33;1m$$(call format_traced_value,$$(value $2),<[m,[33;1m>)[m)$$(warning \
+$$(foreach =,$$(words $$(cb_trace_level^)),$$(warning \
+  $$(cb_trace_level^) [32;1m$$$$($1) [;32m$$=[36m{[m$$(dump_args))$$(call dump,$4,[34;1m-->[m )$$(warning \
+  [32;1m--- $1 [33mvalue---->[m$$(newline)[35;1m$$(call format_traced_value,$$(value $2),<[m,[35;1m>)[m)$$(warning \
   [36;1m--- $1 [33mresult--->[m)$$(eval cb_trace_level^+=[36m$1[35;1m->[m)$$(call \
-  infofn,$$(call $2,_dump_params_),$$(w=))$$(call dump,$5,[34;1m<--[m )$$(eval \
-  cb_trace_level^:=$$(wordlist 1,$$(w=),$$(cb_trace_level^)))$$(warning [31m<===== [36;1m}[;32m$$(w=)[31;1m $$$$($1)[m))
+  infofn,$$(call $2,_dump_params_),$$=)$$(call dump,$5,[34;1m<--[m )$$(eval \
+  cb_trace_level^:=$$(wordlist 1,$$=,$$(cb_trace_level^)))$$(warning [31m<===== [36;1m}[;32m$$=[31;1m $$$$($1)[m))
 $(keyword_endef)
 endif
 endif
@@ -252,7 +252,7 @@ $(eval define trace_calls_template$(newline)$(subst _dump_params_,$$$$$(open_bra
 #   name            - macro name
 #   b1;b2;b3;$$1;b4 - names of variables to dump before traced call
 #   e1;e2           - names of variables to dump after traced call
-trace_calls = $(eval $(foreach f,$1,$(foreach v,$(firstword $(subst =, ,$f)),$(if $(findstring \
-  undefined,$(origin $v)),,$(if $(findstring $$(cb_trace_level^),$(value $v)),,$(call \
-  trace_calls_template,$v,$(encode_traced_var_name),$(if $(findstring command line,$(origin $v)),override,$(findstring \
-  override,$(origin $v))),$(subst ;, ,$(word 2,$(subst =, ,$f))),$(subst ;, ,$(word 3,$(subst =, ,$f))),$2))))))
+trace_calls = $(eval $(foreach :,$1,$(foreach =,$(firstword $(subst =, ,$:)),$(if $(findstring \
+  undefined,$(origin $=)),,$(if $(findstring $$(cb_trace_level^),$(value $=)),,$(call \
+  trace_calls_template,$=,$(encode_traced_var_name),$(if $(findstring command line,$(origin $=)),override,$(findstring \
+  override,$(origin $=))),$(subst ;, ,$(word 2,$(subst =, ,$(f=)))),$(subst ;, ,$(word 3,$(subst =, ,$:))),$2))))))

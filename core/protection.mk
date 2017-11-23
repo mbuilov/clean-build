@@ -38,25 +38,29 @@ CLEAN_BUILD_NEED_TAIL_CODE:=
 # encode value of variable $1
 CLEAN_BUILD_ENCODE_VAR_VALUE = <$(origin $1):$(if $(findstring undefined,$(origin $1)),,$(flavor $1):$(value $1))>
 
-# encode variable name $x so that it may be used in $(eval name=...)
-CLEAN_BUILD_ENCODE_VAR_NAME = $(subst $(close_brace),^c@,$(subst $(open_brace),^o@,$(subst :,^d@,$(subst !,^e@,$x)))).^p
+# encode variable name $= so that it may be used in $(eval name=...)
+CLEAN_BUILD_ENCODE_VAR_NAME = $(subst $(close_brace),^c@,$(subst $(open_brace),^o@,$(subst :,^d@,$(subst !,^e@,$=)))).^p
 
 # store values of clean-build protected variables which must not be changed in target makefiles
 # note: after expansion, last line must be empty - callers of $(call SET_GLOBAL1,...,0) account on this
 define CLEAN_BUILD_PROTECT_VARS2
 CLEAN_BUILD_PROTECTED_VARS := $$(sort $$(CLEAN_BUILD_PROTECTED_VARS) $1)
-$(foreach x,CLEAN_BUILD_PROTECTED_VARS $1,$(CLEAN_BUILD_ENCODE_VAR_NAME):=$$(call CLEAN_BUILD_ENCODE_VAR_VALUE,$x)$(newline))
+$(foreach =,CLEAN_BUILD_PROTECTED_VARS $1,$(CLEAN_BUILD_ENCODE_VAR_NAME):=$$(call CLEAN_BUILD_ENCODE_VAR_VALUE,$=)$(newline))
 endef
 
 # protect macros from modification in target makefiles
 # $1 - list: AAA=b1;b2;$$1=e1;e2 BBB=b1;b2=e1;e2;...
 # $2 - if not empty, then do not trace calls for given macros (for example, if called from trace_calls_template)
 # note: if $2 is not empty, expansion of $(call SET_GLOBAL1,...,0) will give an empty line at end of expansion
+# 1.                                                     $(call SET_GLOBAL1,v,0)      = just protect v, do not trace it
+# 2.                          $(call trace_calls,v)   -> $(call SET_GLOBAL1,v.^t,0)   = trace unprotected v, protect only internal var
+# 3.                          $(call trace_calls,v)   -> $(call SET_GLOBAL1,v.^t v,0) = trace protected v, protect internal var and new v
+# 4. $(call SET_GLOBAL1,v) -> $(call trace_calls,v,1) -> $(call SET_GLOBAL1,v.^t v,0) = protect v and trace it
 ifdef TRACE
-SET_GLOBAL1 = $(if $2,$(foreach x=,$(filter $1,$(CLEAN_BUILD_PROTECTED_VARS)),$(info \
-  override global: $(x=)))$(CLEAN_BUILD_PROTECT_VARS2),$$(call trace_calls,$1,1))
+SET_GLOBAL1 = $(if $2,$(foreach =,$(filter $1,$(CLEAN_BUILD_PROTECTED_VARS)),$(info \
+  override global: $=))$(CLEAN_BUILD_PROTECT_VARS2),$$(call trace_calls,$1,1))
 else
-SET_GLOBAL1 = $(call CLEAN_BUILD_PROTECT_VARS2,$(foreach v,$1,$(firstword $(subst =, ,$v))))
+SET_GLOBAL1 = $(call CLEAN_BUILD_PROTECT_VARS2,$(foreach =,$1,$(firstword $(subst =, ,$=))))
 endif
 
 # protect macros from modification in target makefiles
@@ -64,26 +68,26 @@ endif
 # $2 - if not empty, then do not trace calls for given macros
 SET_GLOBAL = $(eval $(SET_GLOBAL1))
 
-# reset "local" variable $v:
+# reset "local" variable $=:
 # check if $v is not already produces access error
 CLEAN_BUILD_RESET_LOCAL_VAR = $(if \
-  $(filter-out !$$$(open_brace)error$(space)%,$(value $v)),$(if \
-  $(filter environment,$(origin $v)),$v=!$$(error \
-  using environment variable: $v, use of environment variables is discouraged, please use only file variables),$(findstring \
-  override,$(origin $v)) $v=!$$(error \
-  using local varaible: $v, please use target-specific or global one))$(newline))
+  $(filter-out !$$$(open_brace)error$(space)%,$(value $=)),$(if \
+  $(filter environment,$(origin $=)),$==!$$(error \
+  using environment variable: $=, use of environment variables is discouraged, please use only file variables),$(findstring \
+  override,$(origin $=)) $==!$$(error \
+  using local varaible: $=, please use target-specific or global one))$(newline))
 
 # only protected variables may remain its values between makefiles,
 #  redefine non-protected (i.e. "local") variables to produce access errors
 # note: do not touch GNU Make automatic variable MAKEFILE_LIST
 # note: do not reset %^saved variables here - they are needed for RESTORE_VARS, which will reset them later
 # note: do not touch automatic variables
-CLEAN_BUILD_RESET_LOCAL_VARS = $(foreach v,$(filter-out \
+CLEAN_BUILD_RESET_LOCAL_VARS = $(foreach =,$(filter-out \
   MAKEFILE_LIST $(CLEAN_BUILD_PROTECTED_VARS) %^saved,$(.VARIABLES)),$(if \
-  $(filter file override environment,$(origin $v)),$(CLEAN_BUILD_RESET_LOCAL_VAR)))
+  $(filter file override environment,$(origin $=)),$(CLEAN_BUILD_RESET_LOCAL_VAR)))
 
 # called by RESTORE_VARS to reset %^saved variables
-CLEAN_BUILD_RESET_SAVED_VARS = $(foreach v,$(filter %^saved,$(.VARIABLES)),$(CLEAN_BUILD_RESET_LOCAL_VAR))
+CLEAN_BUILD_RESET_SAVED_VARS = $(foreach =,$(filter %^saved,$(.VARIABLES)),$(CLEAN_BUILD_RESET_LOCAL_VAR))
 
 # called from $(CLEAN_BUILD_DIR)/core/all.mk
 CLEAN_BUILD_RESET_FIRST_PHASE = $(CLEAN_BUILD_RESET_LOCAL_VARS)$(foreach \
@@ -97,14 +101,14 @@ $(call SET_GLOBAL1,CLEAN_BUILD_NEED_TAIL_CODE)
 endef
 
 # macro to check if clean-build protected $x variable value was changed in target makefile
-# $1 - encoded name of variable $x
+# $1 - encoded name of variable $=
 # note: first line must be empty
 define CLEAN_BUILD_CHECK_PROTECTED_VAR
 
-ifneq ($$($1),$$(call CLEAN_BUILD_ENCODE_VAR_VALUE,$x))
-ifeq (,$(filter $x,$(CLEAN_BUILD_OVERRIDDEN_VARS)))
-$$(error $x value was changed:$$(newline)--- old value:$$(newline)$$($1)$$(newline)+++ new value:$$(newline)$$(call \
-  CLEAN_BUILD_ENCODE_VAR_VALUE,$x)$$(newline))
+ifneq ($$($1),$$(call CLEAN_BUILD_ENCODE_VAR_VALUE,$=))
+ifeq (,$(filter $=,$(CLEAN_BUILD_OVERRIDDEN_VARS)))
+$$(error $= value was changed:$$(newline)--- old value:$$(newline)$$($1)$$(newline)+++ new value:$$(newline)$$(call \
+  CLEAN_BUILD_ENCODE_VAR_VALUE,$=)$$(newline))
 endif
 endif
 endef
@@ -119,7 +123,7 @@ define CLEAN_BUILD_CHECK_AT_TAIL
 $(if $1,$$(if $$(CLEAN_BUILD_NEED_TAIL_CODE),$$(error \
   $$$$(DEFINE_TARGETS) was not evaluated at end of $$(CLEAN_BUILD_NEED_TAIL_CODE))),$(if \
   $(CLEAN_BUILD_NEED_TAIL_CODE),,$(error $$(DEF_HEAD_CODE) was not evaluated at head of makefile!)))$(foreach \
-  x,$(CLEAN_BUILD_PROTECTED_VARS),$(call CLEAN_BUILD_CHECK_PROTECTED_VAR,$(CLEAN_BUILD_ENCODE_VAR_NAME)))
+  =,$(CLEAN_BUILD_PROTECTED_VARS),$(call CLEAN_BUILD_CHECK_PROTECTED_VAR,$(CLEAN_BUILD_ENCODE_VAR_NAME)))
 CLEAN_BUILD_OVERRIDDEN_VARS:=
 CLEAN_BUILD_NEED_TAIL_CODE:=
 $(call SET_GLOBAL1,CLEAN_BUILD_OVERRIDDEN_VARS CLEAN_BUILD_NEED_TAIL_CODE)
