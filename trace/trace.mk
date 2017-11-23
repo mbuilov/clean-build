@@ -64,7 +64,8 @@ else
 format_traced_value = $(if $4,$(if $(findstring $(newline),$1),$4$(newline)$5))$2$(subst $(newline),$3$(newline)$5$2,$(subst \
   $(comma),[31;1m$(comma)[m,$(subst \
   $(close_brace),[36;1m$(close_brace)[m,$(subst \
-  $$$(open_brace),[36;1m$$$(open_brace)[m,$(subst \
+  $(open_brace),[36;1m$(open_brace)[m,$(subst \
+  $$$(open_brace),[32;1m$$$(open_brace)[m,$(subst \
   define ,[35mdefine[m ,$(subst \
   endef,[35mendef[m,$(subst \
   include ,[35minclude[m ,$(subst \
@@ -119,7 +120,7 @@ format_traced_value = $(if $4,$(if $(findstring $(newline),$1),$4$(newline)$5))$
   $$6,[35;1m$$6[m,$(subst \
   $$7,[35;1m$$7[m,$(subst \
   $$8,[35;1m$$8[m,$(subst \
-  $$9,[35;1m$$9[m,$1)))))))))))))))))))))))))))))))))))))))))))))))))))))))))))$3
+  $$9,[35;1m$$9[m,$1))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))$3
 endif
 
 # print result $1 and return $1
