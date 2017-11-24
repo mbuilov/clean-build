@@ -35,11 +35,6 @@ MC_COMPILER = $(call SUP,$(TMD)MC,$1)$(call WRAP_MC,$(MC)$(if $(VERBOSE), -v) $2
 MC_COLOR  := $(GEN_COLOR)
 TMC_COLOR := $(GEN_COLOR)
 
-# MC - path to message compiler mc.exe, must be defined to compile message catalogs (for executables that run as service)
-# note: MC may be defined in command line or in project configuration makefile -
-#  e.g. autoconfigured by including $(CLEAN_BUILD_DIR)/compilers/msvc/auto/conf.mk
-MC = $(error MC - path to message compiler mc.exe - is not defined!)
-
 # query /nologo switch of rc.exe
 # $1 - "C:\Program Files\Microsoft SDKs\Windows\v6.0A\bin\RC.Exe"
 RC_QUERY_NOLOGO = $(filter /nologo,,$(shell $(subst \,/,$1) /?))
@@ -98,12 +93,25 @@ RC_COMPILER = $(call SUP,$(TMD)RC,$1)$(call WRAP_RC,$(RC) $(RC_DEFAULT_OPTIONS) 
 RC_COLOR  := $(GEN_COLOR)
 TRC_COLOR := $(GEN_COLOR)
 
-# RC - path resource compiler rc.exe, must be defined to build executables or dlls
+# MC - message compiler, must be defined to compile message catalogs (for executables that run as service)
+# note: MC may be defined in command line or in project configuration makefile -
+#  e.g. autoconfigured by including $(CLEAN_BUILD_DIR)/compilers/msvc/auto/conf.mk
+# example: MC="C:\Program Files (x86)\Windows Kits\8.1\bin\x86\mc.exe"
+MC = $(error $0 - path to message compiler mc.exe - is not defined!)
+
+# RC - resource compiler, must be defined to build executables or dlls
 # note: RC may be defined in command line or in project configuration makefile -
 #  e.g. autoconfigured by including $(CLEAN_BUILD_DIR)/compilers/msvc/auto/conf.mk
-RC = $(error RC - path to resource compiler rc.exe - is not defined!)
+# example: RC="C:\Program Files (x86)\Windows Kits\8.1\bin\x86\rc.exe"
+RC = $(error $0 - path to resource compiler rc.exe - is not defined!)
+
+# MT - manifest tool, must be defined for linker of pre-Visual Studio 2012 (which doesn't support "/MANIFEST:EMBED" option)
+# note: MT may be defined in command line or in project configuration makefile -
+#  e.g. autoconfigured by including $(CLEAN_BUILD_DIR)/compilers/msvc/auto/conf.mk
+# example: MT="C:\Program Files (x86)\Windows Kits\8.1\bin\x86\mt.exe"
+MT = $(error $0 - path to manifest tool mt.exe - is not defined!)
 
 # protect variables from modifications in target makefiles
-$(call SET_GLOBAL,MC_STRIP_STRINGS WRAP_MC MC_COMPILER MC_COLOR TMC_COLOR MC \
+$(call SET_GLOBAL,MC_STRIP_STRINGS WRAP_MC MC_COMPILER MC_COLOR TMC_COLOR \
   RC_QUERY_NOLOGO RC_SUPPRESS_LOGO RC_LOGO_STRINGS WRAP_RC RC_STDINCLUDES \
-  TRC_STDINCLUDES RC_DEFAULT_OPTIONS RC_COMPILER RC_COLOR TRC_COLOR RC)
+  TRC_STDINCLUDES RC_DEFAULT_OPTIONS RC_COMPILER RC_COLOR TRC_COLOR MC RC MT)
