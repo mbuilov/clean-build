@@ -512,3 +512,26 @@ ifeq (,$(filter-out undefined environment,$(origin ???)))
 include $(dir $(lastword $(MAKEFILE_LIST)))msvc/sdk.mk
 endif
 
+
+# autoconfigure:
+#  target Windows version, Visual C++ version, paths to compiler, linker, system libraries, headers and tools:
+#  (variables prefixed with T - are for the tool mode)
+#
+# WINVER        - minimal Windows version required to run built executables
+# {,T}VC_VER    - MSVC++ version, known values see in $(CLEAN_BUILD_DIR)/compilers/msvc/cmn.mk 'MSVC++ versions' table
+# {,T}VCCL      - path to cl.exe                (may be in double-quotes, if contains spaces - double-quoted automatically)
+# {,T}VCLIB     - path to lib.exe               (must be in double-quotes if contains spaces, may be deduced from VCCL)
+# {,T}VCLINK    - path to link.exe              (must be in double-quotes if contains spaces, may be deduced from VCCL)
+# {,T}VCINCLUDE - paths to Visual C++ headers   (such as varargs.h,    without quotes, spaces must be replaced with ?)
+# {,T}VCLIBPATH - paths to Visual C++ libraries (such as msvcrt.lib,   without quotes, spaces must be replaced with ?)
+# {,T}UMINCLUDE - paths to user-mode headers    (such as winbase.h,    without quotes, spaces must be replaced with ?)
+# {,T}UMLIBPATH - paths to user-mode libraries  (such as kernel32.lib, without quotes, spaces must be replaced with ?)
+# RC            - path to rc.exe                (may be in double-quotes, if contains spaces - double-quoted automatically)
+# MC            - path to mc.exe                (may be in double-quotes, if contains spaces - double-quoted automatically)
+# MT            - path to mt.exe                (may be in double-quotes, if contains spaces - double-quoted automatically)
+ifneq (,$(filter undefined environment,$(foreach v,WINVER \
+  VC_VER VCCL VCLIB VCLINK VCINCLUDE VCLIBPATH UMINCLUDE UMLIBPATH \
+  TVC_VER TVCCL TVCLIB TVCLINK TVCINCLUDE TVCLIBPATH TUMINCLUDE TUMLIBPATH RC MC MT,$(origin $v))))
+include $(CLEAN_BUILD_DIR)/compilers/msvc/auto/conf.mk
+endif
+
