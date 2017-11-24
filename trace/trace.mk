@@ -152,14 +152,12 @@ $(eval override $(subst $(space),:=$(newline)override ,$(dump_max)):=)
 
 # dump function arguments
 ifndef TRACE_IN_COLOR
-dump_args := $(foreach i,$(dump_max),:$$(if \
-  $$($i),$$(newline)$$$$$i=$$(call format_traced_value,$$($i),<,>,\,)))
+dump_args = $(subst $(space)$(newline),$(newline),$(foreach \
+  i,$(dump_max),$(if $($i),$(newline)$$$i=$(call format_traced_value,$($i),<,>,\,))))
 else
-dump_args := $(foreach i,$(dump_max),:$$(if \
-  $$($i),$$(newline)[34;1m$$$$$i=[36m$$(call format_traced_value,$$($i),<[m,[36;1m>,\,)[m))
+dump_args = $(subst $(space)$(newline),$(newline),$(foreach \
+  i,$(dump_max),$(if $($i),$(newline)[34;1m$$$i=[36m$(call format_traced_value,$($i),<[m,[36;1m>,\,)[m)))
 endif
-
-$(eval dump_args = $(subst $(space):,, $(dump_args)))
 
 # trace function call - print function name and argument values
 # - add $(tracefn) as the first statement of traced function body
