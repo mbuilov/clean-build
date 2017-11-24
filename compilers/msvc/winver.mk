@@ -4,7 +4,9 @@
 # Licensed under GPL version 2 or any later version, see COPYING
 #----------------------------------------------------------------------------------
 
-# define FORM_WINVER_DEFINES and FORM_SUBSYSTEM_VER macros, included by $(CLEAN_BUILD_DIR)/compilers/msvc.mk
+# define NTDDI and WINVER constants, included by:
+#  $(CLEAN_BUILD_DIR)/compilers/msvc.mk
+#  $(CLEAN_BUILD_DIR)/compilers/msvc/auto/conf.mk
 
 # NTDDI - Windows device driver interface version
 # note: possible values - suffix of NTDDI_... constants listed below, e.g.: NTDDI=WINXPSP3
@@ -90,13 +92,6 @@ WINVER_GET_SUBSYSTEM = $(if $(filter \
   WS03,$1),WS03,$(if $(filter \
   WINXP,$1,)WINXP,WIN2K)))))
 
-# WINVER_DEFINES - specifies version of Windows API to compile with
-# note: if NTDDI_VERSION is defined, _WIN32_WINNT must also be defined
-FORM_WINVER_DEFINES = $(if $(NTDDI),NTDDI_VERSION=$(NTDDI_$(NTDDI)) )_WIN32_WINNT=$(_WIN32_WINNT_$(WINVER))
-
-# SUBSYSTEM_VER - minimum Windows version required to run built targets
-FORM_SUBSYSTEM_VER = $(SUBSYSTEM_VER_$(call WINVER_GET_SUBSYSTEM,$(WINVER)))
-
 # protect variables from modifications in target makefiles
 $(call SET_GLOBAL,NTDDI \
   _WIN32_WINNT_WIN2K _WIN32_WINNT_WINXP _WIN32_WINNT_WS03 _WIN32_WINNT_WIN6 _WIN32_WINNT_LONGHORN _WIN32_WINNT_VISTA \
@@ -107,7 +102,7 @@ $(call SET_GLOBAL,NTDDI \
   NTDDI_GET_WINVER WINVER \
   SUBSYSTEM_VER_WIN2K SUBSYSTEM_VER_WINXP SUBSYSTEM_VER_WS03 SUBSYSTEM_VER_VISTA \
   SUBSYSTEM_VER_WS08 SUBSYSTEM_VER_WIN7 SUBSYSTEM_VER_WIN8 \
-  WINVER_GET_SUBSYSTEM FORM_WINVER_DEFINES FORM_SUBSYSTEM_VER)
+  WINVER_GET_SUBSYSTEM)
 
 ### by default, configure for Windows XP if target arch is x86 and for Windows XP SP2 if target arch is x86_64
 ##WINVER := $(if $(CPU:%64=),WINXP,WS03)
