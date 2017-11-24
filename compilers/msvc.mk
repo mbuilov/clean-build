@@ -21,39 +21,74 @@ ifeq (,$(filter-out undefined environment,$(origin EXPORTS_TEMPLATE)))
 include $(CLEAN_BUILD_DIR)/compilers/msvc/exp.mk
 endif
 
-# define macros:
-# FORM_WINVER_DEFINES - specifies version of Windows API to compile with, e.g.: "/D_WIN32_WINNT=0x0501", may be empty
-# FORM_SUBSYSTEM_VER  - minimum Windows version required to run built targets, e.g.: "/SUBSYSTEM:CONSOLE,5.01", may be empty
-ifeq (,$(filter-out undefined environment,$(origin FORM_WINVER_DEFINES)))
-include $(CLEAN_BUILD_DIR)/compilers/msvc/winver.mk
-endif
-
-# autoconfigure:
-#  target Windows version, Visual C++ version, paths to compiler, linker, system libraries, headers and tools:
-#  (variables prefixed with T - are for the tool mode)
-#
-# WINVER        - minimal Windows version required to run built executables
-# {,T}VC_VER    - MSVC++ version, known values see in $(CLEAN_BUILD_DIR)/compilers/msvc/cmn.mk 'MSVC++ versions' table
-# {,T}VCCL      - path to cl.exe                (may be in double-quotes, if contains spaces - double-quoted automatically)
-# {,T}VCLIB     - path to lib.exe               (must be in double-quotes if contains spaces, may be deduced from VCCL)
-# {,T}VCLINK    - path to link.exe              (must be in double-quotes if contains spaces, may be deduced from VCCL)
-# {,T}VCINCLUDE - paths to Visual C++ headers   (such as varargs.h,    without quotes, spaces must be replaced with ?)
-# {,T}VCLIBPATH - paths to Visual C++ libraries (such as msvcrt.lib,   without quotes, spaces must be replaced with ?)
-# {,T}UMINCLUDE - paths to user-mode headers    (such as winbase.h,    without quotes, spaces must be replaced with ?)
-# {,T}UMLIBPATH - paths to user-mode libraries  (such as kernel32.lib, without quotes, spaces must be replaced with ?)
-# RC            - path to rc.exe                (may be in double-quotes, if contains spaces - double-quoted automatically)
-# MC            - path to mc.exe                (may be in double-quotes, if contains spaces - double-quoted automatically)
-# MT            - path to mt.exe                (may be in double-quotes, if contains spaces - double-quoted automatically)
-ifneq (,$(filter undefined environment,$(foreach v,WINVER \
-  VC_VER VCCL VCLIB VCLINK VCINCLUDE VCLIBPATH UMINCLUDE UMLIBPATH \
-  TVC_VER TVCCL TVCLIB TVCLINK TVCINCLUDE TVCLIBPATH TUMINCLUDE TUMLIBPATH RC MC MT,$(origin $v))))
-include $(CLEAN_BUILD_DIR)/compilers/msvc/auto/conf.mk
-endif
-
-# add definitions of RC_COMPILER (needed by STD_RES_TEMPLATE) and MC_COMPILER
+# add definitions of RC_COMPILER (needed by STD_RES_TEMPLATE), MC_COMPILER and MT tool
 ifeq (,$(filter-out undefined environment,$(origin RC_COMPILER)))
 include $(CLEAN_BUILD_DIR)/compilers/msvc/tools.mk
 endif
+
+# define NTDDI and WINVER constants
+# note: $(CLEAN_BUILD_DIR)/compilers/msvc/winver.mk may be already
+#  included by $(CLEAN_BUILD_DIR)/compilers/msvc/auto/conf.mk,
+#  which in turn may be included in project configuration makefile
+ifeq (,$(filter-out undefined environment,$(origin WINVER_GET_SUBSYSTEM)))
+include $(CLEAN_BUILD_DIR)/compilers/msvc/winver.mk
+endif
+
+# by default, define needed variables so they will produce access errors - normally,
+# these variables should be overridden either in command line or in project configuration
+# makefile (e.g. by including $(CLEAN_BUILD_DIR)/compilers/msvc/auto/conf.mk),
+# so default definitions will be ignored
+
+# path to cl.exe, e.g.: "C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\bin\cl.exe"
+# note: must be in double-quotes if contains spaces
+VCCL = $(error $0 - path to Visual C++ compiler cl.exe - is not defined!)
+TVCCL = $(error $0 - path to tool-mode Visual C++ compiler cl.exe - is not defined!)
+
+# MSVC++ version of the cl.exe, known values see in $(CLEAN_BUILD_DIR)/compilers/msvc/cmn.mk 'MSVC++ versions' table
+VC_VER = $(error $0 - MSVC++ version of Visual C++ compiler - is not defined!)
+TVC_VER = $(error $0 - MSVC++ version of tool-mode Visual C++ compiler - is not defined!)
+
+# path to lib.exe, e.g.: "C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\bin\lib.exe"
+# note: must be in double-quotes if contains spaces
+VCLIB = $(error $0 - path to static library linker lib.exe - is not defined!)
+TVCLIB = $(error $0 - path to tool-mode static library linker lib.exe - is not defined!)
+
+# path to link.exe, e.g.: "C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\bin\link.exe"
+# note: must be in double-quotes if contains spaces
+VCLINK = $(error $0 - path to exe/dll linker link.exe - is not defined!)
+TVCLINK = $(error $0 - path to tool-mode exe/dll linker link.exe - is not defined!)
+
+# paths to Visual C++ headers, e.g.: C:\Program?Files?(x86)\Microsoft?Visual?Studio?14.0\VC\include
+# note: without quotes, spaces must be replaced with ?
+# note: may be defined as empty value
+VCINCLUDE = $(error $0 - paths to Visual C++ headers, such as varargs.h - is not defined!)
+TVCINCLUDE = $(error $0 - paths to tool-mode Visual C++ headers, such as varargs.h - is not defined!)
+
+# paths to Visual C++ libraries, e.g.: C:\Program?Files?(x86)\Microsoft?Visual?Studio?14.0\VC\lib
+# note: without quotes, spaces must be replaced with ?
+# note: may be defined as empty value
+VCLIBPATH = $(error $0 - paths to Visual C++ libraries, such as msvcrt.lib - is not defined!)
+TVCLIBPATH = $(error $0 - paths to tool-mode Visual C++ libraries, such as msvcrt.lib - is not defined!)
+
+# paths to user-mode headers, e.g.: C:\Program?Files?(x86)\Windows?Kits\8.1\Include\um
+# note: without quotes, spaces must be replaced with ?
+# note: may be defined as empty value
+UMINCLUDE = $(error $0 - paths to user-mode headers, such as winbase.h - is not defined!)
+TUMINCLUDE = $(error $0 - paths to tool-user-mode headers, such as winbase.h - is not defined!)
+
+# paths to user-mode libraries, e.g.: C:\Program?Files?(x86)\Windows?Kits\8.1\Lib\winv6.3\um\x86
+# note: without quotes, spaces must be replaced with ?
+# note: may be defined as empty value
+UMLIBPATH = $(error $0 - paths to user-mode libraries, such as kernel32.lib - is not defined!)
+TUMLIBPATH = $(error $0 - paths to tool-user-mode libraries, such as kernel32.lib - is not defined!)
+
+# specify version of Windows API to compile with,
+# if not empty, results in compiler options like this: "/DNTDDI_VERSION=0x05010300 /D_WIN32_WINNT=0x0501"
+WINVER_DEFINES := $(if $(NTDDI),NTDDI_VERSION=$(NTDDI_$(NTDDI)) )$(if $(WINVER),_WIN32_WINNT=$(_WIN32_WINNT_$(WINVER)))
+
+# minimum Windows version required to run built targets,
+# if not empty, results in linker option like this: "/SUBSYSTEM:CONSOLE,5.01"
+SUBSYSTEM_VER := $(if $(WINVER),$(SUBSYSTEM_VER_$(call WINVER_GET_SUBSYSTEM,$(WINVER))))
 
 # default subsystem type for EXE and DLL: CONSOLE or WINDOWS
 DEF_SUBSYSTEM_TYPE := CONSOLE
@@ -230,7 +265,7 @@ CMN_LIBS = /nologo /OUT:$(call ospath,$1 $2 $(filter %.res,$^)) $(MK_VERSION_OPT
 EXE_LD1 = $(call SUP,$(TMD)EXE,$1)$(call \
   $(TMD)WRAP_LINKER,$($(TMD)VCLINK) $(CMN_LIBS) $(DEF_EXE_LDFLAGS) $(VLDFLAGS))$(CHECK_EXP_CREATED)$($(TMD)EMBED_EXE_MANIFEST)
 DLL_LD1 = $(call SUP,$(TMD)DLL,$1)$(call \
-  $(TMD)WRAP_LINKER,$($(TMD)VCLINK) $(CMN_LIBS) $(DEF_DLL_LDFLAGS) $(VLDFLAGS))$(CHECK_EXP_CREATED)$($(TMD)EMBED_DLL_MANIFEST)
+  $(TMD)RAP_LINKER,$($(TMD)VCLINK) $(CMN_LIBS) $(DEF_DLL_LDFLAGS) $(VLDFLAGS))$(CHECK_EXP_CREATED)$($(TMD)EMBED_DLL_MANIFEST)
 
 # form path to the import library (if target exports symbols)
 # $t - EXE or DLL
@@ -492,9 +527,12 @@ endif # TOCLEAN
 $(call SET_GLOBAL,MP_BUILD FORCE_SYNC_PDB,0)
 
 # protect variables from modifications in target makefiles
-$(call SET_GLOBAL,DEF_SUBSYSTEM_TYPE C_PREPARE_MSVC_APP_VARS WIN_SUPPORTED_VARIANTS WIN_VARIANT_SUFFIX WIN_VARIANT_CFLAGS \
+$(call SET_GLOBAL,$(foreach v,VCCL VC_VER VCLIB VCLINK VCINCLUDE VCLIBPATH UMINCLUDE UMLIBPATH,$v T$v) \
+  WINVER_DEFINES SUBSYSTEM_VER DEF_SUBSYSTEM_TYPE C_PREPARE_MSVC_APP_VARS \
+  WIN_SUPPORTED_VARIANTS WIN_VARIANT_SUFFIX WIN_VARIANT_CFLAGS \
   TRG_SUBSYSTEM MK_SUBSYSTEM_OPTION CMN_LDFLAGS DEF_EXE_LDFLAGS DEF_DLL_LDFLAGS CMN_LIBS EXE_LD1 DLL_LD1 EXE_DLL_FORM_IMPORT_LIB=t;v \
   EXE_DLL_AUX_TEMPLATE EXE_AUX_TEMPLATE=t;v DLL_AUX_TEMPLATE=t;v EXE_EXP_TOCLEAN=t;v DLL_EXP_TOCLEAN=t;v \
   LIB_DEF_VARIABLE_CHECK=DEF;LIB;EXE;DLL LIB_LD1 CMN_PARAMS CC_PARAMS CXX_PARAMS OBJ_CC OBJ_CXX OBJ_NCC OBJ_NCXX OBJ_PCC OBJ_PCXX \
   C_BASE_TEMPLATE_OR_MP EXE_LD_MP DLL_LD_MP LIB_LD_MP EXE_LD DLL_LD LIB_LD CC_PARAMS_MP CXX_PARAMS_MP OBJ_MCC OBJ_MCXX MULTISOURCE_CL \
-  OBJ_PMCC OBJ_PMCXX PCH_CC PCH_CXX MSVC_APP_PCH_TEMPLATE APP_PDB_CLEANUP=t;v EXE_PDB_CLEANUP=t;v DLL_PDB_CLEANUP=t;v LIB_PDB_CLEANUP=t;v)
+  OBJ_PMCC OBJ_PMCXX PCH_CC PCH_CXX MSVC_APP_PCH_TEMPLATE \
+  APP_PDB_CLEANUP=t;v EXE_PDB_CLEANUP=t;v DLL_PDB_CLEANUP=t;v LIB_PDB_CLEANUP=t;v)
