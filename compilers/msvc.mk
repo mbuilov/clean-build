@@ -265,7 +265,7 @@ CMN_LIBS = /nologo /OUT:$(call ospath,$1 $2 $(filter %.res,$^)) $(MK_VERSION_OPT
 EXE_LD1 = $(call SUP,$(TMD)EXE,$1)$(call \
   $(TMD)WRAP_LINKER,$($(TMD)VCLINK) $(CMN_LIBS) $(DEF_EXE_LDFLAGS) $(VLDFLAGS))$(CHECK_EXP_CREATED)$($(TMD)EMBED_EXE_MANIFEST)
 DLL_LD1 = $(call SUP,$(TMD)DLL,$1)$(call \
-  $(TMD)RAP_LINKER,$($(TMD)VCLINK) $(CMN_LIBS) $(DEF_DLL_LDFLAGS) $(VLDFLAGS))$(CHECK_EXP_CREATED)$($(TMD)EMBED_DLL_MANIFEST)
+  $(TMD)WRAP_LINKER,$($(TMD)VCLINK) $(CMN_LIBS) $(DEF_DLL_LDFLAGS) $(VLDFLAGS))$(CHECK_EXP_CREATED)$($(TMD)EMBED_DLL_MANIFEST)
 
 # form path to the import library (if target exports symbols)
 # $t - EXE or DLL
