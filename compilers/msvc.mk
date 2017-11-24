@@ -51,7 +51,6 @@ include $(CLEAN_BUILD_DIR)/compilers/msvc/auto/conf.mk
 endif
 
 # add definitions of RC_COMPILER (needed by STD_RES_TEMPLATE) and MC_COMPILER
-# note: RC - Resource compiler executable - must be defined
 ifeq (,$(filter-out undefined environment,$(origin RC_COMPILER)))
 include $(CLEAN_BUILD_DIR)/compilers/msvc/tools.mk
 endif
