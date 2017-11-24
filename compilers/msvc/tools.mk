@@ -6,11 +6,6 @@
 
 # msvc compiler tools wrappers, such as mc.exe and rc.exe, included by $(CLEAN_BUILD_DIR)/compilers/msvc.mk
 
-# RC - Resource compiler executable - must be defined
-ifndef RC
-$(error RC - Resource compiler executable - is not defined!)
-endif
-
 # strings to strip off from mc.exe output - $(FINDSTR) regular expression
 # note: may be overridden either in project configuration makefile or in command line
 MC_STRIP_STRINGS := MC:?Compiling
@@ -40,9 +35,17 @@ MC_COMPILER = $(call SUP,$(TMD)MC,$1)$(call WRAP_MC,$(MC)$(if $(VERBOSE), -v) $2
 MC_COLOR  := $(GEN_COLOR)
 TMC_COLOR := $(GEN_COLOR)
 
+# MC - path to message compiler mc.exe, must be defined to compile message catalogs (for executables that run as service)
+# note: MC may be defined in command line or in project configuration makefile -
+#  e.g. autoconfigured by including $(CLEAN_BUILD_DIR)/compilers/msvc/auto/conf.mk
+MC = $(error MC - path to message compiler mc.exe - is not defined!)
+
 # query /nologo switch of rc.exe
 # $1 - "C:\Program Files\Microsoft SDKs\Windows\v6.0A\bin\RC.Exe"
 RC_QUERY_NOLOGO = $(filter /nologo,,$(shell $(subst \,/,$1) /?))
+
+# run rc.exe only if RC is defined
+ifeq (,$(filter-out undefined environment,$(origin RC)))
 
 # newer versions of rc.exe (at least 6.1.7600.16385 and later) support /nologo option,
 # define this macro if rc.exe is a new one, e.g. RC_SUPPRESS_LOGO := /nologo
@@ -52,6 +55,8 @@ RC_SUPPRESS_LOGO := $(call RC_QUERY_NOLOGO,$(RC))
 # save queried RC_SUPPRESS_LOGO value in generated config
 $(call CONFIG_REMEMBER_VARS,RC_SUPPRESS_LOGO)
 endif
+
+endif # RC
 
 # strings to strip off from rc.exe output - $(FINDSTR) regular expression
 # note: usable if rc.exe does not support /nologo option (RC_SUPPRESS_LOGO is not defined)
@@ -93,7 +98,12 @@ RC_COMPILER = $(call SUP,$(TMD)RC,$1)$(call WRAP_RC,$(RC) $(RC_DEFAULT_OPTIONS) 
 RC_COLOR  := $(GEN_COLOR)
 TRC_COLOR := $(GEN_COLOR)
 
+# RC - path resource compiler rc.exe, must be defined to build executables or dlls
+# note: RC may be defined in command line or in project configuration makefile -
+#  e.g. autoconfigured by including $(CLEAN_BUILD_DIR)/compilers/msvc/auto/conf.mk
+RC = $(error RC - path to resource compiler rc.exe - is not defined!)
+
 # protect variables from modifications in target makefiles
-$(call SET_GLOBAL,MC_STRIP_STRINGS WRAP_MC MC_COMPILER MC_COLOR TMC_COLOR \
+$(call SET_GLOBAL,MC_STRIP_STRINGS WRAP_MC MC_COMPILER MC_COLOR TMC_COLOR MC \
   RC_QUERY_NOLOGO RC_SUPPRESS_LOGO RC_LOGO_STRINGS WRAP_RC RC_STDINCLUDES \
-  TRC_STDINCLUDES RC_DEFAULT_OPTIONS RC_COMPILER RC_COLOR TRC_COLOR)
+  TRC_STDINCLUDES RC_DEFAULT_OPTIONS RC_COMPILER RC_COLOR TRC_COLOR RC)
