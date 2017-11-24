@@ -37,7 +37,7 @@ endif
 # by default, define needed variables so they will produce access errors - normally,
 # these variables should be overridden either in command line or in project configuration
 # makefile (e.g. by including $(CLEAN_BUILD_DIR)/compilers/msvc/auto/conf.mk),
-# so default definitions will be ignored
+# so default definitions normally will be ignored
 
 # path to cl.exe, e.g.: "C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\bin\cl.exe"
 # note: must be in double-quotes if contains spaces
