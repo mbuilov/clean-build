@@ -13,17 +13,14 @@
 # 3) to build everything and execute test, run:
 # $ make check
 
-# setup project variables
-include $(dir $(lastword $(MAKEFILE_LIST)))project.mk
+# add support for processing sub-makefiles
+include $(dir $(lastword $(MAKEFILE_LIST)))make/p.mk
 
-# source clean-build definitions and function for processing sub-makefiles
-include $(MTOP)/parallel.mk
-
-# clean-build provides default rule for distclean goal
+# clean-build provides default rule for 'distclean' goal
 ifneq (distclean,$(MAKECMDGOALS))
 
 # list of sub-makefiles
-TO_MAKE := hello.mk
+TO_MAKE := src/hello.mk
 
 # we need version info under Windows
 ifeq (WINXX,$(OS))

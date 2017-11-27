@@ -4,11 +4,8 @@
 # Licensed under GPL version 2 or any later version, see COPYING
 #----------------------------------------------------------------------------------
 
-# setup project variables
-include $(dir $(lastword $(MAKEFILE_LIST)))project.mk
-
-# include templates for building C/C++ sources
-include $(MTOP)/c.mk
+# define rules for building C/C++ sources
+include $(dir $(lastword $(MAKEFILE_LIST)))../make/c.mk
 
 # add definitions for running built executable
 include $(MTOP)/exts/ctest.mk
