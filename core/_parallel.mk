@@ -4,9 +4,9 @@
 # Licensed under GPL version 2 or any later version, see COPYING
 #----------------------------------------------------------------------------------
 
-ifeq (,$(filter-out undefined environment,$(origin DEF_TAIL_CODE)))
-include $(dir $(lastword $(MAKEFILE_LIST)))_defs.mk
-endif
+# support for processing sub-makefiles
+
+# Note: $(CLEAN_BUILD_DIR)/core/_defs.mk must be included prior this file
 
 # name of file to look for if makefile is specified by directory path
 DEFAULT_MAKEFILE_NAME := Makefile
@@ -121,13 +121,13 @@ PROCESS_SUBMAKES_EVAL = $(eval $(value CB_PARALLEL_CODE))$(eval $(call DEF_TAIL_
 PROCESS_SUBMAKES = $(eval define CB_PARALLEL_CODE$(newline)$(call \
   CLEAN_BUILD_PARALLEL,$(NORM_MAKEFILES))$(newline)endef)$(call PROCESS_SUBMAKES_EVAL)
 
-# set CLEAN_BUILD_NEED_PARALLEL before including sub-makefiles:
-# each of processed sub-makefiles must include $(CLEAN_BUILD_DIR)/parallel.mk or $(CLEAN_BUILD_DIR)/c.mk, etc...
-# by including $(CLEAN_BUILD_DIR)/parallel.mk, sub-makefile will reset CLEAN_BUILD_NEED_PARALLEL
+# set CLEAN_BUILD_NEED_PARALLEL to non-empty value before including sub-makefiles - to check
+#  if a sub-makefile calls PROCESS_SUBMAKES, it _must_ evaluate CLEAN_BUILD_PARALLEL_EVAL
+#  (by including appropriate makefile of project build system - 'make/p.mk') before the call
 ifdef MCHECK
 CLEAN_BUILD_PARALLEL_EVAL = $(eval CLEAN_BUILD_NEED_PARALLEL:=)
 $(eval PROCESS_SUBMAKES = $$(if $$(CLEAN_BUILD_NEED_PARALLEL),$$(error \
-  $$$$(CLEAN_BUILD_DIR)/parallel.mk was not included at head of makefile!))$(subst \
+  parallel.mk was not included at head of makefile!))$(subst \
   eval ,eval CLEAN_BUILD_NEED_PARALLEL:=1$$(newline)$$(call \
   SET_GLOBAL1,CLEAN_BUILD_NEED_PARALLEL)$$(newline),$(value PROCESS_SUBMAKES)))
 else

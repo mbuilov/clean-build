@@ -4,7 +4,7 @@
 # Licensed under GPL version 2 or any later version, see COPYING
 #----------------------------------------------------------------------------------
 
-# this file included by $(CLEAN_BUILD_DIR)/core/_defs.mk after including $(CLEAN_BUILD_DIR)/core/protection.mk
+# this file is included by $(CLEAN_BUILD_DIR)/core/_defs.mk, after including $(CLEAN_BUILD_DIR)/core/protection.mk
 
 ifeq (,$(filter-out undefined environment,$(origin trace_calls)))
 include $(dir $(lastword $(MAKEFILE_LIST)))../trace/trace.mk

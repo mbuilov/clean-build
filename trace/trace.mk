@@ -4,26 +4,26 @@
 # Licensed under GPL version 2 or any later version, see COPYING
 #----------------------------------------------------------------------------------
 
-# support for tracing macro expansions, this file is self-contained and may be included alone
+# support for tracing macro expansions, this file is self-contained and may be used alone
 
-# this file defines next minor helpers:
+# - this file defines next minor helpers:
 #
-# 1) infofn - wrap function call to print and return result of the call, example:
-#   A := $(call infofn,$(call func,...))
+#  1) infofn - wrap function call to print and return result of the call, example:
+#    A := $(call infofn,$(call func,...))
 #
-# 2) dump - print values of the variables, example:
-#   $(call dump,A B C...)
+#  2) dump - print values of the variables, example:
+#    $(call dump,A B C...)
 #
-# 3) tracefn - print function name and its arguments, example:
-#   func = $(tracefn)fn_body
+#  3) tracefn - print function name and its arguments, example:
+#    func = $(tracefn)fn_body
 #
-# and the major tracing macro:
+# - and the major tracing macro:
 #
-# 4) trace_calls - replace macros with their traced equivalents, example:
-#   $(call trace_calls,macro1 macro2=b1;b2;b3;$$1=e1;e2 macro3 ...)
+#  4) trace_calls - replace macros with their traced equivalents, example:
+#    $(call trace_calls,macro1 macro2=b1;b2;b3;$$1=e1;e2 macro3 ...)
 #
-#  Note: trace_calls changes $(flavor) of traced macros - they are become 'recursive'
-#  Note: trace_calls changes $(origin) of traced macros - 'command line' -> 'override'
+#   Note: trace_calls changes $(flavor) of traced macros - they are become 'recursive'
+#   Note: trace_calls changes $(origin) of traced macros - 'command line' -> 'override'
 
 # by default, do not print traces in colors
 # may be overridden in command line, e.g.:

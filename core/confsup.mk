@@ -5,7 +5,7 @@
 #----------------------------------------------------------------------------------
 
 # configuration file generation:
-# if CONFIG is set, define conf goal
+# if CONFIG is set, define 'conf' goal
 
 # note: CONFIG may be specified either in command line
 #  or in project configuration makefile before including this file, for example:

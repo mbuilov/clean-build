@@ -65,7 +65,7 @@ DLL_VARIANT_SUFFIX = _$1
 # note: these flags should contain values of standard user-defined C/C++ compilers and linker flags, such as
 #  CFLAGS, CXXFLAGS, LDFLAGS and so on, that are normally taken from the environment (in project configuration makefile),
 #  their default values should be set in compiler-specific makefile, e.g.: $(CLEAN_BUILD_DIR)/compilers/gcc.mk.
-# note: called by TRG_CFLAGS, TRG_CXXFLAGS and TRG_LDFLAGS from $(CLEAN_BUILD_DIR)/impl/c_base.mk
+# note: called by TRG_CFLAGS, TRG_CXXFLAGS and TRG_LDFLAGS from $(CLEAN_BUILD_DIR)/domains/c_base.mk
 EXE_CFLAGS   = $($(TMD)CFLAGS)
 EXE_CXXFLAGS = $($(TMD)CXXFLAGS)
 EXE_LDFLAGS  = $($(TMD)LDFLAGS)
@@ -127,7 +127,7 @@ DLL_FORM_TRG = $(1:%=$(DLL_DIR)/$(DLL_PREFIX)%$(call VARIANT_SUFFIX,DLL,$2)$(DLL
 # use the same variant (R or P) of static library as target EXE (for example for P-EXE use P-LIB)
 # always use D-variant of static library for regular DLL
 # note: if returns empty value - then assume it's default variant R
-# note: used by DEP_LIBRARY macro from $(CLEAN_BUILD_DIR)/impl/c_base.mk
+# note: used by DEP_LIBRARY macro from $(CLEAN_BUILD_DIR)/domains/c_base.mk
 LIB_DEP_MAP = $(if $(findstring DLL,$1),D,$2)
 
 # determine which variant of dynamic library to link with EXE or DLL
@@ -136,7 +136,7 @@ LIB_DEP_MAP = $(if $(findstring DLL,$1),D,$2)
 # $3 - dependency name, e.g. mylib or mylib/flag1/flag2/...
 # the same one default variant (R) of DLL may be linked with any P- or R-EXE or R-DLL
 # note: if returns empty value - then assume it's default variant R
-# note: used by DEP_LIBRARY macro from $(CLEAN_BUILD_DIR)/impl/c_base.mk
+# note: used by DEP_LIBRARY macro from $(CLEAN_BUILD_DIR)/domains/c_base.mk
 DLL_DEP_MAP:=
 
 # prefix/suffix of import library of a dll
@@ -155,7 +155,7 @@ DEP_LIBS = $(foreach l,$(LIBS),$(LIB_PREFIX)$(call DEP_LIBRARY,$1,$2,$l,LIB)$(LI
 # note: assume when building DLL, $(DLL_LD) generates implementation library for DLL in $(LIB_DIR) and DLL itself in $(DLL_DIR)
 DEP_IMPS = $(foreach d,$(DLLS),$(IMP_PREFIX)$(call DEP_LIBRARY,$1,$2,$d,DLL)$(IMP_SUFFIX))
 
-# template for building executables, used by C_RULES macro
+# template for building executables, used by C_RULES_TEMPL macro
 # $1 - target file: $(call FORM_TRG,$t,$v)
 # $2 - sources:     $(TRG_SRC)
 # $3 - sdeps:       $(TRG_SDEPS)
@@ -176,11 +176,11 @@ $1:$(addprefix $(LIB_DIR)/,$(call DEP_LIBS,$t,$v) $(call DEP_IMPS,$t,$v))
 	$$(call $t_LD,$$@,$$(filter %$(OBJ_SUFFIX),$$^),$t,$v)
 endef
 
-# template for building dynamic (shared) libraries, used by C_RULES
+# template for building dynamic (shared) libraries, used by C_RULES_TEMPL
 # note: $(CLEAN_BUILD_DIR)/compilers/msvc.mk redefines DLL_TEMPLATE
 $(eval define DLL_TEMPLATE$(newline)$(value EXE_TEMPLATE)$(newline)endef)
 
-# template for building static libraries, used by C_RULES
+# template for building static libraries, used by C_RULES_TEMPL
 # $1 - target file: $(call FORM_TRG,$t,$v)
 # $2 - sources:     $(TRG_SRC)
 # $3 - sdeps:       $(TRG_SDEPS)
@@ -216,31 +216,27 @@ $(C_PREPARE_BASE_VARS)
 EXE:=
 LIB:=
 DLL:=
-MAKE_CONTINUE_EVAL_NAME:=CLEAN_BUILD_C_APP_EVAL
-DEFINE_TARGETS_EVAL_NAME:=DEFINE_C_APP_EVAL
 endef
 
 # optimization
 $(call try_make_simple,C_PREPARE_APP_VARS,C_PREPARE_BASE_VARS)
 
-# remember new values of MAKE_CONTINUE_EVAL_NAME and DEFINE_TARGETS_EVAL_NAME
-ifdef SET_GLOBAL1
-$(call define_append,C_PREPARE_APP_VARS,$(newline)$$(call SET_GLOBAL1,MAKE_CONTINUE_EVAL_NAME DEFINE_TARGETS_EVAL_NAME))
-endif
-
-# code to be called at beginning of target makefile
-CLEAN_BUILD_C_APP_EVAL = $(DEF_HEAD_CODE_EVAL)$(eval $(C_PREPARE_APP_VARS))
-
-# this code is normally evaluated at end of target makefile
-DEFINE_C_APP_EVAL = $(C_RULES_EVAL)$(DEF_TAIL_CODE_EVAL)
+# rules for building application-level targets from C/C++ sources
+C_DEFINE_APP_RULES = $(C_DEFINE_RULES)
 
 ifdef MCHECK
 # check that LIBS or DLLS are specified only when building EXE or DLL
 CHECK_C_APP_RULES = $(if \
   $(if $(EXE)$(DLL),,$(LIBS)),$(warning LIBS = $(LIBS) is used only when building EXE or DLL))$(if \
   $(if $(EXE)$(DLL),,$(DLLS)),$(warning DLLS = $(DLLS) is used only when building EXE or DLL))
-$(call define_prepend,DEFINE_C_APP_EVAL,$$(CHECK_C_APP_RULES))
+$(call define_prepend,C_DEFINE_APP_RULES,$$(CHECK_C_APP_RULES))
 endif
+
+# optimization
+$(call expand_partially,C_DEFINE_APP_RULES,C_DEFINE_RULES)
+
+### append domain of C/C++ targets
+###$(call APPEND_DOMAIN,C_PREPARE_APP_VARS,C_DEFINE_APP_RULES)
 
 # C_COMPILER - application-level compiler to use for the build (gcc, clang, msvc, etc.)
 # note: $(C_COMPILER) value is used only to form name of standard makefile with definitions of C/C++ compiler
@@ -268,4 +264,4 @@ $(call SET_GLOBAL,C_APP_TARGETS C_TARGETS \
   DLL_DIR DLL_FORM_TRG LIB_DEP_MAP DLL_DEP_MAP IMP_PREFIX IMP_SUFFIX DEP_LIBS=LIBS DEP_IMPS=DLLS \
   EXE_TEMPLATE=t;v;EXE;LIB_DIR;LIBS;DLLS;SYSLIBS;SYSLIBPATH DLL_TEMPLATE=t;v;DLL LIB_TEMPLATE=t;v;LIB \
   CC_COLOR CXX_COLOR EXE_COLOR DLL_COLOR LIB_COLOR TCC_COLOR TCXX_COLOR TEXE_COLOR TDLL_COLOR TLIB_COLOR \
-  C_PREPARE_APP_VARS CLEAN_BUILD_C_APP_EVAL DEFINE_C_APP_EVAL CHECK_C_APP_RULES C_COMPILER C_COMPILER_MK)
+  C_PREPARE_APP_VARS C_DEFINE_APP_RULES CHECK_C_APP_RULES C_COMPILER C_COMPILER_MK)

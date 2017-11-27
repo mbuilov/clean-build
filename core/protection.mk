@@ -4,8 +4,8 @@
 # Licensed under GPL version 2 or any later version, see COPYING
 #----------------------------------------------------------------------------------
 
-# this file included by $(CLEAN_BUILD_DIR)/core/_defs.mk before including $(CLEAN_BUILD_DIR)/core/functions.mk
-# variables protection from accidental changes in target makefiles
+# this file is included by $(CLEAN_BUILD_DIR)/core/_defs.mk, before including $(CLEAN_BUILD_DIR)/core/functions.mk
+# define different macros for variables protection from accidental changes in target makefiles
 
 # run via $(MAKE) C=1 to check makefiles
 ifeq (command line,$(origin C))

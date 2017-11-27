@@ -4,7 +4,12 @@
 # Licensed under GPL version 2 or any later version, see COPYING
 #----------------------------------------------------------------------------------
 
-ifeq (,$(filter-out undefined environment,$(origin CLEAN_BUILD_PARALLEL_EVAL)))
-include $(dir $(lastword $(MAKEFILE_LIST)))core/_parallel.mk
+# support for building generic targets - define DEFINE_TARGETS macro
+
+# Note: this file should be copied AS IS to a custom project's build system directory 'make'
+
+ifeq (,$(filter-out undefined environment,$(origin DEF_HEAD_CODE)))
+include $(dir $(lastword $(MAKEFILE_LIST)))project.mk
 endif
-$(CLEAN_BUILD_PARALLEL_EVAL)
+
+$(eval $(DEF_HEAD_CODE))

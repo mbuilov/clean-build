@@ -1,4 +1,4 @@
-# stub of the project configuration makefile,
+# stub of a project configuration makefile,
 # this file is normally copied and modified appropriately for the custom project
 
 # Note: this file is under public domain, it may be freely modified by the project authors
@@ -13,7 +13,7 @@
 # +- my_project/
 #   +- make/
 #   |  |- project.mk    (modified copy of this file)
-#   |  |- overrides.mk  (support for 'config' goal and OVERRIDES variable
+#   |  |- overrides.mk  (support for 'config' goal and OVERRIDES variable)
 #   |  |- p.mk          (support for sub-modules)
 #   |  |- c.mk          (support for building C/C++ sources)
 #   |  ...
@@ -22,23 +22,23 @@
 #   ...
 #
 # where 'make' directory - files of the project build system, some of them
-#  are copied and modified from the clean-build 'stub' directory
+#  may be copied and modified from the clean-build 'stub' directory
 
 # the only case when variable TOP is overridden - after completing project configuration
 ifneq (override,$(origin TOP))
 
 # TOP - project root directory
 # Note: TOP may be used in target makefiles for referencing sources, other makefiles, include paths, etc.
-# Note: define TOP according to the project directory structure shown above - path to 'my_project'
+# Note: define TOP according to the project directory structure shown above - path to 'my_project' folder
 override TOP := $(abspath $(dir $(lastword $(MAKEFILE_LIST))..))
 
-# BUILD - path to the directory of built artifacts
-# Note: this variable is required by the clean-build
-# Note: $(BUILD) directory is automatically created by the clean-build when needed
+# BUILD - path to directory of built artifacts
+# Note: this variable is required by clean-build and must be defined prior including clean-build files
+# Note: $(BUILD) directory is automatically created by clean-build when building targets
 #  and automatically deleted by the predefined 'distclean' goal
 BUILD := $(TOP)/build
 
-# version of clean-build build system required by this project
+# version of clean-build required by this custom project
 CLEAN_BUILD_REQUIRED_VERSION := 0.9.0
 
 # next variables are needed for generating:
@@ -58,14 +58,17 @@ PRODUCT_VER := 1.0.0
 #  SUPPORTED_TARGETS := DEVEL PRODUCTION
 
 # include core clean-build definitions, processing of CONFIG and OVERRIDES variables,
-# define MTOP variable - path to clean-build
+#  definition of MTOP variable - path to clean-build
 include $(dir $(lastword $(MAKEFILE_LIST)))overrides.mk
 
 # Note: may redefine core clean-build macros here, e.g.:
-#  $(call define_prepend,DEF_HEAD_CODE,$$(info target makefile: $$(lastword $$(MAKEFILE_LIST))))
+#  $(call define_prepend,DEF_HEAD_CODE,$$(info target makefile: $$(TARGET_MAKEFILE)))
 
 # autoconfigure for building C/C++ sources
-# Note: more includes may be added here to prepare for building other source types: Java, etc.
 include $(MTOP)/configure/c.mk
+
+# Note: more autoconfigure includes may be added here to prepare for building other source types:
+#  Java: include $(MTOP)/configure/java.mk
+#  etc.
 
 endif # TOP

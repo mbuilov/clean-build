@@ -923,27 +923,6 @@ endif
 # variable used to track makefiles include level
 CB_INCLUDE_LEVEL:=
 
-# expand this macro to evaluate default head code (called from $(CLEAN_BUILD_DIR)/defs.mk)
-# note: by default it is expanded at start of next $(MAKE_CONTINUE) round
-DEF_HEAD_CODE_EVAL = $(eval $(DEF_HEAD_CODE))
-
-# expand this macro to evaluate default tail code
-# note: arguments list must be empty - only $(CLEAN_BUILD_DIR)/core/_parallel.mk
-#  calls DEF_TAIL_CODE with @ for the checks in CLEAN_BUILD_CHECK_AT_TAIL macro
-DEF_TAIL_CODE_EVAL = $(eval $(DEF_TAIL_CODE))
-
-# $(MAKE_CONTINUE_EVAL_NAME) - contains name of macro (DEF_HEAD_CODE_EVAL by default),
-#  that when expanded, evaluates some code for resetting variables and
-#  preparing to define more targets (at least, by evaluating $(DEF_HEAD_CODE)),
-# example: MY_PREPARE = $(DEF_HEAD_CODE_EVAL)$(eval $(MY_PREPARE_CODE))
-#MAKE_CONTINUE_EVAL_NAME - will be defined while evaluating $(DEF_HEAD_CODE)
-
-# $(DEFINE_TARGETS_EVAL_NAME) - contains name of macro (DEF_TAIL_CODE_EVAL by default),
-#  that when expanded, evaluates some code that defines rules for the targets,
-# example: MY_DEFINE = $(eval $(MY_RULES_CODE))$(DEF_TAIL_CODE_EVAL)
-# check that $(DEF_HEAD_CODE) was evaluated before expanding $(DEFINE_TARGETS)
-DEFINE_TARGETS_EVAL_NAME = $(error $$(DEF_HEAD_CODE) was not evaluated at head of makefile!)
-
 # list of all processed target makefiles (absolute paths)
 # note: PROCESSED_MAKEFILES is never cleared, only appended (in DEF_HEAD_CODE)
 ifneq (,$(MCHECK)$(value ADD_SHOWN_PERCENTS))
@@ -951,7 +930,7 @@ PROCESSED_MAKEFILES:=
 endif
 
 # ***********************************************
-# code to $(eval) at beginning of each makefile
+# code to $(eval ...) at beginning of each makefile
 # NOTE: $(MAKE_CONTINUE) before expanding $(DEF_HEAD_CODE) adds 2 to $(MAKE_CONT) list (which is normally empty or contains 1 1...)
 #  - so we know if $(DEF_HEAD_CODE) was expanded from $(MAKE_CONTINUE) - remove 2 from $(MAKE_CONT) in that case
 #  - if $(DEF_HEAD_CODE) was expanded not from $(MAKE_CONTINUE) - no 2 in $(MAKE_CONT) - reset MAKE_CONT
@@ -961,8 +940,8 @@ ifneq (,$(findstring 2,$(MAKE_CONT)))
 MAKE_CONT:=$$(subst 2,1,$$(MAKE_CONT))
 else
 MAKE_CONT:=
-MAKE_CONTINUE_EVAL_NAME:=DEF_HEAD_CODE_EVAL
-DEFINE_TARGETS_EVAL_NAME:=DEF_TAIL_CODE_EVAL
+HEAD_CODE_EVAL=$$(eval $$(DEF_HEAD_CODE))
+DEFINE_TARGETS=$$(eval $$(DEF_TAIL_CODE))
 endif
 $(if $(TOOL_MODE),$(if \
   $(TMD),,$(TOOL_OVERRIDE_DIRS)$(newline)TMD:=T),$(if \
@@ -981,7 +960,7 @@ ifdef CLEAN_BUILD_CHECK_AT_HEAD
 $(call define_prepend,DEF_HEAD_CODE,$$(CLEAN_BUILD_CHECK_AT_HEAD)$(newline))
 endif
 
-# remember new value of PROCESSED_MAKEFILES variables, without tracing calls to it because it is incremented
+# remember new value of PROCESSED_MAKEFILES variables, without tracing calls to it because it's incremented
 # note: assume result of $(call SET_GLOBAL1,...,0) will give an empty line at end of expansion
 ifdef MCHECK
 $(eval define DEF_HEAD_CODE$(newline)$(subst \
@@ -1001,14 +980,21 @@ $(eval define DEF_HEAD_CODE$(newline)$(subst \
   makefile $$$$(TARGET_MAKEFILE) was already processed!)),$(value DEF_HEAD_CODE))$(newline)endef)
 endif
 
-# remember new values of TMD, MAKE_CONTINUE_EVAL_NAME and DEFINE_TARGETS_EVAL_NAME
+# remember new values of TMD, HEAD_CODE_EVAL and DEFINE_TARGETS
 # remember TOOL_MODE to not reset it in $(CLEAN_BUILD_CHECK_AT_HEAD)
 ifdef SET_GLOBAL1
 $(eval define DEF_HEAD_CODE$(newline)$(subst \
   TMD:=T,TMD:=T$$(newline)$$(call SET_GLOBAL1,TMD),$(subst \
   TMD:=$(close_brace),TMD:=$$(newline)$$(call SET_GLOBAL1,TMD)$(close_brace),$(subst \
-  endif,$$(call SET_GLOBAL1,MAKE_CONTINUE_EVAL_NAME DEFINE_TARGETS_EVAL_NAME)$(newline)endif,$(value DEF_HEAD_CODE))))$(newline)endef)
+  endif,$$(call SET_GLOBAL1,HEAD_CODE_EVAL DEFINE_TARGETS)$(newline)endif,$(value DEF_HEAD_CODE))))$(newline)endef)
 $(call define_prepend,DEF_HEAD_CODE,$$(call SET_GLOBAL1,TOOL_MODE)$(newline))
+endif
+
+# use TOOL_MODE only to set value of TMD variable, forbid reading $(TOOL_MODE) in target makefiles
+ifdef MCHECK
+$(call define_append,DEF_HEAD_CODE,$(newline)TOOL_MODE=$$(error please use TMD variable to check for the tool mode))
+$(call define_prepend,DEF_HEAD_CODE,ifeq ($$$$(error please use TMD variable to check for the tool mode),$$(value \
+  TOOL_MODE))$(newline)TOOL_MODE:=$$(TMD)$(newline)endif$(newline))
 endif
 
 # remember new value of MAKE_CONT (without tracing calls to it)
@@ -1019,13 +1005,13 @@ $(eval define DEF_HEAD_CODE$(newline)$(subst \
 endif
 
 # ***********************************************
-# code to $(eval) at end of each makefile
+# code to $(eval ...) at end of each makefile
 # include $(CLEAN_BUILD_DIR)/core/all.mk only if $(CB_INCLUDE_LEVEL) is empty and not inside the call of $(MAKE_CONTINUE)
 # note: $(MAKE_CONTINUE) before expanding $(DEF_TAIL_CODE) adds 2 to $(MAKE_CONT) list
 # note: $(CLEAN_BUILD_DIR)/core/_parallel.mk calls DEF_TAIL_CODE with @ as first argument - for the checks in $(CLEAN_BUILD_CHECK_AT_TAIL)
 DEF_TAIL_CODE = $(if $(CB_INCLUDE_LEVEL)$(findstring 2,$(MAKE_CONT)),,include $(CLEAN_BUILD_DIR)/core/all.mk)
 
-# prepend DEF_TAIL_CODE with $(CLEAN_BUILD_CHECK_AT_TAIL), if it is defined in $(CLEAN_BUILD_DIR)/core/protection.mk
+# prepend DEF_TAIL_CODE with $(CLEAN_BUILD_CHECK_AT_TAIL), if it's defined in $(CLEAN_BUILD_DIR)/core/protection.mk
 # note: if tracing, do not show value of $(CLEAN_BUILD_CHECK_AT_TAIL) - it's too noisy
 ifdef CLEAN_BUILD_CHECK_AT_TAIL
 ifdef TRACE
@@ -1035,12 +1021,23 @@ $(call define_prepend,DEF_TAIL_CODE,$$(CLEAN_BUILD_CHECK_AT_TAIL)$(newline))
 endif
 endif
 
-# define targets at end of makefile
-# evaluate code $($(DEFINE_TARGETS_EVAL_NAME)) only once, DEF_HEAD_CODE will reset DEFINE_TARGETS_EVAL_NAME
-# note: surround $($(DEFINE_TARGETS_EVAL_NAME)) with fake $(if ...) to suppress any text output of $(DEFINE_TARGETS_EVAL_NAME)
-# - $(DEFINE_TARGETS) must not expand to any text - to allow calling it via just $(DEFINE_TARGETS) in target makefiles
-# note: call $(DEFINE_TARGETS_EVAL_NAME) with empty arguments list - to not pass to any arguments of MAKE_CONTINUE to it
-DEFINE_TARGETS = $(if $(call $(DEFINE_TARGETS_EVAL_NAME)),)
+# define targets at end of makefile - just expand DEFINE_TARGETS: $(DEFINE_TARGETS)
+# note: DEF_HEAD_CODE will reset DEFINE_TARGETS to default value - to just evaluate $(DEF_TAIL_CODE)
+# note: $(DEFINE_TARGETS) must not expand to any text - to allow calling it via just $(DEFINE_TARGETS) in target makefiles
+DEFINE_TARGETS = $(error $$(DEF_HEAD_CODE) was not evaluated at head of makefile!)
+
+# append domain to the stack of domains:
+# [head]->init1->init2...->initN <setup targets of added domains> rulesN->...->rules2->rules1->[tail]
+# $1 - the name of the macro, the expansion of which gives the code for the initialization of domain variables
+# $2 - the name of the macro, the expansion of which gives the code for defining domain target rules
+APPEND_DOMAIN = $(eval \
+  HEAD_CODE_EVAL = $(value HEAD_CODE_EVAL)$$(eval $$($1)))$(eval \
+  DEFINE_TARGETS = $$(eval $$($2))$(value DEFINE_TARGETS))
+
+# remember new values of HEAD_CODE_EVAL and DEFINE_TARGETS
+ifdef SET_GLOBAL
+APPEND_DOMAIN += $(call SET_GLOBAL,HEAD_CODE_EVAL DEFINE_TARGETS)
+endif
 
 # before $(MAKE_CONTINUE): save variables to restore them after (via RESTORE_VARS macro)
 SAVE_VARS = $(eval $(foreach v,$1,$(if $(findstring \
@@ -1064,7 +1061,7 @@ MAKE_CONT:=
 # note: all targets are built using the same set of compilers (c, java, python, etc.)
 # example:
 #
-# include $(CLEAN_BUILD_DIR)/c.mk
+# include $(TOP)/make/c.mk
 # LIB = xxx1
 # SRC = xxx.c
 # $(MAKE_CONTINUE)
@@ -1076,22 +1073,16 @@ MAKE_CONT:=
 # MAKE_CONTINUE is equivalent of: ... MAKE_CONT+=2 $(TAIL) MAKE_CONT=$(subst 2,1,$(MAKE_CONT)) $(HEAD) ...
 # 1) increment MAKE_CONT
 # 2) evaluate tail code with $(DEFINE_TARGETS)
-# 3) start next round - simulate including of appropriate $(CLEAN_BUILD_DIR)/c.mk or $(CLEAN_BUILD_DIR)/java.mk or whatever
-#  by evaluating head-code $($(MAKE_CONTINUE_EVAL_NAME)) - which must be defined by the first included
-#  $(CLEAN_BUILD_DIR)/c.mk or $(CLEAN_BUILD_DIR)/java.mk or whatever
-# note: call $(MAKE_CONTINUE_EVAL_NAME) with empty arguments list to not pass any to DEF_HEAD_CODE
-# note: surround $(MAKE_CONTINUE) with fake $(if...) to suppress any text output of $(MAKE_CONTINUE_EVAL_NAME)
-#  - to be able to call it with just $(MAKE_CONTINUE) in target makefile
-MAKE_CONTINUE = $(if $(if $1,$(SAVE_VARS))$(eval MAKE_CONT+=2)$(DEFINE_TARGETS)$(call \
-  $(MAKE_CONTINUE_EVAL_NAME))$(if $1,$(RESTORE_VARS)),)
+# 3) start next round - simulate including of appropriate $(TOP)/make/c.mk or $(TOP)/make/java.mk or whatever by evaluating
+#    head-code $(HEAD_CODE_EVAL) - which is likely adjusted by $(TOP)/make/c.mk or $(TOP)/make/java.mk or whatever
+# note: call $(DEFINE_TARGETS) with empty arguments list to not pass any to DEF_TAIL_CODE
+# note: call $(HEAD_CODE_EVAL) with empty arguments list to not pass any to DEF_HEAD_CODE
+# note: $(MAKE_CONTINUE) must not expand to any text - to be able to call it with just $(MAKE_CONTINUE) in target makefile
+MAKE_CONTINUE = $(if $1,$(SAVE_VARS))$(eval MAKE_CONT+=2)$(call DEFINE_TARGETS)$(call HEAD_CODE_EVAL)$(if $1,$(RESTORE_VARS))
 
-# before $(MAKE_CONTINUE), it is allowed to change TOOL_MODE, remember its value
-ifdef SET_GLOBAL1
-$(eval MAKE_CONTINUE = $(subst $$(DEFINE_TARGETS),$$(call SET_GLOBAL,TOOL_MODE)$$(DEFINE_TARGETS),$(value MAKE_CONTINUE)))
-endif
-# also, remember new value of MAKE_CONT (without tracing calls to it)
+# remember new value of MAKE_CONT (without tracing calls to it)
 ifdef MCHECK
-$(eval MAKE_CONTINUE = $(subst $$(DEFINE_TARGETS),$$(call SET_GLOBAL,MAKE_CONT,0)$$(DEFINE_TARGETS),$(value MAKE_CONTINUE)))
+$(eval MAKE_CONTINUE = $(subst $$(call DEFINE_TARGETS),$$(call SET_GLOBAL,MAKE_CONT,0)$$(call DEFINE_TARGETS),$(value MAKE_CONTINUE)))
 endif
 
 # define shell utilities
@@ -1123,8 +1114,7 @@ CLEAN_BUILD_FIRST_PHASE_VARS += CLEAN_BUILD_GOALS CB_NEEDED_DIRS ORDER_DEPS MULT
   CREATE_MAKEFILE_ALIAS ADD_ORDER_DEPS NEED_GEN_DIRS STD_TARGET_VARS1 STD_TARGET_VARS MAKEFILE_INFO_TEMPL \
   SET_MAKEFILE_INFO GET_TARGET_NAME GET_VARIANTS_F GET_VARIANTS FORM_TRG ALL_TARGETS FORM_OBJ_DIR ADD_GENERATED CHECK_GENERATED \
   ADD_GENERATED_RET NON_PARALLEL_EXECUTE_RULE NON_PARALLEL_EXECUTE MULTI_TARGET_SEQ MULTI_TARGET_RULE MULTI_TARGET \
-  CHECK_MULTI_RULE TMD TOOL_MODE DEF_HEAD_CODE_EVAL DEF_TAIL_CODE_EVAL MAKE_CONTINUE_EVAL_NAME DEFINE_TARGETS_EVAL_NAME \
-  DEF_HEAD_CODE DEF_TAIL_CODE DEFINE_TARGETS SAVE_VARS RESTORE_VARS MAKE_CONTINUE TOCLEAN
+  CHECK_MULTI_RULE TMD TOOL_MODE DEF_HEAD_CODE DEF_TAIL_CODE DEFINE_TARGETS SAVE_VARS RESTORE_VARS MAKE_CONTINUE TOCLEAN
 
 # protect macros from modifications in target makefiles,
 # do not trace calls to macros used in ifdefs, passed to environment of called tools or modified via operator +=
@@ -1149,8 +1139,7 @@ $(call SET_GLOBAL,PROJECT_VARS_NAMES PASS_ENV_VARS \
   NON_PARALLEL_EXECUTE_RULE NON_PARALLEL_EXECUTE \
   MULTI_TARGET_SEQ MULTI_TARGET_RULE=MULTI_TARGET_NUM=MULTI_TARGET_NUM MULTI_TARGET CHECK_MULTI_RULE \
   FORM_SDEPS ALL_SDEPS FILTER_SDEPS EXTRACT_SDEPS FIX_SDEPS R_FILTER_SDEPS1 R_FILTER_SDEPS RUN_TOOL TMD \
-  DEF_HEAD_CODE_EVAL DEF_TAIL_CODE_EVAL MAKE_CONTINUE_EVAL_NAME DEFINE_TARGETS_EVAL_NAME \
-  DEF_HEAD_CODE DEF_TAIL_CODE DEFINE_TARGETS SAVE_VARS RESTORE_VARS MAKE_CONTINUE CONF_COLOR PRODUCT_VER)
+  DEF_HEAD_CODE DEF_TAIL_CODE APPEND_DOMAIN DEFINE_TARGETS SAVE_VARS RESTORE_VARS MAKE_CONTINUE CONF_COLOR PRODUCT_VER)
 
 # if TOCLEAN value is non-empty, allow tracing calls to it,
 # else - just protect TOCLEAN from changes, do not make it's value non-empty - because TOCLEAN is checked in ifdefs

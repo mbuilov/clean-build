@@ -48,8 +48,8 @@ $(eval $(CLEAN_BUILD_RESET_FIRST_PHASE))
 endif
 
 # define rule for default goal 'all'
-# note: all depends on $(TARGET_MAKEFILE)- defined in $(CLEAN_BUILD_DIR)/core/_defs.mk
-# note: suppress "Nothing to be done for 'all'"
+# note: 'all' depends on $(TARGET_MAKEFILE)- defined in $(CLEAN_BUILD_DIR)/core/_defs.mk
+# note: suppress message "Nothing to be done for 'all'"
 all:
 	@:
 

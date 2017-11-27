@@ -4,7 +4,7 @@
 # Licensed under GPL version 2 or any later version, see COPYING
 #----------------------------------------------------------------------------------
 
-# msvc compiler toolchain (app-level), included by $(CLEAN_BUILD_DIR)/impl/_c.mk
+# msvc compiler toolchain (app-level), included by $(CLEAN_BUILD_DIR)/impl/c.mk
 
 # common msvc compiler definitions
 ifeq (,$(filter-out undefined environment,$(origin INCLUDING_FILE_PATTERN_en)))
@@ -115,28 +115,28 @@ $(call define_append,C_PREPARE_APP_VARS,$$(C_PREPARE_MSVC_APP_VARS)$$(C_PREPARE_
 $(call try_make_simple,C_PREPARE_APP_VARS,C_PREPARE_MSVC_APP_VARS C_PREPARE_MSVC_STDRES_VARS C_PREPARE_MSVC_EXP_VARS)
 
 # how to mark symbols exported from a DLL
-# note: override definition in $(CLEAN_BUILD_DIR)/impl/_c.mk
+# note: override definition in $(CLEAN_BUILD_DIR)/impl/c.mk
 DLL_EXPORTS_DEFINE := __declspec(dllexport)
 
 # how to mark symbols imported from a DLL
-# note: override definition in $(CLEAN_BUILD_DIR)/impl/_c.mk
+# note: override definition in $(CLEAN_BUILD_DIR)/impl/c.mk
 DLL_IMPORTS_DEFINE := __declspec(dllimport)
 
 # executable file suffix
-# note: override defaults in $(CLEAN_BUILD_DIR)/impl/_c.mk
+# note: override defaults in $(CLEAN_BUILD_DIR)/impl/c.mk
 EXE_SUFFIX := .exe
 
 # static library (archive) prefix/suffix
-# note: override defaults in $(CLEAN_BUILD_DIR)/impl/_c.mk
+# note: override defaults in $(CLEAN_BUILD_DIR)/impl/c.mk
 LIB_PREFIX:=
 
 # dynamically loaded library (shared object) prefix/suffix
-# note: override defaults in $(CLEAN_BUILD_DIR)/impl/_c.mk
+# note: override defaults in $(CLEAN_BUILD_DIR)/impl/c.mk
 DLL_PREFIX:=
 DLL_SUFFIX := .dll
 
 # import library for dll prefix/suffix
-# note: override defaults in $(CLEAN_BUILD_DIR)/impl/_c.mk
+# note: override defaults in $(CLEAN_BUILD_DIR)/impl/c.mk
 IMP_PREFIX:=
 IMP_SUFFIX := .lib
 
@@ -184,12 +184,12 @@ WIN_VARIANT_SUFFIX = $(if $(findstring \
 # $1 - one of R,$(WIN_SUPPORTED_VARIANTS)
 WIN_VARIANT_CFLAGS = $(if $(filter S%,$1),/MT,/MD)$(if $(DEBUG),d)$(if $(filter %U,$1), /DUNICODE /D_UNICODE)
 
-# note: override defaults from $(CLEAN_BUILD_DIR)/impl/_c.mk
+# note: override defaults from $(CLEAN_BUILD_DIR)/impl/c.mk
 EXE_SUPPORTED_VARIANTS := $(WIN_SUPPORTED_VARIANTS)
 LIB_SUPPORTED_VARIANTS := $(WIN_SUPPORTED_VARIANTS)
 DLL_SUPPORTED_VARIANTS := $(WIN_SUPPORTED_VARIANTS)
 
-# note: override defaults from $(CLEAN_BUILD_DIR)/impl/_c.mk
+# note: override defaults from $(CLEAN_BUILD_DIR)/impl/c.mk
 EXE_VARIANT_SUFFIX = $(WIN_VARIANT_SUFFIX)
 LIB_VARIANT_SUFFIX = $(WIN_VARIANT_SUFFIX)
 DLL_VARIANT_SUFFIX = $(WIN_VARIANT_SUFFIX)
@@ -197,7 +197,7 @@ DLL_VARIANT_SUFFIX = $(WIN_VARIANT_SUFFIX)
 # C/C++ compiler options for each target variant
 # $1 - one of R,$(WIN_SUPPORTED_VARIANTS)
 # $(TMD) - T in tool mode, empty otherwise
-# note: override defaults from $(CLEAN_BUILD_DIR)/impl/_c.mk
+# note: override defaults from $(CLEAN_BUILD_DIR)/impl/c.mk
 EXE_CFLAGS   = $(WIN_VARIANT_CFLAGS) $($(TMD)CFLAGS)
 EXE_CXXFLAGS = $(WIN_VARIANT_CFLAGS) $($(TMD)CXXFLAGS)
 LIB_CFLAGS   = $(WIN_VARIANT_CFLAGS) $($(TMD)CFLAGS)
@@ -209,7 +209,7 @@ DLL_CXXFLAGS = $(WIN_VARIANT_CFLAGS) $($(TMD)CXXFLAGS)
 # $1 - target type: EXE,DLL
 # $2 - variant of target EXE or DLL: R,S,RU or SU, if empty, then assume R
 # $3 - dependency name, e.g. mylib or mylib/flag1/flag2/...
-# note: override defaults from $(CLEAN_BUILD_DIR)/impl/_c.mk
+# note: override defaults from $(CLEAN_BUILD_DIR)/impl/c.mk
 # note: use the same variant of dependent static library as target EXE or DLL (for example for S-EXE use S-LIB)
 # note: unicode variants of the target EXE or DLL may link with two kinds of libraries:
 #  1) with unicode support - normally built in x2 variants, e.g. mylib.lib and mylib_u.lib or mylib_s.lib and mylib_su.lib
@@ -220,7 +220,7 @@ LIB_DEP_MAP = $(if $(filter uni,$(subst /, ,$3)),$2,$(2:U=))
 
 # determine which variant of dynamic library to link with EXE or DLL
 # the same logic as for the static library
-# note: override defaults from $(CLEAN_BUILD_DIR)/impl/_c.mk
+# note: override defaults from $(CLEAN_BUILD_DIR)/impl/c.mk
 DLL_DEP_MAP = $(LIB_DEP_MAP)
 
 # used to define target-specific SUBSYSTEM variable
@@ -258,7 +258,7 @@ CMN_LIBS = /nologo /OUT:$(call ospath,$1 $2 $(filter %.res,$^)) $(MK_VERSION_OPT
 # $3 - target type: EXE or DLL
 # $4 - non-empty variant: R,S,RU,SU
 # target-specific: TMD, VLDFLAGS
-# note: used by EXE_TEMPLATE and DLL_TEMPLATE from $(CLEAN_BUILD_DIR)/impl/_c.mk
+# note: used by EXE_TEMPLATE and DLL_TEMPLATE from $(CLEAN_BUILD_DIR)/impl/c.mk
 # note: link.exe will not delete generated manifest file if failed to build target exe/dll, for example because of invalid DEF file
 # note: if EXE do not exports symbols (as usual), do not set in target makefile EXE_EXPORTS (empty by default)
 # note: if DLL do not exports symbols (unusual), set in target makefile DLL_NO_EXPORTS to non-empty value
@@ -319,7 +319,7 @@ endif
 # $3 - target type: LIB
 # $4 - non-empty variant: R,S,RU,SU
 # target-specific: TMD
-# note: used by LIB_TEMPLATE from $(CLEAN_BUILD_DIR)/impl/_c.mk
+# note: used by LIB_TEMPLATE from $(CLEAN_BUILD_DIR)/impl/c.mk
 # note: lib.exe does not support linking resources (.res - files) to a static library
 LIB_LD1 = $(call SUP,$(TMD)LIB,$1)$($(TMD)VCLIB) /nologo /OUT:$(call ospath,$1 $2) $($(TMD)ARFLAGS)
 
@@ -389,7 +389,7 @@ OBJ_CXX = $(if $(filter $2,$(CXX_WITH_PCH)),$(OBJ_PCXX),$(OBJ_NCXX))
 
 endif # !NO_PCH
 
-# override templates defined in $(CLEAN_BUILD_DIR)/impl/_c.mk:
+# override templates defined in $(CLEAN_BUILD_DIR)/impl/c.mk:
 #  EXE_TEMPLATE, DLL_TEMPLATE and LIB_TEMPLATE will not call OBJ_RULES for C/C++ sources if $(TMD)MP_BUILD is defined,
 #  instead, we will build the target module directly from sources, ignoring object files that are generated as a side-effect
 # note: $(C_BASE_TEMPLATE_MP) defines target-specific variables: SRC, SDEPS, OBJ_DIR

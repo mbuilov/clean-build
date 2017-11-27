@@ -4,7 +4,7 @@
 # Licensed under GPL version 2 or any later version, see COPYING
 #----------------------------------------------------------------------------------
 
-# gcc compiler toolchain (app-level), included by $(CLEAN_BUILD_DIR)/impl/_c.mk
+# gcc compiler toolchain (app-level), included by $(CLEAN_BUILD_DIR)/impl/c.mk
 
 # define RPATH and target-specific MAP and MODVER (for DLLs) variables
 include $(dir $(lastword $(MAKEFILE_LIST)))unixcc.mk
@@ -24,8 +24,8 @@ TAR  := $(if $(CROSS_PREFIX),ar,$(AR))
 
 # default values of user-defined C/C++ compiler flags
 # note: may be taken from the environment in project configuration makefile
-# note: CFLAGS   - used by EXE_CFLAGS,   LIB_CFLAGS,   DLL_CFLAGS   (from $(CLEAN_BUILD_DIR)/impl/_c.mk)
-# note: CXXFLAGS - used by EXE_CXXFLAGS, LIB_CXXFLAGS, DLL_CXXFLAGS (from $(CLEAN_BUILD_DIR)/impl/_c.mk)
+# note: CFLAGS   - used by EXE_CFLAGS,   LIB_CFLAGS,   DLL_CFLAGS   (from $(CLEAN_BUILD_DIR)/impl/c.mk)
+# note: CXXFLAGS - used by EXE_CXXFLAGS, LIB_CXXFLAGS, DLL_CXXFLAGS (from $(CLEAN_BUILD_DIR)/impl/c.mk)
 CFLAGS   := $(if $(DEBUG),-ggdb,-g -O2)
 CXXFLAGS := $(CFLAGS)
 
@@ -40,7 +40,7 @@ ARFLAGS := -crs
 
 # default values of user-defined gcc flags for linking executables and shared libraries
 # note: may be taken from the environment in project configuration makefile
-# note: used by EXE_LDFLAGS, LIB_LDFLAGS, DLL_LDFLAGS from $(CLEAN_BUILD_DIR)/impl/_c.mk
+# note: used by EXE_LDFLAGS, LIB_LDFLAGS, DLL_LDFLAGS from $(CLEAN_BUILD_DIR)/impl/c.mk
 LDFLAGS:=
 
 # flags for the tool mode
@@ -60,24 +60,24 @@ PIE_LOPTION := -pie
 # R - default variant (position-dependent code for EXE, position-independent code for DLL)
 # P - PIE - position-independent code in executables (for EXE and LIB)
 # D - PIC - position-independent code in shared libraries (for LIB)
-# note: override defaults from $(CLEAN_BUILD_DIR)/impl/_c.mk
+# note: override defaults from $(CLEAN_BUILD_DIR)/impl/c.mk
 EXE_SUPPORTED_VARIANTS := P
 LIB_SUPPORTED_VARIANTS := P D
 
 # only one non-regular variant of EXE is supported - P - see $(EXE_SUPPORTED_VARIANTS)
 # $1 - P
-# note: override defaults from $(CLEAN_BUILD_DIR)/impl/_c.mk
+# note: override defaults from $(CLEAN_BUILD_DIR)/impl/c.mk
 EXE_VARIANT_SUFFIX := _pie
 
 # two non-regular variants of LIB are supported: P and D - see $(LIB_SUPPORTED_VARIANTS)
 # $1 - P or D
-# note: override defaults from $(CLEAN_BUILD_DIR)/impl/_c.mk
+# note: override defaults from $(CLEAN_BUILD_DIR)/impl/c.mk
 LIB_VARIANT_SUFFIX = $(if $(findstring P,$1),_pie,_pic)
 
 # only one non-regular variant of EXE is supported - P - see $(EXE_SUPPORTED_VARIANTS)
 # $1 - R or P
 # $(TMD) - T in tool mode, empty otherwise
-# note: override defaults from $(CLEAN_BUILD_DIR)/impl/_c.mk
+# note: override defaults from $(CLEAN_BUILD_DIR)/impl/c.mk
 EXE_CFLAGS   = $(if $(findstring P,$1),$(PIE_COPTION)) $($(TMD)CFLAGS)
 EXE_CXXFLAGS = $(if $(findstring P,$1),$(PIE_COPTION)) $($(TMD)CXXFLAGS)
 EXE_LDFLAGS  = $(if $(findstring P,$1),$(PIE_LOPTION)) $($(TMD)LDFLAGS)
@@ -85,7 +85,7 @@ EXE_LDFLAGS  = $(if $(findstring P,$1),$(PIE_LOPTION)) $($(TMD)LDFLAGS)
 # two non-regular variants of LIB are supported: P and D - see $(LIB_SUPPORTED_VARIANTS)
 # $1 - R, P or D
 # $(TMD) - T in tool mode, empty otherwise
-# note: override defaults from $(CLEAN_BUILD_DIR)/impl/_c.mk
+# note: override defaults from $(CLEAN_BUILD_DIR)/impl/c.mk
 LIB_CFLAGS   = $(if $(findstring P,$1),$(PIE_COPTION),$(if $(findstring D,$1),$(PIC_COPTION))) $($(TMD)CFLAGS)
 LIB_CXXFLAGS = $(if $(findstring P,$1),$(PIE_COPTION),$(if $(findstring D,$1),$(PIC_COPTION))) $($(TMD)CXXFLAGS)
 
@@ -149,7 +149,7 @@ MK_SONAME_OPTION = $(addprefix $(WLPREFIX)-soname=$(notdir $1).,$(firstword $(su
 # $3 - target type: EXE,DLL,LIB
 # $4 - non-empty variant: R,P,D
 # target-specific: TMD, VLDFLAGS
-# note: used by EXE_TEMPLATE, DLL_TEMPLATE, LIB_TEMPLATE from $(CLEAN_BUILD_DIR)/impl/_c.mk
+# note: used by EXE_TEMPLATE, DLL_TEMPLATE, LIB_TEMPLATE from $(CLEAN_BUILD_DIR)/impl/c.mk
 EXE_LD = $(call SUP,$(TMD)EXE,$1)$(GET_LINKER) $(MK_MAP_OPTION) $(CMN_LIBS) $(DEF_EXE_LDFLAGS) $(VLDFLAGS)
 DLL_LD = $(call SUP,$(TMD)DLL,$1)$(GET_LINKER) $(MK_MAP_OPTION) $(MK_SONAME_OPTION) $(CMN_LIBS) $(DEF_DLL_LDFLAGS) $(VLDFLAGS)
 LIB_LD = $(call SUP,$(TMD)LIB,$1)$($(TMD)AR) $($(TMD)ARFLAGS) $1 $2

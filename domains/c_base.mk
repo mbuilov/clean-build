@@ -6,13 +6,11 @@
 
 # generic rules for compiling C/C++/Assembler source files
 
-# included by:
-#  $(CLEAN_BUILD_DIR)/impl/_c.mk
-#  $(CLEAN_BUILD_DIR)/impl/_kc.mk 
+# Note: $(CLEAN_BUILD_DIR)/core/_defs.mk must be included prior this file
 
-ifeq (,$(filter-out undefined environment,$(origin EXTRACT_SDEPS)))
-include $(dir $(lastword $(MAKEFILE_LIST)))../core/_defs.mk
-endif
+# included by:
+#  $(CLEAN_BUILD_DIR)/domains/_c.mk
+#  $(CLEAN_BUILD_DIR)/domains/_kc.mk 
 
 # by default, enable use of C/C++ precompiled headers
 NO_PCH:=
@@ -30,7 +28,7 @@ CXX_MASK := %.cpp
 # $2 - variant of target EXE,DLL,...: R,P,S,... (if empty, assume R)
 # $3 - dependency name, e.g. mylib or mylib/flag1/flag2/...
 # $4 - dependency type: LIB,DLL,...
-# note: used by DEP_LIBS/DEP_IMPS macros from $(CLEAN_BUILD_DIR)/impl/_c.mk
+# note: used by DEP_LIBS/DEP_IMPS macros from $(CLEAN_BUILD_DIR)/domains/_c.mk
 # example:
 #  always use D-variant of static library if target is a DLL,
 #  else use the same variant (R or P) of static library as target (EXE) (for example for P-EXE use P-LIB)
@@ -152,8 +150,8 @@ TRG_LDFLAGS  = $(call $t_LDFLAGS,$v)
 
 # list of target types that may be built from C/C++/Assembler sources
 # note: appended in:
-#  $(CLEAN_BUILD_DIR)/impl/_c.mk
-#  $(CLEAN_BUILD_DIR)/impl/_kc.mk
+#  $(CLEAN_BUILD_DIR)/domains/_c.mk
+#  $(CLEAN_BUILD_DIR)/domains/_kc.mk
 C_TARGETS:=
 
 # $1 - $(call FORM_TRG,$t,$v)
@@ -162,17 +160,18 @@ C_TARGETS:=
 # $4 - $(call FORM_OBJ_DIR,$t,$v)
 # $t - EXE,DLL,...
 # $v - non-empty variant: R,P,D,S... (one of variants supported by selected toolchain)
-C_RULESv = $($t_TEMPLATE)
+C_RULES_TEMPLv = $($t_TEMPLATE)
 
 # $1 - $(TRG_SRC)
 # $2 - $(TRG_SDEPS)
 # $t - EXE,DLL,...
-C_RULESt = $(foreach v,$(call GET_VARIANTS,$t),$(call C_RULESv,$(call FORM_TRG,$t,$v),$1,$2,$(call FORM_OBJ_DIR,$t,$v))$(newline))
+C_RULES_TEMPLt = $(foreach v,$(call GET_VARIANTS,$t),$(call \
+  C_RULES_TEMPLv,$(call FORM_TRG,$t,$v),$1,$2,$(call FORM_OBJ_DIR,$t,$v))$(newline))
 
 # expand target rules template $t_TEMPLATE, for example - see EXE_TEMPLATE
 # $1 - $(TRG_SRC)
 # $2 - $(TRG_SDEPS)
-C_RULES = $(foreach t,$(C_TARGETS),$(if $($t),$(C_RULESt)))
+C_RULES_TEMPL = $(foreach t,$(C_TARGETS),$(if $($t),$(C_RULES_TEMPLt)))
 
 # redefine macro $1 with new value $2 as target-specific variable bound to namespace identified by target-specific variable TRG,
 #  this is usable when it is needed to redefine some variable (e.g. DEF_CFLAGS) as target-specific (e.g. for an EXE), allow
@@ -224,7 +223,7 @@ endef
 $(call try_make_simple,C_PREPARE_BASE_VARS,PRODUCT_VER)
 
 # this code is normally evaluated at end of target makefile
-C_RULES_EVAL = $(eval $(call C_RULES,$(TRG_SRC),$(TRG_SDEPS)))
+C_DEFINE_RULES = $(call C_RULES_TEMPL,$(TRG_SRC),$(TRG_SDEPS))
 
 # do not support assembler by default
 # note: ASSEMBLER_SUPPORT may be overridden in project configuration makefile
@@ -278,8 +277,8 @@ $(call SET_GLOBAL,NO_PCH OBJ_SUFFIX CC_MASK CXX_MASK \
   DEP_LIBRARY ADD_OBJ_SDEPS OBJ_RULES_BODY=t;v OBJ_RULES1=t;v OBJ_RULES=t;v \
   TRG_COMPILER=t;v TRG_INCLUDE=t;v;INCLUDE TRG_DEFINES=t;v;DEFINES GET_SOURCES=SRC;WITH_PCH TRG_SRC TRG_SDEPS=SDEPS \
   MK_INCLUDE_OPTION DEFINE_SPECIAL DEFINE_ESCAPE_VALUE DEFINE_ESCAPE_VALUES MK_DEFINES_OPTION1 MK_DEFINES_OPTION \
-  TRG_CFLAGS=t;v TRG_CXXFLAGS=t;v TRG_LDFLAGS=t;v C_TARGETS C_RULESv=t;v C_RULESt=t C_RULES \
-  C_REDEFINE C_BASE_TEMPLATE=t;v;$$t C_PREPARE_BASE_VARS C_RULES_EVAL \
+  TRG_CFLAGS=t;v TRG_CXXFLAGS=t;v TRG_LDFLAGS=t;v C_TARGETS C_RULES_TEMPLv=t;v C_RULES_TEMPLt=t C_RULES_TEMPL \
+  C_REDEFINE C_BASE_TEMPLATE=t;v;$$t C_PREPARE_BASE_VARS C_DEFINE_RULES \
   ASM_MASK ASMFLAGS TRG_ASMFLAGS=t;v ASM_TEMPLATE ASM_COLOR)
 
 # protect variables from modifications in target makefiles

@@ -4,9 +4,9 @@
 # Licensed under GPL version 2 or any later version, see COPYING
 #----------------------------------------------------------------------------------
 
-# system shell utilities
+# system shell utilities - WINDOWS specific
 
-# this file included by $(CLEAN_BUILD_DIR)/core/_defs.mk
+# this file is included by $(CLEAN_BUILD_DIR)/core/_defs.mk
 
 # synchronize make output for parallel builds
 MAKEFLAGS += -O
@@ -79,7 +79,7 @@ PRINT_ENV = $(info setlocal$(newline)FOR /F "delims==" %%V IN ('SET') DO $(forea
 PATH_ARGS_LIMIT := 68
 
 # convert forward slashes used by make to backward ones accepted by windows programs
-# note: override ospath from $(CLEAN_BUILD_DIR)/core/_defs.mk
+# note: override ospath macro from $(CLEAN_BUILD_DIR)/core/_defs.mk
 ospath = $(subst /,\,$1)
 
 # $1 - prefix
@@ -90,7 +90,7 @@ nonrelpath1 = $(if $2,$(call nonrelpath1,$1,$(wordlist 2,999999,$2),$(patsubst $
 # make path not relative: add $1 only to non-absolute paths in $2
 # note: path $1 must end with /
 # a/b c:/1 -> xxx/a/b xxx/c:/1 -> xxx/a/b c:/1
-# note: override nonrelpath from $(CLEAN_BUILD_DIR)/core/_defs.mk
+# note: override nonrelpath macro from $(CLEAN_BUILD_DIR)/core/_defs.mk
 nonrelpath = $(if $(findstring :,$2),$(call nonrelpath1,$1,$(sort $(filter %:,$(subst :,: ,$2))),$(addprefix $1,$2)),$(addprefix $1,$2))
 
 # null device for redirecting output into
@@ -242,15 +242,15 @@ INSTALL_DIR = $(CREATE_DIR)
 INSTALL_FILES = $(COPY_FILES)
 
 # suffix of built tool executables
-# note: override TOOL_SUFFIX from $(CLEAN_BUILD_DIR)/core/_defs.mk
+# note: override TOOL_SUFFIX macro from $(CLEAN_BUILD_DIR)/core/_defs.mk
 TOOL_SUFFIX := .exe
 
 # paths separator, as used in %PATH% environment variable
-# note: override PATHSEP from $(CLEAN_BUILD_DIR)/core/_defs.mk
+# note: override PATHSEP macro from $(CLEAN_BUILD_DIR)/core/_defs.mk
 PATHSEP := ;
 
 # name of environment variable to modify in $(RUN_TOOL)
-# note: override DLL_PATH_VAR from $(CLEAN_BUILD_DIR)/core/_defs.mk
+# note: override DLL_PATH_VAR macro from $(CLEAN_BUILD_DIR)/core/_defs.mk
 DLL_PATH_VAR := PATH
 
 # if %PATH% environment variable was modified for calling a tool, print new %PATH% value in generated batch
@@ -258,25 +258,25 @@ DLL_PATH_VAR := PATH
 # $2 - additional path(s) separated by $(PATHSEP) to append to $(DLL_PATH_VAR)
 # $3 - directory to change to for executing a tool
 # $4 - list of names of variables to set in environment (export) for running an executable
-# note: override show_tool_vars from $(CLEAN_BUILD_DIR)/core/_defs.mk
+# note: override show_tool_vars macro from $(CLEAN_BUILD_DIR)/core/_defs.mk
 show_tool_vars = $(info setlocal$(foreach v,$(if $2,PATH) $4,$(newline)set $v=$(call \
   UNQUOTED_ESCAPE,$($v)))$(newline)$(if $3,$(call EXECUTE_IN,$3,$1),$1))
 
 # show after executing a command
-# note: override show_tool_vars_end from $(CLEAN_BUILD_DIR)/core/_defs.mk
+# note: override show_tool_vars_end macro from $(CLEAN_BUILD_DIR)/core/_defs.mk
 show_tool_vars_end = $(newline)@echo endlocal
 
 # there is no way for embedding dll search path into executables or dlls while linking
 NO_RPATH := 1
 
 # windows terminal do not supports ANSI color escape sequences
-# note: override PRINT_PERCENTS from $(CLEAN_BUILD_DIR)/core/_defs.mk
+# note: override PRINT_PERCENTS macro from $(CLEAN_BUILD_DIR)/core/_defs.mk
 ifeq (,$(filter ansi-colors,$(.FEATURES)))
 PRINT_PERCENTS = [$1]
 endif
 
 # windows terminal do not supports ANSI color escape sequences
-# note: override COLORIZE from $(CLEAN_BUILD_DIR)/core/_defs.mk
+# note: override COLORIZE macro from $(CLEAN_BUILD_DIR)/core/_defs.mk
 ifeq (,$(filter ansi-colors,$(.FEATURES)))
 COLORIZE = $1$(padto)$2
 endif

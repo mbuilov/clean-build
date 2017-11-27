@@ -4,7 +4,7 @@
 # Licensed under GPL version 2 or any later version, see COPYING
 #----------------------------------------------------------------------------------
 
-# system shell utilities
+# system shell utilities - UNIX specific
 
 # this file included by $(CLEAN_BUILD_DIR)/core/_defs.mk
 
