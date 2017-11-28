@@ -123,7 +123,7 @@ PROCESS_SUBMAKES = $(eval define CB_PARALLEL_CODE$(newline)$(call \
 
 # set CLEAN_BUILD_NEED_PARALLEL to non-empty value before including sub-makefiles - to check
 #  if a sub-makefile calls PROCESS_SUBMAKES, it _must_ evaluate CLEAN_BUILD_PARALLEL_EVAL
-#  (by including appropriate makefile of project build system - 'make/p.mk') before the call
+#  (by including appropriate makefile of project build system - 'make/parallel.mk') before the call
 ifdef MCHECK
 CLEAN_BUILD_PARALLEL_EVAL = $(eval CLEAN_BUILD_NEED_PARALLEL:=)
 $(eval PROCESS_SUBMAKES = $$(if $$(CLEAN_BUILD_NEED_PARALLEL),$$(error \
