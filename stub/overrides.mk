@@ -28,7 +28,7 @@ CONFIG = $(BUILD)/conf.mk
 endif # !CONFIG
 
 # process a file with overrides of the project defaults (set in project configuration makefile - 'project.mk')
-# Note: OVERRIDES variable may be specified in command line - to override default empty definition
+# Note: OVERRIDES variable may be specified in command line - to override this default empty definition
 ifeq (,$(filter-out undefined environment,$(origin OVERRIDES)))
 OVERRIDES:=
 endif
