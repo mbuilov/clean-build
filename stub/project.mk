@@ -14,7 +14,7 @@
 #   +- make/
 #   |  |- project.mk    (modified copy of this file)
 #   |  |- overrides.mk  (support for 'config' goal and OVERRIDES variable)
-#   |  |- p.mk          (support for sub-modules)
+#   |  |- parallel.mk   (support for sub-makefiles)
 #   |  |- c.mk          (support for building C/C++ sources)
 #   |  ...
 #   +-- src/
@@ -30,7 +30,7 @@ ifneq (override,$(origin TOP))
 # TOP - project root directory
 # Note: TOP may be used in target makefiles for referencing sources, other makefiles, include paths, etc.
 # Note: define TOP according to the project directory structure shown above - path to 'my_project' folder
-override TOP := $(abspath $(dir $(lastword $(MAKEFILE_LIST))..))
+override TOP := $(abspath $(dir $(lastword $(MAKEFILE_LIST)))..)
 
 # BUILD - path to directory of built artifacts
 # Note: this variable is required by clean-build and must be defined prior including clean-build files
@@ -58,7 +58,7 @@ PRODUCT_VER := 1.0.0
 #  SUPPORTED_TARGETS := DEVEL PRODUCTION
 
 # include core clean-build definitions, processing of CONFIG and OVERRIDES variables,
-#  definition of MTOP variable - path to clean-build
+#  define of MTOP variable - path to clean-build
 include $(dir $(lastword $(MAKEFILE_LIST)))overrides.mk
 
 # Note: may redefine core clean-build macros here, e.g.:

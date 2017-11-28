@@ -929,6 +929,9 @@ ifneq (,$(MCHECK)$(value ADD_SHOWN_PERCENTS))
 PROCESSED_MAKEFILES:=
 endif
 
+# $(DEF_HEAD_CODE) is not evaluated yet
+HEAD_CODE_EVAL:=
+
 # ***********************************************
 # code to $(eval ...) at beginning of each makefile
 # NOTE: $(MAKE_CONTINUE) before expanding $(DEF_HEAD_CODE) adds 2 to $(MAKE_CONT) list (which is normally empty or contains 1 1...)
@@ -1009,7 +1012,7 @@ endif
 # include $(CLEAN_BUILD_DIR)/core/all.mk only if $(CB_INCLUDE_LEVEL) is empty and not inside the call of $(MAKE_CONTINUE)
 # note: $(MAKE_CONTINUE) before expanding $(DEF_TAIL_CODE) adds 2 to $(MAKE_CONT) list
 # note: $(CLEAN_BUILD_DIR)/core/_parallel.mk calls DEF_TAIL_CODE with @ as first argument - for the checks in $(CLEAN_BUILD_CHECK_AT_TAIL)
-DEF_TAIL_CODE = $(if $(CB_INCLUDE_LEVEL)$(findstring 2,$(MAKE_CONT)),,include $(CLEAN_BUILD_DIR)/core/all.mk)
+DEF_TAIL_CODE = $(if $(findstring 2,$(MAKE_CONT)),,$(if $(CB_INCLUDE_LEVEL),HEAD_CODE_EVAL:=,include $(CLEAN_BUILD_DIR)/core/all.mk))
 
 # prepend DEF_TAIL_CODE with $(CLEAN_BUILD_CHECK_AT_TAIL), if it's defined in $(CLEAN_BUILD_DIR)/core/protection.mk
 # note: if tracing, do not show value of $(CLEAN_BUILD_CHECK_AT_TAIL) - it's too noisy
@@ -1021,22 +1024,36 @@ $(call define_prepend,DEF_TAIL_CODE,$$(CLEAN_BUILD_CHECK_AT_TAIL)$(newline))
 endif
 endif
 
+# redefine DEFINE_TARGETS macro to produce an error if $(DEF_HEAD_CODE) was not evaluated prior expanding DEFINE_TARGETS
+ifdef MCHECK
+$(eval define DEF_TAIL_CODE$(newline)$(subst :=,:=$$(newline)DEFINE_TARGETS=$$(error \
+  $$$$(DEF_HEAD_CODE) was not evaluated at head of makefile!),$(value DEF_TAIL_CODE))$(newline)endef)
+endif
+
+# remember new values of HEAD_CODE_EVAL and DEFINE_TARGETS
+ifdef SET_GLOBAL1
+$(eval define DEF_TAIL_CODE$(newline)$(subst $(comma)include,$$(newline)$$(call \
+  SET_GLOBAL1,HEAD_CODE_EVAL$(if $(MCHECK), DEFINE_TARGETS))$(comma)include,$(value DEF_TAIL_CODE))$(newline)endef)
+endif
+
 # define targets at end of makefile - just expand DEFINE_TARGETS: $(DEFINE_TARGETS)
 # note: DEF_HEAD_CODE will reset DEFINE_TARGETS to default value - to just evaluate $(DEF_TAIL_CODE)
 # note: $(DEFINE_TARGETS) must not expand to any text - to allow calling it via just $(DEFINE_TARGETS) in target makefiles
 DEFINE_TARGETS = $(error $$(DEF_HEAD_CODE) was not evaluated at head of makefile!)
 
-# append domain to the stack of domains:
-# [head]->init1->init2...->initN <setup targets of added domains> rulesN->...->rules2->rules1->[tail]
-# $1 - the name of the macro, the expansion of which gives the code for the initialization of domain variables
-# $2 - the name of the macro, the expansion of which gives the code for defining domain target rules
-APPEND_DOMAIN = $(eval \
-  HEAD_CODE_EVAL = $(value HEAD_CODE_EVAL)$$(eval $$($1)))$(eval \
-  DEFINE_TARGETS = $$(eval $$($2))$(value DEFINE_TARGETS))
+# prepare target type (C, JAVA, etc.) for building (initialize its variables):
+# init1->init2...->initN <set variables of target types> rulesN->...->rules2->rules1
+# $1 - the name of the macro, the expansion of which gives the code for the initialization of target type variables
+# $2 - the name of the macro, the expansion of which gives the code for defining target type rules
+# NOTE: if $1 is empty, just evaluate $(DEF_HEAD_CODE), if it wasn't evaluated yet
+# NOTE: if $1 is non-empty, expand it via $(call $1) to not pass any arguments into the expansion
+PREPARE_TARGET_TYPE = $(if $(value HEAD_CODE_EVAL),,$(eval $(DEF_HEAD_CODE)))$(if $1,$(eval \
+  HEAD_CODE_EVAL=$(value HEAD_CODE_EVAL)$$(eval $$($1)))$(eval DEFINE_TARGETS=$$(eval $$($2))$(value DEFINE_TARGETS))$(eval $(call $1)))
 
 # remember new values of HEAD_CODE_EVAL and DEFINE_TARGETS
 ifdef SET_GLOBAL
-APPEND_DOMAIN += $(call SET_GLOBAL,HEAD_CODE_EVAL DEFINE_TARGETS)
+$(eval PREPARE_TARGET_TYPE = $(subst $$$(open_brace)eval $$$(open_brace)call $$1,$$(call \
+  SET_GLOBAL,HEAD_CODE_EVAL DEFINE_TARGETS)$$$(open_brace)eval $$$(open_brace)call $$1,$(value PREPARE_TARGET_TYPE)))
 endif
 
 # before $(MAKE_CONTINUE): save variables to restore them after (via RESTORE_VARS macro)
@@ -1075,8 +1092,8 @@ MAKE_CONT:=
 # 2) evaluate tail code with $(DEFINE_TARGETS)
 # 3) start next round - simulate including of appropriate $(TOP)/make/c.mk or $(TOP)/make/java.mk or whatever by evaluating
 #    head-code $(HEAD_CODE_EVAL) - which is likely adjusted by $(TOP)/make/c.mk or $(TOP)/make/java.mk or whatever
-# note: call $(DEFINE_TARGETS) with empty arguments list to not pass any to DEF_TAIL_CODE
-# note: call $(HEAD_CODE_EVAL) with empty arguments list to not pass any to DEF_HEAD_CODE
+# note: $(call DEFINE_TARGETS) with empty arguments list to not pass any to DEF_TAIL_CODE
+# note: $(call HEAD_CODE_EVAL) with empty arguments list to not pass any to DEF_HEAD_CODE
 # note: $(MAKE_CONTINUE) must not expand to any text - to be able to call it with just $(MAKE_CONTINUE) in target makefile
 MAKE_CONTINUE = $(if $1,$(SAVE_VARS))$(eval MAKE_CONT+=2)$(call DEFINE_TARGETS)$(call HEAD_CODE_EVAL)$(if $1,$(RESTORE_VARS))
 
@@ -1139,7 +1156,7 @@ $(call SET_GLOBAL,PROJECT_VARS_NAMES PASS_ENV_VARS \
   NON_PARALLEL_EXECUTE_RULE NON_PARALLEL_EXECUTE \
   MULTI_TARGET_SEQ MULTI_TARGET_RULE=MULTI_TARGET_NUM=MULTI_TARGET_NUM MULTI_TARGET CHECK_MULTI_RULE \
   FORM_SDEPS ALL_SDEPS FILTER_SDEPS EXTRACT_SDEPS FIX_SDEPS R_FILTER_SDEPS1 R_FILTER_SDEPS RUN_TOOL TMD \
-  DEF_HEAD_CODE DEF_TAIL_CODE APPEND_DOMAIN DEFINE_TARGETS SAVE_VARS RESTORE_VARS MAKE_CONTINUE CONF_COLOR PRODUCT_VER)
+  DEF_HEAD_CODE DEF_TAIL_CODE PREPARE_TARGET_TYPE DEFINE_TARGETS SAVE_VARS RESTORE_VARS MAKE_CONTINUE CONF_COLOR PRODUCT_VER)
 
 # if TOCLEAN value is non-empty, allow tracing calls to it,
 # else - just protect TOCLEAN from changes, do not make it's value non-empty - because TOCLEAN is checked in ifdefs

@@ -8,8 +8,8 @@
 
 # Note: this file should be copied AS IS to a custom project's build system directory 'make'
 
-ifeq (,$(filter-out undefined environment,$(origin DEF_HEAD_CODE)))
+ifeq (,$(filter-out undefined environment,$(origin PREPARE_TARGET_TYPE)))
 include $(dir $(lastword $(MAKEFILE_LIST)))project.mk
 endif
 
-$(eval $(DEF_HEAD_CODE))
+$(PREPARE_TARGET_TYPE)

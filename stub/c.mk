@@ -4,13 +4,13 @@
 # Licensed under GPL version 2 or any later version, see COPYING
 #-----------------------------------------------------------------------------------------
 
-# extend default domain: add support for building application-level targets from C/C++ sources
+# add support for building application-level targets from C/C++ sources
 
 # Note: this file should be copied AS IS to a custom project's build system directory 'make'
 
-ifeq (,$(filter-out undefined environment,$(origin CLEAN_BUILD_C_APP_EVAL)))
+ifeq (,$(filter-out undefined environment,$(origin C_PREPARE_APP_VARS)))
 include $(dir $(lastword $(MAKEFILE_LIST)))project.mk
-include $(MTOP)/domains/_c.mk
+include $(MTOP)/types/_c.mk
 endif
 
-$(CLEAN_BUILD_C_APP_EVAL)
+$(call PREPARE_TARGET_TYPE,C_PREPARE_APP_VARS,C_DEFINE_APP_RULES)
