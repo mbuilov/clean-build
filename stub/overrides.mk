@@ -4,10 +4,11 @@
 # Licensed under GPL version 2 or any later version, see COPYING
 #----------------------------------------------------------------------------------
 
-# core clean-build definitions, processing of CONFIG and OVERRIDES variables, definition of MTOP variable
+# original file: $(CLEAN_BUILD_DIR)/stub/overrides.mk
+# description:   core clean-build definitions, processing of CONFIG and OVERRIDES variables, definition of MTOP variable
 
-# Note: this file should be copied AS IS to a custom project's build system directory 'make' and
-#  should be included at end of project configuration makefile 'project.mk' - just before autoconfigure includes
+# Note: This file should be copied AS IS to the directory of the project build system
+# Note: This file should be included at end of project configuration makefile 'project.mk' - just before autoconfigure includes
 
 # if CONFIG variable is not defined in project configuration makefile, provide default definition
 ifeq (,$(filter-out undefined environment,$(origin CONFIG)))
@@ -33,7 +34,7 @@ ifeq (,$(filter-out undefined environment,$(origin OVERRIDES)))
 OVERRIDES:=
 endif
 
-# override definitions in 'project.mk' by definitions in the custom $(OVERRIDES) makefile
+# override definitions (e.g. BUILD, PRODUCT_VER, etc.) in 'project.mk' by definitions in the custom $(OVERRIDES) makefile
 ifdef OVERRIDES
 ifeq (,$(wildcard $(OVERRIDES)))
 $(error file does not exist: $(OVERRIDES))
@@ -47,7 +48,11 @@ endif
 # MTOP - path to clean-build build system
 # Note: normally MTOP is defined in command line, but may be taken from the environment
 # redefine MTOP as a simple (i.e. non-recursive) variable
+ifeq (undefined,$(origin MTOP))
+MTOP:=
+else
 MTOP := $(MTOP)
+endif
 
 # path to clean-build must be defined
 ifndef MTOP

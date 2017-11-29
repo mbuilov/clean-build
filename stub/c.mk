@@ -4,9 +4,10 @@
 # Licensed under GPL version 2 or any later version, see COPYING
 #-----------------------------------------------------------------------------------------
 
-# add support for building application-level targets from C/C++ sources
+# original file: $(CLEAN_BUILD_DIR)/stub/c.mk
+# description:   support for building application-level targets from C/C++ sources
 
-# Note: this file should be copied AS IS to a custom project's build system directory 'make'
+# Note: This file should be copied AS IS to the directory of the project build system
 
 ifeq (,$(filter-out undefined environment,$(origin C_PREPARE_APP_VARS)))
 include $(dir $(lastword $(MAKEFILE_LIST)))project.mk

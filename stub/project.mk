@@ -1,14 +1,20 @@
-# stub of a project configuration makefile,
-# this file is normally copied and modified appropriately for the custom project
-
+#------------------- delete this header --------------------------------------------------
+#
+# stub of a project configuration makefile
+#
+# Note: This file should be copied to the directory of the project build system
+#         and modified appropriately for the custom project
+#
 # Note: this file is under public domain, it may be freely modified by the project authors
+#
+#-----------------------------------------------------------------------------------------
 
 # NOTE *********************************************************************************
 # according to the clean-build principles, it is acceptable to use environment variables
 # only while autoconfiguration: in this file and the files included by this one
 # **************************************************************************************
 
-# Assume custom project have directory structure organized as follows:
+# Assume custom project has the following directory structure:
 # 
 # +- my_project/
 #   +- make/
@@ -21,8 +27,8 @@
 #   +-- include/
 #   ...
 #
-# where 'make' directory - files of the project build system, some of them
-#  may be copied and modified from the clean-build 'stub' directory
+# where 'make' - directory of the project build system,
+#  some of the files in it can be copies of the files of clean-build 'stub' directory
 
 # the only case when variable TOP is overridden - after completing project configuration
 ifneq (override,$(origin TOP))
@@ -32,8 +38,8 @@ ifneq (override,$(origin TOP))
 # Note: define TOP according to the project directory structure shown above - path to 'my_project' folder
 override TOP := $(abspath $(dir $(lastword $(MAKEFILE_LIST)))..)
 
-# BUILD - path to directory of built artifacts
-# Note: this variable is required by clean-build and must be defined prior including clean-build files
+# BUILD - path to the root directory of all built artifacts
+# Note: this variable is required by clean-build and must be defined prior including core clean-build files
 # Note: $(BUILD) directory is automatically created by clean-build when building targets
 #  and automatically deleted by the predefined 'distclean' goal
 BUILD := $(TOP)/build
@@ -50,7 +56,7 @@ PRODUCT_NAME     := Sample app
 VENDOR_COPYRIGHT := Copyright (C) 2015-2017 Unkown Company/Author
 
 # global product version
-# Note: this is default value for MODVER - per-module version number
+# Note: this is default value of MODVER - per-module version number
 # format: major.minor.patch
 PRODUCT_VER := 1.0.0
 
@@ -58,7 +64,7 @@ PRODUCT_VER := 1.0.0
 #  SUPPORTED_TARGETS := DEVEL PRODUCTION
 
 # include core clean-build definitions, processing of CONFIG and OVERRIDES variables,
-#  define of MTOP variable - path to clean-build
+#  define MTOP variable - path to clean-build
 include $(dir $(lastword $(MAKEFILE_LIST)))overrides.mk
 
 # Note: may redefine core clean-build macros here, e.g.:

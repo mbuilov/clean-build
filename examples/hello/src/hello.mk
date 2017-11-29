@@ -4,33 +4,36 @@
 # Licensed under GPL version 2 or any later version, see COPYING
 #----------------------------------------------------------------------------------
 
-# define rules for building C/C++ sources
+# add rules for building C/C++ sources
 include $(dir $(lastword $(MAKEFILE_LIST)))../make/c.mk
 
-# add definitions for running built executable
+# add support for testing built executables
 include $(MTOP)/exts/ctest.mk
 
-# we will build S-variant of 'hello' executable - with statically linked C runtime
+# we will build S-variant of 'hello' executable - one with statically linked C runtime
 EXE := hello S
 SRC := hello.c
 
-# will run built executable and create .out file
+# generate rules for testing built executable and creating 'hello.out' file
 $(DO_TEST_EXE)
 
-# add makefile info for phony target 'hello' (this info is used by SUP function)
+# set makefile information for 'hello' - a phony target defined below
+# (this info is used by the SUP function, which pretty-prints what a rule is doing)
 $(call SET_MAKEFILE_INFO,hello)
 
-# if executable output exist - print it
-# note: $| - automatic variable - first order-only dependency of the target
+# if executable output exist - print it to stderr
+# note: all output of rules should go to the stderr, stdout is used
+#  by the clean-build only for printing executed commands - this is
+#  needed for build-script generation
+# note: $| - automatic variable - list of order-only dependencies of the target
 # note: pass 1 as 4-th argument to SUP function to not update percents of executed makefiles
 hello: | $(call FORM_TRG,EXE,S).out
 	$(call SUP,CAT,$|,,1)$(call CAT,$|) >&2
 
-# to complete 'check' goal, need to update 'hello'
-# note: 'check' goal is one of clean-build predefined goals
+# to complete predefined 'check' goal, it is needed to update target 'hello'
 check: hello
 
-# hello - is not a file, it is a PHONY target
+# specify that 'hello' - is not a file, it is a PHONY target
 .PHONY: hello
 
 # define targets and rules how to build them

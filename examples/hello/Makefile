@@ -4,7 +4,7 @@
 # Licensed under GPL version 2 or any later version, see COPYING
 #----------------------------------------------------------------------------------
 
-# 1) to clean up all created files and directories, run:
+# 1) to delete 'build' directory of built files, run:
 # $ make distclean
 
 # 2) to build everything, run:
@@ -14,16 +14,21 @@
 # $ make check
 
 # add support for processing sub-makefiles
-include $(dir $(lastword $(MAKEFILE_LIST)))make/p.mk
+include $(dir $(lastword $(MAKEFILE_LIST)))make/parallel.mk
 
-# clean-build provides default rule for 'distclean' goal
+# clean-build provides default rule for the 'distclean' goal
 ifneq (distclean,$(MAKECMDGOALS))
 
 # list of sub-makefiles
+# Note: may use any variable to specify a list of sub-makefiles,
+#  it is forbidden to redefine only some of 'global' variables
 TO_MAKE := src/hello.mk
 
 # we need version info under Windows
-ifeq (WINXX,$(OS))
+# Note: OS - target operating system - one of the required
+#  clean-build variables that must be defined for the build
+# Note: MTOP - path to clean-build - variable defined by 'make/project.mk'
+ifneq (,$(filter WIN%,$(OS)))
 TO_MAKE += $(MTOP)/exts/version
 endif
 
