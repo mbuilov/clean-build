@@ -191,11 +191,11 @@ MK_VERSION_OPTION = /VERSION:$(MODVER_MAJOR_MINOR)
 
 # make compiler options string to specify included headers search path
 # note: assume there are no spaces in include paths
-# note: override default implementation from $(CLEAN_BUILD_DIR)/impl/c_base.mk
+# note: override default implementation from $(CLEAN_BUILD_DIR)/types/c/c_base.mk
 MK_INCLUDE_OPTION = $(addprefix /I,$(ospath))
 
 # make compiler options string to specify defines
-# note: override default implementation from $(CLEAN_BUILD_DIR)/impl/c_base.mk
+# note: override default implementation from $(CLEAN_BUILD_DIR)/types/c/c_base.mk
 MK_DEFINES_OPTION1 = $(addprefix /D,$1)
 
 # add source-file dependencies for the target,
