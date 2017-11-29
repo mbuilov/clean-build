@@ -7,9 +7,9 @@
 # generic support for precompiled headers
 
 # included by:
-#  $(CLEAN_BUILD_DIR)/compilers/gcc_pch.mk
-#  $(CLEAN_BUILD_DIR)/compilers/suncc_pch.mk
-#  $(CLEAN_BUILD_DIR)/compilers/msvc_pch.mk
+#  $(CLEAN_BUILD_DIR)/compilers/gcc/pch.mk
+#  $(CLEAN_BUILD_DIR)/compilers/suncc/pch.mk
+#  $(CLEAN_BUILD_DIR)/compilers/msvc/pch.mk
 
 # reset additional user-modifiable variables at beginning of target makefile
 # PCH - either absolute or makefile-related path to header to precompile

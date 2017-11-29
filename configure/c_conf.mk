@@ -4,12 +4,4 @@
 # Licensed under GPL version 2 or any later version, see COPYING
 #----------------------------------------------------------------------------------
 
-# support for building generic targets - define DEFINE_TARGETS macro
-
-# Note: this file should be copied AS IS to a custom project's build system directory 'make'
-
-ifeq (,$(filter-out undefined environment,$(origin CB_PREPARE_TARGET_TYPE)))
-include $(dir $(lastword $(MAKEFILE_LIST)))project.mk
-endif
-
-$(CB_PREPARE_TARGET_TYPE)
+# support for C/C++ toolchain autoconfiguration

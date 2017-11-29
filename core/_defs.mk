@@ -1047,13 +1047,13 @@ DEFINE_TARGETS = $(error $$(DEF_HEAD_CODE) was not evaluated at head of makefile
 # $2 - the name of the macro, the expansion of which gives the code for defining target type rules
 # NOTE: if $1 is empty, just evaluate $(DEF_HEAD_CODE), if it wasn't evaluated yet
 # NOTE: if $1 is non-empty, expand it via $(call $1) to not pass any arguments into the expansion
-PREPARE_TARGET_TYPE = $(if $(value HEAD_CODE_EVAL),,$(eval $(DEF_HEAD_CODE)))$(if $1,$(eval \
+CB_PREPARE_TARGET_TYPE = $(if $(value HEAD_CODE_EVAL),,$(eval $(DEF_HEAD_CODE)))$(if $1,$(eval \
   HEAD_CODE_EVAL=$(value HEAD_CODE_EVAL)$$(eval $$($1)))$(eval DEFINE_TARGETS=$$(eval $$($2))$(value DEFINE_TARGETS))$(eval $(call $1)))
 
 # remember new values of HEAD_CODE_EVAL and DEFINE_TARGETS
 ifdef SET_GLOBAL
-$(eval PREPARE_TARGET_TYPE = $(subst $$$(open_brace)eval $$$(open_brace)call $$1,$$(call \
-  SET_GLOBAL,HEAD_CODE_EVAL DEFINE_TARGETS)$$$(open_brace)eval $$$(open_brace)call $$1,$(value PREPARE_TARGET_TYPE)))
+$(eval CB_PREPARE_TARGET_TYPE = $(subst $$$(open_brace)eval $$$(open_brace)call $$1,$$(call \
+  SET_GLOBAL,HEAD_CODE_EVAL DEFINE_TARGETS)$$$(open_brace)eval $$$(open_brace)call $$1,$(value CB_PREPARE_TARGET_TYPE)))
 endif
 
 # before $(MAKE_CONTINUE): save variables to restore them after (via RESTORE_VARS macro)
@@ -1156,7 +1156,7 @@ $(call SET_GLOBAL,PROJECT_VARS_NAMES PASS_ENV_VARS \
   NON_PARALLEL_EXECUTE_RULE NON_PARALLEL_EXECUTE \
   MULTI_TARGET_SEQ MULTI_TARGET_RULE=MULTI_TARGET_NUM=MULTI_TARGET_NUM MULTI_TARGET CHECK_MULTI_RULE \
   FORM_SDEPS ALL_SDEPS FILTER_SDEPS EXTRACT_SDEPS FIX_SDEPS R_FILTER_SDEPS1 R_FILTER_SDEPS RUN_TOOL TMD \
-  DEF_HEAD_CODE DEF_TAIL_CODE PREPARE_TARGET_TYPE DEFINE_TARGETS SAVE_VARS RESTORE_VARS MAKE_CONTINUE CONF_COLOR PRODUCT_VER)
+  DEF_HEAD_CODE DEF_TAIL_CODE CB_PREPARE_TARGET_TYPE DEFINE_TARGETS SAVE_VARS RESTORE_VARS MAKE_CONTINUE CONF_COLOR PRODUCT_VER)
 
 # if TOCLEAN value is non-empty, allow tracing calls to it,
 # else - just protect TOCLEAN from changes, do not make it's value non-empty - because TOCLEAN is checked in ifdefs

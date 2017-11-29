@@ -7,7 +7,7 @@
 # rules for building application-level C/C++ libs, dlls and executables
 
 ifeq (,$(filter-out undefined environment,$(origin C_BASE_TEMPLATE)))
-include $(dir $(lastword $(MAKEFILE_LIST)))c_base.mk
+include $(dir $(lastword $(MAKEFILE_LIST)))c/c_base.mk
 endif
 
 # register application-level target types
@@ -65,7 +65,7 @@ DLL_VARIANT_SUFFIX = _$1
 # note: these flags should contain values of standard user-defined C/C++ compilers and linker flags, such as
 #  CFLAGS, CXXFLAGS, LDFLAGS and so on, that are normally taken from the environment (in project configuration makefile),
 #  their default values should be set in compiler-specific makefile, e.g.: $(CLEAN_BUILD_DIR)/compilers/gcc.mk.
-# note: called by TRG_CFLAGS, TRG_CXXFLAGS and TRG_LDFLAGS from $(CLEAN_BUILD_DIR)/types/c_base.mk
+# note: called by TRG_CFLAGS, TRG_CXXFLAGS and TRG_LDFLAGS from $(CLEAN_BUILD_DIR)/types/c/c_base.mk
 EXE_CFLAGS   = $($(TMD)CFLAGS)
 EXE_CXXFLAGS = $($(TMD)CXXFLAGS)
 EXE_LDFLAGS  = $($(TMD)LDFLAGS)
@@ -127,7 +127,7 @@ DLL_FORM_TRG = $(1:%=$(DLL_DIR)/$(DLL_PREFIX)%$(call VARIANT_SUFFIX,DLL,$2)$(DLL
 # use the same variant (R or P) of static library as target EXE (for example for P-EXE use P-LIB)
 # always use D-variant of static library for regular DLL
 # note: if returns empty value - then assume it's default variant R
-# note: used by DEP_LIBRARY macro from $(CLEAN_BUILD_DIR)/types/c_base.mk
+# note: used by DEP_LIBRARY macro from $(CLEAN_BUILD_DIR)/types/c/c_base.mk
 LIB_DEP_MAP = $(if $(findstring DLL,$1),D,$2)
 
 # determine which variant of dynamic library to link with EXE or DLL
@@ -136,7 +136,7 @@ LIB_DEP_MAP = $(if $(findstring DLL,$1),D,$2)
 # $3 - dependency name, e.g. mylib or mylib/flag1/flag2/...
 # the same one default variant (R) of DLL may be linked with any P- or R-EXE or R-DLL
 # note: if returns empty value - then assume it's default variant R
-# note: used by DEP_LIBRARY macro from $(CLEAN_BUILD_DIR)/types/c_base.mk
+# note: used by DEP_LIBRARY macro from $(CLEAN_BUILD_DIR)/types/c/c_base.mk
 DLL_DEP_MAP:=
 
 # prefix/suffix of import library of a dll

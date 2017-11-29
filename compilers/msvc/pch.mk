@@ -20,7 +20,7 @@
 #   link.exe /OUT:C:\build\bin\app.exe C:\build\obj\xxx_pch_c.obj C:\build\obj\src1.obj
 
 ifeq (,$(filter-out undefined environment,$(origin PCH_TEMPLATE)))
-include $(CLEAN_BUILD_DIR)/impl/pch.mk
+include $(CLEAN_BUILD_DIR)/types/c/pch.mk
 endif
 
 ifndef TOCLEAN

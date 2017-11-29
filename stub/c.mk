@@ -13,4 +13,4 @@ include $(dir $(lastword $(MAKEFILE_LIST)))project.mk
 include $(MTOP)/types/_c.mk
 endif
 
-$(call PREPARE_TARGET_TYPE,C_PREPARE_APP_VARS,C_DEFINE_APP_RULES)
+$(call CB_PREPARE_TARGET_TYPE,C_PREPARE_APP_VARS,C_DEFINE_APP_RULES)

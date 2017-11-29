@@ -18,7 +18,7 @@
 #   gcc -o /build/bin/app /build/obj/src1.o
 
 ifeq (,$(filter-out undefined environment,$(origin PCH_TEMPLATE)))
-include $(CLEAN_BUILD_DIR)/impl/pch.mk
+include $(CLEAN_BUILD_DIR)/types/c/pch.mk
 endif
 
 ifndef TOCLEAN
