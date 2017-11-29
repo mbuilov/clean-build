@@ -10,7 +10,7 @@
 
 # RPATH - location where to search for external dependency libraries at runtime, e.g.: /opt/lib or $ORIGIN/../lib
 # note: RPATH may be overridden either in project configuration makefile or in command line
-# note: to define target-specific RPATH variable - use C_REDEFINE macro from $(CLEAN_BUILD_DIR)/impl/c_base.mk, e.g.:
+# note: to define target-specific RPATH variable - use C_REDEFINE macro from $(CLEAN_BUILD_DIR)/types/c/c_base.mk, e.g.:
 #  EXE := my_exe
 #  $(call C_REDEFINE,RPATH,$(RPATH) my_rpath)
 RPATH:=
