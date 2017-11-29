@@ -4,7 +4,7 @@
 # Licensed under GPL version 2 or any later version, see COPYING
 #----------------------------------------------------------------------------------
 
-# included by $(CLEAN_BUILD_DIR)/compilers/msvc_conf.mk
+# included by $(CLEAN_BUILD_DIR)/compilers/msvc/auto/conf.mk
 
 # adjust PATH environment variable so cl.exe may find needed dlls
 
