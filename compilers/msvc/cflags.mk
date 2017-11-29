@@ -34,7 +34,7 @@ VC_VER_tmp := $($_VC_VER)
 
 # default values of user-defined C compiler flags
 # note: {,T}CFLAGS value may be taken from the environment in project configuration makefile
-# note: used by EXE_CFLAGS, LIB_CFLAGS, DLL_CFLAGS (from $(CLEAN_BUILD_DIR)/impl/_c.mk)
+# note: used by EXE_CFLAGS, LIB_CFLAGS, DLL_CFLAGS (from $(CLEAN_BUILD_DIR)/types/_c.mk)
 # /W3 - warning level 3
 $_CFLAGS := /W3
 
@@ -131,7 +131,7 @@ endif
 # default values of user-defined C++ compiler flags
 # /Gm - enable minimal rebuild
 # note: {,T}CXXFLAGS value may be taken from the environment in project configuration makefile
-# note: used by EXE_CXXFLAGS, LIB_CXXFLAGS, DLL_CXXFLAGS (from $(CLEAN_BUILD_DIR)/impl/_c.mk)
+# note: used by EXE_CXXFLAGS, LIB_CXXFLAGS, DLL_CXXFLAGS (from $(CLEAN_BUILD_DIR)/types/_c.mk)
 $_CXXFLAGS := $($_CFLAGS) /Gm-
 
 # /GR - enable run-time type information
@@ -154,7 +154,7 @@ $_ARFLAGS := $(if $(DEBUG),,$(if $(filter /GL,$($_CFLAGS)),/LTCG))
 
 # default values of user-defined link.exe flags for linking executables and shared libraries
 # note: {,T}LDFLAGS value may be taken from the environment in project configuration makefile
-# note: used by EXE_LDFLAGS, LIB_LDFLAGS, DLL_LDFLAGS from $(CLEAN_BUILD_DIR)/impl/_c.mk
+# note: used by EXE_LDFLAGS, LIB_LDFLAGS, DLL_LDFLAGS from $(CLEAN_BUILD_DIR)/types/_c.mk
 # /DEBUG   - generate debug info (in separate .pdb)
 # /RELEASE - set the checksum in PE-header
 # /LTCG    - link-time code generation
