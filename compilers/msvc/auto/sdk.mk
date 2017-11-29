@@ -74,7 +74,7 @@
 ifneq (,$(filter undefined environment,$(foreach v,UMLIBPATH UMINCLUDE,$(origin $v))))
 
 # reset variables, if they are not defined in project configuration makefile or in command line
-# note: SDK variable was reset in $(CLEAN_BUILD_DIR)/compilers/msvc_conf.mk
+# note: SDK variable was reset in $(CLEAN_BUILD_DIR)/compilers/msvc/auto/conf.mk
 SDK_LIB:=
 SDK_VER:=
 
