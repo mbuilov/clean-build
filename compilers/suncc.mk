@@ -4,7 +4,7 @@
 # Licensed under GPL version 2 or any later version, see COPYING
 #----------------------------------------------------------------------------------
 
-# suncc compiler toolchain (app-level), included by $(CLEAN_BUILD_DIR)/impl/c.mk
+# suncc compiler toolchain (app-level), included by $(CLEAN_BUILD_DIR)/types/_c.mk
 
 # define RPATH and target-specific MAP and MODVER (for DLLs) variables
 include $(dir $(lastword $(MAKEFILE_LIST)))unixcc.mk
@@ -26,8 +26,8 @@ TAR  := $(AR)
 
 # default values of user-defined C/C++ compiler flags
 # note: may be taken from the environment in project configuration makefile
-# note: CFLAGS   - used by EXE_CFLAGS,   LIB_CFLAGS,   DLL_CFLAGS   (from $(CLEAN_BUILD_DIR)/impl/c.mk)
-# note: CXXFLAGS - used by EXE_CXXFLAGS, LIB_CXXFLAGS, DLL_CXXFLAGS (from $(CLEAN_BUILD_DIR)/impl/c.mk)
+# note: CFLAGS   - used by EXE_CFLAGS,   LIB_CFLAGS,   DLL_CFLAGS   (from $(CLEAN_BUILD_DIR)/types/_c.mk)
+# note: CXXFLAGS - used by EXE_CXXFLAGS, LIB_CXXFLAGS, DLL_CXXFLAGS (from $(CLEAN_BUILD_DIR)/types/_c.mk)
 CFLAGS   := $(if $(DEBUG),-g,-fast)
 CXXFLAGS := $(CFLAGS)
 
@@ -45,7 +45,7 @@ CXX_ARFLAGS := -xar
 
 # default values of user-defined cc flags for linking executables and shared libraries
 # note: may be taken from the environment in project configuration makefile
-# note: used by EXE_LDFLAGS, LIB_LDFLAGS, DLL_LDFLAGS from $(CLEAN_BUILD_DIR)/impl/c.mk
+# note: used by EXE_LDFLAGS, LIB_LDFLAGS, DLL_LDFLAGS from $(CLEAN_BUILD_DIR)/types/_c.mk
 # '-xs' - allows debugging by dbx after deleting object (.o) files
 LDFLAGS := $(if $(DEBUG),-xs)
 
@@ -66,24 +66,24 @@ PIE_LOPTION := -ztype=pie
 # R - default variant (position-dependent code for EXE, position-independent code for DLL)
 # P - position-independent code in executables (for EXE)
 # D - position-independent code in executables or shared libraries (for LIB)
-# note: override defaults from $(CLEAN_BUILD_DIR)/impl/c.mk
+# note: override defaults from $(CLEAN_BUILD_DIR)/types/_c.mk
 EXE_SUPPORTED_VARIANTS := P
 LIB_SUPPORTED_VARIANTS := D
 
 # only one non-regular variant of EXE is supported - P - see $(EXE_SUPPORTED_VARIANTS)
 # $1 - P
-# note: override defaults from $(CLEAN_BUILD_DIR)/impl/c.mk
+# note: override defaults from $(CLEAN_BUILD_DIR)/types/_c.mk
 EXE_VARIANT_SUFFIX := _pie
 
 # only one non-regular variant of LIB is supported - D - see $(LIB_SUPPORTED_VARIANTS)
 # $1 - D
-# note: override defaults from $(CLEAN_BUILD_DIR)/impl/c.mk
+# note: override defaults from $(CLEAN_BUILD_DIR)/types/_c.mk
 LIB_VARIANT_SUFFIX := _pic
 
 # only one non-regular variant of EXE is supported - P - see $(EXE_SUPPORTED_VARIANTS)
 # $1 - R or P
 # $(TMD) - T in tool mode, empty otherwise
-# note: override defaults from $(CLEAN_BUILD_DIR)/impl/c.mk
+# note: override defaults from $(CLEAN_BUILD_DIR)/types/_c.mk
 EXE_CFLAGS   = $(if $(findstring P,$1),$(PIC_COPTION)) $($(TMD)CFLAGS)
 EXE_CXXFLAGS = $(if $(findstring P,$1),$(PIC_COPTION)) $($(TMD)CXXFLAGS)
 EXE_LDFLAGS  = $(if $(findstring P,$1),$(PIE_LOPTION)) $($(TMD)LDFLAGS)
@@ -91,7 +91,7 @@ EXE_LDFLAGS  = $(if $(findstring P,$1),$(PIE_LOPTION)) $($(TMD)LDFLAGS)
 # only one non-regular variant of LIB is supported - D - see $(LIB_SUPPORTED_VARIANTS)
 # $1 - R or D
 # $(TMD) - T in tool mode, empty otherwise
-# note: override defaults from $(CLEAN_BUILD_DIR)/impl/c.mk
+# note: override defaults from $(CLEAN_BUILD_DIR)/types/_c.mk
 LIB_CFLAGS   = $(if $(findstring D,$1),$(PIC_COPTION)) $($(TMD)CFLAGS)
 LIB_CXXFLAGS = $(if $(findstring D,$1),$(PIC_COPTION)) $($(TMD)CXXFLAGS)
 
@@ -101,7 +101,7 @@ LIB_CXXFLAGS = $(if $(findstring D,$1),$(PIC_COPTION)) $($(TMD)CXXFLAGS)
 # $3 - dependency name, e.g. mylib or mylib/flag1/flag2/...
 # note: if returns empty value - then assume it's default variant R
 # use D-variant of static library for pie-EXE or regular DLL
-# note: override defaults from $(CLEAN_BUILD_DIR)/impl/c.mk
+# note: override defaults from $(CLEAN_BUILD_DIR)/types/_c.mk
 LIB_DEP_MAP = $(if $(findstring DLL,$1)$(findstring P,$2),D)
 
 # make linker command for linking EXE, DLL or LIB
@@ -151,7 +151,7 @@ MK_SONAME_OPTION = $(addprefix -h $(notdir $1).,$(firstword $(subst ., ,$(MODVER
 # $3 - target type: EXE,DLL,LIB
 # $4 - non-empty variant: R,P,D
 # target-specific: TMD, VLDFLAGS
-# note: used by EXE_TEMPLATE, DLL_TEMPLATE, LIB_TEMPLATE from $(CLEAN_BUILD_DIR)/impl/c.mk
+# note: used by EXE_TEMPLATE, DLL_TEMPLATE, LIB_TEMPLATE from $(CLEAN_BUILD_DIR)/types/_c.mk
 # note: use CXX compiler instead of ld to create shared libraries
 #  - for calling C++ constructors of static objects when loading the libraries,
 #  see https://docs.oracle.com/cd/E19205-01/819-5267/bkamq/index.html
@@ -201,7 +201,7 @@ CXX_PARAMS = $($(TMD)CPU_CXXFLAGS) $(CMN_PARAMS) $(DEF_CXXFLAGS) $(VCXXFLAGS)
 # $3 - target type: EXE,DLL,LIB
 # $4 - non-empty variant: R,P,D
 # target-specific: TMD
-# note: used by OBJ_RULES_BODY macro from $(CLEAN_BUILD_DIR)/impl/c_base.mk
+# note: used by OBJ_RULES_BODY macro from $(CLEAN_BUILD_DIR)/types/c/c_base.mk
 OBJ_CC  = $(call SUP,$(TMD)CC,$2)$(call WRAP_SUNCC,$($(TMD)CC) $(CC_PARAMS),$1,$(UDEPS_INCLUDE_FILTER))
 OBJ_CXX = $(call SUP,$(TMD)CXX,$2)$(call WRAP_SUNCC,$($(TMD)CXX) $(CXX_PARAMS),$1,$(UDEPS_INCLUDE_FILTER))
 
