@@ -706,7 +706,7 @@ C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\bin>x86_arm\cl.exe   - Mi
 ifneq (,$(filter undefined environment,$(origin VC_VER)))
 VC_VER:=
 else ifneq (,$(findstring vs,$(VC_VER)))
-  # map vs2015 -> 14, according VS... values defined in $(CLEAN_BUILD_DIR)/compilers/msvc_cmn.mk
+  # map vs2015 -> 14, according VS... values defined in $(CLEAN_BUILD_DIR)/compilers/msvc/cmn.mk
   override VC_VER := $(foreach v,$(subst vs,VS,$(VC_VER)),$(if $(filter undefined environment,$(origin $v)),$(error \
     unknown VC_VER=$(VC_VER), please use one of: vs2002 vs2003 vs2005 vs2008 vs2010 vs2012 vs2013 vs2015),$($v)))
 else ifneq (,$(word 3,$(subst ., ,$(VC_VER))))
