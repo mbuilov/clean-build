@@ -4,7 +4,7 @@
 # Licensed under GPL version 2 or any later version, see COPYING
 #----------------------------------------------------------------------------------
 
-# included by $(CLEAN_BUILD_DIR)/compilers/msvc_conf.mk
+# included by $(CLEAN_BUILD_DIR)/compilers/msvc/auto/conf.mk
 
 # if $(TMD)VCLIBPATH or $(TMD)VCINCLUDE are not defined in project configuration makefile or in command line,
 #  define VCLIBPATH_AUTO and VCINCLUDE_AUTO values from path to cl.exe
