@@ -50,14 +50,14 @@ keyword_endef:= endef
 # $4 - multiline continuation: \
 # $5 - continuation prefix: d
 #
+# - if $4 is empty:
+# <>
 # <>
 #
+# - if $4 is non-empty:
 # \
 # d<>
 # d<>
-#
-# <>
-# <>
 ifndef TRACE_IN_COLOR
 format_traced_value = $(if $4,$(if $(findstring $(newline),$1),$4$(newline)$5))$2$(subst $(newline),$3$(newline)$5$2,$1)$3
 else
@@ -111,6 +111,7 @@ format_traced_value = $(if $4,$(if $(findstring $(newline),$1),$4$(newline)$5))$
   $$$(open_brace)firstword ,$$$(open_brace)[33;1mfirstword[m ,$(subst \
   $$$(open_brace)findstring ,$$$(open_brace)[33;1mfindstring[m ,$(subst \
   $$$(open_brace)filter-out ,$$$(open_brace)[33;1mfilter-out[m ,$(subst \
+  $$(newline),$$([34;1mnewline[m),$(subst \
   $$0,[35;1m$$0[m,$(subst \
   $$1,[35;1m$$1[m,$(subst \
   $$2,[35;1m$$2[m,$(subst \
@@ -120,7 +121,7 @@ format_traced_value = $(if $4,$(if $(findstring $(newline),$1),$4$(newline)$5))$
   $$6,[35;1m$$6[m,$(subst \
   $$7,[35;1m$$7[m,$(subst \
   $$8,[35;1m$$8[m,$(subst \
-  $$9,[35;1m$$9[m,$1))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))$3
+  $$9,[35;1m$$9[m,$1)))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))$3
 endif
 
 # print result $1 and return $1
@@ -128,20 +129,20 @@ endif
 ifndef TRACE_IN_COLOR
 infofn = $(info $(call format_traced_value,$1,$2<,>))$1
 else
-infofn = $(info [32m$(call format_traced_value,$1,$2<[m,[32m>)[m)$1
+infofn = $(info $(call format_traced_value,$1,[32m$2<[m,[32m>[m))$1
 endif
 
 # dump variables
 # $1 - list of variables to dump
 # $2 - optional context
 # $(call dump,VAR1,Q: ) -> print 'Q: dump: VAR1=<xxx>'
-# note: surround dump with fake $(if) to avoid any text in result of $(dump)
+# note: surround dump with fake $(if ...) to avoid any text in result of $(dump)
 ifndef TRACE_IN_COLOR
 dump = $(if $(foreach =,$1,$(warning $2dump: $=$(if $(findstring \
   simple,$(flavor $=)),:)=$(call format_traced_value,$(value $=),<,>,\,))),)
 else
 dump = $(if $(foreach =,$1,$(warning $2[35;1mdump[m: [34;1m$=[36m$(if $(findstring \
-  simple,$(flavor $=)),:)=[35m$(call format_traced_value,$(value $=),<[m,[35;1m>,\,)[m)),)
+  simple,$(flavor $=)),:)=$(call format_traced_value,$(value $=),[35;1m<[m,[35;1m>[m,[35m\[m))),)
 endif
 
 # maximum number of arguments of any macro
@@ -156,7 +157,7 @@ dump_args := $(foreach i,$(dump_max),:$$(if \
   $$($i),$$(newline)$$$$$i=$$(call format_traced_value,$$($i),<,>,\,)))
 else
 dump_args := $(foreach i,$(dump_max),:$$(if \
-  $$($i),$$(newline)[34;1m$$$$$i=[36m$$(call format_traced_value,$$($i),<[m,[36;1m>,\,)[m))
+  $$($i),$$(newline)[34;1m$$$$$i=$$(call format_traced_value,$$($i),[36;1m<[m,[36;1m>[m,[36m\[m)))
 endif
 
 $(eval dump_args = $(subst $(space):,, $(dump_args)))
@@ -171,7 +172,7 @@ tracefn = $(warning [35;1mtracefn[m: [32m$$($0)$(subst $(newline),$(newline)
 endif
 
 # trace level
-cb_trace_level^:=
+cb_trace_level.^l:=
 
 # encode variable name $= so that it may be used in $(eval $(encoded_name)=...)
 encode_traced_var_name = $(subst $(close_brace),^c@,$(subst $(open_brace),^o@,$(subst :,^d@,$(subst !,^e@,$=)))).^t
@@ -180,11 +181,11 @@ encode_traced_var_name = $(subst $(close_brace),^c@,$(subst $(open_brace),^o@,$(
 # $1 - macro name, must accept no more than $(dump_max) arguments
 # $2 - result of $(encode_traced_var_name)
 # $3 - override or <empty>
-# $4 - names of variables to dump before traced call
-# $5 - names of variables to dump after traced call
+# $4 - names of variables to dump before the traced call
+# $5 - names of variables to dump after the traced call
 # $6 - if non-empty, then forcibly protect new values of traced macros (used by $(CLEAN_BUILD_DIR)/core/protection.mk)
-# note: must use $$(call $2,_dump_params_): Gnu Make does not allows recursive calls: $(call a)->$(b)->$(call a)->$(b)->...
-# note: $(cb_trace_level^) marks overridden traced macro
+# note: must use $$(call $2,_dump_params_): Gnu Make do not allow recursive calls: $(call a)->$(b)->$(call a)->$(b)->...
+# note: $(cb_trace_level.^l) marks overridden traced macro
 # note: first line must be empty
 ifndef TRACE_IN_COLOR
 define trace_calls_template
@@ -192,52 +193,53 @@ define trace_calls_template
 ifdef $1
 ifeq (simple,$(flavor $1))
 $2:=$$($1)
-$3 $1 = $$(warning $$(cb_trace_level^) $1:=$$(call format_traced_value,$$($2),<,>,\,))$$($2)
+$3 $1 = $$(warning $$(cb_trace_level.^l) $1:=$$(call \
+  format_traced_value,$$($2),<,>,\,))$$($2)
 else
 $(keyword_define) $2
 $(value $1)
 $(keyword_endef)
 $3 $(keyword_define) $1
-$$(foreach =,$$(words $$(cb_trace_level^)),$$(warning \
-  $$(cb_trace_level^) $$$$($1) $$={$$(dump_args))$$(call dump,$4,--> )$$(warning \
+$$(foreach =,$$(words $$(cb_trace_level.^l)),$$(warning \
+  $$(cb_trace_level.^l) $$$$(call $1) $$={$$(dump_args))$$(call dump,$4,--> )$$(warning \
   --- $1 value---->$$(newline)$$(call format_traced_value,$$(value $2),<,>))$$(warning \
-  --- $1 result--->)$$(eval cb_trace_level^+=$1->)$$(call \
+  --- $1 result--->)$$(eval cb_trace_level.^l+=$1->)$$(call \
   infofn,$$(call $2,_dump_params_),$$=)$$(call dump,$5,<-- )$$(eval \
-  cb_trace_level^:=$$(wordlist 1,$$=,$$(cb_trace_level^)))$$(warning <===== }$$= $$$$($1)))
+  cb_trace_level.^l:=$$(wordlist 1,$$=,$$(cb_trace_level.^l)))$$(warning <===== }$$= $$$$($1)))
 $(keyword_endef)
 endif
 endif
 endef
-else
+else # TRACE_IN_COLOR
 define trace_calls_template
 
 ifdef $1
 ifeq (simple,$(flavor $1))
 $2:=$$($1)
-$3 $1 = $$(warning $$(cb_trace_level^) [33;1m$1[36m:=[31m$$(call format_traced_value,$$($2),<[m,[31;1m>,\,)[m)$$($2)
+$3 $1 = $$(warning $$(cb_trace_level.^l) [33;1m$1[36m:=$$(call \
+  format_traced_value,$$($2),[31;1m<[m,[31;1m>[m,[31m\[m))$$($2)
 else
 $(keyword_define) $2
 $(value $1)
 $(keyword_endef)
 $3 $(keyword_define) $1
-$$(foreach =,$$(words $$(cb_trace_level^)),$$(warning \
-  $$(cb_trace_level^) [32;1m$$$$($1) [;32m$$=[36m{[m$$(dump_args))$$(call dump,$4,[34;1m-->[m )$$(warning \
-  [32;1m--- $1 [33mvalue---->[m$$(newline)[35;1m$$(call format_traced_value,$$(value $2),<[m,[35;1m>)[m)$$(warning \
-  [36;1m--- $1 [33mresult--->[m)$$(eval cb_trace_level^+=[36m$1[35;1m->[m)$$(call \
+$$(foreach =,$$(words $$(cb_trace_level.^l)),$$(warning \
+  $$(cb_trace_level.^l) [32;1m$$$$([33mcall[32m $1) [;32m$$=[36m{[m$$(dump_args))$$(call dump,$4,[34;1m-->[m )$$(warning \
+  [32;1m--- $1 [33mvalue---->[m$$(newline)$$(call format_traced_value,$$(value $2),[35;1m<[m,[35;1m>[m))$$(warning \
+  [36;1m--- $1 [33mresult--->[m)$$(eval cb_trace_level.^l+=[36m$1[35;1m->[m)$$(call \
   infofn,$$(call $2,_dump_params_),$$=)$$(call dump,$5,[34;1m<--[m )$$(eval \
-  cb_trace_level^:=$$(wordlist 1,$$=,$$(cb_trace_level^)))$$(warning [31m<===== [36;1m}[;32m$$=[31;1m $$$$($1)[m))
+  cb_trace_level.^l:=$$(wordlist 1,$$=,$$(cb_trace_level.^l)))$$(warning [31m<===== [36;1m}[;32m$$=[31;1m $$$$($1)[m))
 $(keyword_endef)
 endif
 endif
 endef
-endif
+endif # TRACE_IN_COLOR
 
 # protect traced macros
 # $6 - if non-empty, then forcibly protect new values of traced macros (used by $(CLEAN_BUILD_DIR)/core/protection.mk)
 # note: pass 0 as second parameter to SET_GLOBAL1 to not try to trace already traced macro
 ifneq (,$(filter-out undefined environment,$(origin SET_GLOBAL1)))
-$(eval define trace_calls_template$(newline)$(value trace_calls_template)$(newline)$$(call \
-  SET_GLOBAL1,$$2 $$(if $$6,$$1,$$(if $$(filter $$1,$$(CLEAN_BUILD_PROTECTED_VARS)),$$1)),0)$(newline)endef)
+trace_calls_template += $(if $(or $6,$(filter $1,$(CLEAN_BUILD_PROTECTED_VARS))),$(newline)$(call SET_GLOBAL1,$1,0))
 endif
 
 # replace _dump_params_ with: $(1),$(2),$(3...)
@@ -245,7 +247,7 @@ $(eval define trace_calls_template$(newline)$(subst _dump_params_,$$$$$(open_bra
   $(space),$(close_brace)$(comma)$$$$$(open_brace),$(dump_max))$(close_brace),$(value trace_calls_template))$(newline)endef)
 
 # replace macros with their traced equivalents
-# $1 - traced macros in form:
+# $1 - traced macros in the form:
 #   name=b1;b2;b3;$$1;b4=e1;e2
 # ($$1 - special case, when macro argument $1 is the names of another macros - dump their values)
 # $2 - if non-empty, then forcibly protect new values of traced macros (used by $(CLEAN_BUILD_DIR)/core/protection.mk)
@@ -254,6 +256,6 @@ $(eval define trace_calls_template$(newline)$(subst _dump_params_,$$$$$(open_bra
 #   b1;b2;b3;$$1;b4 - names of variables to dump before traced call
 #   e1;e2           - names of variables to dump after traced call
 trace_calls = $(eval $(foreach :,$1,$(foreach =,$(firstword $(subst =, ,$:)),$(if $(findstring \
-  undefined,$(origin $=)),,$(if $(findstring $$(cb_trace_level^),$(value $=)),,$(call \
+  undefined,$(origin $=)),,$(if $(findstring $$(cb_trace_level.^l),$(value $=)),,$(call \
   trace_calls_template,$=,$(encode_traced_var_name),$(if $(findstring command line,$(origin $=)),override,$(findstring \
-  override,$(origin $=))),$(subst ;, ,$(word 2,$(subst =, ,$(f=)))),$(subst ;, ,$(word 3,$(subst =, ,$:))),$2))))))
+  override,$(origin $=))),$(subst ;, ,$(word 2,$(subst =, ,$:))),$(subst ;, ,$(word 3,$(subst =, ,$:))),$2))))))
