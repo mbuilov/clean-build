@@ -58,7 +58,7 @@ endef
 # 4. $(call SET_GLOBAL1,v) -> $(call trace_calls,v,1) -> $(call SET_GLOBAL1,v.^t v,0) = protect v and trace it
 ifdef TRACE
 SET_GLOBAL1 = $(if $2,$(foreach =,$(filter $1,$(CLEAN_BUILD_PROTECTED_VARS)),$(info \
-  override global: $=))$(CLEAN_BUILD_PROTECT_VARS2),$$(call trace_calls,$1,1))
+  override global: $=))$(CLEAN_BUILD_PROTECT_VARS2),$$(call trace_calls,$(subst $$,$$$$,$1),1))
 else
 SET_GLOBAL1 = $(call CLEAN_BUILD_PROTECT_VARS2,$(foreach =,$1,$(firstword $(subst =, ,$=))))
 endif
@@ -79,15 +79,15 @@ CLEAN_BUILD_RESET_LOCAL_VAR = $(if \
 
 # only protected variables may remain its values between makefiles,
 #  redefine non-protected (i.e. "local") variables to produce access errors
-# note: do not touch GNU Make automatic variable MAKEFILE_LIST
-# note: do not reset %^saved variables here - they are needed for RESTORE_VARS, which will reset them later
+# note: do not touch GNU Make automatic variable MAKEFILE_LIST (but $(origin MAKEFILE_LIST) gives 'file')
+# note: do not reset %.^s variables here - they are needed for RESTORE_VARS, which will reset them later
 # note: do not touch automatic variables
 CLEAN_BUILD_RESET_LOCAL_VARS = $(foreach =,$(filter-out \
-  MAKEFILE_LIST $(CLEAN_BUILD_PROTECTED_VARS) %^saved,$(.VARIABLES)),$(if \
+  MAKEFILE_LIST $(CLEAN_BUILD_PROTECTED_VARS) %.^s,$(.VARIABLES)),$(if \
   $(filter file override environment,$(origin $=)),$(CLEAN_BUILD_RESET_LOCAL_VAR)))
 
-# called by RESTORE_VARS to reset %^saved variables
-CLEAN_BUILD_RESET_SAVED_VARS = $(foreach =,$(filter %^saved,$(.VARIABLES)),$(CLEAN_BUILD_RESET_LOCAL_VAR))
+# called by RESTORE_VARS to reset %.^s variables
+CLEAN_BUILD_RESET_SAVED_VARS = $(foreach =,$(filter %.^s,$(.VARIABLES)),$(CLEAN_BUILD_RESET_LOCAL_VAR))
 
 # called from $(CLEAN_BUILD_DIR)/core/all.mk
 CLEAN_BUILD_RESET_FIRST_PHASE = $(CLEAN_BUILD_RESET_LOCAL_VARS)$(foreach \
@@ -160,8 +160,8 @@ ifdef TRACE
 
 # trace calls to macros
 # $1 - list: AAA=b1;b2;$$1=e1;e2 BBB=b1;b2=e1;e2;...
-# $2 - if not empty, then do not trace calls for given macros (for example, if called from trace_calls_template)
-SET_GLOBAL1 = $(if $2,,$$(call trace_calls,$1,))
+# $2 - if not empty, then do not trace calls for the given macros (for example, if called from trace_calls_template)
+SET_GLOBAL1 = $(if $2,,$$(call trace_calls,$(subst $$,$$$$,$1),))
 
 # trace calls to macros
 # $1 - list of macros in form: AAA=b1;b2;$$1=e1;e2 BBB=b1;b2=e1;e2;...
