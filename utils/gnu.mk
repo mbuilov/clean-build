@@ -14,10 +14,10 @@ include $(dir $(lastword $(MAKEFILE_LIST)))unix.mk
 # note: cannot unset some variables (under Cygwin) such as "!::" or "CommonProgramFiles(x86)", so filter them out
 CYGWIN_FILTERED_ENV := $(if $(filter CYGWIN,$(OS)),CommonProgramFiles(x86) ProgramFiles(x86) !::)
 
-# print prepared environment in verbose mode (used for generating one-big-build instructions shell file)
-PRINT_ENV = $(info for v in `env | cut -d= -f1`; do $(foreach \
+# script to print prepared environment in verbose mode (used for generating one-big-build instructions shell file)
+PRINT_ENV = for v in `env | cut -d= -f1`; do $(foreach \
   x,PATH SHELL $(PASS_ENV_VARS) $(CYGWIN_FILTERED_ENV),[ "$x" = "$$v" ] ||) unset "$$v"; done$(foreach \
-  v,PATH SHELL $(PASS_ENV_VARS),$(newline)export $v='$($v)'))
+  v,PATH SHELL $(PASS_ENV_VARS),$(newline)export $v='$($v)')
 
 # delete file(s) $1 (short list, no more than PATH_ARGS_LIMIT), paths may contain spaces: '1 2/3 4' '5 6/7 8/9' ...
 DELETE_FILES = rm -f$(if $(VERBOSE),v) $1$(if $(VERBOSE), >&2)

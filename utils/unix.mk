@@ -8,10 +8,10 @@
 
 # this file included by $(CLEAN_BUILD_DIR)/core/_defs.mk
 
-# print prepared environment in verbose mode (used for generating one-big-build instructions shell file)
-PRINT_ENV = $(info for v in `env | cut -d= -f1`; do $(foreach \
+# script to print prepared environment in verbose mode (used for generating one-big-build instructions shell file)
+PRINT_ENV = for v in `env | cut -d= -f1`; do $(foreach \
   x,PATH SHELL $(PASS_ENV_VARS),[ "$x" = "$$v" ] ||) unset "$$v"; done$(foreach \
-  v,PATH SHELL $(PASS_ENV_VARS),$(newline)$v='$($v)'$(newline)export $v))
+  v,PATH SHELL $(PASS_ENV_VARS),$(newline)$v='$($v)'$(newline)export $v)
 
 # command line length is limited:
 # POSIX smallest allowable upper limit on argument length (all systems): 4096

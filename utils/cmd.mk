@@ -65,10 +65,10 @@ CYGWIN_STRING := cygwin
 override PATH := $(call tospaces,$(subst $(space),;,$(strip $(foreach p,$(subst \
   ;, ,$(call unspaces,$(PATH))),$(if $(findstring $(CYGWIN_STRING),$p),,$p)))))
 
-# print prepared environment in verbose mode (used for generating one-big-build instructions batch file)
-PRINT_ENV = $(info setlocal$(newline)FOR /F "delims==" %%V IN ('SET') DO $(foreach \
+# script to print prepared environment in verbose mode (used for generating one-big-build instructions shell file)
+PRINT_ENV = setlocal$(newline)FOR /F "delims==" %%V IN ('SET') DO $(foreach \
   x,PATH $(WIN_REQUIRED_VARS) $(PASS_ENV_VARS),IF /I NOT "$x"=="%%V") SET "%%V="$(foreach \
-  v,PATH $(filter $(WIN_REQUIRED_VARS),$(WIN_EXPORTED)) $(PASS_ENV_VARS),$(newline)SET "$v=$($v)"))
+  v,PATH $(filter $(WIN_REQUIRED_VARS),$(WIN_EXPORTED)) $(PASS_ENV_VARS),$(newline)SET "$v=$($v)")
 
 # command line length of cmd.exe is limited:
 # for Windows 95   - 127 chars;
