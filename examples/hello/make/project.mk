@@ -65,7 +65,7 @@ PRODUCT_VER := 1.0.0
 # MTOP - path to clean-build build system
 # Note: normally MTOP is defined in command line,
 #  but for this example, MTOP may be deduced automatically
-MTOP := $(abspath $(TOP)/../../..)
+MTOP := $(abspath $(TOP)/../..)
 
 # include core clean-build definitions, processing of CONFIG and OVERRIDES variables,
 #  define MTOP variable - path to clean-build
