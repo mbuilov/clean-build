@@ -918,7 +918,13 @@ TMD:=
 #  (before including this file and so before evaluating $(DEF_HEAD_CODE))
 # reset TOOL_MODE if it was not set in target makefile
 ifneq (file,$(origin TOOL_MODE))
+ifndef MCHECK
 TOOL_MODE:=
+else
+# do not allow to read TOOL_MODE, only to set it
+# NOTE: if you change error message, also fix it below!
+TOOL_MODE = $(error please use TMD variable to check for the tool mode)
+endif
 endif
 
 # variable used to track makefiles include level
@@ -996,9 +1002,9 @@ endif
 
 # use TOOL_MODE only to set value of TMD variable, forbid reading $(TOOL_MODE) in target makefiles
 ifdef MCHECK
-$(call define_append,DEF_HEAD_CODE,$(newline)TOOL_MODE=$$(error please use TMD variable to check for the tool mode))
-$(call define_prepend,DEF_HEAD_CODE,ifeq ($$$$(error please use TMD variable to check for the tool mode),$$(value \
-  TOOL_MODE))$(newline)TOOL_MODE:=$$(TMD)$(newline)endif$(newline))
+$(call define_append,DEF_HEAD_CODE,$(newline)TOOL_MODE=$$$$(error please use TMD variable to check for the tool mode))
+$(call define_prepend,DEF_HEAD_CODE,ifeq ($$$$$$$$(error please use TMD variable to check for the tool mode),$$$$(value \
+  TOOL_MODE))$(newline)TOOL_MODE:=$$$$(TMD)$(newline)endif$(newline))
 endif
 
 # remember new value of MAKE_CONT (without tracing calls to it)
