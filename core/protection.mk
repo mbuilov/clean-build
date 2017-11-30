@@ -57,7 +57,7 @@ endef
 # 3.                          $(call trace_calls,v)   -> $(call SET_GLOBAL1,v.^t v,0) = trace protected v, protect internal var and new v
 # 4. $(call SET_GLOBAL1,v) -> $(call trace_calls,v,1) -> $(call SET_GLOBAL1,v.^t v,0) = protect v and trace it
 ifdef TRACE
-SET_GLOBAL1 = $(if $2,$(foreach =,$(filter $1,$(CLEAN_BUILD_PROTECTED_VARS)),$(info \
+SET_GLOBAL1 = $(if $2,$(foreach =,$(filter $1,$(CLEAN_BUILD_PROTECTED_VARS)),$(warning \
   override global: $=))$(CLEAN_BUILD_PROTECT_VARS2),$$(call trace_calls,$(subst $$,$$$$,$1),1))
 else
 SET_GLOBAL1 = $(call CLEAN_BUILD_PROTECT_VARS2,$(foreach =,$1,$(firstword $(subst =, ,$=))))
