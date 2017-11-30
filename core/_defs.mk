@@ -110,8 +110,9 @@ include $(CLEAN_BUILD_DIR)/core/confsup.mk
 # note: here TARGET_MAKEFILE variable is used temporary, it will be properly defined below
 $(TARGET_MAKEFILE)
 
-# protect from modification list of project-specific variables
-$(call SET_GLOBAL,$(PROJECT_VARS_NAMES))
+# protect from modification project-specific variables
+# NOTE: automatically defined SHELL variable will be protected later
+$(call SET_GLOBAL,$(filter-out SHELL,$(PROJECT_VARS_NAMES)))
 
 # BUILD - directory for built files - must be defined either in command line
 #  or in project configuration makefile before including this file, for example:
