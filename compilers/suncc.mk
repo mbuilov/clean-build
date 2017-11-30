@@ -263,7 +263,7 @@ $(call define_append,C_PREPARE_APP_VARS,$(C_PREPARE_PCH_VARS))
 $(call try_make_simple,C_PREPARE_APP_VARS,C_PREPARE_PCH_VARS)
 
 # for all application-level targets: add support for precompiled headers
-$(call define_prepend,DEFINE_C_APP_EVAL,$$(eval $$(foreach t,$(C_APP_TARGETS),$$(if $$($$t),$$(SUNCC_PCH_TEMPLATEt)))))
+$(call define_prepend,C_DEFINE_APP_RULES,$$(eval $$(foreach t,$(C_APP_TARGETS),$$(if $$($$t),$$(SUNCC_PCH_TEMPLATEt)))))
 
 endif # !NO_PCH
 
