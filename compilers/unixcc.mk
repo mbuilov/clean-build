@@ -70,7 +70,7 @@ endif
 
 # for DLL:         define target-specific variable MODVER
 # for DLL and EXE: define target-specific variables RPATH and MAP
-$(call define_prepend,DEFINE_C_APP_EVAL,$$(eval $$(UNIX_MOD_AUX_APP)))
+$(call define_prepend,C_DEFINE_APP_RULES,$$(eval $$(UNIX_MOD_AUX_APP)))
 
 # protect variables from modifications in target makefiles
 $(call SET_GLOBAL,RPATH C_PREPARE_UNIX_APP_VARS \
