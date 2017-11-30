@@ -291,7 +291,7 @@ EXE_AUX_TEMPLATE = $(call EXE_DLL_AUX_TEMPLATE,$(call FORM_TRG,EXE,$v),$(if $(EX
 DLL_AUX_TEMPLATE = $(call EXE_DLL_AUX_TEMPLATE,$(call FORM_TRG,DLL,$v),$(if $(DLL_NO_EXPORTS),,$(EXE_DLL_FORM_IMPORT_LIB)))
 
 # for DLL and EXE, define target-specific variables: SUBSYSTEM, MODVER, IMP, DEF
-$(call define_prepend,DEFINE_C_APP_EVAL,$$(eval \
+$(call define_prepend,C_DEFINE_APP_RULES,$$(eval \
   $$(foreach t,EXE DLL,$$(if $$($$t),$$(foreach v,$$(call GET_VARIANTS,$$t),$$($$t_AUX_TEMPLATE))))))
 
 else # clean
@@ -302,7 +302,7 @@ EXE_EXP_TOCLEAN = $(if $(EXE_EXPORTS),$(call EXPORTS_TO_CLEANUP,$(EXE_DLL_FORM_I
 DLL_EXP_TOCLEAN = $(if $(DLL_NO_EXPORTS),,$(call EXPORTS_TO_CLEANUP,$(EXE_DLL_FORM_IMPORT_LIB)))
 
 # for DLL and EXE, cleanup import library and .exp file
-$(call define_prepend,DEFINE_C_APP_EVAL,$$(call \
+$(call define_prepend,C_DEFINE_APP_RULES,$$(call \
   TOCLEAN,$$(foreach t,EXE DLL,$$(if $$($$t),$$(foreach v,$$(call GET_VARIANTS,$$t),$$($$t_EXP_TOCLEAN))))))
 
 endif # clean
@@ -310,7 +310,7 @@ endif # clean
 # DEF variable is used only when building EXE or DLL
 ifdef MCHECK
 LIB_DEF_VARIABLE_CHECK = $(if $(DEF),$(if $(LIB),$(if $(EXE)$(DLL),,$(warning DEF variable is not used when building a LIB))))
-$(call define_prepend,DEFINE_C_APP_EVAL,$$(LIB_DEF_VARIABLE_CHECK))
+$(call define_prepend,C_DEFINE_APP_RULES,$$(LIB_DEF_VARIABLE_CHECK))
 endif
 
 # linker for each variant of LIB
@@ -496,12 +496,12 @@ $(call try_make_simple,C_PREPARE_APP_VARS,C_PREPARE_PCH_VARS)
 MSVC_APP_PCH_TEMPLATE = $(if $($(TMD)MP_BUILD),$(MSVC_PCH_TEMPLATE_MPt),$(MSVC_PCH_TEMPLATEt))
 
 # for all application-level targets: add support for precompiled headers
-$(call define_prepend,DEFINE_C_APP_EVAL,$$(eval $$(foreach t,$(C_APP_TARGETS),$$(if $$($$t),$$(MSVC_APP_PCH_TEMPLATE)))))
+$(call define_prepend,C_DEFINE_APP_RULES,$$(eval $$(foreach t,$(C_APP_TARGETS),$$(if $$($$t),$$(MSVC_APP_PCH_TEMPLATE)))))
 
 endif # !NO_PCH
 
 # add standard version info resource to the target EXE or DLL
-$(call define_prepend,DEFINE_C_APP_EVAL,$$(eval $$(foreach t,EXE DLL,$$(call STD_RES_TEMPLATE,$$t))))
+$(call define_prepend,C_DEFINE_APP_RULES,$$(eval $$(foreach t,EXE DLL,$$(call STD_RES_TEMPLATE,$$t))))
 
 ifdef TOCLEAN
 
@@ -517,7 +517,7 @@ EXE_PDB_CLEANUP = $(APP_PDB_CLEANUP) $(basename $(call FORM_TRG,EXE,$v)).pdb
 DLL_PDB_CLEANUP = $(APP_PDB_CLEANUP) $(basename $(call FORM_TRG,DLL,$v)).pdb
 LIB_PDB_CLEANUP = $(APP_PDB_CLEANUP)
 
-$(call define_prepend,DEFINE_C_APP_EVAL,$$(call \
+$(call define_prepend,C_DEFINE_APP_RULES,$$(call \
   TOCLEAN,$$(foreach t,$(C_APP_TARGETS),$$(if $$($$t),$$(foreach v,$$(call GET_VARIANTS,$$t),$$($$t_PDB_CLEANUP))))))
 
 endif # TOCLEAN
