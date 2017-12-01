@@ -57,7 +57,7 @@ endef
 # 3.                          $(call trace_calls,v)   -> $(call SET_GLOBAL1,v.^t v,0) = trace protected v, protect internal var and new v
 # 4. $(call SET_GLOBAL1,v) -> $(call trace_calls,v,1) -> $(call SET_GLOBAL1,v.^t v,0) = protect v and trace it
 ifdef TRACE
-SET_GLOBAL1 = $(if $2,$(foreach =,$(filter $1,$(CLEAN_BUILD_PROTECTED_VARS)),$(warning \
+SET_GLOBAL1 = $(if $2,$(foreach =,$(filter $1,$(CLEAN_BUILD_PROTECTED_VARS)),$$(warning \
   override global: $=))$(CLEAN_BUILD_PROTECT_VARS2),$$(call trace_calls,$(subst $$,$$$$,$1),1))
 else
 SET_GLOBAL1 = $(call CLEAN_BUILD_PROTECT_VARS2,$(foreach =,$1,$(firstword $(subst =, ,$=))))
@@ -68,22 +68,25 @@ endif
 # $2 - if not empty, then do not trace calls for given macros
 SET_GLOBAL = $(eval $(SET_GLOBAL1))
 
+# redefine variable to produce access error
+# $1 - variable name
+CLEAN_BUILD_VAR_ACCESS_ERROR = $(eval $(if $(filter environment,$(origin $1)),$$1=!$$(error \
+  using environment variable: $1, use of environment variables is discouraged, please use only file variables),$(findstring \
+  override,$(origin $1)) $$1=!$$(error using local variable $1, please define instead target-specific variable or a global one)))
+
 # reset "local" variable $=:
-# check if $v is not already produces access error
-CLEAN_BUILD_RESET_LOCAL_VAR = $(if \
-  $(filter-out !$$$(open_brace)error$(space)%,$(value $=)),$(if \
-  $(filter environment,$(origin $=)),$==!$$(error \
-  using environment variable: $=, use of environment variables is discouraged, please use only file variables),$(findstring \
-  override,$(origin $=)) $==!$$(error \
-  using local varaible: $=, please use target-specific or global one))$(newline))
+# check if it is not already produces access error
+CLEAN_BUILD_RESET_LOCAL_VAR = $(if $(filter-out !$$$(open_brace)error$$(space)%,$(subst \
+  $(space),$$(space),$(value $=))),$$(call CLEAN_BUILD_VAR_ACCESS_ERROR,$=)$(newline))
 
 # only protected variables may remain its values between makefiles,
 #  redefine non-protected (i.e. "local") variables to produce access errors
 # note: do not touch GNU Make automatic variable MAKEFILE_LIST (but $(origin MAKEFILE_LIST) gives 'file')
 # note: do not reset %.^s variables here - they are needed for RESTORE_VARS, which will reset them later
+# note: do not reset trace variables %.^l %.^t and %.^p - variables which store original values of protected variables
 # note: do not touch automatic variables
 CLEAN_BUILD_RESET_LOCAL_VARS = $(foreach =,$(filter-out \
-  MAKEFILE_LIST $(CLEAN_BUILD_PROTECTED_VARS) %.^s,$(.VARIABLES)),$(if \
+  MAKEFILE_LIST $(CLEAN_BUILD_PROTECTED_VARS) %.^l %.^t %.^p %.^s,$(.VARIABLES)),$(if \
   $(filter file override environment,$(origin $=)),$(CLEAN_BUILD_RESET_LOCAL_VAR)))
 
 # called by RESTORE_VARS to reset %.^s variables
@@ -138,15 +141,16 @@ TARGET_MAKEFILE = $(call SET_GLOBAL,CLEAN_BUILD_OVERRIDDEN_VARS CLEAN_BUILD_NEED
 # note: TARGET_MAKEFILE variable is used here temporary and will be redefined later
 TARGET_MAKEFILE += $(call SET_GLOBAL,CLEAN_BUILD_PROTECTED_VARS \
   MCHECK TRACE CLEAN_BUILD_ENCODE_VAR_VALUE CLEAN_BUILD_ENCODE_VAR_NAME \
-  CLEAN_BUILD_PROTECT_VARS2 SET_GLOBAL1 SET_GLOBAL \
+  CLEAN_BUILD_PROTECT_VARS2 SET_GLOBAL1 SET_GLOBAL CLEAN_BUILD_VAR_ACCESS_ERROR \
   CLEAN_BUILD_RESET_LOCAL_VAR CLEAN_BUILD_RESET_LOCAL_VARS CLEAN_BUILD_RESET_SAVED_VARS \
   CLEAN_BUILD_CHECK_AT_HEAD CLEAN_BUILD_CHECK_PROTECTED_VAR CLEAN_BUILD_CHECK_AT_TAIL,0)
 
 # these macros must not be used in rule execution second phase
 CLEAN_BUILD_FIRST_PHASE_VARS += MCHECK TRACE CLEAN_BUILD_PROTECTED_VARS CLEAN_BUILD_FIRST_PHASE_VARS \
   CLEAN_BUILD_OVERRIDDEN_VARS CLEAN_BUILD_NEED_TAIL_CODE CLEAN_BUILD_ENCODE_VAR_VALUE CLEAN_BUILD_ENCODE_VAR_NAME \
-  CLEAN_BUILD_PROTECT_VARS2 trace_calls SET_GLOBAL1 SET_GLOBAL CLEAN_BUILD_RESET_LOCAL_VAR CLEAN_BUILD_RESET_LOCAL_VARS \
-  CLEAN_BUILD_RESET_SAVED_VARS CLEAN_BUILD_CHECK_AT_HEAD CLEAN_BUILD_CHECK_PROTECTED_VAR CLEAN_BUILD_CHECK_AT_TAIL TARGET_MAKEFILE
+  CLEAN_BUILD_PROTECT_VARS2 trace_calls SET_GLOBAL1 SET_GLOBAL CLEAN_BUILD_VAR_ACCESS_ERROR \
+  CLEAN_BUILD_RESET_LOCAL_VAR CLEAN_BUILD_RESET_LOCAL_VARS CLEAN_BUILD_RESET_SAVED_VARS \
+  CLEAN_BUILD_CHECK_AT_HEAD CLEAN_BUILD_CHECK_PROTECTED_VAR CLEAN_BUILD_CHECK_AT_TAIL TARGET_MAKEFILE
 
 else # !MCHECK
 
