@@ -26,10 +26,11 @@ NORM_MAKEFILES = $(if $1,$(call NORM_MAKEFILES,$(wordlist 2,999999,$1),$$(patsub
 $(eval NORM_MAKEFILES = $(call NORM_MAKEFILES,$(MAKEFILE_PATTERNS),$$(addsuffix /$(DEFAULT_MAKEFILE_NAME),$$(call fixpath,$$1))))
 
 # $m - absolute path to makefile to include
+# $2 - current TOOL_MODE value
 # note: TOOL_MODE value may be changed (set) in included makefile, so restore TOOL_MODE before including next makefile
 # note: last line must be empty to allow to join multiple $(CB_INCLUDE_TEMPLATE)s together
 define CB_INCLUDE_TEMPLATE
-TOOL_MODE:=$(TOOL_MODE)
+TOOL_MODE:=$2
 TARGET_MAKEFILE:=$m
 include $m
 
@@ -43,7 +44,8 @@ $(eval define CB_INCLUDE_TEMPLATE$(newline)$(subst include,$$(call \
 endif
 
 # generate code for processing given list of makefiles
-# $1 - absolute path to makefiles to include
+# $1 - absolute paths to makefiles to include
+# $2 - current TOOL_MODE value
 define CLEAN_BUILD_PARALLEL
 CB_INCLUDE_LEVEL+=.
 $(foreach m,$1,$(CB_INCLUDE_TEMPLATE))
@@ -98,7 +100,7 @@ $(call define_prepend,CLEAN_BUILD_PARALLEL,$$(info $$(subst \
   $$(space),,$$(CB_INCLUDE_LEVEL))$$(TARGET_MAKEFILE)$$(if $$(ORDER_DEPS), | $$(ORDER_DEPS))))
 endif
 
-else ifdef MDEBUG
+else ifdef MDEBUG # clean
 
 # show debug info
 $(call define_prepend,CLEAN_BUILD_PARALLEL,$$(info $$(subst \
@@ -119,24 +121,30 @@ PROCESS_SUBMAKES_EVAL = $(eval $(value CB_PARALLEL_CODE))$(eval $(call DEF_TAIL_
 # at end, check if need to include $(CLEAN_BUILD_DIR)/core/all.mk
 # note: make absolute paths to makefiles to include
 PROCESS_SUBMAKES = $(eval define CB_PARALLEL_CODE$(newline)$(call \
-  CLEAN_BUILD_PARALLEL,$(NORM_MAKEFILES))$(newline)endef)$(call PROCESS_SUBMAKES_EVAL)
+  CLEAN_BUILD_PARALLEL,$(NORM_MAKEFILES),$(TOOL_MODE))$(newline)endef)$(call PROCESS_SUBMAKES_EVAL)
 
-# set CLEAN_BUILD_NEED_PARALLEL to non-empty value before including sub-makefiles - to check
-#  if a sub-makefile calls PROCESS_SUBMAKES, it _must_ evaluate CLEAN_BUILD_PARALLEL_EVAL
+# TOOL_MODE is reset to $(TOOL_MODE_ERROR) after reading it in $(CLEAN_BUILD_PARALLEL)/core/_defs.mk
+ifdef MCHECK
+$(eval PROCESS_SUBMAKES = $(subst $$(TOOL_MODE),$$(if $$(findstring \
+  $$$$(TOOL_MODE_ERROR),$$(value TOOL_MODE)),$$(TMD),$$(TOOL_MODE)),$(value PROCESS_SUBMAKES)))
+endif
+
+# set CLEAN_BUILD_NEED_PARALLEL to non-empty value before including sub-makefiles - to check if a
+#  sub-makefile calls PROCESS_SUBMAKES, it _must_ evaluate PROCESS_SUBMAKES_PREPARE prior PROCESS_SUBMAKES
 #  (by including appropriate makefile of project build system - 'make/parallel.mk') before the call
 ifdef MCHECK
-CLEAN_BUILD_PARALLEL_EVAL = $(eval CLEAN_BUILD_NEED_PARALLEL:=)
+PROCESS_SUBMAKES_PREPARE = $(eval CLEAN_BUILD_NEED_PARALLEL:=)
 $(eval PROCESS_SUBMAKES = $$(if $$(CLEAN_BUILD_NEED_PARALLEL),$$(error \
   parallel.mk was not included at head of makefile!))$(subst \
   eval ,eval CLEAN_BUILD_NEED_PARALLEL:=1$$(newline)$$(call \
   SET_GLOBAL1,CLEAN_BUILD_NEED_PARALLEL)$$(newline),$(value PROCESS_SUBMAKES)))
 else
-CLEAN_BUILD_PARALLEL_EVAL:=
+PROCESS_SUBMAKES_PREPARE:=
 endif
 
 # makefile parsing first phase variables
 CLEAN_BUILD_FIRST_PHASE_VARS += CB_INCLUDE_TEMPLATE CLEAN_BUILD_PARALLEL \
-  ADD_MDEPS1 PROCESS_SUBMAKES_EVAL PROCESS_SUBMAKES CLEAN_BUILD_PARALLEL_EVAL
+  ADD_MDEPS1 PROCESS_SUBMAKES_EVAL PROCESS_SUBMAKES PROCESS_SUBMAKES_PREPARE
 
 # protect CLEAN_BUILD_FIRST_PHASE_VARS from modification in target makefiles,
 # do not trace calls to CLEAN_BUILD_FIRST_PHASE_VARS because it's modified via += operator
@@ -145,6 +153,6 @@ $(call SET_GLOBAL,CLEAN_BUILD_FIRST_PHASE_VARS,0)
 # protect variables from modifications in target makefiles
 # note: do not complain about new ADD_MDEPS and ADD_ADEPS values
 # - replace ADD_MDEPS and ADD_ADEPS values defined in $(CLEAN_BUILD_DIR)/core/_defs.mk with new ones
-$(call SET_GLOBAL,DEFAULT_MAKEFILE_NAME MAKEFILE_PATTERNS NORM_MAKEFILES CB_INCLUDE_TEMPLATE=ORDER_DEPS;TOOL_MODE;m \
+$(call SET_GLOBAL,DEFAULT_MAKEFILE_NAME MAKEFILE_PATTERNS NORM_MAKEFILES CB_INCLUDE_TEMPLATE=ORDER_DEPS;m \
   CLEAN_BUILD_PARALLEL ADD_MDEPS1 ADD_MDEPS=ORDER_DEPS=ORDER_DEPS ADD_ADEPS=ORDER_DEPS=ORDER_DEPS \
-  PROCESS_SUBMAKES_EVAL=CB_PARALLEL_CODE PROCESS_SUBMAKES CLEAN_BUILD_PARALLEL_EVAL)
+  PROCESS_SUBMAKES_EVAL=CB_PARALLEL_CODE PROCESS_SUBMAKES PROCESS_SUBMAKES_PREPARE)
