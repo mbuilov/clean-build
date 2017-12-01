@@ -438,9 +438,6 @@ ifdef SET_GLOBAL1
 SET_DEFAULT_DIRS := $(SET_DEFAULT_DIRS)$(newline)$(call SET_GLOBAL1,BIN_DIR OBJ_DIR LIB_DIR GEN_DIR)
 endif
 
-# define BIN_DIR/OBJ_DIR/LIB_DIR/GEN_DIR
-$(eval $(SET_DEFAULT_DIRS))
-
 # base directory of build tools
 TOOL_BASE := $(BUILD)/tools
 
@@ -906,26 +903,28 @@ RUN_TOOL = $(if $2$4,$(if $2,$(eval \
   $$@:export $v:=$$($v)))$(if $(VERBOSE),$(show_tool_vars)@))$(if $3,$(call EXECUTE_IN,$3,$1),$1)$(if \
   $2$4,$(if $(VERBOSE),$(show_tool_vars_end)))
 
+# define BIN_DIR/OBJ_DIR/LIB_DIR/GEN_DIR assuming that we are not in tool-mode
+$(eval $(SET_DEFAULT_DIRS))
+
 # T in "tool mode" - TOOL_MODE variable was set to non-empty value prior evaluating $(DEF_HEAD_CODE), empty in normal mode.
-# note: $(TOOL_MODE) should not be used in rule templates - use $(TMD) instead, because
-#  TOOL_MODE may be set to another value anywhere before $(DEFINE_TARGETS) or $(MAKE_CONTINUE),
-#  and so before rule templates evaluation.
+# note: $(TOOL_MODE) should not be used in rule templates - use $(TMD) instead, because TOOL_MODE may be set to another
+#  value anywhere before $(MAKE_CONTINUE), and so before rule templates evaluation.
 # reset value: we are currently not in tool mode, $(DEF_HEAD_CODE) was not evaluated yet, but $(SET_DEFAULT_DIRS)
-#  has been already evaluated to set non-tool mode values of BIN_DIR, OBJ_DIR, LIB_DIR, GEN_DIR
+#  has been already evaluated to set non-tool mode values of BIN_DIR/OBJ_DIR/LIB_DIR/GEN_DIR
 TMD:=
 
 # TOOL_MODE may be set to non-empty value at beginning of target makefile
 #  (before including this file and so before evaluating $(DEF_HEAD_CODE))
 # reset TOOL_MODE if it was not set in target makefile
 ifneq (file,$(origin TOOL_MODE))
-ifndef MCHECK
-TOOL_MODE:=
+ifdef MCHECK
+# do not allow to read TOOL_MODE in target makefiles, only to set it
+TOOL_MODE_ERROR = $(error please use TMD variable to check for the tool mode)
+TOOL_MODE = $(TOOL_MODE_ERROR)
 else
-# do not allow to read TOOL_MODE, only to set it
-# NOTE: if you change error message, also fix it below!
-TOOL_MODE = $(error please use TMD variable to check for the tool mode)
+TOOL_MODE:=
 endif
-endif
+endif # !file
 
 # variable used to track makefiles include level
 CB_INCLUDE_LEVEL:=
@@ -1002,9 +1001,8 @@ endif
 
 # use TOOL_MODE only to set value of TMD variable, forbid reading $(TOOL_MODE) in target makefiles
 ifdef MCHECK
-$(call define_append,DEF_HEAD_CODE,$(newline)TOOL_MODE=$$$$(error please use TMD variable to check for the tool mode))
-$(call define_prepend,DEF_HEAD_CODE,ifeq ($$$$$$$$(error please use TMD variable to check for the tool mode),$$$$(value \
-  TOOL_MODE))$(newline)TOOL_MODE:=$$$$(TMD)$(newline)endif$(newline))
+$(call define_append,DEF_HEAD_CODE,$(newline)TOOL_MODE=$$$$(TOOL_MODE_ERROR))
+$(call define_prepend,DEF_HEAD_CODE,$$(if $$(findstring $$$$(TOOL_MODE_ERROR),$$(value TOOL_MODE)),$$(eval TOOL_MODE:=$$(TMD))))
 endif
 
 # remember new value of MAKE_CONT (without tracing calls to it)
@@ -1065,13 +1063,13 @@ endif
 
 # before $(MAKE_CONTINUE): save variables to restore them after (via RESTORE_VARS macro)
 SAVE_VARS = $(eval $(foreach v,$1,$(if $(findstring \
-  simple,$(flavor $v)),$v^saved:=$$($v),define $v^saved$(newline)$(value $v)$(newline)endef)$(newline)))
+  simple,$(flavor $v)),$v.^s:=$$($v),define $v.^s$(newline)$(value $v)$(newline)endef)$(newline)))
 
 # after $(MAKE_CONTINUE): restore variables saved before (via SAVE_VARS macro)
 RESTORE_VARS = $(eval $(foreach v,$1,$(if $(findstring \
-  simple,$(flavor $v^saved)),$v:=$$($v^saved),define $v$(newline)$(value $v^saved)$(newline)endef)$(newline)))
+  simple,$(flavor $v.^s)),$v:=$$($v.^s),define $v$(newline)$(value $v.^s)$(newline)endef)$(newline)))
 
-# reset %^saved variables
+# reset %.^s variables
 ifdef CLEAN_BUILD_RESET_SAVED_VARS
 $(eval RESTORE_VARS = $(subst \
   $(close_brace)$(close_brace)$(close_brace),$(close_brace)$(close_brace)$$(CLEAN_BUILD_RESET_SAVED_VARS)$(close_brace),$(value \
@@ -1128,7 +1126,7 @@ PRODUCT_VER := 0.0.1
 # note: do not process dependencies when cleaning up
 NO_DEPS := $(filter clean,$(MAKECMDGOALS))
 
-# BIN_DIR, OBJ_DIR, LIB_DIR, GEN_DIR change their values depending on the value of TOOL_MODE set
+# BIN_DIR/OBJ_DIR/LIB_DIR/GEN_DIR change their values depending on the value of TOOL_MODE set
 #  in last parsed makefile, so clear these variables before rule execution second phase
 CLEAN_BUILD_FIRST_PHASE_VARS += BIN_DIR OBJ_DIR LIB_DIR GEN_DIR
 
@@ -1138,7 +1136,7 @@ CLEAN_BUILD_FIRST_PHASE_VARS += CLEAN_BUILD_GOALS CB_NEEDED_DIRS ORDER_DEPS MULT
   CREATE_MAKEFILE_ALIAS ADD_ORDER_DEPS NEED_GEN_DIRS STD_TARGET_VARS1 STD_TARGET_VARS MAKEFILE_INFO_TEMPL \
   SET_MAKEFILE_INFO GET_TARGET_NAME GET_VARIANTS_F GET_VARIANTS FORM_TRG ALL_TARGETS FORM_OBJ_DIR ADD_GENERATED CHECK_GENERATED \
   ADD_GENERATED_RET NON_PARALLEL_EXECUTE_RULE NON_PARALLEL_EXECUTE MULTI_TARGET_SEQ MULTI_TARGET_RULE MULTI_TARGET \
-  CHECK_MULTI_RULE TMD TOOL_MODE DEF_HEAD_CODE DEF_TAIL_CODE DEFINE_TARGETS SAVE_VARS RESTORE_VARS MAKE_CONTINUE TOCLEAN
+  CHECK_MULTI_RULE TMD TOOL_MODE_ERROR TOOL_MODE DEF_HEAD_CODE DEF_TAIL_CODE DEFINE_TARGETS SAVE_VARS RESTORE_VARS MAKE_CONTINUE TOCLEAN
 
 # protect macros from modifications in target makefiles,
 # do not trace calls to macros used in ifdefs, passed to environment of called tools or modified via operator +=
@@ -1162,7 +1160,7 @@ $(call SET_GLOBAL,PROJECT_VARS_NAMES PASS_ENV_VARS \
   FORM_TRG ALL_TARGETS FORM_OBJ_DIR MAKE_TRG_PATH ADD_GENERATED CHECK_GENERATED ADD_GENERATED_RET \
   NON_PARALLEL_EXECUTE_RULE NON_PARALLEL_EXECUTE \
   MULTI_TARGET_SEQ MULTI_TARGET_RULE=MULTI_TARGET_NUM=MULTI_TARGET_NUM MULTI_TARGET CHECK_MULTI_RULE \
-  FORM_SDEPS ALL_SDEPS FILTER_SDEPS EXTRACT_SDEPS FIX_SDEPS R_FILTER_SDEPS1 R_FILTER_SDEPS RUN_TOOL TMD \
+  FORM_SDEPS ALL_SDEPS FILTER_SDEPS EXTRACT_SDEPS FIX_SDEPS R_FILTER_SDEPS1 R_FILTER_SDEPS RUN_TOOL TMD TOOL_MODE_ERROR \
   DEF_HEAD_CODE DEF_TAIL_CODE CB_PREPARE_TARGET_TYPE DEFINE_TARGETS SAVE_VARS RESTORE_VARS MAKE_CONTINUE CONF_COLOR PRODUCT_VER)
 
 # if TOCLEAN value is non-empty, allow tracing calls to it,
