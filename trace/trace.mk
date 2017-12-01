@@ -255,7 +255,8 @@ $(eval define trace_calls_template$(newline)$(subst _dump_params_,$$$$$(open_bra
 #   name            - macro name
 #   b1;b2;b3;$$1;b4 - names of variables to dump before traced call
 #   e1;e2           - names of variables to dump after traced call
-trace_calls = $(eval $(foreach :,$1,$(foreach =,$(firstword $(subst =, ,$:)),$(if $(findstring \
-  undefined,$(origin $=)),,$(if $(findstring $$(cb_trace_level.^l),$(value $=)),,$(call \
+trace_calls = $(eval $(foreach :,$1,$(foreach =,$(firstword $(subst =, ,$:)),$(if $(findstring undefined,$(origin $=)),,$(if $(filter \
+  ^$$$(open_brace)warning$$(space)$$(cb_trace_level.^l)% \
+  ^$$$(open_brace)foreach$$(space)=$(comma)$$(words$$(space)$$(cb_trace_level.^l))%,^$(subst $(space),$$(space),$(value $=))),,$(call \
   trace_calls_template,$=,$(encode_traced_var_name),$(if $(findstring command line,$(origin $=)),override,$(findstring \
   override,$(origin $=))),$(subst ;, ,$(word 2,$(subst =, ,$:))),$(subst ;, ,$(word 3,$(subst =, ,$:))),$2))))))
