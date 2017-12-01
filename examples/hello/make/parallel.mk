@@ -9,9 +9,9 @@
 
 # Note: This file should be copied AS IS to the directory of the project build system
 
-ifeq (,$(filter-out undefined environment,$(origin CLEAN_BUILD_PARALLEL_EVAL)))
+ifeq (,$(filter-out undefined environment,$(origin PROCESS_SUBMAKES_PREPARE)))
 include $(dir $(lastword $(MAKEFILE_LIST)))project.mk
 include $(MTOP)/core/_parallel.mk
 endif
 
-$(CLEAN_BUILD_PARALLEL_EVAL)
+$(PROCESS_SUBMAKES_PREPARE)
