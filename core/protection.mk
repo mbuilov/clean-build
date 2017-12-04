@@ -93,13 +93,12 @@ CLEAN_BUILD_RESET_LOCAL_VAR = $(if $(filter !$$$(open_brace)error$$(space)%,$(su
 
 # only protected variables may remain its values between makefiles,
 #  redefine non-protected (i.e. "local") variables to produce access errors
-# note: do not touch GNU Make automatic variables (automatic, but, for example, $(origin CURDIR) gives 'file'):
-#  CURDIR, MAKECMDGOALS, MAKEFILE_LIST, MAKELEVEL, MAKEOVERRIDES, .SHELLSTATUS, .DEFAULT_GOAL
+# note: do not touch GNU Make automatic variables (automatic, but, for example, $(origin CURDIR) gives 'file')
 # note: do not reset %.^s variables here - they are needed for RESTORE_VARS, which will reset them later
 # note: do not reset trace variables %.^l %.^t and %.^p - variables which store original values of protected variables
 # note: do not touch automatic/default variables
 CLEAN_BUILD_RESET_LOCAL_VARS = $(foreach =,$(filter-out \
-  CURDIR MAKECMDGOALS, MAKEFILE_LIST MAKELEVEL MAKEOVERRIDES .SHELLSTATUS .DEFAULT_GOAL \
+  CURDIR GNUMAKEFLAGS MAKECMDGOALS MAKEFILE_LIST MAKELEVEL MAKEOVERRIDES .SHELLSTATUS .DEFAULT_GOAL \
   $(CLEAN_BUILD_PROTECTED_VARS) %.^l %.^t %.^p %.^s,$(.VARIABLES)),$(if \
   $(filter file override environment,$(origin $=)),$(CLEAN_BUILD_RESET_LOCAL_VAR)))
 
