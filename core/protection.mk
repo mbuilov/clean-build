@@ -21,13 +21,21 @@ else
 TRACE:=
 endif
 
-# reset - this variable is checked in trace_calls function in $(CLEAN_BUILD_DIR)/core/functions.mk
+# list of clean-build protected variables
+# reset - this variable is checked in trace_calls function in $(CLEAN_BUILD_DIR)/trace/trace.mk
 CLEAN_BUILD_PROTECTED_VARS:=
 
-# list of names of first-phase variables
+# list of first-phase variables
 #  - protected variables that change their values in makefile parsing first phase,
 #  but whose values are reset immediately before rule execution second phase
 CLEAN_BUILD_FIRST_PHASE_VARS:=
+
+ifdef TRACE
+# list of user-defined variables that should not be traced
+#  (like counters - modified via operator += or variables used in ifdefs)
+# reset, may be overridden in project configuration makefile or in command line
+NON_TRACEABLE_VARS:=
+endif
 
 ifdef MCHECK
 
@@ -49,16 +57,19 @@ $(foreach =,CLEAN_BUILD_PROTECTED_VARS $1,$(CLEAN_BUILD_ENCODE_VAR_NAME):=$$(cal
 endef
 
 # protect macros from modification in target makefiles
-# $1 - list: AAA=b1;b2;$$1=e1;e2 BBB=b1;b2=e1;e2;...
+# $1 - list: AAA=b1;b2;$$1=e1;e2 BBB=b1;b2=e1;e2;...  (must be without names of variables to dump if not tracing - i.e. $2 is not empty)
 # $2 - if not empty, then do not trace calls for given macros (for example, if called from trace_calls_template)
 # note: if $2 is not empty, expansion of $(call SET_GLOBAL1,...,0) will give an empty line at end of expansion
-# 1.                                                     $(call SET_GLOBAL1,v,0)      = just protect v, do not trace it
-# 2.                          $(call trace_calls,v)   -> $(call SET_GLOBAL1,v.^t,0)   = trace unprotected v, protect only internal var
-# 3.                          $(call trace_calls,v)   -> $(call SET_GLOBAL1,v.^t v,0) = trace protected v, protect internal var and new v
-# 4. $(call SET_GLOBAL1,v) -> $(call trace_calls,v,1) -> $(call SET_GLOBAL1,v.^t v,0) = protect v and trace it
+#   - $(CLEAN_BUILD_DIR)/core/_defs.mk accounts on this
+# 1.                                                     $(call SET_GLOBAL1,v,0) = just protect v, do not trace it
+# 2.                          $(call trace_calls,v)                              = trace unprotected v
+# 3.                          $(call trace_calls,v)   -> $(call SET_GLOBAL1,v,0) = trace protected v, protect new v
+# 4. $(call SET_GLOBAL1,v) -> $(call trace_calls,v,1) -> $(call SET_GLOBAL1,v,0) = protect v and trace it
 ifdef TRACE
+SET_GLOBAL3 = $(if $1,$$(call trace_calls,$(subst $$,$$$$,$1),1))
+SET_GLOBAL2 = $(if $1,$(call SET_GLOBAL1,$(foreach =,$1,$(firstword $(subst =, ,$=))),0))$(call SET_GLOBAL3,$(filter-out $1,$2))
 SET_GLOBAL1 = $(if $2,$(foreach =,$(filter $1,$(CLEAN_BUILD_PROTECTED_VARS)),$$(warning \
-  override global: $=))$(CLEAN_BUILD_PROTECT_VARS2),$$(call trace_calls,$(subst $$,$$$$,$1),1))
+  override global: $=))$(CLEAN_BUILD_PROTECT_VARS2),$(call SET_GLOBAL2,$(filter $(NON_TRACEABLE_VARS) $(NON_TRACEABLE_VARS:==%),$1),$1))
 else
 SET_GLOBAL1 = $(call CLEAN_BUILD_PROTECT_VARS2,$(foreach =,$1,$(firstword $(subst =, ,$=))))
 endif
@@ -139,17 +150,18 @@ TARGET_MAKEFILE = $(call SET_GLOBAL,CLEAN_BUILD_OVERRIDDEN_VARS CLEAN_BUILD_NEED
 # protect variables from modifications in target makefiles
 # note: do not trace calls to these macros
 # note: TARGET_MAKEFILE variable is used here temporary and will be redefined later
-TARGET_MAKEFILE += $(call SET_GLOBAL,CLEAN_BUILD_PROTECTED_VARS \
-  MCHECK TRACE CLEAN_BUILD_ENCODE_VAR_VALUE CLEAN_BUILD_ENCODE_VAR_NAME \
-  CLEAN_BUILD_PROTECT_VARS2 SET_GLOBAL1 SET_GLOBAL CLEAN_BUILD_VAR_ACCESS_ERROR \
-  CLEAN_BUILD_RESET_LOCAL_VAR CLEAN_BUILD_RESET_LOCAL_VARS CLEAN_BUILD_RESET_SAVED_VARS \
+TARGET_MAKEFILE += $(call SET_GLOBAL,MCHECK TRACE CLEAN_BUILD_PROTECTED_VARS NON_TRACEABLE_VARS \
+  CLEAN_BUILD_ENCODE_VAR_VALUE CLEAN_BUILD_ENCODE_VAR_NAME \
+  CLEAN_BUILD_PROTECT_VARS2 SET_GLOBAL3 SET_GLOBAL2 SET_GLOBAL1 SET_GLOBAL CLEAN_BUILD_VAR_ACCESS_ERROR \
+  CLEAN_BUILD_RESET_LOCAL_VAR CLEAN_BUILD_RESET_LOCAL_VARS CLEAN_BUILD_RESET_SAVED_VARS CLEAN_BUILD_RESET_FIRST_PHASE \
   CLEAN_BUILD_CHECK_AT_HEAD CLEAN_BUILD_CHECK_PROTECTED_VAR CLEAN_BUILD_CHECK_AT_TAIL,0)
 
 # these macros must not be used in rule execution second phase
-CLEAN_BUILD_FIRST_PHASE_VARS += MCHECK TRACE CLEAN_BUILD_PROTECTED_VARS CLEAN_BUILD_FIRST_PHASE_VARS \
-  CLEAN_BUILD_OVERRIDDEN_VARS CLEAN_BUILD_NEED_TAIL_CODE CLEAN_BUILD_ENCODE_VAR_VALUE CLEAN_BUILD_ENCODE_VAR_NAME \
-  CLEAN_BUILD_PROTECT_VARS2 trace_calls SET_GLOBAL1 SET_GLOBAL CLEAN_BUILD_VAR_ACCESS_ERROR \
-  CLEAN_BUILD_RESET_LOCAL_VAR CLEAN_BUILD_RESET_LOCAL_VARS CLEAN_BUILD_RESET_SAVED_VARS \
+CLEAN_BUILD_FIRST_PHASE_VARS += MCHECK TRACE CLEAN_BUILD_PROTECTED_VARS CLEAN_BUILD_FIRST_PHASE_VARS NON_TRACEABLE_VARS \
+  CLEAN_BUILD_OVERRIDDEN_VARS CLEAN_BUILD_NEED_TAIL_CODE \
+  CLEAN_BUILD_ENCODE_VAR_VALUE CLEAN_BUILD_ENCODE_VAR_NAME \
+  CLEAN_BUILD_PROTECT_VARS2 SET_GLOBAL3 SET_GLOBAL2 SET_GLOBAL1 SET_GLOBAL CLEAN_BUILD_VAR_ACCESS_ERROR \
+  CLEAN_BUILD_RESET_LOCAL_VAR CLEAN_BUILD_RESET_LOCAL_VARS CLEAN_BUILD_RESET_SAVED_VARS CLEAN_BUILD_RESET_FIRST_PHASE \
   CLEAN_BUILD_CHECK_AT_HEAD CLEAN_BUILD_CHECK_PROTECTED_VAR CLEAN_BUILD_CHECK_AT_TAIL TARGET_MAKEFILE
 
 else # !MCHECK
@@ -165,7 +177,7 @@ ifdef TRACE
 # trace calls to macros
 # $1 - list: AAA=b1;b2;$$1=e1;e2 BBB=b1;b2=e1;e2;...
 # $2 - if not empty, then do not trace calls for the given macros (for example, if called from trace_calls_template)
-SET_GLOBAL1 = $(if $2,,$$(call trace_calls,$(subst $$,$$$$,$1),))
+SET_GLOBAL1 = $(if $2,,$$(call CB_TRACE_CALLS,$(subst $$,$$$$,$1),))
 
 # trace calls to macros
 # $1 - list of macros in form: AAA=b1;b2;$$1=e1;e2 BBB=b1;b2=e1;e2;...
