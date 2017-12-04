@@ -56,20 +56,20 @@ CLEAN_BUILD_PROTECTED_VARS := $$(sort $$(CLEAN_BUILD_PROTECTED_VARS) $1)
 $(foreach =,CLEAN_BUILD_PROTECTED_VARS $1,$(CLEAN_BUILD_ENCODE_VAR_NAME):=$$(call CLEAN_BUILD_ENCODE_VAR_VALUE,$=)$(newline))
 endef
 
-# protect macros from modification in target makefiles
+# SET_GLOBAL1 - protect macros from modification in target makefiles
 # $1 - list: AAA=b1;b2;$$1=e1;e2 BBB=b1;b2=e1;e2;...  (must be without names of variables to dump if not tracing - i.e. $2 is not empty)
 # $2 - if not empty, then do not trace calls for given macros (for example, if called from trace_calls_template)
-# note: if $2 is not empty, expansion of $(call SET_GLOBAL1,...,0) will give an empty line at end of expansion
-#   - $(CLEAN_BUILD_DIR)/core/_defs.mk accounts on this
+# note: if MCHECK is defined and $2 is not empty, expansion of $(call SET_GLOBAL1,...,0) must add an empty line
+#  at end of expansion - $(CLEAN_BUILD_DIR)/core/_defs.mk accounts on this
 # 1.                                                     $(call SET_GLOBAL1,v,0) = just protect v, do not trace it
 # 2.                          $(call trace_calls,v)                              = trace unprotected v
 # 3.                          $(call trace_calls,v)   -> $(call SET_GLOBAL1,v,0) = trace protected v, protect new v
 # 4. $(call SET_GLOBAL1,v) -> $(call trace_calls,v,1) -> $(call SET_GLOBAL1,v,0) = protect v and trace it
 ifdef TRACE
+SET_GLOBAL4 = $(foreach =,$(filter $1,$(CLEAN_BUILD_PROTECTED_VARS)),$$(warning override global: $=))$(CLEAN_BUILD_PROTECT_VARS2)
 SET_GLOBAL3 = $(if $1,$$(call trace_calls,$(subst $$,$$$$,$1),1))
-SET_GLOBAL2 = $(if $1,$(call SET_GLOBAL1,$(foreach =,$1,$(firstword $(subst =, ,$=))),0))$(call SET_GLOBAL3,$(filter-out $1,$2))
-SET_GLOBAL1 = $(if $2,$(foreach =,$(filter $1,$(CLEAN_BUILD_PROTECTED_VARS)),$$(warning \
-  override global: $=))$(CLEAN_BUILD_PROTECT_VARS2),$(call SET_GLOBAL2,$(filter $(NON_TRACEABLE_VARS) $(NON_TRACEABLE_VARS:==%),$1),$1))
+SET_GLOBAL2 = $(if $1,$(call SET_GLOBAL4,$(foreach =,$1,$(firstword $(subst =, ,$=)))))$(call SET_GLOBAL3,$(filter-out $1,$2))
+SET_GLOBAL1 = $(if $2,$(SET_GLOBAL4),$(call SET_GLOBAL2,$(filter $(NON_TRACEABLE_VARS) $(NON_TRACEABLE_VARS:==%),$1),$1))
 else
 SET_GLOBAL1 = $(call CLEAN_BUILD_PROTECT_VARS2,$(foreach =,$1,$(firstword $(subst =, ,$=))))
 endif
@@ -152,7 +152,7 @@ TARGET_MAKEFILE = $(call SET_GLOBAL,CLEAN_BUILD_OVERRIDDEN_VARS CLEAN_BUILD_NEED
 # note: TARGET_MAKEFILE variable is used here temporary and will be redefined later
 TARGET_MAKEFILE += $(call SET_GLOBAL,MCHECK TRACE CLEAN_BUILD_PROTECTED_VARS NON_TRACEABLE_VARS \
   CLEAN_BUILD_ENCODE_VAR_VALUE CLEAN_BUILD_ENCODE_VAR_NAME \
-  CLEAN_BUILD_PROTECT_VARS2 SET_GLOBAL3 SET_GLOBAL2 SET_GLOBAL1 SET_GLOBAL CLEAN_BUILD_VAR_ACCESS_ERROR \
+  CLEAN_BUILD_PROTECT_VARS2 SET_GLOBAL4 SET_GLOBAL3 SET_GLOBAL2 SET_GLOBAL1 SET_GLOBAL CLEAN_BUILD_VAR_ACCESS_ERROR \
   CLEAN_BUILD_RESET_LOCAL_VAR CLEAN_BUILD_RESET_LOCAL_VARS CLEAN_BUILD_RESET_SAVED_VARS CLEAN_BUILD_RESET_FIRST_PHASE \
   CLEAN_BUILD_CHECK_AT_HEAD CLEAN_BUILD_CHECK_PROTECTED_VAR CLEAN_BUILD_CHECK_AT_TAIL,0)
 
@@ -160,7 +160,7 @@ TARGET_MAKEFILE += $(call SET_GLOBAL,MCHECK TRACE CLEAN_BUILD_PROTECTED_VARS NON
 CLEAN_BUILD_FIRST_PHASE_VARS += MCHECK TRACE CLEAN_BUILD_PROTECTED_VARS CLEAN_BUILD_FIRST_PHASE_VARS NON_TRACEABLE_VARS \
   CLEAN_BUILD_OVERRIDDEN_VARS CLEAN_BUILD_NEED_TAIL_CODE \
   CLEAN_BUILD_ENCODE_VAR_VALUE CLEAN_BUILD_ENCODE_VAR_NAME \
-  CLEAN_BUILD_PROTECT_VARS2 SET_GLOBAL3 SET_GLOBAL2 SET_GLOBAL1 SET_GLOBAL CLEAN_BUILD_VAR_ACCESS_ERROR \
+  CLEAN_BUILD_PROTECT_VARS2 SET_GLOBAL4 SET_GLOBAL3 SET_GLOBAL2 SET_GLOBAL1 SET_GLOBAL CLEAN_BUILD_VAR_ACCESS_ERROR \
   CLEAN_BUILD_RESET_LOCAL_VAR CLEAN_BUILD_RESET_LOCAL_VARS CLEAN_BUILD_RESET_SAVED_VARS CLEAN_BUILD_RESET_FIRST_PHASE \
   CLEAN_BUILD_CHECK_AT_HEAD CLEAN_BUILD_CHECK_PROTECTED_VAR CLEAN_BUILD_CHECK_AT_TAIL TARGET_MAKEFILE
 
@@ -177,7 +177,8 @@ ifdef TRACE
 # trace calls to macros
 # $1 - list: AAA=b1;b2;$$1=e1;e2 BBB=b1;b2=e1;e2;...
 # $2 - if not empty, then do not trace calls for the given macros (for example, if called from trace_calls_template)
-SET_GLOBAL1 = $(if $2,,$$(call CB_TRACE_CALLS,$(subst $$,$$$$,$1),))
+SET_GLOBAL2 = $(if $1,$$(call trace_calls,$(subst $$,$$$$,$1),))
+SET_GLOBAL1 = $(if $2,,$(call SET_GLOBAL2,$(filter-out $(NON_TRACEABLE_VARS) $(NON_TRACEABLE_VARS:==%),$1)))
 
 # trace calls to macros
 # $1 - list of macros in form: AAA=b1;b2;$$1=e1;e2 BBB=b1;b2=e1;e2;...
