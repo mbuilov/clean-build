@@ -26,7 +26,7 @@ MAKEFLAGS += --no-builtin-rules --no-builtin-variables --warn-undefined-variable
 # - save list of those variables to override them below, after including needed definitions
 PROJECT_VARS_NAMES := $(filter-out \
   MAKEFLAGS CURDIR MAKEFILE_LIST .DEFAULT_GOAL,$(foreach \
-  v,$(.VARIABLES),$(if $(findstring file,$(origin $v)),$v)))
+  v,$(.VARIABLES),$(if $(or $(findstring file,$(origin $v)),$(findstring override,$(origin $v))),$v)))
 
 # For consistent builds, build results should not depend on environment,
 #  only on settings specified in configuration files.
@@ -356,6 +356,8 @@ COLORIZE = $($1_COLOR)$1[m$(padto)$(if $3,$2,$(join $(dir $2),$(addsuffix [m,$
 # $3 - if empty, then colorize argument of called tool
 # $4 - if empty, then try to update percents of executed makefiles
 # note: ADD_SHOWN_PERCENTS is checked in $(CLEAN_BUILD_DIR)/core/all.mk, so must always be defined
+# note: ADD_SHOWN_PERCENTS and FORMAT_PERCENTS - are used at second phase, after parsing of the makefiles,
+#  so no need to protect new values of SHOWN_PERCENTS and SHOWN_REMAINDER
 ifeq (,$(filter distclean clean,$(MAKECMDGOALS)))
 ifdef QUIET
 SHOWN_PERCENTS:=
@@ -1000,8 +1002,9 @@ $(call define_prepend,DEF_HEAD_CODE,$$(call SET_GLOBAL1,TOOL_MODE)$(newline))
 endif
 
 # use TOOL_MODE only to set value of TMD variable, forbid reading $(TOOL_MODE) in target makefiles
+# note: do not trace calls to TOOL_MODE after resetting it to $$(TOOL_MODE_ERROR)
 ifdef MCHECK
-$(call define_append,DEF_HEAD_CODE,$(newline)TOOL_MODE=$$$$(TOOL_MODE_ERROR))
+$(call define_append,DEF_HEAD_CODE,$(newline)TOOL_MODE=$$$$(TOOL_MODE_ERROR)$(newline)$$(call SET_GLOBAL1,TOOL_MODE,0))
 $(call define_prepend,DEF_HEAD_CODE,$$(if $$(findstring $$$$(TOOL_MODE_ERROR),$$(value TOOL_MODE)),$$(eval TOOL_MODE:=$$(TMD))))
 endif
 
@@ -1031,14 +1034,15 @@ endif
 
 # redefine DEFINE_TARGETS macro to produce an error if $(DEF_HEAD_CODE) was not evaluated prior expanding DEFINE_TARGETS
 ifdef MCHECK
-$(eval define DEF_TAIL_CODE$(newline)$(subst :=,:=$$(newline)DEFINE_TARGETS=$$(error \
-  $$$$(DEF_HEAD_CODE) was not evaluated at head of makefile!),$(value DEF_TAIL_CODE))$(newline)endef)
+$(eval define DEF_TAIL_CODE$(newline)$(subst :=,:=$$(newline)DEFINE_TARGETS=$$$$(error \
+  $$$$$$$$(DEF_HEAD_CODE) was not evaluated at head of makefile!),$(value DEF_TAIL_CODE))$(newline)endef)
 endif
 
-# remember new values of HEAD_CODE_EVAL and DEFINE_TARGETS
+# remember new values of HEAD_CODE_EVAL (which is empty) and DEFINE_TARGETS (which produces an error),
+#  do not trace calls to them: value of HEAD_CODE_EVAL is checked in CB_PREPARE_TARGET_TYPE below
 ifdef SET_GLOBAL1
 $(eval define DEF_TAIL_CODE$(newline)$(subst $(comma)include,$$(newline)$$(call \
-  SET_GLOBAL1,HEAD_CODE_EVAL$(if $(MCHECK), DEFINE_TARGETS))$(comma)include,$(value DEF_TAIL_CODE))$(newline)endef)
+  SET_GLOBAL1,HEAD_CODE_EVAL$(if $(MCHECK), DEFINE_TARGETS),0)$(comma)include,$(value DEF_TAIL_CODE))$(newline)endef)
 endif
 
 # define targets at end of makefile - just expand DEFINE_TARGETS: $(DEFINE_TARGETS)
@@ -1055,11 +1059,21 @@ DEFINE_TARGETS = $(error $$(DEF_HEAD_CODE) was not evaluated at head of makefile
 CB_PREPARE_TARGET_TYPE = $(if $(value HEAD_CODE_EVAL),,$(eval $(DEF_HEAD_CODE)))$(if $1,$(eval \
   HEAD_CODE_EVAL=$(value HEAD_CODE_EVAL)$$(eval $$($1)))$(eval DEFINE_TARGETS=$$(eval $$($2))$(value DEFINE_TARGETS))$(eval $(call $1)))
 
-# remember new values of HEAD_CODE_EVAL and DEFINE_TARGETS
 ifdef SET_GLOBAL
+
+# remember new values of HEAD_CODE_EVAL and DEFINE_TARGETS
 $(eval CB_PREPARE_TARGET_TYPE = $(subst $$$(open_brace)eval $$$(open_brace)call $$1,$$(call \
   SET_GLOBAL,HEAD_CODE_EVAL DEFINE_TARGETS)$$$(open_brace)eval $$$(open_brace)call $$1,$(value CB_PREPARE_TARGET_TYPE)))
+
+# because HEAD_CODE_EVAL and DEFINE_TARGETS are traced, get original values
+ifdef TRACE
+$(eval CB_PREPARE_TARGET_TYPE = $(subst \
+  =$$(value HEAD_CODE_EVAL),=$$(value $(call encode_traced_var_name,HEAD_CODE_EVAL)),$(subst \
+  value DEFINE_TARGETS,value $(call encode_traced_var_name,DEFINE_TARGETS),$(value \
+  CB_PREPARE_TARGET_TYPE))))
 endif
+
+endif # SET_GLOBAL
 
 # before $(MAKE_CONTINUE): save variables to restore them after (via RESTORE_VARS macro)
 SAVE_VARS = $(eval $(foreach v,$1,$(if $(findstring \
@@ -1126,7 +1140,7 @@ PRODUCT_VER := 0.0.1
 # note: do not process dependencies when cleaning up
 NO_DEPS := $(filter clean,$(MAKECMDGOALS))
 
-# BIN_DIR/OBJ_DIR/LIB_DIR/GEN_DIR change their values depending on the value of TOOL_MODE set
+# BIN_DIR/OBJ_DIR/LIB_DIR/GEN_DIR change their values depending on the value of TOOL_MODE
 #  in last parsed makefile, so clear these variables before rule execution second phase
 CLEAN_BUILD_FIRST_PHASE_VARS += BIN_DIR OBJ_DIR LIB_DIR GEN_DIR
 
@@ -1141,7 +1155,8 @@ CLEAN_BUILD_FIRST_PHASE_VARS += CLEAN_BUILD_GOALS CB_NEEDED_DIRS ORDER_DEPS MULT
 # protect macros from modifications in target makefiles,
 # do not trace calls to macros used in ifdefs, passed to environment of called tools or modified via operator +=
 $(call SET_GLOBAL,MAKEFLAGS CLEAN_BUILD_GOALS $(PASS_ENV_VARS) PATH SHELL CLEAN_BUILD_FIRST_PHASE_VARS \
-  CB_NEEDED_DIRS NO_CLEAN_BUILD_DISTCLEAN_TARGET DEBUG VERBOSE QUIET INFOMF MDEBUG SHOWN_PERCENTS CLEAN \
+  CB_NEEDED_DIRS NO_CLEAN_BUILD_DISTCLEAN_TARGET DEBUG VERBOSE QUIET INFOMF MDEBUG \
+  SHOWN_PERCENTS SHOWN_REMAINDER ADD_SHOWN_PERCENTS CLEAN \
   ORDER_DEPS MULTI_TARGETS MULTI_TARGET_NUM CB_INCLUDE_LEVEL PROCESSED_MAKEFILES MAKE_CONT NO_DEPS,0)
 
 # protect macros from modifications in target makefiles, allow tracing calls to them
@@ -1150,8 +1165,7 @@ $(call SET_GLOBAL,PROJECT_VARS_NAMES PASS_ENV_VARS \
   BUILD SUPPORTED_TARGETS TARGET OS TCPU CPU UTILS UTILS_MK TARGET_MAKEFILE \
   ospath nonrelpath TOOL_SUFFIX PATHSEP DLL_PATH_VAR show_tool_vars1 show_tool_vars show_tool_vars_end SED_MULTI_EXPR \
   GEN_COLOR MGEN_COLOR CP_COLOR RM_COLOR RMDIR_COLOR MKDIR_COLOR TOUCH_COLOR CAT_COLOR SED_COLOR \
-  PRINT_PERCENTS COLORIZE SHOWN_REMAINDER ADD_SHOWN_PERCENTS==SHOWN_REMAINDER \
-  FORMAT_PERCENTS=SHOWN_PERCENTS REM_MAKEFILE=SHOWN_PERCENTS=SHOWN_PERCENTS SUP \
+  PRINT_PERCENTS COLORIZE FORMAT_PERCENTS=SHOWN_PERCENTS REM_MAKEFILE=SHOWN_PERCENTS=SHOWN_PERCENTS SUP \
   TARGET_TRIPLET DEF_BIN_DIR DEF_OBJ_DIR DEF_LIB_DIR DEF_GEN_DIR SET_DEFAULT_DIRS \
   TOOL_BASE MK_TOOLS_DIR GET_TOOLS GET_TOOL TOOL_OVERRIDE_DIRS \
   ADD_MDEPS ADD_ADEPS ADD_WHAT_MAKEFILE_BUILDS CREATE_MAKEFILE_ALIAS ADD_ORDER_DEPS=ORDER_DEPS=ORDER_DEPS \
