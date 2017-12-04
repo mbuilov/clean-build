@@ -53,16 +53,13 @@ check tests: all
 
 ifdef MCHECK
 
-# check that target rules are defined and completed
+# check that all targets are built
 $(PROCESSED_MAKEFILES):
 	$(foreach f,$(filter-out $(wildcard $^),$^),$(info $(@:-=): cannot build $f))
 
-# at end of makefile parsing first phase:
-# 1) reset non-protected ("local") variables defined in last parsed target makefile
-# 2) protected variables in $(CLEAN_BUILD_FIRST_PHASE_VARS) list cannot be used in rule execution second phase - reset them
+# reset at end of makefile parsing (the first phase):
+# 1) non-protected ("local") variables defined in last parsed target makefile
+# 2) protected variables from $(CLEAN_BUILD_FIRST_PHASE_VARS) list
 $(eval $(CLEAN_BUILD_RESET_FIRST_PHASE))
 
 endif # MCHECK
-
-$(foreach =,$(filter-out %.^l %.^p %.^t,$(.VARIABLES)),$(if $(findstring \
-  automatic,$(origin $=)),,$(if $(findstring default,$(origin $=)),,$(if $(filter !$$$(open_brace)error%,$(value $=)),,$(info $(origin $=) $=)))))
