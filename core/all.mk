@@ -34,19 +34,6 @@ $(eval ADD_SHOWN_PERCENTS = $(subst \
   $$(TARGET_MAKEFILES_COUNT1),$(words $(PROCESSED_MAKEFILES) 1),$(value ADD_SHOWN_PERCENTS))))
 endif
 
-ifdef MCHECK
-
-# check that target rules are defined and completed
-$(PROCESSED_MAKEFILES):
-	$(foreach f,$(filter-out $(wildcard $^),$^),$(info $(@:-=): cannot build $f))
-
-# at end of makefile parsing first phase:
-# 1) reset non-protected ("local") variables defined in last parsed target makefile
-# 2) protected variables in $(CLEAN_BUILD_FIRST_PHASE_VARS) list cannot be used in rule execution second phase - reset them
-$(eval $(CLEAN_BUILD_RESET_FIRST_PHASE))
-
-endif
-
 # define rule for default goal 'all'
 # note: 'all' depends on $(TARGET_MAKEFILE)- defined in $(CLEAN_BUILD_DIR)/core/_defs.mk
 # note: suppress message "Nothing to be done for 'all'"
@@ -63,3 +50,19 @@ check tests: all
 
 # note: don't try to update makefiles in $(MAKEFILE_LIST) - mark them as .PHONY targets
 .PHONY: $(CLEAN_BUILD_GOALS) $(MAKEFILE_LIST)
+
+ifdef MCHECK
+
+# check that target rules are defined and completed
+$(PROCESSED_MAKEFILES):
+	$(foreach f,$(filter-out $(wildcard $^),$^),$(info $(@:-=): cannot build $f))
+
+# at end of makefile parsing first phase:
+# 1) reset non-protected ("local") variables defined in last parsed target makefile
+# 2) protected variables in $(CLEAN_BUILD_FIRST_PHASE_VARS) list cannot be used in rule execution second phase - reset them
+$(eval $(CLEAN_BUILD_RESET_FIRST_PHASE))
+
+endif # MCHECK
+
+$(foreach =,$(filter-out %.^l %.^p %.^t,$(.VARIABLES)),$(if $(findstring \
+  automatic,$(origin $=)),,$(if $(findstring default,$(origin $=)),,$(if $(filter !$$$(open_brace)error%,$(value $=)),,$(info $(origin $=) $=)))))
