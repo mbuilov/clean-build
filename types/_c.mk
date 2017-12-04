@@ -233,7 +233,9 @@ $(call define_prepend,C_DEFINE_APP_RULES,$$(CHECK_C_APP_RULES))
 endif
 
 # optimization
+ifndef TRACE
 $(call expand_partially,C_DEFINE_APP_RULES,C_DEFINE_RULES)
+endif
 
 # C_COMPILER - application-level compiler to use for the build (gcc, clang, msvc, etc.)
 # note: $(C_COMPILER) value is used only to form name of standard makefile with definitions of C/C++ compiler
