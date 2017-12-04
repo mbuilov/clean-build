@@ -64,8 +64,10 @@ $(MSVC_PCH_RULE_TEMPL_BASE)
 endef
 
 # optimization
+ifndef TRACE
 $(call expand_partially,MSVC_PCH_RULE_TEMPL,MSVC_PCH_RULE_TEMPL_BASE)
 $(call expand_partially,MSVC_PCH_RULE_TEMPL_MP,MSVC_PCH_RULE_TEMPL_BASE)
+endif
 
 # define rule for building precompiled header
 # $1  - EXE,LIB,DLL,KLIB
