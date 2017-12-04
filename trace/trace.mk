@@ -24,6 +24,7 @@
 #
 #   Note: trace_calls changes $(flavor) of traced macros - they are become 'recursive'
 #   Note: trace_calls changes $(origin) of traced macros - 'command line' -> 'override'
+#   Note: undefined macros or macros having an empty value are not traced
 
 # by default, do not print traces in colors
 # may be overridden in command line, e.g.:
@@ -174,8 +175,8 @@ endif
 # trace level
 cb_trace_level.^l:=
 
-# encode variable name $= so that it may be used in $(eval $(encoded_name)=...)
-encode_traced_var_name = $(subst $(close_brace),^c@,$(subst $(open_brace),^o@,$(subst :,^d@,$(subst !,^e@,$=)))).^t
+# encode variable name 1$ so that it may be used in $(eval $(encoded_name)=...)
+encode_traced_var_name = $(subst $(close_brace),^c@,$(subst $(open_brace),^o@,$(subst :,^d@,$(subst !,^e@,$1)))).^t
 
 # helper template for trace_calls macro
 # $1 - macro name, must accept no more than $(dump_max) arguments
@@ -257,5 +258,5 @@ $(eval define trace_calls_template$(newline)$(subst _dump_params_,$$$$$(open_bra
 trace_calls = $(eval $(foreach :,$1,$(foreach =,$(firstword $(subst =, ,$:)),$(if $(findstring undefined,$(origin $=)),,$(if $(filter \
   ^$$$(open_brace)warning$$(space)$$(cb_trace_level.^l)% \
   ^$$$(open_brace)foreach$$(space)=$(comma)$$(words$$(space)$$(cb_trace_level.^l))%,^$(subst $(space),$$(space),$(value $=))),,$(call \
-  trace_calls_template,$=,$(encode_traced_var_name),$(if $(findstring command line,$(origin $=)),override,$(findstring \
+  trace_calls_template,$=,$(call encode_traced_var_name,$=),$(if $(findstring command line,$(origin $=)),override,$(findstring \
   override,$(origin $=))),$(subst ;, ,$(word 2,$(subst =, ,$:))),$(subst ;, ,$(word 3,$(subst =, ,$:))),$2))))))
