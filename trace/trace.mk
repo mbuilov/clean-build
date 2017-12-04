@@ -185,7 +185,6 @@ encode_traced_var_name = $(subst $(close_brace),^c@,$(subst $(open_brace),^o@,$(
 # $5 - names of variables to dump after the traced call
 # $6 - if non-empty, then forcibly protect new values of traced macros (used by $(CLEAN_BUILD_DIR)/core/protection.mk)
 # note: must use $$(call $2,_dump_params_): Gnu Make do not allow recursive calls: $(call a)->$(b)->$(call a)->$(b)->...
-# note: $(cb_trace_level.^l) marks overridden traced macro
 # note: first line must be empty
 ifndef TRACE_IN_COLOR
 define trace_calls_template
