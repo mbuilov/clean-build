@@ -28,7 +28,7 @@
 #   ...
 #
 # where 'make' - directory of the project build system,
-#  some of the files in it can be copies of the files of clean-build 'stub' directory
+#  some of the files in it can be the copies of the files of clean-build 'stub' directory
 
 # the only case when variable TOP is overridden - after completing project configuration
 ifneq (override,$(origin TOP))
