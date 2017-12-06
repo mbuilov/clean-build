@@ -29,7 +29,7 @@ $r.out: TEST_AUX_PARAMS := $1
 $r.out: TEST_AUX_PATH   := $3
 $r.out: TEST_AUX_VARS   := $(subst $$,$$$$,$4)
 $r.out: $r
-	$$(call SUP,TEST,$$@)$$(call RUN_WITH_DLL_PATH,$$< $$(TEST_AUX_PARAMS) > $$@,$$(TEST_AUX_PATH),$$(TEST_AUX_VARS))
+	$$(call SUP,TEST,$$@)$$(call RUN_TOOL,$$< $$(TEST_AUX_PARAMS) > $$@,$$(TEST_AUX_PATH),$$(TEST_AUX_VARS))
 endef
 
 ifeq (UNIX,$(OSTYPE))

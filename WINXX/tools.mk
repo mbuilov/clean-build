@@ -206,7 +206,7 @@ TOOL_SUFFIX := .exe
 # note: override PATHSEP from $(CLEAN_BUILD_DIR)/defs.mk
 PATHSEP := ;
 
-# name of environment variable to modify in $(RUN_WITH_DLL_PATH)
+# name of environment variable to modify in $(RUN_TOOL)
 # note: override DLL_PATH_VAR from $(CLEAN_BUILD_DIR)/defs.mk
 DLL_PATH_VAR := PATH
 
