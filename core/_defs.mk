@@ -1067,11 +1067,18 @@ $(eval CB_PREPARE_TARGET_TYPE = $(subst $$$(open_brace)eval $$$(open_brace)call 
 
 # because HEAD_CODE_EVAL and DEFINE_TARGETS are traced, get original values
 ifdef TRACE
+
+ifeq (,$(filter HEAD_CODE_EVAL,$(NON_TRACEABLE_VARS)))
 $(eval CB_PREPARE_TARGET_TYPE = $(subst \
-  =$$(value HEAD_CODE_EVAL),=$$(value $(call encode_traced_var_name,HEAD_CODE_EVAL)),$(subst \
-  value DEFINE_TARGETS,value $(call encode_traced_var_name,DEFINE_TARGETS),$(value \
-  CB_PREPARE_TARGET_TYPE))))
+  =$$(value HEAD_CODE_EVAL),=$$(value $(call encode_traced_var_name,HEAD_CODE_EVAL)),$(value CB_PREPARE_TARGET_TYPE)))
 endif
+
+ifeq (,$(filter DEFINE_TARGETS,$(NON_TRACEABLE_VARS)))
+$(eval CB_PREPARE_TARGET_TYPE = $(subst \
+  value DEFINE_TARGETS,value $(call encode_traced_var_name,DEFINE_TARGETS),$(value CB_PREPARE_TARGET_TYPE)))
+endif
+
+endif # TRACE
 
 endif # SET_GLOBAL
 
