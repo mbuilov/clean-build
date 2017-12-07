@@ -700,9 +700,10 @@ keyword_export := export
 # $3 - list of names of variables to set in environment (export) for running an executable
 # note: this function should be used in rule body, where automatic variable $@ is defined
 # note: $(CLEAN_BUILD_DIR)/utils/cmd.mk defines own show_tool_vars/show_tool_vars_end
+# note: tool shoul print errors to stderr, if tool prints to stdout, it must be redirected (to a file, $(NUL) or stderr ">&2")
 RUN_TOOL = $(if $2$3,$(if $2,$(eval \
   $$@:export $(DLL_PATH_VAR):=$$($(DLL_PATH_VAR))$$(if $$($(DLL_PATH_VAR)),$$(if $2,$(PATHSEP)))$2))$(foreach v,$3,$(eval \
-  $$@:export $v:=$$($v)))$(if $(VERBOSE),$(show_tool_vars)@))$1$(if $(VERBOSE), >&2)$(if $2$3,$(if $(VERBOSE),$(show_tool_vars_end)))
+  $$@:export $v:=$$($v)))$(if $(VERBOSE),$(show_tool_vars)@))$1$(if $2$3,$(if $(VERBOSE),$(show_tool_vars_end)))
 
 # reset
 TMD:=
