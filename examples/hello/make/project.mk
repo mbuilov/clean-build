@@ -74,11 +74,4 @@ include $(dir $(lastword $(MAKEFILE_LIST)))overrides.mk
 # Note: may redefine core clean-build macros here, e.g.:
 #  $(call define_prepend,DEF_HEAD_CODE,$$(info target makefile: $$(TARGET_MAKEFILE)))
 
-# autoconfigure for building C/C++ sources
-include $(MTOP)/configure/c_conf.mk
-
-# Note: more autoconfigure includes may be added here to prepare for building other source types:
-#  Java: include $(MTOP)/configure/java.mk
-#  etc.
-
 endif # TOP
