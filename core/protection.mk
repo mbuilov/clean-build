@@ -97,9 +97,10 @@ CLEAN_BUILD_RESET_LOCAL_VAR = $(if $(filter !$$$(open_brace)error$$(space)%,$(su
 # note: do not reset %.^s variables here - they are needed for RESTORE_VARS, which will reset them later
 # note: do not reset trace variables %.^l %.^t and %.^p - variables which store original values of protected variables
 # note: do not touch automatic/default variables
+# note: do not reset $(dump_max) variables
 CLEAN_BUILD_RESET_LOCAL_VARS = $(foreach =,$(filter-out \
   CURDIR GNUMAKEFLAGS MAKECMDGOALS MAKEFILE_LIST MAKELEVEL MAKEOVERRIDES .SHELLSTATUS .DEFAULT_GOAL \
-  $(CLEAN_BUILD_PROTECTED_VARS) %.^l %.^t %.^p %.^s,$(.VARIABLES)),$(if \
+  $(CLEAN_BUILD_PROTECTED_VARS) %.^l %.^t %.^p %.^s $(dump_max),$(.VARIABLES)),$(if \
   $(filter file override environment,$(origin $=)),$(CLEAN_BUILD_RESET_LOCAL_VAR)))
 
 # called by RESTORE_VARS to reset %.^s variables
