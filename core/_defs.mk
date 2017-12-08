@@ -301,31 +301,6 @@ nonrelpath = $(patsubst $1/%,/%,$(addprefix $1,$2))
 # - we need absolute paths to sources to work with generated dependencies in .d files
 fixpath = $(abspath $(call nonrelpath,$(dir $(TARGET_MAKEFILE)),$1))
 
-# suffix of built tools executables
-# note: $(CLEAN_BUILD_DIR)/utils/cmd.mk defines own TOOL_SUFFIX
-TOOL_SUFFIX:=
-
-# paths separator char
-# note: $(CLEAN_BUILD_DIR)/utils/cmd.mk defines own PATHSEP
-PATHSEP := :
-
-# name of environment variable to modify in $(RUN_TOOL)
-# note: $(DLL_PATH_VAR) should be PATH (for WINDOWS) or LD_LIBRARY_PATH (for UNIX-like OS)
-# note: $(CLEAN_BUILD_DIR)/utils/cmd.mk defines own DLL_PATH_VAR value (PATH)
-DLL_PATH_VAR := LD_LIBRARY_PATH
-
-# show environment variables set for running a tool in modified environment
-# $1 - tool to execute (with parameters)
-# $2 - additional path(s) separated by $(PATHSEP) to append to $(DLL_PATH_VAR)
-# $3 - directory to change to for executing a tool
-# $4 - list of names of variables to set in environment (export) for running an executable
-# note: $(CLEAN_BUILD_DIR)/utils/cmd.mk defines own show_tool_vars/show_tool_vars_end
-show_tool_vars1 = $(foreach v,$(if $2,$(DLL_PATH_VAR)) $4,$v=$(call SHELL_ESCAPE,$($v))) $1
-show_tool_vars = $(info $(if $3,$(call EXECUTE_IN,$3,$(show_tool_vars1)),$(show_tool_vars1)))
-
-# note: $(CLEAN_BUILD_DIR)/utils/cmd.mk defines own show_tool_vars_end
-show_tool_vars_end:=
-
 # SED - stream editor executable - should be defined in $(UTILS_MK) makefile
 # SED_EXPR - also should be defined in $(UTILS_MK) makefile
 # helper macro: convert multi-line sed script $1 to multiple sed expressions - one expression for each script line
@@ -459,6 +434,10 @@ endif
 # $1 - $(TOOL_BASE)
 # $2 - $(TCPU)
 MK_TOOLS_DIR = $1/bin-TOOL-$2-$(TARGET)
+
+# suffix of built tools executables
+# note: $(CLEAN_BUILD_DIR)/utils/cmd.mk defines own TOOL_SUFFIX
+TOOL_SUFFIX:=
 
 # get absolute paths to the tools executables
 # $1 - $(TOOL_BASE)
@@ -661,20 +640,6 @@ endif # MCHECK
 # note: files must be generated in $(GEN_DIR),$(BIN_DIR),$(OBJ_DIR) or $(LIB_DIR)
 # note: directories for generated files will be auto-created
 ADD_GENERATED_RET = $(ADD_GENERATED)$1
-
-# run executable in modified environment
-# $1 - tool to execute (with parameters)
-# $2 - additional path(s) separated by $(PATHSEP) to append to $(DLL_PATH_VAR)
-# $3 - directory to change to for executing a tool
-# $4 - list of names of variables to set in environment (export) for running an executable
-# note: this function should be used in rule body, where automatic variable $@ is defined
-# note: calling a tool _must_ not produce any output to stdout,
-#  tool's stdout must be redirected either to file or to stderr, e.g. './my_tool >file' or './my_tool >&2'
-# note: $(CLEAN_BUILD_DIR)/utils/cmd.mk defines own show_tool_vars/show_tool_vars_end
-RUN_TOOL = $(if $2$4,$(if $2,$(eval \
-  $$@:export $(DLL_PATH_VAR):=$$($(DLL_PATH_VAR))$$(if $$($(DLL_PATH_VAR)),$$(if $2,$(PATHSEP)))$2))$(foreach v,$4,$(eval \
-  $$@:export $v:=$$($v)))$(if $(VERBOSE),$(show_tool_vars)@))$(if $3,$(call EXECUTE_IN,$3,$1),$1)$(if \
-  $2$4,$(if $(VERBOSE),$(show_tool_vars_end)))
 
 # define BIN_DIR/OBJ_DIR/LIB_DIR/GEN_DIR assuming that we are not in tool-mode
 $(eval $(SET_DEFAULT_DIRS))
@@ -941,14 +906,14 @@ $(call SET_GLOBAL,MAKEFLAGS CLEAN_BUILD_GOALS $(PASS_ENV_VARS) PATH SHELL CLEAN_
 $(call SET_GLOBAL,PROJECT_VARS_NAMES PASS_ENV_VARS \
   CLEAN_BUILD_VERSION CLEAN_BUILD_DIR CLEAN_BUILD_REQUIRED_VERSION \
   BUILD SUPPORTED_TARGETS TARGET OS TCPU CPU UTILS UTILS_MK TARGET_MAKEFILE \
-  ospath nonrelpath fixpath TOOL_SUFFIX PATHSEP DLL_PATH_VAR show_tool_vars1 show_tool_vars show_tool_vars_end SED_MULTI_EXPR \
+  ospath nonrelpath fixpath SED_MULTI_EXPR \
   GEN_COLOR MGEN_COLOR CP_COLOR RM_COLOR RMDIR_COLOR MKDIR_COLOR TOUCH_COLOR CAT_COLOR SED_COLOR \
   PRINT_PERCENTS COLORIZE FORMAT_PERCENTS=SHOWN_PERCENTS REM_MAKEFILE=SHOWN_PERCENTS=SHOWN_PERCENTS SUP \
   TARGET_TRIPLET DEF_BIN_DIR DEF_OBJ_DIR DEF_LIB_DIR DEF_GEN_DIR SET_DEFAULT_DIRS \
-  TOOL_BASE MK_TOOLS_DIR GET_TOOLS GET_TOOL TOOL_OVERRIDE_DIRS \
+  TOOL_BASE MK_TOOLS_DIR TOOL_SUFFIX GET_TOOLS GET_TOOL TOOL_OVERRIDE_DIRS \
   ADD_MDEPS ADD_ADEPS ADD_WHAT_MAKEFILE_BUILDS CREATE_MAKEFILE_ALIAS ADD_ORDER_DEPS=ORDER_DEPS=ORDER_DEPS \
   NEED_GEN_DIRS STD_TARGET_VARS1 STD_TARGET_VARS MAKEFILE_INFO_TEMPL SET_MAKEFILE_INFO \
-  ADD_GENERATED CHECK_GENERATED ADD_GENERATED_RET RUN_TOOL TMD TOOL_MODE_ERROR \
+  ADD_GENERATED CHECK_GENERATED ADD_GENERATED_RET TMD TOOL_MODE_ERROR \
   DEF_HEAD_CODE DEF_TAIL_CODE CB_PREPARE_TARGET_TYPE DEFINE_TARGETS SAVE_VARS RESTORE_VARS MAKE_CONTINUE CONF_COLOR PRODUCT_VER)
 
 # if TOCLEAN value is non-empty, allow tracing calls to it,
@@ -959,3 +924,4 @@ $(call SET_GLOBAL,TOCLEAN,$(if $(value TOCLEAN),,0))
 include $(CLEAN_BUILD_DIR)/core/sdeps.mk
 include $(CLEAN_BUILD_DIR)/core/nonpar.mk
 include $(CLEAN_BUILD_DIR)/core/multi.mk
+include $(CLEAN_BUILD_DIR)/core/runtool.mk
