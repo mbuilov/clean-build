@@ -6,6 +6,7 @@
 
 # rules for building application-level C/C++ libs, dlls and executables
 
+# source base definitions
 ifeq (,$(filter-out undefined environment,$(origin C_BASE_TEMPLATE)))
 include $(dir $(lastword $(MAKEFILE_LIST)))c/c_base.mk
 endif
@@ -46,7 +47,7 @@ C_TARGETS += $(C_APP_TARGETS)
 #  S (for linking with S-variant of EXE or DLL)
 
 # no non-regular target variants are supported by default
-# note: used by SUPPORTED_VARIANTS macro from $(CLEAN_BUILD_DIR)/core/_defs.mk
+# note: used by SUPPORTED_VARIANTS macro from $(CLEAN_BUILD_DIR)/core/variants.mk
 # note: $(C_COMPILER_MK) included below may override ..._SUPPORTED_VARIANTS definitions
 EXE_SUPPORTED_VARIANTS:=
 LIB_SUPPORTED_VARIANTS:=
@@ -54,7 +55,7 @@ DLL_SUPPORTED_VARIANTS:=
 
 # determine target name suffix (in case if building multiple variants of the target, each variant must have unique file name)
 # $1 - non-empty target variant: P,D,S... (cannot be R - regular - it was filtered out)
-# note: used by VARIANT_SUFFIX macro from $(CLEAN_BUILD_DIR)/core/_defs.mk
+# note: used by VARIANT_SUFFIX macro from $(CLEAN_BUILD_DIR)/core/variants.mk
 EXE_VARIANT_SUFFIX = _$1
 LIB_VARIANT_SUFFIX = _$1
 DLL_VARIANT_SUFFIX = _$1
@@ -91,7 +92,7 @@ EXE_SUFFIX:=
 # $1 - target name, e.g. my_exe, may be empty
 # $2 - target variant: R,P,D,S... (one of variants supported by selected toolchain, may be empty)
 # note: use $(patsubst...) to return empty value if $1 is empty
-# note: used by FORM_TRG macro from $(CLEAN_BUILD_DIR)/core/_defs.mk
+# note: used by FORM_TRG macro from $(CLEAN_BUILD_DIR)/core/variants.mk
 EXE_FORM_TRG = $(1:%=$(BIN_DIR)/%$(call VARIANT_SUFFIX,EXE,$2)$(EXE_SUFFIX))
 
 # static library (archive) prefix/suffix
@@ -102,7 +103,7 @@ LIB_SUFFIX := .a
 # $1 - target name, e.g. my_lib, may be empty
 # $2 - target variant: R,P,D,S... (one of variants supported by selected toolchain, may be empty)
 # note: use $(patsubst...) to return empty value if $1 is empty
-# note: used by FORM_TRG macro from $(CLEAN_BUILD_DIR)/core/_defs.mk
+# note: used by FORM_TRG macro from $(CLEAN_BUILD_DIR)/core/variants.mk
 LIB_FORM_TRG = $(1:%=$(LIB_DIR)/$(LIB_PREFIX)%$(call VARIANT_SUFFIX,LIB,$2)$(LIB_SUFFIX))
 
 # dynamically loaded library (shared object) prefix/suffix
@@ -117,7 +118,7 @@ DLL_DIR = $(LIB_DIR)
 # $1 - target name, e.g. my_dll, may be empty
 # $2 - target variant: R,P,D,S... (one of variants supported by selected toolchain, may be empty)
 # note: use $(patsubst...) to return empty value if $($1) is empty
-# note: used by FORM_TRG macro from $(CLEAN_BUILD_DIR)/core/_defs.mk
+# note: used by FORM_TRG macro from $(CLEAN_BUILD_DIR)/core/variants.mk
 DLL_FORM_TRG = $(1:%=$(DLL_DIR)/$(DLL_PREFIX)%$(call VARIANT_SUFFIX,DLL,$2)$(DLL_SUFFIX))
 
 # determine which variant of static library to link with EXE or DLL
@@ -239,7 +240,7 @@ endif
 
 # C_COMPILER - application-level compiler to use for the build (gcc, clang, msvc, etc.)
 # note: $(C_COMPILER) value is used only to form name of standard makefile with definitions of C/C++ compiler
-# note: C_COMPILER may be overridden by specifying either in in command line or in project configuration makefile
+# note: C_COMPILER may be overridden by specifying it either in the command line or in project configuration makefile
 C_COMPILER := $(if \
   $(filter WIN%,$(OS)),msvc,$(if \
   $(filter SUN%,$(OS)),suncc,gcc))
