@@ -44,8 +44,8 @@ endef
 # generated $(CONFIG) file is likely already sourced,
 # 1) override variables in $(CONFIG) file with new values specified in command line,
 # 2) save new variables specified in command line to $(CONFIG) file
-# 3) always save PATH, SHELL and variables named in $(PASS_ENV_VARS) values to $(CONFIG) file because they are exported
-# note: save current values of variables in target-specific variable CONFIG_TEXT - variables may be overridden later
+# 3) always save values of PATH, SHELL and variables from $(PASS_ENV_VARS) to $(CONFIG) file because they are taken from the environment
+# note: save current values of variables to the target-specific variable CONFIG_TEXT - variables may be overridden later
 # note: never override GNUMAKEFLAGS, CLEAN_BUILD_VERSION, CONFIG and $(dump_max) variables by including $(CONFIG) file
 conf: override CONFIG_TEXT := $(foreach v,$(filter-out \
   PATH SHELL $(PASS_ENV_VARS) GNUMAKEFLAGS CLEAN_BUILD_VERSION CONFIG $(dump_max),$(.VARIABLES)),$(if \
