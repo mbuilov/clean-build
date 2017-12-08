@@ -5,5 +5,5 @@
 #----------------------------------------------------------------------------------
 
 ifeq (,$(filter-out undefined environment,$(origin DO_TEST_EXE)))
-include $(dir $(lastword $(MAKEFILE_LIST)))_ctest.mk
+include $(dir $(lastword $(MAKEFILE_LIST)))impl/_ctest.mk
 endif
