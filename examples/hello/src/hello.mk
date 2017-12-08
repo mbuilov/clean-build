@@ -16,7 +16,6 @@ SRC := hello.c
 
 # generate rules for testing built executable and creating 'hello.out' output file
 OUT := $(DO_TEST_EXE)
-#$(call FORM_TRG,EXE,S).out
 
 # set makefile information for the 'hello' - a phony target defined below
 # (this information is used by the SUP function, which pretty-prints what a rule is doing)
@@ -26,11 +25,11 @@ $(call SET_MAKEFILE_INFO,hello)
 # define custom rule - print output of tested executable to stderr
 # Note: any output of rules should go to stderr, stdout is used
 #  by clean-build only for printing executed commands - this is
-#  needed for the generation of build-script
-# Note: $| - automatic variable - list of order-only dependencies of the target
+#  needed for the (optional) generation of build-script
+# Note: $| - automatic variable - list of order-only dependencies of the target (but here is the only one - $(OUT))
 # Note: pass 1 as 4-th argument to SUP function to not update percents of executed makefiles
 hello: | $(OUT)
-	$(call SUP,CAT,$|,,1)$(call CAT,$|) >&2
+	$(call SUP,CAT,$|,,1)$(call CAT_FILE,$|) >&2
 
 # to complete predefined 'check' goal, it is needed to update our target 'hello'
 check: hello
