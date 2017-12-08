@@ -190,7 +190,7 @@ WIN_RC_STDRES_NAME := std_ver_info
 # $4 - $(call FORM_OBJ_DIR,$1,$v)
 # $5 - $(WIN_RC_STDRES_NAME)
 # $v - R,S,D,...
-# note: optimization: don't use $(STD_TARGET_VARS) - inherit MF,MCONT,TMD,MODVER from target EXE,DLL,DRV,KDLL
+# note: optimization: don't use $(STD_TARGET_VARS) - inherit F.^,C.^,TMD,MODVER from target EXE,DLL,DRV,KDLL
 # note: target-specific MODVER is inherited from target EXE,DLL,DRV,KDLL
 # note: object directory $4 added to CB_NEEDED_DIRS by C_BASE_TEMPLATE from $(CLEAN_BUILD_DIR)/types/c/c_base.mk
 # note: last line must be empty
