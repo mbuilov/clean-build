@@ -15,7 +15,7 @@ EXE := hello S
 SRC := hello.c
 
 # generate rules for testing built executable and creating 'hello.out' output file
-OUT := $(DO_TEST_EXE)
+OUT := $(DO_TEST_EXE_RET)
 
 # set makefile information for the 'hello' - a phony target defined below
 # (this information is used by the SUP function, which pretty-prints what a rule is doing)
