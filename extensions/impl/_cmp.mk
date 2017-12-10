@@ -4,34 +4,34 @@
 # Licensed under GPL version 2 or any later version, see COPYING
 #----------------------------------------------------------------------------------
 
-# rule for comparing test executable(s) outputs with given file, for 'check' goal
+# rule for comparing outputs of tested executables with given file, for the 'check' goal
 
 ifeq (,$(filter check clean,$(MAKECMDGOALS)))
 
-# do something only for 'check' or 'clean' goals
-DO_CMP_OUT:=
+# do something only for the 'check' or 'clean' goals
+DO_CMP_OUTPUT:=
 
 else # check or clean
 
 CMP_COLOR := [1;36m
 
 # $1 - $(addsuffix .cmp,$2)
-# $2 - list of executable(s) outputs (absolute paths)
-# $3 - absolute path to file to compare outputs with
-define DO_CMP_OUT_TEMPLATE
-$(ADD_GENERATED)
+# $2 - list of outputs of tested executables (absolute paths)
+# $3 - absolute path to the file to compare outputs with
+define DO_CMP_OUTPUT_TEMPLATE
+$(STD_TARGET_VARS)
 $(subst $(space),$(newline),$(join $(addsuffix :,$1),$2))
 $1:
-	$$(call SUP,CMP,$$@)$$(call CMP,$$<,$3) > $$@ 2>&1
+	$$(call SUP,CMP,$$@)$$(call COMPARE_FILES,$$<,$3) > $$@
 endef
 
-# for 'check' goal, compare tested executable(s) outputs with given file;
-# if there is difference, rule fails, else .cmp file(s) are created.
-# $1 - list of executable(s) outputs (absolute paths)
+# for the 'check' goal, compare outputs of tested executables with given file;
+#  - if there is a difference, rule fails, else .cmp files are created.
+# $1 - list of outputs of executables (absolute paths)
 # $2 - path to file to compare executable(s) outputs with (path may be makefile-relative and will be fixed)
-DO_CMP_OUT = $(eval $(call DO_CMP_OUT_TEMPLATE,$(addsuffix .cmp,$1),$1,$(call fixpath,$2)))
+DO_CMP_OUTPUT = $(eval $(call DO_CMP_OUTPUT_TEMPLATE,$(addsuffix .cmp,$1),$1,$(call fixpath,$2)))
 
 endif # check or clean
 
 # protect variables from modifications in target makefiles
-$(call SET_GLOBAL,CMP_COLOR DO_CMP_OUT_TEMPLATE DO_CMP_OUT)
+$(call SET_GLOBAL,DO_CMP_OUTPUT CMP_COLOR DO_CMP_OUTPUT_TEMPLATE)

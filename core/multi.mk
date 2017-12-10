@@ -77,7 +77,7 @@ ifdef MCHECK
 #  (any target from multi-targets list), and rule must update all targets at once.
 # $1 - list of generated files (absolute paths)
 # $3 - rule
-CHECK_MULTI_RULE = $(CHECK_GENERATED)$(if $(findstring $$@,$(subst \
+CHECK_MULTI_RULE = $(if $(findstring $$@,$(subst \
   $$$$,,$3)),$(error $$@ cannot be used in multi-target rule:$(newline)$3))
 
 $(eval MULTI_TARGET = $$(CHECK_MULTI_RULE)$(value MULTI_TARGET))

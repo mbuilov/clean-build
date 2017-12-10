@@ -4,6 +4,6 @@
 # Licensed under GPL version 2 or any later version, see COPYING
 #----------------------------------------------------------------------------------
 
-ifeq (,$(filter-out undefined environment,$(origin DO_CMP_OUT)))
-include $(dir $(lastword $(MAKEFILE_LIST)))_cmp.mk
+ifeq (,$(filter-out undefined environment,$(origin DO_CMP_OUTPUT)))
+include $(dir $(lastword $(MAKEFILE_LIST)))impl/_cmp.mk
 endif

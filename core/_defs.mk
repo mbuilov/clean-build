@@ -285,38 +285,6 @@ ifdef MDEBUG
 $(call dump,CLEAN_BUILD_DIR BUILD CONFIG TARGET OS TCPU CPU UTILS_MK,,)
 endif
 
-# absolute path to target makefile
-TARGET_MAKEFILE := $(abspath $(firstword $(MAKEFILE_LIST)))
-
-# for UNIX: don't change paths when converting from make internal file path to path accepted by $(UTILS_MK)
-# note: $(CLEAN_BUILD_DIR)/utils/cmd.mk defines own ospath
-ospath = $1
-
-# make path not relative: add $1 only to non-absolute paths in $2
-# note: path $1 must end with /
-# note: $(CLEAN_BUILD_DIR)/utils/cmd.mk defines own nonrelpath
-nonrelpath = $(patsubst $1/%,/%,$(addprefix $1,$2))
-
-# add absolute path to directory of target makefile to given non-absolute paths
-# - we need absolute paths to sources to work with generated dependencies in .d files
-fixpath = $(abspath $(call nonrelpath,$(dir $(TARGET_MAKEFILE)),$1))
-
-# SED - stream editor executable - should be defined in $(UTILS_MK) makefile
-# SED_EXPR - also should be defined in $(UTILS_MK) makefile
-# helper macro: convert multi-line sed script $1 to multiple sed expressions - one expression for each script line
-SED_MULTI_EXPR = $(foreach s,$(subst $(newline), ,$(unspaces)),-e $(call SED_EXPR,$(call tospaces,$s)))
-
-# utilities colors
-GEN_COLOR   := [1;32m
-MGEN_COLOR  := [1;32m
-CP_COLOR    := [1;36m
-RM_COLOR    := [1;31m
-RMDIR_COLOR := [1;31m
-MKDIR_COLOR := [36m
-TOUCH_COLOR := [36m
-CAT_COLOR   := [32m
-SED_COLOR   := [32m
-
 # colorize printed percents
 # note: $(CLEAN_BUILD_DIR)/utils/cmd.mk redefines: PRINT_PERCENTS = [$1]
 PRINT_PERCENTS = [34m[[1;34m$1[34m][m
@@ -473,12 +441,15 @@ ifeq (,$(filter clean,$(MAKECMDGOALS)))
 TOCLEAN:=
 else ifneq (,$(word 2,$(MAKECMDGOALS)))
 $(error clean goal must be specified alone, current goals: $(MAKECMDGOALS))
-else ifdef MCHECK
+else ifndef MCHECK
+TOCLEAN = $(eval CLEAN+=$$1)
+else
 # remember new value of CLEAN, without tracing calls to it because it is incremented
 TOCLEAN = $(eval CLEAN+=$$1$(newline)$(call SET_GLOBAL1,CLEAN,0))
-else
-TOCLEAN = $(eval CLEAN+=$$1)
 endif
+
+# absolute path to target makefile
+TARGET_MAKEFILE := $(abspath $(firstword $(MAKEFILE_LIST)))
 
 # append makefiles (really .PHONY goals created from them) to ORDER_DEPS list
 # note: this function is useful to specify dependency on all targets built by makefiles (a tree of makefiles)
@@ -499,6 +470,12 @@ ADD_WHAT_MAKEFILE_BUILDS:=
 
 ifndef TOCLEAN
 
+# define a .PHONY goal which will depend on main makefile targets (registered via STD_TARGET_VARS macro)
+.PHONY: $(TARGET_MAKEFILE)-
+
+# default goal 'all' - depends only on the root makefile
+all: $(TARGET_MAKEFILE)-
+
 # create a .PHONY goal aliasing current makefile
 # $1 - arbitrary alias name
 CREATE_MAKEFILE_ALIAS = $(eval .PHONY: $1_MAKEFILE_ALIAS-$(newline)$1_MAKEFILE_ALIAS-: $(TARGET_MAKEFILE)-)
@@ -509,18 +486,12 @@ CREATE_MAKEFILE_ALIAS = $(eval .PHONY: $1_MAKEFILE_ALIAS-$(newline)$1_MAKEFILE_A
 ORDER_DEPS:=
 
 # append value(s) to ORDER_DEPS list
-ifdef MCHECK
+ifndef MCHECK
+ADD_ORDER_DEPS = $(eval ORDER_DEPS+=$$1)
+else
 # remember new value of ORDER_DEPS, without tracing calls to it because it is incremented
 ADD_ORDER_DEPS = $(eval ORDER_DEPS+=$$1$(newline)$(call SET_GLOBAL1,ORDER_DEPS,0))
-else
-ADD_ORDER_DEPS = $(eval ORDER_DEPS+=$$1)
 endif
-
-# define a .PHONY goal which will depend on main makefile targets (registered via STD_TARGET_VARS macro)
-.PHONY: $(TARGET_MAKEFILE)-
-
-# default goal 'all' - depends only on the root makefile
-all: $(TARGET_MAKEFILE)-
 
 # add directories $1 to list of auto-created ones
 # note: these directories are will be auto-deleted while cleaning up
@@ -535,17 +506,26 @@ endif
 # $1 - target file(s) to build (absolute paths)
 # $2 - directories of target file(s) (absolute paths)
 # note: postpone expansion of $(ORDER_DEPS) to optimize parsing
-# note: .PHONY goal $(TARGET_MAKEFILE)- will depend on built files
+# note: .PHONY goal $(TARGET_MAKEFILE)- will depend on all top-level targets
 define STD_TARGET_VARS1
 $1:| $2 $$(ORDER_DEPS)
 $(TARGET_MAKEFILE)-:$1
 CB_NEEDED_DIRS+=$2
 endef
 
-# remember new value of CB_NEEDED_DIRS, without tracing calls to it because it is incremented
 ifdef MCHECK
+
+# remember new value of CB_NEEDED_DIRS, without tracing calls to it because it is incremented
 $(call define_append,STD_TARGET_VARS1,$(newline)$$(call SET_GLOBAL1,CB_NEEDED_DIRS,0))
-endif
+
+# check that files $1 are generated under $(GEN_DIR), $(BIN_DIR), $(OBJ_DIR) or $(LIB_DIR) directories
+CHECK_GENERATED_AT = $(if $(filter-out $(GEN_DIR)/% $(BIN_DIR)/% $(OBJ_DIR)/% $(LIB_DIR)/%,$1),$(error \
+  these files are generated not under $$(GEN_DIR), $$(BIN_DIR), $$(OBJ_DIR) or $$(LIB_DIR): $(filter-out \
+  $(GEN_DIR)/% $(BIN_DIR)/% $(OBJ_DIR)/% $(LIB_DIR)/%,$1)))
+
+$(call define_prepend,STD_TARGET_VARS1,$$(CHECK_GENERATED_AT))
+
+endif # MCHECK
 
 ifdef MDEBUG
 
@@ -560,9 +540,10 @@ ADD_WHAT_MAKEFILE_BUILDS = $(call define_append,$1,$$(info \
 # print what makefile builds
 $(call ADD_WHAT_MAKEFILE_BUILDS,STD_TARGET_VARS1,$$1,$$(ORDER_DEPS))
 
-endif
+endif # MDEBUG
 
-# register targets as main ones built by current makefile, add standard target-specific variables
+# register targets as the main ones built by the current makefile, add standard target-specific variables
+# (main targets - those are not used as the prerequisites for other targets in the same makefile)
 # $1 - generated file(s) (absolute paths)
 STD_TARGET_VARS = $(call STD_TARGET_VARS1,$1,$(patsubst %/,%,$(sort $(dir $1))))
 
@@ -595,7 +576,7 @@ ifndef MCHECK
 STD_TARGET_VARS = CLEAN+=$1
 else
 # callers of STD_TARGET_VARS may assume that it will protect new value of CB_NEEDED_DIRS
-STD_TARGET_VARS = CLEAN+=$1$(newline)$(call SET_GLOBAL1,CLEAN CB_NEEDED_DIRS,0)
+STD_TARGET_VARS = CLEAN+=$1$(newline)$(call SET_GLOBAL1,CLEAN,0)
 endif
 
 # cleanup generated directories
@@ -603,7 +584,7 @@ ifndef MCHECK
 NEED_GEN_DIRS = $(eval CLEAN+=$$1)
 else
 # callers of NEED_GEN_DIRS may assume that it will protect new value of CB_NEEDED_DIRS
-NEED_GEN_DIRS = $(eval CLEAN+=$$1$(newline)$$(call SET_GLOBAL1,CLEAN CB_NEEDED_DIRS,0))
+NEED_GEN_DIRS = $(eval CLEAN+=$$1$(newline)$$(call SET_GLOBAL1,CLEAN,0))
 endif
 
 # do nothing if cleaning up
@@ -621,23 +602,12 @@ SET_MAKEFILE_INFO:=
 endif
 
 # add generated files $1 to build sequence
-# note: files must be generated in $(GEN_DIR),$(BIN_DIR),$(OBJ_DIR) or $(LIB_DIR)
+# note: files must be generated under $(GEN_DIR),$(BIN_DIR),$(OBJ_DIR) or $(LIB_DIR) directories
 # note: directories for generated files will be auto-created
 ADD_GENERATED = $(eval $(STD_TARGET_VARS))
 
-ifdef MCHECK
-
-# check that files $1 are generated in $(GEN_DIR), $(BIN_DIR), $(OBJ_DIR) or $(LIB_DIR)
-CHECK_GENERATED = $(if $(filter-out $(GEN_DIR)/% $(BIN_DIR)/% $(OBJ_DIR)/% $(LIB_DIR)/%,$1),$(error \
-  these files are generated not under $$(GEN_DIR), $$(BIN_DIR), $$(OBJ_DIR) or $$(LIB_DIR): $(filter-out \
-  $(GEN_DIR)/% $(BIN_DIR)/% $(OBJ_DIR)/% $(LIB_DIR)/%,$1)))
-
-$(eval ADD_GENERATED = $$(CHECK_GENERATED)$(value ADD_GENERATED))
-
-endif # MCHECK
-
 # add generated files $1 to build sequence and return $1
-# note: files must be generated in $(GEN_DIR),$(BIN_DIR),$(OBJ_DIR) or $(LIB_DIR)
+# note: files must be generated under $(GEN_DIR),$(BIN_DIR),$(OBJ_DIR) or $(LIB_DIR) directories
 # note: directories for generated files will be auto-created
 ADD_GENERATED_RET = $(ADD_GENERATED)$1
 
@@ -876,6 +846,35 @@ $(info $(call PRINT_PERCENTS,use)$(call COLORIZE,CONF,$(CONFIG)))
 endif
 endif
 
+# utilities colors - for the SUP function (and the COLORIZE macro)
+GEN_COLOR   := [1;32m
+MGEN_COLOR  := [1;32m
+CP_COLOR    := [1;36m
+RM_COLOR    := [1;31m
+RMDIR_COLOR := [1;31m
+MKDIR_COLOR := [36m
+TOUCH_COLOR := [36m
+CAT_COLOR   := [32m
+SED_COLOR   := [32m
+
+# for UNIX: don't change paths when converting from make internal file path to path accepted by $(UTILS_MK)
+# note: $(CLEAN_BUILD_DIR)/utils/cmd.mk defines own ospath
+ospath = $1
+
+# make path not relative: add $1 only to non-absolute paths in $2
+# note: path $1 must end with /
+# note: $(CLEAN_BUILD_DIR)/utils/cmd.mk defines own nonrelpath
+nonrelpath = $(patsubst $1/%,/%,$(addprefix $1,$2))
+
+# add absolute path to directory of target makefile to given non-absolute paths
+# - we need absolute paths to sources to work with generated dependencies in .d files
+fixpath = $(abspath $(call nonrelpath,$(dir $(TARGET_MAKEFILE)),$1))
+
+# SED - stream editor executable - should be defined in $(UTILS_MK) makefile
+# SED_EXPR - also should be defined in $(UTILS_MK) makefile
+# helper macro: convert multi-line sed script $1 to multiple sed expressions - one expression for each script line
+SED_MULTI_EXPR = $(foreach s,$(subst $(newline), ,$(unspaces)),-e $(call SED_EXPR,$(call tospaces,$s)))
+
 # product version in form major.minor or major.minor.patch
 # note: this is also default version for any built module (exe, dll or driver)
 PRODUCT_VER := 0.0.1
@@ -891,8 +890,8 @@ CLEAN_BUILD_FIRST_PHASE_VARS += BIN_DIR OBJ_DIR LIB_DIR GEN_DIR
 # makefile parsing first phase variables
 CLEAN_BUILD_FIRST_PHASE_VARS += CLEAN_BUILD_GOALS CB_NEEDED_DIRS ORDER_DEPS CB_INCLUDE_LEVEL \
   PROCESSED_MAKEFILES MAKE_CONT SET_DEFAULT_DIRS TOOL_OVERRIDE_DIRS ADD_MDEPS ADD_ADEPS ADD_WHAT_MAKEFILE_BUILDS \
-  CREATE_MAKEFILE_ALIAS ADD_ORDER_DEPS NEED_GEN_DIRS STD_TARGET_VARS1 STD_TARGET_VARS MAKEFILE_INFO_TEMPL \
-  SET_MAKEFILE_INFO ADD_GENERATED CHECK_GENERATED ADD_GENERATED_RET \
+  CREATE_MAKEFILE_ALIAS ADD_ORDER_DEPS NEED_GEN_DIRS STD_TARGET_VARS1 CHECK_GENERATED_AT STD_TARGET_VARS \
+  MAKEFILE_INFO_TEMPL SET_MAKEFILE_INFO ADD_GENERATED ADD_GENERATED_RET \
   TMD TOOL_MODE_ERROR TOOL_MODE DEF_HEAD_CODE DEF_TAIL_CODE DEFINE_TARGETS SAVE_VARS RESTORE_VARS MAKE_CONTINUE TOCLEAN
 
 # protect macros from modifications in target makefiles,
@@ -905,16 +904,16 @@ $(call SET_GLOBAL,MAKEFLAGS CLEAN_BUILD_GOALS $(PASS_ENV_VARS) PATH SHELL CLEAN_
 # protect macros from modifications in target makefiles, allow tracing calls to them
 $(call SET_GLOBAL,PROJECT_VARS_NAMES PASS_ENV_VARS \
   CLEAN_BUILD_VERSION CLEAN_BUILD_DIR CLEAN_BUILD_REQUIRED_VERSION \
-  BUILD SUPPORTED_TARGETS TARGET OS TCPU CPU UTILS UTILS_MK TARGET_MAKEFILE \
-  ospath nonrelpath fixpath SED_MULTI_EXPR \
-  GEN_COLOR MGEN_COLOR CP_COLOR RM_COLOR RMDIR_COLOR MKDIR_COLOR TOUCH_COLOR CAT_COLOR SED_COLOR \
+  BUILD SUPPORTED_TARGETS TARGET OS TCPU CPU UTILS UTILS_MK \
   PRINT_PERCENTS COLORIZE FORMAT_PERCENTS=SHOWN_PERCENTS REM_MAKEFILE=SHOWN_PERCENTS=SHOWN_PERCENTS SUP \
   TARGET_TRIPLET DEF_BIN_DIR DEF_OBJ_DIR DEF_LIB_DIR DEF_GEN_DIR SET_DEFAULT_DIRS \
   TOOL_BASE MK_TOOLS_DIR TOOL_SUFFIX GET_TOOLS GET_TOOL TOOL_OVERRIDE_DIRS \
-  ADD_MDEPS ADD_ADEPS ADD_WHAT_MAKEFILE_BUILDS CREATE_MAKEFILE_ALIAS ADD_ORDER_DEPS=ORDER_DEPS=ORDER_DEPS \
-  NEED_GEN_DIRS STD_TARGET_VARS1 STD_TARGET_VARS MAKEFILE_INFO_TEMPL SET_MAKEFILE_INFO \
-  ADD_GENERATED CHECK_GENERATED ADD_GENERATED_RET TMD TOOL_MODE_ERROR \
-  DEF_HEAD_CODE DEF_TAIL_CODE CB_PREPARE_TARGET_TYPE DEFINE_TARGETS SAVE_VARS RESTORE_VARS MAKE_CONTINUE CONF_COLOR PRODUCT_VER)
+  TARGET_MAKEFILE ADD_MDEPS ADD_ADEPS ADD_WHAT_MAKEFILE_BUILDS CREATE_MAKEFILE_ALIAS ADD_ORDER_DEPS=ORDER_DEPS=ORDER_DEPS \
+  NEED_GEN_DIRS STD_TARGET_VARS1 CHECK_GENERATED_AT STD_TARGET_VARS MAKEFILE_INFO_TEMPL SET_MAKEFILE_INFO \
+  ADD_GENERATED ADD_GENERATED_RET TMD TOOL_MODE_ERROR \
+  DEF_HEAD_CODE DEF_TAIL_CODE CB_PREPARE_TARGET_TYPE DEFINE_TARGETS SAVE_VARS RESTORE_VARS MAKE_CONTINUE CONF_COLOR \
+  GEN_COLOR MGEN_COLOR CP_COLOR RM_COLOR RMDIR_COLOR MKDIR_COLOR TOUCH_COLOR CAT_COLOR SED_COLOR \
+  ospath nonrelpath fixpath SED_MULTI_EXPR PRODUCT_VER)
 
 # if TOCLEAN value is non-empty, allow tracing calls to it,
 # else - just protect TOCLEAN from changes, do not make it's value non-empty - because TOCLEAN is checked in ifdefs

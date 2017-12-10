@@ -15,9 +15,10 @@ CB_TEST_SHLIB_SIMLINKS_LIST:=
 # $1 - $(LIB_DIR)/$(DLL_PREFIX)$(subst .,$(DLL_SUFFIX).,$d)         e.g.: /project/lib/libmylb.so.1
 # $2 - $(DLL_PREFIX)<library_name>$(DLL_SUFFIX)                     e.g.: libmylb.so
 # $d - built shared library in form <library_name>.<major_number>   e.g.: mylib.1
-# note: optimize: do not use ADD_GENERATED/STD_TARGET_VARS
+# note: do not expand STD_TARGET_VARS macro because rule target (simlink) is the prerequisite for the result
+#  of tested executable - TEST_FORM_SHLIB_SIMLINKS macro should be used to form a list of such prerequisites
 define SO_SOFTLINK_TEMPLATE
-$1:| $(LIB_DIR)/$2
+$1:| $(dir $1)$2
 	$$(call SUP,LN,$$@)$$(call CREATE_SIMLINK,$2,$$@)
 CB_TEST_SHLIB_SIMLINKS_LIST += $d
 endef
