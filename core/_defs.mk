@@ -495,6 +495,7 @@ endif
 
 # add directories $1 to list of auto-created ones
 # note: these directories are will be auto-deleted while cleaning up
+# note: callers of NEED_GEN_DIRS may assume that it will protect new value of CB_NEEDED_DIRS
 ifndef MCHECK
 NEED_GEN_DIRS = $(eval CB_NEEDED_DIRS+=$$1)
 else
@@ -507,6 +508,7 @@ endif
 # $2 - directories of target file(s) (absolute paths)
 # note: postpone expansion of $(ORDER_DEPS) to optimize parsing
 # note: .PHONY goal $(TARGET_MAKEFILE)- will depend on all top-level targets
+# note: callers of STD_TARGET_VARS1 may assume that it will protect new value of CB_NEEDED_DIRS
 define STD_TARGET_VARS1
 $1:| $2 $$(ORDER_DEPS)
 $(TARGET_MAKEFILE)-:$1
@@ -545,6 +547,7 @@ endif # MDEBUG
 # register targets as the main ones built by the current makefile, add standard target-specific variables
 # (main targets - those are not used as the prerequisites for other targets in the same makefile)
 # $1 - generated file(s) (absolute paths)
+# note: callers of STD_TARGET_VARS may assume that it will protect new value of CB_NEEDED_DIRS
 STD_TARGET_VARS = $(call STD_TARGET_VARS1,$1,$(patsubst %/,%,$(sort $(dir $1))))
 
 # MAKEFILE_INFO_TEMPL - for given target(s) $1, define target-specific variables for printing makefile info:
@@ -572,19 +575,19 @@ endif
 else # clean
 
 # just cleanup target files or directories $1 (absolute paths)
+# note: callers of STD_TARGET_VARS may assume that it will protect new value of CB_NEEDED_DIRS
 ifndef MCHECK
 STD_TARGET_VARS = CLEAN+=$1
 else
-# callers of STD_TARGET_VARS may assume that it will protect new value of CB_NEEDED_DIRS
-STD_TARGET_VARS = CLEAN+=$1$(newline)$(call SET_GLOBAL1,CLEAN,0)
+STD_TARGET_VARS = CLEAN+=$1$(newline)$(call SET_GLOBAL1,CLEAN CB_NEEDED_DIRS,0)
 endif
 
 # cleanup generated directories
+# note: callers of NEED_GEN_DIRS may assume that it will protect new value of CB_NEEDED_DIRS
 ifndef MCHECK
 NEED_GEN_DIRS = $(eval CLEAN+=$$1)
 else
-# callers of NEED_GEN_DIRS may assume that it will protect new value of CB_NEEDED_DIRS
-NEED_GEN_DIRS = $(eval CLEAN+=$$1$(newline)$$(call SET_GLOBAL1,CLEAN,0))
+NEED_GEN_DIRS = $(eval CLEAN+=$$1$(newline)$$(call SET_GLOBAL1,CLEAN CB_NEEDED_DIRS,0))
 endif
 
 # do nothing if cleaning up
