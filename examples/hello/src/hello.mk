@@ -15,6 +15,7 @@ EXE := hello S
 SRC := hello.c
 
 # generate rules for testing built executable and creating 'hello.out' output file
+# save the name of generated output file (the same as $(addsuffix .out,$(call ALL_TARGETS,EXE)))
 OUT := $(DO_TEST_EXE_RET)
 
 # set makefile information for the 'hello' - a phony target defined below
