@@ -111,7 +111,7 @@ ECHO_LINE = printf $(ECHO_LINE_ESCAPE)
 # $4 - text to prepend before the command when $6 is empty
 # $6 - empty if overwrite file $2, non-empty if append text to it
 # NOTE: total text length must not exceed maximum command line length (at least 4096 characters)
-ECHO_LINES = $(if $6,$3,$4)$(call ECHO_LINE,$(call tospaces,$(subst $(space),\n,$1)))$(if $2,>$(if $6,>) $2)
+ECHO_LINES = $(if $6,$3,$4)printf $(call tospaces,$(subst $(space),\n,$(ECHO_LINE_ESCAPE)))$(if $2,>$(if $6,>) $2)
 
 # print lines of text (to stdout, for redirecting it to output file)
 # note: each line will be ended with LF
