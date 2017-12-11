@@ -47,10 +47,9 @@ endef
 # 3) always save values of PATH, SHELL and variables from $(PASS_ENV_VARS) to $(CONFIG) file because they are taken from the environment
 # note: save current values of variables to the target-specific variable CONFIG_TEXT - variables may be overridden later
 # note: never override GNUMAKEFLAGS, CLEAN_BUILD_VERSION, CONFIG and $(dump_max) variables by including $(CONFIG) file
-conf: override CONFIG_TEXT := $(foreach v,$(filter-out \
+conf: override CONFIG_TEXT := $(foreach v,PATH SHELL $(PASS_ENV_VARS) $(foreach v,$(filter-out \
   PATH SHELL $(PASS_ENV_VARS) GNUMAKEFLAGS CLEAN_BUILD_VERSION CONFIG $(dump_max),$(.VARIABLES)),$(if \
-  $(findstring command line,$(origin $v))$(findstring override,$(origin \
-  $v)),$(CONFIG_OVERRIDE_VAR_TEMPLATE)))$(foreach v,PATH SHELL $(PASS_ENV_VARS),$(CONFIG_OVERRIDE_VAR_TEMPLATE))
+  $(findstring command line,$(origin $v))$(findstring override,$(origin $v)),$v)),$(CONFIG_OVERRIDE_VAR_TEMPLATE))
 
 # write by that number of lines at a time while generating config file
 # note: with too many lines it is possible to exceed maximum command string length
@@ -58,11 +57,11 @@ CONFSUP_WRITE_BY_LINES := 10
 
 # generate configuration file
 # note: SUP - defined in $(CLEAN_BUILD_DIR)/core/_defs.mk
-# note: WRITE - defined in $(CLEAN_BUILD_DIR)/utils/$(UTILS).mk
+# note: WRITE_TEXT - defined in $(CLEAN_BUILD_DIR)/utils/$(UTILS).mk
 # note: pass 1 as 4-th argument of SUP function to not update percents of executed target makefiles
 # note: CONFIG_TEXT was defined above as target-specific variable
 conf:| $(patsubst %/,%,$(dir $(CONFIG)))
-	$(call SUP,GEN,$(CF),,1)$(call WRITE,$(CONFIG_TEXT),$(CF),$(CONFSUP_WRITE_BY_LINES))
+	$(call SUP,GEN,$(CF),,1)$(call WRITE_TEXT,$(CONFIG_TEXT),$(CF),$(CONFSUP_WRITE_BY_LINES))
 
 # if $(CONFIG) file is under $(BUILD), create config directory automatically
 # else - $(CONFIG) file is outside of $(BUILD), config directory must be created manually
