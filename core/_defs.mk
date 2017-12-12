@@ -576,6 +576,7 @@ else # clean
 
 # just cleanup target files or directories $1 (absolute paths)
 # note: callers of STD_TARGET_VARS may assume that it will protect new value of CB_NEEDED_DIRS
+#  so callers _may_ change CB_NEEDED_DIRS without protecting it. Protect CB_NEEDED_DIRS here.
 ifndef MCHECK
 STD_TARGET_VARS = CLEAN+=$1
 else
@@ -584,6 +585,7 @@ endif
 
 # cleanup generated directories
 # note: callers of NEED_GEN_DIRS may assume that it will protect new value of CB_NEEDED_DIRS
+#  so callers _may_ change CB_NEEDED_DIRS without protecting it. Protect CB_NEEDED_DIRS here.
 ifndef MCHECK
 NEED_GEN_DIRS = $(eval CLEAN+=$$1)
 else
