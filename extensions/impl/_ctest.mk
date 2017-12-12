@@ -4,7 +4,7 @@
 # Licensed under GPL version 2 or any later version, see COPYING
 #----------------------------------------------------------------------------------
 
-# define rules for testing built executables - for the 'check' goal
+# rule templates for testing built executables - for the 'check' goal
 
 ifeq (,$(filter check clean,$(MAKECMDGOALS)))
 
