@@ -63,3 +63,8 @@ $(PROCESSED_MAKEFILES):
 $(eval $(CLEAN_BUILD_RESET_FIRST_PHASE))
 
 endif # MCHECK
+
+# at end of first phase - after all makefiles are parsed - print prepared environment variables for the rules
+ifdef VERBOSE
+$(info $(PRINT_ENV))
+endif
