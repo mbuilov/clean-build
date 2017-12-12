@@ -96,7 +96,7 @@ SED_EXPR = $(subst \n,\$(newline),$(subst \t,\$(tab),$(SHELL_ESCAPE)))
 CAT_FILE = cat $1
 
 # prepare printf argument, append \n
-ECHO_LINE_ESCAPE = $(call SHELL_ESCAPE,$(subst \,\\,$(subst %,%%,$1))\n)
+ECHO_LINE_ESCAPE = $(subst \,\\,$(subst %,%%,$(SHELL_ESCAPE)))\n
 
 # print one line of text (to stdout, for redirecting it to output file)
 # note: line must not contain $(newline)s
@@ -116,7 +116,7 @@ ECHO_LINES = $(if $6,$3,$4)printf $(call tospaces,$(subst $(space),\n,$(ECHO_LIN
 # print lines of text (to stdout, for redirecting it to output file)
 # note: each line will be ended with LF
 # NOTE: total text length must not exceed maximum command line length (at least 4096 characters)
-ECHO_TEXT = printf $(call ECHO_LINE_ESCAPE,$(subst $(newline),\n,$1))
+ECHO_TEXT = printf $(subst $(newline),\n,$(ECHO_LINE_ESCAPE))
 
 # write lines of text $1 to file $2 by $3 lines at one time
 # NOTE: any line must be less than maximum command length (at least 4096 characters)
