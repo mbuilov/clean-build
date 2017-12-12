@@ -213,7 +213,7 @@ override CPU := $(CPU)
 # note: normally UTILS get overridden by specifying it in command line, for example: UTILS:=gnu
 UTILS := $(if \
   $(filter WIN%,$(OS)),cmd,$(if \
-  $(filter LIN%,$(OS)),gnu,unix))
+  $(filter CYG% LIN%,$(OS)),gnu,unix))
 
 # UTILS_MK - makefile with definitions of shell utilities
 UTILS_MK := $(CLEAN_BUILD_DIR)/utils/$(UTILS).mk
