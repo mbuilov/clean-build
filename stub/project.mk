@@ -1,13 +1,14 @@
 #------------------- delete this header --------------------------------------------------
 #
-# stub of a project configuration makefile
-#
 # Note: This file should be copied to the directory of the project build system
 #         and modified appropriately for the custom project
 #
 # Note: this file is under public domain, it may be freely modified by the project authors
 #
 #-----------------------------------------------------------------------------------------
+
+# original file: $(CLEAN_BUILD_DIR)/stub/project.mk
+# description:   project configuration makefile
 
 # NOTE *********************************************************************************
 # according to the clean-build principles, it is acceptable to use environment variables
