@@ -4,9 +4,8 @@
 # Licensed under GPL version 2 or any later version, see COPYING
 #----------------------------------------------------------------------------------
 
-# project configuration file
-
-# Note: this is a modified copy of the $(CLEAN_BUILD_DIR)/stub/project.mk
+# original file: $(CLEAN_BUILD_DIR)/stub/project.mk
+# description:   project configuration makefile
 
 # NOTE *********************************************************************************
 # according to the clean-build principles, it is acceptable to use environment variables
