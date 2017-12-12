@@ -28,12 +28,14 @@ PROJECT_VARS_NAMES := $(filter-out \
   MAKEFLAGS CURDIR MAKEFILE_LIST .DEFAULT_GOAL,$(foreach \
   v,$(.VARIABLES),$(if $(or $(findstring file,$(origin $v)),$(findstring override,$(origin $v))),$v)))
 
-# For consistent builds, build results should not depend on environment,
-#  only on settings specified in configuration files.
-# Environment variables are visible as exported makefile variables,
-#  their use is discouraged, so unexport and later reset them (before including first target makefile).
-# Also unexport variables specified in command line.
-# Note: do not touch only variables needed for executing shell commands:
+# For consistent builds, build results should not depend on the environment variables,
+#  only on settings specified in the configuration files.
+# All environment variables of a make process are visible as exported makefile variables
+#  that are passed down to the environment of shell commands executed in rules.
+# To control environment of the shell commands, unexport all these variables, except some known ones.
+# Also unexport variables specified in the command line, because they are also exported to
+#  the environment of shell commands.
+# Note: do not touch only variables required for executing shell commands:
 #  PATH, SHELL and project-specific variables named in $(PASS_ENV_VARS).
 unexport $(filter-out PATH SHELL$(if $(filter-out undefined environment,$(origin \
   PASS_ENV_VARS)), $(PASS_ENV_VARS)),$(.VARIABLES))
@@ -42,8 +44,9 @@ unexport $(filter-out PATH SHELL$(if $(filter-out undefined environment,$(origin
 # 1) always initialize variables with default values before using them
 # 2) never use ?= operator
 # 3) 'ifdef/ifndef' should only be used for previously initialized variables
-# 4) reset (together with unprotected variables, in check mode, before including target makefile)
-#  all variables passed from environment, except PATH, SHELL and variables named in $(PASS_ENV_VARS).
+# 4) just before including first target makefile, redefine all variables passed from the environment
+#  to produce access errors, except some known exported variables:
+#  PATH, SHELL, variables named in $(PASS_ENV_VARS) and may be some other defined in clean-build files.
 
 # clean-build version: major.minor.patch
 # note: override value, if it was accidentally set in project makefile
@@ -93,7 +96,7 @@ $(eval $(foreach v,$(PROJECT_VARS_NAMES),override $(if $(findstring simple,$(fla
 CLEAN_BUILD_GOALS := all conf clean distclean check tests
 
 # initialize PASS_ENV_VARS - list of variables to export to subprocesses
-# note: PASS_ENV_VARS may be set either in project makefile or in command line
+# note: PASS_ENV_VARS may be set either in project configuration makefile or in command line
 PASS_ENV_VARS:=
 
 # needed directories - we will create them in $(CLEAN_BUILD_DIR)/core/all.mk
