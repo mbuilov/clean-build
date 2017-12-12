@@ -123,7 +123,7 @@ INCLUDING_FILE_PATTERN_ru_cp866_bytes := \x8f\xe0\xa8\xac\xa5\xe7\xa0\xad\xa8\xa
 
 # $(SED) script to generate dependencies file from msvc compiler output
 # $1 - compiler with options (unused)
-# $2 - path to the source, e.g. C:\project\src\src1.c
+# $2 - path to the source, e.g. C:\project\src\src.c
 # $3 - target object file, e.g. C:\build\obj\src.obj
 # $4 - included header file search pattern - one of $(INCLUDING_FILE_PATTERN_...)
 # $5 - prefixes of system includes to filter out, e.g. $(UDEPS_INCLUDE_FILTER)/$(KDEPS_INCLUDE_FILTER)
@@ -134,7 +134,7 @@ INCLUDING_FILE_PATTERN_ru_cp866_bytes := \x8f\xe0\xa8\xac\xa5\xe7\xa0\xad\xa8\xa
 # s/^$4 *//;                               - strip-off leading $4 pattern with spaces
 # $(subst ?, ,$(foreach x,$5,\@^$x.*@Id;)) - delete lines started with system include paths, start new circle
 # s/ /\\ /g;                               - escape spaces in included file path
-# s@.*@&:\n$3: &@;w $3.d                   - make dependencies, then write to generated dep-file (e.g. C:\build\obj\src.obj.d)
+# s@.*@&:\n$3: &@;w $(basename $3).d       - make dependencies, then write to generated dep-file (e.g. C:\build\obj\src.d)
 
 MSVC_DEPS_SCRIPT = \
 -e "s/\x0d//;/^$(notdir $2)$$/d;/^$4 /!{p;d;}" \
