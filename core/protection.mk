@@ -46,8 +46,8 @@ CLEAN_BUILD_NEED_TAIL_CODE:=
 # encode value of variable $1
 CLEAN_BUILD_ENCODE_VAR_VALUE = <$(origin $1):$(if $(findstring undefined,$(origin $1)),,$(flavor $1):$(value $1))>
 
-# encode variable name $= so that it may be used in $(eval name=...)
-CLEAN_BUILD_ENCODE_VAR_NAME = $(subst $(close_brace),^c@,$(subst $(open_brace),^o@,$(subst :,^d@,$(subst !,^e@,$=)))).^p
+# encode name of protected variable $=
+CLEAN_BUILD_ENCODE_VAR_NAME = $=.^p
 
 # store values of clean-build protected variables which must not be changed in target makefiles
 # note: after expansion, last line must be empty - callers of $(call SET_GLOBAL1,...,0) account on this
@@ -80,29 +80,63 @@ endif
 # $2 - if not empty, then do not trace calls for given macros
 SET_GLOBAL = $(eval $(SET_GLOBAL1))
 
-# redefine variable to produce access error
+# $(CLEAN_BUILD_DIR)/core/_defs.mk
+#  |
+#  | ...definitions...
+#  |
+#  | $(CLEAN_BUILD_HIDE_ENV_VARS)
+#  |
+#  | $(CLEAN_BUILD_RESET_LOCAL_VARS)
+#  |
+#  ---> target makefile
+#  |
+#  | $(CLEAN_BUILD_RESET_LOCAL_VARS)
+#  |
+#  ---> target makefile
+#  |
+#  ....
+#  |
+# $(CLEAN_BUILD_DIR)/core/all.mk
+#  |
+#  | $(CLEAN_BUILD_RESET_FIRST_PHASE)
+#  |
+#  --> execute rules
+
+# redefine variable imported from the environment to produce access error
 # $1 - variable name
-CB_VAR_ACCESS_ERR = $(eval $(if $(filter environment,$(origin $1)),$$1=!$$(error \
-  using environment variable: $1, use of environment variables is discouraged, please use only file variables),$(findstring \
-  override,$(origin $1)) $$1=!$$(error \
-  using local variable $1, please define instead target-specific variable or register a global one via SET_GLOBAL macro)))
+CB_HIDE_ENV_VAR = $(eval define $$1.^e$(newline)$(value $1)$(newline)endef$(newline)$$1=!$$(error \
+  please use GETENV macro to get value of environment variable $1)$(newline)$(call SET_GLOBAL1,$1))
+
+# get value of environment variable $1
+GETENV = $($1.^e)
+
+# check if environment variable $1 is defined
+IS_ENV = $(filter-out undefined,$(origin $1.^e))
+
+# redefine variables imported from the environment to produce access error
+CLEAN_BUILD_HIDE_ENV_VARS = $(foreach =,$(.VARIABLES),$(if $(findstring environment,$(origin $=))$$(call CB_HIDE_ENV_VAR,$=)))
+
+# redefine 'local' variable to produce access error
+# $1 - variable name
+CB_VAR_ACCESS_ERR = $(eval $(findstring override,$(origin $1)) $$1=!$$(error \
+  using local variable $1, please define instead target-specific variable or register a global one via SET_GLOBAL macro))
 
 # reset "local" variable $=:
 # check if it is not already produces access error
 CLEAN_BUILD_RESET_LOCAL_VAR = $(if $(filter !$$$(open_brace)error$$(space)%,$(subst \
-  $(space),$$(space),$(value $=))),,$$(call CB_VAR_ACCESS_ERR,$=)$(newline))
+  $(space),$$(space),$(subst $(tab),$$(tab),$(value $=)))),,$$(call CB_VAR_ACCESS_ERR,$=))
 
 # only protected variables may remain its values between makefiles,
 #  redefine non-protected (i.e. "local") variables to produce access errors
 # note: do not touch GNU Make automatic variables (automatic, but, for example, $(origin CURDIR) gives 'file')
 # note: do not reset %.^s variables here - they are needed for RESTORE_VARS, which will reset them later
-# note: do not reset trace variables %.^l %.^t and %.^p - variables which store original values of protected variables
+# note: do not reset trace variables %.^l, %.^t, hidden env variables %.^e and protected variables %.^p
 # note: do not touch automatic/default variables
 # note: do not reset $(dump_max) variables
 CLEAN_BUILD_RESET_LOCAL_VARS = $(foreach =,$(filter-out \
   CURDIR GNUMAKEFLAGS MAKECMDGOALS MAKEFILE_LIST MAKELEVEL MAKEOVERRIDES .SHELLSTATUS .DEFAULT_GOAL \
-  $(CLEAN_BUILD_PROTECTED_VARS) %.^l %.^t %.^p %.^s $(dump_max),$(.VARIABLES)),$(if \
-  $(filter file override environment,$(origin $=)),$(CLEAN_BUILD_RESET_LOCAL_VAR)))
+  $(CLEAN_BUILD_PROTECTED_VARS) %.^l %.^t %.^e %.^p %.^s $(dump_max),$(.VARIABLES)),$(if \
+  $(filter file override,$(origin $=)),$(CLEAN_BUILD_RESET_LOCAL_VAR)))
 
 # called by RESTORE_VARS to reset %.^s variables
 CLEAN_BUILD_RESET_SAVED_VARS = $(foreach =,$(filter %.^s,$(.VARIABLES)),$(CLEAN_BUILD_RESET_LOCAL_VAR))
@@ -115,7 +149,8 @@ CLEAN_BUILD_RESET_FIRST_PHASE = $(CLEAN_BUILD_RESET_LOCAL_VARS)$(foreach \
 # reset "local" variables, check and set CLEAN_BUILD_NEED_TAIL_CODE - $(DEF_TAIL_CODE) must be evaluated after $(DEF_HEAD_CODE)
 define CLEAN_BUILD_CHECK_AT_HEAD
 $(CLEAN_BUILD_RESET_LOCAL_VARS)$(if $(CLEAN_BUILD_NEED_TAIL_CODE),$(error \
-  $$(DEFINE_TARGETS) was not evaluated at end of $(CLEAN_BUILD_NEED_TAIL_CODE)!))CLEAN_BUILD_NEED_TAIL_CODE := $(TARGET_MAKEFILE)
+  $$(DEFINE_TARGETS) was not evaluated at end of $(CLEAN_BUILD_NEED_TAIL_CODE)!))
+CLEAN_BUILD_NEED_TAIL_CODE := $(TARGET_MAKEFILE)
 $(call SET_GLOBAL1,CLEAN_BUILD_NEED_TAIL_CODE)
 endef
 
@@ -157,7 +192,8 @@ TARGET_MAKEFILE = $(call SET_GLOBAL,CLEAN_BUILD_OVERRIDDEN_VARS CLEAN_BUILD_NEED
 # note: TARGET_MAKEFILE variable is used here temporary and will be redefined later
 TARGET_MAKEFILE += $(call SET_GLOBAL,MCHECK TRACE CLEAN_BUILD_PROTECTED_VARS NON_TRACEABLE_VARS \
   CLEAN_BUILD_ENCODE_VAR_VALUE CLEAN_BUILD_ENCODE_VAR_NAME \
-  CLEAN_BUILD_PROTECT_VARS2 SET_GLOBAL5 SET_GLOBAL4 SET_GLOBAL3 SET_GLOBAL2 SET_GLOBAL1 SET_GLOBAL CB_VAR_ACCESS_ERR \
+  CLEAN_BUILD_PROTECT_VARS2 SET_GLOBAL5 SET_GLOBAL4 SET_GLOBAL3 SET_GLOBAL2 SET_GLOBAL1 SET_GLOBAL \
+  CB_HIDE_ENV_VAR GETENV IS_ENV CLEAN_BUILD_HIDE_ENV_VARS CB_VAR_ACCESS_ERR \
   CLEAN_BUILD_RESET_LOCAL_VAR CLEAN_BUILD_RESET_LOCAL_VARS CLEAN_BUILD_RESET_SAVED_VARS CLEAN_BUILD_RESET_FIRST_PHASE \
   CLEAN_BUILD_CHECK_AT_HEAD CLEAN_BUILD_CHECK_PROTECTED_VAR CLEAN_BUILD_CHECK_AT_TAIL,0)
 
@@ -166,17 +202,25 @@ CLEAN_BUILD_FIRST_PHASE_VARS += MCHECK TRACE CLEAN_BUILD_PROTECTED_VARS CLEAN_BU
   CLEAN_BUILD_OVERRIDDEN_VARS CLEAN_BUILD_NEED_TAIL_CODE \
   CLEAN_BUILD_ENCODE_VAR_VALUE CLEAN_BUILD_ENCODE_VAR_NAME \
   CLEAN_BUILD_PROTECT_VARS2 SET_GLOBAL5 SET_GLOBAL4 SET_GLOBAL3 SET_GLOBAL2 SET_GLOBAL1 SET_GLOBAL \
+  CB_HIDE_ENV_VAR CLEAN_BUILD_HIDE_ENV_VARS \
   CLEAN_BUILD_RESET_LOCAL_VAR CLEAN_BUILD_RESET_LOCAL_VARS CLEAN_BUILD_RESET_SAVED_VARS CLEAN_BUILD_RESET_FIRST_PHASE \
   CLEAN_BUILD_CHECK_AT_HEAD CLEAN_BUILD_CHECK_PROTECTED_VAR CLEAN_BUILD_CHECK_AT_TAIL TARGET_MAKEFILE
 
 else # !MCHECK
 
 # reset
+CLEAN_BUILD_HIDE_ENV_VARS:=
 CLEAN_BUILD_RESET_FIRST_PHASE:=
 CLEAN_BUILD_RESET_SAVED_VARS:=
 CLEAN_BUILD_CHECK_AT_HEAD:=
 CLEAN_BUILD_CHECK_AT_TAIL:=
 TARGET_MAKEFILE=
+
+# get value of environment variable $1
+GETENV = $($1)
+
+# check if environment variable $1 is defined
+IS_ENV = $(filter-out undefined,$(origin $1))
 
 ifdef TRACE
 
