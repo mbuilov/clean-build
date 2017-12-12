@@ -48,8 +48,8 @@ ifndef TOCLEAN
 OBJ_RULES = $(if $2,$(call OBJ_RULES_BODY,$1,$2,$3,$4,$5,$(patsubst %,$4/%$5,$(basename $(notdir $2)))))
 else
 # note: also cleanup auto-generated dependencies
-OBJ_RULES1 = $(call TOCLEAN,$1 $(patsubst %$2,%,.d,$1))
-OBJ_RULES = $(if $2,$(call OBJ_RULES1,$(patsubst %,$4/%$5,$(basename $(notdir $2)),$5)))
+OBJ_RULES1 = $(call TOCLEAN,$1 $(patsubst %$2,%.d,$1))
+OBJ_RULES = $(if $2,$(call OBJ_RULES1,$(patsubst %,$4/%$5,$(basename $(notdir $2))),$5))
 endif
 
 # protect variables from modifications in target makefiles
