@@ -4,12 +4,16 @@
 # Licensed under GPL version 2 or any later version, see COPYING
 #----------------------------------------------------------------------------------
 
-# normally, some project configuration makefile should be processed before this file
+# note: some project configuration makefile should be already processed before this file,
+#  variable TOP must be overridden.
 # tip: this file may be built individually via:
 # make --eval 'include my_project.mk' -f <this makefile>
 
 TOOL_MODE := 1
-include $(dir $(lastword $(MAKEFILE_LIST)))../../c.mk
+
+include $(dir $(lastword $(MAKEFILE_LIST)))../../stub/c.mk
+
 EXE := buildnumber S
 SRC := buildnumber.c
+
 $(DEFINE_TARGETS)
