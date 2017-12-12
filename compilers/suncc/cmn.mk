@@ -26,7 +26,7 @@
 
 SUNCC_DEPS_SCRIPT = \
 -e '/^$(tab)*\//!{p;d;}' \
--e 's/^\$(tab)*//;$(foreach x,$3,\@^$x.*@d;)s@.*@&:\$(newline)$2: &@;w $2.d'
+-e 's/^\$(tab)*//;$(foreach x,$3,\@^$x.*@d;)s@.*@&:\$(newline)$2: &@;w $(basename $2).d'
 
 # either just call compiler or call compiler and auto-generate dependencies
 # $1 - compiler with options
