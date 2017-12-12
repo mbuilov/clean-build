@@ -138,7 +138,7 @@ INCLUDING_FILE_PATTERN_ru_cp866_bytes := \x8f\xe0\xa8\xac\xa5\xe7\xa0\xad\xa8\xa
 
 MSVC_DEPS_SCRIPT = \
 -e "s/\x0d//;/^$(notdir $2)$$/d;/^$4 /!{p;d;}" \
--e "s/^$4 *//;$(subst ?, ,$(foreach x,$5,\@^$x.*@Id;))s/ /\\ /g;s@.*@&:\n$3: &@;w $3.d"
+-e "s/^$4 *//;$(subst ?, ,$(foreach x,$5,\@^$x.*@Id;))s/ /\\ /g;s@.*@&:\n$3: &@;w $(basename $3).d"
 
 # code to define compiler wrapper macros
 define MSVC_WRAP_COMPLIER_TEMPL
@@ -175,8 +175,8 @@ endif
 endef
 
 # define compiler wrappers
-# $1 - no-dep compiler wrapper name, e.g. WRAP_CC_NODEP
-# $2 - dep compiler no-dep wrapper name, e.g. WRAP_CC_DEP
+# $1 - no-dep compiler wrapper name, e.g. WRAP_CCN
+# $2 - dep compiler no-dep wrapper name, e.g. WRAP_CCD
 # $3 - regular expression used to match paths to included headers, e.g. $(INCLUDING_FILE_PATTERN_en)
 # $4 - prefixes of system include paths to filter-out, e.g. $(subst \,\\,$(VCINCLUDE) $(UMINCLUDE))
 MSVC_DEFINE_COMPILER_WRAPPERS = $(eval $(subst <WRAP_CC_NODEP>,$1,$(subst <WRAP_CC_DEP>,$2,$(subst \
