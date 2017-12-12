@@ -84,7 +84,8 @@ SET_GLOBAL = $(eval $(SET_GLOBAL1))
 # $1 - variable name
 CB_VAR_ACCESS_ERR = $(eval $(if $(filter environment,$(origin $1)),$$1=!$$(error \
   using environment variable: $1, use of environment variables is discouraged, please use only file variables),$(findstring \
-  override,$(origin $1)) $$1=!$$(error using local variable $1, please use instead target-specific variable or a global one)))
+  override,$(origin $1)) $$1=!$$(error \
+  using local variable $1, please define instead target-specific variable or register a global one via SET_GLOBAL macro)))
 
 # reset "local" variable $=:
 # check if it is not already produces access error
