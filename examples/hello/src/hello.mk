@@ -7,7 +7,7 @@
 # add rules for building C/C++ sources
 include $(dir $(lastword $(MAKEFILE_LIST)))../make/c.mk
 
-# add support for testing built executables - define DO_TEST_EXE macro
+# define DO_TEST_EXE_RET macro - generator of rule for testing built executables
 include $(MTOP)/extensions/ctest.mk
 
 # we will build S-variant of 'hello' executable - one with statically linked C runtime
