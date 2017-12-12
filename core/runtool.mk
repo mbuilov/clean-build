@@ -19,7 +19,7 @@ DLL_PATH_VAR := LD_LIBRARY_PATH
 # $1 - tool to execute (with parameters)
 # $2 - additional path(s) separated by $(PATHSEP) to append to $(DLL_PATH_VAR)
 # $3 - directory to change to for executing a tool
-# $4 - list of names of variables to set in environment (export) for running an executable
+# $4 - names of variables to set in the environment (export) to run given tool
 # note: SHELL_ESCAPE, EXECUTE_IN - defined in the $(UTILS_MK) makefile
 # note: $(CLEAN_BUILD_DIR)/utils/cmd.mk defines own show_tool_vars/show_tool_vars_end
 show_tool_vars1 = $(foreach v,$(if $2,$(DLL_PATH_VAR)) $4,$v=$(call SHELL_ESCAPE,$($v))) $1
@@ -29,16 +29,17 @@ show_tool_vars = $(info $(if $3,$(call EXECUTE_IN,$3,$(show_tool_vars1)),$(show_
 show_tool_vars_end:=
 
 # run executable in a modified environment
-# $1 - tool to execute (with parameters)
+# $1 - tool to execute (with parameters - escaped by SHELL_ESCAPE macro)
 # $2 - additional path(s) separated by $(PATHSEP) to append to $(DLL_PATH_VAR)
 # $3 - directory to change to for executing a tool
-# $4 - list of names of variables to set in environment (export) for running an executable
+# $4 - names of variables to set in the environment (export) to run given tool
 # note: this function should be used in rule body, where automatic variable $@ is defined
 # note: calling a tool _must_ not produce any output to stdout,
 #  tool's stdout must be redirected either to a file or to stderr, e.g. './my_tool >file' or './my_tool >&2'
 # note: $(CLEAN_BUILD_DIR)/utils/cmd.mk defines own show_tool_vars/show_tool_vars_end
 RUN_TOOL = $(if $2$4,$(if $2,$(eval \
-  $$@:export $(DLL_PATH_VAR):=$$($(DLL_PATH_VAR))$$(if $$($(DLL_PATH_VAR)),$$(if $2,$(PATHSEP)))$2))$(foreach v,$4,$(eval \
+  $$@:export $(DLL_PATH_VAR):=$$(if $$(findstring undefined,$$(origin $(DLL_PATH_VAR))),,$$($(DLL_PATH_VAR))$$(if \
+ $$($(DLL_PATH_VAR)),$$(if $2,$(PATHSEP))))$2))$(foreach v,$4,$(eval \
   $$@:export $v:=$$($v)))$(if $(VERBOSE),$(show_tool_vars)@))$(if $3,$(call EXECUTE_IN,$3,$1),$1)$(if \
   $2$4,$(if $(VERBOSE),$(show_tool_vars_end)))
 
