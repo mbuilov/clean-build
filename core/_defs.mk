@@ -922,7 +922,11 @@ $(call SET_GLOBAL,PROJECT_VARS_NAMES PASS_ENV_VARS \
 
 # if TOCLEAN value is non-empty, allow tracing calls to it,
 # else - just protect TOCLEAN from changes, do not make it's value non-empty - because TOCLEAN is checked in ifdefs
-$(call SET_GLOBAL,TOCLEAN,$(if $(value TOCLEAN),,0))
+ifndef TOCLEAN
+$(call SET_GLOBAL,TOCLEAN,0)
+else
+$(call SET_GLOBAL,TOCLEAN=;=CLEAN)
+endif
 
 # auxiliary macros
 include $(CLEAN_BUILD_DIR)/core/sdeps.mk
