@@ -35,23 +35,28 @@ MC_COMPILER = $(call SUP,$(TMD)MC,$1)$(call WRAP_MC,$(MC)$(if $(VERBOSE), -v) $2
 MC_COLOR  := $(GEN_COLOR)
 TMC_COLOR := $(GEN_COLOR)
 
+# newer versions of rc.exe (at least 6.1.7600.16385 and later) support /nologo option,
+# define this macro if rc.exe is a new one, e.g. RC_SUPPRESS_LOGO := /nologo
+ifeq (,$(filter-out undefined environment,$(origin RC_SUPPRESS_LOGO)))
+
+# run rc.exe only if RC is defined
+ifneq (,$(filter-out undefined environment,$(origin RC)))
+
 # query /nologo switch of rc.exe
 # $1 - "C:\Program Files\Microsoft SDKs\Windows\v6.0A\bin\RC.Exe"
 RC_QUERY_NOLOGO = $(filter /nologo,,$(shell $(subst \,/,$1) /?))
 
-# run rc.exe only if RC is defined
-ifeq (,$(filter-out undefined environment,$(origin RC)))
-
-# newer versions of rc.exe (at least 6.1.7600.16385 and later) support /nologo option,
-# define this macro if rc.exe is a new one, e.g. RC_SUPPRESS_LOGO := /nologo
-ifeq (,$(filter-out undefined environment,$(origin RC_SUPPRESS_LOGO)))
+# call rc.exe
 RC_SUPPRESS_LOGO := $(call RC_QUERY_NOLOGO,$(RC))
 
 # save queried RC_SUPPRESS_LOGO value in generated config
 $(call CONFIG_REMEMBER_VARS,RC_SUPPRESS_LOGO)
-endif
 
-endif # RC
+else # !RC
+RC_SUPPRESS_LOGO:=
+endif # !RC
+
+endif # !RC_SUPPRESS_LOGO
 
 # strings to strip off from rc.exe output - $(FINDSTR) regular expression
 # note: usable if rc.exe does not support /nologo option (RC_SUPPRESS_LOGO is not defined)
@@ -94,20 +99,20 @@ RC_COLOR  := $(GEN_COLOR)
 TRC_COLOR := $(GEN_COLOR)
 
 # MC - message compiler, must be defined to compile message catalogs (for executables that run as service)
-# note: MC may be defined in command line or in project configuration makefile -
-#  e.g. autoconfigured by including $(CLEAN_BUILD_DIR)/compilers/msvc/auto/conf.mk
+# note: MC may be defined in command line, project configuration makefile or
+#  autoconfigured in $(CLEAN_BUILD_DIR)/compilers/msvc/auto/conf.mk
 # example: MC="C:\Program Files (x86)\Windows Kits\8.1\bin\x86\mc.exe"
 MC = $(error $0 - path to message compiler mc.exe - is not defined!)
 
 # RC - resource compiler, must be defined to build executables or dlls
-# note: RC may be defined in command line or in project configuration makefile -
-#  e.g. autoconfigured by including $(CLEAN_BUILD_DIR)/compilers/msvc/auto/conf.mk
+# note: RC may be defined in command line, project configuration makefile or
+#  autoconfigured in $(CLEAN_BUILD_DIR)/compilers/msvc/auto/conf.mk
 # example: RC="C:\Program Files (x86)\Windows Kits\8.1\bin\x86\rc.exe"
 RC = $(error $0 - path to resource compiler rc.exe - is not defined!)
 
 # MT - manifest tool, must be defined for linker of pre-Visual Studio 2012 (which doesn't support "/MANIFEST:EMBED" option)
-# note: MT may be defined in command line or in project configuration makefile -
-#  e.g. autoconfigured by including $(CLEAN_BUILD_DIR)/compilers/msvc/auto/conf.mk
+# note: MT may be defined in command line, project configuration makefile or
+#  autoconfigured in $(CLEAN_BUILD_DIR)/compilers/msvc/auto/conf.mk
 # example: MT="C:\Program Files (x86)\Windows Kits\8.1\bin\x86\mt.exe"
 MT = $(error $0 - path to manifest tool mt.exe - is not defined!)
 
