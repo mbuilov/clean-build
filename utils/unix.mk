@@ -96,7 +96,7 @@ SED_EXPR = $(subst \n,\$(newline),$(subst \t,\$(tab),$(SHELL_ESCAPE)))
 CAT_FILE = cat $1
 
 # prepare printf argument, append \n
-ECHO_LINE_ESCAPE = $(subst \,\\,$(subst %,%%,$(SHELL_ESCAPE)))\n
+ECHO_LINE_ESCAPE = $(call SHELL_ESCAPE,$(subst \,\\,$(subst %,%%,$1))\n)
 
 # print one line of text (to stdout, for redirecting it to output file)
 # note: line must not contain $(newline)s
