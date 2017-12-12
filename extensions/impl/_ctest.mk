@@ -17,16 +17,16 @@ else # check or clean
 TEST_COLOR := [36m
 
 # run $(EXE) and send its stdout to $(EXE).out
-# $1 - auxiliary parameters to pass to the executable
+# $1 - auxiliary parameters to pass to the executable (properly escaped by the SHELL_ESCAPE macro)
 # $2 - built shared libraries needed by the executable, in form <library_name>.<major_number>
-# $3 - dlls search paths: appended to PATH (on WINDOWS) or to LD_LIBRARY_PATH (on UNIX-like OS) environment variable
-# $4 - environment variables to set for the executable, in form VAR=value
+# $3 - dlls search paths separated by $(PATHSEP) - appended to PATH (on WINDOWS) or to LD_LIBRARY_PATH (on UNIX-like OS) env variable
+# $4 - environment variables to set for the executable, in form VAR=value, spaces must be replaced with $(space)
 # $r - $(call FORM_TRG,EXE,$v)
 # note: do not export variables $4 as target-specific ones here - to generate correct .bat/.sh build script in verbose mode
 define DO_TEST_EXE_TEMPLATE
 $(call STD_TARGET_VARS,$r.out)
-$r.out: $r
-	$$(call SUP,TEST,$$@)$$(call RUN_TOOL,$$< $1 > $$@,$3,$(subst $$,$$$$,$4))
+$(patsubst %,$r.out: %$(newline),$4)$r.out: $r
+	$$(call SUP,TEST,$$@)$$(call RUN_TOOL,$$< $(subst $$,$$$$,$1) > $$@,$3,,$(foreach v,$4,$(firstword $(subst =, ,$v))))
 endef
 
 # it may be needed to create simlinks to just built shared libraries to be able to run tested executable
@@ -49,10 +49,10 @@ $(call define_prepend,DO_TEST_EXE_TEMPLATE,$$r.out:| $$(call \
 endif # TEST_NEED_SHLIB_SIMLINKS
 
 # for the 'check' goal, run built executable (all variants of it)
-# $1 - auxiliary parameters to pass to the executable
+# $1 - auxiliary parameters to pass to the executable (properly escaped by the SHELL_ESCAPE macro)
 # $2 - built shared libraries needed by the executable, in form <library_name>.<major_number>
-# $3 - dlls search paths: appended to PATH (for WINDOWS) or LD_LIBRARY_PATH (for UNIX-like OS) environment variable
-# $4 - environment variables to set for the executable, in form VAR=value
+# $3 - dlls search paths separated by $(PATHSEP) - appended to PATH (on WINDOWS) or to LD_LIBRARY_PATH (on UNIX-like OS) env variable
+# $4 - environment variables to set for the executable, in form VAR=value, spaces must be replaced with $(space)
 DO_TEST_EXE = $(foreach v,$(call GET_VARIANTS,EXE),$(foreach r,$(call FORM_TRG,EXE,$v),$(eval $(DO_TEST_EXE_TEMPLATE))))
 
 # same as DO_TEST_EXE, but return a list of output files created by tested executables (one file for each variant)
