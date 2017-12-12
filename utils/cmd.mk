@@ -17,7 +17,7 @@ $(error Cygwin version of Gnu Make is used with cmd.exe shell - this configurati
  /cygdrive/c/tools/gnumake-4.2.1.exe SED=C:/tools/sed.exe <args>)
 endif
 
-# Windows programs need at least these variables to be defined in environment
+# Windows programs need at least these variables to be defined in the environment
 WIN_REQUIRED_VARS := TMP PATHEXT SYSTEMROOT SYSTEMDRIVE COMSPEC
 
 # note: assume variable name cannot contain = character
@@ -26,7 +26,7 @@ WIN_EXPORTED := $(filter $(WIN_REQUIRED_VARS:==%),$(join \
 
 #      if SYSTEMROOT is defined, define SystemRoot = $(value SYSTEMROOT)
 # else if SystemRoot is defined, define SYSTEMROOT = $(value SystemRoot)
-$(foreach t,TMP PATHEXT SYSTEMROOT COMSPEC,\
+$(foreach t,$(WIN_REQUIRED_VARS),\
   $(if $(filter %=$t,$(WIN_EXPORTED)),\
     $(foreach v,$(filter-out %=$t,$(filter $t=%,$(WIN_EXPORTED))),\
       $(eval override $(lastword $(subst =, ,$v))=$(value $t))\
