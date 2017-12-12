@@ -14,7 +14,7 @@
 # $ make check
 
 # add support for processing sub-makefiles
-include $(dir $(lastword $(MAKEFILE_LIST)))make/parallel.mk
+include $(dir $(lastword $(MAKEFILE_LIST)))make/submakes.mk
 
 # clean-build provides default rule for the 'distclean' goal, do not handle it here
 ifneq (distclean,$(MAKECMDGOALS))
@@ -33,7 +33,7 @@ TO_MAKE += $(MTOP)/extensions/version
 endif
 
 # process sub-makefiles and directories specified in our TO_MAKE variable
-# Note: PROCESS_SUBMAKES - macro defined by the included above make/parallel.mk
+# Note: PROCESS_SUBMAKES - macro defined by the included above make/submakes.mk
 $(call PROCESS_SUBMAKES,$(TO_MAKE))
 
 endif # !distclean

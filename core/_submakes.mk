@@ -46,7 +46,7 @@ endif
 # generate code for processing given list of makefiles
 # $1 - absolute paths to makefiles to include
 # $2 - current TOOL_MODE value
-define CLEAN_BUILD_PARALLEL
+define CLEAN_BUILD_SUBMAKES
 CB_INCLUDE_LEVEL+=.
 $(foreach m,$1,$(CB_INCLUDE_TEMPLATE))
 CB_INCLUDE_LEVEL:=$(CB_INCLUDE_LEVEL)
@@ -55,9 +55,9 @@ endef
 # remember new value of CB_INCLUDE_LEVEL, without tracing calls to it because it is incremented
 # note: assume result of $(call SET_GLOBAL1,...,0) will give an empty line at end of expansion
 ifdef MCHECK
-$(eval define CLEAN_BUILD_PARALLEL$(newline)$(subst \
+$(eval define CLEAN_BUILD_SUBMAKES$(newline)$(subst \
   CB_INCLUDE_LEVEL+=.$(newline),CB_INCLUDE_LEVEL+=.$(newline)$$(call SET_GLOBAL1,CB_INCLUDE_LEVEL,0),$(value \
-  CLEAN_BUILD_PARALLEL))$(newline)$$(call SET_GLOBAL1,CB_INCLUDE_LEVEL,0)$(newline)endef)
+  CLEAN_BUILD_SUBMAKES))$(newline)$$(call SET_GLOBAL1,CB_INCLUDE_LEVEL,0)$(newline)endef)
 endif
 
 ifndef TOCLEAN
@@ -91,19 +91,19 @@ ADD_ADEPS = $(call ADD_MDEPS1,$(filter-out $(ORDER_DEPS),$(patsubst %,MAKEFILE_A
 # note: $(TARGET_MAKEFILE)- and other order-dependent makefile names - are .PHONY targets
 # note: use order-only dependency, so normal dependencies of $(TARGET_MAKEFILE)-
 #  will be only files - for the checks in $(CLEAN_BUILD_DIR)/core/all.mk
-$(call define_prepend,CLEAN_BUILD_PARALLEL,.PHONY: $$(addsuffix \
+$(call define_prepend,CLEAN_BUILD_SUBMAKES,.PHONY: $$(addsuffix \
   -,$$1)$(newline)$$(TARGET_MAKEFILE)-:| $$(addsuffix -,$$1)$(newline))
 
 # show debug info
 ifdef MDEBUG
-$(call define_prepend,CLEAN_BUILD_PARALLEL,$$(info $$(subst \
+$(call define_prepend,CLEAN_BUILD_SUBMAKES,$$(info $$(subst \
   $$(space),,$$(CB_INCLUDE_LEVEL))$$(TARGET_MAKEFILE)$$(if $$(ORDER_DEPS), | $$(ORDER_DEPS))))
 endif
 
 else ifdef MDEBUG # clean
 
 # show debug info
-$(call define_prepend,CLEAN_BUILD_PARALLEL,$$(info $$(subst \
+$(call define_prepend,CLEAN_BUILD_SUBMAKES,$$(info $$(subst \
   $$(space),,$$(CB_INCLUDE_LEVEL))$$(TARGET_MAKEFILE)))
 
 endif # clean && MDEBUG
@@ -114,36 +114,36 @@ endif # clean && MDEBUG
 # note: call DEF_TAIL_CODE with @ - for the checks in CLEAN_BUILD_CHECK_AT_TAIL macro
 #  (which is defined in $(CLEAN_BUILD_DIR)/core/protection.mk)
 # note: process result of DEF_TAIL_CODE with separate $(eval) - for the checks performed while expanding $(eval argument)
-PROCESS_SUBMAKES_EVAL = $(eval $(value CB_PARALLEL_CODE))$(eval $(call DEF_TAIL_CODE,@))
+PROCESS_SUBMAKES_EVAL = $(eval $(value CB_SUBMAKES_CODE))$(eval $(call DEF_TAIL_CODE,@))
 
-# generate code for including and processing given list of makefiles $1 - in $(CB_PARALLEL_CODE),
+# generate code for including and processing given list of makefiles $1 - in $(CB_SUBMAKES_CODE),
 #  then evaluate it via call without parameters - to hide $1 argument from makefiles
 # at end, check if need to include $(CLEAN_BUILD_DIR)/core/all.mk
 # note: make absolute paths to makefiles to include
-PROCESS_SUBMAKES = $(eval define CB_PARALLEL_CODE$(newline)$(call \
-  CLEAN_BUILD_PARALLEL,$(NORM_MAKEFILES),$(TOOL_MODE))$(newline)endef)$(call PROCESS_SUBMAKES_EVAL)
+PROCESS_SUBMAKES = $(eval define CB_SUBMAKES_CODE$(newline)$(call \
+  CLEAN_BUILD_SUBMAKES,$(NORM_MAKEFILES),$(TOOL_MODE))$(newline)endef)$(call PROCESS_SUBMAKES_EVAL)
 
-# TOOL_MODE is reset to $(TOOL_MODE_ERROR) after reading it in $(CLEAN_BUILD_PARALLEL)/core/_defs.mk
+# TOOL_MODE is reset to $(TOOL_MODE_ERROR) after reading it in $(CLEAN_BUILD_SUBMAKES)/core/_defs.mk
 ifdef MCHECK
 $(eval PROCESS_SUBMAKES = $(subst $$(TOOL_MODE),$$(if $$(findstring \
   $$$$(TOOL_MODE_ERROR),$$(value TOOL_MODE)),$$(TMD),$$(TOOL_MODE)),$(value PROCESS_SUBMAKES)))
 endif
 
-# set CLEAN_BUILD_NEED_PARALLEL to non-empty value before including sub-makefiles - to check if a
-#  sub-makefile calls PROCESS_SUBMAKES, it _must_ evaluate PROCESS_SUBMAKES_PREPARE prior PROCESS_SUBMAKES
-#  (by including appropriate makefile of project build system - 'make/parallel.mk') before the call
+# set CLEAN_BUILD_NEED_SUBMAKES to non-empty value before including sub-makefiles - to check if a
+#  sub-makefile calls PROCESS_SUBMAKES, it _must_ evaluate PROCESS_SUBMAKES_PREPARE prior calling PROCESS_SUBMAKES
+#  (by including appropriate makefile of project build system - 'make/submakes.mk') before the call
 ifdef MCHECK
-PROCESS_SUBMAKES_PREPARE = $(eval CLEAN_BUILD_NEED_PARALLEL:=)
-$(eval PROCESS_SUBMAKES = $$(if $$(CLEAN_BUILD_NEED_PARALLEL),$$(error \
-  parallel.mk was not included at head of makefile!))$(subst \
-  eval ,eval CLEAN_BUILD_NEED_PARALLEL:=1$$(newline)$$(call \
-  SET_GLOBAL1,CLEAN_BUILD_NEED_PARALLEL)$$(newline),$(value PROCESS_SUBMAKES)))
+PROCESS_SUBMAKES_PREPARE = $(eval CLEAN_BUILD_NEED_SUBMAKES:=)
+$(eval PROCESS_SUBMAKES = $$(if $$(CLEAN_BUILD_NEED_SUBMAKES),$$(error \
+  submakes.mk was not included at head of makefile!))$(subst \
+  eval ,eval CLEAN_BUILD_NEED_SUBMAKES:=1$$(newline)$$(call \
+  SET_GLOBAL1,CLEAN_BUILD_NEED_SUBMAKES)$$(newline),$(value PROCESS_SUBMAKES)))
 else
 PROCESS_SUBMAKES_PREPARE:=
 endif
 
 # makefile parsing first phase variables
-CLEAN_BUILD_FIRST_PHASE_VARS += CB_INCLUDE_TEMPLATE CLEAN_BUILD_PARALLEL \
+CLEAN_BUILD_FIRST_PHASE_VARS += CB_INCLUDE_TEMPLATE CLEAN_BUILD_SUBMAKES \
   ADD_MDEPS1 PROCESS_SUBMAKES_EVAL PROCESS_SUBMAKES PROCESS_SUBMAKES_PREPARE
 
 # protect CLEAN_BUILD_FIRST_PHASE_VARS from modification in target makefiles,
@@ -154,5 +154,5 @@ $(call SET_GLOBAL,CLEAN_BUILD_FIRST_PHASE_VARS,0)
 # note: do not complain about new ADD_MDEPS and ADD_ADEPS values
 # - replace ADD_MDEPS and ADD_ADEPS values defined in $(CLEAN_BUILD_DIR)/core/_defs.mk with new ones
 $(call SET_GLOBAL,DEFAULT_MAKEFILE_NAME MAKEFILE_PATTERNS NORM_MAKEFILES CB_INCLUDE_TEMPLATE=ORDER_DEPS;m \
-  CLEAN_BUILD_PARALLEL ADD_MDEPS1 ADD_MDEPS=ORDER_DEPS=ORDER_DEPS ADD_ADEPS=ORDER_DEPS=ORDER_DEPS \
-  PROCESS_SUBMAKES_EVAL=CB_PARALLEL_CODE PROCESS_SUBMAKES PROCESS_SUBMAKES_PREPARE)
+  CLEAN_BUILD_SUBMAKES ADD_MDEPS1 ADD_MDEPS=ORDER_DEPS=ORDER_DEPS ADD_ADEPS=ORDER_DEPS=ORDER_DEPS \
+  PROCESS_SUBMAKES_EVAL=CB_SUBMAKES_CODE PROCESS_SUBMAKES PROCESS_SUBMAKES_PREPARE)

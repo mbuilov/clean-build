@@ -136,7 +136,7 @@ endef
 # note: error is suppressed (only once) if variable name is specified in $(CLEAN_BUILD_OVERRIDDEN_VARS)
 # note: CLEAN_BUILD_OVERRIDDEN_VARS is cleared after the checks
 # note: CLEAN_BUILD_NEED_TAIL_CODE is cleared after the checks to mark that $(DEF_TAIL_CODE) was evaluated
-# note: $(CLEAN_BUILD_DIR)/core/_parallel.mk calls $(DEF_TAIL_CODE) with $1=@
+# note: $(CLEAN_BUILD_DIR)/core/_submakes.mk calls $(DEF_TAIL_CODE) with $1=@
 # remember new values of CLEAN_BUILD_OVERRIDDEN_VARS and CLEAN_BUILD_NEED_TAIL_CODE
 define CLEAN_BUILD_CHECK_AT_TAIL
 $(if $1,$$(if $$(CLEAN_BUILD_NEED_TAIL_CODE),$$(error \

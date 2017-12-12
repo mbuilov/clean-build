@@ -454,11 +454,11 @@ TARGET_MAKEFILE := $(abspath $(firstword $(MAKEFILE_LIST)))
 # append makefiles (really .PHONY goals created from them) to ORDER_DEPS list
 # note: this function is useful to specify dependency on all targets built by makefiles (a tree of makefiles)
 # note: argument - list of makefiles (or directories, where Makefile is searched)
-# note: overridden in $(CLEAN_BUILD_DIR)/core/_parallel.mk
+# note: overridden in $(CLEAN_BUILD_DIR)/core/_submakes.mk
 ADD_MDEPS:=
 
 # same as ADD_MDEPS, but accepts aliases of makefiles created via CREATE_MAKEFILE_ALIAS macro
-# note: overridden in $(CLEAN_BUILD_DIR)/core/_parallel.mk
+# note: overridden in $(CLEAN_BUILD_DIR)/core/_submakes.mk
 ADD_ADEPS:=
 
 # fix template to print what makefile builds
@@ -730,7 +730,7 @@ endif
 # code to $(eval ...) at end of each makefile
 # include $(CLEAN_BUILD_DIR)/core/all.mk only if $(CB_INCLUDE_LEVEL) is empty and not inside the call of $(MAKE_CONTINUE)
 # note: $(MAKE_CONTINUE) before expanding $(DEF_TAIL_CODE) adds 2 to $(MAKE_CONT) list
-# note: $(CLEAN_BUILD_DIR)/core/_parallel.mk calls DEF_TAIL_CODE with @ as first argument - for the checks in $(CLEAN_BUILD_CHECK_AT_TAIL)
+# note: $(CLEAN_BUILD_DIR)/core/_submakes.mk calls DEF_TAIL_CODE with @ as first argument - for the checks in $(CLEAN_BUILD_CHECK_AT_TAIL)
 DEF_TAIL_CODE = $(if $(findstring 2,$(MAKE_CONT)),,$(if $(CB_INCLUDE_LEVEL),HEAD_CODE_EVAL:=,include $(CLEAN_BUILD_DIR)/core/all.mk))
 
 # prepend DEF_TAIL_CODE with $(CLEAN_BUILD_CHECK_AT_TAIL), if it's defined in $(CLEAN_BUILD_DIR)/core/protection.mk

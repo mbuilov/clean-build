@@ -4,10 +4,10 @@
 # Licensed under GPL version 2 or any later version, see COPYING
 #----------------------------------------------------------------------------------
 
-# normally, some project configuration makefile should be processed before this file
+# normally, some project configuration makefile should be already processed before this file
 # tip: this file may be built individually via:
 # make --eval 'include my_project.mk' -f <this makefile>
 
-include $(dir $(lastword $(MAKEFILE_LIST)))../../parallel.mk
+include $(dir $(lastword $(MAKEFILE_LIST)))../../submakes.mk
 
 $(call PROCESS_SUBMAKES,buildnumber.mk version.mk)
