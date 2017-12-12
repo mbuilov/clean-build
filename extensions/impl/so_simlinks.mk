@@ -4,7 +4,7 @@
 # Licensed under GPL version 2 or any later version, see COPYING
 #----------------------------------------------------------------------------------
 
-# templates for creating simlinks to built shared libraries
+# rule templates for creating simlinks to built shared libraries
 # (so runtime library linker may find them by their SONAMEs)
 
 ifndef TOCLEAN

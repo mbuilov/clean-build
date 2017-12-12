@@ -4,7 +4,7 @@
 # Licensed under GPL version 2 or any later version, see COPYING
 #----------------------------------------------------------------------------------
 
-# rule for comparing outputs of tested executables with given file, for the 'check' goal
+# define a rule for comparing outputs of tested executables with given file, for the 'check' goal
 
 ifeq (,$(filter check clean,$(MAKECMDGOALS)))
 
