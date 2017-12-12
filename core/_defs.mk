@@ -839,6 +839,24 @@ ifdef MCHECK
 $(eval MAKE_CONTINUE = $(subst $$(call DEFINE_TARGETS),$$(call SET_GLOBAL,MAKE_CONT,0)$$(call DEFINE_TARGETS),$(value MAKE_CONTINUE)))
 endif
 
+# for UNIX: don't change paths when converting from make internal file path to path accepted by $(UTILS_MK)
+# note: $(CLEAN_BUILD_DIR)/utils/cmd.mk included below redefines ospath
+ospath = $1
+
+# make path not relative: add $1 only to non-absolute paths in $2
+# note: path $1 must end with /
+# note: $(CLEAN_BUILD_DIR)/utils/cmd.mk included below redefines nonrelpath
+nonrelpath = $(patsubst $1/%,/%,$(addprefix $1,$2))
+
+# add absolute path to directory of target makefile to given non-absolute paths
+# - we need absolute paths to sources to work with generated dependencies in .d files
+fixpath = $(abspath $(call nonrelpath,$(dir $(TARGET_MAKEFILE)),$1))
+
+# SED - stream editor executable - should be defined in $(UTILS_MK) makefile
+# SED_EXPR - also should be defined in $(UTILS_MK) makefile
+# helper macro: convert multi-line sed script $1 to multiple sed expressions - one expression for each script line
+SED_MULTI_EXPR = $(foreach s,$(subst $(newline), ,$(unspaces)),-e $(call SED_EXPR,$(call tospaces,$s)))
+
 # define shell utilities
 include $(UTILS_MK)
 
@@ -861,24 +879,6 @@ MKDIR_COLOR := [36m
 TOUCH_COLOR := [36m
 CAT_COLOR   := [32m
 SED_COLOR   := [32m
-
-# for UNIX: don't change paths when converting from make internal file path to path accepted by $(UTILS_MK)
-# note: $(CLEAN_BUILD_DIR)/utils/cmd.mk defines own ospath
-ospath = $1
-
-# make path not relative: add $1 only to non-absolute paths in $2
-# note: path $1 must end with /
-# note: $(CLEAN_BUILD_DIR)/utils/cmd.mk defines own nonrelpath
-nonrelpath = $(patsubst $1/%,/%,$(addprefix $1,$2))
-
-# add absolute path to directory of target makefile to given non-absolute paths
-# - we need absolute paths to sources to work with generated dependencies in .d files
-fixpath = $(abspath $(call nonrelpath,$(dir $(TARGET_MAKEFILE)),$1))
-
-# SED - stream editor executable - should be defined in $(UTILS_MK) makefile
-# SED_EXPR - also should be defined in $(UTILS_MK) makefile
-# helper macro: convert multi-line sed script $1 to multiple sed expressions - one expression for each script line
-SED_MULTI_EXPR = $(foreach s,$(subst $(newline), ,$(unspaces)),-e $(call SED_EXPR,$(call tospaces,$s)))
 
 # product version in form major.minor or major.minor.patch
 # note: this is also default version for any built module (exe, dll or driver)
@@ -916,9 +916,10 @@ $(call SET_GLOBAL,PROJECT_VARS_NAMES PASS_ENV_VARS \
   TARGET_MAKEFILE ADD_MDEPS ADD_ADEPS ADD_WHAT_MAKEFILE_BUILDS CREATE_MAKEFILE_ALIAS ADD_ORDER_DEPS=ORDER_DEPS=ORDER_DEPS \
   NEED_GEN_DIRS STD_TARGET_VARS1 CHECK_GENERATED_AT STD_TARGET_VARS MAKEFILE_INFO_TEMPL SET_MAKEFILE_INFO \
   ADD_GENERATED ADD_GENERATED_RET TMD TOOL_MODE_ERROR \
-  DEF_HEAD_CODE DEF_TAIL_CODE CB_PREPARE_TARGET_TYPE DEFINE_TARGETS SAVE_VARS RESTORE_VARS MAKE_CONTINUE CONF_COLOR \
+  DEF_HEAD_CODE DEF_TAIL_CODE CB_PREPARE_TARGET_TYPE DEFINE_TARGETS SAVE_VARS RESTORE_VARS MAKE_CONTINUE \
+  ospath nonrelpath fixpath SED_MULTI_EXPR CONF_COLOR \
   GEN_COLOR MGEN_COLOR CP_COLOR RM_COLOR RMDIR_COLOR MKDIR_COLOR TOUCH_COLOR CAT_COLOR SED_COLOR \
-  ospath nonrelpath fixpath SED_MULTI_EXPR PRODUCT_VER)
+  PRODUCT_VER)
 
 # if TOCLEAN value is non-empty, allow tracing calls to it,
 # else - just protect TOCLEAN from changes, do not make it's value non-empty - because TOCLEAN is checked in ifdefs
