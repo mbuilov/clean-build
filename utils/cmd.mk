@@ -29,11 +29,11 @@ WIN_EXPORTED := $(filter $(WIN_REQUIRED_VARS:==%),$(join \
 $(foreach t,$(WIN_REQUIRED_VARS),\
   $(if $(filter %=$t,$(WIN_EXPORTED)),\
     $(foreach v,$(filter-out %=$t,$(filter $t=%,$(WIN_EXPORTED))),\
-      $(eval override $(lastword $(subst =, ,$v))=$(if $(call is_env,$t),$(call getenv,$t),$($t)))\
+      $(eval override $(lastword $(subst =, ,$v))=$(value $t))\
     )\
   ,\
-    $(foreach v,$(lastword $(subst =, ,$(firstword $(filter $t=%,$(WIN_EXPORTED))))),\
-      $(eval $t=$(if $(call is_env,$v),$(call getenv,$v),$($v)))\
+    $(foreach v,$(firstword $(filter $t=%,$(WIN_EXPORTED))),\
+      $(eval $t=$(value $(lastword $(subst =, ,$v))))\
     )\
   )\
 )
@@ -41,11 +41,6 @@ $(foreach t,$(WIN_REQUIRED_VARS),\
 # export all SYSTEMROOT, SystemRoot, etc.
 WIN_EXPORTED := $(sort $(subst =, ,$(WIN_EXPORTED)))
 export $(WIN_EXPORTED)
-
-# redefine exported variables to remove protection
-ifdef MCHECK
-$(foreach v,$(WIN_EXPORTED),$(if $(call is_env,$v),$(eval $$v=$(call getenv,$v))))
-endif
 
 # shell must be cmd.exe, not /bin/sh if build was started under Cygwin
 ifneq (cmd.exe,$(notdir $(SHELL)))

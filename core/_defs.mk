@@ -30,23 +30,24 @@ PROJECT_VARS_NAMES := $(filter-out SHELL MAKEFLAGS CURDIR MAKEFILE_LIST .DEFAULT
 
 # For consistent builds, build results should not depend on the environment variables,
 #  only on settings specified in the configuration files.
-# All environment variables of the make process are visible as exported makefile variables
-#  that are passed down to the environment of shell commands executed in rules.
-# To control environment of the shell commands, unexport all these variables, except some known ones.
+# All environment variables of make process are visible as exported makefile variables
+#  that are passed down to the environment of commands executed in rules.
+# To control the environment of the commands, unexport all these variables, except some known ones.
 # Also unexport variables specified in the command line, because they are also exported to
-#  the environment of shell commands.
-# Note: do not touch only variables required for executing shell commands:
+#  the environment of the commands.
+# Note: do not touch only variables that are required for executing the commands:
 #  PATH, SHELL and project-specific variables named in $(PASS_ENV_VARS).
 unexport $(filter-out PATH SHELL$(if $(filter-out undefined environment,$(origin \
   PASS_ENV_VARS)), $(PASS_ENV_VARS)),$(.VARIABLES))
 
-# Because any variable may be already initialized from environment, in clean-build:
-# 1) always initialize variables with default values before using them
-# 2) never use ?= operator
-# 3) 'ifdef/ifndef' should only be used for previously initialized variables
-# 4) redefine all variables inherited from the environment to produce access errors,
-#  except exported variables:
-#  PATH, SHELL, variables named in $(PASS_ENV_VARS) and may be some other defined in clean-build files.
+#====================================================================================#
+#                            clean-build rules                                       #
+#------------------------------------------------------------------------------------#
+#  Because any variable may be already initialized from environment, in clean-build: #
+# 1) always initialize variables with default values before using them               #
+# 2) never use ?= operator                                                           #
+# 3) 'ifdef/ifndef' should be used only for previously initialized variables         #
+#====================================================================================#
 
 # clean-build version: major.minor.patch
 # note: override value, if it was accidentally set in project makefile
@@ -107,15 +108,12 @@ CB_NEEDED_DIRS:=
 
 # save configuration to $(CONFIG) file as result of 'conf' goal
 # note: if $(CONFIG) file is generated under $(BUILD) directory,
-# (for example, CONFIG may be defined in project makefile as 'CONFIG = $(BUILD)/conf.mk'),
-# then it will be deleted together with $(BUILD) directory in clean-build implementation of 'distclean' goal
+#  (for example, CONFIG may be defined in project makefile as 'CONFIG = $(BUILD)/conf.mk'),
+#  then it will be deleted together with $(BUILD) directory in clean-build implementation of 'distclean' goal
 include $(CLEAN_BUILD_DIR)/core/confsup.mk
 
-# hide variables inherited from the environment, except exported ones
-$(call CLEAN_BUILD_HIDE_ENV_VARS,PATH SHELL $(PASS_ENV_VARS))
-
 # protect from modification macros defined in $(CLEAN_BUILD_DIR)/core/functions.mk
-# note: here TARGET_MAKEFILE variable is used temporary, it will be properly defined below
+# note: here TARGET_MAKEFILE variable is used here temporary, it will be properly defined below
 $(TARGET_MAKEFILE)
 
 # protect from modification project-specific variables
@@ -150,16 +148,16 @@ TARGET := RELEASE
 override TARGET := $(TARGET)
 
 # do not try to determine OS value if it is already defined (in project configuration makefile or in command line)
-ifneq (,$(findstring undefined,$(origin OS))$(call is_env,OS))
+ifeq (,$(filter-out undefined environment,$(origin OS)))
 
 # operating system we are building for (WIN7, DEBIAN6, SOLARIS10, etc.)
 # note: normally OS get overridden by specifying it in command line
 # note: OS value may affect default values of other variables (TCPU, UTILS, etc.)
 ifneq (,$(filter /cygdrive/%,$(CURDIR)))
 OS := CYGWIN
-else ifeq (,$(call is_env,OS))
+else ifneq (environment,$(origin OS))
 OS := $(call toupper,$(shell uname))
-else ifeq (Windows_NT,$(call getenv,OS))
+else ifeq (Windows_NT,$(OS))
 OS := WINDOWS
 else
 # unknown, should be defined in project configuration makefile or in command line
@@ -175,7 +173,7 @@ endif # !OS
 override OS := $(OS)
 
 # do not try to determine TCPU value if it is already defined (in project configuration makefile or in command line)
-ifneq (,$(findstring undefined,$(origin TCPU))$(call is_env,TCPU))
+ifeq (,$(filter-out undefined environment,$(origin TCPU)))
 
 # TCPU - processor architecture of build helper tools created while the build
 # note: TCPU likely is the native processor architecture of the build toolchain
@@ -186,10 +184,10 @@ ifndef OS
 TCPU := x86
 else ifeq (,$(filter WIN%,$(OS)))
 TCPU := $(shell uname -m)
-else ifeq (AMD64,$(if $(call is_env,PROCESSOR_ARCHITECTURE),$(call getenv,PROCESSOR_ARCHITECTURE)))
+else ifeq (AMD64,$(if $(findstring environment,$(origin PROCESSOR_ARCHITECTURE)),$(PROCESSOR_ARCHITECTURE)))
 # win64
 TCPU := x86_64
-else ifeq (AMD64,$(if $(call is_env,PROCESSOR_ARCHITEW6432),$(call getenv,PROCESSOR_ARCHITEW6432)))
+else ifeq (AMD64,$(if $(findstring environment,$(origin PROCESSOR_ARCHITEW6432)),$(PROCESSOR_ARCHITEW6432)))
 # wow64
 TCPU := x86_64
 else
