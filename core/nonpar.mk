@@ -53,7 +53,7 @@ endif # clean
 CLEAN_BUILD_FIRST_PHASE_VARS += NON_PARALLEL_EXECUTE_RULE NON_PARALLEL_EXECUTE
 
 # protect macros from modifications in target makefiles,
-# do not trace calls to macros used in ifdefs, passed to environment of called tools or modified via operator +=
+# do not trace calls to macros used in ifdefs, exported to the environment of called tools or modified via operator +=
 $(call SET_GLOBAL,CLEAN_BUILD_FIRST_PHASE_VARS,0)
 
 # protect macros from modifications in target makefiles, allow tracing calls to them

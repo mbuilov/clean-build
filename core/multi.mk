@@ -95,7 +95,7 @@ endif # clean
 CLEAN_BUILD_FIRST_PHASE_VARS += MULTI_TARGET_NUM MULTI_TARGET_SEQ MULTI_TARGET_RULE MULTI_TARGET CHECK_MULTI_RULE
 
 # protect macros from modifications in target makefiles,
-# do not trace calls to macros used in ifdefs, passed to environment of called tools or modified via operator +=
+# do not trace calls to macros used in ifdefs, exported to the environment of called tools or modified via operator +=
 $(call SET_GLOBAL,CLEAN_BUILD_FIRST_PHASE_VARS MULTI_TARGETS MULTI_TARGET_NUM,0)
 
 # protect macros from modifications in target makefiles, allow tracing calls to them

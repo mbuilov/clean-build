@@ -88,7 +88,7 @@ MAKE_TRG_PATH = $(call $1_FORM_TRG,$2,$(call FILTER_VARIANTS_LIST,$1,$3))
 CLEAN_BUILD_FIRST_PHASE_VARS += GET_TARGET_NAME GET_VARIANTS GET_VARIANTS_F FORM_TRG ALL_TARGETS FORM_OBJ_DIR
 
 # protect macros from modifications in target makefiles,
-# do not trace calls to macros used in ifdefs, passed to environment of called tools or modified via operator +=
+# do not trace calls to macros used in ifdefs, exported to the environment of called tools or modified via operator +=
 $(call SET_GLOBAL,CLEAN_BUILD_FIRST_PHASE_VARS,0)
 
 # protect macros from modifications in target makefiles, allow tracing calls to them
