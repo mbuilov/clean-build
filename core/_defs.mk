@@ -24,13 +24,13 @@ MAKEFLAGS += --no-builtin-rules --no-builtin-variables --warn-undefined-variable
 
 # assume project makefile, which have included this makefile, defines some variables
 # - save list of those variables to override them below, after including needed definitions
-PROJECT_VARS_NAMES := $(filter-out \
-  MAKEFLAGS CURDIR MAKEFILE_LIST .DEFAULT_GOAL,$(foreach \
-  v,$(.VARIABLES),$(if $(or $(findstring file,$(origin $v)),$(findstring override,$(origin $v))),$v)))
+# note: SHELL is not defined by the clean-build, so do not need to override it
+PROJECT_VARS_NAMES := $(filter-out SHELL MAKEFLAGS CURDIR MAKEFILE_LIST .DEFAULT_GOAL,$(foreach \
+  v,$(.VARIABLES),$(if $(findstring file,$(origin $v))$(findstring override,$(origin $v)),$v)))
 
 # For consistent builds, build results should not depend on the environment variables,
 #  only on settings specified in the configuration files.
-# All environment variables of a make process are visible as exported makefile variables
+# All environment variables of the make process are visible as exported makefile variables
 #  that are passed down to the environment of shell commands executed in rules.
 # To control environment of the shell commands, unexport all these variables, except some known ones.
 # Also unexport variables specified in the command line, because they are also exported to
@@ -44,8 +44,8 @@ unexport $(filter-out PATH SHELL$(if $(filter-out undefined environment,$(origin
 # 1) always initialize variables with default values before using them
 # 2) never use ?= operator
 # 3) 'ifdef/ifndef' should only be used for previously initialized variables
-# 4) just before including first target makefile, redefine all variables passed from the environment
-#  to produce access errors, except some known exported variables:
+# 4) redefine all variables inherited from the environment to produce access errors,
+#  except exported variables:
 #  PATH, SHELL, variables named in $(PASS_ENV_VARS) and may be some other defined in clean-build files.
 
 # clean-build version: major.minor.patch
@@ -57,6 +57,8 @@ override CLEAN_BUILD_VERSION := 0.9.0
 override CLEAN_BUILD_DIR := $(abspath $(dir $(lastword $(MAKEFILE_LIST)))..)
 
 # include functions library
+# note: assume project configuration makefile will not try to override macros defined in these
+#  two makefiles but, if it is absolutely needed, use override directive
 include $(CLEAN_BUILD_DIR)/core/protection.mk
 include $(CLEAN_BUILD_DIR)/core/functions.mk
 
@@ -86,10 +88,10 @@ endif
 # specify default goal (defined in $(CLEAN_BUILD_DIR)/core/all.mk)
 .DEFAULT_GOAL := all
 
-# clean-build always sets default values for variables - to not inherit them from environment
+# clean-build always sets default values for variables - to not inherit them from the environment
 # to override these defaults by ones specified in project configuration makefile, use override directive
 $(eval $(foreach v,$(PROJECT_VARS_NAMES),override $(if $(findstring simple,$(flavor \
-  $v)),$v:=$$($v),define $v$(newline)$(value $v)$(newline)endef)$(newline)))
+  $v)),$v:=$$($v),define $v$(newline)$(subst $(backslash),$$(backslash),$(value $v))$(newline)endef)$(newline)))
 
 # list of clean-build supported goals
 # note: may be updated if necessary in makefiles
@@ -109,13 +111,15 @@ CB_NEEDED_DIRS:=
 # then it will be deleted together with $(BUILD) directory in clean-build implementation of 'distclean' goal
 include $(CLEAN_BUILD_DIR)/core/confsup.mk
 
+# hide variables inherited from the environment, except exported ones
+$(call CLEAN_BUILD_HIDE_ENV_VARS,PATH SHELL $(PASS_ENV_VARS))
+
 # protect from modification macros defined in $(CLEAN_BUILD_DIR)/core/functions.mk
 # note: here TARGET_MAKEFILE variable is used temporary, it will be properly defined below
 $(TARGET_MAKEFILE)
 
 # protect from modification project-specific variables
-# NOTE: automatically defined SHELL variable will be protected later - it may be modified in $(UTILS_MK)
-$(call SET_GLOBAL,$(filter-out SHELL,$(PROJECT_VARS_NAMES)))
+$(call SET_GLOBAL,$(PROJECT_VARS_NAMES))
 
 # BUILD - directory for built files - must be defined either in command line
 #  or in project configuration makefile before including this file, for example:
@@ -146,20 +150,19 @@ TARGET := RELEASE
 override TARGET := $(TARGET)
 
 # do not try to determine OS value if it is already defined (in project configuration makefile or in command line)
-ifeq (,$(filter-out undefined environment,$(origin OS)))
+ifneq (,$(findstring undefined,$(origin OS))$(call is_env,OS))
 
 # operating system we are building for (WIN7, DEBIAN6, SOLARIS10, etc.)
 # note: normally OS get overridden by specifying it in command line
 # note: OS value may affect default values of other variables (TCPU, UTILS, etc.)
 ifneq (,$(filter /cygdrive/%,$(CURDIR)))
 OS := CYGWIN
-else ifneq (environment,$(origin OS))
+else ifeq (,$(call is_env,OS))
 OS := $(call toupper,$(shell uname))
-else ifeq (Windows_NT,$(OS))
+else ifeq (Windows_NT,$(call getenv,OS))
 OS := WINDOWS
 else
 # unknown, should be defined in project configuration makefile or in command line
-# note: use of environment variables to configure the build is discouraged
 OS:=
 endif
 
@@ -172,7 +175,7 @@ endif # !OS
 override OS := $(OS)
 
 # do not try to determine TCPU value if it is already defined (in project configuration makefile or in command line)
-ifeq (,$(filter-out undefined environment,$(origin TCPU)))
+ifneq (,$(findstring undefined,$(origin TCPU))$(call is_env,TCPU))
 
 # TCPU - processor architecture of build helper tools created while the build
 # note: TCPU likely is the native processor architecture of the build toolchain
@@ -183,10 +186,10 @@ ifndef OS
 TCPU := x86
 else ifeq (,$(filter WIN%,$(OS)))
 TCPU := $(shell uname -m)
-else ifeq (AMD64,$(if $(filter environment,$(origin PROCESSOR_ARCHITECTURE)),$(PROCESSOR_ARCHITECTURE)))
+else ifeq (AMD64,$(if $(call is_env,PROCESSOR_ARCHITECTURE),$(call getenv,PROCESSOR_ARCHITECTURE)))
 # win64
 TCPU := x86_64
-else ifeq (AMD64,$(if $(filter environment,$(origin PROCESSOR_ARCHITEW6432)),$(PROCESSOR_ARCHITEW6432)))
+else ifeq (AMD64,$(if $(call is_env,PROCESSOR_ARCHITEW6432),$(call getenv,PROCESSOR_ARCHITEW6432)))
 # wow64
 TCPU := x86_64
 else
@@ -868,7 +871,7 @@ include $(UTILS_MK)
 ifndef VERBOSE
 ifneq (,$(filter $(CONFIG),$(abspath $(MAKEFILE_LIST))))
 CONF_COLOR := [1;32m
-$(info $(call PRINT_PERCENTS,use)$(call COLORIZE,CONF,$(CONFIG)))
+$(info $(call PRINT_PERCENTS,use)$(if $(INFOMF),$(TARGET_MAKEFILE):)$(call COLORIZE,CONF,$(CONFIG)))
 endif
 endif
 
@@ -903,7 +906,7 @@ CLEAN_BUILD_FIRST_PHASE_VARS += CLEAN_BUILD_GOALS CB_NEEDED_DIRS ORDER_DEPS CB_I
   TMD TOOL_MODE_ERROR TOOL_MODE DEF_HEAD_CODE DEF_TAIL_CODE DEFINE_TARGETS SAVE_VARS RESTORE_VARS MAKE_CONTINUE TOCLEAN
 
 # protect macros from modifications in target makefiles,
-# do not trace calls to macros used in ifdefs, passed to environment of called tools or modified via operator +=
+# do not trace calls to macros used in ifdefs, exported to the environment of called tools or modified via operator +=
 $(call SET_GLOBAL,MAKEFLAGS CLEAN_BUILD_GOALS $(PASS_ENV_VARS) PATH SHELL CLEAN_BUILD_FIRST_PHASE_VARS \
   CB_NEEDED_DIRS NO_CLEAN_BUILD_DISTCLEAN_TARGET DEBUG VERBOSE QUIET INFOMF MDEBUG \
   SHOWN_PERCENTS SHOWN_REMAINDER ADD_SHOWN_PERCENTS CLEAN \

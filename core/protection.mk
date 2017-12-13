@@ -104,17 +104,24 @@ SET_GLOBAL = $(eval $(SET_GLOBAL1))
 
 # redefine variable imported from the environment to produce access error
 # $1 - variable name
-CB_HIDE_ENV_VAR = $(eval define $$1.^e$(newline)$(value $1)$(newline)endef$(newline)$$1=!$$(error \
-  please use GETENV macro to get value of environment variable $1)$(newline)$(call SET_GLOBAL1,$1))
-
-# get value of environment variable $1
-GETENV = $($1.^e)
-
-# check if environment variable $1 is defined
-IS_ENV = $(filter-out undefined,$(origin $1.^e))
+# note: do not trace expansion of $(error)
+CB_HIDE_ENV_VAR = $(eval define $$1.^e$(newline)$(subst \
+  $(backslash),$$(backslash),$(value $1))$(newline)endef$(newline)$$1=!$$(error \
+  please use getenv macro to get value of environment variable $1)$(newline)$(call SET_GLOBAL1,$$1,0))
 
 # redefine variables imported from the environment to produce access error
-CLEAN_BUILD_HIDE_ENV_VARS = $(foreach =,$(.VARIABLES),$(if $(findstring environment,$(origin $=))$$(call CB_HIDE_ENV_VAR,$=)))
+# note: do not redefine exported variables in list $1
+# note: do not redefine Gnu Make automatic variable GNUMAKEFLAGS
+CLEAN_BUILD_HIDE_ENV_VARS = $(foreach =,$(filter-out GNUMAKEFLAGS $1,$(.VARIABLES)),$(if \
+  $(findstring environment,$(origin $=)),$(call CB_HIDE_ENV_VAR,$=)))
+
+# get value of environment variable $1
+getenv = $($1.^e)
+
+# check if variable $1 was imported from the environment
+is_env = $(if $(findstring undefined,$(origin $1)),,$(filter \
+  !$$$(open_brace)error$$(space)please$$(space)use$$(space)getenv$$(space)%,$(subst \
+  $(space),$$(space),$(subst $(tab),$$(tab),$(value $1)))))
 
 # redefine 'local' variable to produce access error
 # $1 - variable name
@@ -156,12 +163,14 @@ endef
 
 # macro to check if clean-build protected $x variable value was changed in target makefile
 # $1 - encoded name of variable $=
+# note: use $(value) function to get the value of variable $1 - variable is simple,
+#  but its name may be non-standard, e.g. CommonProgramFiles(x86)
 # note: first line must be empty
 define CLEAN_BUILD_CHECK_PROTECTED_VAR
 
-ifneq ($$($1),$$(call CLEAN_BUILD_ENCODE_VAR_VALUE,$=))
+ifneq ($$(value $1),$$(call CLEAN_BUILD_ENCODE_VAR_VALUE,$=))
 ifeq (,$(filter $=,$(CLEAN_BUILD_OVERRIDDEN_VARS)))
-$$(error $= value was changed:$$(newline)--- old value:$$(newline)$$($1)$$(newline)+++ new value:$$(newline)$$(call \
+$$(error $= value was changed:$$(newline)--- old value:$$(newline)$$(value $1)$$(newline)+++ new value:$$(newline)$$(call \
   CLEAN_BUILD_ENCODE_VAR_VALUE,$=)$$(newline))
 endif
 endif
@@ -193,7 +202,7 @@ TARGET_MAKEFILE = $(call SET_GLOBAL,CLEAN_BUILD_OVERRIDDEN_VARS CLEAN_BUILD_NEED
 TARGET_MAKEFILE += $(call SET_GLOBAL,MCHECK TRACE CLEAN_BUILD_PROTECTED_VARS NON_TRACEABLE_VARS \
   CLEAN_BUILD_ENCODE_VAR_VALUE CLEAN_BUILD_ENCODE_VAR_NAME \
   CLEAN_BUILD_PROTECT_VARS2 SET_GLOBAL5 SET_GLOBAL4 SET_GLOBAL3 SET_GLOBAL2 SET_GLOBAL1 SET_GLOBAL \
-  CB_HIDE_ENV_VAR GETENV IS_ENV CLEAN_BUILD_HIDE_ENV_VARS CB_VAR_ACCESS_ERR \
+  CB_HIDE_ENV_VAR CLEAN_BUILD_HIDE_ENV_VARS getenv is_env CB_VAR_ACCESS_ERR \
   CLEAN_BUILD_RESET_LOCAL_VAR CLEAN_BUILD_RESET_LOCAL_VARS CLEAN_BUILD_RESET_SAVED_VARS CLEAN_BUILD_RESET_FIRST_PHASE \
   CLEAN_BUILD_CHECK_AT_HEAD CLEAN_BUILD_CHECK_PROTECTED_VAR CLEAN_BUILD_CHECK_AT_TAIL,0)
 
@@ -217,10 +226,10 @@ CLEAN_BUILD_CHECK_AT_TAIL:=
 TARGET_MAKEFILE=
 
 # get value of environment variable $1
-GETENV = $($1)
+getenv = $($1)
 
-# check if environment variable $1 is defined
-IS_ENV = $(filter-out undefined,$(origin $1))
+# check if variable $1 was imported from the environment
+is_env = $(findstring environment,$(origin $1))
 
 ifdef TRACE
 
