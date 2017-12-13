@@ -85,10 +85,6 @@ endif
 endif
 endif
 
-# standard include paths - to include <winver.h>
-RC_STDINCLUDES  := $(VCINCLUDE) $(UMINCLUDE)
-TRC_STDINCLUDES := $(TVCINCLUDE) $(TUMINCLUDE)
-
 # /x - Ignore INCLUDE environment variable
 RC_DEFAULT_OPTIONS := $(RC_SUPPRESS_LOGO) /x$(if $(VERBOSE), /v)
 
@@ -107,21 +103,27 @@ TRC_COLOR := $(GEN_COLOR)
 # note: MC may be defined in command line, project configuration makefile or
 #  autoconfigured in $(CLEAN_BUILD_DIR)/compilers/msvc/auto/conf.mk
 # example: MC="C:\Program Files (x86)\Windows Kits\8.1\bin\x86\mc.exe"
-MC = $(error $0 - path to message compiler mc.exe - is not defined!)
+ifeq (,$(filter-out undefined environment,$(origin MC)))
+MC = $(error MC - path to message compiler mc.exe - is not defined!)
+endif
 
 # RC - resource compiler, must be defined to build executables or dlls
 # note: RC may be defined in command line, project configuration makefile or
 #  autoconfigured in $(CLEAN_BUILD_DIR)/compilers/msvc/auto/conf.mk
 # example: RC="C:\Program Files (x86)\Windows Kits\8.1\bin\x86\rc.exe"
-RC = $(error $0 - path to resource compiler rc.exe - is not defined!)
+ifeq (,$(filter-out undefined environment,$(origin RC)))
+RC = $(error RC - path to resource compiler rc.exe - is not defined!)
+endif
 
 # MT - manifest tool, must be defined for linker of pre-Visual Studio 2012 (which doesn't support "/MANIFEST:EMBED" option)
 # note: MT may be defined in command line, project configuration makefile or
 #  autoconfigured in $(CLEAN_BUILD_DIR)/compilers/msvc/auto/conf.mk
 # example: MT="C:\Program Files (x86)\Windows Kits\8.1\bin\x86\mt.exe"
-MT = $(error $0 - path to manifest tool mt.exe - is not defined!)
+ifeq (,$(filter-out undefined environment,$(origin MT)))
+MT = $(error MT - path to manifest tool mt.exe - is not defined!)
+endif
 
 # protect variables from modifications in target makefiles
 $(call SET_GLOBAL,MC_STRIP_STRINGS WRAP_MC MC_COMPILER MC_COLOR TMC_COLOR \
-  RC_QUERY_NOLOGO RC_SUPPRESS_LOGO RC_LOGO_STRINGS WRAP_RC RC_STDINCLUDES \
-  TRC_STDINCLUDES RC_DEFAULT_OPTIONS RC_COMPILER RC_COLOR TRC_COLOR MC RC MT)
+  RC_QUERY_NOLOGO RC_SUPPRESS_LOGO RC_LOGO_STRINGS WRAP_RC \
+  RC_DEFAULT_OPTIONS RC_COMPILER RC_COLOR TRC_COLOR MC RC MT)
