@@ -6,6 +6,11 @@
 
 # msvc compiler tools wrappers, such as mc.exe and rc.exe, included by $(CLEAN_BUILD_DIR)/compilers/msvc.mk
 
+# note: tools are optional:
+#  RC - needed to generate standard version information resource for EXE,DLL,DRV or KDLL
+#  MC - used to compile message catalogs when building system service executable
+#  MT - used to embed manifest file into EXE or DLL, if compiler supports generation of manifests
+
 # strings to strip off from mc.exe output - $(FINDSTR) regular expression
 # note: may be overridden either in project configuration makefile or in command line
 MC_STRIP_STRINGS := MC:?Compiling
