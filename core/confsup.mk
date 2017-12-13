@@ -24,7 +24,7 @@ ifneq (,$(filter conf,$(MAKECMDGOALS)))
 
 # save $(CONFIG) in target-specific variable CF
 # - to be safe if CONFIG variable get overridden
-conf: override CF := $(CONFIG)
+conf: CF := $(CONFIG)
 
 # conf - is not a file
 .PHONY: conf
@@ -47,7 +47,7 @@ endef
 # 3) always save values of PATH, SHELL and variables from $(PASS_ENV_VARS) to $(CONFIG) file because they are taken from the environment
 # note: save current values of variables to the target-specific variable CONFIG_TEXT - variables may be overridden later
 # note: never override GNUMAKEFLAGS, CLEAN_BUILD_VERSION, CONFIG and $(dump_max) variables by including $(CONFIG) file
-conf: override CONFIG_TEXT := $(foreach v,PATH SHELL $(PASS_ENV_VARS) $(foreach v,$(filter-out \
+conf: CONFIG_TEXT := $(foreach v,PATH SHELL $(PASS_ENV_VARS) $(foreach v,$(filter-out \
   PATH SHELL $(PASS_ENV_VARS) GNUMAKEFLAGS CLEAN_BUILD_VERSION CONFIG $(dump_max),$(.VARIABLES)),$(if \
   $(findstring command line,$(origin $v))$(findstring override,$(origin $v)),$v)),$(CONFIG_OVERRIDE_VAR_TEMPLATE))
 
@@ -60,6 +60,8 @@ CONFSUP_WRITE_BY_LINES := 10
 # note: WRITE_TEXT - defined in $(CLEAN_BUILD_DIR)/utils/$(UTILS).mk
 # note: pass 1 as 4-th argument of SUP function to not update percents of executed target makefiles
 # note: CONFIG_TEXT was defined above as target-specific variable
+conf: F.^ := $(abspath $(firstword $(MAKEFILE_LIST)))
+conf: C.^ :=
 conf:| $(patsubst %/,%,$(dir $(CONFIG)))
 	$(call SUP,GEN,$(CF),,1)$(call WRITE_TEXT,$(CONFIG_TEXT),$(CF),$(CONFSUP_WRITE_BY_LINES))
 
@@ -73,7 +75,7 @@ $(patsubst %/,%,$(dir $(CONFIG))):
 endif
 
 # helper to remember autoconfigured variables in generated config file
-CONFIG_REMEMBER_VARS = $(eval conf: override CONFIG_TEXT += $(foreach v,$1,$(CONFIG_OVERRIDE_VAR_TEMPLATE)))
+CONFIG_REMEMBER_VARS = $(eval conf: CONFIG_TEXT += $(foreach v,$1,$(CONFIG_OVERRIDE_VAR_TEMPLATE)))
 
 endif # conf
 endif # CONFIG
