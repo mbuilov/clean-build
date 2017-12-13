@@ -4,11 +4,13 @@
 # Licensed under GPL version 2 or any later version, see COPYING
 #----------------------------------------------------------------------------------
 
-# note: some project configuration makefile should be already processed before this file,
-#  variable TOP must be overridden.
-# tip: this file may be built individually via:
-# make --eval 'include my_project.mk' -f <this makefile>
+# note: project configuration makefile should be already processed before this file
 
-include $(dir $(lastword $(MAKEFILE_LIST)))../../stub/submakes.mk
+ifeq (,$(filter-out undefined environment,$(origin PROCESS_SUBMAKES_PREPARE)))
+include $(dir $(lastword $(MAKEFILE_LIST)))../../core/_submakes.mk
+endif
+
+# as in $(CLEAN_BUILD_DIR)/stub/submakes.mk
+$(PROCESS_SUBMAKES_PREPARE)
 
 $(call PROCESS_SUBMAKES,buildnumber.mk version.mk)

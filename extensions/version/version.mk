@@ -4,12 +4,10 @@
 # Licensed under GPL version 2 or any later version, see COPYING
 #----------------------------------------------------------------------------------
 
-# note: some project configuration makefile should be already processed before this file,
-#  variable TOP must be overridden.
-# tip: this file may be built individually via:
-# make --eval 'include my_project.mk' -f <this makefile>
+# note: project configuration makefile should be already processed before this file
 
-include $(dir $(lastword $(MAKEFILE_LIST)))../../stub/defs.mk
+# as in $(CLEAN_BUILD_DIR)/stub/defs.mk
+$(CB_PREPARE_TARGET_TYPE)
 
 # next variables must be defined for this makefile (in project configuration makefile)
 
@@ -18,7 +16,7 @@ include $(dir $(lastword $(MAKEFILE_LIST)))../../stub/defs.mk
 # PRODUCT_NAME     - e.g. Super Product
 # VENDOR_COPYRIGHT - e.g. Copyright (C) Acme Corp
 
-# generate product definitions header (e.g. for $(CLEAN_BUILD_DIR)/compilers/msvc/stdres.mk)
+# generate product information header (e.g. for $(CLEAN_BUILD_DIR)/compilers/msvc/stdres.mk)
 GENERATED := $(GEN_DIR)/$(PRODUCT_NAMES_H)
 $(call ADD_GENERATED,$(GENERATED))
 

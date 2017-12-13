@@ -4,14 +4,16 @@
 # Licensed under GPL version 2 or any later version, see COPYING
 #----------------------------------------------------------------------------------
 
-# note: some project configuration makefile should be already processed before this file,
-#  variable TOP must be overridden.
-# tip: this file may be built individually via:
-# make --eval 'include my_project.mk' -f <this makefile>
+# note: project configuration makefile should be already processed before this file
 
 TOOL_MODE := 1
 
-include $(dir $(lastword $(MAKEFILE_LIST)))../../stub/c.mk
+ifeq (,$(filter-out undefined environment,$(origin C_PREPARE_APP_VARS)))
+include $(dir $(lastword $(MAKEFILE_LIST)))../../types/_c.mk
+endif
+
+# as in $(CLEAN_BUILD_DIR)/stub/c.mk
+$(call CB_PREPARE_TARGET_TYPE,C_PREPARE_APP_VARS,C_DEFINE_APP_RULES)
 
 EXE := buildnumber S
 SRC := buildnumber.c
