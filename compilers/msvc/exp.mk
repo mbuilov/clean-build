@@ -45,7 +45,7 @@ endef
 EXPORTS_TEMPLATE = $(if $2,$(call MOD_EXPORTS_TEMPLATE,$1,$2,$(call fixpath,$(DEF))),$(NO_EXPORTS_TEMPLATE))
 
 # DEF variable is used only if it's specified that target exports symbols
-ifdef MCHECK
+ifdef CB_CHECKING
 # $1 - $(call FORM_TRG,$t,$v), where $t - EXE,DLL,... $v - R,S,RU,SU..
 # $2 - path to import library if target exports symbols, <empty> - otherwise
 DEF_VARIABLE_CHECK = $(if $2,,$(if $(DEF),$(warning DEF variable is ignored for target exporting no symbols: $1)))

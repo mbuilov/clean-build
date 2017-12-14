@@ -51,7 +51,7 @@ check tests: all
 # note: don't try to update makefiles in $(MAKEFILE_LIST) - mark them as .PHONY targets
 .PHONY: $(CLEAN_BUILD_GOALS) $(MAKEFILE_LIST)
 
-ifdef MCHECK
+ifdef CB_CHECKING
 
 # check that all targets are built
 $(PROCESSED_MAKEFILES):
@@ -59,10 +59,10 @@ $(PROCESSED_MAKEFILES):
 
 # reset at end of makefile parsing (the first phase):
 # 1) non-protected ("local") variables defined in last parsed target makefile
-# 2) protected variables from $(CLEAN_BUILD_FIRST_PHASE_VARS) list
-$(eval $(CLEAN_BUILD_RESET_FIRST_PHASE))
+# 2) protected variables from $(CB_FIRST_PHASE_VARS) list
+$(eval $(CB_RESET_FIRST_PHASE))
 
-endif # MCHECK
+endif # CB_CHECKING
 
 # at end of first phase - after all makefiles are parsed - print prepared environment variables for the rules
 ifdef VERBOSE

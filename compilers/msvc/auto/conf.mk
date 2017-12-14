@@ -217,7 +217,7 @@ endif
 ifdef WDK
 # WDK=C:/Program?Files?(x86)/Windows?Kits/8.0
 override WDK := $(call CONF_NORMALIZE_DIR,$(WDK))
-ifdef MCHECK
+ifdef CB_CHECKING
 ifdef SDK
 ifdef DDK
 override WDK = $(error WDK must not be used if both SDK and DDK are defined)

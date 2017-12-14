@@ -92,7 +92,7 @@ endef
 
 # remember new value of CB_NEEDED_INSTALL_DIRS
 # note: do not trace calls to CB_NEEDED_INSTALL_DIRS because its value is incremented
-ifdef MCHECK
+ifdef CB_CHECKING
 $(call define_append,ADD_INSTALL_DIRS_TEMPL1,$(newline)$$(call SET_GLOBAL1,CB_NEEDED_INSTALL_DIRS,0))
 endif
 
@@ -106,11 +106,11 @@ NEED_INSTALL_DIR  = $(call NEED_INSTALL_DIR1,$(filter-out $(CB_NEEDED_INSTALL_DI
 NEED_INSTALL_DIR_RET = $(NEED_INSTALL_DIR)$(subst $(space),\ ,$1)
 
 # makefile parsing first phase variables
-CLEAN_BUILD_FIRST_PHASE_VARS += CB_NEEDED_INSTALL_DIRS
+CB_FIRST_PHASE_VARS += CB_NEEDED_INSTALL_DIRS
 
 # protect variables from modifications in target makefiles
-# note: do not trace calls to CLEAN_BUILD_FIRST_PHASE_VARS and CB_NEEDED_INSTALL_DIRS because theirs values are incremented
-$(call SET_GLOBAL1,CLEAN_BUILD_FIRST_PHASE_VARS CB_NEEDED_INSTALL_DIRS,0)
+# note: do not trace calls to CB_FIRST_PHASE_VARS and CB_NEEDED_INSTALL_DIRS because theirs values are incremented
+$(call SET_GLOBAL1,CB_FIRST_PHASE_VARS CB_NEEDED_INSTALL_DIRS,0)
 
 # protect variables from modifications in target makefiles
 $(call SET_GLOBAL,DO_INSTALL_DIRq DO_INSTALL_DIR DO_INSTALL_FILESq DO_INSTALL_FILES DO_INSTALL_SIMLINKqq DO_INSTALL_SIMLINK \

@@ -4,8 +4,8 @@
 # Licensed under GPL version 2 or any later version, see COPYING
 #----------------------------------------------------------------------------------
 
-# original file: $(CLEAN_BUILD_DIR)/stub/overrides.mk
-# description:   core clean-build definitions, processing of CONFIG and OVERRIDES variables, definition of MTOP variable
+# original file: $(clean_build_dir)/stub/overrides.mk
+# description:   core clean-build definitions, processing of CONFIG and OVERRIDES variables, definition of CLEAN_BUILD variable
 
 # Note: This file should be copied AS IS to the directory of the project build system
 # Note: This file should be included at end of project configuration makefile 'project.mk' - just before autoconfigure includes
@@ -45,23 +45,23 @@ endif
 # source optional clean-build generated config file, if it exist
 -include $(CONFIG)
 
-# MTOP - path to clean-build build system
-# Note: normally MTOP is defined in command line, but may be taken from the environment
-# redefine MTOP as a simple (i.e. non-recursive) variable
-ifeq (undefined,$(origin MTOP))
-MTOP:=
+# CLEAN_BUILD - path to clean-build build system root directory
+# Note: normally CLEAN_BUILD is defined in command line, but may be taken from the environment
+# redefine CLEAN_BUILD as a simple (i.e. non-recursive) variable
+ifeq (undefined,$(origin CLEAN_BUILD))
+CLEAN_BUILD:=
 else
-MTOP := $(MTOP)
+CLEAN_BUILD := $(CLEAN_BUILD)
 endif
 
 # path to clean-build must be defined
-ifndef MTOP
-$(error MTOP - path to clean-build (https://github.com/mbuilov/clean-build) is not defined,\
- example: MTOP=/usr/local/clean-build or MTOP=C:\User\clean-build)
+ifndef CLEAN_BUILD
+$(error CLEAN_BUILD - path to clean-build (https://github.com/mbuilov/clean-build) is not defined,\
+ example: CLEAN_BUILD=/usr/local/clean-build or CLEAN_BUILD=C:\User\clean-build)
 endif
 
 # source clean-build base definitions
-ifeq (,$(wildcard $(MTOP)/core/_defs.mk))
-$(error clean-build files are not found under MTOP=$(MTOP))
+ifeq (,$(wildcard $(CLEAN_BUILD)/core/_defs.mk))
+$(error clean-build files are not found under CLEAN_BUILD=$(CLEAN_BUILD))
 endif
-include $(MTOP)/core/_defs.mk
+include $(CLEAN_BUILD)/core/_defs.mk

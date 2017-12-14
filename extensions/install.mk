@@ -118,7 +118,7 @@ endif
 # remember new value of NEEDED_INSTALL_DIRS
 # note: do not trace calls to NEEDED_INSTALL_DIRS because its value is incremented
 # note: assume result of $(call SET_GLOBAL1,...,0) will give an empty line at end of expansion
-ifdef MCHECK
+ifdef CB_CHECKING
 $(eval define ADD_INSTALL_DIRS_TEMPL$(newline)$(subst endif,$$(call \
   SET_GLOBAL1,NEEDED_INSTALL_DIRS,0)endif,$(value ADD_INSTALL_DIRS_TEMPL))$(newline)endef)
 endif

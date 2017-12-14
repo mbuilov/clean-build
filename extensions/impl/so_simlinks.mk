@@ -24,7 +24,7 @@ CB_TEST_SHLIB_SIMLINKS_LIST += $d
 endef
 
 # remember new value of CB_TEST_SHLIB_SIMLINKS_LIST
-ifdef MCHECK
+ifdef CB_CHECKING
 $(call define_append,SO_SOFTLINK_TEMPLATE,$(newline)$$(call SET_GLOBAL1,CB_TEST_SHLIB_SIMLINKS_LIST,0))
 endif
 

@@ -207,7 +207,7 @@ uninstall: uninstall_lib_$1
 endef
 
 # do not trace calls to macros modified via operator +=
-ifdef MCHECK
+ifdef CB_CHECKING
 $(call define_append,INSTALL_LIB_BASE,$$(call SET_GLOBAL1,CLEAN_BUILD_GOALS,0))
 endif
 

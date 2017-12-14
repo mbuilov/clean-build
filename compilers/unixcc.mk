@@ -63,7 +63,7 @@ UNIX_MOD_AUX_APPt = $(foreach v,$(call GET_VARIANTS,$t),$(call $t_AUX_TEMPLATEv,
 UNIX_MOD_AUX_APP = $(foreach t,EXE DLL,$(if $($t),$(call UNIX_MOD_AUX_APPt,$(call fixpath,$(MAP)))))
 
 # MAP variable is used only when building EXE or DLL
-ifdef MCHECK
+ifdef CB_CHECKING
 MAP_VARIABLE_CHECK = $(if $(MAP),$(if $(LIB),$(if $(EXE)$(DLL),,$(warning MAP variable is not used when building a LIB))))
 $(call define_prepend,UNIX_MOD_AUX_APP,$$(MAP_VARIABLE_CHECK))
 endif

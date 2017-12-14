@@ -225,7 +225,7 @@ $(call try_make_simple,C_PREPARE_APP_VARS,C_PREPARE_BASE_VARS)
 # rules for building application-level targets from C/C++ sources
 C_DEFINE_APP_RULES = $(C_DEFINE_RULES)
 
-ifdef MCHECK
+ifdef CB_CHECKING
 # check that LIBS or DLLS are specified only when building EXE or DLL
 CHECK_C_APP_RULES = $(if \
   $(if $(EXE)$(DLL),,$(LIBS)),$(warning LIBS = $(LIBS) is used only when building EXE or DLL))$(if \
@@ -234,7 +234,7 @@ $(call define_prepend,C_DEFINE_APP_RULES,$$(CHECK_C_APP_RULES))
 endif
 
 # optimization
-ifndef TRACE
+ifndef CB_TRACING
 $(call expand_partially,C_DEFINE_APP_RULES,C_DEFINE_RULES)
 endif
 

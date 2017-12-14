@@ -58,7 +58,7 @@ MULTI_TARGET_NUM+=1
 endef
 
 # remember new value of MULTI_TARGET_NUM, without tracing calls to it because it is incremented
-ifdef MCHECK
+ifdef CB_CHECKING
 $(call define_append,MULTI_TARGET_RULE,$(newline)$$(call SET_GLOBAL1,MULTI_TARGET_NUM,0))
 endif
 
@@ -71,7 +71,7 @@ endif
 # note: rule must update all targets
 MULTI_TARGET = $(eval $(call MULTI_TARGET_RULE,$1,$2,$3,$(words $(MULTI_TARGET_NUM))))
 
-ifdef MCHECK
+ifdef CB_CHECKING
 
 # must not use $@ in multi-target rule because it may have different values
 #  (any target from multi-targets list), and rule must update all targets at once.
@@ -82,7 +82,7 @@ CHECK_MULTI_RULE = $(if $(findstring $$@,$(subst \
 
 $(eval MULTI_TARGET = $$(CHECK_MULTI_RULE)$(value MULTI_TARGET))
 
-endif # MCHECK
+endif # CB_CHECKING
 
 else # clean
 
@@ -92,11 +92,11 @@ MULTI_TARGET = $(eval $(STD_TARGET_VARS))
 endif # clean
 
 # makefile parsing first phase variables
-CLEAN_BUILD_FIRST_PHASE_VARS += MULTI_TARGET_NUM MULTI_TARGET_SEQ MULTI_TARGET_RULE MULTI_TARGET CHECK_MULTI_RULE
+CB_FIRST_PHASE_VARS += MULTI_TARGET_NUM MULTI_TARGET_SEQ MULTI_TARGET_RULE MULTI_TARGET CHECK_MULTI_RULE
 
 # protect macros from modifications in target makefiles,
 # do not trace calls to macros used in ifdefs, exported to the environment of called tools or modified via operator +=
-$(call SET_GLOBAL,CLEAN_BUILD_FIRST_PHASE_VARS MULTI_TARGETS MULTI_TARGET_NUM,0)
+$(call SET_GLOBAL,CB_FIRST_PHASE_VARS MULTI_TARGETS MULTI_TARGET_NUM,0)
 
 # protect macros from modifications in target makefiles, allow tracing calls to them
 $(call SET_GLOBAL,MULTI_TARGET_SEQ MULTI_TARGET_RULE=MULTI_TARGET_NUM=MULTI_TARGET_NUM MULTI_TARGET CHECK_MULTI_RULE)

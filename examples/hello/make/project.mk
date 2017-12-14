@@ -4,7 +4,7 @@
 # Licensed under GPL version 2 or any later version, see COPYING
 #----------------------------------------------------------------------------------
 
-# original file: $(CLEAN_BUILD_DIR)/stub/project.mk
+# original file: $(clean_build_dir)/stub/project.mk
 # description:   project configuration makefile
 
 # Assume custom project has the following directory structure:
@@ -41,8 +41,8 @@ BUILD := $(TOP)/build
 CLEAN_BUILD_REQUIRED_VERSION := 0.9.0
 
 # next variables are needed for generating:
-# - header file with version info (see $(MTOP)/extensions/version/version.mk)
-# - under Windows, resource files with version info (see $(MTOP)/compilers/msvc/stdres.mk)
+# - header file with version info (see $(CLEAN_BUILD)/extensions/version/version.mk)
+# - under Windows, resource files with version info (see $(CLEAN_BUILD)/compilers/msvc/stdres.mk)
 PRODUCT_NAMES_H  := product_names.h
 VENDOR_NAME      := Michael M. Builov
 PRODUCT_NAME     := Sample app
@@ -56,16 +56,16 @@ PRODUCT_VER := 1.0.0
 # Note: may pre-define clean-build macros here - predefined values will override default ones, e.g:
 #  SUPPORTED_TARGETS := DEVEL PRODUCTION
 
-# MTOP - path to clean-build build system
-# Note: normally MTOP is defined in command line,
-#  but for this example, MTOP may be deduced automatically
-MTOP := $(abspath $(TOP)/../..)
+# CLEAN_BUILD - path to clean-build build system root directory
+# Note: normally CLEAN_BUILD is defined in command line,
+#  but for this example, CLEAN_BUILD may be deduced automatically
+CLEAN_BUILD := $(abspath $(TOP)/../..)
 
 # include core clean-build definitions, processing of CONFIG and OVERRIDES variables,
-#  define MTOP variable - path to clean-build
+#  define CLEAN_BUILD variable - path to the clean-build root directory
 include $(dir $(lastword $(MAKEFILE_LIST)))overrides.mk
 
 # Note: may redefine core clean-build macros here, e.g.:
-#  $(call define_prepend,DEF_HEAD_CODE,$$(info target makefile: $$(TARGET_MAKEFILE)))
+#  $(call define_prepend,def_head_code,$$(info target makefile: $$(target_makefile)))
 
 endif # TOP

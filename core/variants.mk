@@ -85,11 +85,11 @@ FORM_OBJ_DIR = $(OBJ_DIR)/$(GET_TARGET_NAME)$(if $(filter-out R,$2),_$2)_$1
 MAKE_TRG_PATH = $(call $1_FORM_TRG,$2,$(call FILTER_VARIANTS_LIST,$1,$3))
 
 # makefile parsing first phase variables
-CLEAN_BUILD_FIRST_PHASE_VARS += GET_TARGET_NAME GET_VARIANTS GET_VARIANTS_F FORM_TRG ALL_TARGETS FORM_OBJ_DIR
+CB_FIRST_PHASE_VARS += GET_TARGET_NAME GET_VARIANTS GET_VARIANTS_F FORM_TRG ALL_TARGETS FORM_OBJ_DIR
 
 # protect macros from modifications in target makefiles,
 # do not trace calls to macros used in ifdefs, exported to the environment of called tools or modified via operator +=
-$(call SET_GLOBAL,CLEAN_BUILD_FIRST_PHASE_VARS,0)
+$(call SET_GLOBAL,CB_FIRST_PHASE_VARS,0)
 
 # protect macros from modifications in target makefiles, allow tracing calls to them
 $(call SET_GLOBAL,GET_TARGET_NAME SUPPORTED_VARIANTS FILTER_VARIANTS_LIST FILTER_VARIANTS_LIST_F \

@@ -20,9 +20,9 @@ $1:=$2
 endef
 
 # reset $(group_name)_NON_PARALEL_GROUP variable before the rule execution second phase
-ifdef MCHECK
+ifdef CB_CHECKING
 $(eval define NON_PARALLEL_EXECUTE_RULE$(newline)$(subst \
-  endif,else$(newline)CLEAN_BUILD_FIRST_PHASE_VARS+=$$1$(newline)endif,$(value NON_PARALLEL_EXECUTE_RULE))$(newline)endef)
+  endif,else$(newline)CB_FIRST_PHASE_VARS+=$$1$(newline)endif,$(value NON_PARALLEL_EXECUTE_RULE))$(newline)endef)
 endif
 
 # remember new value of $(group_name)_NON_PARALEL_GROUP
@@ -50,11 +50,11 @@ NON_PARALLEL_EXECUTE:=
 endif # clean
 
 # makefile parsing first phase variables
-CLEAN_BUILD_FIRST_PHASE_VARS += NON_PARALLEL_EXECUTE_RULE NON_PARALLEL_EXECUTE
+CB_FIRST_PHASE_VARS += NON_PARALLEL_EXECUTE_RULE NON_PARALLEL_EXECUTE
 
 # protect macros from modifications in target makefiles,
 # do not trace calls to macros used in ifdefs, exported to the environment of called tools or modified via operator +=
-$(call SET_GLOBAL,CLEAN_BUILD_FIRST_PHASE_VARS,0)
+$(call SET_GLOBAL,CB_FIRST_PHASE_VARS,0)
 
 # protect macros from modifications in target makefiles, allow tracing calls to them
 $(call SET_GLOBAL,NON_PARALLEL_EXECUTE_RULE NON_PARALLEL_EXECUTE)

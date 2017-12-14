@@ -308,7 +308,7 @@ $(call define_prepend,C_DEFINE_APP_RULES,$$(call \
 endif # clean
 
 # DEF variable is used only when building EXE or DLL
-ifdef MCHECK
+ifdef CB_CHECKING
 LIB_DEF_VARIABLE_CHECK = $(if $(DEF),$(if $(LIB),$(if $(EXE)$(DLL),,$(warning DEF variable is not used when building a LIB))))
 $(call define_prepend,C_DEFINE_APP_RULES,$$(LIB_DEF_VARIABLE_CHECK))
 endif
@@ -324,7 +324,7 @@ endif
 LIB_LD1 = $(call SUP,$(TMD)LIB,$1)$($(TMD)VCLIB) /nologo /OUT:$(call ospath,$1 $2) $($(TMD)ARFLAGS)
 
 # check that LIB do not includes resources (.res-files)
-ifdef MCHECK
+ifdef CB_CHECKING
 $(eval LIB_LD1 = $$(if $$(filter %.res,$$^),$$(warning \
   $$1: static library cannot contain resources: $$(filter %.res,$$^)))$(value LIB_LD1))
 endif

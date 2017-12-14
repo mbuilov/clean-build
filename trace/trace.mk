@@ -27,12 +27,19 @@
 #   Note: undefined macros or macros having an empty value are not traced
 
 # by default, do not print traces in colors
-# may be overridden in command line, e.g.:
-#  make -f my.mk TRACE_IN_COLOR:=1
-TRACE_IN_COLOR:=
+# for the colors, define MAKE_TRACE_IN_COLOR variable, e.g.:
+#  make -f my.mk MAKE_TRACE_IN_COLOR:=1
+MAKE_TRACE_IN_COLOR ?=
 
 empty:=
 space:= $(empty) $(empty)
+tab:= $(empty)	$(empty)
+define comment
+#
+endef
+comment:= $(comment)
+backslash:= \$(empty)
+percent:= %
 comma:= ,
 define newline
 
@@ -41,6 +48,7 @@ endef
 newline:= $(newline)
 open_brace:= (
 close_brace:= )
+keyword_override:= override
 keyword_define:= define
 keyword_endef:= endef
 
@@ -59,7 +67,7 @@ keyword_endef:= endef
 # \
 # d<>
 # d<>
-ifndef TRACE_IN_COLOR
+ifndef MAKE_TRACE_IN_COLOR
 format_traced_value = $(if $4,$(if $(findstring $(newline),$1),$4$(newline)$5))$2$(subst $(newline),$3$(newline)$5$2,$1)$3
 else
 format_traced_value = $(if $4,$(if $(findstring $(newline),$1),$4$(newline)$5))$2$(subst $(newline),$3$(newline)$5$2,$(subst \
@@ -127,7 +135,7 @@ endif
 
 # print result $1 and return $1
 # add prefix $2 before printed result
-ifndef TRACE_IN_COLOR
+ifndef MAKE_TRACE_IN_COLOR
 infofn = $(info $(call format_traced_value,$1,$2<,>))$1
 else
 infofn = $(info $(call format_traced_value,$1,[32m$2<[m,[32m>[m))$1
@@ -138,7 +146,7 @@ endif
 # $2 - optional context
 # $(call dump,VAR1,Q: ) -> print 'Q: dump: VAR1=<xxx>'
 # note: surround dump with fake $(if ...) to avoid any text in result of $(dump)
-ifndef TRACE_IN_COLOR
+ifndef MAKE_TRACE_IN_COLOR
 dump = $(if $(foreach =,$1,$(warning $2dump: $=$(if $(findstring \
   simple,$(flavor $=)),:)=$(call format_traced_value,$(value $=),<,>,\,))),)
 else
@@ -153,7 +161,7 @@ dump_max := 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26
 $(eval override $(subst $(space),:=$(newline)override ,$(dump_max)):=)
 
 # dump function arguments
-ifndef TRACE_IN_COLOR
+ifndef MAKE_TRACE_IN_COLOR
 dump_args := $(foreach i,$(dump_max),:$$(if \
   $$($i),$$(newline)$$$$$i=$$(call format_traced_value,$$($i),<,>,\,)))
 else
@@ -166,7 +174,7 @@ $(eval dump_args = $(subst $(space):,, $(dump_args)))
 # trace function call - print function name and argument values
 # - add $(tracefn) as the first statement of traced function body
 # example: fun = $(tracefn)fn_body
-ifndef TRACE_IN_COLOR
+ifndef MAKE_TRACE_IN_COLOR
 tracefn = $(warning tracefn: $$($0)$(subst $(newline),$(newline)|,$(dump_args)))
 else
 tracefn = $(warning [35;1mtracefn[m: [32m$$($0)$(subst $(newline),$(newline)[35;1m|[36m,$(dump_args)))
@@ -184,10 +192,10 @@ encode_traced_var_name = $1.^t
 # $3 - override or <empty>
 # $4 - names of variables to dump before the traced call
 # $5 - names of variables to dump after the traced call
-# $6 - if non-empty, then forcibly protect new values of traced macros (used by $(CLEAN_BUILD_DIR)/core/protection.mk)
+# $6 - if non-empty, then forcibly protect new values of traced macros (used by $(clean_build_dir)/core/protection.mk)
 # note: must use $$(call $2,_dump_params_): Gnu Make do not allow recursive calls: $(call a)->$(b)->$(call a)->$(b)->...
 # note: first line must be empty
-ifndef TRACE_IN_COLOR
+ifndef MAKE_TRACE_IN_COLOR
 define trace_calls_template
 
 ifdef $1
@@ -210,7 +218,7 @@ $(keyword_endef)
 endif
 endif
 endef
-else # TRACE_IN_COLOR
+else # MAKE_TRACE_IN_COLOR
 define trace_calls_template
 
 ifdef $1
@@ -233,13 +241,13 @@ $(keyword_endef)
 endif
 endif
 endef
-endif # TRACE_IN_COLOR
+endif # MAKE_TRACE_IN_COLOR
 
 # protect traced macros
-# $6 - if non-empty, then forcibly protect new values of traced macros (used by $(CLEAN_BUILD_DIR)/core/protection.mk)
-# note: pass 0 as second parameter to SET_GLOBAL1 to not try to trace already traced macro
-ifneq (,$(filter-out undefined environment,$(origin SET_GLOBAL1)))
-trace_calls_template += $(if $(or $6,$(filter $1,$(CLEAN_BUILD_PROTECTED_VARS))),$(newline)$(call SET_GLOBAL1,$1,0))
+# $6 - if non-empty, then forcibly protect new values of traced macros (used by $(clean_build_dir)/core/protection.mk)
+# note: do not pass second parameter to set_global1 to not try to trace already traced macro
+ifneq (,$(filter-out undefined environment,$(origin set_global1)))
+trace_calls_template += $(if $(or $6,$(filter $1,$(cb_protected_vars))),$(newline)$(call set_global1,$1))
 endif
 
 # replace _dump_params_ with: $(1),$(2),$(3...)
@@ -250,7 +258,7 @@ $(eval define trace_calls_template$(newline)$(subst _dump_params_,$$$$$(open_bra
 # $1 - traced macros in the form:
 #   name=b1;b2;b3;$$1;b4=e1;e2
 # ($$1 - special case, when macro argument $1 is the names of another macros - dump their values)
-# $2 - if non-empty, then forcibly protect new values of traced macros (used by $(CLEAN_BUILD_DIR)/core/protection.mk)
+# $2 - if non-empty, then forcibly protect new values of traced macros (used by $(clean_build_dir)/core/protection.mk)
 # where
 #   name            - macro name
 #   b1;b2;b3;$$1;b4 - names of variables to dump before traced call

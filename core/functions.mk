@@ -4,20 +4,12 @@
 # Licensed under GPL version 2 or any later version, see COPYING
 #----------------------------------------------------------------------------------
 
-# this file is included by $(CLEAN_BUILD_DIR)/core/_defs.mk, after including $(CLEAN_BUILD_DIR)/core/protection.mk
+# this file is included by $(clean_build_dir)/core/_defs.mk,
+# after including $(clean_build_dir)/core/protection.mk
 
 ifeq (,$(filter-out undefined environment,$(origin trace_calls)))
 include $(dir $(lastword $(MAKEFILE_LIST)))../trace/trace.mk
 endif
-
-tab:= $(empty)	$(empty)
-define comment
-#
-endef
-comment:= $(comment)
-keyword_override:= override
-backslash:= \$(empty)
-percent:= %
 
 # hide spaces in string
 unspaces = $(subst $(space),$$(space),$(subst $(tab),$$(tab),$(subst $$,$$$$,$1)))
@@ -28,7 +20,7 @@ tospaces = $(eval tospaces_:=$(subst $(comment),$$(comment),$1))$(tospaces_)
 # add quotes if path has an embedded space(s):
 # $(call ifaddq,a b) -> "a b"
 # $(call ifaddq,ab)  -> ab
-# note: overridden in $(CLEAN_BUILD_DIR)/utils/unix.mk
+# note: overridden in $(clean_build_dir)/utils/unix.mk
 ifaddq = $(if $(findstring $(space),$1),"$1",$1)
 
 # unhide spaces in paths adding some prefix:
@@ -310,15 +302,15 @@ keyed_redefine = $(eval $(if $(findstring simple,$(flavor $1)),$3^o.$1 := $$($1)
   $$(filter $3,$$($2)),$$($3^n.$1),$$($3^o.$1)))
 
 # protect variables from modification in target makefiles
-# note: do not try to trace calls to these macros, pass 0 as second parameter to SET_GLOBAL
-# note: TARGET_MAKEFILE variable is used here temporary and will be redefined later
-TARGET_MAKEFILE += $(call SET_GLOBAL, \
-  empty space tab comma newline comment open_brace close_brace keyword_override keyword_define keyword_endef backslash percent \
-  TRACE_IN_COLOR format_traced_value infofn dump dump_max dump_args tracefn encode_traced_var_name trace_calls_template trace_calls,0)
+# note: do not try to trace calls to these macros
+# note: target_makefile variable is used here temporary and will be redefined later
+target_makefile += $(call set_global,MAKE_TRACE_IN_COLOR \
+  empty space tab comment backslash percent comma newline open_brace close_brace keyword_override keyword_define keyword_endef \
+  format_traced_value infofn dump dump_max dump_args tracefn encode_traced_var_name trace_calls_template trace_calls)
 
 # protect variables from modification in target makefiles
-# note: TARGET_MAKEFILE variable is used here temporary and will be redefined later
-TARGET_MAKEFILE += $(call SET_GLOBAL, \
+# note: target_makefile variable is used here temporary and will be redefined later
+target_makefile += $(call set_global, \
   unspaces tospaces ifaddq qpath tolower toupper repl09 repl09AZ padto1 padto is_less1 is_less repl090 \
   is_less_float6 is_less_float5 is_less_float4 is_less_float3 is_less_float2 is_less_float1 is_less_float \
   strip_leading0 sort_numbers2 sort_numbers1 sort_numbers reverse \
@@ -327,4 +319,4 @@ TARGET_MAKEFILE += $(call SET_GLOBAL, \
   ver_major ver_minor ver_patch ver_compatible1 ver_compatible \
   get_dir split_dirs1 split_dirs mk_dir_deps lazy_simple \
   define_append=$$1=$$1 define_prepend=$$1=$$1 append_simple=$$1=$$1 prepend_simple=$$1=$$1 \
-  subst_var_refs expand_partially=$$1=$$1 remove_var_refs try_make_simple=$$1;$$2=$$1 keyed_redefine)
+  subst_var_refs expand_partially=$$1=$$1 remove_var_refs try_make_simple=$$1;$$2=$$1 keyed_redefine,F)

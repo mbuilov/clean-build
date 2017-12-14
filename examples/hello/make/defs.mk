@@ -4,13 +4,13 @@
 # Licensed under GPL version 2 or any later version, see COPYING
 #----------------------------------------------------------------------------------
 
-# original file: $(CLEAN_BUILD_DIR)/stub/defs.mk
-# description:   support for building generic targets - define DEFINE_TARGETS macro
+# original file: $(clean_build_dir)/stub/defs.mk
+# description:   support for building generic targets - define define_targets macro
 
 # Note: This file should be copied AS IS to the directory of the project build system
 
-ifeq (,$(filter-out undefined environment,$(origin CB_PREPARE_TARGET_TYPE)))
+ifeq (,$(filter-out undefined environment,$(origin cb_prepare_target_type)))
 include $(dir $(lastword $(MAKEFILE_LIST)))project.mk
 endif
 
-$(CB_PREPARE_TARGET_TYPE)
+$(cb_prepare_target_type)
