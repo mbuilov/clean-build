@@ -4,48 +4,58 @@
 # Licensed under GPL version 2 or any later version, see COPYING
 #----------------------------------------------------------------------------------
 
-# this file is included by $(clean_build_dir)/core/_defs.mk, before including $(clean_build_dir)/core/functions.mk
+# this file is included by $(cb_dir)/core/_defs.mk, before including $(cb_dir)/core/functions.mk
 # define macros for variables protection from accidental changes in target makefiles
 
 # run via $(MAKE) C=1 to check makefiles
 ifeq (command line,$(origin C))
-cb_checking := $(C:0=)
+CBBS_CHECK := $(C:0=)
 else
-cb_checking:=
+CBBS_CHECK:=
 endif
 
 # run via $(MAKE) T=1 to trace clean-build macros (most of them)
 ifeq (command line,$(origin T))
-cb_tracing := $(T:0=)
+CBBS_TRACE := $(T:0=)
 else
-cb_tracing:=
+CBBS_TRACE:=
 endif
 
-# list of clean-build protected variables
-# reset - this variable is checked in trace_calls function in $(clean_build_dir)/trace/trace.mk
-cb_protected_vars:=
-
-# list of first-phase variables - these are will be reset before the rule-execution second phase
-cb_first_phase_vars:=
-
-ifdef cb_tracing
+ifdef CBBS_TRACE
 
 # list of macros that are should not be traced
 #  (like counters - modified via operator +=, or variables used in ifdefs)
-CB_NON_TRACEABLE ?=
+CBBS_NON_TRACEABLE_VARS ?=
 
 # namespaces to trace, e.g. O P F T
 # empty by default - trace all namespaces
-CB_TRACE_FILTER ?=
+CBBS_TRACE_FILTER ?=
 
 # namespaces to not trace, e.g. O P F T
 # empty by default - trace all namespaces
-CB_TRACE_FILTER_OUT ?=
+CBBS_TRACE_FILTER_OUT ?=
 
 # check if cannot trace variables of given namespace
 # $1 - optional namespace name
-check_cannot_trace = $(if $1,$(or $(filter $(CB_TRACE_FILTER_OUT),$1),$(if \
-  $(CB_TRACE_FILTER),$(filter-out $(CB_TRACE_FILTER),$1))),1)
+cb_check_cannot_trace = $(if $1,$(or $(filter $(CBBS_TRACE_FILTER_OUT),$1),$(if \
+  $(CBBS_TRACE_FILTER),$(filter-out $(CBBS_TRACE_FILTER),$1))),1)
+
+ifdef CBBS_CHECK
+
+# patch trace_calls macro so that it will protect redefined traced macros if it they
+#  were protected or it's specially requested to protect them
+# trace_calls will pass second parameter to the trace_calls_template -
+#  if this parameter is not empty, then forcibly protect new values of traced macros
+$(eval trace_calls = $(subst :$(close_brace)$(close_brace)$(close_brace)$(close_brace),\
+  :$(close_brace)$(close_brace)$(close_brace)$(comma)$$2$(close_brace),$(value trace_calls)))
+
+# path trace_calls_template - check if traced macro is protected or second parameter of trace_calls is not empty -
+#  then protect new value of traced macro
+# note: do not pass second parameter to set_global1 to not try to trace already traced macro
+trace_calls_template += $(if $(or $6,$(filter $1,$(cb_protected_vars))),$(newline)$(call set_global1,$1))
+
+endif # CBBS_CHECK
+endif # CBBS_TRACE
 
 # protect macros from modification in target makefiles or just trace calls to macros
 # $1 - list of the names of the macros to protect/trace, in format:
@@ -54,9 +64,41 @@ check_cannot_trace = $(if $1,$(or $(filter $(CB_TRACE_FILTER_OUT),$1),$(if \
 # $2 - optional namespace name, if not specified, then do not trace calls for given macros
 set_global = $(eval $(set_global1))
 
-endif # cb_tracing
+ifndef CBBS_CHECK
 
-ifdef cb_checking
+ifndef CBBS_TRACE
+
+# reset if not tracing/checking
+set_global:=
+set_global1:=
+
+else # CBBS_TRACE
+
+# trace calls to macros
+# $1 - list: AAA=b1;b2;$$1=e1;e2 BBB=b1;b2=e1;e2;...
+# $2 - optional namespace name, if not specified, then O (other), namespace 0 means: do not trace calls for given macros
+set_global2 = $(if $1,$$(call trace_calls,$(subst $$,$$$$,$1)))
+set_global1 = $(if $(call cb_check_cannot_trace,$2),,$(call \
+  set_global2,$(filter-out $(CBBS_NON_TRACEABLE_VARS) $(CBBS_NON_TRACEABLE_VARS:==%),$1)))
+
+endif # CBBS_TRACE
+
+# reset
+cb_reset_first_phase:=
+cb_reset_saved_vars:=
+cb_check_at_head:=
+cb_check_at_tail:=
+
+# list of variables to trace/protect
+cb_target_makefile:=
+
+# list of first-phase variables - these are will be reset before the rule-execution second phase
+cb_first_phase_vars:=
+
+else # CBBS_CHECK
+
+# list of clean-build protected variables
+cb_protected_vars:=
 
 # reset
 cb_need_tail_code:=
@@ -77,19 +119,19 @@ endef
 # set_global1 - protect macros from modification in target makefiles or just trace calls to macros
 # $1 - list: AAA=b1;b2;$$1=e1;e2 BBB=b1;b2=e1;e2;... (must be without names of variables to dump if not tracing - i.e. $2 is 0)
 # $2 - optional namespace name, if not specified, then do not trace calls for given macros
-# note: if cb_checking is defined and $2 is empty, expansion of $(call set_global1,...) must add an empty line at
-#  end of expansion - $(clean_build_dir)/core/_defs.mk accounts on this
+# note: if CBBS_CHECK is defined and $2 is empty, expansion of $(call set_global1,...) must add an empty line at
+#  end of expansion - $(cb_dir)/core/_defs.mk accounts on this
 # 1.                                                       $(call set_global1,v) = just protect v, do not trace it
 # 2.                            $(call trace_calls,v)                            = trace unprotected v
 # 3.                            $(call trace_calls,v)   -> $(call set_global1,v) = trace protected v, protect new v
 # 4. $(call set_global1,v,n) -> $(call trace_calls,v,!) -> $(call set_global1,v) = protect v and trace it
-ifdef cb_tracing
+ifdef CBBS_TRACE
 set_global5 = $(if $1,$$(warning override global: $1))
 set_global4 = $(call set_global5,$(filter $1,$(cb_protected_vars)))$(cb_protect_vars2)
 set_global3 = $(if $1,$$(call trace_calls,$(subst $$,$$$$,$1),!))
 set_global2 = $(if $1,$(call set_global4,$(foreach =,$1,$(firstword $(subst =, ,$=)))))$(call set_global3,$(filter-out $1,$2))
-set_global1 = $(if $(call check_cannot_trace,$2),$(set_global4),$(call \
-  set_global2,$(filter $(CB_NON_TRACEABLE) $(CB_NON_TRACEABLE:==%),$1),$1))
+set_global1 = $(if $(call cb_check_cannot_trace,$2),$(set_global4),$(call \
+  set_global2,$(filter $(CBBS_NON_TRACEABLE_VARS) $(CBBS_NON_TRACEABLE_VARS:==%),$1),$1))
 else
 set_global1 = $(call cb_protect_vars2,$(foreach =,$1,$(firstword $(subst =, ,$=))))
 endif
@@ -107,28 +149,28 @@ cb_reset_local_var = $(if $(filter !$$$(open_brace)error$$(space)%,$(subst \
 # only protected variables may remain its values between makefiles,
 #  redefine non-protected (i.e. "local") variables to produce access errors
 # note: do not touch GNU Make automatic variables (automatic, but, for example, $(origin CURDIR) gives 'file')
-# note: do not reset %.^s variables here - they are needed for restore_vars, which will reset them
+# note: do not reset %.^s variables here - they are needed for restore_vars macro, which will reset them
 # note: do not reset trace variables %.^l, %.^t and protected variables %.^p
 # note: do not touch automatic/default and $(dump_max) variables
-# note: exported variables (e.g. environment, command-line variables) must be protected, so will not reset them
+# note: exported variables (environment and command-line variables) must be protected, so will not reset them
 cb_reset_local_vars = $(foreach =,$(filter-out \
   CURDIR GNUMAKEFLAGS MAKECMDGOALS MAKEFILE_LIST MAKELEVEL MAKEOVERRIDES .SHELLSTATUS .DEFAULT_GOAL \
   $(cb_protected_vars) %.^l %.^t %.^p %.^s $(dump_max),$(.VARIABLES)),$(if \
   $(filter file override,$(origin $=)),$(cb_reset_local_var)))
 
-# called by restore_vars to reset %.^s variables
+# called by restore_vars macro to reset %.^s variables
 cb_reset_saved_vars = $(foreach =,$(filter %.^s,$(.VARIABLES)),$$(call cb_var_access_err,$=))
 
-# called from $(clean_build_dir)/core/all.mk
+# called from $(cb_dir)/core/all.mk
 # note: reset cb_var_access_err at last, because it's used in the code generated by $(cb_reset_local_var)
 cb_reset_first_phase = $(cb_reset_local_vars)$(foreach =,$(cb_first_phase_vars) cb_var_access_err,$(cb_reset_local_var))
 
-# reset "local" variables, check and set cb_need_tail_code - $(def_tail_code) must be evaluated after $(def_head_code)
+# reset "local" variables, check and set cb_need_tail_code - $(def_tail_code) must be evaluated after $(cb_def_head_code)
 # note: reset cb_overridden_vars - it may be set before $(def_tail_code)
 # note: expansion of $(call set_global1,cb_need_tail_code) gives an empty line at end of expansion
 define cb_check_at_head
-$(cb_reset_local_vars)$(if $(cb_need_tail_code),$(error $$(define_targets) was not evaluated at end of $(cb_need_tail_code)!))
-cb_need_tail_code := $(target_makefile)
+$(cb_reset_local_vars)$(if $(cb_need_tail_code),$(error $$(cb_define_targets) was not evaluated at end of $(cb_need_tail_code)!))
+cb_need_tail_code := $(cb_target_makefile)
 $(call set_global1,cb_need_tail_code)cb_overridden_vars:=
 endef
 
@@ -149,59 +191,30 @@ endef
 
 # check that values of protected variables are not changed
 # note: error is suppressed (only once) if variable name is specified in $(cb_overridden_vars)
-# note: cb_need_tail_code is cleared after the checks to mark that $(def_tail_code) was evaluated
-# note: $(clean_build_dir)/core/_submakes.mk calls $(def_tail_code) with $1=@
+# note: cb_need_tail_code is cleared after the checks to mark that $(cb_def_tail_code) was evaluated
+# note: $(cb_dir)/core/_submakes.mk calls $(def_tail_code) with $1=@
 # remember new value of cb_need_tail_code
 define cb_check_at_tail
 $(if $1,$$(if $$(cb_need_tail_code),$$(error \
-  $$$$(define_targets) was not evaluated at end of $$(cb_need_tail_code))),$(if \
-  $(cb_need_tail_code),,$(error $$(def_head_code) was not evaluated at head of makefile!)))$(foreach \
+  $$$$(cb_define_targets) was not evaluated at end of $$(cb_need_tail_code))),$(if \
+  $(cb_need_tail_code),,$(error $$(cb_def_head_code) was not evaluated at head of makefile!)))$(foreach \
   =,$(cb_protected_vars),$(call cb_check_protected_var,$(cb_encode_var_name)))
 cb_need_tail_code:=
 endef
 
 # protect variables from modifications in target makefiles
 # note: do not trace calls to these macros
-# note: target_makefile variable is used here temporary and will be redefined later
-target_makefile = $(call set_global,cb_checking cb_tracing cb_protected_vars \
-  CB_NON_TRACEABLE CB_TRACE_FILTER CB_TRACE_FILTER_OUT check_cannot_trace set_global \
-  cb_encode_var_value cb_encode_var_name \
-  cb_protect_vars2 set_global5 set_global4 set_global3 set_global2 set_global1 \
-  cb_var_access_err \
-  cb_reset_local_var cb_reset_local_vars cb_reset_saved_vars cb_reset_first_phase \
-  cb_check_at_head cb_check_protected_var cb_check_at_tail)
+# note: cb_target_makefile variable is used here temporary and will be redefined later
+cb_target_makefile += $(call set_global,CBBS_CHECK CBBS_TRACE CBBS_NON_TRACEABLE_VARS CBBS_TRACE_FILTER CBBS_TRACE_FILTER_OUT \
+  cb_check_cannot_trace set_global set_global1 cb_reset_first_phase cb_reset_saved_vars cb_check_at_head cb_check_at_tail \
+  cb_protected_vars cb_encode_var_value cb_encode_var_name cb_protect_vars2 set_global5 set_global4 set_global3 set_global2 \
+  cb_var_access_err cb_reset_local_var cb_reset_local_vars cb_check_protected_var)
 
 # these macros must not be used in rule execution second phase
-cb_first_phase_vars += cb_checking cb_tracing cb_protected_vars cb_first_phase_vars \
-  CB_NON_TRACEABLE CB_TRACE_FILTER CB_TRACE_FILTER_OUT check_cannot_trace set_global \
-  cb_overridden_vars cb_need_tail_code cb_encode_var_value cb_encode_var_name \
-  cb_protect_vars2 set_global5 set_global4 set_global3 set_global2 set_global1 \
-  cb_reset_local_var cb_reset_local_vars cb_reset_saved_vars cb_reset_first_phase \
-  cb_check_at_head cb_check_protected_var cb_check_at_tail target_makefile
+cb_first_phase_vars = CBBS_CHECK CBBS_TRACE CBBS_NON_TRACEABLE_VARS CBBS_TRACE_FILTER CBBS_TRACE_FILTER_OUT \
+  cb_check_cannot_trace set_global set_global1 cb_reset_first_phase cb_reset_saved_vars cb_check_at_head cb_check_at_tail \
+  cb_protected_vars cb_encode_var_value cb_encode_var_name cb_protect_vars2 set_global5 set_global4 set_global3 set_global2 \
+  cb_reset_local_var cb_reset_local_vars cb_check_protected_var \
+  cb_first_phase_vars cb_overridden_vars cb_need_tail_code cb_target_makefile
 
-else # !cb_checking
-
-# reset
-cb_reset_first_phase:=
-cb_reset_saved_vars:=
-cb_check_at_head:=
-cb_check_at_tail:=
-target_makefile:=
-
-ifdef cb_tracing
-
-# trace calls to macros
-# $1 - list: AAA=b1;b2;$$1=e1;e2 BBB=b1;b2=e1;e2;...
-# $2 - optional namespace name, if not specified, then O (other), namespace 0 means: do not trace calls for given macros
-set_global2 = $(if $1,$$(call trace_calls,$(subst $$,$$$$,$1),))
-set_global1 = $(if $(call check_cannot_trace,$2),,$(call set_global2,$(filter-out $(CB_NON_TRACEABLE) $(CB_NON_TRACEABLE:==%),$1)))
-
-else # !cb_tracing
-
-# reset
-set_global:=
-set_global1:=
-
-endif # !cb_tracing
-
-endif # !cb_checking
+endif # CBBS_CHECK

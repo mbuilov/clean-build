@@ -4,37 +4,35 @@
 # Licensed under GPL version 2 or any later version, see COPYING
 #----------------------------------------------------------------------------------
 
-# original file: $(CLEAN_BUILD_DIR)/stub/overrides.mk
-# description:   core clean-build definitions, processing of CONFIG and OVERRIDES variables, definition of MTOP variable
+# original file: $(CBBS_ROOT)/stub/overrides.mk
+# description:   core clean-build definitions,
+#                processing of the CBBS_CONFIG and OVERRIDES variables,
+#                check that the CBBS_ROOT variable is defined
 
 # Note: This file should be copied AS IS to the directory of the project build system
-# Note: This file should be included at end of project configuration makefile 'project.mk' - just before autoconfigure includes
+# Note: This file should be included at the end of project configuration makefile (e.g. 'project.mk')
 
-# if CONFIG variable is not defined in project configuration makefile, provide default definition
-ifeq (,$(filter-out undefined environment,$(origin CONFIG)))
-
-# CONFIG - name of clean-build generated config file (while completing predefined 'conf' goal)
+# CBBS_CONFIG - path to the clean-build generated configuration makefile (while completing predefined 'config' goal)
 #
-# Note: generated $(CONFIG) file will remember values of command-line or overridden variables;
-#  by sourcing $(CONFIG) file below, these variables are will be restored,
-#  and only new command-line defined values may override restored ones
+# Note: generated $(CBBS_CONFIG) makefile will remember values of the command-line and environment variables at the
+#  moment of generation; by sourcing $(CBBS_CONFIG) makefile below, these variables will be restored, and only new
+#  variables defined in the command-line may override restored ones.
 #
-# Note: by completing predefined 'distclean' goal, $(BUILD) directory will be deleted
-#  - together with $(CONFIG) file, which is by default is generated under the $(BUILD)
+# Note: by completing predefined 'distclean' goal, $(CBBS_BUILD) directory will be deleted possibly together with the
+#  $(CBBS_CONFIG) file, which is by default generated under the $(CBBS_BUILD)
 #
-# Note: define CONFIG as recursive variable
-#  - for the case when BUILD is redefined in included next $(OVERRIDES) makefile
-CONFIG = $(BUILD)/conf.mk
+# Note: define CBBS_CONFIG as recursive variable - for the case if CBBS_BUILD is redefined in the included next
+#  $(OVERRIDES) makefile
+CBBS_CONFIG ?= $(CBBS_BUILD)/config.mk
 
-endif # !CONFIG
+# process a file with the overrides of the project defaults set in the project configuration makefile
+OVERRIDES ?=
 
-# process a file with overrides of the project defaults (set in project configuration makefile - 'project.mk')
-# Note: OVERRIDES variable may be specified in command line - to override this default empty definition
-ifeq (,$(filter-out undefined environment,$(origin OVERRIDES)))
-OVERRIDES:=
-endif
+# redefine OVERRIDES as a simple (i.e. non-recursive) variable
+OVERRIDES := $(OVERRIDES)
 
-# override definitions (e.g. BUILD, PRODUCT_VER, etc.) in 'project.mk' by definitions in the custom $(OVERRIDES) makefile
+# override variables (e.g. CBBS_BUILD, PRODUCT_VERSION, etc.) defined in the project configuration makefile by the
+#  definitions in the $(OVERRIDES) makefile
 ifdef OVERRIDES
 ifeq (,$(wildcard $(OVERRIDES)))
 $(error file does not exist: $(OVERRIDES))
@@ -42,26 +40,25 @@ endif
 include $(OVERRIDES)
 endif
 
-# source optional clean-build generated config file, if it exist
--include $(CONFIG)
+# source optional clean-build generated configuration makefile, if it exist
+-include $(CBBS_CONFIG)
 
-# MTOP - path to clean-build build system
-# Note: normally MTOP is defined in command line, but may be taken from the environment
-# redefine MTOP as a simple (i.e. non-recursive) variable
-ifeq (undefined,$(origin MTOP))
-MTOP:=
-else
-MTOP := $(MTOP)
-endif
+# CBBS_ROOT - path to the clean-build build system
+# Note: normally CBBS_ROOT is defined in the command line, but may be taken from the environment or specified in
+#  the optional $(OVERRIDES) makefile
+CBBS_ROOT ?=
 
-# path to clean-build must be defined
-ifndef MTOP
-$(error MTOP - path to clean-build (https://github.com/mbuilov/clean-build) is not defined,\
- example: MTOP=/usr/local/clean-build or MTOP=C:\User\clean-build)
+# redefine CBBS_ROOT as a simple (i.e. non-recursive) variable
+CBBS_ROOT := $(CBBS_ROOT)
+
+# path to the clean-build must be defined
+ifndef CBBS_ROOT
+$(error CBBS_ROOT - path to clean-build (https://github.com/mbuilov/clean-build) is not defined,\
+ example: CBBS_ROOT=/usr/local/clean-build or CBBS_ROOT=C:\User\clean-build)
 endif
 
 # source clean-build base definitions
-ifeq (,$(wildcard $(MTOP)/core/_defs.mk))
-$(error clean-build files are not found under MTOP=$(MTOP))
+ifeq (,$(wildcard $(CBBS_ROOT)/core/_defs.mk))
+$(error clean-build files are not found under CBBS_ROOT=$(CBBS_ROOT))
 endif
-include $(MTOP)/core/_defs.mk
+include $(CBBS_ROOT)/core/_defs.mk

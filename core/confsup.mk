@@ -4,12 +4,8 @@
 # Licensed under GPL version 2 or any later version, see COPYING
 #----------------------------------------------------------------------------------
 
-# configuration file generation:
-# if CONFIG is set, define 'config' goal
-
-# note: CONFIG may be specified either in command line or in project configuration
-#  makefile before including this file, e.g.: CONFIG=$(BUILD)/conf.mk
-CONFIG:=
+# configuration file
+CB_CONFIG ?= $(CB_BUILD)/conf.mk
 
 # helper to remember autoconfigured variables in generated configuration file
 config_remember_vars:=

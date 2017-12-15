@@ -1,13 +1,12 @@
-#------------------- delete this header --------------------------------------------------
+#------------------------------- delete this header --------------------------------------
 #
 # Note: This file should be copied to the directory of the project build system
 #         and modified appropriately for the custom project
 #
 # Note: this file is under public domain, it may be freely modified by the project authors
-#
 #-----------------------------------------------------------------------------------------
 
-# original file: $(CLEAN_BUILD_DIR)/stub/project.mk
+# original file: $(CBBS_ROOT)/stub/project.mk
 # description:   project configuration makefile
 
 # Assume custom project has the following directory structure:
@@ -15,7 +14,7 @@
 # +- my_project/
 #   +- make/
 #   |  |- project.mk    (modified copy of this file)
-#   |  |- overrides.mk  (support for 'config' goal and OVERRIDES variable)
+#   |  |- overrides.mk  (support for 'config' goal and processing of OVERRIDES variable)
 #   |  |- submakes.mk   (support for sub-makefiles)
 #   |  |- c.mk          (support for building C/C++ sources)
 #   |  ...
@@ -23,47 +22,47 @@
 #   +-- include/
 #   ...
 #
-# where 'make' - directory of the project build system,
-#  some of the files in it can be the copies of the files of clean-build 'stub' directory
+# where 'make' - directory of the project build system, some of the files in it can be the copies of the files from
+#  the clean-build 'stub' directory
 
-# the only case when variable TOP is overridden - after completing project configuration
-ifneq (override,$(origin TOP))
+# the only case when variable 'top' is overridden - after completing project configuration
+ifneq (override,$(origin top))
 
-# TOP - project root directory
-# Note: TOP may be used in target makefiles for referencing sources, other makefiles, include paths, etc.
-# Note: define TOP according to the project directory structure shown above - path to 'my_project' folder
-override TOP := $(abspath $(dir $(lastword $(MAKEFILE_LIST)))..)
+# top - project root directory
+# Note: 'top' may be used in the target makefiles for referencing sources, other makefiles, project include paths, etc.
+# Note: define 'top' according to the project directory structure shown above - path to the 'my_project' folder
+override top := $(abspath $(dir $(lastword $(MAKEFILE_LIST)))..)
 
-# BUILD - path to the root directory of all built artifacts
-# Note: this variable is required by clean-build and must be defined prior including core clean-build files
-# Note: $(BUILD) directory is automatically created by clean-build when building targets
-#  and automatically deleted by the predefined 'distclean' goal
-BUILD := $(TOP)/build
+# CBBS_BUILD - path to the directory where artifacts (object files, libraries, executables, etc.) are built
+# Note: this variable is required by the clean-build and must be defined prior including core clean-build files
+# Note: $(CBBS_BUILD) directory is automatically created by the clean-build when building targets and automatically
+#  deleted by the predefined 'distclean' goal
+CBBS_BUILD ?= $(top)/build
 
-# version of clean-build required by this custom project
-CLEAN_BUILD_REQUIRED_VERSION := 0.9.0
+# version of the clean-build build system required by this project
+CLEAN_BUILD_REQUIRED_VERSION := 0.9.1
 
 # next variables are needed for generating:
-# - header file with version info (see $(MTOP)/extensions/version/version.mk)
-# - under Windows, resource files with version info (see $(MTOP)/compilers/msvc/stdres.mk)
-PRODUCT_NAMES_H  := product_names.h
-VENDOR_NAME      := Unkown Company/Author
-PRODUCT_NAME     := Sample app
-VENDOR_COPYRIGHT := Copyright (C) 2015-2017 Unkown Company/Author
+# - header file with version info (see $(CBBS_ROOT)/extensions/version/version.mk)
+# - under Windows, resource files with version info (see $(CBBS_ROOT)/compilers/msvc/stdres.mk)
+PRODUCT_NAMES_H          := product_names.h
+PRODUCT_NAME             := Sample app
+PRODUCT_VENDOR_NAME      := Unkown Company/Author
+PRODUCT_VENDOR_COPYRIGHT := Copyright (C) 2018 Unkown Company/Author
 
 # global product version
-# Note: this is default value of MODVER - per-module version number
+# Note: this is the default value of 'modver' variable - per-module version number
 # format: major.minor.patch
-PRODUCT_VER := 1.0.0
+PRODUCT_VERSION := 1.0.0
 
 # Note: may pre-define clean-build macros here - predefined values will override default ones, e.g:
-#  SUPPORTED_TARGETS := DEVEL PRODUCTION
+#  PROJECT_SUPPORTED_TARGETS := DEVEL PRODUCTION
 
-# include core clean-build definitions, processing of CONFIG and OVERRIDES variables,
-#  define MTOP variable - path to clean-build
+# include core clean-build definitions, processing of the CBBS_CONFIG and OVERRIDES variables,
+#  check that the CBBS_ROOT variable - path to the clean-build - is defined
 include $(dir $(lastword $(MAKEFILE_LIST)))overrides.mk
 
 # Note: may redefine core clean-build macros here, e.g.:
-#  $(call define_prepend,DEF_HEAD_CODE,$$(info target makefile: $$(TARGET_MAKEFILE)))
+#  $(call define_prepend,cb_def_head_code,$$(info target makefile: $$(cb_target_makefile)))
 
-endif # TOP
+endif # top

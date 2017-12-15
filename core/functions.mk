@@ -4,8 +4,7 @@
 # Licensed under GPL version 2 or any later version, see COPYING
 #----------------------------------------------------------------------------------
 
-# this file is included by $(clean_build_dir)/core/_defs.mk,
-# after including $(clean_build_dir)/core/protection.mk
+# different helper functions - this file is included by the $(cb_dir)/core/_defs.mk
 
 ifeq (,$(filter-out undefined environment,$(origin trace_calls)))
 include $(dir $(lastword $(MAKEFILE_LIST)))../trace/trace.mk
@@ -20,7 +19,7 @@ tospaces = $(eval tospaces_:=$(subst $(comment),$$(comment),$1))$(tospaces_)
 # add quotes if path has an embedded space(s):
 # $(call ifaddq,a b) -> "a b"
 # $(call ifaddq,ab)  -> ab
-# note: overridden in $(clean_build_dir)/utils/unix.mk
+# note: overridden in $(cb_dir)/utils/unix.mk
 ifaddq = $(if $(findstring $(space),$1),"$1",$1)
 
 # unhide spaces in paths adding some prefix:
@@ -303,14 +302,14 @@ keyed_redefine = $(eval $(if $(findstring simple,$(flavor $1)),$3^o.$1 := $$($1)
 
 # protect variables from modification in target makefiles
 # note: do not try to trace calls to these macros
-# note: target_makefile variable is used here temporary and will be redefined later
-target_makefile += $(call set_global,MAKE_TRACE_IN_COLOR \
+# note: cb_target_makefile variable is used here temporary and will be redefined later
+cb_target_makefile = $(call set_global,MAKE_TRACE_IN_COLOR \
   empty space tab comment backslash percent comma newline open_brace close_brace keyword_override keyword_define keyword_endef \
-  format_traced_value infofn dump dump_max dump_args tracefn encode_traced_var_name trace_calls_template trace_calls)
+  format_traced_value infofn dump_vars dump_max dump_args tracefn encode_traced_var_name trace_calls_template trace_calls)
 
 # protect variables from modification in target makefiles
-# note: target_makefile variable is used here temporary and will be redefined later
-target_makefile += $(call set_global, \
+# note: cb_target_makefile variable is used here temporary and will be redefined later
+cb_target_makefile += $(call set_global, \
   unspaces tospaces ifaddq qpath tolower toupper repl09 repl09AZ padto1 padto is_less1 is_less repl090 \
   is_less_float6 is_less_float5 is_less_float4 is_less_float3 is_less_float2 is_less_float1 is_less_float \
   strip_leading0 sort_numbers2 sort_numbers1 sort_numbers reverse \
