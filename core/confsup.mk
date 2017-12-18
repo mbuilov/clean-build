@@ -4,31 +4,51 @@
 # Licensed under GPL version 2 or any later version, see COPYING
 #----------------------------------------------------------------------------------
 
-# configuration file
-CB_CONFIG ?= $(CB_BUILD)/conf.mk
+# by default, assume configuration makefile is not specified
+# note: if project configuration makefile defines 'cb_config' variable - that definition will override this one
+cb_config:=
 
-# helper to remember autoconfigured variables in generated configuration file
-config_remember_vars:=
-
-ifdef CONFIG
-
-# CONFIG variable should be simple
-override CONFIG := $(abspath $(CONFIG))
+# helper macro to remember autoconfigured variables in the generated configuration makefile
+cb_config_remember_vars:=
 
 ifneq (,$(filter config,$(MAKECMDGOALS)))
 
-# save $(CONFIG) in target-specific variable cf - to be safe if CONFIG variable will be overridden
-config: cf := $(CONFIG)
+# 'cb_config' variable should be simple
+override cb_config := $(abspath $(cb_config))
+
+ifndef cb_config
+$(error cb_config - name of generated configuration makefile - is not defined)
+endif
+
+# save $(cb_config) in target-specific variable cf - to be safe if cb_config variable will be overridden
+config: cf := $(cb_config)
 
 # config - is not a file, it's a goal
 .PHONY: config
 
-# generate text of $(CONFIG) file so that by including it:
+# generate text of $(cb_config) file so that by including it:
 # 1) define and export old environment variables
 # 2) undefine/unexport new environment variables
-# 3) restore old command-line variables, if they do not conflict with a new ones
+# 3) restore old command-line variables that do not conflict with a new ones
 # $v - variable name
-define config_override_var_template
+
+cb_env_vars:= aa bb cc
+
+define aaa
+c:$(backslash)
+endef
+aaa:=$(value aaa)
+
+define eee
+c:$(backslash)
+endef
+export eee
+
+
+
+
+
+define cb_config_override_var_template
 
 ifneq (command line,$$(origin $v))
 $(keyword_define) $v

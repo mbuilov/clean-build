@@ -6,8 +6,7 @@
 
 # generic rules and definitions for building targets
 
-# Conventions:
-#  variables in lower case cannot be taken from the environment.
+# Conventions: variables in lower case cannot be taken from the environment.
 
 ifeq (,$(MAKE_VERSION))
 $(error MAKE_VERSION is not defined, ensure you are using GNU Make of version 3.81 or later)
@@ -25,11 +24,41 @@ endif
 # $ make -rR --warn-undefined-variables
 MAKEFLAGS += --no-builtin-rules --no-builtin-variables --warn-undefined-variables
 
+# reset Gnu Make internal variable if it's not defined (to avoid use of undefined variable)
+ifeq (undefined,$(origin MAKECMDGOALS))
+MAKECMDGOALS:=
+endif
+
 # assume project configuration makefile, which have included this makefile, defines some variables
-#  - save list of those variables to redefine them below with override keyword
-# note: SHELL variable is not set by the clean-build, so do not need to override it by the value from the project configuration makefile
-cb_project_vars_names := $(filter-out SHELL MAKEFLAGS CURDIR MAKEFILE_LIST .DEFAULT_GOAL,$(foreach \
-  v,$(.VARIABLES),$(if $(findstring file,$(origin $v)),$v)))
+#  - save list of those variables to redefine them below with the 'override' keyword
+# note: SHELL variable is not set by the clean-build, so do not need to override it
+#  by the value from the project configuration makefile
+cb_project_vars := $(filter-out SHELL MAKEFLAGS CURDIR MAKEFILE_LIST .DEFAULT_GOAL cb_env,$(foreach \
+  v,$(.VARIABLES),$(if $(findstring file,$(origin $v))$(findstring override,$(origin $v)),$v)))
+
+# to restore environment variables from the generated $(cb_config) makefile,
+#  do not redefine with the 'override' keyword some of restored variables
+# note: if 'cb_env' was restored from the $(cb_config) makefile, it's $(origin) is the 'override'
+ifeq (override,$(origin cb_env))
+
+# undefine 'new' environment variables - that were not present in the environment at the time of $(cb_config) makefile generation
+ifneq (,$(filter undefine,$(.FEATURES)))
+$(foreach v,$(filter-out cb_env $(cb_env) cb_project_vars $(cb_project_vars),$(.VARIABLES)),$(if \
+  $(findstring environment,$(origin $v)),$(eval undefine $v)))
+else
+$(foreach v,$(filter-out cb_env $(cb_env) cb_project_vars $(cb_project_vars),$(.VARIABLES)),$(if \
+  $(findstring environment,$(origin $v)),$(eval $v=$$(error environment variable '$v' is new and must be unset))))
+endif
+
+endif
+
+
+  
+else
+cb_env := $(foreach v,$(filter-out cb_project_vars $(cb_project_vars),$(.VARIABLES)),$(if \
+  $(findstring environment,$(origin $v)),$v))
+endif
+
 
 # clean-build version: major.minor.patch
 # note: override the value, if it was accidentally set in the project configuration makefile
@@ -37,17 +66,16 @@ override CLEAN_BUILD_VERSION := 0.9.1
 
 # clean-build root directory (absolute path)
 # note: override the value, if it was accidentally set in the project configuration makefile
-# note: a project normally defines and used its own variable with the same value (e.g. CBBS_ROOT) for referencing clean-build files
+# note: a project normally uses its own variable with the same value (e.g. CBBS_ROOT) for referencing clean-build files
 override cb_dir := $(abspath $(dir $(lastword $(MAKEFILE_LIST)))..)
 
 # include functions library
-# note: assume project configuration makefile will not try to override macros defined in
-#  these two makefiles but, if it is absolutely needed, use the 'override' directive
-include $(cb_dir)/core/protection.mk
+# note: assume project configuration makefile will not try to override macros defined in the $(cb_dir)/core/functions.mk,
+#  but if it is absolutely needed, it is possible to do so using the 'override' keyword
 include $(cb_dir)/core/functions.mk
 
 # CLEAN_BUILD_REQUIRED_VERSION - clean-build version required by the project makefiles,
-#  it is normally defined in the project configuration makefile like:
+#  it is normally defined in the project configuration makefile like this:
 # CLEAN_BUILD_REQUIRED_VERSION := 0.9.1
 ifneq (file,$(origin CLEAN_BUILD_REQUIRED_VERSION))
 CLEAN_BUILD_REQUIRED_VERSION := 0.0.0
@@ -56,11 +84,6 @@ endif
 # check required clean-build version
 ifeq (,$(call ver_compatible,$(CLEAN_BUILD_VERSION),$(CLEAN_BUILD_REQUIRED_VERSION)))
 $(error incompatible clean-build version: $(CLEAN_BUILD_VERSION), project needs: $(CLEAN_BUILD_REQUIRED_VERSION))
-endif
-
-# reset Gnu Make internal variable if it's not defined (to avoid use of undefined variable)
-ifeq (undefined,$(origin MAKECMDGOALS))
-MAKECMDGOALS:=
 endif
 
 # drop make's default legacy rules - we'll use custom ones
@@ -72,10 +95,22 @@ endif
 # specify default goal (defined in $(cb_dir)/core/all.mk)
 .DEFAULT_GOAL := all
 
-# clean-build always sets default values for variables, to override these defaults
-#  by ones specified in the project configuration makefile, use the 'override' directive
-$(eval $(foreach v,$(project_vars_names),override $(if $(findstring simple,$(flavor \
+# clean-build always sets default values for the variables, to override these defaults
+#  by the ones specified in the project configuration makefile, use the 'override' directive
+$(eval $(foreach v,$(filter-out $(cb_env),$(cb_project_vars)),override $(if $(findstring simple,$(flavor \
   $v)),$v:=$$($v),define $v$(newline)$(subst $(backslash),$$(backslash),$(value $v))$(newline)endef)$(newline)))
+
+# needed directories - clean-build will create them in $(cb_dir)/core/all.mk
+# note: cb_needed_dirs is never cleared, only appended
+cb_needed_dirs:=
+
+# save configuration to $(cb_config) makefile as result of predefined 'config' goal
+include $(cb_dir)/core/confsup.mk
+
+# include variables protection module - define cb_check, cb_trace, set_global and other macros
+include $(cb_dir)/core/protection.mk
+
+cb_target_makefile
 
 # list of clean-build supported goals
 # note: may be updated if necessary in makefiles processed later
@@ -87,22 +122,12 @@ CLEAN_BUILD_GOALS := all config clean distclean check tests
 # reset CB_BUILD, if it's not defined
 CB_BUILD:=
 
-# needed directories - clean-build will create them in $(cb_dir)/core/all.mk
-# note: cb_needed_dirs is never cleared, only appended
-cb_needed_dirs:=
-
-# save configuration to $(CB_CONFIG) makefile as result of 'config' goal
-# note: if $(CB_CONFIG) makefile is generated under the $(CB_BUILD) directory,
-#  (for example, CB_CONFIG may be defined in the project configuration makefile as 'CB_CONFIG = $(CB_BUILD)/config.mk'),
-#  then it will be deleted together with the $(CB_BUILD) directory in clean-build implementation of 'distclean' goal
-include $(cb_dir)/core/confsup.mk
-
 # protect from modification macros defined in $(cb_dir)/core/functions.mk
 # note: here TARGET_MAKEFILE variable is used here temporary, it will be properly defined below
 $(TARGET_MAKEFILE)
 
 # protect from modification project-specific variables
-$(call SET_GLOBAL,$(project_vars_names))
+$(call SET_GLOBAL,$(cb_project_vars))
 
 # ensure that CB_BUILD is non-recursive (simple), because it is used to create simple variables DEF_BIN_DIR, DEF_LIB_DIR, etc.
 # also normalize path and make it absolute
@@ -891,7 +916,7 @@ $(call SET_GLOBAL,MAKEFLAGS CLEAN_BUILD_GOALS PATH SHELL CB_FIRST_PHASE_VARS \
   ORDER_DEPS CB_INCLUDE_LEVEL PROCESSED_MAKEFILES MAKE_CONT NO_DEPS,0)
 
 # protect macros from modifications in target makefiles, allow tracing calls to them
-$(call SET_GLOBAL,project_vars_names \
+$(call SET_GLOBAL,cb_project_vars \
   CLEAN_BUILD_VERSION cb_dir CLEAN_BUILD_REQUIRED_VERSION \
   CB_BUILD SUPPORTED_TARGETS TARGET OS TCPU CPU UTILS UTILS_MK \
   PRINT_PERCENTS COLORIZE FORMAT_PERCENTS=SHOWN_PERCENTS REM_MAKEFILE=SHOWN_PERCENTS=SHOWN_PERCENTS SUP \
