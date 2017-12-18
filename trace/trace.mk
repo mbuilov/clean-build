@@ -26,14 +26,14 @@
 #   Note: trace_calls changes $(origin) of traced macros - 'command line' -> 'override'
 #   Note: undefined macros or macros having an empty value are not traced
 
-# by default, do not print traces in colors
-# for the colors, define MAKE_TRACE_IN_COLOR variable, e.g.:
+# MAKE_TRACE_IN_COLOR - of defined, print traces in colors, example:
 #  make -f my.mk MAKE_TRACE_IN_COLOR:=1
 MAKE_TRACE_IN_COLOR ?=
+MAKE_TRACE_IN_COLOR := $(MAKE_TRACE_IN_COLOR)
 
 empty:=
-space:= $(empty) $(empty)
-tab:= $(empty)	$(empty)
+space:= $(empty) #
+tab:= $(empty)	#
 define comment
 #
 endef
