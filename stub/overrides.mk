@@ -13,28 +13,27 @@
 # Note: This file should be included at the end of project configuration makefile (e.g. 'project.mk')
 
 # cb_config - path to the clean-build generated configuration makefile (while completing predefined 'config' goal)
-#
 # Note: generated $(cb_config) makefile will remember values of the environment and command-line variables at the
 #  moment of generation; by sourcing $(cb_config) makefile below, these variables will be restored, and only new
-#  variables defined in the command-line may override restored ones.
-#
+#  variables defined in the command line may override restored ones.
 # Note: by completing predefined 'distclean' goal, $(cb_build) directory will be deleted, possibly together with the
 #  $(cb_config) file, which is by default generated under the $(cb_build)
-#
-# Note: define cb_config as recursive variable - for the case if cb_build is redefined in the included next
+# Note: define 'cb_config' as recursive variable - for the case if 'cb_build' is redefined in the included next
 #  $(overrides) makefile
 cb_config = $(cb_build)/config.mk
 
 # process a file with the overrides of the project defaults set in the project configuration makefile -
-#  override variables like cb_build, product_version, etc. by the definitions in the $(overrides) makefile
-# byte default, assume there is no $(overrides) makefile, 'overrides' variable may be defined in the command-line,
-#  for example: make -f my_project.mk overrides=my_overrides.mk
+#  override variables like 'cb_build', 'product_version', etc. by the definitions in the $(overrides) makefile
+# Note: by default, assume there is no $(overrides) makefile
+# Note: 'overrides' variable may be defined in the command-line, for example:
+#  make -f my_project.mk overrides=my_overrides.mk
 overrides:=
 
 ifdef overrides
 ifeq (,$(wildcard $(overrides)))
 $(error file does not exist: $(overrides))
 endif
+# do not pollute environment variables namespace
 unexport overrides
 include $(overrides)
 endif
