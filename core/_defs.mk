@@ -6,7 +6,10 @@
 
 # generic rules and definitions for building targets
 
-# Conventions: variables in lower case cannot be taken from the environment.
+# Conventions:
+#  1) variables in lower case are always initialized, it is not assumed that they can be taken from the environment
+#  2) to initialize a variable, possibly defined in the environment, use operator ?=
+#  3) ifdef/ifndef should only be used with previously initialized variables
 
 ifeq (,$(MAKE_VERSION))
 $(error MAKE_VERSION is not defined, ensure you are using GNU Make of version 3.81 or later)
