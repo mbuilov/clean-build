@@ -248,6 +248,12 @@ endif # MAKE_TRACE_IN_COLOR
 $(eval define trace_calls_template$(newline)$(subst _dump_params_,$$$$$(open_brace)$(subst \
   $(space),$(close_brace)$(comma)$$$$$(open_brace),$(dump_max))$(close_brace),$(value trace_calls_template))$(newline)endef)
 
+# check if a macro $1 is traced
+check_if_traced = $(filter \
+  ^$$$(open_brace)warning$$(space)$$(mk_trace_level.^l)% \
+  ^$$$(open_brace)foreach$$(space)=$(comma)$$(words$$(space)$$(mk_trace_level.^l))%,^$(subst \
+  $(space),$$(space),$(subst $(tab),$$(tab),$(value $1))))
+
 # replace macros with their traced equivalents
 # $1 - traced macros in the form:
 #   name=b1;b2;b3;$$1;b4=e1;e2 name2=...
@@ -256,9 +262,7 @@ $(eval define trace_calls_template$(newline)$(subst _dump_params_,$$$$$(open_bra
 #   name            - macro name
 #   b1;b2;b3;$$1;b4 - names of variables to dump before traced call
 #   e1;e2           - names of variables to dump after traced call
-trace_calls = $(eval $(foreach :,$1,$(foreach =,$(firstword $(subst =, ,$:)),$(if $(findstring undefined,$(origin $=)),,$(if $(filter \
-  ^$$$(open_brace)warning$$(space)$$(mk_trace_level.^l)% \
-  ^$$$(open_brace)foreach$$(space)=$(comma)$$(words$$(space)$$(mk_trace_level.^l))%,^$(subst \
-  $(space),$$(space),$(subst $(tab),$$(tab),$(value $=)))),,$(call \
+trace_calls = $(eval $(foreach :,$1,$(foreach =,$(firstword $(subst =, ,$:)),$(if \
+  $(findstring undefined,$(origin $=)),,$(if $(call check_if_traced,$=),,$(call \
   trace_calls_template,$=,$(call encode_traced_var_name,$=),$(if $(findstring command line,$(origin $=)),override,$(findstring \
   override,$(origin $=))),$(subst ;, ,$(word 2,$(subst =, ,$:))),$(subst ;, ,$(word 3,$(subst =, ,$:)))))))))
