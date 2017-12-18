@@ -4,15 +4,15 @@
 # Licensed under GPL version 2 or any later version, see COPYING
 #-----------------------------------------------------------------------------------------
 
-# original file: $(CLEAN_BUILD_DIR)/stub/c.mk
+# original file: $(CBBS_ROOT)/stub/c.mk
 # description:   support for building application-level targets from C/C++ sources
 
 # Note: This file should be copied to the directory of the project build system
 
-ifeq (,$(filter-out undefined environment,$(origin C_PREPARE_APP_VARS)))
+ifeq (,$(filter-out undefined environment,$(origin cb_c_prepare_app_vars)))
 include $(dir $(lastword $(MAKEFILE_LIST)))project.mk
-include $(MTOP)/types/_c.mk
+include $(CBBS_ROOT)/types/_c.mk
 # Note: if needed, override clean-build definitions here
 endif
 
-$(call CB_PREPARE_TARGET_TYPE,C_PREPARE_APP_VARS,C_DEFINE_APP_RULES)
+$(call cb_prepare_target_type,cb_c_prepare_app_vars,cb_c_define_app_rules)

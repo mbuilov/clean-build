@@ -4,14 +4,14 @@
 # Licensed under GPL version 2 or any later version, see COPYING
 #----------------------------------------------------------------------------------
 
-# original file: $(CLEAN_BUILD_DIR)/stub/submakes.mk
-# description:   support for processing sub-makefiles - define PROCESS_SUBMAKES macro
+# original file: $(CBBS_ROOT)/stub/submakes.mk
+# description:   support for processing sub-makefiles - define 'process_submakes' macro
 
 # Note: This file should be copied AS IS to the directory of the project build system
 
-ifeq (,$(filter-out undefined environment,$(origin PROCESS_SUBMAKES_PREPARE)))
+ifeq (,$(filter-out undefined environment,$(origin cb_process_submakes_prepare)))
 include $(dir $(lastword $(MAKEFILE_LIST)))project.mk
-include $(MTOP)/core/_submakes.mk
+include $(CBBS_ROOT)/core/_submakes.mk
 endif
 
-$(PROCESS_SUBMAKES_PREPARE)
+$(cb_process_submakes_prepare)
