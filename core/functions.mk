@@ -301,11 +301,11 @@ keyed_redefine = $(eval $(if $(findstring simple,$(flavor $1)),$3^o.$1 := $$($1)
   $$(filter $3,$$($2)),$$($3^n.$1),$$($3^o.$1)))
 
 # protect variables of $(cb_dir)/trace/trace.mk from modification in target makefiles
-# note: do not try to trace calls to these macros
+# note: do not trace calls to these macros
 # note: cb_target_makefile variable is used here temporary and will be redefined later
 cb_target_makefile = $(call set_global,MAKE_TRACE_IN_COLOR \
   empty space tab comment backslash percent comma newline open_brace close_brace keyword_override keyword_define keyword_endef \
-  format_traced_value infofn dump_vars dump_max dump_args tracefn encode_traced_var_name trace_calls_template trace_calls)
+  format_traced_value infofn dump_vars dump_max dump_args tracefn encode_traced_var_name trace_calls_template check_if_traced trace_calls)
 
 # protect variables from modification in target makefiles
 # note: trace namespace: F
