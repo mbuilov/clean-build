@@ -33,11 +33,11 @@ ifneq (override,$(origin top))
 # Note: define 'top' according to the project directory structure shown above - path to the 'my_project' folder
 override top := $(abspath $(dir $(lastword $(MAKEFILE_LIST)))..)
 
-# CBBS_BUILD - path to the directory where artifacts (object files, libraries, executables, etc.) are built
+# cb_build - path to the directory where artifacts (object files, libraries, executables, etc.) are built
 # Note: this variable is required by the clean-build and must be defined prior including core clean-build files
-# Note: $(CBBS_BUILD) directory is automatically created by the clean-build when building targets and automatically
+# Note: $(cb_build) directory is automatically created by the clean-build when building targets and automatically
 #  deleted by the predefined 'distclean' goal
-CBBS_BUILD ?= $(top)/build
+cb_build := $(top)/build
 
 # version of the clean-build build system required by this project
 CLEAN_BUILD_REQUIRED_VERSION := 0.9.1
@@ -58,7 +58,7 @@ PRODUCT_VERSION := 1.0.0
 # Note: may pre-define clean-build macros here - predefined values will override default ones, e.g:
 #  PROJECT_SUPPORTED_TARGETS := DEVEL PRODUCTION
 
-# include core clean-build definitions, processing of the CBBS_CONFIG and OVERRIDES variables,
+# include core clean-build definitions, processing of the 'cb_config' and 'overrides' variables,
 #  check that the CBBS_ROOT variable - path to the clean-build - is defined
 include $(dir $(lastword $(MAKEFILE_LIST)))overrides.mk
 
