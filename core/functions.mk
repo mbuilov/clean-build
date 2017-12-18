@@ -300,7 +300,7 @@ keyed_redefine = $(eval $(if $(findstring simple,$(flavor $1)),$3^o.$1 := $$($1)
   $1)$(newline)endef)$(newline)$(if $(findstring $$,$4),define $3^n.$1$(newline)$4$(newline)endef,$3^n.$1 := $$4)$(newline)$1 = $$(if \
   $$(filter $3,$$($2)),$$($3^n.$1),$$($3^o.$1)))
 
-# protect variables from modification in target makefiles
+# protect variables of $(cb_dir)/trace/trace.mk from modification in target makefiles
 # note: do not try to trace calls to these macros
 # note: cb_target_makefile variable is used here temporary and will be redefined later
 cb_target_makefile = $(call set_global,MAKE_TRACE_IN_COLOR \
@@ -308,6 +308,7 @@ cb_target_makefile = $(call set_global,MAKE_TRACE_IN_COLOR \
   format_traced_value infofn dump_vars dump_max dump_args tracefn encode_traced_var_name trace_calls_template trace_calls)
 
 # protect variables from modification in target makefiles
+# note: trace namespace: F
 # note: cb_target_makefile variable is used here temporary and will be redefined later
 cb_target_makefile += $(call set_global, \
   unspaces tospaces ifaddq qpath tolower toupper repl09 repl09AZ padto1 padto is_less1 is_less repl090 \
