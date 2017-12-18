@@ -4,12 +4,14 @@
 # Licensed under GPL version 2 or any later version, see COPYING
 #----------------------------------------------------------------------------------
 
-# this file is included by $(cb_dir)/core/_defs.mk, after including $(cb_dir)/core/functions.mk
+# this file is included by $(cb_dir)/core/_defs.mk, after including $(cb_dir)/core/functions.mk and $(cb_dir)/trace/trace.mk
 # define macros for variables protection from accidental changes in target makefiles
 
 # run via $(MAKE) C=1 to check makefiles
 ifeq (command line,$(origin C))
 cb_check := $(C:0=)
+# do not pollute environment variables namespace
+unexport C
 else
 cb_check:=
 endif
@@ -17,6 +19,8 @@ endif
 # run via $(MAKE) T=1 to trace clean-build macros (most of them)
 ifeq (command line,$(origin T))
 cb_trace := $(T:0=)
+# do not pollute environment variables namespace
+unexport T
 else
 cb_trace:=
 endif
@@ -64,8 +68,16 @@ endif # cb_trace
 # $2 - optional namespace name, if not specified, then do not trace calls for given macros
 set_global = $(eval $(set_global1))
 
-ifndef cb_check
+# get value of a macro protected via set_global
+# $1 - macro name
+# note: macro may be traced, get the real (i.e. non-traced) value of the macro
+ifdef cb_trace
+get_global = $(value $(if $(check_if_traced),$(encode_traced_var_name),$1))
+else
+get_global = $(value $1)
+endif
 
+ifndef cb_check
 ifndef cb_trace
 
 # reset if not tracing/checking
@@ -146,7 +158,7 @@ cb_reset_local_var = $(if $(filter !$$$(open_brace)error$$(space)%,$(subst \
 # only protected variables may remain its values between makefiles,
 #  redefine non-protected (i.e. "local") variables to produce access errors
 # note: do not touch GNU Make automatic variables (automatic, but, for example, $(origin CURDIR) gives 'file')
-# note: do not reset %.^s variables here - they are needed for 'restore_vars' macro, which will reset them
+# note: do not reset %.^s variables here - they are needed for restore_vars macro, which will reset them
 # note: do not reset trace variables %.^l, %.^t and protected variables %.^p
 # note: do not touch automatic/default and $(dump_max) variables
 # note: exported variables (environment and command-line variables) must be protected, so will not reset them
@@ -202,7 +214,7 @@ endef
 # note: do not trace calls to these macros
 # note: cb_target_makefile variable is used here temporary and will be redefined later
 cb_target_makefile += $(call set_global,cb_check cb_trace CBBS_NON_TRACEABLE_VARS CBBS_TRACE_FILTER CBBS_TRACE_FILTER_OUT \
-  cb_check_cannot_trace set_global set_global1 cb_reset_first_phase cb_reset_saved_vars cb_check_at_head cb_check_at_tail \
+  cb_check_cannot_trace set_global get_global set_global1 cb_reset_first_phase cb_reset_saved_vars cb_check_at_head cb_check_at_tail \
   cb_protected_vars cb_encode_var_value cb_encode_var_name cb_protect_vars2 set_global5 set_global4 set_global3 set_global2 \
   cb_var_access_err cb_reset_local_var cb_reset_local_vars cb_check_protected_var)
 
