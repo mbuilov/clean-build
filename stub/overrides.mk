@@ -6,52 +6,47 @@
 
 # original file: $(CBLD_ROOT)/stub/overrides.mk
 # description:   core clean-build definitions,
-#                processing of the CONFIG and OVERRIDES variables,
+#                processing of the 'cb_config' and 'pr_overrides' variables,
 #                check that the CBLD_ROOT variable is defined
 
 # Note: This file should be copied AS IS to the directory of the project build system
 # Note: This file should be included at end of the project configuration makefile (e.g. 'project.mk')
 
-# CONFIG - path to the clean-build generated configuration makefile (while completing predefined 'config' goal)
-# Note: generated $(CONFIG) makefile will remember values of the environment and command-line variables at the
-#  moment of generation; by sourcing $(CONFIG) makefile below, these variables will be restored, and only new
-#  variables defined in the command line may override restored ones.
-# Note: by completing predefined 'distclean' goal, $(BUILD) directory will be deleted, possibly together with the
-#  $(CONFIG) makefile, which is by default generated under the $(BUILD)
-# Note: define CONFIG as recursive variable - for the case if BUILD is redefined in the included next $(OVERRIDES)
-#  makefile
-CONFIG = $(BUILD)/config.mk
+# cb_config - path to the clean-build generated configuration makefile (while completing predefined 'config' goal)
+# Note: generated $(cb_config) makefile will remember values of the environment and command-line variables at the
+#  moment of generation; by sourcing $(cb_config) makefile below, these variables will be restored, and only new
+#  values specified in the command line may override restored ones.
+# Note: by completing predefined 'distclean' goal, $(cb_build) directory will be deleted, possibly together with the
+#  $(cb_config) makefile, which is by default generated under the $(cb_build)
+# Note: define 'cb_config' as recursive variable - for the case if cb_build is redefined in the included next
+#  $(pr_overrides) makefile
+cb_config = $(BUILD)/config.mk
 
 # process a file with the overrides of the project defaults set in the project configuration makefile -
-#  override variables like BUILD, compiler flags, etc. by the definitions in the $(OVERRIDES) makefile
-# Note: by default, assume there is no $(OVERRIDES) makefile
-OVERRIDES:=
+#  override variables like 'cb_build', compiler flags, etc. by the definitions in the $(pr_overrides) makefile
+# Note: by default, assume there is no $(pr_overrides) makefile
+pr_overrides:=
 
-# Note: OVERRIDES variable may be defined in the command-line, for example:
-#  make -f my_project.mk OVERRIDES=my_overrides.mk
-ifdef OVERRIDES
-ifeq (,$(wildcard $(OVERRIDES)))
-$(error file does not exist: $(OVERRIDES))
+# Note: 'pr_overrides' variable may be defined in the command-line, for example:
+#  make -f my_project.mk pr_overrides=my_overrides.mk
+ifdef pr_overrides
+ifeq (,$(wildcard $(pr_overrides)))
+$(error file does not exist: $(pr_overrides))
 endif
-include $(OVERRIDES)
+# command-line variables are exported by default, but do not pollute environment variables namespace of sub-processes
+unexport pr_overrides
+include $(pr_overrides)
 endif
 
 # source optional clean-build generated configuration makefile, if it exist
--include $(CONFIG)
+-include $(cb_config)
 
 # CBLD_ROOT - path to the clean-build build system
 # Note: normally CBLD_ROOT is defined in the command line, but may be taken from the environment or specified in
-#  the optional $(OVERRIDES) makefile
+#  the optional $(pr_overrides) makefile
 ifndef CBLD_ROOT
 $(error CBLD_ROOT - path to clean-build (https://github.com/mbuilov/clean-build) is not defined,\
  example: CBLD_ROOT=/usr/local/clean-build or CBLD_ROOT=C:\User\clean-build)
-endif
-
-# optimization: redefine CBLD_ROOT as a simple (i.e. non-recursive) variable
-ifeq (,$(findstring $$,$(value CBLD_ROOT)))
-override CBLD_ROOT := $(CBLD_ROOT)
-else
-CBLD_ROOT := $(CBLD_ROOT)
 endif
 
 # source clean-build base definitions

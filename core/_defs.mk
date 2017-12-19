@@ -6,10 +6,20 @@
 
 # generic rules and definitions for building targets
 
+# Note:
+#  Any variable defined in the environment or command line is exported to sub-processes by default.
+#  Because it is not known in advance which variables are defined in the environment, it is possible to accidentally
+#   change the values of the environment variables due to collisions of the variable names.
+#  To reduce the probability of collisions of the names, use the unique variable names whenever possible.
+
 # Conventions:
-#  1) variables in lower case are always initialized, it is not assumed that they can be taken from the environment
-#  2) to initialize a variable, possibly defined in the environment, use operator ?=
-#  3) ifdef/ifndef should only be used with previously initialized variables
+#  1) variables in lower case are always initialized, it is not assumed that they can be taken from the environment,
+#  2) clean-build internal macros are prefixed with 'cb_',
+#  3) user variables and parameters for build templates should also be in lower case,
+#  4) variables in UPPER case may be taken from the environment or command line,
+#  5) clean-build specific variables that may be taken from the environment are in UPPER case and prefixed with 'CBLD_',
+#  6) to initialize a variable, possibly defined in the environment, use operator ?=,
+#  7) ifdef/ifndef should only be used with previously initialized variables.
 
 ifeq (,$(MAKE_VERSION))
 $(error MAKE_VERSION is not defined, ensure you are using GNU Make of version 3.81 or later)
@@ -34,10 +44,73 @@ endif
 
 # assume project configuration makefile, which have included this makefile, defines some variables
 #  - save list of those variables to redefine them below with the 'override' keyword
-# note: SHELL variable is not set by the clean-build, so do not need to override it
-#  by the value from the project configuration makefile
-cb_project_vars := $(filter-out SHELL MAKEFLAGS CURDIR MAKEFILE_LIST .DEFAULT_GOAL cb_env,$(foreach \
-  v,$(.VARIABLES),$(if $(findstring file,$(origin $v))$(findstring override,$(origin $v)),$v)))
+# note: SHELL variable is not set by the clean-build, so do not need to override it by the value
+#  from the project configuration makefile
+cb_project_vars := $(strip $(foreach v,$(filter-out \
+  SHELL MAKEFLAGS CURDIR MAKEFILE_LIST .DEFAULT_GOAL %.^e,$(.VARIABLES),$(if $(findstring file,$(origin $v)),$v))))
+
+# clean-build version: major.minor.patch
+# note: override the value, if it was accidentally set in the project configuration makefile
+override clean_build_version := 0.9.1
+
+# clean-build root directory (absolute path)
+# note: override the value, if it was accidentally set in the project configuration makefile
+# note: a project normally uses its own variable with the same value (e.g. CBLD_ROOT) for referencing clean-build files
+override cb_dir := $(abspath $(dir $(lastword $(MAKEFILE_LIST)))..)
+
+# include functions library
+# note: assume project configuration makefile will not try to override macros defined in $(cb_dir)/core/functions.mk,
+#  but if it is absolutely needed, it is possible to do so using the 'override' keyword
+include $(cb_dir)/core/functions.mk
+
+# clean_build_required_version - clean-build version required by the project makefiles,
+#  it is normally defined in the project configuration makefile
+ifneq (file,$(origin clean_build_required_version))
+clean_build_required_version := 0.0.0
+endif
+
+# check required clean-build version
+ifeq (,$(call ver_compatible,$(clean_build_version),$(clean_build_required_version)))
+$(error incompatible clean-build version: $(clean_build_version), project needs: $(clean_build_required_version))
+endif
+
+# clean-build always sets default values for the variables, to override these defaults
+#  by the ones specified in the project configuration makefile, use the 'override' directive
+$(foreach =,$(eval $(cb_project_vars),override $(if $(findstring simple,$(flavor \
+  $=)),$$=:=$$($$=),define $$=$(newline)$(subst $(backslash),$$(backslash),$(value $=))$(newline)endef)))
+
+# drop make's default legacy rules - we'll use custom ones
+.SUFFIXES:
+
+# delete target file if failed to execute any of commands to make it
+.DELETE_ON_ERROR:
+
+# specify default goal (defined in $(cb_dir)/core/all.mk)
+.DEFAULT_GOAL := all
+
+# needed directories - clean-build will create them in $(cb_dir)/core/all.mk
+# note: cb_needed_dirs is never cleared, only appended
+cb_needed_dirs:=
+
+# save configuration to $(cb_config) makefile as result of predefined 'config' goal
+include $(cb_dir)/core/confsup.mk
+
+
+
+
+
+
+
+# in clean-build, variables are always initialized with default values, but the project configuration makefile,
+#  which have included this makefile, may manifest other default values - redefine them with the 'override' keyword
+# note: SHELL variable is not changed by the clean-build, so do not need to override it by the value from the project
+#  configuration makefile
+$(foreach =,$(filter-out MAKEFLAGS CURDIR SHELL MAKEFILE_LIST .DEFAULT_GOAL %.^e,$(.VARIABLES)),$(if \
+  $(findstring file,$(origin $=)),$(eval override $(if $(findstring simple,$(flavor $=)),$$=:=$$($$=),define $$=$(newline)$(subst $(backslash),$$(backslash),$(value $=))$(newline)endef))))
+
+
+$(eval $(foreach v,$(filter-out $(cb_env),$(cb_project_vars)),override $(if $(findstring simple,$(flavor \
+  $v)),$v:=$$($v),define $v$(newline)$(subst $(backslash),$$(backslash),$(value $v))$(newline)endef)$(newline)))
 
 # to restore environment variables from the generated $(cb_config) makefile,
 #  do not redefine with the 'override' keyword some of restored variables
@@ -63,52 +136,10 @@ cb_env := $(foreach v,$(filter-out cb_project_vars $(cb_project_vars),$(.VARIABL
 endif
 
 
-# clean-build version: major.minor.patch
-# note: override the value, if it was accidentally set in the project configuration makefile
-override CLEAN_BUILD_VERSION := 0.9.1
 
-# clean-build root directory (absolute path)
-# note: override the value, if it was accidentally set in the project configuration makefile
-# note: a project normally uses its own variable with the same value (e.g. CBBS_ROOT) for referencing clean-build files
-override cb_dir := $(abspath $(dir $(lastword $(MAKEFILE_LIST)))..)
 
-# include functions library
-# note: assume project configuration makefile will not try to override macros defined in the $(cb_dir)/core/functions.mk,
-#  but if it is absolutely needed, it is possible to do so using the 'override' keyword
-include $(cb_dir)/core/functions.mk
 
-# CLEAN_BUILD_REQUIRED_VERSION - clean-build version required by the project makefiles,
-#  it is normally defined in the project configuration makefile like this:
-# CLEAN_BUILD_REQUIRED_VERSION := 0.9.1
-ifneq (file,$(origin CLEAN_BUILD_REQUIRED_VERSION))
-CLEAN_BUILD_REQUIRED_VERSION := 0.0.0
-endif
 
-# check required clean-build version
-ifeq (,$(call ver_compatible,$(CLEAN_BUILD_VERSION),$(CLEAN_BUILD_REQUIRED_VERSION)))
-$(error incompatible clean-build version: $(CLEAN_BUILD_VERSION), project needs: $(CLEAN_BUILD_REQUIRED_VERSION))
-endif
-
-# drop make's default legacy rules - we'll use custom ones
-.SUFFIXES:
-
-# delete target file if failed to execute any of commands to make it
-.DELETE_ON_ERROR:
-
-# specify default goal (defined in $(cb_dir)/core/all.mk)
-.DEFAULT_GOAL := all
-
-# clean-build always sets default values for the variables, to override these defaults
-#  by the ones specified in the project configuration makefile, use the 'override' directive
-$(eval $(foreach v,$(filter-out $(cb_env),$(cb_project_vars)),override $(if $(findstring simple,$(flavor \
-  $v)),$v:=$$($v),define $v$(newline)$(subst $(backslash),$$(backslash),$(value $v))$(newline)endef)$(newline)))
-
-# needed directories - clean-build will create them in $(cb_dir)/core/all.mk
-# note: cb_needed_dirs is never cleared, only appended
-cb_needed_dirs:=
-
-# save configuration to $(cb_config) makefile as result of predefined 'config' goal
-include $(cb_dir)/core/confsup.mk
 
 # include variables protection module - define cb_check, cb_trace, set_global and other macros
 include $(cb_dir)/core/protection.mk

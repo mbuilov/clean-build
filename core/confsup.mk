@@ -26,6 +26,49 @@ config: cf := $(cb_config)
 # config - is not a file, it's a goal
 .PHONY: config
 
+# save configuration:
+# 1) command-line variables
+# 2) exported variable PATH
+# 3) special variable SHELL
+# 4) restored and project-defined variables (those $(origin) is 'override')
+# note: once $(cb_config) has been generated, variables defined in it may be altered only via command-line variables
+# note: save current values of variables to the target-specific variable config_text - variables may be overridden later
+# note: do not save GNUMAKEFLAGS, clean_build_version, cb_dir, cb_config and $(dump_max) variables
+ conf: config_text := SHELL := $(value SHELL)$(newline)$(foreach =,PATH $(filter-out \
+  PATH SHELL GNUMAKEFLAGS clean_build_version cb_dir cb_config $(dump_max),$(.VARIABLES)),$(if \
+  $(findstring command line,$(origin $=))$(findstring override,$(origin $=)),define $=$(newline)$(value \
+  $=)$(newline)endef$(if $(findstring simple,$(flavor $=)),$(newline)$= := $$(value $=))$(newline)))
+
+  config_text := SHELL := $(value SHELL)$(newline)$(foreach =,PATH $(foreach =,$(filter-out \
+  PATH SHELL GNUMAKEFLAGS clean_build_version cb_dir cb_config $(dump_max),$(.VARIABLES)),$(if \
+  $(findstring command line,$(origin $=))$(findstring override,$(origin $=)),$=)),$(if $(findstring simple,$(flavor $=),$= := $(subst $$,$$$$,$=),define $=$(newline)$(subst \
+  $(subst define,$(keyword_define),$(subst endef,$(keyword_endef),$(backslash)$(newline),$$(backslash)$(newline),$(value $=))))$(newline)endef)$(newline))
+
+
+# assuming that generated $(cb_config) makefile has been already sourced, and it has not overwritten current command-line variables,
+# save configuration:
+# 1) override old variables in $(cb_config) makefile with new values specified in command line,
+# 2) save new command-line variables
+# 3) save values of exported variable PATH and special variable SHELL
+# note: once $(cb_config) has been generated, variables defined in it may be altered only via command-line variables
+# note: save current values of variables to the target-specific variable config_text - variables may be overridden later
+# note: never override GNUMAKEFLAGS, clean_build_version, cb_config and $(dump_max) variables by including $(cb_config) file
+conf: config_text := $(foreach v,PATH SHELL $(PASS_ENV_VARS) $(foreach v,$(filter-out \
+  PATH SHELL $(PASS_ENV_VARS) GNUMAKEFLAGS CLEAN_BUILD_VERSION cb_config $(dump_max),$(.VARIABLES)),$(if \
+  $(findstring command line,$(origin $v))$(findstring override,$(origin $v)),$v)),$(config_override_var_template))
+
+
+
+define cb_config_override_var_template
+
+ifneq (command line,$$(origin $v))
+$(keyword_define) $v
+$(value $v)
+$(keyword_endef)$(if $(findstring simple,$(flavor $v)),$(newline)$v:=$$(value $v))
+endif
+endef
+
+
 # generate text of $(cb_config) file so that by including it:
 # 1) define and export old environment variables
 # 2) undefine/unexport new environment variables
@@ -47,25 +90,6 @@ export eee
 
 
 
-
-define cb_config_override_var_template
-
-ifneq (command line,$$(origin $v))
-$(keyword_define) $v
-$(value $v)
-$(keyword_endef)$(if $(findstring simple,$(flavor $v)),$(newline)$v:=$$(value $v))
-endif
-endef
-
-# generated $(CONFIG) file is likely already sourced,
-# 1) override variables in $(CONFIG) file with new values specified in command line,
-# 2) save new variables specified in command line to the $(CONFIG) file
-# 3) always save values of PATH and SHELL to the $(CONFIG) file because they are taken from the environment
-# note: save current values of variables to the target-specific variable config_text - variables may be overridden later
-# note: never override GNUMAKEFLAGS, CLEAN_BUILD_VERSION, CONFIG and $(dump_max) variables by including $(CONFIG) file
-conf: config_text := $(foreach v,PATH SHELL $(PASS_ENV_VARS) $(foreach v,$(filter-out \
-  PATH SHELL $(PASS_ENV_VARS) GNUMAKEFLAGS CLEAN_BUILD_VERSION CONFIG $(dump_max),$(.VARIABLES)),$(if \
-  $(findstring command line,$(origin $v))$(findstring override,$(origin $v)),$v)),$(config_override_var_template))
 
 # write by that number of lines at a time while generating config file
 # note: with too many lines it is possible to exceed maximum command string length
