@@ -13,7 +13,7 @@
 #  To reduce the probability of collisions of the names, use the unique variable names whenever possible.
 
 # Conventions:
-#  1) variables in lower case are always initialized, it is not assumed that they can be taken from the environment,
+#  1) variables in lower case are always initialized, it is assumed that they can not be taken from the environment,
 #  2) clean-build internal macros are prefixed with 'cb_',
 #  3) user variables and parameters for build templates should also be in lower case,
 #  4) variables in UPPER case may be taken from the environment or command line,
@@ -46,6 +46,7 @@ endif
 #  - save list of those variables to redefine them below with the 'override' keyword
 # note: SHELL variable is not set by the clean-build, so do not need to override it by the value
 #  from the project configuration makefile
+# note: filter-out %.^e - saved values of environment variables (see $(cb_dir)/stub/prepare.mk)
 cb_project_vars := $(strip $(foreach v,$(filter-out \
   SHELL MAKEFLAGS CURDIR MAKEFILE_LIST .DEFAULT_GOAL %.^e,$(.VARIABLES),$(if $(findstring file,$(origin $v)),$v))))
 
@@ -64,7 +65,7 @@ override cb_dir := $(abspath $(dir $(lastword $(MAKEFILE_LIST)))..)
 include $(cb_dir)/core/functions.mk
 
 # clean_build_required_version - clean-build version required by the project makefiles,
-#  it is normally defined in the project configuration makefile
+#  it is normally defined in the project configuration makefile (see $(cb_dir)/stub/prepare.mk)
 ifneq (file,$(origin clean_build_required_version))
 clean_build_required_version := 0.0.0
 endif
@@ -77,7 +78,7 @@ endif
 # clean-build always sets default values for the variables, to override these defaults
 #  by the ones specified in the project configuration makefile, use the 'override' directive
 $(foreach =,$(eval $(cb_project_vars),override $(if $(findstring simple,$(flavor \
-  $=)),$$=:=$$($$=),define $$=$(newline)$(subst $(backslash),$$(backslash),$(value $=))$(newline)endef)))
+  $=)),$$=:=$$($$=),define $$=$(newline)$(value $=)$(newline)endef)))
 
 # drop make's default legacy rules - we'll use custom ones
 .SUFFIXES:
