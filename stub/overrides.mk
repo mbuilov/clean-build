@@ -20,7 +20,7 @@
 #  $(cb_config) makefile, which is by default generated under the $(cb_build)
 # Note: define 'cb_config' as recursive variable - for the case if cb_build is redefined in the included next
 #  $(pr_overrides) makefile
-cb_config = $(BUILD)/config.mk
+cb_config = $(cb_build)/config.mk
 
 # process a file with the overrides of the project defaults set in the project configuration makefile -
 #  override variables like 'cb_build', compiler flags, etc. by the definitions in the $(pr_overrides) makefile
@@ -33,7 +33,7 @@ ifdef pr_overrides
 ifeq (,$(wildcard $(pr_overrides)))
 $(error file does not exist: $(pr_overrides))
 endif
-# command-line variables are exported by default, but do not pollute environment variables namespace of sub-processes
+# command-line variables are exported by default, do not pollute environment variables namespace of sub-processes
 unexport pr_overrides
 include $(pr_overrides)
 endif
