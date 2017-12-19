@@ -24,12 +24,15 @@
 #
 #   Note: trace_calls changes $(flavor) of traced macros - they are become 'recursive'
 #   Note: trace_calls changes $(origin) of traced macros - 'command line' -> 'override'
+#   Note: command-line variables that are not also defined in the environment are unexported
 #   Note: undefined macros or macros having an empty value are not traced
 
 # MAKE_TRACE_IN_COLOR - of defined, print traces in colors, example:
 #  make -f my.mk MAKE_TRACE_IN_COLOR:=1
 MAKE_TRACE_IN_COLOR ?=
-MAKE_TRACE_IN_COLOR := $(MAKE_TRACE_IN_COLOR)
+
+# for use in ifdefs
+make_trace_in_color := $(MAKE_TRACE_IN_COLOR)
 
 empty:=
 space:= $(empty) #
@@ -67,7 +70,7 @@ keyword_endef:= endef
 # \
 # d<>
 # d<>
-ifndef MAKE_TRACE_IN_COLOR
+ifndef make_trace_in_color
 format_traced_value = $(if $4,$(if $(findstring $(newline),$1),$4$(newline)$5))$2$(subst $(newline),$3$(newline)$5$2,$1)$3
 else
 format_traced_value = $(if $4,$(if $(findstring $(newline),$1),$4$(newline)$5))$2$(subst $(newline),$3$(newline)$5$2,$(subst \
@@ -135,7 +138,7 @@ endif
 
 # print result $1 and return $1
 # add prefix $2 before printed result
-ifndef MAKE_TRACE_IN_COLOR
+ifndef make_trace_in_color
 infofn = $(info $(call format_traced_value,$1,$2<,>))$1
 else
 infofn = $(info $(call format_traced_value,$1,[32m$2<[m,[32m>[m))$1
@@ -146,7 +149,7 @@ endif
 # $2 - optional context
 # $(call dump_vars,VAR1,Q: ) -> print 'Q: dump: VAR1=<xxx>'
 # note: surround dump with fake $(if ...) to avoid any text in result of $(dump_vars)
-ifndef MAKE_TRACE_IN_COLOR
+ifndef make_trace_in_color
 dump_vars = $(if $(foreach =,$1,$(warning $2dump: $=$(if $(findstring \
   simple,$(flavor $=)),:)=$(call format_traced_value,$(value $=),<,>,\,))),)
 else
@@ -161,7 +164,7 @@ dump_max := 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26
 $(eval override $(subst $(space),:=$(newline)override ,$(dump_max)):=)
 
 # dump function arguments
-ifndef MAKE_TRACE_IN_COLOR
+ifndef make_trace_in_color
 dump_args := $(foreach i,$(dump_max),:$$(if \
   $$($i),$$(newline)$$$$$i=$$(call format_traced_value,$$($i),<,>,\,)))
 else
@@ -174,7 +177,7 @@ $(eval dump_args = $(subst $(space):,, $(dump_args)))
 # trace function call - print function name and argument values
 # - add $(tracefn) as the first statement of traced function body
 # example: fun = $(tracefn)fn_body
-ifndef MAKE_TRACE_IN_COLOR
+ifndef make_trace_in_color
 tracefn = $(warning tracefn: $$($0)$(subst $(newline),$(newline)|,$(dump_args)))
 else
 tracefn = $(warning [35;1mtracefn[m: [32m$$($0)$(subst $(newline),$(newline)[35;1m|[36m,$(dump_args)))
@@ -194,7 +197,7 @@ encode_traced_var_name = $1.^t
 # $5 - names of variables to dump after the traced call
 # note: must use $$(call $2,_dump_params_): Gnu Make do not allow recursive calls: $(call a)->$(b)->$(call a)->$(b)->...
 # note: first line must be empty
-ifndef MAKE_TRACE_IN_COLOR
+ifndef make_trace_in_color
 define trace_calls_template
 
 ifdef $1
@@ -218,7 +221,7 @@ $(keyword_endef)
 endif
 endif
 endef
-else # MAKE_TRACE_IN_COLOR
+else # make_trace_in_color
 define trace_calls_template
 
 ifdef $1
@@ -242,7 +245,7 @@ $(keyword_endef)
 endif
 endif
 endef
-endif # MAKE_TRACE_IN_COLOR
+endif # make_trace_in_color
 
 # replace _dump_params_ with: $(1),$(2),$(3...)
 $(eval define trace_calls_template$(newline)$(subst _dump_params_,$$$$$(open_brace)$(subst \
