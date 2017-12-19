@@ -26,23 +26,22 @@ config: cf := $(cb_config)
 # config - is not a file, it's a goal
 .PHONY: config
 
-# save configuration:
+# save current configuration:
 # 1) command-line variables
 # 2) exported variable PATH
 # 3) special variable SHELL
 # 4) restored and project-defined variables (those $(origin) is 'override')
 # note: once $(cb_config) has been generated, variables defined in it may be altered only via command-line variables
 # note: save current values of variables to the target-specific variable config_text - variables may be overridden later
-# note: do not save GNUMAKEFLAGS, clean_build_version, cb_dir, cb_config and $(dump_max) variables
- conf: config_text := SHELL := $(value SHELL)$(newline)$(foreach =,PATH $(filter-out \
-  PATH SHELL GNUMAKEFLAGS clean_build_version cb_dir cb_config $(dump_max),$(.VARIABLES)),$(if \
-  $(findstring command line,$(origin $=))$(findstring override,$(origin $=)),define $=$(newline)$(value \
-  $=)$(newline)endef$(if $(findstring simple,$(flavor $=)),$(newline)$= := $$(value $=))$(newline)))
-
-  config_text := SHELL := $(value SHELL)$(newline)$(foreach =,PATH $(foreach =,$(filter-out \
-  PATH SHELL GNUMAKEFLAGS clean_build_version cb_dir cb_config $(dump_max),$(.VARIABLES)),$(if \
-  $(findstring command line,$(origin $=))$(findstring override,$(origin $=)),$=)),$(if $(findstring simple,$(flavor $=),$= := $(subst $$,$$$$,$=),define $=$(newline)$(subst \
-  $(subst define,$(keyword_define),$(subst endef,$(keyword_endef),$(backslash)$(newline),$$(backslash)$(newline),$(value $=))))$(newline)endef)$(newline))
+# note: do not save auto-defined GNUMAKEFLAGS, clean_build_version, cb_dir, cb_config and $(dump_max) variables
+conf: config_text := define newline$(newline)$(newline)endef$(newline)newline:= $$(newline)$(newline)define \
+  comment$(newline)$(comment)$(newline)endef$(newline)comment:= $$(comment)$(newline)empty:=$(newline)backslash:= \
+  $(backslash)$$(empty)$(newline)keyword_define:= define$(newline)keyword_endef:= endef$(newline) $(foreach \
+  =,SHELL PATH $(foreach =,$(filter-out SHELL PATH GNUMAKEFLAGS clean_build_version cb_dir cb_config $(dump_max),$(.VARIABLES)),$(if \
+  $(findstring command line,$(origin $=))$(findstring override,$(origin $=)),$=)),$(if $(findstring simple,$(flavor \
+  $=),$= := $(subst $(comment),$$(comment),$(subst $(newline),$$(newline),$(subst $$,$$$$,$(value $=)))),define $=$(newline)$(subst \
+  define,$(keyword_define),$(subst endef,$(keyword_endef),$(subst $(backslash)$(newline),$$(backslash)$(newline),$(value \
+  $=))))$(newline)endef)$(newline)))
 
 
 # assuming that generated $(cb_config) makefile has been already sourced, and it has not overwritten current command-line variables,
