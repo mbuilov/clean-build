@@ -4,14 +4,14 @@
 # Licensed under GPL version 2 or any later version, see COPYING
 #-----------------------------------------------------------------------------------------
 
-# original file: $(CBBS_ROOT)/stub/c.mk
+# original file: $(CBLD_ROOT)/stub/c.mk
 # description:   support for building application-level targets from C/C++ sources
 
 # Note: This file should be copied to the directory of the project build system
 
 ifeq (,$(filter-out undefined environment,$(origin cb_c_prepare_app_vars)))
 include $(dir $(lastword $(MAKEFILE_LIST)))project.mk
-include $(CBBS_ROOT)/types/_c.mk
+include $(CBLD_ROOT)/types/_c.mk
 # Note: if needed, override clean-build definitions here
 endif
 
