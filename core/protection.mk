@@ -10,6 +10,8 @@
 # run via $(MAKE) C=1 to check makefiles
 ifeq (command line,$(origin C))
 MCHECK := $(C:0=)
+# command-line variables are exported by default, but do not pollute environment variables of sub-processes
+unexport C
 else
 MCHECK:=
 endif
