@@ -27,7 +27,7 @@
 #   Note: command-line variables that are not also defined in the environment are unexported
 #   Note: undefined macros or macros having an empty value are not traced
 
-# MAKE_TRACE_IN_COLOR - of defined, print traces in colors, example:
+# MAKE_TRACE_IN_COLOR - if defined, print traces in colors, example:
 #  make -f my.mk MAKE_TRACE_IN_COLOR:=1
 MAKE_TRACE_IN_COLOR ?=
 
@@ -37,11 +37,8 @@ make_trace_in_color := $(MAKE_TRACE_IN_COLOR)
 empty:=
 space:= $(empty) #
 tab:= $(empty)	#
-define comment
-#
-endef
-comment:= $(comment)
-backslash:= \$(empty)
+comment:= \#
+backslash:= \\#
 percent:= %
 comma:= ,
 define newline
