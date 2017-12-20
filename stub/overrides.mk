@@ -6,44 +6,43 @@
 
 # original file: $(CBLD_ROOT)/stub/overrides.mk
 # description:   core clean-build definitions,
-#                processing of the 'cb_config' and 'pr_overrides' variables,
+#                processing of the CBLD_CONFIG and PROJ_OVERRIDES variables,
 #                check that the CBLD_ROOT variable is defined
 
 # Note: This file should be copied AS IS to the directory of the project build system
 # Note: This file should be included at end of the project configuration makefile (e.g. 'project.mk')
 
-# cb_config - path to the clean-build generated configuration makefile (while completing predefined 'config' goal)
-# Note: generated $(cb_config) makefile will remember values of the environment and command-line variables at the
-#  moment of generation; by sourcing $(cb_config) makefile below, these variables will be restored, and only new
-#  values specified in the command line may override restored ones.
-# Note: by completing predefined 'distclean' goal, $(cb_build) directory will be deleted, possibly together with the
-#  $(cb_config) makefile, which is by default generated under the $(cb_build)
-# Note: define 'cb_config' as recursive variable - for the case if cb_build is redefined in the included next
-#  $(pr_overrides) makefile
-cb_config = $(cb_build)/config.mk
+# CBLD_CONFIG - path to the clean-build generated configuration makefile (while completing predefined 'config' goal)
+# Note: generated $(CBLD_CONFIG) makefile will remember values of vital environment and command-line variables at the
+#  moment of generation; by sourcing this makefile below, these variables will be restored, and only new values
+#  specified in the command line may override restored ones.
+# Note: CBLD_CONFIG may be defined in the command line, e.g.:
+#  make -f my_project.mk CBLD_CONFIG=/tmp/conf.mk
+# Note: CBLD_CONFIG may also be defined in the environment, for example, as a macro, in bash:
+#  export CBLD_CONFIG='/tmp/configs/$(notdir $(top)).mk'
+CBLD_CONFIG ?= $(CBLD_BUILD)/config.mk
 
-# process a file with the overrides of the project defaults set in the project configuration makefile -
-#  override variables like 'cb_build', compiler flags, etc. by the definitions in the $(pr_overrides) makefile
-# Note: by default, assume there is no $(pr_overrides) makefile
-pr_overrides:=
+# process a makefile with the overrides of the project defaults set in the project configuration makefile -
+#  override variables like CBLD_BUILD, CBLD_CONFIG, compiler flags, etc. by the definitions in the $(PROJ_OVERRIDES) makefile
+# Note: PROJ_OVERRIDES may be defined in the command line only, e.g.:
+#  make -f my_project.mk PROJ_OVERRIDES=/project_overrides.mk
+# Note: PROJ_OVERRIDES may also be defined in the environment, for example, as a macro, in bash:
+#  export PROJ_OVERRIDES='/overrides/$(notdir $(top)).mk'
+PROJ_OVERRIDES:=
 
-# Note: 'pr_overrides' variable may be defined in the command-line, for example:
-#  make -f my_project.mk pr_overrides=my_overrides.mk
-ifdef pr_overrides
-ifeq (,$(wildcard $(pr_overrides)))
-$(error file does not exist: $(pr_overrides))
+ifneq (,$(PROJ_OVERRIDES))
+ifeq (,$(wildcard $(PROJ_OVERRIDES)))
+$(error file does not exist: $(PROJ_OVERRIDES))
 endif
-# command-line variables are exported by default, do not pollute environment variables namespace of sub-processes
-unexport pr_overrides
-include $(pr_overrides)
+include $(PROJ_OVERRIDES)
 endif
 
 # source optional clean-build generated configuration makefile, if it exist
--include $(cb_config)
+-include $(CBLD_CONFIG)
 
 # CBLD_ROOT - path to the clean-build build system
 # Note: normally CBLD_ROOT is defined in the command line, but may be taken from the environment or specified in
-#  the optional $(pr_overrides) makefile
+#  the optional $(PROJ_OVERRIDES) makefile
 ifndef CBLD_ROOT
 $(error CBLD_ROOT - path to clean-build (https://github.com/mbuilov/clean-build) is not defined,\
  example: CBLD_ROOT=/usr/local/clean-build or CBLD_ROOT=C:\User\clean-build)

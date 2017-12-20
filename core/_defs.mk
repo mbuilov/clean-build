@@ -13,12 +13,12 @@
 #  To reduce the probability of collisions of the names, use the unique variable names whenever possible.
 
 # Conventions:
-#  1) variables in lower case are always initialized, it is assumed that they can not be taken from the environment,
+#  1) variables in lower case are always initialized with default values and _never_ taken from the environment,
 #  2) clean-build internal macros are prefixed with 'cb_',
 #  3) user variables and parameters for build templates should also be in lower case,
-#  4) variables in UPPER case may be taken from the environment or command line,
+#  4) variables in UPPER case _may_ be taken from the environment or command line,
 #  5) clean-build specific variables that may be taken from the environment are in UPPER case and prefixed with 'CBLD_',
-#  6) to initialize a variable, possibly defined in the environment, use operator ?=,
+#  6) to initialize a variable, possibly defined in the environment, always use operator ?= - to not override the variable,
 #  7) ifdef/ifndef should only be used with previously initialized variables.
 
 ifeq (,$(MAKE_VERSION))
@@ -37,18 +37,26 @@ endif
 # $ make -rR --warn-undefined-variables
 MAKEFLAGS += --no-builtin-rules --no-builtin-variables --warn-undefined-variables
 
+# drop make's default legacy rules - we'll use custom ones
+.SUFFIXES:
+
+# delete target file if failed to execute any of commands to make it
+.DELETE_ON_ERROR:
+
 # reset Gnu Make internal variable if it's not defined (to avoid use of undefined variable)
 ifeq (undefined,$(origin MAKECMDGOALS))
 MAKECMDGOALS:=
 endif
 
+# specify default goal (defined in $(cb_dir)/core/all.mk)
+.DEFAULT_GOAL := all
+
 # assume project configuration makefile, which have included this makefile, defines some variables
 #  - save list of those variables to redefine them below with the 'override' keyword
-# note: SHELL variable is not set by the clean-build, so do not need to override it by the value
-#  from the project configuration makefile
-# note: filter-out %.^e - saved values of environment variables (see $(cb_dir)/stub/prepare.mk)
-cb_project_vars := $(strip $(foreach v,$(filter-out \
-  SHELL MAKEFLAGS CURDIR MAKEFILE_LIST .DEFAULT_GOAL %.^e,$(.VARIABLES),$(if $(findstring file,$(origin $v)),$v))))
+# note: SHELL, CBLD_OVERRIDES, CBLD_CONFIG, CBLD_BUILD and CBLD_ROOT variables are not reset by the clean-build, so don't override them
+# note: filter-out %.^e - saved environment variables (see $(cb_dir)/stub/prepare.mk)
+cb_project_vars := $(strip $(foreach =,$(filter-out SHELL MAKEFLAGS CURDIR MAKEFILE_LIST .DEFAULT_GOAL \
+  %.^e CBLD_OVERRIDES CBLD_CONFIG CBLD_BUILD CBLD_ROOT,$(.VARIABLES),$(if $(findstring file,$(origin $=)),$=))))
 
 # clean-build version: major.minor.patch
 # note: override the value, if it was accidentally set in the project configuration makefile
@@ -56,7 +64,7 @@ override clean_build_version := 0.9.1
 
 # clean-build root directory (absolute path)
 # note: override the value, if it was accidentally set in the project configuration makefile
-# note: a project normally uses its own variable with the same value (e.g. CBLD_ROOT) for referencing clean-build files
+# note: a project normally uses its own variable with the same value (CBLD_ROOT) for referencing clean-build files
 override cb_dir := $(abspath $(dir $(lastword $(MAKEFILE_LIST)))..)
 
 # include functions library
@@ -75,26 +83,32 @@ ifeq (,$(call ver_compatible,$(clean_build_version),$(clean_build_required_versi
 $(error incompatible clean-build version: $(clean_build_version), project needs: $(clean_build_required_version))
 endif
 
-# clean-build always sets default values for the variables, to override these defaults
-#  by the ones specified in the project configuration makefile, use the 'override' directive
-$(foreach =,$(eval $(cb_project_vars),override $(if $(findstring simple,$(flavor \
-  $=)),$$=:=$$($$=),define $$=$(newline)$(value $=)$(newline)endef)))
+# CBLD_BUILD - directory of built artifacts - must be defined prior including this makefile
+# note: we need non-recursive (simple) value to create simple variables: cb_def_bin_dir, cb_def_lib_dir, etc.
+# note: override the value, if it was accidentally set in the project configuration makefile
+override cb_build := $(abspath $(CBLD_BUILD))
 
-# drop make's default legacy rules - we'll use custom ones
-.SUFFIXES:
+ifndef cb_build
+$(error CBLD_BUILD - path to directory of built artifacts is not defined, example: C:/opt/project/build or /home/oper/project/build)
+endif
 
-# delete target file if failed to execute any of commands to make it
-.DELETE_ON_ERROR:
-
-# specify default goal (defined in $(cb_dir)/core/all.mk)
-.DEFAULT_GOAL := all
+ifneq (,$(findstring $(space),$(cb_build)))
+$(error CBLD_BUILD='$(cb_build)', path to directory of built artifacts must not contain spaces)
+endif
 
 # needed directories - clean-build will create them in $(cb_dir)/core/all.mk
 # note: cb_needed_dirs is never cleared, only appended
 cb_needed_dirs:=
 
-# save configuration to $(cb_config) makefile as result of predefined 'config' goal
+# save configuration to $(CBLD_CONFIG) makefile as result of predefined 'config' goal
 include $(cb_dir)/core/confsup.mk
+
+
+# clean-build always sets default values for the variables, to override these defaults
+#  by the ones specified in the project configuration makefile, use the 'override' directive
+$(foreach =,$(cb_project_vars),$(eval override $(if $(findstring simple,$(flavor \
+  $=)),$$=:=$$($$=),define $$=$(newline)$(value $=)$(newline)endef)))
+
 
 
 
@@ -151,30 +165,12 @@ cb_target_makefile
 # note: may be updated if necessary in makefiles processed later
 CLEAN_BUILD_GOALS := all config clean distclean check tests
 
-# CB_BUILD - directory for built files - must be defined either in the command line or in the project configuration
-#  makefile before including this file, for example:
-# CB_BUILD := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))/build
-# reset CB_BUILD, if it's not defined
-CB_BUILD:=
-
 # protect from modification macros defined in $(cb_dir)/core/functions.mk
 # note: here TARGET_MAKEFILE variable is used here temporary, it will be properly defined below
 $(TARGET_MAKEFILE)
 
 # protect from modification project-specific variables
 $(call SET_GLOBAL,$(cb_project_vars))
-
-# ensure that CB_BUILD is non-recursive (simple), because it is used to create simple variables DEF_BIN_DIR, DEF_LIB_DIR, etc.
-# also normalize path and make it absolute
-override CB_BUILD := $(abspath $(CB_BUILD))
-
-ifndef CB_BUILD
-$(error CB_BUILD - path to built artifacts is not defined, example: C:/opt/project/build or /home/oper/project/build)
-endif
-
-ifneq (,$(findstring $(space),$(CB_BUILD)))
-$(error CB_BUILD=$(CB_BUILD), path to built artifacts must not contain spaces)
-endif
 
 # list of project-supported target types
 # note: normally these defaults are overridden in project configuration makefile

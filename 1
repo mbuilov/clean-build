@@ -1,0 +1,80 @@
+1) save/restore only needed environment varianles
+2) namespace?
+
+env A
+A :=          -> new exported value
+override A := -> new exported value
+
+cmd A
+A :=          -> old exported value
+override A := -> new unexported value
+
+env A
+cmd A
+A :=          -> old exported value
+override A := -> new exported value
+
+
+
+
+A = 1
+override A = 1
+A -> config
+
+A = 1
+command line B = 2
+override A = 1
+A -> config
+B -> config
+
+A = 1
+A = 1
+override A = 1
+A -> config
+
+
+
+  project:      A := 1
+  project:      override B := 2
+> overrides:    C := 3
+> overrides:    override D := 4
+> command line: E := 5
+> environment:  F = 6
+
+cb_project_vars := A C
+
+config: A := 1
+config: override B := 2
+config: C := 3
+config: override D := 4
+config: ifneq command line, export override E := 5
+config: export F = 6
+config: override cb_config_exported_vars := E F
+
+override A := $A
+override C := $C
+
+
+project:      A := 1
+project:      override B := 2
+config:       A := 1
+config:       override B := 2
+config:       C := 3
+config:       override D := 4
+config:       export override E := 5
+config:       export F = 6
+config:       override cb_config_exported_vars := E F
+
+cb_project_vars := A C F
+
+config2: A := 1
+config2: override B := 2
+config2: C := 3
+config2: override D := 4
+config2: ifneq command line, export override E := 5
+config2: export F = 6
+config2: override cb_config_exported_vars := E F
+
+  override A := $A
+  override C := $C
+- override F = $F

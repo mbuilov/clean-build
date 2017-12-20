@@ -4,57 +4,82 @@
 # Licensed under GPL version 2 or any later version, see COPYING
 #----------------------------------------------------------------------------------
 
-# by default, assume configuration makefile is not specified
-# note: if project configuration makefile defines 'cb_config' variable - that definition will override this one
-cb_config:=
-
 # helper macro to remember autoconfigured variables in the generated configuration makefile
+# $1 - names of the macros
+# $2 - empty or 'export' keyword, if macros those $(origin) is 'environment' should be exported
 cb_config_remember_vars:=
 
 ifneq (,$(filter config,$(MAKECMDGOALS)))
 
-# 'cb_config' variable should be simple
-override cb_config := $(abspath $(cb_config))
-
-ifndef cb_config
-$(error cb_config - name of generated configuration makefile - is not defined)
+ifeq (,$(CBLD_CONFIG))
+$(error CBLD_CONFIG - path to generated configuration makefile - is not defined)
 endif
 
-# save $(cb_config) in target-specific variable cf - to be safe if cb_config variable will be overridden
-config: cf := $(cb_config)
+# save $(CBLD_CONFIG) value to the target-specific variable cf
+config: cf := $(abspath $(CBLD_CONFIG))
 
 # config - is not a file, it's a goal
 .PHONY: config
 
+# list of exported variables defined in the $(CBLD_CONFIG) makefile
+# if cb_config_exported_vars was not restored from the $(CBLD_CONFIG) makefile (with 'override' attribute), define it here
+cb_config_exported_vars:=
+
+# temporary
+cb_config_remember_vars = $(if $(findstring simple,$(flavor $v)),$= := $$(empty)$(subst \,$$(backslash),$(subst \
+  $(comment),$$(comment),$(subst $(newline),$$(newline),$(subst $$,$$$$,$(value $=)))))$$(empty),define $=$(newline)$(subst \
+  define,$$(keyword_define),$(subst endef,$$(keyword_endef),$(subst \,$$(backslash),$(value $=))))$(newline)endef)$(newline)
+
 # save current configuration:
-# 1) command-line variables
+# 1) command-line variables (exported by default)
 # 2) exported variable PATH
 # 3) special variable SHELL
-# 4) restored and project-defined variables (those $(origin) is 'override')
-# note: once $(cb_config) has been generated, variables defined in it may be altered only via command-line variables
+# 4) project-defined variables - those $(origin) is 'override' or the variable name is in $(cb_project_vars) list
+# note: once $(CBLD_CONFIG) makefile has been generated, variables defined in it may be altered only via command-line variables
 # note: save current values of variables to the target-specific variable config_text - variables may be overridden later
-# note: do not save auto-defined GNUMAKEFLAGS, clean_build_version, cb_dir, cb_config and $(dump_max) variables
-conf: config_text := define newline$(newline)$(newline)endef$(newline)newline:= $$(newline)$(newline)define \
-  comment$(newline)$(comment)$(newline)endef$(newline)comment:= $$(comment)$(newline)empty:=$(newline)backslash:= \
-  $(backslash)$$(empty)$(newline)keyword_define:= define$(newline)keyword_endef:= endef$(newline) $(foreach \
-  =,SHELL PATH $(foreach =,$(filter-out SHELL PATH GNUMAKEFLAGS clean_build_version cb_dir cb_config $(dump_max),$(.VARIABLES)),$(if \
-  $(findstring command line,$(origin $=))$(findstring override,$(origin $=)),$=)),$(if $(findstring simple,$(flavor \
-  $=),$= := $(subst $(comment),$$(comment),$(subst $(newline),$$(newline),$(subst $$,$$$$,$(value $=)))),define $=$(newline)$(subst \
-  define,$(keyword_define),$(subst endef,$(keyword_endef),$(subst $(backslash)$(newline),$$(backslash)$(newline),$(value \
-  $=))))$(newline)endef)$(newline)))
+# note: do not save auto-defined GNUMAKEFLAGS, clean_build_version, cb_dir, cb_build, CBLD_CONFIG and $(dump_max) variables
+# note: reset CBLD_OVERRIDES variable - it should be not used once $(CBLD_CONFIG) makefile has been generated
+config config_text := define newline$(newline)$(newline)$(newline)endef$(newline)newline:= $$(newline)$(newline)comment:= \
+  \$(comment)$(newline)empty:=$(newline)backslash:= \\$(comment)$(newline)keyword_define:= define$(newline)keyword_endef:= \
+  endef$(newline)$(foreach =,$(filter-out PATH SHELL GNUMAKEFLAGS clean_build_version cb_dir cb_build CBLD_BUILD CBLD_CONFIG $(dump_max) \
+  cb_config_exported_vars,$(.VARIABLES)),$(if $(findstring command line,$(origin $=))$(findstring override,$(origin $=)),$=)),
+  $(if $(findstring command line,$(origin $=))
+  
+  $(cb_config_remember_vars))
 
+# helper macro to remember autoconfigured variables in the generated configuration makefile
+$(eval cb_config_remember_vars = $$(eval config: config_text += $$$$(foreach =,$$(if $$2,$$(foreach =,$$1,$$(if $$(findstring \
+  environment,$$(origin $$=)),$$=)),$$1),$$$$2 $(subst $$,$$$$,$(value cb_config_remember_vars)))))
 
-# assuming that generated $(cb_config) makefile has been already sourced, and it has not overwritten current command-line variables,
-# save configuration:
-# 1) override old variables in $(cb_config) makefile with new values specified in command line,
-# 2) save new command-line variables
-# 3) save values of exported variable PATH and special variable SHELL
-# note: once $(cb_config) has been generated, variables defined in it may be altered only via command-line variables
-# note: save current values of variables to the target-specific variable config_text - variables may be overridden later
-# note: never override GNUMAKEFLAGS, clean_build_version, cb_config and $(dump_max) variables by including $(cb_config) file
-conf: config_text := $(foreach v,PATH SHELL $(PASS_ENV_VARS) $(foreach v,$(filter-out \
-  PATH SHELL $(PASS_ENV_VARS) GNUMAKEFLAGS CLEAN_BUILD_VERSION cb_config $(dump_max),$(.VARIABLES)),$(if \
-  $(findstring command line,$(origin $v))$(findstring override,$(origin $v)),$v)),$(config_override_var_template))
+# write by that number of lines at a time while generating configuration makefile
+# note: with too many lines it is possible to exceed maximum command string length
+CBLD_CONFIG_WRITE_BY_LINES ?= 10
+
+# remember CBLD_CONFIG_WRITE_BY_LINES in generated configuration makefile
+$(call cb_config_remember_vars,CBLD_CONFIG_WRITE_BY_LINES,export)
+
+# generate configuration makefile
+# note: suppress - defined in $(cb_dir)/core/_defs.mk
+# note: write_text - defined in $(cb_dir)/utils/$(CBLD_UTILS).mk
+# note: pass 1 as 4-th argument of 'suppress' function to not update percents of executed target makefiles
+# note: 'config_text' was defined above as target-specific variable
+conf: F.^ := $(abspath $(firstword $(MAKEFILE_LIST)))
+conf: C.^ :=
+conf:| $(abspath $(dir $(CBLD_CONFIG)))
+	$(call suppress,GEN,$(cf),,1)$(call write_text,$(config_text),$(cf),$(CBLD_CONFIG_WRITE_BY_LINES))
+
+# if $(CBLD_CONFIG) makefile is generated under the $(CBLD_BUILD), create that directory automatically
+# else - $(CBLD_CONFIG) makefile is outside of $(CBLD_BUILD), configuration makefile directory must be created manually
+ifneq (,$(filter $(abspath $(CBLD_BUILD))/%,$(CONFIG)))
+CB_NEEDED_DIRS += $(patsubst %/,%,$(dir $(CONFIG)))
+else
+$(patsubst %/,%,$(dir $(CONFIG))):
+	$(error config file directory '$@' does not exist, it is not under '$(BUILD)', so should be created manually)
+endif
+
+endif # conf
+endif # CONFIG
+
 
 
 
@@ -90,34 +115,6 @@ export eee
 
 
 
-# write by that number of lines at a time while generating config file
-# note: with too many lines it is possible to exceed maximum command string length
-CONFSUP_WRITE_BY_LINES := 10
-
-# generate configuration file
-# note: SUP - defined in $(CLEAN_BUILD_DIR)/core/_defs.mk
-# note: WRITE_TEXT - defined in $(CLEAN_BUILD_DIR)/utils/$(UTILS).mk
-# note: pass 1 as 4-th argument of SUP function to not update percents of executed target makefiles
-# note: config_text was defined above as target-specific variable
-conf: F.^ := $(abspath $(firstword $(MAKEFILE_LIST)))
-conf: C.^ :=
-conf:| $(patsubst %/,%,$(dir $(CONFIG)))
-	$(call SUP,GEN,$(cf),,1)$(call WRITE_TEXT,$(config_text),$(cf),$(CONFSUP_WRITE_BY_LINES))
-
-# if $(CONFIG) file is under $(BUILD), create config directory automatically
-# else - $(CONFIG) file is outside of $(BUILD), config directory must be created manually
-ifneq (,$(filter $(abspath $(BUILD))/%,$(CONFIG)))
-CB_NEEDED_DIRS += $(patsubst %/,%,$(dir $(CONFIG)))
-else
-$(patsubst %/,%,$(dir $(CONFIG))):
-	$(error config file directory '$@' does not exist, it is not under '$(BUILD)', so should be created manually)
-endif
-
-# helper to remember autoconfigured variables in generated config file
-config_remember_vars = $(eval conf: config_text += $(foreach v,$1,$(config_override_var_template)))
-
-endif # conf
-endif # CONFIG
 
 # protect variables from modification in target makefiles
 # note: TARGET_MAKEFILE variable is used here temporary and will be redefined later
