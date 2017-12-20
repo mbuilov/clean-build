@@ -16,19 +16,20 @@
 # Note: generated $(CBLD_CONFIG) makefile will remember values of vital environment and command-line variables at the
 #  moment of generation; by sourcing this makefile below, these variables will be restored, and only new values
 #  specified in the command line may override restored ones.
-# Note: CBLD_CONFIG may be defined in the command line, e.g.:
-#  make -f my_project.mk CBLD_CONFIG=/tmp/conf.mk
-# Note: CBLD_CONFIG may also be defined in the environment, for example, as a macro, in bash:
-#  export CBLD_CONFIG='/tmp/configs/$(notdir $(top)).mk'
+# Note: CBLD_CONFIG may be defined as a macro, for example:
+#  CBLD_CONFIG=/tmp/configs/$(notdir $(top)).mk
 CBLD_CONFIG ?= $(CBLD_BUILD)/config.mk
 
-# process a makefile with the overrides of the project defaults set in the project configuration makefile -
-#  override variables like CBLD_BUILD, CBLD_CONFIG, compiler flags, etc. by the definitions in the $(PROJ_OVERRIDES) makefile
-# Note: PROJ_OVERRIDES may be defined in the command line only, e.g.:
-#  make -f my_project.mk PROJ_OVERRIDES=/project_overrides.mk
-# Note: PROJ_OVERRIDES may also be defined in the environment, for example, as a macro, in bash:
-#  export PROJ_OVERRIDES='/overrides/$(notdir $(top)).mk'
-PROJ_OVERRIDES:=
+# source optional clean-build generated configuration makefile, if it exist
+ifneq (,$(wildcard $(CBLD_CONFIG)))
+include $(CBLD_CONFIG)
+else # !CBLD_CONFIG
+
+# else process optional makefile with the overrides of the project defaults set in the project configuration makefile
+#  - override variables like compiler flags, etc. by the definitions in the $(PROJ_OVERRIDES) makefile
+# Note: PROJ_OVERRIDES may be defined as a macro, for example:
+#  PROJ_OVERRIDES=/overrides/$(notdir $(top)).mk
+PROJ_OVERRIDES ?=
 
 ifneq (,$(PROJ_OVERRIDES))
 ifeq (,$(wildcard $(PROJ_OVERRIDES)))
@@ -37,8 +38,7 @@ endif
 include $(PROJ_OVERRIDES)
 endif
 
-# source optional clean-build generated configuration makefile, if it exist
--include $(CBLD_CONFIG)
+endif # !CBLD_CONFIG
 
 # CBLD_ROOT - path to the clean-build build system
 # Note: normally CBLD_ROOT is defined in the command line, but may be taken from the environment or specified in

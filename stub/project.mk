@@ -41,8 +41,8 @@ override top := $(abspath $(dir $(lastword $(MAKEFILE_LIST)))..)
 # Note: this variable is required by the clean-build and must be defined prior including core clean-build files
 # Note: $(CBLD_BUILD) directory is automatically created by the clean-build when building targets and automatically
 #  deleted by the predefined 'distclean' goal
-# Note: CBLD_BUILD may be defined as a macro, e.g.:
-#  make -f my_project.mk CBLD_BUILD='/tmp/builds/$(notdir $(top))'
+# Note: CBLD_BUILD may be defined as a macro, for example:
+#  CBLD_BUILD=/tmp/builds/$(notdir $(top))
 CBLD_BUILD ?= $(top)/build
 
 # next variables are needed for generating:

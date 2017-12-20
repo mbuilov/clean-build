@@ -6,7 +6,7 @@
 
 # helper macro to remember autoconfigured variables in the generated configuration makefile
 # $1 - names of the macros
-# $2 - empty or 'export' keyword, if macros those $(origin) is 'environment' should be exported
+# $2 - empty or 'export' keyword, if macros should be exported
 cb_config_remember_vars:=
 
 ifneq (,$(filter config,$(MAKECMDGOALS)))
@@ -22,8 +22,10 @@ config: cf := $(abspath $(CBLD_CONFIG))
 .PHONY: config
 
 # list of exported variables defined in the $(CBLD_CONFIG) makefile
-# if cb_config_exported_vars was not restored from the $(CBLD_CONFIG) makefile (with 'override' attribute), define it here
+# if cb_config_exported_vars was not restored from the $(CBLD_CONFIG) makefile, define it here
+ifneq (file,$(origin cb_config_exported_vars))
 cb_config_exported_vars:=
+endif
 
 # temporary
 cb_config_remember_vars = $(if $(findstring simple,$(flavor $v)),$= := $$(empty)$(subst \,$$(backslash),$(subst \
@@ -34,20 +36,32 @@ cb_config_remember_vars = $(if $(findstring simple,$(flavor $v)),$= := $$(empty)
 # 1) command-line variables (exported by default)
 # 2) exported variable PATH
 # 3) special variable SHELL
-# 4) project-defined variables - those $(origin) is 'override' or the variable name is in $(cb_project_vars) list
+# 4) project-defined variables - those $(origin) is 'override' or the variable name is in $(cb_project_vars) list -
+#  some of variables may be defined by the optional 'overrides' makefile (e.g. $(PROJ_OVERRIDES))
 # note: once $(CBLD_CONFIG) makefile has been generated, variables defined in it may be altered only via command-line variables
 # note: save current values of variables to the target-specific variable config_text - variables may be overridden later
 # note: do not save auto-defined GNUMAKEFLAGS, clean_build_version, cb_dir, cb_build, CBLD_CONFIG and $(dump_max) variables
-# note: reset CBLD_OVERRIDES variable - it should be not used once $(CBLD_CONFIG) makefile has been generated
+# note: filter-out %.^e - saved environment variables (see $(cb_dir)/stub/prepare.mk)
 config config_text := define newline$(newline)$(newline)$(newline)endef$(newline)newline:= $$(newline)$(newline)comment:= \
   \$(comment)$(newline)empty:=$(newline)backslash:= \\$(comment)$(newline)keyword_define:= define$(newline)keyword_endef:= \
-  endef$(newline)$(foreach =,$(filter-out PATH SHELL GNUMAKEFLAGS clean_build_version cb_dir cb_build CBLD_BUILD CBLD_CONFIG $(dump_max) \
-  cb_config_exported_vars,$(.VARIABLES)),$(if $(findstring command line,$(origin $=))$(findstring override,$(origin $=)),$=)),
-  $(if $(findstring command line,$(origin $=))
-  
-  $(cb_config_remember_vars))
+  endef$(newline)$(foreach =,$(filter-out GNUMAKEFLAGS clean_build_version cb_dir cb_build CBLD_CONFIG $(dump_max) \
+  cb_config_exported_vars %.^e,$(.VARIABLES)),$(if $(or $(findstring command line,$(origin $=)),$(if $(findstring override,$(origin \
+  $=)),$(filter $=,$(cb_config_exported_vars)))),ifneq (command line,$$(origin $=))$(newline)export override \
+  $(cb_config_remember_vars)endif$(newline),$(if $(findstring override,$(origin $=)),override $(cb_config_remember_vars))))$(foreach \
+  =,$(cb_config_exported_vars),$(if $(findstring file,$(origin $=)),export $(cb_config_remember_vars)))
+
+# simulate environment variables: do not add the 'override' attribute to the exported 'file' variables
+cb_project_vars := $(filter-out $(cb_config_exported_vars),$(cb_project_vars))
+
+# add command-line variables to the list of exported variables
+cb_config_exported_vars := $(sort $(cb_config_exported_vars) $(foreach =,$(filter-out GNUMAKEFLAGS %.^e,$(.VARIABLES)),$(if \
+  $(findstring command line,$(origin $=))$=)))
+
+
 
 # helper macro to remember autoconfigured variables in the generated configuration makefile
+# $1 - names of the macros
+# $2 - empty or 'export' keyword, if macros should be exported
 $(eval cb_config_remember_vars = $$(eval config: config_text += $$$$(foreach =,$$(if $$2,$$(foreach =,$$1,$$(if $$(findstring \
   environment,$$(origin $$=)),$$=)),$$1),$$$$2 $(subst $$,$$$$,$(value cb_config_remember_vars)))))
 

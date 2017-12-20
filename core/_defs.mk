@@ -53,10 +53,10 @@ endif
 
 # assume project configuration makefile, which have included this makefile, defines some variables
 #  - save list of those variables to redefine them below with the 'override' keyword
-# note: SHELL, CBLD_OVERRIDES, CBLD_CONFIG, CBLD_BUILD and CBLD_ROOT variables are not reset by the clean-build, so don't override them
+# note: SHELL, CBLD_CONFIG and CBLD_BUILD variables are not reset by the clean-build, so don't override them
 # note: filter-out %.^e - saved environment variables (see $(cb_dir)/stub/prepare.mk)
 cb_project_vars := $(strip $(foreach =,$(filter-out SHELL MAKEFLAGS CURDIR MAKEFILE_LIST .DEFAULT_GOAL \
-  %.^e CBLD_OVERRIDES CBLD_CONFIG CBLD_BUILD CBLD_ROOT,$(.VARIABLES),$(if $(findstring file,$(origin $=)),$=))))
+  %.^e CBLD_CONFIG CBLD_BUILD,$(.VARIABLES),$(if $(findstring file,$(origin $=)),$=))))
 
 # clean-build version: major.minor.patch
 # note: override the value, if it was accidentally set in the project configuration makefile
