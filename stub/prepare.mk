@@ -10,7 +10,8 @@
 # Note: This file should be copied AS IS to the directory of the project build system
 # Note: This file should be included at head of the project configuration makefile ('project.mk')
 
-# save values of environment variables - to check that no variables are accidentally overwritten
+# save values of environment variables - to check that no variables were accidentally overwritten
+#  due to collisions of the variable names
 # Note: save environment variables _before_ defining any makefile variable
 ifeq (command line,$(origin C))
 # if make was run in check mode, like: make -f my_project.mk C=1
