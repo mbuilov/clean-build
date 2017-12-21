@@ -64,7 +64,7 @@ override clean_build_version := 0.9.1
 
 # clean-build root directory (absolute path)
 # note: override the value, if it was accidentally set in the project configuration makefile
-# note: a project normally uses its own variable with the same value (CBLD_ROOT) for referencing clean-build files
+# note: a project normally uses its own variable with the same value (e.g. CBLD_ROOT) for referencing clean-build files
 override cb_dir := $(abspath $(dir $(lastword $(MAKEFILE_LIST)))..)
 
 # include functions library
@@ -84,7 +84,7 @@ $(error incompatible clean-build version: $(clean_build_version), project needs:
 endif
 
 # CBLD_BUILD - directory of built artifacts - must be defined prior including this makefile
-# note: we need non-recursive (simple) value to create simple variables: cb_def_bin_dir, cb_def_lib_dir, etc.
+# note: we need non-recursive (simple) value of CBLD_BUILD to create simple variables: cb_def_bin_dir, cb_def_lib_dir, etc.
 # note: override the value, if it was accidentally set in the project configuration makefile
 override cb_build := $(abspath $(CBLD_BUILD))
 
@@ -102,7 +102,6 @@ cb_needed_dirs:=
 
 # save configuration to $(CBLD_CONFIG) makefile as result of predefined 'config' goal
 include $(cb_dir)/core/confsup.mk
-
 
 # clean-build always sets default values for the variables, to override these defaults
 #  by the ones specified in the project configuration makefile, use the 'override' directive
