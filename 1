@@ -65,7 +65,7 @@ config:       export override E := 5
 config:       export F = 6
 config:       cb_config_exported_vars := E F
 
-cb_project_vars := A C F
+cb_project_vars := A C
 
 config2: A := 1
 config2: override B := 2
@@ -77,4 +77,3 @@ config2: cb_config_exported_vars := E F
 
   override A := $A
   override C := $C
-- override F = $F
