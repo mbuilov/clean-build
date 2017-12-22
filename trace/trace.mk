@@ -262,7 +262,7 @@ check_if_traced = $(filter \
 #   name            - macro name
 #   b1;b2;b3;$$1;b4 - names of variables to dump before traced call
 #   e1;e2           - names of variables to dump after traced call
-trace_calls = $(eval $(foreach :,$1,$(foreach =,$(firstword $(subst =, ,$:)),$(if \
+trace_calls = $(eval $(foreach :,$(subst ==,=;=,$1),$(foreach =,$(firstword $(subst =, ,$:)),$(if \
   $(findstring undefined,$(origin $=)),,$(if $(call check_if_traced,$=),,$(call \
   trace_calls_template,$=,$(call encode_traced_var_name,$=),$(if $(findstring command line,$(origin $=)),override,$(findstring \
   override,$(origin $=))),$(subst ;, ,$(word 2,$(subst =, ,$:))),$(subst ;, ,$(word 3,$(subst =, ,$:)))))))))
