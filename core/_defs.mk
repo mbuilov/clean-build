@@ -108,54 +108,7 @@ include $(cb_dir)/core/confsup.mk
 $(foreach =,$(cb_project_vars),$(eval override $(if $(findstring simple,$(flavor \
   $=)),$$=:=$$($$=),define $$=$(newline)$(value $=)$(newline)endef)))
 
-
-
-
-
-
-
-
-# in clean-build, variables are always initialized with default values, but the project configuration makefile,
-#  which have included this makefile, may manifest other default values - redefine them with the 'override' keyword
-# note: SHELL variable is not changed by the clean-build, so do not need to override it by the value from the project
-#  configuration makefile
-$(foreach =,$(filter-out MAKEFLAGS CURDIR SHELL MAKEFILE_LIST .DEFAULT_GOAL %.^e,$(.VARIABLES)),$(if \
-  $(findstring file,$(origin $=)),$(eval override $(if $(findstring simple,$(flavor $=)),$$=:=$$($$=),define $$=$(newline)$(subst $(backslash),$$(backslash),$(value $=))$(newline)endef))))
-
-
-$(eval $(foreach v,$(filter-out $(cb_env),$(cb_project_vars)),override $(if $(findstring simple,$(flavor \
-  $v)),$v:=$$($v),define $v$(newline)$(subst $(backslash),$$(backslash),$(value $v))$(newline)endef)$(newline)))
-
-# to restore environment variables from the generated $(cb_config) makefile,
-#  do not redefine with the 'override' keyword some of restored variables
-# note: if 'cb_env' was restored from the $(cb_config) makefile, it's $(origin) is the 'override'
-ifeq (override,$(origin cb_env))
-
-# undefine 'new' environment variables - that were not present in the environment at the time of $(cb_config) makefile generation
-ifneq (,$(filter undefine,$(.FEATURES)))
-$(foreach v,$(filter-out cb_env $(cb_env) cb_project_vars $(cb_project_vars),$(.VARIABLES)),$(if \
-  $(findstring environment,$(origin $v)),$(eval undefine $v)))
-else
-$(foreach v,$(filter-out cb_env $(cb_env) cb_project_vars $(cb_project_vars),$(.VARIABLES)),$(if \
-  $(findstring environment,$(origin $v)),$(eval $v=$$(error environment variable '$v' is new and must be unset))))
-endif
-
-endif
-
-
-  
-else
-cb_env := $(foreach v,$(filter-out cb_project_vars $(cb_project_vars),$(.VARIABLES)),$(if \
-  $(findstring environment,$(origin $v)),$v))
-endif
-
-
-
-
-
-
-
-# include variables protection module - define cb_check, cb_trace, set_global and other macros
+# include variables protection module - define cb_checking, cb_tracing, set_global, env_update and other macros
 include $(cb_dir)/core/protection.mk
 
 cb_target_makefile
@@ -965,7 +918,7 @@ $(call SET_GLOBAL,cb_project_vars \
 ifndef TOCLEAN
 $(call SET_GLOBAL,TOCLEAN,0)
 else
-$(call SET_GLOBAL,TOCLEAN=;=CLEAN)
+$(call SET_GLOBAL,TOCLEAN==CLEAN)
 endif
 
 # auxiliary macros

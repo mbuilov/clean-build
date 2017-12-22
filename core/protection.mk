@@ -7,42 +7,46 @@
 # this file is included by $(cb_dir)/core/_defs.mk, after including $(cb_dir)/core/functions.mk and $(cb_dir)/trace/trace.mk
 # define macros for variables protection from accidental changes in target makefiles
 
-# run via $(MAKE) C=1 to check makefiles
+# run via $(MAKE) C=1 to check the makefiles
 ifeq (command line,$(origin C))
-MCHECK := $(C:0=)
-# command-line variables are exported by default, but do not pollute environment variables of sub-processes
-unexport C
+cb_checking := $(C:0=)
 else
-MCHECK:=
+cb_checking:=
 endif
 
 # run via $(MAKE) T=1 to trace clean-build macros (most of them)
 ifeq (command line,$(origin T))
-MTRACE := $(T:0=)
+cb_tracing := $(T:0=)
 else
-MTRACE:=
+cb_tracing:=
 endif
 
-ifdef MTRACE
+ifdef cb_checking
+# now all project-defined variables have the 'override' attribute - protect these variables
+# note: filter-out %.^e - saved environment variables (see $(cb_dir)/stub/prepare.mk)
+$(eval cb_target_makefile += $$(call set_global,$(foreach =,$(filter-out \
+  %.^e $(dump_max),$(.VARIABLES)),$(if $(findstring override,$(flavor $=)),$=))))
+endif
 
-# list of macros that are should not be traced
-#  (like counters - modified via operator +=, or variables used in ifdefs)
-NON_TRACEABLE_VARS ?=
+ifdef cb_tracing
 
-# namespaces to trace, e.g. O P F T
+# list of macros those tracing is disabled
+CBLD_NON_TRACEABLE_VARS ?=
+
+# namespaces to trace, e.g.: functions config
 # empty by default - trace all namespaces
-CBBS_TRACE_FILTER ?=
+CBLD_TRACE_FILTER ?=
 
-# namespaces to not trace, e.g. O P F T
+# namespaces to not trace, e.g.: functions config
 # empty by default - trace all namespaces
-CBBS_TRACE_FILTER_OUT ?=
+CBLD_TRACE_FILTER_OUT ?=
 
 # check if cannot trace variables of given namespace
 # $1 - optional namespace name
-cb_check_cannot_trace = $(if $1,$(or $(filter $(CBBS_TRACE_FILTER_OUT),$1),$(if \
-  $(CBBS_TRACE_FILTER),$(filter-out $(CBBS_TRACE_FILTER),$1))),1)
+cb_check_cannot_trace = $(if $1,$(or $(filter $(CBLD_TRACE_FILTER_OUT),$1),$(if \
+  $(CBLD_TRACE_FILTER),$(filter-out $(CBLD_TRACE_FILTER),$1))),1)
 
-ifdef MCHECK
+ifdef cb_checking
 
 # patch trace_calls macro so that it will protect redefined traced macros if it they
 #  were protected or it's specifically requested to protect them
@@ -56,42 +60,43 @@ $(eval trace_calls = $(subst :$(close_brace)$(close_brace)$(close_brace)$(close_
 # note: do not pass second parameter to set_global1 to not try to trace already traced macro
 trace_calls_template += $(if $(or $6,$(filter $1,$(cb_protected_vars))),$(newline)$(call set_global1,$1))
 
-endif # MCHECK
-endif # MTRACE
+endif # cb_checking
+endif # cb_tracing
 
 # protect macros from modifications in target makefiles or just trace calls to these macros
 # $1 - list of the names of the macros to protect/trace, in format:
 #  AAA=b1;b2;$$1=e1;e2 BBB=b1;b2=e1;e2;... (see description of trace_calls macro)
 #  note: list must be without names of variables to dump if not tracing - i.e. $2 is empty:
 # $2 - optional namespace name, if not specified, then do not trace calls for given macros
+#  (applicable for counters - modified via operator +=, or variables used in ifdefs)
 set_global = $(eval $(set_global1))
 
 # get value of a macro protected via set_global
 # $1 - macro name
 # note: macro may be traced, get the real (i.e. non-traced) value of the macro
-ifdef MTRACE
+ifdef cb_tracing
 get_global = $(value $(if $(check_if_traced),$(encode_traced_var_name),$1))
 else
 get_global = $(value $1)
 endif
 
-ifndef MCHECK
-ifndef MTRACE
+ifndef cb_checking
+ifndef cb_tracing
 
 # reset if not tracing/checking
 set_global:=
 set_global1:=
 
-else # MTRACE
+else # cb_tracing
 
 # trace calls to macros
 # $1 - list: AAA=b1;b2;$$1=e1;e2 BBB=b1;b2=e1;e2;...
 # $2 - optional namespace name, if not specified, then do not trace calls for given macros
 set_global2 = $(if $1,$$(call trace_calls,$(subst $$,$$$$,$1)))
 set_global1 = $(if $(call cb_check_cannot_trace,$2),,$(call \
-  set_global2,$(filter-out $(NON_TRACEABLE_VARS) $(NON_TRACEABLE_VARS:==%),$1)))
+  set_global2,$(filter-out $(CBLD_NON_TRACEABLE_VARS) $(CBLD_NON_TRACEABLE_VARS:==%),$1)))
 
-endif # MTRACE
+endif # cb_tracing
 
 # reset
 cb_reset_first_phase:=
@@ -102,7 +107,7 @@ cb_check_at_tail:=
 # list of first-phase variables - these are will be reset before the rule-execution second phase
 cb_first_phase_vars:=
 
-else # MCHECK
+else # cb_checking
 
 # list of clean-build protected variables
 cb_protected_vars:=
@@ -126,19 +131,20 @@ endef
 # set_global1 - protect macros from modification in target makefiles or just trace calls to macros
 # $1 - list: AAA=b1;b2;$$1=e1;e2 BBB=b1;b2=e1;e2;... (must be without names of variables to dump if not tracing - i.e. $2 is empty)
 # $2 - optional namespace name, if not specified, then do not trace calls for given macros
-# note: if MCHECK is defined and $2 is empty, expansion of $(call set_global1,...) must add an empty line at
+# note: if cb_checking is defined and $2 is empty, expansion of $(call set_global1,...) must add an empty line at
 #  end of expansion - $(cb_dir)/core/_defs.mk accounts on this
 # 1.                                                       $(call set_global1,v) = just protect v, do not trace it
 # 2.                            $(call trace_calls,v)                            = trace unprotected v
 # 3.                            $(call trace_calls,v)   -> $(call set_global1,v) = trace protected v, protect new v
 # 4. $(call set_global1,v,n) -> $(call trace_calls,v,!) -> $(call set_global1,v) = protect v and trace it
-ifdef MTRACE
-set_global5 = $(if $1,$$(warning override global: $1))
-set_global4 = $(call set_global5,$(filter $1,$(cb_protected_vars)))$(cb_protect_vars2)
+ifdef cb_tracing
+set_global5 = $(if $1,$(call dump_vars,$1,override global: ))
+set_global4 = $(call set_global5,$(foreach =,$(filter $1,$(cb_protected_vars)),$(if $(call \
+  neq,$(call cb_encode_var_value,$=),$(value $(cb_encode_var_name))),$=)))$(cb_protect_vars2)
 set_global3 = $(if $1,$$(call trace_calls,$(subst $$,$$$$,$1),!))
 set_global2 = $(if $1,$(call set_global4,$(foreach =,$1,$(firstword $(subst =, ,$=)))))$(call set_global3,$(filter-out $1,$2))
 set_global1 = $(if $(call cb_check_cannot_trace,$2),$(set_global4),$(call \
-  set_global2,$(filter $(NON_TRACEABLE_VARS) $(NON_TRACEABLE_VARS:==%),$1),$1))
+  set_global2,$(filter $(CBLD_NON_TRACEABLE_VARS) $(CBLD_NON_TRACEABLE_VARS:==%),$1),$1))
 else
 set_global1 = $(call cb_protect_vars2,$(foreach =,$1,$(firstword $(subst =, ,$=))))
 endif
@@ -157,12 +163,12 @@ cb_reset_local_var = $(if $(filter !$$$(open_brace)error$$(space)%,$(subst \
 #  redefine non-protected (i.e. "local") variables to produce access errors
 # note: do not touch GNU Make automatic variables (automatic, but, for example, $(origin CURDIR) gives 'file')
 # note: do not reset %.^s variables here - they are needed for restore_vars macro, which will reset them
+# note: do not reset %.^e variables - saved environment variables (see $(cb_dir)/stub/prepare.mk)
 # note: do not reset trace variables %.^l, %.^t and protected variables %.^p
-# note: do not touch automatic/default and $(dump_max) variables
-# note: exported variables (environment and command-line variables) must be protected, so will not reset them
+# note: do not touch automatic/default/environment/command-line and $(dump_max) variables
 cb_reset_local_vars = $(foreach =,$(filter-out \
   CURDIR GNUMAKEFLAGS MAKECMDGOALS MAKEFILE_LIST MAKELEVEL MAKEOVERRIDES .SHELLSTATUS .DEFAULT_GOAL \
-  $(cb_protected_vars) %.^l %.^t %.^p %.^s $(dump_max),$(.VARIABLES)),$(if \
+  $(cb_protected_vars) %.^s %.^e %.^l %.^t %.^p $(dump_max),$(.VARIABLES)),$(if \
   $(filter file override,$(origin $=)),$(cb_reset_local_var)))
 
 # called by restore_vars macro to reset %.^s variables
@@ -211,16 +217,16 @@ endef
 # protect variables from modifications in target makefiles
 # note: do not trace calls to these macros
 # note: cb_target_makefile variable is used here temporary and will be redefined later
-cb_target_makefile += $(call set_global,MCHECK MTRACE NON_TRACEABLE_VARS CBBS_TRACE_FILTER CBBS_TRACE_FILTER_OUT \
+cb_target_makefile += $(call set_global,cb_checking cb_tracing CBLD_NON_TRACEABLE_VARS CBBS_TRACE_FILTER CBBS_TRACE_FILTER_OUT \
   cb_check_cannot_trace set_global get_global set_global1 cb_reset_first_phase cb_reset_saved_vars cb_check_at_head cb_check_at_tail \
   cb_protected_vars cb_encode_var_value cb_encode_var_name cb_protect_vars2 set_global5 set_global4 set_global3 set_global2 \
   cb_var_access_err cb_reset_local_var cb_reset_local_vars cb_check_protected_var)
 
 # these macros must not be used in rule execution second phase
-cb_first_phase_vars := MCHECK MTRACE NON_TRACEABLE_VARS CBBS_TRACE_FILTER CBBS_TRACE_FILTER_OUT \
+cb_first_phase_vars := cb_checking cb_tracing CBLD_NON_TRACEABLE_VARS CBBS_TRACE_FILTER CBBS_TRACE_FILTER_OUT \
   cb_check_cannot_trace set_global set_global1 cb_reset_first_phase cb_reset_saved_vars cb_check_at_head cb_check_at_tail \
   cb_protected_vars cb_encode_var_value cb_encode_var_name cb_protect_vars2 set_global5 set_global4 set_global3 set_global2 \
   cb_reset_local_var cb_reset_local_vars cb_check_protected_var \
   cb_first_phase_vars temporary_overridden cb_need_tail_code cb_target_makefile
 
-endif # MCHECK
+endif # cb_checking
