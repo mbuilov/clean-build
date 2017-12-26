@@ -14,7 +14,8 @@
 # +- my_project/
 #   +- make/
 #   |  |- project.mk    (modified copy of this file)
-#   |  |- overrides.mk  (support for 'config' goal and processing of PROJ_OVERRIDES variable)
+#   |  |- prepare.mk    (preparation for project configuration)
+#   |  |- overrides.mk  (support for 'config' goal and processing of CBLD_OVERRIDES variable)
 #   |  |- submakes.mk   (support for sub-makefiles)
 #   |  |- c.mk          (support for building C/C++ sources)
 #   |  ...
@@ -28,19 +29,19 @@
 # the only case when variable 'top' get overridden - after completing project configuration
 ifneq (override,$(origin top))
 
-# save values of the environment variables, define 'clean_build_required_version' variable
+# remember values of the environment variables, define 'clean_build_required_version' variable
 include $(dir $(lastword $(MAKEFILE_LIST)))prepare.mk
 
 # top - project root directory
 # Note: 'top' may be used in the target makefiles for referencing sources, other makefiles, project include paths, etc.
 # Note: define 'top' according to the project directory structure shown above - path to 'my_project' folder
-# Note: variable 'top' is not used by the core clean-build makefiles
+# Note: variable 'top' is not used by the clean-build makefiles
 override top := $(abspath $(dir $(lastword $(MAKEFILE_LIST)))..)
 
 # CBLD_BUILD - path to the directory where artifacts (object files, libraries, executables, etc.) are created
 # Note: this variable is required by the clean-build and must be defined prior including core clean-build files
 # Note: $(CBLD_BUILD) directory is automatically created by the clean-build when building targets and automatically
-#  deleted by the predefined 'distclean' goal
+#  deleted by the clean-build predefined 'distclean' goal
 # Note: CBLD_BUILD may be defined as a macro, for example:
 #  CBLD_BUILD=/tmp/builds/$(notdir $(top))
 CBLD_BUILD ?= $(top)/build
@@ -59,14 +60,22 @@ product_vendor_copyright := Copyright (C) 2018 Unkown Company/Author
 # format: major.minor.patch
 product_version := 1.0.0
 
+# Note: to export project variable, add it to the 'project_exported_vars' list, e.g.:
+#  export MY_VAR := my_value
+#  project_exported_vars := MY_VAR
+
 # Note: may pre-define other clean-build macros here - predefined values will override default ones, e.g:
 #  project_supported_targets := DEVEL PRODUCTION
 
-# include core clean-build definitions, processing of the CBLD_CONFIG and PROJ_OVERRIDES variables,
+# include core clean-build definitions, processing of the CBLD_CONFIG and CBLD_OVERRIDES variables,
 #  check that the CBLD_ROOT variable - path to the clean-build - is defined
 include $(dir $(lastword $(MAKEFILE_LIST)))overrides.mk
 
 # Note: may redefine core clean-build macros here, e.g.:
 #  $(call define_prepend,cb_def_head_code,$$(info target makefile: $$(cb_target_makefile)))
+
+# Note: if some project variables may be taken from the environment (like PROJ_VAR ?= default value), add those
+#  variables to the generated configuration makefile $(CBLD_CONFIG) here:
+# $(call config_remember_vars,PROJ_VAR)
 
 endif # top

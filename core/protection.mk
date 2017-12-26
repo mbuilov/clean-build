@@ -21,11 +21,14 @@ else
 cb_tracing:=
 endif
 
-ifdef cb_checking
-# now all project-defined variables have the 'override' attribute - protect these variables
+ifneq (,$(cb_checking)$(cb_tracing))
+# now all project-defined variables (except exported) have the 'override' attribute - protect these variables from modification
+# note: trace namespace: project
+# note: filter-out clean-build private variables: clean_build_version, cb_dir, cb_build and $(dump_max)
 # note: filter-out %.^e - saved environment variables (see $(cb_dir)/stub/prepare.mk)
-$(eval cb_target_makefile += $$(call set_global,$(foreach =,$(filter-out \
-  %.^e $(dump_max),$(.VARIABLES)),$(if $(findstring override,$(flavor $=)),$=))))
+# note: 'cb_target_makefile' variable is used here temporary and will be redefined later
+$(eval cb_target_makefile += $$(call set_global,$(foreach =,$(filter-out clean_build_version cb_dir cb_build \
+  $(dump_max) %.^e,$(.VARIABLES)),$(if $(findstring override,$(flavor $=)),$=)),project))
 endif
 
 ifdef cb_tracing
@@ -64,20 +67,28 @@ endif # cb_checking
 endif # cb_tracing
 
 # protect macros from modifications in target makefiles or just trace calls to these macros
-# $1 - list of the names of the macros to protect/trace, in format:
+# $1 - list of macro names for protection/tracking, in format:
 #  AAA=b1;b2;$$1=e1;e2 BBB=b1;b2=e1;e2;... (see description of trace_calls macro)
 #  note: list must be without names of variables to dump if not tracing - i.e. $2 is empty:
 # $2 - optional namespace name, if not specified, then do not trace calls for given macros
 #  (applicable for counters - modified via operator +=, or variables used in ifdefs)
 set_global = $(eval $(set_global1))
 
-# get value of a macro protected via set_global
+# get the value of a macro protected via set_global
 # $1 - macro name
 # note: macro may be traced, get the real (i.e. non-traced) value of the macro
 ifdef cb_tracing
 get_global = $(value $(if $(check_if_traced),$(encode_traced_var_name),$1))
 else
 get_global = $(value $1)
+endif
+
+# remember new values of the variables possibly defined in the environment
+# $1 - list of variable names
+ifdef cb_checking
+env_remember = $(eval $(foreach =,$1,$(if $(findstring file,$(origin $=.^e)),$$=.^e:=$$(value $$=)$(newline)))$(set_global1))
+else
+env_remember:=
 endif
 
 ifndef cb_checking
@@ -179,7 +190,7 @@ cb_reset_saved_vars = $(foreach =,$(filter %.^s,$(.VARIABLES)),$$(call cb_var_ac
 cb_reset_first_phase = $(cb_reset_local_vars)$(foreach =,$(cb_first_phase_vars) cb_var_access_err,$(cb_reset_local_var))
 
 # reset "local" variables, check and set cb_need_tail_code - $(cb_def_tail_code) must be evaluated after $(cb_def_head_code)
-# note: reset temporary_overridden - it may be set before $(cb_def_tail_code)
+# note: reset temporary_overridden variable - it may be set before $(cb_def_tail_code)
 # note: expansion of $(call set_global1,cb_need_tail_code) gives an empty line at end of expansion
 define cb_check_at_head
 $(if $(cb_need_tail_code),$(error $$(define_targets) was not evaluated at end of $(cb_need_tail_code)!))$(cb_reset_local_vars)
@@ -187,29 +198,45 @@ cb_need_tail_code := $(cb_target_makefile)
 $(call set_global1,cb_need_tail_code)temporary_overridden:=
 endef
 
-# macro to check if a value of clean-build protected variable $x was changed in target makefile
-# $1 - encoded name of variable $=
-# note: use $(value) function to get a value of variable $1 - variable is simple,
-#  but its name may be non-standard, e.g. CommonProgramFiles(x86)
+# check if an environment variable was accidentally overwritten
+# note: use the $(value) function to get a value of variable $= - its name may be non-standard, e.g. CommonProgramFiles(x86)
+# note: first line must be empty
+define cb_check_env_var
+
+ifneq ($$(value $=),$$(value $=.^e))
+$$(warning environment variable $= was overwritten:$$(newline)--- old value:$$(newline)$$(value \
+  $=.^e)$$(newline)+++ new value:$$(newline)$$(value $=)$$(newline)tip: \
+  use 'env_remember' function to remember a new value of the environment variable$$(newline))
+endif
+endef
+
+# check if a value of the clean-build protected variable $= was changed in the target makefile
+# $1 - encoded name of the variable $=
+# note: use the $(value) function to get a value of variable $1 - variable is simple, but its name may be
+#  non-standard, e.g. CommonProgramFiles(x86)
 # note: first line must be empty
 define cb_check_protected_var
 
 ifneq ($$(value $1),$$(call cb_encode_var_value,$=))
 ifeq (,$$(filter $=,$$(temporary_overridden)))
 $$(error $= value was changed:$$(newline)--- old value:$$(newline)$$(value \
-  $1)$$(newline)+++ new value:$$(newline)$$(call cb_encode_var_value,$=)$$(newline))
+  $1)$$(newline)+++ new value:$$(newline)$$(call cb_encode_var_value,$=)$$(newline)tip: \
+  use 'set_global' function to set a new value for the global variable$$(newline))
 endif
 endif
 endef
 
-# check that values of protected variables are not changed
+# check that values of protected variables were not changed,
+# check that environment variables were not accidentally overwritten - their values are saved in $(cb_dir)/stub/prepare.mk
 # note: error is suppressed (only once) if variable name is specified in $(temporary_overridden)
 # note: cb_need_tail_code is cleared after the checks to mark that $(cb_def_tail_code) was evaluated
 # note: $(cb_dir)/core/_submakes.mk calls $(cb_def_tail_code) with $1=@
+# TODO: simplify: $$(if $$(cb_need_tail_code)...
 define cb_check_at_tail
 $(if $1,$$(if $$(cb_need_tail_code),$$(error \
   $$$$(define_targets) was not evaluated at end of $$(cb_need_tail_code))),$(if \
   $(cb_need_tail_code),,$(error $$(cb_def_head_code) was not evaluated at head of makefile!)))$(foreach \
+  =,$(patsubst %.^e,%,$(filter %.^e,$(.VARIABLES))),$(cb_check_env_var))$(foreach \
   =,$(cb_protected_vars),$(call cb_check_protected_var,$(cb_encode_var_name)))
 cb_need_tail_code:=
 endef
@@ -217,16 +244,18 @@ endef
 # protect variables from modifications in target makefiles
 # note: do not trace calls to these macros
 # note: cb_target_makefile variable is used here temporary and will be redefined later
-cb_target_makefile += $(call set_global,cb_checking cb_tracing CBLD_NON_TRACEABLE_VARS CBBS_TRACE_FILTER CBBS_TRACE_FILTER_OUT \
-  cb_check_cannot_trace set_global get_global set_global1 cb_reset_first_phase cb_reset_saved_vars cb_check_at_head cb_check_at_tail \
-  cb_protected_vars cb_encode_var_value cb_encode_var_name cb_protect_vars2 set_global5 set_global4 set_global3 set_global2 \
-  cb_var_access_err cb_reset_local_var cb_reset_local_vars cb_check_protected_var)
+cb_target_makefile += $(call set_global,cb_checking cb_tracing CBLD_NON_TRACEABLE_VARS CBLD_TRACE_FILTER CBLD_TRACE_FILTER_OUT \
+  cb_check_cannot_trace set_global get_global env_remember set_global1 cb_reset_first_phase cb_reset_saved_vars \
+  cb_check_at_head cb_check_at_tail cb_protected_vars cb_encode_var_value cb_encode_var_name cb_protect_vars2 \
+  set_global5 set_global4 set_global3 set_global2 \
+  cb_var_access_err cb_reset_local_var cb_reset_local_vars cb_check_env_var cb_check_protected_var)
 
 # these macros must not be used in rule execution second phase
-cb_first_phase_vars := cb_checking cb_tracing CBLD_NON_TRACEABLE_VARS CBBS_TRACE_FILTER CBBS_TRACE_FILTER_OUT \
-  cb_check_cannot_trace set_global set_global1 cb_reset_first_phase cb_reset_saved_vars cb_check_at_head cb_check_at_tail \
-  cb_protected_vars cb_encode_var_value cb_encode_var_name cb_protect_vars2 set_global5 set_global4 set_global3 set_global2 \
-  cb_reset_local_var cb_reset_local_vars cb_check_protected_var \
+cb_first_phase_vars := cb_checking cb_tracing CBLD_NON_TRACEABLE_VARS CBLD_TRACE_FILTER CBLD_TRACE_FILTER_OUT \
+  cb_check_cannot_trace set_global env_remember set_global1 cb_reset_first_phase cb_reset_saved_vars \
+  cb_check_at_head cb_check_at_tail cb_protected_vars cb_encode_var_value cb_encode_var_name cb_protect_vars2 \
+  set_global5 set_global4 set_global3 set_global2 \
+  cb_reset_local_var cb_reset_local_vars cb_check_env_var cb_check_protected_var \
   cb_first_phase_vars temporary_overridden cb_need_tail_code cb_target_makefile
 
 endif # cb_checking

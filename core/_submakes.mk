@@ -6,7 +6,7 @@
 
 # support for processing sub-makefiles
 
-# Note: $(CLEAN_BUILD_DIR)/core/_defs.mk must be included prior this file
+# Note: $(cb_dir)/core/_defs.mk must be included prior this file
 
 # name of file to look for if makefile is specified by directory path
 DEFAULT_MAKEFILE_NAME := Makefile
@@ -90,7 +90,7 @@ ADD_ADEPS = $(call ADD_MDEPS1,$(filter-out $(ORDER_DEPS),$(patsubst %,MAKEFILE_A
 # $(TARGET_MAKEFILE) is built if all $1 makefiles are built
 # note: $(TARGET_MAKEFILE)- and other order-dependent makefile names - are .PHONY targets
 # note: use order-only dependency, so normal dependencies of $(TARGET_MAKEFILE)-
-#  will be only files - for the checks in $(CLEAN_BUILD_DIR)/core/all.mk
+#  will be only files - for the checks in $(cb_dir)/core/all.mk
 $(call define_prepend,CB_INCLUDE_SUBMAKES,.PHONY: $$(addsuffix \
   -,$$1)$(newline)$$(TARGET_MAKEFILE)-:| $$(addsuffix -,$$1)$(newline))
 
@@ -112,13 +112,13 @@ endif # clean && MDEBUG
 # to not define variable 1 for next processed makefiles, this macro must
 # be expanded by explicit $(call PROCESS_SUBMAKES_EVAL) without arguments
 # note: call DEF_TAIL_CODE with @ - for the checks in CB_CHECK_AT_TAIL macro
-#  (which is defined in $(CLEAN_BUILD_DIR)/core/protection.mk)
+#  (which is defined in $(cb_dir)/core/protection.mk)
 # note: process result of DEF_TAIL_CODE with separate $(eval) - for the checks performed while expanding $(eval argument)
 PROCESS_SUBMAKES_EVAL = $(eval $(value CB_SUBMAKES_CODE))$(eval $(call DEF_TAIL_CODE,@))
 
 # generate code for including and processing given list of makefiles $1 - in $(CB_SUBMAKES_CODE),
 #  then evaluate it via call without parameters - to hide $1 argument from makefiles
-# at end, check if need to include $(CLEAN_BUILD_DIR)/core/all.mk
+# at end, check if need to include $(cb_dir)/core/all.mk
 # note: make absolute paths to makefiles to include
 PROCESS_SUBMAKES = $(eval define CB_SUBMAKES_CODE$(newline)$(call \
   CB_INCLUDE_SUBMAKES,$(NORM_MAKEFILES),$(TOOL_MODE))$(newline)endef)$(call PROCESS_SUBMAKES_EVAL)
@@ -152,7 +152,7 @@ $(call SET_GLOBAL,CB_FIRST_PHASE_VARS,0)
 
 # protect variables from modifications in target makefiles
 # note: do not complain about new ADD_MDEPS and ADD_ADEPS values
-# - replace ADD_MDEPS and ADD_ADEPS values defined in $(CLEAN_BUILD_DIR)/core/_defs.mk with new ones
+# - replace ADD_MDEPS and ADD_ADEPS values defined in $(cb_dir)/core/_defs.mk with new ones
 $(call SET_GLOBAL,DEFAULT_MAKEFILE_NAME MAKEFILE_PATTERNS NORM_MAKEFILES CB_INCLUDE_TEMPLATE=ORDER_DEPS;m \
   CB_INCLUDE_SUBMAKES ADD_MDEPS1 ADD_MDEPS=ORDER_DEPS=ORDER_DEPS ADD_ADEPS=ORDER_DEPS=ORDER_DEPS \
   PROCESS_SUBMAKES_EVAL=CB_SUBMAKES_CODE PROCESS_SUBMAKES PROCESS_SUBMAKES_PREPARE)

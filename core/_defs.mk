@@ -100,7 +100,8 @@ endif
 # note: cb_needed_dirs is never cleared, only appended
 cb_needed_dirs:=
 
-# save configuration to $(CBLD_CONFIG) makefile as result of predefined 'config' goal
+# add support for generation of $(CBLD_CONFIG) configuration makefile as result of predefined 'config' goal,
+#  adjust cb_project_vars value, define config_remember_vars macro
 include $(cb_dir)/core/confsup.mk
 
 # clean-build always sets default values for the variables, to override these defaults
@@ -108,130 +109,103 @@ include $(cb_dir)/core/confsup.mk
 $(foreach =,$(cb_project_vars),$(eval override $(if $(findstring simple,$(flavor \
   $=)),$$=:=$$($$=),define $$=$(newline)$(value $=)$(newline)endef)))
 
-# include variables protection module - define cb_checking, cb_tracing, set_global, env_update and other macros
+# include variables protection module - define cb_checking, cb_tracing, set_global, get_global, env_remember and other macros
 include $(cb_dir)/core/protection.mk
 
-cb_target_makefile
+# protect from modification macros defined in the $(cb_dir)/core/functions.mk, $(cb_dir)/core/confsup.mk and $(cb_dir)/core/protection.mk
+# note: 'cb_target_makefile' variable is used here temporary, it will be properly defined below
+$(cb_target_makefile)
 
 # list of clean-build supported goals
-# note: may be updated if necessary in makefiles processed later
-CLEAN_BUILD_GOALS := all config clean distclean check tests
-
-# protect from modification macros defined in $(cb_dir)/core/functions.mk
-# note: here TARGET_MAKEFILE variable is used here temporary, it will be properly defined below
-$(TARGET_MAKEFILE)
-
-# protect from modification project-specific variables
-$(call SET_GLOBAL,$(cb_project_vars))
+# note: may be updated if necessary in the makefiles processed later
+project_goals := all config clean distclean check tests
 
 # list of project-supported target types
 # note: normally these defaults are overridden in project configuration makefile
-SUPPORTED_TARGETS := DEBUG RELEASE
+project_supported_targets := DEBUG RELEASE
 
-# what target type to build (DEBUG, RELEASE, TESTS, etc.)
-# note: normally TARGET get overridden by specifying it in command line
-TARGET := RELEASE
-
-# TARGET must be non-recursive (simple), because it is used to create simple variable TARGET_TRIPLET
-override TARGET := $(TARGET)
-
-# do not try to determine OS value if it is already defined (in project configuration makefile or in command line)
-ifeq (,$(filter-out undefined environment,$(origin OS)))
+# what target type to build (DEBUG, RELEASE, etc.)
+# note: normally CBLD_TARGET get overridden by specifying it in the command line
+CBLD_TARGET ?= RELEASE
 
 # operating system we are building for (WIN7, DEBIAN6, SOLARIS10, etc.)
-# note: normally OS get overridden by specifying it in command line
-# note: OS value may affect default values of other variables (TCPU, UTILS, etc.)
+# note: normally CBLD_OS get overridden by specifying it in the command line
+# note: CBLD_OS value may affect default values of other variables (CBLD_TCPU, CBLD_UTILS, etc.)
 ifneq (,$(filter /cygdrive/%,$(CURDIR)))
-OS := CYGWIN
+CBLD_OS ?= CYGWIN
 else ifneq (environment,$(origin OS))
-OS := $(call toupper,$(shell uname))
+CBLD_OS ?= $(call toupper,$(shell uname))
 else ifeq (Windows_NT,$(OS))
-OS := WINDOWS
+CBLD_OS ?= WINDOWS
 else
 # unknown, should be defined in project configuration makefile or in command line
-OS:=
+CBLD_OS ?=
 endif
 
-# remember autoconfigured OS value
-$(call CONFIG_REMEMBER_VARS,OS)
-
-endif # !OS
-
-# OS must be non-recursive (simple), because it is used to create simple variable TARGET_TRIPLET
-override OS := $(OS)
-
-# do not try to determine TCPU value if it is already defined (in project configuration makefile or in command line)
-ifeq (,$(filter-out undefined environment,$(origin TCPU)))
-
-# TCPU - processor architecture of build helper tools created while the build
-# note: TCPU likely is the native processor architecture of the build toolchain
+# CBLD_TCPU - processor architecture of build helper tools created while the build
+# note: CBLD_TCPU likely is the native processor architecture of the build toolchain
 # note: equivalent of '--build' Gnu Autoconf configure script option
-# note: TCPU specification may also encode format of executable files, e.g. TCPU=m68k-coff, it is checked by the C compiler
-# note: normally TCPU get overridden by specifying it in command line
-ifndef OS
-TCPU := x86
-else ifeq (,$(filter WIN%,$(OS)))
-TCPU := $(shell uname -m)
+# note: CBLD_TCPU specification may also encode format of executable files, e.g. CBLD_TCPU=m68k-coff, it is checked by the C compiler
+# note: normally CBLD_OS get overridden by specifying it in command line
+ifndef CBLD_OS
+CBLD_TCPU ?= x86
+else ifeq (,$(filter WIN%,$(CBLD_OS)))
+CBLD_TCPU ?= $(shell uname -m)
 else ifeq (AMD64,$(if $(findstring environment,$(origin PROCESSOR_ARCHITECTURE)),$(PROCESSOR_ARCHITECTURE)))
 # win64
-TCPU := x86_64
+CBLD_TCPU ?= x86_64
 else ifeq (AMD64,$(if $(findstring environment,$(origin PROCESSOR_ARCHITEW6432)),$(PROCESSOR_ARCHITEW6432)))
 # wow64
-TCPU := x86_64
+CBLD_TCPU ?= x86_64
 else
 # win32
-TCPU := x86
+CBLD_TCPU ?= x86
 endif
 
-# remember autoconfigured TCPU value
-$(call CONFIG_REMEMBER_VARS,TCPU)
-
-endif # TCPU
-
-# TCPU variable must be non-recursive (simple), because it is used to create simple variable TOOL_OVERRIDE_DIRS
-override TCPU := $(TCPU)
-
-# CPU - processor architecture we are building the package for (x86, sparc64, armv5, mips24k, etc.)
+# CBLD_CPU - processor architecture we are building the package for (x86, sparc64, armv5, mips24k, etc.)
 # note: equivalent of '--host' Gnu Autoconf configure script option
-# note: CPU specification may also encode format of executable files, e.g. CPU=m68k-coff, it is checked by the C compiler
-# note: normally CPU get overridden by specifying it in command line
-CPU := $(TCPU)
+# note: CBLD_CPU specification may also encode format of executable files, e.g. CBLD_CPU=m68k-coff, it is checked by the C compiler
+# note: normally CBLD_CPU get overridden by specifying it in command line
+CBLD_CPU ?= $(CBLD_TCPU)
 
-# CPU must be non-recursive (simple), because it is used to create simple variable TARGET_TRIPLET
-override CPU := $(CPU)
+# CBLD_UTILS - flavor of system shell utilities (such as cp, mv, rm, etc.)
+# note: $(CBLD_UTILS) value is used only to form name of standard makefile with definitions of shell utilities
+# note: normally CBLD_UTILS get overridden by specifying it in command line, for example: CBLD_UTILS:=gnu
+CBLD_UTILS ?= $(if \
+  $(filter WIN%,$(CBLD_OS)),cmd,$(if \
+  $(filter CYG% LIN%,$(CBLD_OS)),gnu,unix))
 
-# UTILS - flavor of system shell utilities (such as cp, mv, rm, etc.)
-# note: $(UTILS) value is used only to form name of standard makefile with definitions of shell utilities
-# note: normally UTILS get overridden by specifying it in command line, for example: UTILS:=gnu
-UTILS := $(if \
-  $(filter WIN%,$(OS)),cmd,$(if \
-  $(filter CYG% LIN%,$(OS)),gnu,unix))
+# remember value of CBLD_BUILD if it was taken from the environment (in the project configuration makefile - $(cb_dir)/stub/project.mk)
+# note: else, if CBLD_BUILD was not taken from the environment - CBLD_BUILD should be already stored for the generated configuration
+#  makefile as a project variable
+# note: remember autoconfigured variables: CBLD_TARGET, CBLD_OS, CBLD_TCPU, CBLD_TCPU and CBLD_UTILS
+$(call config_remember_vars,CBLD_BUILD CBLD_TARGET CBLD_OS CBLD_TCPU CBLD_CPU CBLD_UTILS)
 
-# UTILS_MK - makefile with definitions of shell utilities
-UTILS_MK := $(cb_dir)/utils/$(UTILS).mk
+# utils_mk - makefile with definitions of shell utilities
+utils_mk := $(cb_dir)/utils/$(CBLD_UTILS).mk
 
-ifeq (,$(wildcard $(UTILS_MK)))
-$(error file $(UTILS_MK) was not found, check value of UTILS_MK variable)
+ifeq (,$(wildcard $(utils_mk)))
+$(error file $(utils_mk) was not found, check value of 'utils_mk' variable)
 endif
 
-# check that TARGET is correctly defined only if goal is not distclean
+# check that CBLD_TARGET is correctly defined only if goal is not 'distclean'
 ifeq (,$(filter distclean,$(MAKECMDGOALS)))
 
 # what target type to build
-ifeq (,$(filter $(TARGET),$(SUPPORTED_TARGETS)))
-$(error unknown TARGET=$(TARGET), please pick one of: $(SUPPORTED_TARGETS))
+ifeq (,$(filter $(CBLD_TARGET),$(project_supported_targets)))
+$(error unknown CBLD_TARGET=$(CBLD_TARGET), please pick one of: $(project_supported_targets))
 endif
 
 else # distclean
 
 ifneq (,$(word 2,$(MAKECMDGOALS)))
-$(error distclean goal must be specified alone, current goals: $(MAKECMDGOALS))
+$(error 'distclean' goal must be specified alone, current goals: $(MAKECMDGOALS))
 endif
 
-# provide default definition of distclean goal
-NO_CLEAN_BUILD_DISTCLEAN_TARGET:=
+# provide default definition of 'distclean' goal
+CBLD_NO_DISTCLEAN_TARGET ?=
 
-ifndef NO_CLEAN_BUILD_DISTCLEAN_TARGET
+ifeq (,$(CBLD_NO_DISTCLEAN_TARGET))
 
 # define distclean goal - delete all built artifacts, including directories
 # note: DELETE_DIRS macro defined in included below $(UTILS_MK) file
@@ -885,7 +859,7 @@ NO_DEPS := $(filter clean,$(MAKECMDGOALS))
 CB_FIRST_PHASE_VARS += BIN_DIR OBJ_DIR LIB_DIR GEN_DIR
 
 # makefile parsing first phase variables
-CB_FIRST_PHASE_VARS += CLEAN_BUILD_GOALS cb_needed_dirs ORDER_DEPS CB_INCLUDE_LEVEL \
+CB_FIRST_PHASE_VARS += project_goals cb_needed_dirs ORDER_DEPS CB_INCLUDE_LEVEL \
   PROCESSED_MAKEFILES MAKE_CONT SET_DEFAULT_DIRS TOOL_OVERRIDE_DIRS ADD_MDEPS ADD_ADEPS ADD_WHAT_MAKEFILE_BUILDS \
   CREATE_MAKEFILE_ALIAS ADD_ORDER_DEPS NEED_GEN_DIRS STD_TARGET_VARS1 CHECK_GENERATED_AT STD_TARGET_VARS \
   MAKEFILE_INFO_TEMPL SET_MAKEFILE_INFO ADD_GENERATED ADD_GENERATED_RET \
@@ -893,7 +867,7 @@ CB_FIRST_PHASE_VARS += CLEAN_BUILD_GOALS cb_needed_dirs ORDER_DEPS CB_INCLUDE_LE
 
 # protect macros from modifications in target makefiles,
 # do not trace calls to macros used in ifdefs, exported to the environment of called tools or modified via operator +=
-$(call SET_GLOBAL,MAKEFLAGS CLEAN_BUILD_GOALS PATH SHELL CB_FIRST_PHASE_VARS \
+$(call SET_GLOBAL,MAKEFLAGS project_goals PATH SHELL CB_FIRST_PHASE_VARS \
   cb_needed_dirs NO_CLEAN_BUILD_DISTCLEAN_TARGET DEBUG VERBOSE QUIET INFOMF MDEBUG \
   SHOWN_PERCENTS SHOWN_REMAINDER ADD_SHOWN_PERCENTS CLEAN \
   ORDER_DEPS CB_INCLUDE_LEVEL PROCESSED_MAKEFILES MAKE_CONT NO_DEPS,0)
@@ -926,3 +900,16 @@ include $(cb_dir)/core/sdeps.mk
 include $(cb_dir)/core/nonpar.mk
 include $(cb_dir)/core/multi.mk
 include $(cb_dir)/core/runtool.mk
+
+# TARGET must be non-recursive (simple), because it is used to create simple variable TARGET_TRIPLET
+override TARGET := $(TARGET)
+
+# OS must be non-recursive (simple), because it is used to create simple variable TARGET_TRIPLET
+override OS := $(OS)
+
+# TCPU variable must be non-recursive (simple), because it is used to create simple variable TOOL_OVERRIDE_DIRS
+override TCPU := $(TCPU)
+
+# CPU must be non-recursive (simple), because it is used to create simple variable TARGET_TRIPLET
+override CPU := $(CPU)
+

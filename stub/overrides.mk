@@ -6,8 +6,8 @@
 
 # original file: $(CBLD_ROOT)/stub/overrides.mk
 # description:   core clean-build definitions,
-#                processing of the CBLD_CONFIG and PROJ_OVERRIDES variables,
-#                check that the CBLD_ROOT variable is defined
+#                processing of the CBLD_CONFIG and CBLD_OVERRIDES variables,
+#                checking that the CBLD_ROOT variable is defined
 
 # Note: This file should be copied AS IS to the directory of the project build system
 # Note: This file should be included at end of the project configuration makefile (e.g. 'project.mk')
@@ -26,23 +26,25 @@ include $(CBLD_CONFIG)
 else # !CBLD_CONFIG
 
 # else process optional makefile with the overrides of the project defaults set in the project configuration makefile
-#  - override variables like compiler flags, etc. by the definitions in the $(PROJ_OVERRIDES) makefile
-# Note: PROJ_OVERRIDES may be defined as a macro, for example:
-#  PROJ_OVERRIDES=/overrides/$(notdir $(top)).mk
-PROJ_OVERRIDES ?=
+#  - override variables like compiler flags, etc. by the definitions in the $(CBLD_OVERRIDES) makefile
+# Note: CBLD_OVERRIDES may be defined as a macro, for example:
+#  CBLD_OVERRIDES=/overrides/$(notdir $(top)).mk
+# Note: variable 'CBLD_OVERRIDES' is not used by the core clean-build makefiles
+CBLD_OVERRIDES ?=
 
-ifneq (,$(PROJ_OVERRIDES))
-ifeq (,$(wildcard $(PROJ_OVERRIDES)))
-$(error file does not exist: $(PROJ_OVERRIDES))
+ifneq (,$(CBLD_OVERRIDES))
+ifeq (,$(wildcard $(CBLD_OVERRIDES)))
+$(error file does not exist: $(CBLD_OVERRIDES))
 endif
-include $(PROJ_OVERRIDES)
+include $(CBLD_OVERRIDES)
 endif
 
 endif # !CBLD_CONFIG
 
 # CBLD_ROOT - path to the clean-build build system
-# Note: normally CBLD_ROOT is defined in the command line, but may be taken from the environment or specified in
-#  the optional $(PROJ_OVERRIDES) makefile
+# Note: normally CBLD_ROOT is defined in the command line, but may be taken from the environment or specified in the
+#  optional $(CBLD_OVERRIDES) makefile
+# Note: variable 'CBLD_ROOT' is not used by the core clean-build makefiles
 ifndef CBLD_ROOT
 $(error CBLD_ROOT - path to clean-build (https://github.com/mbuilov/clean-build) is not defined,\
  example: CBLD_ROOT=/usr/local/clean-build or CBLD_ROOT=C:\User\clean-build)
@@ -53,3 +55,7 @@ ifeq (,$(wildcard $(CBLD_ROOT)/core/_defs.mk))
 $(error clean-build files are not found under CBLD_ROOT=$(CBLD_ROOT))
 endif
 include $(CBLD_ROOT)/core/_defs.mk
+
+# save CBLD_ROOT value in the generated configuration makefile $(CBLD_CONFIG) - for the case if CBLD_ROOT is defined
+#  in the environment (command-line and file-defined variables are saved automatically)
+$(call config_remember_vars,CBLD_ROOT)

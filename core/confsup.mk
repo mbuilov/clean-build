@@ -6,31 +6,33 @@
 
 # helper macro used to remember autoconfigured variables in the generated configuration makefile
 # $1 - names of the macros
-# $2 - 'export' if macros should be forcibly exported, empty - otherwise
-cb_config_remember_vars:=
+# $2 - non-empty if macros should be forcibly exported, empty - otherwise
+# $3 - non-empty if macros should be saved again (likely with a new value)
+config_remember_vars:=
 
-ifeq (file,$(origin cb_config_exported_vars))
+ifeq (file,$(origin project_exported_vars))
 
-# if cb_config_exported_vars was restored from the $(CBLD_CONFIG) makefile, simulate environment variables:
+# if project_exported_vars was restored from the $(CBLD_CONFIG) makefile, simulate environment variables:
 #  do not add the 'override' attribute to 'file' variables marked as exported in the $(CBLD_CONFIG) makefile
-cb_project_vars := $(filter-out cb_config_exported_vars $(cb_config_exported_vars),$(cb_project_vars))
+cb_project_vars := $(filter-out project_exported_vars $(project_exported_vars),$(cb_project_vars))
 
-ifdef cb_config_exported_vars
+ifdef project_exported_vars
 
+# variables in $(project_exported_vars) may legally overwrite environment variables
+# note: %.^e - saved environment variables (see $(cb_dir)/stub/prepare.mk)
 ifeq (command line,$(origin C))
 ifeq (1,$C)
-# variables in $(cb_config_exported_vars) may legally overwrite environment variables
-# note: %.^e - saved environment variables (see $(cb_dir)/stub/prepare.mk)
-$(foreach =,$(cb_config_exported_vars),$(if $(findstring file,$(origin $=^.e)),$(eval $$=^.e:=$$(value $$=))))
+$(foreach =,$(project_exported_vars),$(if $(findstring file,$(origin $=^.e)),$(eval $$=^.e:=$$(value $$=))))
 endif
 endif
 
-# also, variables in $(cb_config_exported_vars) must be protected, like environment variables
+# also, variables in $(project_exported_vars) must be protected - they are will not be protected together with the
+#  project variables because $(project_exported_vars) list was filtered-out from the $(cb_project_vars)
 # note: 'cb_target_makefile' variable is used here temporary and will be redefined later
-$(eval cb_target_makefile += $$(call set_global,$(cb_config_exported_vars)))
+$(eval cb_target_makefile += $$(call set_global,$(project_exported_vars)))
 
-endif # cb_config_exported_vars
-endif # cb_config_exported_vars
+endif # defined: project_exported_vars
+endif # file:    project_exported_vars
 
 ifneq (,$(filter config,$(MAKECMDGOALS)))
 
@@ -42,10 +44,10 @@ endif
 .PHONY: config
 
 # list of variables marked as 'exported' in the generated $(CBLD_CONFIG) makefile
-# note: cb_config_exported_vars may be already defined either in the project configuration makefile (modified
+# note: project_exported_vars may be already defined either in the project configuration makefile (modified
 #  version of the $(cb_dir)/stub/project.mk) or restored from the $(CBLD_CONFIG) makefile
-ifneq (file,$(origin cb_config_exported_vars))
-cb_config_exported_vars:=
+ifneq (file,$(origin project_exported_vars))
+project_exported_vars:=
 endif
 
 # encode a value of the variable $=
@@ -63,52 +65,60 @@ cb_config_remember_var = $(if $(findstring simple,$(flavor $v)),$= := $$(empty)$
 
 # save current configuration:
 # 1) command-line variables (exported by default)
-# 2) variable PATH, likely exported - if it's origin is 'environment' or the PATH is in $(cb_config_exported_vars) list
+# 2) variable PATH, likely exported - if it's origin is 'environment' or the PATH is in $(project_exported_vars) list
 # 3) project-defined variables - those $(origin) is 'override' or the variable name is in $(cb_project_vars) list -
-#  some of variables may be defined by the one-time included 'overrides' makefile (e.g. $(PROJ_OVERRIDES))
+#  some of variables may be defined by the one-time included 'overrides' makefile (e.g. $(CBLD_OVERRIDES))
 # note: once $(CBLD_CONFIG) makefile has been generated, variables defined in it may be altered only via command-line variables
-# note: save current values of variables to the target-specific variable config_text - variables may be overridden later
+# note: project_exported_vars - will be saved at end of generated $(CBLD_CONFIG) makefile
+
+# list of variables stored in the 'config_text'
+cb_config_saved_vars := $(sort $(foreach =,$(filter-out SHELL GNUMAKEFLAGS clean_build_version cb_dir cb_build CBLD_CONFIG \
+  $(dump_max) %.^e,$(.VARIABLES)),$(if $(or $(findstring command line,$(origin $=)),$(findstring override,$(origin \
+  $=))),$=)) $(project_exported_vars) $(cb_project_vars))
+
+# note: save current values of variables to the target-specific variable config_text - variables may be overwritten later
 # note: ignore auto-defined variables: SHELL, GNUMAKEFLAGS, clean_build_version, cb_dir, cb_build, CBLD_CONFIG, $(dump_max)
 # note: filter-out %.^e - saved environment variables (see $(cb_dir)/stub/prepare.mk)
-# note: cb_config_exported_vars - will be saved at end of generated $(CBLD_CONFIG) makefile
 config: config_text := define newline$(newline)$(newline)$(newline)endef$(newline)newline:= $$(newline)$(newline)comment:= \
   \$(comment)$(newline)empty:=$(newline)backslash:= \\$(comment)$(newline)keyword_define:= define$(newline)keyword_endef:= \
-  endef$(newline)$(foreach =,$(filter-out SHELL GNUMAKEFLAGS clean_build_version cb_dir cb_build CBLD_CONFIG \
-  $(dump_max) %.^e,$(.VARIABLES)),$(if $(or $(findstring command line,$(origin $=)),$(if $(findstring override,$(origin \
-  $=)),$(filter $=,$(cb_config_exported_vars)))),ifneq (command line,$$(origin $=))$(newline)export override \
-  $(cb_config_remember_var)endif$(newline),$(if $(findstring override,$(origin $=)),override $(cb_config_remember_var),$(if $(filter \
-  $=,$(cb_config_exported_vars)),export $(cb_config_remember_var),$(if $(filter $=,$(cb_project_vars)),$(cb_config_remember_var),$(if \
-  $(filter PATH,$=),$(if $(findstring environment,$(origin PATH)),export $(cb_config_remember_var))))))))
+  endef$(newline)$(foreach =,$(cb_config_saved_vars),$(if $(or $(findstring command line,$(origin $=)),$(if $(findstring \
+  override,$(origin $=)),$(filter $=,$(project_exported_vars)))),ifneq (command line,$$(origin $=))$(newline)export override \
+  $(cb_config_remember_var)endif$(newline),$(if $(findstring override,$(origin $=)),override ,$(if \
+  $(filter $=,$(project_exported_vars)),export ))$(cb_config_remember_var)))
 
 # add command-line variables to the list of exported variables
 # note: filter-out %.^e - saved environment variables (see $(cb_dir)/stub/prepare.mk)
-cb_config_exported_vars += $(foreach =,$(filter-out GNUMAKEFLAGS %.^e,$(.VARIABLES)),$(if $(findstring command line,$(origin $=)),$=))
+project_exported_vars += $(foreach =,$(cb_config_saved_vars),$(if $(findstring command line,$(origin $=)),$=))
 
-# remember if PATH is exported
-ifneq (,$(findstring environment,$(origin PATH)))
-cb_config_exported_vars += PATH
-endif
-
-# finally define helper macro used to remember autoconfigured variables in the generated configuration makefile:
-#  if variable is defined in the environment, save it as exported, else, if variable must be exported, pass the second parameter
+# finally define helper macro used to remember autoconfigured variables in the generated configuration makefile
 # $1 - names of the macros
-# $2 - 'export' if macros should be forcibly exported, empty - otherwise
-# note: command-line variables are already saved
-cb_config_remember_vars = $(eval config: config_text += $$(foreach =,$$1,$$(if $$(findstring command line,$$(origin $$=)),,$$(if \
-  $$2,$$(if $$(findstring override,$$(origin $$=)),ifneq (command line,$$$$(origin $$=))$$(newline)export override \
-  $$(cb_config_remember_var)endif$$(newline),export $$(cb_config_remember_var)),$$(if $$(findstring environment,$$(origin \
-  $$=)),export )$$(cb_config_remember_var)))))$(eval cb_config_exported_vars += $(if $2,$$1,$$(foreach \
-  =,$$1,$$(if $$(findstring environment,$$(origin $$=)),$$=))))$(call set_global,cb_config_exported_vars)
+# $2 - non-empty if macros should be forcibly exported, empty - otherwise
+# $3 - non-empty if macros should be saved again (likely with a new value)
+# note: if a variable is defined in the environment, it is saved as exported
+# note: command-line variables are already saved, so filter them out
+# note: variables in the list $1 _must_ be defined
+# note: exported variables added to the project_exported_vars list permanently
+config_remember_vars = $(call config_remember_vars1,$(if $3,$(foreach =,$1,$(if $(findstring \
+  command line,$(origin $=)),,$=)),$(filter-out $(cb_config_saved_vars),$1)),$2)
+config_remember_vars1 = $(if $1,$(config_remember_vars2))
+config_remember_vars2 = $(eval config: config_text += $$(foreach =,$$1,$$(if $$2,$$(if $$(findstring override,$$(origin \
+  $$=)),ifneq (command line,$$$$(origin $$=))$$(newline)export override $$(cb_config_remember_var)endif$$(newline),export \
+  $$(cb_config_remember_var)),$$(if $$(findstring environment,$$(origin $$=)),export )$$(cb_config_remember_var))))$(eval \
+  project_exported_vars += $(if $2,$$1,$$(foreach =,$$1,$$(if $$(findstring environment,$$(origin $$=)),$$=))))$(eval \
+  cb_config_saved_vars += $$1)$(call set_global,project_exported_vars cb_config_saved_vars)
 
-# temporary define, to be able to call cb_config_remember_vars until set_global is finally defined in the $(cb_dir)/core/protection.mk
+# temporary define, to be able to call config_remember_vars until set_global is finally defined in the $(cb_dir)/core/protection.mk
 set_global:=
+
+# remember PATH value in the generated configuration makefile
+PATH ?=
 
 # write by that number of lines at a time while generating configuration makefile
 # note: with too many lines it is possible to exceed maximum command string length
 CBLD_CONFIG_WRITE_BY_LINES ?= 10
 
-# remember CBLD_CONFIG_WRITE_BY_LINES in the $(CBLD_CONFIG) makefile
-$(call cb_config_remember_vars,CBLD_CONFIG_WRITE_BY_LINES)
+# remember PATH and CBLD_CONFIG_WRITE_BY_LINES in the $(CBLD_CONFIG) makefile
+$(call config_remember_vars,PATH CBLD_CONFIG_WRITE_BY_LINES)
 
 # generate configuration makefile
 # note: suppress - defined in $(cb_dir)/core/_defs.mk
@@ -119,8 +129,8 @@ config: F.^ := $(abspath $(firstword $(MAKEFILE_LIST)))
 config: C.^ :=
 config: cf := $(abspath $(CBLD_CONFIG))
 config:| $(abspath $(dir $(CBLD_CONFIG)))
-	$(call suppress,GEN,$(cf),,1)$(call write_text,$(config_text)cb_config_exported_vars := $(sort \
-  $(cb_config_exported_vars)),$(cf),$(CBLD_CONFIG_WRITE_BY_LINES))
+	$(call suppress,GEN,$(cf),,1)$(call write_text,$(config_text)project_exported_vars := $(sort \
+  $(project_exported_vars)),$(cf),$(CBLD_CONFIG_WRITE_BY_LINES))
 
 # if $(CBLD_CONFIG) makefile is generated under the $(cb_build), create that directory automatically,
 # else - $(CBLD_CONFIG) makefile is outside of $(cb_build), configuration makefile directory must be created manually
@@ -136,9 +146,9 @@ endif # config
 # protect variables from modification in target makefiles
 # note: do not trace calls to these macros
 # note: 'cb_target_makefile' variable is used here temporary and will be redefined later
-cb_target_makefile += $(call set_global,cb_config_exported_vars CBLD_CONFIG_WRITE_BY_LINES)
+cb_target_makefile += $(call set_global,project_exported_vars cb_config_saved_vars PATH CBLD_CONFIG_WRITE_BY_LINES)
 
 # protect variables from modification in target makefiles
 # note: trace namespace: config
 # note: 'cb_target_makefile' variable is used here temporary and will be redefined later
-cb_target_makefile += $(call set_global,cb_config_remember_vars cb_config_remember_var,config)
+cb_target_makefile += $(call set_global,config_remember_vars cb_config_remember_var config_remember_vars1 config_remember_vars2,config)
