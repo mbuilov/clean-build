@@ -14,12 +14,12 @@
 
 # Conventions:
 #  1) variables in lower case are always initialized with default values and _never_ taken from the environment,
-#  2) clean-build internal macros are prefixed with 'cb_',
+#  2) clean-build internal macros are prefixed with 'cb_' (except some common names, possibly redefined for the project),
 #  3) user variables and parameters for build templates should also be in lower case,
 #  4) variables in UPPER case _may_ be taken from the environment or command line,
 #  5) clean-build specific variables that may be taken from the environment are in UPPER case and prefixed with 'CBLD_',
-#  6) to initialize a variable, possibly defined in the environment, always use operator ?= - to not override the variable,
-#  7) ifdef/ifndef should only be used with previously initialized variables.
+#  6) default values for variables from the environment should be set via operator ?= - to not override values passed to sub-processes,
+#  7) ifdef/ifndef should only be used with the previously initialized variables.
 
 ifeq (,$(MAKE_VERSION))
 $(error MAKE_VERSION is not defined, ensure you are using GNU Make of version 3.81 or later)
@@ -59,13 +59,11 @@ cb_project_vars := $(strip $(foreach =,$(filter-out SHELL MAKEFLAGS CURDIR MAKEF
   %.^e CBLD_CONFIG CBLD_BUILD,$(.VARIABLES),$(if $(findstring file,$(origin $=)),$=))))
 
 # clean-build version: major.minor.patch
-# note: override the value, if it was accidentally set in the project configuration makefile
-override clean_build_version := 0.9.1
+clean_build_version := 0.9.1
 
 # clean-build root directory (absolute path)
-# note: override the value, if it was accidentally set in the project configuration makefile
 # note: a project normally uses its own variable with the same value (e.g. CBLD_ROOT) for referencing clean-build files
-override cb_dir := $(abspath $(dir $(lastword $(MAKEFILE_LIST)))..)
+cb_dir := $(abspath $(dir $(lastword $(MAKEFILE_LIST)))..)
 
 # include functions library
 # note: assume project configuration makefile will not try to override macros defined in $(cb_dir)/core/functions.mk,
@@ -84,9 +82,8 @@ $(error incompatible clean-build version: $(clean_build_version), project needs:
 endif
 
 # CBLD_BUILD - directory of built artifacts - must be defined prior including this makefile
-# note: we need non-recursive (simple) value of CBLD_BUILD to create simple variables: cb_def_bin_dir, cb_def_lib_dir, etc.
-# note: override the value, if it was accidentally set in the project configuration makefile
-override cb_build := $(abspath $(CBLD_BUILD))
+# note: we need non-recursive (simple) value of CBLD_BUILD to create simple variables: def_bin_dir, def_lib_dir, etc.
+cb_build := $(abspath $(CBLD_BUILD))
 
 ifndef cb_build
 $(error CBLD_BUILD - path to directory of built artifacts is not defined, example: C:/opt/project/build or /home/oper/project/build)
@@ -97,11 +94,11 @@ $(error CBLD_BUILD='$(cb_build)', path to directory of built artifacts must not 
 endif
 
 # needed directories - clean-build will create them in $(cb_dir)/core/all.mk
-# note: cb_needed_dirs is never cleared, only appended
+# note: 'cb_needed_dirs' is never cleared, only appended
 cb_needed_dirs:=
 
 # add support for generation of $(CBLD_CONFIG) configuration makefile as result of predefined 'config' goal,
-#  adjust cb_project_vars value, define config_remember_vars macro
+#  adjust values of 'cb_project_vars' and 'project_exported_vars' variables, define 'config_remember_vars' macro
 include $(cb_dir)/core/confsup.mk
 
 # clean-build always sets default values for the variables, to override these defaults
@@ -109,16 +106,13 @@ include $(cb_dir)/core/confsup.mk
 $(foreach =,$(cb_project_vars),$(eval override $(if $(findstring simple,$(flavor \
   $=)),$$=:=$$($$=),define $$=$(newline)$(value $=)$(newline)endef)))
 
-# include variables protection module - define cb_checking, cb_tracing, set_global, get_global, env_remember and other macros
+# include variables protection module - define 'cb_checking', 'cb_tracing', 'set_global', 'get_global', 'env_remember' and other macros
+# protect from changes project variables - which have the 'override' $(origin) and exported variables in the $(project_exported_vars)
 include $(cb_dir)/core/protection.mk
 
 # protect from modification macros defined in the $(cb_dir)/core/functions.mk, $(cb_dir)/core/confsup.mk and $(cb_dir)/core/protection.mk
 # note: 'cb_target_makefile' variable is used here temporary, it will be properly defined below
 $(cb_target_makefile)
-
-# list of clean-build supported goals
-# note: may be updated if necessary in the makefiles processed later
-project_goals := all config clean distclean check tests
 
 # list of project-supported target types
 # note: normally these defaults are overridden in project configuration makefile
@@ -138,7 +132,7 @@ CBLD_OS ?= $(call toupper,$(shell uname))
 else ifeq (Windows_NT,$(OS))
 CBLD_OS ?= WINDOWS
 else
-# unknown, should be defined in project configuration makefile or in command line
+# unknown, should be defined in the project configuration makefile or in the command line
 CBLD_OS ?=
 endif
 
@@ -177,18 +171,44 @@ CBLD_UTILS ?= $(if \
 
 # remember value of CBLD_BUILD if it was taken from the environment (in the project configuration makefile - $(cb_dir)/stub/project.mk)
 # note: else, if CBLD_BUILD was not taken from the environment - CBLD_BUILD should be already stored for the generated configuration
-#  makefile as a project variable
-# note: remember autoconfigured variables: CBLD_TARGET, CBLD_OS, CBLD_TCPU, CBLD_TCPU and CBLD_UTILS
+#  makefile as a project variable (in the $(cb_dir)/core/confsup.mk)
+# note: remember autoconfigured variables: CBLD_TARGET, CBLD_OS, CBLD_TCPU, CBLD_TCPU and CBLD_UTILS (if they are not defined as project
+#  variables and so not already saved in the $(cb_dir)/core/confsup.mk)
 $(call config_remember_vars,CBLD_BUILD CBLD_TARGET CBLD_OS CBLD_TCPU CBLD_CPU CBLD_UTILS)
 
-# utils_mk - makefile with definitions of shell utilities
+# 'utils_mk' - makefile with the definitions of shell utilities
 utils_mk := $(cb_dir)/utils/$(CBLD_UTILS).mk
 
 ifeq (,$(wildcard $(utils_mk)))
-$(error file $(utils_mk) was not found, check value of 'utils_mk' variable)
+$(error file '$(utils_mk)' was not found, check $(if $(findstring file,$(origin \
+  utils_mk)),values of CBLD_OS=$(CBLD_OS) and CBLD_UTILS=$(CBLD_UTILS),value of overridden 'utils_mk' variable))
 endif
 
-# check that CBLD_TARGET is correctly defined only if goal is not 'distclean'
+# run via $(MAKE) D=1 to debug makefiles
+ifeq (command line,$(origin D))
+cb_mdebug := $(D:0=)
+else
+# don't debug makefiles by default
+cb_mdebug:=
+endif
+
+ifdef cb_mdebug
+$(call dump_vars,CBLD_BUILD CBLD_CONFIG CBLD_TARGET CBLD_OS CBLD_TCPU CBLD_CPU CBLD_UTILS cb_dir cb_build utils_mk,,)
+endif
+
+# list of build system supported goals
+# note: may be updated if necessary in the makefiles processed later
+build_system_goals := all config clean check tests
+
+# 'no_clean_build_distclean_goal' may be set to non-empty value in the project configuration makefile to disable
+#  clean-build defined 'distclean' goal
+no_clean_build_distclean_goal:=
+
+ifndef no_clean_build_distclean_goal
+build_system_goals += distclean
+endif
+
+# check that CBLD_TARGET is correctly defined only if goal is not 'distclean' (else do not require that CBLD_TARGET must be defined)
 ifeq (,$(filter distclean,$(MAKECMDGOALS)))
 
 # what target type to build
@@ -202,610 +222,519 @@ ifneq (,$(word 2,$(MAKECMDGOALS)))
 $(error 'distclean' goal must be specified alone, current goals: $(MAKECMDGOALS))
 endif
 
-# provide default definition of 'distclean' goal
-CBLD_NO_DISTCLEAN_TARGET ?=
+ifndef no_clean_build_distclean_goal
 
-ifeq (,$(CBLD_NO_DISTCLEAN_TARGET))
-
-# define distclean goal - delete all built artifacts, including directories
-# note: DELETE_DIRS macro defined in included below $(UTILS_MK) file
+# define 'distclean' goal - delete all built artifacts, including directories
+# note: 'delete_dirs' macro is defined in the included below $(utils_mk) makefile
 distclean:
-	$(QUIET)$(call DELETE_DIRS,$(CB_BUILD))
+	$(quiet)$(call delete_dirs,$(cb_build))
 
-endif # !NO_CLEAN_BUILD_DISTCLEAN_TARGET
+endif # !no_clean_build_distclean_goal
 
 endif # distclean
 
-# to simplify target makefiles, define DEBUG variable:
-# $(DEBUG) is non-empty for debugging targets like "PROJECTD" or "DEBUG"
-DEBUG := $(filter DEBUG %D,$(TARGET))
+# define 'verbose' and 'quiet' constants, 'suppress' function and other macros
+include $(cb_dir)/core/suppress.mk
 
-# run via $(MAKE) V=1 for commands echoing and verbose output
-ifeq (command line,$(origin V))
-VERBOSE := $(V:0=)
-else
-# don't echo executed commands by default
-VERBOSE:=
-endif
-
-# @ in non-verbose build
-QUIET := $(if $(VERBOSE),,@)
-
-# run via $(MAKE) M=1 to print makefile name the target comes from
-ifeq (command line,$(origin M))
-INFOMF := $(M:0=)
-else
-# don't print makefile names by default
-INFOMF:=
-endif
-
-# run via $(MAKE) D=1 to debug makefiles
-ifeq (command line,$(origin D))
-MDEBUG := $(D:0=)
-else
-# don't debug makefiles by default
-MDEBUG:=
-endif
-
-ifdef MDEBUG
-$(call dump_vars,cb_dir CB_BUILD CB_CONFIG TARGET OS TCPU CPU UTILS_MK,,)
-endif
-
-# colorize printed percents
-# note: $(cb_dir)/utils/cmd.mk redefines: PRINT_PERCENTS = [$1]
-PRINT_PERCENTS = [34m[[1;34m$1[34m][m
-
-# print in color short name of called tool $1 with argument $2
-# $1 - tool
-# $2 - argument
-# $3 - if empty, then colorize argument
-# note: $(cb_dir)/utils/cmd.mk redefines: COLORIZE = $1$(padto)$2
-COLORIZE = $($1_COLOR)$1[m$(padto)$(if $3,$2,$(join $(dir $2),$(addsuffix [m,$(addprefix $($1_COLOR),$(notdir $2)))))
-
-# SUP: suppress output of executed build tool, print some pretty message instead, like "CC  source.c"
-# target-specific: F.^, C.^
-# $1 - tool
-# $2 - tool arguments
-# $3 - if empty, then colorize argument of called tool
-# $4 - if empty, then try to update percents of executed makefiles
-# note: ADD_SHOWN_PERCENTS is checked in $(cb_dir)/core/all.mk, so must always be defined
-# note: ADD_SHOWN_PERCENTS and FORMAT_PERCENTS - are used at second phase, after parsing of the makefiles,
-#  so no need to protect new values of SHOWN_PERCENTS and SHOWN_REMAINDER
-ifeq (,$(filter distclean clean,$(MAKECMDGOALS)))
-ifdef QUIET
-SHOWN_PERCENTS:=
-SHOWN_REMAINDER:=
-# general formula: percents = current*100/total
-# but we need percents value incrementally: 0*100/total, 1*100/total, 2*100/total, ...
-# so just remember previous percent value and remainder of prev*100/total:
-# 1) current = 0, percents0 = 0, remainder0 = 0
-# 2) current = 1, percents1 = int(100/total), remainder1 = rem(100/total)
-# 3) current = 2, percents2 = percents1 + int((remainder1 + 100)/total), remainder2 = rem((remainder1 + 100)/total)
-# 4) current = 3, percents3 = percents2 + int((remainder2 + 100)/total), remainder3 = rem((remainder2 + 100)/total)
-# ...
-# note: TARGET_MAKEFILES_COUNT and TARGET_MAKEFILES_COUNT1 are defined in $(cb_dir)/core/all.mk
-ADD_SHOWN_PERCENTS = $(if $(word $(TARGET_MAKEFILES_COUNT),$1),+ $(call \
-  ADD_SHOWN_PERCENTS,$(wordlist $(TARGET_MAKEFILES_COUNT1),999999,$1)),$(newline)SHOWN_REMAINDER:=$1)
-# prepare for printing percents of processed makefiles
-FORMAT_PERCENTS = $(subst |,,$(subst \
-  |0%,00%,$(subst \
-  |1%,01%,$(subst \
-  |2%,02%,$(subst \
-  |3%,03%,$(subst \
-  |4%,04%,$(subst \
-  |5%,05%,$(subst \
-  |6%,06%,$(subst \
-  |7%,07%,$(subst \
-  |8%,08%,$(subst \
-  |9%,09%,$(subst \
-  |100%,FIN,|$(words $(SHOWN_PERCENTS))%))))))))))))
-# don't update percents if $(F.^) has been already shown
-# else remember makefile $(F.^), then try to increment total percents count
-define REM_MAKEFILE
-$$(F.^):=1
-SHOWN_PERCENTS += $(call ADD_SHOWN_PERCENTS,$(SHOWN_REMAINDER) \
-1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 \
-1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1)
-endef
-ifdef INFOMF
-SUP = $(info $(call PRINT_PERCENTS,$(if $4,,$(if $(findstring undefined,$(origin \
-  $(F.^))),$(eval $(REM_MAKEFILE))))$(FORMAT_PERCENTS))$(F.^)$(C.^):$(COLORIZE))@
-else
-SUP = $(info $(call PRINT_PERCENTS,$(if $4,,$(if $(findstring undefined,$(origin \
-  $(F.^))),$(eval $(REM_MAKEFILE))))$(FORMAT_PERCENTS))$(COLORIZE))@
-endif
-else # !QUIET
-ADD_SHOWN_PERCENTS:=
-ifdef INFOMF
-SUP = $(info $(F.^)$(C.^):)
-else
-SUP:=
-endif
-endif # !QUIET
-else  # distclean || clean
-ADD_SHOWN_PERCENTS:=
-endif # distclean || clean
+# to simplify target makefiles, define 'debug' variable:
+#  $(debug) is non-empty for debugging targets like "PROJECTD" or "DEBUG"
+debug := $(filter DEBUG %D,$(CBLD_TARGET))
 
 # base part of created directories of built artifacts, e.g. DEBUG-LINUX-x86
-TARGET_TRIPLET := $(TARGET)-$(OS)-$(CPU)
+target_triplet := $(CBLD_TARGET)-$(CBLD_OS)-$(CBLD_CPU)
 
 # output directories:
 # bin - for executables, dlls
 # lib - for libraries, shared objects
 # obj - for object files
 # gen - for generated files (headers, sources, resources, etc)
-DEF_BIN_DIR := $(CB_BUILD)/bin-$(TARGET_TRIPLET)
-DEF_OBJ_DIR := $(CB_BUILD)/obj-$(TARGET_TRIPLET)
-DEF_LIB_DIR := $(CB_BUILD)/lib-$(TARGET_TRIPLET)
-DEF_GEN_DIR := $(CB_BUILD)/gen-$(TARGET_TRIPLET)
+def_bin_dir := $(cb_build)/bin-$(target_triplet)
+def_obj_dir := $(cb_build)/obj-$(target_triplet)
+def_lib_dir := $(cb_build)/lib-$(target_triplet)
+def_gen_dir := $(cb_build)/gen-$(target_triplet)
 
-# code to eval to restore default directories after "tool mode"
-define SET_DEFAULT_DIRS
-BIN_DIR:=$(DEF_BIN_DIR)
-OBJ_DIR:=$(DEF_OBJ_DIR)
-LIB_DIR:=$(DEF_LIB_DIR)
-GEN_DIR:=$(DEF_GEN_DIR)
+# code to evaluate for restoring default directories after the "tool mode"
+define cb_set_sefault_dirs
+bin_dir:=$(def_bin_dir)
+obj_dir:=$(def_obj_dir)
+lib_dir:=$(def_lib_dir)
+gen_dir:=$(def_gen_dir)
 endef
-SET_DEFAULT_DIRS := $(SET_DEFAULT_DIRS)
 
+# base directory where build tools are built
+tool_base := $(cb_build)/tools
+
+# ensure $(tool_base) is under the $(cb_build)
+ifeq (,$(filter $(cb_build)/%,$(abspath $(tool_base))))
+$(error tool_base=$(tool_base) is not a subdirectory of cb_build=$(cb_build))
+endif
+
+# macro to form the path where tools are built
+# $1 - $(tool_base)
+# $2 - $(CBLD_TCPU)
+mk_tools_dir = $1/bin-tool-$2-$(CBLD_TARGET)
+
+# code to evaluate for overriding default directories in the "tool mode"
+define cb_tool_override_dirs
+bin_dir:=$(call mk_tools_dir,$(tool_base),$(CBLD_TCPU))
+obj_dir:=$(tool_base)/obj-tool-$(CBLD_TCPU)-$(CBLD_TARGET)
+lib_dir:=$(tool_base)/lib-tool-$(CBLD_TCPU)-$(CBLD_TARGET)
+gen_dir:=$(tool_base)/gen-tool-$(CBLD_TCPU)-$(CBLD_TARGET)
+endef
+
+# redefine 'cb_set_sefault_dirs' and 'cb_tool_override_dirs' as non-recursive variables
+ifndef set_global1
+cb_set_sefault_dirs   := $(cb_set_sefault_dirs)
+cb_tool_override_dirs := $(cb_tool_override_dirs)
+else
 # remember new values of standard directories
-ifdef SET_GLOBAL1
-SET_DEFAULT_DIRS := $(SET_DEFAULT_DIRS)$(newline)$(call SET_GLOBAL1,BIN_DIR OBJ_DIR LIB_DIR GEN_DIR)
+# note: trace namespace: dirs
+cb_set_sefault_dirs   := $(cb_set_sefault_dirs)$(newline)$(call set_global1,bin_dir obj_dir lib_dir gen_dir,dirs)
+cb_tool_override_dirs := $(cb_tool_override_dirs)$(newline)$(call set_global1,bin_dir obj_dir lib_dir gen_dir,dirs)
 endif
 
-# base directory of build tools
-TOOL_BASE := $(CB_BUILD)/tools
+# executable file suffix of the generated tools
+# note: $(cb_dir)/utils/cmd.mk defines own 'tool_suffix'
+tool_suffix:=
 
-# TOOL_BASE should be non-recursive (simple) - it is used in TOOL_OVERRIDE_DIRS
-override TOOL_BASE := $(TOOL_BASE)
-
-# ensure $(TOOL_BASE) is under $(CB_BUILD)
-ifeq (,$(filter $(CB_BUILD)/%,$(TOOL_BASE)))
-$(error TOOL_BASE=$(TOOL_BASE) is not a subdirectory of CB_BUILD=$(CB_BUILD))
-endif
-
-# where tools are built
-# $1 - $(TOOL_BASE)
-# $2 - $(TCPU)
-MK_TOOLS_DIR = $1/bin-TOOL-$2-$(TARGET)
-
-# suffix of built tools executables
-# note: $(cb_dir)/utils/cmd.mk defines own TOOL_SUFFIX
-TOOL_SUFFIX:=
-
-# get absolute paths to the tools executables
-# $1 - $(TOOL_BASE)
-# $2 - $(TCPU)
+# macro to form absolute paths to the tools executables
+# $1 - $(tool_base)
+# $2 - $(CBLD_TCPU)
 # $3 - tool name(s)
-GET_TOOLS = $(addprefix $(MK_TOOLS_DIR)/,$(addsuffix $(TOOL_SUFFIX),$3))
+get_tools = $(addprefix $(mk_tools_dir)/,$(3:=$(tool_suffix)))
 
-# get path to a tool $1 for current TOOL_BASE and TCPU
-GET_TOOL = $(call GET_TOOLS,$(TOOL_BASE),$(TCPU),$1)
+# get path to the tool $1 for the current 'tool_base' and CBLD_TCPU
+get_tool = $(call get_tools,$(tool_base),$(CBLD_TCPU),$1)
 
-# code to eval to override default directories in "tool mode"
-define TOOL_OVERRIDE_DIRS
-BIN_DIR:=$(TOOL_BASE)/bin-TOOL-$(TCPU)-$(TARGET)
-OBJ_DIR:=$(TOOL_BASE)/obj-TOOL-$(TCPU)-$(TARGET)
-LIB_DIR:=$(TOOL_BASE)/lib-TOOL-$(TCPU)-$(TARGET)
-GEN_DIR:=$(TOOL_BASE)/gen-TOOL-$(TCPU)-$(TARGET)
-endef
-TOOL_OVERRIDE_DIRS := $(TOOL_OVERRIDE_DIRS)
-
-# remember new values of standard directories
-ifdef SET_GLOBAL1
-TOOL_OVERRIDE_DIRS := $(TOOL_OVERRIDE_DIRS)$(newline)$(call SET_GLOBAL1,BIN_DIR OBJ_DIR LIB_DIR GEN_DIR)
-endif
-
-# CLEAN - list of files/directories to delete on $(MAKE) clean
-# note: CLEAN list is never cleared, only appended via TOCLEAN macro
+# 'cb_to_clean' - list of files/directories to delete on $(MAKE) clean
+# note: 'cb_to_clean' list is never cleared, only appended via toclean macro
 # note: should not be directly accessed/modified in target makefiles
-CLEAN:=
+cb_to_clean:=
 
-# TOCLEAN - function to add values to CLEAN list
-# note: do not add values to CLEAN variable if not cleaning up
+# 'toclean' - function to add values to 'cb_to_clean' list
+# note: do not add values to 'cb_to_clean' if not cleaning up
 ifeq (,$(filter clean,$(MAKECMDGOALS)))
-TOCLEAN:=
+toclean:=
 else ifneq (,$(word 2,$(MAKECMDGOALS)))
 $(error clean goal must be specified alone, current goals: $(MAKECMDGOALS))
-else ifndef CB_CHECKING
-TOCLEAN = $(eval CLEAN+=$$1)
+else ifndef cb_checking
+toclean = $(eval cb_to_clean+=$$1)
 else
-# remember new value of CLEAN, without tracing calls to it because it is incremented
-TOCLEAN = $(eval CLEAN+=$$1$(newline)$(call SET_GLOBAL1,CLEAN,0))
+# remember new value of 'cb_to_clean' list, without tracing calls to it because it's incremented
+toclean = $(eval cb_to_clean+=$$1$(newline)$(call set_global1,cb_to_clean))
 endif
 
-# absolute path to target makefile
-TARGET_MAKEFILE := $(abspath $(firstword $(MAKEFILE_LIST)))
+# absolute path to the target makefile
+cb_target_makefile := $(abspath $(firstword $(MAKEFILE_LIST)))
 
-# append makefiles (really .PHONY goals created from them) to ORDER_DEPS list
-# note: this function is useful to specify dependency on all targets built by makefiles (a tree of makefiles)
-# note: argument - list of makefiles (or directories, where Makefile is searched)
+# append makefiles (really .PHONY goals created from them) to the 'order_deps' list
+# note: this function is useful to specify dependency on all targets built by specified makefiles (a tree of makefiles)
+# note: argument - list of makefiles (or directories, where Makefile file is searched)
 # note: overridden in $(cb_dir)/core/_submakes.mk
-ADD_MDEPS:=
+add_mdeps:=
 
-# same as ADD_MDEPS, but accepts aliases of makefiles created via CREATE_MAKEFILE_ALIAS macro
+# same as 'add_mdeps', but accepts aliases of makefiles (created via 'create_makefile_alias' macro) instead of paths to makefiles
 # note: overridden in $(cb_dir)/core/_submakes.mk
-ADD_ADEPS:=
+add_adeps:=
 
-# fix template to print what makefile builds
+# macro that patches given evaluable template - to print what makefile builds
 # $1 - template name
 # $2 - expression that gives target file(s) the template builds
 # $3 - optional expression that gives order-only dependencies
 # note: expressions $2 and $3 are expanded while expanding template $1, _before_ evaluating expansion result
-ADD_WHAT_MAKEFILE_BUILDS:=
+add_what_makefile_builds:=
 
-ifndef TOCLEAN
+ifndef toclean
 
-# define a .PHONY goal which will depend on main makefile targets (registered via STD_TARGET_VARS macro)
-.PHONY: $(TARGET_MAKEFILE)-
+# define a .PHONY goal which will depend on target makefiles (registered via 'std_target_vars' macro)
+.PHONY: $(cb_target_makefile)-
 
 # default goal 'all' - depends only on the root makefile
-all: $(TARGET_MAKEFILE)-
+all: $(cb_target_makefile)-
 
 # create a .PHONY goal aliasing current makefile
 # $1 - arbitrary alias name
-CREATE_MAKEFILE_ALIAS = $(eval .PHONY: $1_MAKEFILE_ALIAS-$(newline)$1_MAKEFILE_ALIAS-: $(TARGET_MAKEFILE)-)
+create_makefile_alias = $(eval .PHONY: $1_makefile_alias-$(newline)$1_makefile_alias-: $(cb_target_makefile)-)
 
 # order-only dependencies of all leaf makefile targets
-# note: ORDER_DEPS should not be directly modified in target makefiles,
-#  use ADD_ORDER_DEPS/ADD_MDEPS/ADD_ADEPS to append value(s) to ORDER_DEPS
-ORDER_DEPS:=
+# note: 'order_deps' variable should not be directly modified in target makefiles,
+#  use 'add_order_deps/add_mdeps/add_adeps' functions to append value(s) to 'order_deps'
+order_deps:=
 
-# append value(s) to ORDER_DEPS list
-ifndef CB_CHECKING
-ADD_ORDER_DEPS = $(eval ORDER_DEPS+=$$1)
+# append value(s) to order_deps list
+ifndef cb_checking
+add_order_deps = $(eval order_deps+=$$1)
 else
-# remember new value of ORDER_DEPS, without tracing calls to it because it is incremented
-ADD_ORDER_DEPS = $(eval ORDER_DEPS+=$$1$(newline)$(call SET_GLOBAL1,ORDER_DEPS,0))
+# remember new value of 'order_deps', without tracing calls to it because it's incremented
+add_order_deps = $(eval order_deps+=$$1$(newline)$(call set_global1,order_deps))
 endif
 
-# add directories $1 to list of auto-created ones
+# add directories $1 to the list of auto-created ones - 'cb_needed_dirs'
 # note: these directories are will be auto-deleted while cleaning up
-# note: callers of NEED_GEN_DIRS may assume that it will protect new value of cb_needed_dirs
-ifndef CB_CHECKING
-NEED_GEN_DIRS = $(eval cb_needed_dirs+=$$1)
+# note: callers of 'need_gen_dirs' may assume that it will protect new value of 'cb_needed_dirs'
+#  so callers _may_ change 'cb_needed_dirs' without protecting it. Protect 'cb_needed_dirs' here.
+ifndef cb_checking
+need_gen_dirs = $(eval cb_needed_dirs+=$$1)
 else
-# remember new value of cb_needed_dirs, without tracing calls to it because it is incremented
-NEED_GEN_DIRS = $(eval cb_needed_dirs+=$$1$(newline)$(call SET_GLOBAL1,cb_needed_dirs,0))
+# remember new value of 'cb_needed_dirs', without tracing calls to it because it's incremented
+need_gen_dirs = $(eval cb_needed_dirs+=$$1$(newline)$(call set_global1,cb_needed_dirs))
 endif
 
-# register targets as main ones built by current makefile, add standard target-specific variables
+# register targets as main ones built by the current makefile, add standard target-specific variables
 # $1 - target file(s) to build (absolute paths)
 # $2 - directories of target file(s) (absolute paths)
-# note: postpone expansion of $(ORDER_DEPS) to optimize parsing
-# note: .PHONY goal $(TARGET_MAKEFILE)- will depend on all top-level targets
-# note: callers of STD_TARGET_VARS1 may assume that it will protect new value of cb_needed_dirs
-define STD_TARGET_VARS1
-$1:| $2 $$(ORDER_DEPS)
-$(TARGET_MAKEFILE)-:$1
+# note: postpone expansion of $(order_deps) to optimize parsing
+# note: .PHONY goal $(cb_target_makefile)- will depend on the registered main targets $1
+# note: callers of 'std_target_vars1' may assume that it will protect new value of 'cb_needed_dirs'
+#  so callers _may_ change 'cb_needed_dirs' without protecting it. Protect 'cb_needed_dirs' here.
+define std_target_vars1
+$1:| $2 $$(order_deps)
+$(cb_target_makefile)-:$1
 cb_needed_dirs+=$2
 endef
 
-ifdef CB_CHECKING
+ifdef cb_checking
 
-# remember new value of cb_needed_dirs, without tracing calls to it because it is incremented
-$(call define_append,STD_TARGET_VARS1,$(newline)$$(call SET_GLOBAL1,cb_needed_dirs,0))
+# remember new value of 'cb_needed_dirs', without tracing calls to it because it's incremented
+$(call define_append,std_target_vars1,$(newline)$$(call set_global1,cb_needed_dirs))
 
-# check that files $1 are generated under $(GEN_DIR), $(BIN_DIR), $(OBJ_DIR) or $(LIB_DIR) directories
-CHECK_GENERATED_AT = $(if $(filter-out $(GEN_DIR)/% $(BIN_DIR)/% $(OBJ_DIR)/% $(LIB_DIR)/%,$1),$(error \
-  these files are generated not under $$(GEN_DIR), $$(BIN_DIR), $$(OBJ_DIR) or $$(LIB_DIR): $(filter-out \
-  $(GEN_DIR)/% $(BIN_DIR)/% $(OBJ_DIR)/% $(LIB_DIR)/%,$1)))
+# check that files $1 are generated under $(gen_dir), $(bin_dir), $(obj_dir) or $(lib_dir) directories
+cb_check_generated_at = $(if $(filter-out $(gen_dir)/% $(bin_dir)/% $(obj_dir)/% $(lib_dir)/%,$1),$(error \
+  these files are generated not under $$(gen_dir), $$(bin_dir), $$(obj_dir) or $$(lib_dir): $(filter-out \
+  $(gen_dir)/% $(bin_dir)/% $(obj_dir)/% $(lib_dir)/%,$1)))
 
-$(call define_prepend,STD_TARGET_VARS1,$$(CHECK_GENERATED_AT))
+$(call define_prepend,std_target_vars1,$$(cb_check_generated_at))
 
-endif # CB_CHECKING
+endif # cb_checking
 
-ifdef MDEBUG
+ifdef cb_mdebug
 
 # fix template to print (while evaluating the template) what makefile builds
 # $1 - template name
 # $2 - expression that gives target file(s) the template builds
 # $3 - optional expression that gives order-only dependencies
-# note: expressions $2 and $3 are expanded while expanding template $1, _before_ evaluating expansion result
-ADD_WHAT_MAKEFILE_BUILDS = $(call define_append,$1,$$(info \
-  $$(if $$(TMD),[T]: )$$(patsubst $$(CB_BUILD)/%,%,$2)$(if $3,$$(if $3, | $3))))
+# note: expressions $2 and $3 are expanded while expanding template $1, _before_ evaluating result of the expansion
+add_what_makefile_builds = $(call define_append,$1,$$(info \
+  $$(if $$(is_tool_mode),[T]: )$$(patsubst $$(cb_build)/%,%,$2)$(if $3,$$(if $3, | $3))))
 
-# print what makefile builds
-$(call ADD_WHAT_MAKEFILE_BUILDS,STD_TARGET_VARS1,$$1,$$(ORDER_DEPS))
+# patch 'std_target_vars1' template - print what makefile builds
+$(call add_what_makefile_builds,std_target_vars1,$$1,$$(order_deps))
 
-endif # MDEBUG
+endif # cb_mdebug
 
 # register targets as the main ones built by the current makefile, add standard target-specific variables
-# (main targets - those are not used as the prerequisites for other targets in the same makefile)
+# (main targets - that are not necessarily used as prerequisites for other targets in the same makefile)
 # $1 - generated file(s) (absolute paths)
-# note: callers of STD_TARGET_VARS may assume that it will protect new value of cb_needed_dirs
-STD_TARGET_VARS = $(call STD_TARGET_VARS1,$1,$(patsubst %/,%,$(sort $(dir $1))))
+# note: callers of 'std_target_vars' may assume that it will protect new value of 'cb_needed_dirs'
+#  so callers _may_ change 'cb_needed_dirs' without protecting it. Protect 'cb_needed_dirs' here.
+std_target_vars = $(call std_target_vars1,$1,$(patsubst %/,%,$(sort $(dir $1))))
 
-# MAKEFILE_INFO_TEMPL - for given target(s) $1, define target-specific variables for printing makefile info:
-# $(F.^) - makefile which specifies how to build the target
-# $(C.^) - number of section in makefile after a call to $(MAKE_CONTINUE)
-# note: $(MAKE_CONT) list is empty or 1 1 1 .. 1 2 (inside MAKE_CONTINUE) or 1 1 1 1... (before MAKE_CONTINUE):
-# MAKE_CONTINUE is equivalent of: ... MAKE_CONT+=2 $(TAIL) MAKE_CONT=$(subst 2,1,$(MAKE_CONT)) $(HEAD) ...
-ifdef INFOMF
-define MAKEFILE_INFO_TEMPL
-$1:F.^:=$(TARGET_MAKEFILE)
-$1:C.^:=$(subst +0,,+$(words $(subst 2,,$(MAKE_CONT))))
-endef
-else ifdef QUIET
-# remember $(TARGET_MAKEFILE) to properly update percents
-MAKEFILE_INFO_TEMPL = $1:F.^:=$(TARGET_MAKEFILE)
-else # verbose
-MAKEFILE_INFO_TEMPL:=
-endif
-
-# define target-specific variables F.^ and C.^ for the target(s) $1
-ifdef MAKEFILE_INFO_TEMPL
-$(call define_prepend,STD_TARGET_VARS1,$(value MAKEFILE_INFO_TEMPL)$(newline))
+# to be able to use 'suppress' function in the rules of the target(s) $1, define target-specific variables:
+# F.^ - holds the path to current target makefile
+# C.^ - holds the number of section in the target makefile after a call to $(make_continue)
+ifdef cb_makefile_info_templ
+$(call define_prepend,std_target_vars1,$(value cb_makefile_info_templ)$(newline))
 endif
 
 else # clean
 
-# just cleanup target files or directories $1 (absolute paths)
-# note: callers of STD_TARGET_VARS may assume that it will protect new value of cb_needed_dirs
+# just delete (recursively) generated directories $1 (absolute paths) 
+# note: callers of need_gen_dirs may assume that it will protect new value of cb_needed_dirs
 #  so callers _may_ change cb_needed_dirs without protecting it. Protect cb_needed_dirs here.
-ifndef CB_CHECKING
-STD_TARGET_VARS = CLEAN+=$1
+# remember new values of 'cb_to_clean' and 'cb_needed_dirs' without tracing calls to them because they are incremented
+ifndef cb_checking
+need_gen_dirs = $(eval cb_to_clean+=$$1)
 else
-STD_TARGET_VARS = CLEAN+=$1$(newline)$(call SET_GLOBAL1,CLEAN cb_needed_dirs,0)
+need_gen_dirs = $(eval cb_to_clean+=$$1$(newline)$$(call set_global1,cb_to_clean cb_needed_dirs))
 endif
 
-# cleanup generated directories
-# note: callers of NEED_GEN_DIRS may assume that it will protect new value of cb_needed_dirs
-#  so callers _may_ change cb_needed_dirs without protecting it. Protect cb_needed_dirs here.
-ifndef CB_CHECKING
-NEED_GEN_DIRS = $(eval CLEAN+=$$1)
+# just cleanup target files or directories $1 (absolute paths)
+# note: callers of 'std_target_vars' may assume that it will protect new value of 'cb_needed_dirs'
+#  so callers _may_ change 'cb_needed_dirs' without protecting it. Protect 'cb_needed_dirs' here.
+# remember new values of 'cb_to_clean' and 'cb_needed_dirs' without tracing calls to them because they are incremented
+ifndef cb_checking
+std_target_vars = cb_to_clean+=$1
 else
-NEED_GEN_DIRS = $(eval CLEAN+=$$1$(newline)$$(call SET_GLOBAL1,CLEAN cb_needed_dirs,0))
+std_target_vars = cb_to_clean+=$1$(newline)$(call set_global1,cb_to_clean cb_needed_dirs)
 endif
 
 # do nothing if cleaning up
-CREATE_MAKEFILE_ALIAS:=
-ADD_ORDER_DEPS:=
-MAKEFILE_INFO_TEMPL:=
+create_makefile_alias:=
+add_order_deps:=
 
 endif # clean
 
-# SET_MAKEFILE_INFO - for given target(s) $1, define target-specific variables needed for printing makefile info
-ifdef MAKEFILE_INFO_TEMPL
-SET_MAKEFILE_INFO = $(eval $(MAKEFILE_INFO_TEMPL))
+# 'set_makefile_info' - for given target(s) $1, define target-specific variables needed for printing makefile info:
+# F.^ - holds the path to current target makefile
+# C.^ - holds the number of section in the target makefile after a call to $(make_continue)
+ifdef cb_makefile_info_templ
+set_makefile_info = $(eval $(makefile_info_templ))
 else
-SET_MAKEFILE_INFO:=
+set_makefile_info:=
 endif
 
 # add generated files $1 to build sequence
-# note: files must be generated under $(GEN_DIR),$(BIN_DIR),$(OBJ_DIR) or $(LIB_DIR) directories
+# note: files must be generated under $(gen_dir),$(bin_dir),$(obj_dir) or $(lib_dir) directories
 # note: directories for generated files will be auto-created
-ADD_GENERATED = $(eval $(STD_TARGET_VARS))
+# note: generated files will be auto-deleted while completing the 'clean' goal
+add_generated = $(eval $(std_target_vars))
 
 # add generated files $1 to build sequence and return $1
-# note: files must be generated under $(GEN_DIR),$(BIN_DIR),$(OBJ_DIR) or $(LIB_DIR) directories
+# note: files must be generated under $(gen_dir),$(bin_dir),$(obj_dir) or $(lib_dir) directories
 # note: directories for generated files will be auto-created
-ADD_GENERATED_RET = $(ADD_GENERATED)$1
+# note: generated files will be auto-deleted while completing the 'clean' goal
+add_generated_ret = $(add_generated)$1
 
-# define BIN_DIR/OBJ_DIR/LIB_DIR/GEN_DIR assuming that we are not in tool-mode
-$(eval $(SET_DEFAULT_DIRS))
+# define bin_dir/obj_dir/lib_dir/gen_dir assuming that we are not in the "tool mode"
+$(eval $(cb_set_sefault_dirs))
 
-# T in "tool mode" - TOOL_MODE variable was set to non-empty value prior evaluating $(DEF_HEAD_CODE), empty in normal mode.
-# note: $(TOOL_MODE) should not be used in rule templates - use $(TMD) instead, because TOOL_MODE may be set to another
-#  value anywhere before $(MAKE_CONTINUE), and so before rule templates evaluation.
-# reset value: we are currently not in tool mode, $(DEF_HEAD_CODE) was not evaluated yet, but $(SET_DEFAULT_DIRS)
-#  has been already evaluated to set non-tool mode values of BIN_DIR/OBJ_DIR/LIB_DIR/GEN_DIR
-TMD:=
+# non-empty in "tool mode" - 'tool_mode' variable was set to that value prior evaluating $(cb_def_head_code), empty in normal mode.
+# note: $(tool_mode) should not be used in rule templates - use $(is_tool_mode) instead, because 'tool_mode' variable may be set to
+#  another value anywhere before $(make_continue), and so before the evaluation of rule templates.
+# reset value: we are currently not in "tool mode", $(cb_def_head_code) was not evaluated yet, but $(cb_set_sefault_dirs) has
+#  already been evaluated to set non-tool mode values of bin_dir/obj_dir/lib_dir/gen_dir.
+is_tool_mode:=
 
-# TOOL_MODE may be set to non-empty value at beginning of target makefile
-#  (before including this file and so before evaluating $(DEF_HEAD_CODE))
-# reset TOOL_MODE if it was not set in target makefile
-ifneq (file,$(origin TOOL_MODE))
-ifdef CB_CHECKING
-# do not allow to read TOOL_MODE in target makefiles, only to set it
-TOOL_MODE_ERROR = $(error please use TMD variable to check for the tool mode)
-TOOL_MODE = $(TOOL_MODE_ERROR)
+# 'tool_mode' may be set to non-empty value at the beginning of target makefile
+#  (before including this file and so before evaluating $(cb_def_head_code))
+# reset 'tool_mode' if it was not set in the target makefile
+ifneq (file,$(origin tool_mode))
+ifdef cb_checking
+# do not allow to read 'tool_mode' in target makefiles, only to set it
+cb_tool_mode_access_error = $(error please use 'is_tool_mode' variable to check for "tool mode")
+tool_mode = $(cb_tool_mode_access_error)
 else
-TOOL_MODE:=
+tool_mode:=
 endif
 endif # !file
 
 # variable used to track makefiles include level
-CB_INCLUDE_LEVEL:=
+cb_include_level:=
 
-# list of all processed target makefiles (absolute paths)
-# note: PROCESSED_MAKEFILES is never cleared, only appended (in DEF_HEAD_CODE)
-ifneq (,$(CB_CHECKING)$(value ADD_SHOWN_PERCENTS))
-PROCESSED_MAKEFILES:=
+# list of all processed target makefiles (absolute paths) - used in $(cb_dir)/core/all.mk
+# note: 'cb_processed_makefiles' is never cleared, only appended (in $(cb_def_head_code))
+ifneq (,$(cb_checking)$(value cb_add_shown_percents))
+cb_processed_makefiles:=
 endif
 
-# $(DEF_HEAD_CODE) is not evaluated yet
-HEAD_CODE_EVAL:=
+# a chain of macros which should be evaluated for preparing target templates (resetting "local" variables - template parameters)
+# $(cb_def_head_code) was not evaluated yet, chain is empty
+cb_head_code_eval:=
+
+# initially reset variable, it is checked in 'cb_def_head_code'
+cb_make_cont:=
 
 # ***********************************************
-# code to $(eval ...) at beginning of each makefile
-# NOTE: $(MAKE_CONTINUE) before expanding $(DEF_HEAD_CODE) adds 2 to $(MAKE_CONT) list (which is normally empty or contains 1 1...)
-#  - so we know if $(DEF_HEAD_CODE) was expanded from $(MAKE_CONTINUE) - remove 2 from $(MAKE_CONT) in that case
-#  - if $(DEF_HEAD_CODE) was expanded not from $(MAKE_CONTINUE) - no 2 in $(MAKE_CONT) - reset MAKE_CONT
-# NOTE: set TMD to remember if we are in tool mode - TOOL_MODE variable may be set to another value before calling $(MAKE_CONTINUE)
-define DEF_HEAD_CODE
-ifneq (,$(findstring 2,$(MAKE_CONT)))
-MAKE_CONT:=$$(subst 2,1,$$(MAKE_CONT))
+# code to $(eval ...) at the beginning of each target makefile
+# NOTE: $(make_continue) before expanding $(cb_def_head_code) adds 2 to 'cb_make_cont' list (which is normally empty or contains 1 1...)
+#  - so we know if $(cb_def_head_code) was expanded from $(make_continue) - remove 2 from 'cb_make_cont' list in that case
+#  - if $(cb_def_head_code) was expanded not from $(make_continue) - no 2 in $(cb_make_cont) - reset 'cb_make_cont' variable
+# NOTE: set 'is_tool_mode' variable to remember if we are in "tool mode" - 'tool_mode' variable may be set to another value before
+#  calling $(make_continue)
+define cb_def_head_code
+ifneq (,$(findstring 2,$(cb_make_cont)))
+cb_make_cont:=$$(subst 2,1,$$(cb_make_cont))
 else
-MAKE_CONT:=
-HEAD_CODE_EVAL=$$(eval $$(DEF_HEAD_CODE))
-DEFINE_TARGETS=$$(eval $$(DEF_TAIL_CODE))
+cb_make_cont:=
+cb_head_code_eval=$$(eval $$(cb_def_head_code))
+define_targets=$$(eval $$(cb_def_tail_code))
 endif
-$(if $(TOOL_MODE),$(if \
-  $(TMD),,$(TOOL_OVERRIDE_DIRS)$(newline)TMD:=T),$(if \
-  $(TMD),$(SET_DEFAULT_DIRS)$(newline)TMD:=))
+is_tool_mode:=$(tool_mode)
+$(if $(tool_mode),$(if \
+  $(is_tool_mode),,$(cb_tool_override_dirs)),$(if \
+  $(is_tool_mode),$(cb_set_sefault_dirs)))
 endef
 
 # show debug info prior defining targets
-# note: $(MAKE_CONT) contains 2 if inside $(MAKE_CONTINUE)
-ifdef MDEBUG
-$(call define_prepend,DEF_HEAD_CODE,$$(info $$(subst \
-  $$(space),,$$(CB_INCLUDE_LEVEL))$$(TARGET_MAKEFILE)$$(if $$(findstring 2,$$(MAKE_CONT)),+$$(words $$(MAKE_CONT)))))
+# note: $(cb_make_cont) contains 2 if inside $(make_continue)
+ifdef cb_mdebug
+$(call define_prepend,cb_def_head_code,$$(info $$(subst \
+  $$(space),,$$(cb_include_level))$$(cb_target_makefile)$$(if $$(findstring 2,$$(cb_make_cont)),+$$(words $$(cb_make_cont)))))
 endif
 
-# prepend DEF_HEAD_CODE with $(cb_check_at_head), if it is defined in $(cb_dir)/core/protection.mk
+# prepend 'cb_def_head_code' with $(cb_check_at_head), if it is defined in $(cb_dir)/core/protection.mk
 ifdef cb_check_at_head
-$(call define_prepend,DEF_HEAD_CODE,$$(cb_check_at_head)$(newline))
+$(call define_prepend,cb_def_head_code,$$(cb_check_at_head)$(newline))
 endif
 
-# remember new value of PROCESSED_MAKEFILES variables, without tracing calls to it because it's incremented
-# note: assume result of $(call SET_GLOBAL1,...,0) will give an empty line at end of expansion
-ifdef CB_CHECKING
-$(eval define DEF_HEAD_CODE$(newline)$(subst \
-  MAKE_CONT:=$(newline),$$(call SET_GLOBAL1,PROCESSED_MAKEFILES,0)MAKE_CONT:=$(newline),$(value DEF_HEAD_CODE))$(newline)endef)
+# remember new value of 'cb_processed_makefiles' variable, without tracing calls to it because it's incremented
+# note: assume result of $(call set_global1,cb_processed_makefiles) will give an empty line at end of expansion
+ifdef cb_checking
+$(eval define cb_def_head_code$(newline)$(subst \
+  cb_make_cont:=$(newline),$$(call set_global1,cb_processed_makefiles)cb_make_cont:=$(newline),$(value cb_def_head_code))$(newline)endef)
 endif
 
-# add $(TARGET_MAKEFILE) to list of processed target makefiles (note: before first $(MAKE_CONTINUE))
-ifneq (,$(CB_CHECKING)$(value ADD_SHOWN_PERCENTS))
-$(eval define DEF_HEAD_CODE$(newline)$(subst \
-  else,else$(newline)PROCESSED_MAKEFILES+=$$(TARGET_MAKEFILE),$(value DEF_HEAD_CODE))$(newline)endef)
+# add $(cb_target_makefile) to list of processed target makefiles (note: before the first $(make_continue))
+ifneq (,$(cb_checking)$(value cb_add_shown_percents))
+$(eval define cb_def_head_code$(newline)$(subst \
+  else,else$(newline)cb_processed_makefiles+=$$(cb_target_makefile),$(value cb_def_head_code))$(newline)endef)
 endif
 
-# check that $(TARGET_MAKEFILE) was not already processed (note: check only before first $(MAKE_CONTINUE))
-ifdef CB_CHECKING
-$(eval define DEF_HEAD_CODE$(newline)$(subst \
-  else,else$(newline)$$$$(if $$$$(filter $$$$(TARGET_MAKEFILE),$$$$(PROCESSED_MAKEFILES)),$$$$(error \
-  makefile $$$$(TARGET_MAKEFILE) was already processed!)),$(value DEF_HEAD_CODE))$(newline)endef)
+# check that $(cb_target_makefile) was not already processed (note: check only before the first $(make_continue))
+ifdef cb_checking
+$(eval define cb_def_head_code$(newline)$(subst \
+  else,else$(newline)$$$$(if $$$$(filter $$$$(cb_target_makefile),$$$$(cb_processed_makefiles)),$$$$(error \
+  makefile $$$$(cb_target_makefile) was already processed!)),$(value cb_def_head_code))$(newline)endef)
 endif
 
-# remember new values of TMD, HEAD_CODE_EVAL and DEFINE_TARGETS
-# remember TOOL_MODE to not reset it in $(cb_check_at_head)
-ifdef SET_GLOBAL1
-$(eval define DEF_HEAD_CODE$(newline)$(subst \
-  TMD:=T,TMD:=T$$(newline)$$(call SET_GLOBAL1,TMD),$(subst \
-  TMD:=$(close_brace),TMD:=$$(newline)$$(call SET_GLOBAL1,TMD)$(close_brace),$(subst \
-  endif,$$(call SET_GLOBAL1,HEAD_CODE_EVAL DEFINE_TARGETS)$(newline)endif,$(value DEF_HEAD_CODE))))$(newline)endef)
-$(call define_prepend,DEF_HEAD_CODE,$$(call SET_GLOBAL1,TOOL_MODE)$(newline))
+# remember new value of 'cb_make_cont' (without tracing calls to it)
+# note: assume result of $(call set_global1,cb_make_cont) will give an empty line at end of expansion
+ifdef cb_checking
+$(eval define cb_def_head_code$(newline)$(subst \
+  endif$(newline),endif$(newline)$$(call set_global1,cb_make_cont),$(value cb_def_head_code))$(newline)endef)
 endif
 
-# use TOOL_MODE only to set value of TMD variable, forbid reading $(TOOL_MODE) in target makefiles
-# note: do not trace calls to TOOL_MODE after resetting it to $$(TOOL_MODE_ERROR)
-ifdef CB_CHECKING
-$(call define_append,DEF_HEAD_CODE,$(newline)TOOL_MODE=$$$$(TOOL_MODE_ERROR)$(newline)$$(call SET_GLOBAL1,TOOL_MODE,0))
-$(call define_prepend,DEF_HEAD_CODE,$$(if $$(findstring $$$$(TOOL_MODE_ERROR),$$(value TOOL_MODE)),$$(eval TOOL_MODE:=$$(TMD))))
+ifdef set_global1
+
+# remember new values of 'is_tool_mode', 'cb_head_code_eval' and 'define_targets'
+# note: trace namespaces: is_tool_mode, def_code
+$(eval define cb_def_head_code$(newline)$(subst \
+  is_tool_mode:=$$(tool_mode),is_tool_mode:=$$(tool_mode)$(newline)$$(call set_global1,is_tool_mode,is_tool_mode),$(subst \
+  endif,$$(call set_global1,cb_head_code_eval define_targets,def_code)$(newline)endif,$(value cb_def_head_code)))$(newline)endef)
+
+ifndef cb_checking
+# trace (next) calls to 'tool_mode' if not checking makefiles, else - 'tool_mode' is protected at the end of $(cb_def_head_code)
+# note: trace namespaces: tool_mode
+$(call define_prepend,cb_def_head_code,$$(call set_global1,tool_mode,tool_mode)$(newline))
 endif
 
-# remember new value of MAKE_CONT (without tracing calls to it)
-# note: assume $(call SET_GLOBAL1,MAKE_CONT,0) will give empty line at end after expansion
-ifdef CB_CHECKING
-$(eval define DEF_HEAD_CODE$(newline)$(subst \
-  endif$(newline),endif$(newline)$$(call SET_GLOBAL1,MAKE_CONT,0),$(value DEF_HEAD_CODE))$(newline)endef)
-endif
+endif # set_global1
+
+ifdef cb_checking
+
+# use 'tool_mode' only to set value of 'is_tool_mode' variable, forbid reading $(tool_mode) in target makefiles
+# note: do not trace calls to 'tool_mode' after resetting it to $$(cb_tool_mode_access_error) - this is needed to pass the (next) check
+#  if value of 'tool_mode' is the '$(cb_tool_mode_access_error)' (or empty, or non-empty) at the beginning of $(cb_def_head_code)
+# note: assume result of $(call set_global1,tool_mode) will give an empty line at end of expansion
+$(eval define cb_def_head_code$(newline)$(subst endif,endif$(newline)tool_mode=$$$$(cb_tool_mode_access_error)$(newline)$$(call \
+  set_global1,tool_mode),$(value cb_def_head_code))$(newline)endef)
+
+# when expanding $(cb_def_head_code), first restore 'tool_mode' variable, if it wasn't changed before $(cb_def_head_code)
+$(call define_prepend,cb_def_head_code,$$(if $$(findstring $$$$(cb_tool_mode_access_error),$$(value \
+  tool_mode)),$$(eval tool_mode:=$$$$(is_tool_mode))))
+
+endif # cb_checking
 
 # ***********************************************
-# code to $(eval ...) at end of each makefile
-# include $(cb_dir)/core/all.mk only if $(CB_INCLUDE_LEVEL) is empty and not inside the call of $(MAKE_CONTINUE)
-# note: $(MAKE_CONTINUE) before expanding $(DEF_TAIL_CODE) adds 2 to $(MAKE_CONT) list
-# note: $(cb_dir)/core/_submakes.mk calls DEF_TAIL_CODE with @ as first argument - for the checks in $(cb_check_at_tail)
-DEF_TAIL_CODE = $(if $(findstring 2,$(MAKE_CONT)),,$(if $(CB_INCLUDE_LEVEL),HEAD_CODE_EVAL:=,include $(cb_dir)/core/all.mk))
+# code to $(eval ...) at the end of each target makefile
+# include $(cb_dir)/core/all.mk only if $(cb_include_level) is empty and not inside the call of $(make_continue)
+# note: $(make_continue) before expanding $(cb_def_tail_code) adds 2 to $(cb_make_cont) list
+# note: $(cb_dir)/core/_submakes.mk calls 'cb_def_tail_code' with @ as first argument - for the checks in $(cb_check_at_tail)
+cb_def_tail_code = $(if $(findstring 2,$(cb_make_cont)),,$(if $(cb_include_level),cb_head_code_eval:=,include $(cb_dir)/core/all.mk))
 
-# prepend DEF_TAIL_CODE with $(cb_check_at_tail), if it's defined in $(cb_dir)/core/protection.mk
-# note: if tracing, do not show value of $(cb_check_at_tail) - it's too noisy
+# prepend 'cb_def_tail_code' with $(cb_check_at_tail), if it's defined in the $(cb_dir)/core/protection.mk
+# note: if tracing, do not show result of expansion of $(cb_check_at_tail) - it's too noisy
 ifdef cb_check_at_tail
-ifdef CB_TRACING
-$(call define_prepend,DEF_TAIL_CODE,$$(eval $$(cb_check_at_tail)))
+ifdef cb_tracing
+$(call define_prepend,cb_def_tail_code,$$(eval $$(cb_check_at_tail)))
 else
-$(call define_prepend,DEF_TAIL_CODE,$$(cb_check_at_tail)$(newline))
+$(call define_prepend,cb_def_tail_code,$$(cb_check_at_tail)$(newline))
 endif
 endif
 
-# redefine DEFINE_TARGETS macro to produce an error if $(DEF_HEAD_CODE) was not evaluated prior expanding DEFINE_TARGETS
-ifdef CB_CHECKING
-$(eval define DEF_TAIL_CODE$(newline)$(subst :=,:=$$(newline)DEFINE_TARGETS=$$$$(error \
-  $$$$$$$$(DEF_HEAD_CODE) was not evaluated at head of makefile!),$(value DEF_TAIL_CODE))$(newline)endef)
+# redefine 'define_targets' macro to produce an error if $(cb_def_head_code) was not evaluated prior expanding it
+# note: the same check is performed in the $(cb_check_at_tail), but it will be done only after expanding templates added by the
+#  previous target makefile - this may lead to errors, because templates were not prepared by the previous $(cb_head_code_eval)
+ifdef cb_checking
+$(eval define cb_def_tail_code$(newline)$(subst :=,:=$$(newline)define_targets=$$$$(error \
+  $$$$$$$$(cb_def_head_code) was not evaluated at head of makefile!),$(value cb_def_tail_code))$(newline)endef)
 endif
 
-# remember new values of HEAD_CODE_EVAL (which is empty) and DEFINE_TARGETS (which produces an error),
-#  do not trace calls to them: value of HEAD_CODE_EVAL is checked in CB_PREPARE_TARGET_TYPE below
-ifdef SET_GLOBAL1
-$(eval define DEF_TAIL_CODE$(newline)$(subst $(comma)include,$$(newline)$$(call \
-  SET_GLOBAL1,HEAD_CODE_EVAL$(if $(CB_CHECKING), DEFINE_TARGETS),0)$(comma)include,$(value DEF_TAIL_CODE))$(newline)endef)
+# remember new values of 'cb_head_code_eval' (which was reset to empty) and 'define_targets' (which produces an error),
+#  do not trace calls to them: value of 'cb_head_code_eval' is checked in 'cb_prepare_target_type' below
+ifdef set_global1
+$(eval define cb_def_tail_code$(newline)$(subst $(comma)include,$$(newline)$$(call \
+  set_global1,cb_head_code_eval$(if $(cb_checking), define_targets))$(comma)include,$(value cb_def_tail_code))$(newline)endef)
 endif
 
-# define targets at end of makefile - just expand DEFINE_TARGETS: $(DEFINE_TARGETS)
-# note: DEF_HEAD_CODE will reset DEFINE_TARGETS to default value - to just evaluate $(DEF_TAIL_CODE)
-# note: $(DEFINE_TARGETS) must not expand to any text - to allow calling it via just $(DEFINE_TARGETS) in target makefiles
-DEFINE_TARGETS = $(error $$(DEF_HEAD_CODE) was not evaluated at head of makefile!)
+# to define rules for building targets - just expand at end of makefile: $(define_targets)
+# note: initialize 'define_targets' to produce an error - 'cb_def_head_code' will reset it to just evaluate $(cb_def_tail_code)
+# note: $(define_targets) must not expand to any text - to allow calling it via just $(define_targets) in target makefiles
+define_targets = $(error $$(cb_def_head_code) was not evaluated at head of makefile!)
 
-# prepare target type (C, JAVA, etc.) for building (initialize its variables):
-# init1->init2...->initN <set variables of target types> rulesN->...->rules2->rules1
-# $1 - the name of the macro, the expansion of which gives the code for the initialization of target type variables
-# $2 - the name of the macro, the expansion of which gives the code for defining target type rules
-# NOTE: if $1 is empty, just evaluate $(DEF_HEAD_CODE), if it wasn't evaluated yet
-# NOTE: if $1 is non-empty, expand it via $(call $1) to not pass any arguments into the expansion
-CB_PREPARE_TARGET_TYPE = $(if $(value HEAD_CODE_EVAL),,$(eval $(DEF_HEAD_CODE)))$(if $1,$(eval \
-  HEAD_CODE_EVAL=$(value HEAD_CODE_EVAL)$$(eval $$($1)))$(eval DEFINE_TARGETS=$$(eval $$($2))$(value DEFINE_TARGETS))$(eval $(call $1)))
+# prepare template of target type (C, Java, etc.) for building (initialize its variables):
+# init1->init2...->initN <define variables of target type templates> rulesN->...->rules2->rules1
+# $1 - the name of the macro, the expansion of which gives the code for the initialization of target type template variables
+# $2 - the name of the macro, the expansion of which gives the code for defining target type rules (by expanding target type template)
+# NOTE: if $1 is empty, just evaluate $(cb_def_head_code), if it wasn't evaluated yet
+# NOTE: if $1 is non-empty, expand it via $(call $1) to not pass any parameters into the expansion
+# NOTE: if $1 is non-empty, then $2 must also be non-empty ($1 - init template, $2 - expand template)
+cb_prepare_target_type = $(if $(value cb_head_code_eval),,$(eval $(cb_def_head_code)))$(if $1,$(eval \
+  cb_head_code_eval=$(value cb_head_code_eval)$$(eval $$($1)))$(eval \
+  define_targets=$$(eval $$($2))$(value define_targets))$(eval $(call $1)))
 
-ifdef SET_GLOBAL
+ifdef set_global
 
-# remember new values of HEAD_CODE_EVAL and DEFINE_TARGETS
-$(eval CB_PREPARE_TARGET_TYPE = $(subst $$$(open_brace)eval $$$(open_brace)call $$1,$$(call \
-  SET_GLOBAL,HEAD_CODE_EVAL DEFINE_TARGETS)$$$(open_brace)eval $$$(open_brace)call $$1,$(value CB_PREPARE_TARGET_TYPE)))
+# remember new values of 'cb_head_code_eval' and 'define_targets'
+# note: trace namespaces: def_code
+$(eval cb_prepare_target_type = $(subst $$$(open_brace)eval $$$(open_brace)call $$1,$$(call \
+  set_global,cb_head_code_eval define_targets,def_code)$$$(open_brace)eval $$$(open_brace)call $$1,$(value cb_prepare_target_type)))
 
-# because HEAD_CODE_EVAL and DEFINE_TARGETS are traced, get original values
-ifdef CB_TRACING
+# if 'cb_head_code_eval' and 'define_targets' are traced, get their original values
+ifdef cb_tracing
 
-ifeq (,$(filter HEAD_CODE_EVAL,$(NON_TRACEABLE_VARS)))
-$(eval CB_PREPARE_TARGET_TYPE = $(subst \
-  =$$(value HEAD_CODE_EVAL),=$$(value $(call encode_traced_var_name,HEAD_CODE_EVAL)),$(value CB_PREPARE_TARGET_TYPE)))
+$(eval cb_prepare_target_type = $(subst \
+  =$$(value cb_head_code_eval),=$$(call get_global,cb_head_code_eval)),$(value cb_prepare_target_type))
+
+$(eval cb_prepare_target_type = $(subst \
+  value define_targets,call get_global,define_targets),$(value cb_prepare_target_type))
 endif
 
-ifeq (,$(filter DEFINE_TARGETS,$(NON_TRACEABLE_VARS)))
-$(eval CB_PREPARE_TARGET_TYPE = $(subst \
-  value DEFINE_TARGETS,value $(call encode_traced_var_name,DEFINE_TARGETS),$(value CB_PREPARE_TARGET_TYPE)))
-endif
+endif # cb_tracing
 
-endif # CB_TRACING
+endif # set_global
 
-endif # SET_GLOBAL
-
-# before $(MAKE_CONTINUE): save variables to restore them after (via RESTORE_VARS macro)
-SAVE_VARS = $(eval $(foreach v,$1,$(if $(findstring \
+# before $(make_continue): save variables to restore them after (via 'restore_vars' macro)
+save_vars = $(eval $(foreach v,$1,$(if $(findstring \
   simple,$(flavor $v)),$v.^s:=$$($v),define $v.^s$(newline)$(value $v)$(newline)endef)$(newline)))
 
-# after $(MAKE_CONTINUE): restore variables saved before (via SAVE_VARS macro)
-RESTORE_VARS = $(eval $(foreach v,$1,$(if $(findstring \
+# after $(make_continue): restore variables saved before (via 'save_vars' macro)
+restore_vars = $(eval $(foreach v,$1,$(if $(findstring \
   simple,$(flavor $v.^s)),$v:=$$($v.^s),define $v$(newline)$(value $v.^s)$(newline)endef)$(newline)))
 
 # reset %.^s variables
-ifdef CB_RESET_SAVED_VARS
-$(eval RESTORE_VARS = $(subst \
-  $(close_brace)$(close_brace)$(close_brace),$(close_brace)$(close_brace)$$(CB_RESET_SAVED_VARS)$(close_brace),$(value \
-  RESTORE_VARS)))
+ifdef cb_reset_saved_vars
+$(eval restore_vars = $(subst \
+  $(close_brace)$(close_brace)$(close_brace),$(close_brace)$(close_brace)$$(cb_reset_saved_vars)$(close_brace),$(value \
+  restore_vars)))
 endif
 
-# initially reset variable, it is checked in DEF_HEAD_CODE
-MAKE_CONT:=
-
-# use $(MAKE_CONTINUE) to define more than one targets in single makefile
-# note: all targets are built using the same set of compilers (c, java, python, etc.)
+# use $(make_continue) to define more than one targets in a single makefile
+# note: all target rules are defined by the same set of templates included before $(make_continue)
 # example:
 #
-# include $(TOP)/make/c.mk
-# LIB = xxx1
-# SRC = xxx.c
-# $(MAKE_CONTINUE)
-# LIB = xxx2
-# SRC = xxx.c
+# include $(top)/make/c.mk
+# lib  := lib1
+# my_c := src1.c
+# src  := $(my_c)
+# $(make_continue,my_c)
+# include $(top)/make/java.mk
+# jar  := jar1
+# jsrc := j1.java
+# lib  := lib2
+# src  := src2.c $(my_c)
 # ...
-# $(DEFINE_TARGETS)
+# $(define_targets)
 
-# MAKE_CONTINUE is equivalent of: ... MAKE_CONT+=2 $(TAIL) MAKE_CONT=$(subst 2,1,$(MAKE_CONT)) $(HEAD) ...
-# 1) increment MAKE_CONT
-# 2) evaluate tail code with $(DEFINE_TARGETS)
-# 3) start next round - simulate including of appropriate $(TOP)/make/c.mk or $(TOP)/make/java.mk or whatever by evaluating
-#    head-code $(HEAD_CODE_EVAL) - which is likely adjusted by $(TOP)/make/c.mk or $(TOP)/make/java.mk or whatever
-# note: $(call DEFINE_TARGETS) with empty arguments list to not pass any to DEF_TAIL_CODE
-# note: $(call HEAD_CODE_EVAL) with empty arguments list to not pass any to DEF_HEAD_CODE
-# note: $(MAKE_CONTINUE) must not expand to any text - to be able to call it with just $(MAKE_CONTINUE) in target makefile
-MAKE_CONTINUE = $(if $1,$(SAVE_VARS))$(eval MAKE_CONT+=2)$(call DEFINE_TARGETS)$(call HEAD_CODE_EVAL)$(if $1,$(RESTORE_VARS))
+# $(make_continue) is equivalent of: ... cb_make_cont+=2 $(TAIL) cb_make_cont=$(subst 2,1,$(cb_make_cont)) $(HEAD) ...
+# $1 - names of "local" variables to pass through $(make_continue) - all "local" variables are reset by default in $(define_targets)
+# 1) increment cb_make_cont
+# 2) evaluate tail code with $(define_targets)
+# 3) start next round - simulate including of appropriate $(top)/make/c.mk or $(top)/make/java.mk or whatever by evaluating
+#   head-code $(cb_head_code_eval) - which is likely adjusted by $(top)/make/c.mk or $(top)/make/java.mk or whatever
+# note: $(call define_targets) with empty arguments list to not pass any to 'cb_def_tail_code'
+# note: $(call cb_head_code_eval) with empty arguments list to not pass any to 'cb_def_head_code'
+# note: $(make_continue) must not expand to any text - to be able to call it with just $(make_continue) in target makefile
+make_continue = $(if $1,$(save_vars))$(eval cb_make_cont+=2)$(call define_targets)$(call cb_head_code_eval)$(if $1,$(restore_vars))
 
-# remember new value of MAKE_CONT (without tracing calls to it)
-ifdef CB_CHECKING
-$(eval MAKE_CONTINUE = $(subst $$(call DEFINE_TARGETS),$$(call SET_GLOBAL,MAKE_CONT,0)$$(call DEFINE_TARGETS),$(value MAKE_CONTINUE)))
+# remember new value of 'cb_make_cont' (without tracing calls to it)
+ifdef cb_checking
+$(eval make_continue = $(subst $$(call define_targets),$$(call set_global,cb_make_cont)$$(call define_targets),$(value make_continue)))
 endif
 
-# for UNIX: don't change paths when converting from make internal file path to path accepted by $(UTILS_MK)
+# ========== functions ==========
+
+# for UNIX: don't change paths when converting from make internal file path to path accepted by $(utils_mk)
 # note: $(cb_dir)/utils/cmd.mk included below redefines ospath
 ospath = $1
 
@@ -816,83 +745,79 @@ nonrelpath = $(patsubst $1/%,/%,$(addprefix $1,$2))
 
 # add absolute path to directory of target makefile to given non-absolute paths
 # - we need absolute paths to sources to work with generated dependencies in .d files
-fixpath = $(abspath $(call nonrelpath,$(dir $(TARGET_MAKEFILE)),$1))
+fixpath = $(abspath $(call nonrelpath,$(dir $(cb_target_makefile)),$1))
 
-# SED - stream editor executable - should be defined in $(UTILS_MK) makefile
-# SED_EXPR - also should be defined in $(UTILS_MK) makefile
-# helper macro: convert multi-line sed script $1 to multiple sed expressions - one expression for each script line
-SED_MULTI_EXPR = $(foreach s,$(subst $(newline), ,$(unspaces)),-e $(call SED_EXPR,$(call tospaces,$s)))
+# SED - path to stream editor executable - should be defined in $(utils_mk) makefile
+# sed_expr - should also be defined in $(utils_mk) makefile
+# helper macro: convert multi-line sed script $1 to multiple sed expressions - one expression for each line of the script
+sed_multi_expr = $(foreach s,$(subst $(newline), ,$(unspaces)),-e $(call sed_expr,$(call tospaces,$s)))
 
 # define shell utilities
-include $(UTILS_MK)
+include $(utils_mk)
 
-# if $(CB_CONFIG) was included, show it
-# note: $(cb_dir)/utils/cmd.mk redefines COLORIZE macro, so show $(CB_CONFIG) _after_ including $(UTILS_MK)
-ifndef VERBOSE
-ifneq (,$(filter $(CB_CONFIG),$(abspath $(MAKEFILE_LIST))))
-CONF_COLOR := [1;32m
-$(info $(call PRINT_PERCENTS,use)$(if $(INFOMF),$(TARGET_MAKEFILE):)$(call COLORIZE,CONF,$(CB_CONFIG)))
+# if $(CBLD_CONFIG) was included, show it
+# note: $(cb_dir)/utils/cmd.mk redefines 'cb_colorize' macro defined in $(cb_dir)/core/suppress.mk, so show $(CBLD_CONFIG)
+#  _after_ including $(utils_mk)
+ifndef verbose
+ifneq (,$(filter $(CBLD_CONFIG),$(MAKEFILE_LIST)))
+CBLD_CONF_COLOR ?= [1;32m
+$(info $(call cb_print_percents,use)$(if $(cb_infomf),$(cb_target_makefile):)$(call cb_colorize,CONF,$(CBLD_CONFIG)))
 endif
 endif
 
-# utilities colors - for the SUP function (and the COLORIZE macro)
-GEN_COLOR   := [1;32m
-MGEN_COLOR  := [1;32m
-CP_COLOR    := [1;36m
-RM_COLOR    := [1;31m
-RMDIR_COLOR := [1;31m
-MKDIR_COLOR := [36m
-TOUCH_COLOR := [36m
-CAT_COLOR   := [32m
-SED_COLOR   := [32m
+# utilities colors - for the 'suppress' function (and the 'cb_colorize' macro)
+CBLD_GEN_COLOR   ?= [1;32m
+CBLD_MGEN_COLOR  ?= [1;32m
+CBLD_CP_COLOR    ?= [1;36m
+CBLD_RM_COLOR    ?= [1;31m
+CBLD_RMDIR_COLOR ?= [1;31m
+CBLD_MKDIR_COLOR ?= [36m
+CBLD_TOUCH_COLOR ?= [36m
+CBLD_CAT_COLOR   ?= [32m
+CBLD_SED_COLOR   ?= [32m
 
 # product version in form major.minor or major.minor.patch
-# note: this is also default version for any built module (exe, dll or driver)
-PRODUCT_VER := 0.0.1
+# Note: this is the default value of 'modver' variable - per-module version number
+product_version := 0.0.1
 
 # NO_DEPS - if defined, then do not generate auto-dependencies or process previously generated auto-dependencies
 # note: do not process dependencies when cleaning up
 NO_DEPS := $(filter clean,$(MAKECMDGOALS))
 
-# BIN_DIR/OBJ_DIR/LIB_DIR/GEN_DIR change their values depending on the value of TOOL_MODE
-#  in last parsed makefile, so clear these variables before rule execution second phase
-CB_FIRST_PHASE_VARS += BIN_DIR OBJ_DIR LIB_DIR GEN_DIR
-
 # makefile parsing first phase variables
-CB_FIRST_PHASE_VARS += project_goals cb_needed_dirs ORDER_DEPS CB_INCLUDE_LEVEL \
-  PROCESSED_MAKEFILES MAKE_CONT SET_DEFAULT_DIRS TOOL_OVERRIDE_DIRS ADD_MDEPS ADD_ADEPS ADD_WHAT_MAKEFILE_BUILDS \
-  CREATE_MAKEFILE_ALIAS ADD_ORDER_DEPS NEED_GEN_DIRS STD_TARGET_VARS1 CHECK_GENERATED_AT STD_TARGET_VARS \
-  MAKEFILE_INFO_TEMPL SET_MAKEFILE_INFO ADD_GENERATED ADD_GENERATED_RET \
-  TMD TOOL_MODE_ERROR TOOL_MODE DEF_HEAD_CODE DEF_TAIL_CODE DEFINE_TARGETS SAVE_VARS RESTORE_VARS MAKE_CONTINUE TOCLEAN
+# Note: bin_dir/obj_dir/lib_dir/gen_dir change their values depending on the value of 'tool_mode' variable set in the last parsed
+#  makefile, so clear these variables before rule execution second phase
+cb_first_phase_vars += cb_needed_dirs build_system_goals bin_dir obj_dir lib_dir gen_dir order_deps cb_set_sefault_dirs \
+  cb_tool_override_dirs toclean add_mdeps add_adeps add_what_makefile_builds create_makefile_alias add_order_deps need_gen_dirs \
+  std_target_vars1 cb_check_generated_at std_target_vars set_makefile_info add_generated add_generated_ret is_tool_mode \
+  cb_tool_mode_access_error tool_mode cb_include_level cb_processed_makefiles cb_head_code_eval cb_make_cont cb_def_head_code \
+  cb_def_tail_code define_targets cb_prepare_target_type save_vars restore_vars make_continue
 
 # protect macros from modifications in target makefiles,
 # do not trace calls to macros used in ifdefs, exported to the environment of called tools or modified via operator +=
-$(call SET_GLOBAL,MAKEFLAGS project_goals PATH SHELL CB_FIRST_PHASE_VARS \
-  cb_needed_dirs NO_CLEAN_BUILD_DISTCLEAN_TARGET DEBUG VERBOSE QUIET INFOMF MDEBUG \
-  SHOWN_PERCENTS SHOWN_REMAINDER ADD_SHOWN_PERCENTS CLEAN \
-  ORDER_DEPS CB_INCLUDE_LEVEL PROCESSED_MAKEFILES MAKE_CONT NO_DEPS,0)
+$(call SET_GLOBAL,MAKEFLAGS SHELL cb_needed_dirs cb_first_phase_vars cb_mdebug build_system_goals no_clean_build_distclean_goal \
+  debug cb_to_clean order_deps cb_include_level cb_processed_makefiles cb_make_cont
+  
+  NO_DEPS,0)
 
 # protect macros from modifications in target makefiles, allow tracing calls to them
-$(call SET_GLOBAL,cb_project_vars \
-  CLEAN_BUILD_VERSION cb_dir CLEAN_BUILD_REQUIRED_VERSION \
-  CB_BUILD SUPPORTED_TARGETS TARGET OS TCPU CPU UTILS UTILS_MK \
-  PRINT_PERCENTS COLORIZE FORMAT_PERCENTS=SHOWN_PERCENTS REM_MAKEFILE=SHOWN_PERCENTS=SHOWN_PERCENTS SUP \
-  TARGET_TRIPLET DEF_BIN_DIR DEF_OBJ_DIR DEF_LIB_DIR DEF_GEN_DIR SET_DEFAULT_DIRS \
-  TOOL_BASE MK_TOOLS_DIR TOOL_SUFFIX GET_TOOLS GET_TOOL TOOL_OVERRIDE_DIRS \
-  TARGET_MAKEFILE ADD_MDEPS ADD_ADEPS ADD_WHAT_MAKEFILE_BUILDS CREATE_MAKEFILE_ALIAS ADD_ORDER_DEPS=ORDER_DEPS=ORDER_DEPS \
-  NEED_GEN_DIRS STD_TARGET_VARS1 CHECK_GENERATED_AT STD_TARGET_VARS MAKEFILE_INFO_TEMPL SET_MAKEFILE_INFO \
-  ADD_GENERATED ADD_GENERATED_RET TMD TOOL_MODE_ERROR \
-  DEF_HEAD_CODE DEF_TAIL_CODE CB_PREPARE_TARGET_TYPE DEFINE_TARGETS SAVE_VARS RESTORE_VARS MAKE_CONTINUE \
-  ospath nonrelpath fixpath SED_MULTI_EXPR CONF_COLOR \
+$(call SET_GLOBAL,cb_project_vars clean_build_version cb_dir clean_build_required_version \
+  cb_build project_supported_targets CBLD_TARGET CBLD_OS CBLD_TCPU CBLD_CPU CBLD_UTILS utils_mk \
+  target_triplet def_bin_dir def_obj_dir def_lib_dir def_gen_dir cb_set_sefault_dirs \
+  tool_base mk_tools_dir cb_tool_override_dirs tool_suffix get_tools get_tool cb_target_makefile \
+  add_mdeps add_adeps add_what_makefile_builds create_makefile_alias add_order_deps=order_deps=order_deps \
+  need_gen_dirs std_target_vars1 cb_check_generated_at std_target_vars set_makefile_info add_generated add_generated_ret \
+  is_tool_mode cb_tool_mode_access_error cb_def_head_code cb_def_tail_code define_targets cb_prepare_target_type save_vars \
+  restore_vars make_continue ospath nonrelpath fixpath sed_multi_expr CONF_COLOR \
   GEN_COLOR MGEN_COLOR CP_COLOR RM_COLOR RMDIR_COLOR MKDIR_COLOR TOUCH_COLOR CAT_COLOR SED_COLOR \
   PRODUCT_VER)
 
-# if TOCLEAN value is non-empty, allow tracing calls to it,
-# else - just protect TOCLEAN from changes, do not make it's value non-empty - because TOCLEAN is checked in ifdefs
-ifndef TOCLEAN
-$(call SET_GLOBAL,TOCLEAN,0)
+# if toclean value is non-empty, allow tracing calls to it,
+# else - just protect toclean from changes, do not make it's value non-empty - because toclean is checked in ifdefs
+ifndef toclean
+$(call SET_GLOBAL,toclean,0)
 else
-$(call SET_GLOBAL,TOCLEAN==CLEAN)
+$(call SET_GLOBAL,toclean==cb_to_clean)
 endif
 
 # auxiliary macros
@@ -901,15 +826,15 @@ include $(cb_dir)/core/nonpar.mk
 include $(cb_dir)/core/multi.mk
 include $(cb_dir)/core/runtool.mk
 
-# TARGET must be non-recursive (simple), because it is used to create simple variable TARGET_TRIPLET
+# TARGET must be non-recursive (simple), because it is used to create simple variable target_triplet
 override TARGET := $(TARGET)
 
-# OS must be non-recursive (simple), because it is used to create simple variable TARGET_TRIPLET
+# OS must be non-recursive (simple), because it is used to create simple variable target_triplet
 override OS := $(OS)
 
-# TCPU variable must be non-recursive (simple), because it is used to create simple variable TOOL_OVERRIDE_DIRS
+# TCPU variable must be non-recursive (simple), because it is used to create simple variable cb_tool_override_dirs
 override TCPU := $(TCPU)
 
-# CPU must be non-recursive (simple), because it is used to create simple variable TARGET_TRIPLET
+# CPU must be non-recursive (simple), because it is used to create simple variable target_triplet
 override CPU := $(CPU)
 
