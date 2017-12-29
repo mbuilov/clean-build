@@ -61,8 +61,8 @@ product_vendor_copyright := Copyright (C) 2018 Unkown Company/Author
 product_version := 1.0.0
 
 # Note: to export project variable, add it to the 'project_exported_vars' list, e.g.:
-#  export MY_VAR := my_value
-#  project_exported_vars := MY_VAR
+#  export my_var := my_value
+#  project_exported_vars := my_var
 
 # Note: may pre-define other clean-build macros here - predefined values will override default ones, e.g:
 #  project_supported_targets := DEVEL PRODUCTION
