@@ -72,7 +72,7 @@ product_version := 1.0.0
 include $(dir $(lastword $(MAKEFILE_LIST)))overrides.mk
 
 # Note: may redefine core clean-build macros here, e.g.:
-#  $(call define_prepend,cb_def_head_code,$$(info target makefile: $$(cb_target_makefile)))
+#  $(call define_prepend,cb_def_head,$$(info target makefile: $$(cb_target_makefile)))
 
 # Note: if some project variables may be taken from the environment (like PROJ_VAR ?= default value), add those
 #  variables to the generated configuration makefile $(CBLD_CONFIG) here:

@@ -45,7 +45,7 @@ endif
 # config - is not a file, it's a goal
 .PHONY: config
 
-# encode a value of the variable $=
+# encode a value of variable $=
 cb_config_remember_var = $(if $(findstring simple,$(flavor $v)),$= := $$(empty)$(subst \,$$(backslash),$(subst \
   $(comment),$$(comment),$(subst $(newline),$$(newline),$(subst $$,$$$$,$(value $=)))))$$(empty),define $=$(newline)$(subst \
   define,$$(keyword_define),$(subst endef,$$(keyword_endef),$(subst \,$$(backslash),$(value $=))))$(newline)endef)$(newline)
@@ -92,8 +92,9 @@ project_exported_vars += $(foreach =,$(cb_config_saved_vars),$(if $(findstring c
 # $3 - non-empty if macros should be saved again (likely with a new value)
 # note: if a variable is defined in the environment, it is saved as exported
 # note: command-line variables are already saved, so filter them out
-# note: variables in the list $1 _must_ be defined
+# note: all variables in the list $1 _must_ be defined
 # note: exported variables added to the 'project_exported_vars' list permanently
+# note: by default, variable is _not_ saved if it was already saved before
 config_remember_vars = $(call config_remember_vars1,$(if $3,$(foreach =,$1,$(if $(findstring \
   command line,$(origin $=)),,$=)),$(filter-out $(cb_config_saved_vars),$1)),$2)
 config_remember_vars1 = $(if $1,$(eval config: config_text += $$(foreach =,$$1,$$(if $$2,$$(if $$(findstring override,$$(origin \
@@ -116,15 +117,15 @@ CBLD_CONFIG_WRITE_BY_LINES ?= 10
 $(call config_remember_vars,PATH CBLD_CONFIG_WRITE_BY_LINES)
 
 # generate configuration makefile
-# note: suppress - defined in $(cb_dir)/core/_defs.mk
-# note: write_text - defined in $(cb_dir)/utils/$(CBLD_UTILS).mk
-# note: pass 1 as 4-th argument of 'suppress' function to not update percents of executed target makefiles
+# note: 'suppress' - defined in $(cb_dir)/core/suppress.mk
+# note: 'write_text' - defined in $(cb_dir)/utils/$(CBLD_UTILS).mk
 # note: 'config_text' - defined above as target-specific variable
+# note: define target-specific variables F.^ and C.^ - for the 'suppress' function
 config: F.^ := $(abspath $(firstword $(MAKEFILE_LIST)))
 config: C.^ :=
 config: cf := $(abspath $(CBLD_CONFIG))
 config:| $(abspath $(dir $(CBLD_CONFIG)))
-	$(call suppress,GEN,$(cf),,1)$(call write_text,$(config_text)project_exported_vars := $(sort \
+	$(call suppress,GEN,$(cf))$(call write_text,$(config_text)project_exported_vars := $(sort \
   $(project_exported_vars)),$(cf),$(CBLD_CONFIG_WRITE_BY_LINES))
 
 # if $(CBLD_CONFIG) makefile is generated under the $(cb_build), create that directory automatically,

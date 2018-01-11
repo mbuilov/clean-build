@@ -5,56 +5,58 @@
 #----------------------------------------------------------------------------------
 
 # support for creating groups of targets that should not be executed in parallel
-#  (e.g. one linker may consume all available resources)
+#  (e.g. one linker may consume all available memory and put server to continuous swapping)
 
-ifndef TOCLEAN
+ifndef toclean
 
 # create a chain of order-only dependent targets, so their rules will be executed one after each other
-# $1 - $(group_name)_NON_PARALEL_GROUP
-# $2 - target
-define NON_PARALLEL_EXECUTE_RULE
+# $1 - cb_$(group_name)_non_par_group
+# $2 - target file
+define cb_non_par_rule
 ifneq (undefined,$(origin $1))
-$2:| $($1)
+$2:| $$($1)
 endif
 $1:=$2
 endef
 
-# reset $(group_name)_NON_PARALEL_GROUP variable before the rule execution second phase
-ifdef CB_CHECKING
-$(eval define NON_PARALLEL_EXECUTE_RULE$(newline)$(subst \
-  endif,else$(newline)CB_FIRST_PHASE_VARS+=$$1$(newline)endif,$(value NON_PARALLEL_EXECUTE_RULE))$(newline)endef)
+# reset 'cb_$(group_name)_non_par_group' variable before the rule execution second phase
+ifdef cb_checking
+$(eval define cb_non_par_rule$(newline)$(subst \
+  endif,else$(newline)cb_first_phase_vars+=$$1$(newline)endif,$(value cb_non_par_rule))$(newline)endef)
 endif
 
-# remember new value of $(group_name)_NON_PARALEL_GROUP
-ifdef SET_GLOBAL1
-$(call define_append,NON_PARALLEL_EXECUTE_RULE,$(newline)$$(call SET_GLOBAL1,$$1))
+# remember new value of 'cb_$(group_name)_non_par_group'
+# note: trace namespace: nonpar
+ifdef set_global1
+$(call define_append,cb_non_par_rule,$(newline)$$(call set_global1,$$1,nonpar))
 endif
 
 # create a chain of order-only dependent targets, so their rules will be executed one after each other
 # for example:
-# $(call NON_PARALLEL_EXECUTE,my_group,target1)
-# $(call NON_PARALLEL_EXECUTE,my_group,target2)
-# $(call NON_PARALLEL_EXECUTE,my_group,target3)
+# $(call non_parallel_execute,my_group,target1)
+# $(call non_parallel_execute,my_group,target2)
+# $(call non_parallel_execute,my_group,target3)
 # ...
 # $1 - group name
-# $2 - target
-# note: standard .NOTPARALLEL target, if defined, globally disables parallel execution of all rules,
-#  NON_PARALLEL_EXECUTE macro allows to define a group of targets those rules must not be executed in parallel
-NON_PARALLEL_EXECUTE = $(eval $(call NON_PARALLEL_EXECUTE_RULE,$1_NON_PARALEL_GROUP,$2))
+# $2 - target file
+# note: standard .NOTPARALLEL target, if defined, globally disables parallel execution of all rules, but
+#  'non_parallel_execute' macro allows to define a group of targets only those rules must not be executed in parallel
+non_parallel_execute = $(eval $(call cb_non_par_rule,cb_$1_non_par_group,$$2))
 
-else # clean
+else # toclean
 
 # just delete files on 'clean'
-NON_PARALLEL_EXECUTE:=
+non_parallel_execute:=
 
-endif # clean
+endif # toclean
 
 # makefile parsing first phase variables
-CB_FIRST_PHASE_VARS += NON_PARALLEL_EXECUTE_RULE NON_PARALLEL_EXECUTE
+cb_first_phase_vars += cb_non_par_rule non_parallel_execute
 
 # protect macros from modifications in target makefiles,
 # do not trace calls to macros used in ifdefs, exported to the environment of called tools or modified via operator +=
-$(call SET_GLOBAL,CB_FIRST_PHASE_VARS,0)
+$(call set_global,cb_first_phase_vars)
 
 # protect macros from modifications in target makefiles, allow tracing calls to them
-$(call SET_GLOBAL,NON_PARALLEL_EXECUTE_RULE NON_PARALLEL_EXECUTE)
+# note: trace namespace: nonpar
+$(call set_global,cb_non_par_rule non_parallel_execute,nonpar)

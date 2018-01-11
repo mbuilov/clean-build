@@ -4,36 +4,34 @@
 # Licensed under GPL version 2 or any later version, see COPYING
 #----------------------------------------------------------------------------------
 
-# support for rules generating multiple files at once (e.g. by calling bison tool)
+# support for rules that generate multiple files at once (e.g. by calling bison tool)
 
-ifndef TOCLEAN
+ifndef toclean
+
+# used to count each call of $(multi_target)
+# note: 'cb_multi_target_num' is never cleared, it's only appended (in makefile parsing first phase)
+cb_multi_target_num:=
 
 # list of processed multi-target rules
-# note: MULTI_TARGETS is never cleared, only appended (in rule execution second phase)
-MULTI_TARGETS:=
+# note: 'cb_multi_targets' is never cleared, it's only appended (in rule execution second phase)
+cb_multi_targets:=
 
-# used to count each call of $(MULTI_TARGET)
-# note: MULTI_TARGET_NUM is never cleared, only appended (in makefile parsing first phase)
-MULTI_TARGET_NUM:=
-
-# make a chain of dependencies of multi-targets on each other: 1 2 3 4 -> 2:| 1; 3:| 2; 4:| 3;
+# make a dependency chain of target files of a multi-target rule on each other: 1 2 3 4 -> 2:| 1; 3:| 2; 4:| 3;
 # $1 - list of generated files (absolute paths without spaces)
-# note: because all multi-target files are generated at once - when need to update one of them
-#  and target file timestamp is updated only after executing a rule, rule execution must be
-#  delayed until files are really generated.
-MULTI_TARGET_SEQ = $(subst |,:| ,$(subst $(space),$(newline),$(filter-out \
+# note: without dependency chain, a rule that generates some intermediate target, say 2, may return before the target is really created
+cb_multi_target_seq = $(subst |,:| ,$(subst $(space),$(newline),$(filter-out \
   ||%,$(join $(addsuffix |,$(wordlist 2,999999,$1) |),$1))))
 
 # when some tool (e.g. bison) generates many files, call the tool only once:
-#  assign to each generated multi-target rule an unique number
-#  and remember if rule with this number was already executed for one of multi-targets
+#  assign to each multi-target rule an unique number and check if a rule with this
+#  number was already executed to generate one of its targets
 #
 # $1 - list of generated files (absolute paths)
 # $2 - prerequisites (either absolute or makefile-related)
 # $3 - rule
-# $4 - $(words $(MULTI_TARGET_NUM))
+# $4 - $(words $(cb_multi_target_num))
 #
-# note: all generated files must depend on prerequisites, making a chain of
+# note: all generated files must depend on the prerequisites, making a chain of
 #  order-only dependencies between generated files is not enough - a target
 #  that depends on existing generated file will be rebuilt as result of changes
 #  in prerequisites only if generated file also depends on prerequisites, e.g.
@@ -45,21 +43,21 @@ MULTI_TARGET_SEQ = $(subst |,:| ,$(subst $(space),$(newline),$(filter-out \
 #   trg1: gen1                 trg1: gen1
 #   trg2: gen2                 trg2: gen2
 #
-# note: do not delete some of generated files manually, do 'make clean' to delete them all,
+# note: do not delete some of generated files manually, always do 'make clean' to delete them all,
 #  otherwise, missing files will be generated correctly, but as side effect up-to-date files are
 #  also will be re-generated, this may lead to unexpected rebuilds on second make invocation.
 #
-define MULTI_TARGET_RULE
-$(MULTI_TARGET_SEQ)
-$(STD_TARGET_VARS)
+define cb_multi_target_rule
+$(cb_multi_target_seq)
+$(std_target_vars)
 $1: $(call fixpath,$2)
-	$$(if $$(filter $4,$$(MULTI_TARGETS)),,$$(eval MULTI_TARGETS+=$4)$$(call SUP,MGEN,$1)$3)
-MULTI_TARGET_NUM+=1
+	$$(if $$(filter $4,$$(cb_multi_targets)),,$$(eval cb_multi_targets+=$4)$$(call suppress,MGEN,$1)$3)
+cb_multi_target_num+=1
 endef
 
-# remember new value of MULTI_TARGET_NUM, without tracing calls to it because it is incremented
-ifdef CB_CHECKING
-$(call define_append,MULTI_TARGET_RULE,$(newline)$$(call SET_GLOBAL1,MULTI_TARGET_NUM,0))
+# remember new value of 'cb_multi_target_num', without tracing calls to it because it is incremented
+ifdef cb_checking
+$(call define_append,cb_multi_target_rule,$(newline)$$(call set_global1,cb_multi_target_num))
 endif
 
 # if some tool generates multiple files at one call, it is needed to call
@@ -68,35 +66,40 @@ endif
 # $2 - prerequisites (either absolute or makefile-related)
 # $3 - rule
 # note: directories for generated files will be auto-created
-# note: rule must update all targets
-MULTI_TARGET = $(eval $(call MULTI_TARGET_RULE,$1,$2,$3,$(words $(MULTI_TARGET_NUM))))
+# note: rule must update _all_ targets at once
+multi_target = $(eval $(call cb_multi_target_rule,$1,$2,$3,$(words $(cb_multi_target_num))))
 
-ifdef CB_CHECKING
+ifdef cb_checking
 
-# must not use $@ in multi-target rule because it may have different values
-#  (any target from multi-targets list), and rule must update all targets at once.
+# must not use $@ in multi-target rule because it may have different values (any file from the list of
+#  generated files) - rule must update all targets at once
 # $1 - list of generated files (absolute paths)
 # $3 - rule
-CHECK_MULTI_RULE = $(if $(findstring $$@,$(subst \
+cb_check_multi_rule = $(if $(findstring $$@,$(subst \
   $$$$,,$3)),$(error $$@ cannot be used in multi-target rule:$(newline)$3))
 
-$(eval MULTI_TARGET = $$(CHECK_MULTI_RULE)$(value MULTI_TARGET))
+$(eval multi_target = $$(cb_check_multi_rule)$(value multi_target))
 
-endif # CB_CHECKING
+endif # cb_checking
 
-else # clean
+else # toclean
 
 # just delete files on 'clean'
-MULTI_TARGET = $(eval $(STD_TARGET_VARS))
+multi_target = $(eval $(std_target_vars))
 
-endif # clean
+endif # toclean
+
+# same as 'multi_target', but return the list of generated files $1
+multi_target_ret = $(multi_target)$1
 
 # makefile parsing first phase variables
-CB_FIRST_PHASE_VARS += MULTI_TARGET_NUM MULTI_TARGET_SEQ MULTI_TARGET_RULE MULTI_TARGET CHECK_MULTI_RULE
+cb_first_phase_vars += cb_multi_target_num cb_multi_target_seq cb_multi_target_rule multi_target cb_check_multi_rule multi_target_ret
 
 # protect macros from modifications in target makefiles,
 # do not trace calls to macros used in ifdefs, exported to the environment of called tools or modified via operator +=
-$(call SET_GLOBAL,CB_FIRST_PHASE_VARS MULTI_TARGETS MULTI_TARGET_NUM,0)
+$(call set_global,cb_first_phase_vars cb_multi_target_num cb_multi_targets)
 
 # protect macros from modifications in target makefiles, allow tracing calls to them
-$(call SET_GLOBAL,MULTI_TARGET_SEQ MULTI_TARGET_RULE=MULTI_TARGET_NUM=MULTI_TARGET_NUM MULTI_TARGET CHECK_MULTI_RULE)
+# note: trace namespace: multi
+$(call set_global,cb_multi_target_seq cb_multi_target_rule=cb_multi_target_num=cb_multi_target_num \
+  multi_target cb_check_multi_rule multi_target_ret,multi)

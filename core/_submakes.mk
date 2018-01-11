@@ -6,153 +6,157 @@
 
 # support for processing sub-makefiles
 
-# Note: $(cb_dir)/core/_defs.mk must be included prior this file
+# Note: $(cb_dir)/core/_defs.mk must be included prior this file - this is done by the $(cb_dir)/stub/submakes.mk
 
-# name of file to look for if makefile is specified by directory path
-DEFAULT_MAKEFILE_NAME := Makefile
+# the name of a file to look for, if sub-makefile is specified by its directory path
+CBLD_MAKEFILE_NAME ?= Makefile
 
-# recognized extensions and names of makefiles
-MAKEFILE_PATTERNS := .mk .mak /makefile /$(DEFAULT_MAKEFILE_NAME)
+# recognized extensions and names of sub-makefiles
+CBLD_MAKEFILE_PATTERNS ?= .mk .mak /makefile /$(CBLD_MAKEFILE_NAME)
 
-# generate code of NORM_MAKEFILES macro - multiple patsubsts, such as:
-# $(patsubst %/Makefile/Makefile,%/Makefile,$(patsubst %.mak/Makefile,%.mak,...))
-NORM_MAKEFILES = $(if $1,$(call NORM_MAKEFILES,$(wordlist 2,999999,$1),$$(patsubst \
-  %$(firstword $1)/$(DEFAULT_MAKEFILE_NAME),%$(firstword $1),$2)),$2)
+# generate code of 'cb_norm_makefiles' macro - multiple patsubsts in $2, such as:
+# $(patsubst %/Makefile/Makefile,%/Makefile,$(patsubst %.mak/Makefile,%.mak,...,$2))
+cb_norm_makefiles = $(if $1,$(call cb_norm_makefiles,$(wordlist 2,999999,$1),$$(patsubst \
+  %$(firstword $1)/$(CBLD_MAKEFILE_NAME),%$(firstword $1),$2)),$2)
 
-# NORM_MAKEFILES - make absolute paths to makefiles $1, assuming some of them may be specified by directory path:
-# 1) add path to directory of $(TARGET_MAKEFILE) if makefile path is not absolute
-# 2) add /Makefile if makefile path do not ends with any of $(MAKEFILE_PATTERNS) (i.e. specified by a directory)
-# e.g.: $(call NORM_MAKEFILES,/d/aa bb.mk) -> /d/aa/Makefile /c/bb.mk
-$(eval NORM_MAKEFILES = $(call NORM_MAKEFILES,$(MAKEFILE_PATTERNS),$$(addsuffix /$(DEFAULT_MAKEFILE_NAME),$$(call fixpath,$$1))))
+# 'cb_norm_makefiles' - make absolute paths to sub-makefiles $1, assuming some of them may be specified by directory path:
+# 1) add path to directory of $(cb_target_makefile) if makefile path is not absolute
+# 2) add /Makefile if makefile path do not ends with any of $(CBLD_MAKEFILE_PATTERNS) (i.e. specified by a directory)
+# e.g.: $(call cb_norm_makefiles,/d/aa bb.mk) -> /d/aa/Makefile /c/bb.mk
+$(eval cb_norm_makefiles = $(call cb_norm_makefiles,$(CBLD_MAKEFILE_PATTERNS),$$(addsuffix /$(CBLD_MAKEFILE_NAME),$$(call fixpath,$$1))))
 
-# $m - absolute path to makefile to include
-# $2 - current TOOL_MODE value
-# note: TOOL_MODE value may be changed (set) in included makefile, so restore TOOL_MODE before including next makefile
-# note: last line must be empty to allow to join multiple $(CB_INCLUDE_TEMPLATE)s together
-define CB_INCLUDE_TEMPLATE
-TOOL_MODE:=$2
-TARGET_MAKEFILE:=$m
+# $m - absolute path to sub-makefile to include
+# $2 - current 'tool_mode' value
+# note: 'tool_mode' value may be changed (set) in included sub-makefile, so restore 'tool_mode' before including next sub-makefile
+# note: last line must be empty to allow to join multiple $(cb_include_template)s together
+define cb_include_template
+tool_mode:=$2
+cb_target_makefile:=$m
 include $m
 
 endef
 
-# remember new value of TARGET_MAKEFILE
-# note: TOOL_MODE value will be saved in DEF_HEAD_CODE
-ifdef SET_GLOBAL1
-$(eval define CB_INCLUDE_TEMPLATE$(newline)$(subst include,$$(call \
-  SET_GLOBAL1,TARGET_MAKEFILE)$(newline)include,$(value CB_INCLUDE_TEMPLATE))$(newline)endef)
+# remember new value of 'cb_target_makefile'
+# note: 'tool_mode' value will be processed in 'cb_def_head'
+# note: trace namespace: core
+ifdef set_global1
+$(eval define cb_include_template$(newline)$(subst include,$$(call \
+  set_global1,cb_target_makefile,core)$(newline)include,$(value cb_include_template))$(newline)endef)
 endif
 
-# generate code for processing given list of makefiles
-# $1 - absolute paths to makefiles to include
-# $2 - current TOOL_MODE value
-define CB_INCLUDE_SUBMAKES
-CB_INCLUDE_LEVEL+=.
-$(foreach m,$1,$(CB_INCLUDE_TEMPLATE))
-CB_INCLUDE_LEVEL:=$(CB_INCLUDE_LEVEL)
+# generate code for processing given list of sub-makefiles
+# $1 - absolute paths to sub-makefiles to include
+# $2 - current value of 'tool_mode'
+define cb_include_submakes
+cb_include_level+=.
+$(foreach m,$1,$(cb_include_template))cb_include_level:=$(cb_include_level)
 endef
 
-# remember new value of CB_INCLUDE_LEVEL, without tracing calls to it because it is incremented
-# note: assume result of $(call SET_GLOBAL1,...,0) will give an empty line at end of expansion
-ifdef CB_CHECKING
-$(eval define CB_INCLUDE_SUBMAKES$(newline)$(subst \
-  CB_INCLUDE_LEVEL+=.$(newline),CB_INCLUDE_LEVEL+=.$(newline)$$(call SET_GLOBAL1,CB_INCLUDE_LEVEL,0),$(value \
-  CB_INCLUDE_SUBMAKES))$(newline)$$(call SET_GLOBAL1,CB_INCLUDE_LEVEL,0)$(newline)endef)
+# remember new value of 'cb_include_level', without tracing calls to it because it is incremented
+# note: assume result of $(call set_global1,...) will give an empty line at end of expansion
+ifdef cb_checking
+$(eval define cb_include_submakes$(newline)$(subst \
+  cb_include_level+=.$(newline),cb_include_level+=.$(newline)$$(call set_global1,cb_include_level),$(value \
+  cb_include_submakes))$(newline)$$(call set_global1,cb_include_level)$(newline)endef)
 endif
 
-ifndef TOCLEAN
+ifndef toclean
 
-# note: ORDER_DEPS value may be changed in included makefile, so restore ORDER_DEPS before including next makefile
-$(call define_prepend,CB_INCLUDE_TEMPLATE,ORDER_DEPS:=$$(ORDER_DEPS)$(newline))
+# note: 'order_deps' value may be changed in included sub-makefile, so restore 'order_deps' before including next sub-makefile
+$(call define_prepend,cb_include_template,order_deps:=$$(order_deps)$(newline))
 
-# remember new value of ORDER_DEPS, without tracing calls to it because it is incremented
-ifdef CB_CHECKING
-$(eval define CB_INCLUDE_TEMPLATE$(newline)$(subst include,$$(call \
-  SET_GLOBAL1,ORDER_DEPS,0)include,$(value CB_INCLUDE_TEMPLATE))$(newline)endef)
+# remember new value of 'order_deps', without tracing calls to it because it is incremented
+# note: assume result of $(call set_global1,...) will give an empty line at end of expansion
+ifdef cb_checking
+$(eval define cb_include_template$(newline)$(subst include,$$(call \
+  set_global1,order_deps)include,$(value cb_include_template))$(newline)endef)
 endif
 
-# append makefiles (really PHONY targets created from them) to ORDER_DEPS list
-# note: argument $1 - list of makefiles (or directories, where Makefile is searched)
-# note: add empty rules for makefile dependencies (absolute paths of dependency makefiles with '-' suffix):
-#  don't complain if order deps are not resolved when build started in sub-directory
-ADD_MDEPS1 = $(if $1,$(eval $1:$(newline)ORDER_DEPS+=$1))
-ADD_MDEPS = $(call ADD_MDEPS1,$(filter-out $(ORDER_DEPS),$(NORM_MAKEFILES:=-)))
+# append makefiles of the modules (really PHONY targets created from them) to 'order_deps' list
+# note: argument $1 - list of module makefiles (or directories, where Makefile file is searched)
+add_mdeps = $(call add_mdeps1,$(filter-out $(order_deps),$(cb_norm_makefiles:=-)))
+add_mdeps1 = $(if $1,$(eval order_deps+=$$1)$(add_mdeps2))
 
-# remember new value of ORDER_DEPS, without tracing calls to it because it is incremented
-ifdef CB_CHECKING
-$(eval ADD_MDEPS1 = $(subst +=$$1,+=$$1$$(newline)$$(call SET_GLOBAL1,ORDER_DEPS,0),$(value ADD_MDEPS1)))
-endif
-
-# same as ADD_MDEPS, but accepts aliases of makefiles
-# note: alias names are created via CREATE_MAKEFILE_ALIAS macro
-ADD_ADEPS = $(call ADD_MDEPS1,$(filter-out $(ORDER_DEPS),$(patsubst %,MAKEFILE_ALIAS_%-,$1)))
-
-# $(TARGET_MAKEFILE) is built if all $1 makefiles are built
-# note: $(TARGET_MAKEFILE)- and other order-dependent makefile names - are .PHONY targets
-# note: use order-only dependency, so normal dependencies of $(TARGET_MAKEFILE)-
-#  will be only files - for the checks in $(cb_dir)/core/all.mk
-$(call define_prepend,CB_INCLUDE_SUBMAKES,.PHONY: $$(addsuffix \
-  -,$$1)$(newline)$$(TARGET_MAKEFILE)-:| $$(addsuffix -,$$1)$(newline))
-
-# show debug info
-ifdef MDEBUG
-$(call define_prepend,CB_INCLUDE_SUBMAKES,$$(info $$(subst \
-  $$(space),,$$(CB_INCLUDE_LEVEL))$$(TARGET_MAKEFILE)$$(if $$(ORDER_DEPS), | $$(ORDER_DEPS))))
-endif
-
-else ifdef MDEBUG # clean
-
-# show debug info
-$(call define_prepend,CB_INCLUDE_SUBMAKES,$$(info $$(subst \
-  $$(space),,$$(CB_INCLUDE_LEVEL))$$(TARGET_MAKEFILE)))
-
-endif # clean && MDEBUG
-
-# PROCESS_SUBMAKES normally called with non-empty first argument $1,
-# to not define variable 1 for next processed makefiles, this macro must
-# be expanded by explicit $(call PROCESS_SUBMAKES_EVAL) without arguments
-# note: call DEF_TAIL_CODE with @ - for the checks in CB_CHECK_AT_TAIL macro
-#  (which is defined in $(cb_dir)/core/protection.mk)
-# note: process result of DEF_TAIL_CODE with separate $(eval) - for the checks performed while expanding $(eval argument)
-PROCESS_SUBMAKES_EVAL = $(eval $(value CB_SUBMAKES_CODE))$(eval $(call DEF_TAIL_CODE,@))
-
-# generate code for including and processing given list of makefiles $1 - in $(CB_SUBMAKES_CODE),
-#  then evaluate it via call without parameters - to hide $1 argument from makefiles
-# at end, check if need to include $(cb_dir)/core/all.mk
-# note: make absolute paths to makefiles to include
-PROCESS_SUBMAKES = $(eval define CB_SUBMAKES_CODE$(newline)$(call \
-  CB_INCLUDE_SUBMAKES,$(NORM_MAKEFILES),$(TOOL_MODE))$(newline)endef)$(call PROCESS_SUBMAKES_EVAL)
-
-# TOOL_MODE is reset to $(TOOL_MODE_ERROR) after reading it in $(CB_INCLUDE_SUBMAKES)/core/_defs.mk
-ifdef CB_CHECKING
-$(eval PROCESS_SUBMAKES = $(subst $$(TOOL_MODE),$$(if $$(findstring \
-  $$$$(TOOL_MODE_ERROR),$$(value TOOL_MODE)),$$(TMD),$$(TOOL_MODE)),$(value PROCESS_SUBMAKES)))
-endif
-
-# set CB_NEED_SUBMAKES to non-empty value before including sub-makefiles - to check if a
-#  sub-makefile calls PROCESS_SUBMAKES, it _must_ evaluate PROCESS_SUBMAKES_PREPARE prior calling PROCESS_SUBMAKES
-#  (by including appropriate makefile of project build system - 'make/submakes.mk') before the call
-ifdef CB_CHECKING
-PROCESS_SUBMAKES_PREPARE = $(eval CB_NEED_SUBMAKES:=)
-$(eval PROCESS_SUBMAKES = $$(if $$(CB_NEED_SUBMAKES),$$(error \
-  submakes.mk was not included at head of makefile!))$(subst \
-  eval ,eval CB_NEED_SUBMAKES:=1$$(newline)$$(call \
-  SET_GLOBAL1,CB_NEED_SUBMAKES)$$(newline),$(value PROCESS_SUBMAKES)))
+# add empty rules for makefile dependencies (which are absolute paths to dependency makefiles with appended '-' suffix):
+#  don't complain if order dependencies cannot be resolved if build was started in some inner sub-directory
+ifneq (file,$(origin cb_target_makefiles))
+add_mdeps2 = $(eval $$1:$(newline))
 else
-PROCESS_SUBMAKES_PREPARE:=
+# filter-out already processed dependent target makefiles
+add_mdeps2 = $(call add_mdeps3,$(filter-out $(cb_target_makefiles:=-),$1))
+add_mdeps3 = $(if $1,$(eval $$1:$(newline)))
+endif
+
+ifdef cb_checking
+
+# remember new value of 'order_deps', without tracing calls to it because it is incremented
+$(eval add_mdeps1 = $(subst +=$$1,+=$$1$$(newline)$$(call set_global1,order_deps),$(value add_mdeps1)))
+
+# check that dependent makefiles exist
+# note: use fake $(if ...) around $(foreach ...) so 'add_mdeps3' will not produce any text output
+$(eval add_mdeps3 = $$(if $$(foreach m,$$1,$$(if $$(wildcard $$(m:-=)),,$$(error \
+  $$(cb_target_makefile): dependent makefile does not exist: $$(m:-=)))))$(value add_mdeps3))
+
+endif # cb_checking
+
+# $(cb_target_makefile) is built if all sub-makefiles in list $1 are built
+# note: $(cb_target_makefile)- and other order-dependent makefile names - are .PHONY targets
+# note: use order-only dependency, so normal dependencies of $(cb_target_makefile)-
+#  will be only files - for the checks in $(cb_dir)/core/all.mk (where automatic variable $^ is used)
+$(call define_prepend,cb_include_submakes,.PHONY: $$(addsuffix \
+  -,$$1)$(newline)$$(cb_target_makefile)-:| $$(addsuffix -,$$1)$(newline))
+
+# show debug info
+ifdef cb_mdebug
+$(call define_prepend,cb_include_submakes,$$(info $$(subst \
+  $$(space),,$$(cb_include_level))$$(cb_target_makefile)$$(if $$(order_deps), | $$(order_deps))))
+endif
+
+else ifdef cb_mdebug # clean
+
+# show debug info when cleaning up
+# note: do not show 'order_deps' because it is not defined
+$(call define_prepend,cb_include_submakes,$$(info $$(subst \
+  $$(space),,$$(cb_include_level))$$(cb_target_makefile)))
+
+endif # clean && cb_mdebug
+
+# macro 'process_submakes' normally called with non-empty first argument $1, but to avoid defining global variable 1 for the
+#  next processed sub-makefiles, macro 'cb_submakes_eval' must be expanded by explicit $(call cb_submakes_eval) without arguments
+# note: call 'cb_def_tail' with argument @ - for the checks in 'cb_check_at_tail' macro (defined in $(cb_dir)/core/protection.mk)
+# note: process result of 'cb_def_tail' with separate $(eval) - for the checks performed while expanding $(eval argument)
+cb_submakes_eval = $(eval $(value cb_submakes_code))$(eval $(call cb_def_tail,@))
+
+# generate code 'cb_submakes_code' for including and processing given list of sub-makefiles $1,
+#  then evaluate it via call without parameters - to hide $1 argument from sub-makefiles
+# at end, check if it's needed to include $(cb_dir)/core/all.mk
+# note: make absolute paths to sub-makefiles
+process_submakes = $(eval define cb_submakes_code$(newline)$(call \
+  cb_include_submakes,$(cb_norm_makefiles),$(is_tool_mode))$(newline)endef)$(call cb_submakes_eval)
+
+# set 'cb_need_submakes' to non-empty value before including sub-makefiles - to check if a sub-makefile calls 'process_submakes',
+#  it _must_ evaluate 'cb_submakes_prepare' prior calling 'process_submakes' - by including appropriate makefile of project build
+#  system, e.g. 'make/submakes.mk'
+# note: protect 'cb_need_submakes' to not reset it as a local variable, do not trace calls to it
+ifdef cb_checking
+cb_submakes_prepare = $(eval cb_need_submakes:=)
+$(eval process_submakes = $$(if $$(cb_need_submakes),$$(error submakes.mk was not included at head of makefile!))$(subst \
+  eval ,eval cb_need_submakes:=1$$(newline)$$(call set_global1,cb_need_submakes)$$(newline),$(value process_submakes)))
+else
+cb_submakes_prepare:=
 endif
 
 # makefile parsing first phase variables
-CB_FIRST_PHASE_VARS += CB_INCLUDE_TEMPLATE CB_INCLUDE_SUBMAKES \
-  ADD_MDEPS1 PROCESS_SUBMAKES_EVAL PROCESS_SUBMAKES PROCESS_SUBMAKES_PREPARE
+cb_first_phase_vars += cb_include_template cb_include_submakes \
+  add_mdeps1 add_mdeps2 add_mdeps3 cb_submakes_eval process_submakes cb_submakes_prepare
 
-# protect CB_FIRST_PHASE_VARS from modification in target makefiles,
-# do not trace calls to CB_FIRST_PHASE_VARS because it's modified via += operator
-$(call SET_GLOBAL,CB_FIRST_PHASE_VARS,0)
+# protect 'cb_first_phase_vars' from modification in target makefiles,
+# do not trace calls to macros used in ifdefs, exported to the environment of called tools or modified via operator +=
+$(call set_global,cb_first_phase_vars CBLD_MAKEFILE_NAME CBLD_MAKEFILE_PATTERNS)
 
 # protect variables from modifications in target makefiles
-# note: do not complain about new ADD_MDEPS and ADD_ADEPS values
-# - replace ADD_MDEPS and ADD_ADEPS values defined in $(cb_dir)/core/_defs.mk with new ones
-$(call SET_GLOBAL,DEFAULT_MAKEFILE_NAME MAKEFILE_PATTERNS NORM_MAKEFILES CB_INCLUDE_TEMPLATE=ORDER_DEPS;m \
-  CB_INCLUDE_SUBMAKES ADD_MDEPS1 ADD_MDEPS=ORDER_DEPS=ORDER_DEPS ADD_ADEPS=ORDER_DEPS=ORDER_DEPS \
-  PROCESS_SUBMAKES_EVAL=CB_SUBMAKES_CODE PROCESS_SUBMAKES PROCESS_SUBMAKES_PREPARE)
+# note: do not complain about redefined 'add_mdeps', re-protect it again with a new value
+# note: trace namespace: submakes
+$(call set_global,cb_norm_makefiles cb_include_template=order_deps;m \
+  cb_include_submakes add_mdeps1 add_mdeps2 add_mdeps3 add_mdeps=order_deps=order_deps \
+  cb_submakes_eval=cb_submakes_code process_submakes cb_submakes_prepare,submakes)

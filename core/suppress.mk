@@ -4,7 +4,7 @@
 # Licensed under GPL version 2 or any later version, see COPYING
 #----------------------------------------------------------------------------------
 
-# define the 'suppress' macro - used to pretty-print commands executed by the makefiles
+# define 'suppress' macro - used to pretty-print commands executed by the makefiles
 
 # run via $(MAKE) V=1 for commands echoing and verbose output
 ifeq (command line,$(origin V))
@@ -43,13 +43,12 @@ ifeq (,$(filter distclean clean,$(MAKECMDGOALS)))
 # $1 - the tool
 # $2 - tool arguments
 # $3 - if empty, then colorize argument of the called tool
-# $4 - if empty, then try to update percents of the executed makefiles
-# note: 'cb_add_shown_percents' macro is checked in the $(cb_dir)/core/all.mk, so must always be defined
+# note: 'cb_add_shown_percents' macro is checked in the $(cb_dir)/core/_defs.mk and $(cb_dir)/core/all.mk, so must always be defined
 # note: 'cb_add_shown_percents' and 'cb_fomat_percents' macros - are used at second phase, after parsing the makefiles,
 #  so no need to protect new values of 'cb_shown_percents' and 'cb_shown_remainder' variables
 ifdef quiet
 
-# used to hold current percent of executed makefiles
+# used to hold current percents of executed target makefiles
 cb_shown_percents:=
 cb_shown_remainder:=
 
@@ -61,11 +60,16 @@ cb_shown_remainder:=
 # 3) current = 2, percents2 = percents1 + int((remainder1 + 100)/total), remainder2 = rem((remainder1 + 100)/total)
 # 4) current = 3, percents3 = percents2 + int((remainder2 + 100)/total), remainder3 = rem((remainder2 + 100)/total)
 # ...
-# note: TARGET_MAKEFILES_COUNT and TARGET_MAKEFILES_COUNT1 are replaced in the $(cb_dir)/core/all.mk
-cb_add_shown_percents = $(if $(word TARGET_MAKEFILES_COUNT,$1),+ $(call \
-  cb_add_shown_percents,$(wordlist TARGET_MAKEFILES_COUNT1,999999,$1)),$(newline)cb_shown_remainder:=$1)
+# note: <TARGET_MAKEFILES_COUNT> and <TARGET_MAKEFILES_COUNT1> are replaced in the $(cb_dir)/core/all.mk
+cb_add_shown_percents = $(if $(word <TARGET_MAKEFILES_COUNT>,$1),+ $(call \
+  cb_add_shown_percents,$(wordlist <TARGET_MAKEFILES_COUNT1>,999999,$1)),$(newline)cb_shown_remainder:=$1)
 
-# prepare for printing percents of processed makefiles
+# try to increment total percents count
+cb_update_percents = $(eval cb_shown_percents += $(call cb_add_shown_percents,$(cb_shown_remainder) \
+ 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 \
+ 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1))
+
+# format percents for printing
 cb_fomat_percents = $(subst |,,$(subst \
   |0%,00%,$(subst \
   |1%,01%,$(subst \
@@ -79,27 +83,16 @@ cb_fomat_percents = $(subst |,,$(subst \
   |9%,09%,$(subst \
   |100%,FIN,|$(words $(cb_shown_percents))%))))))))))))
 
-# don't update percents if makefile $(F.^) has been already shown
-# else remember makefile $(F.^), then try to increment total percents count
-define cb_rem_makefile
-$$(F.^):=
-cb_shown_percents += $(call cb_add_shown_percents,$(cb_shown_remainder) \
-1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 \
-1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1)
-endef
-
 # target-specific: F.^, C.^
 ifdef cb_infomf
-suppress = $(info $(call cb_print_percents,$(if $4,,$(if $(findstring undefined,$(origin \
-  $(F.^))),$(eval $(cb_rem_makefile))))$(cb_fomat_percents))$(F.^)$(C.^):$(cb_colorize))@
+suppress = $(info $(call cb_print_percents,$(cb_fomat_percents))$(F.^)$(C.^):$(cb_colorize))@
 else
-suppress = $(info $(call cb_print_percents,$(if $4,,$(if $(findstring undefined,$(origin \
-  $(F.^))),$(eval $(cb_rem_makefile))))$(cb_fomat_percents))$(cb_colorize))@
+suppress = $(info $(call cb_print_percents,$(cb_fomat_percents))$(cb_colorize))@
 endif
 
 else # !quiet (verbose)
 
-# reset: do not need to replace TARGET_MAKEFILES_COUNT and TARGET_MAKEFILES_COUNT1 in the $(cb_dir)/core/all.mk
+# reset: do not need to replace <TARGET_MAKEFILES_COUNT> and <TARGET_MAKEFILES_COUNT1> in the $(cb_dir)/core/all.mk
 cb_add_shown_percents:=
 
 ifdef cb_infomf
@@ -138,7 +131,7 @@ endif # !quiet (verbose)
 
 else # distclean || clean
 
-# reset: do not need to replace TARGET_MAKEFILES_COUNT and TARGET_MAKEFILES_COUNT1 in the $(cb_dir)/core/all.mk
+# reset: do not need to replace <TARGET_MAKEFILES_COUNT> and <TARGET_MAKEFILES_COUNT1> in the $(cb_dir)/core/all.mk
 cb_add_shown_percents:=
 cb_makefile_info_templ:=
 
@@ -153,5 +146,5 @@ $(call set_global,verbose quiet cb_infomf cb_shown_percents cb_shown_remainder c
 
 # protect macros from modifications in target makefiles, allow tracing calls to them
 # note: trace namespace: suppress
-$(call set_global,cb_print_percents cb_colorize cb_fomat_percents=cb_shown_percents \
-  cb_rem_makefile=cb_shown_percents=cb_shown_percents suppress cb_makefile_info_templ,suppress)
+$(call set_global,cb_print_percents cb_colorize cb_update_percents=cb_shown_percents=cb_shown_percents \
+  cb_fomat_percents=cb_shown_percents suppress cb_makefile_info_templ,suppress)

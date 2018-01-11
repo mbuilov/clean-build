@@ -15,4 +15,4 @@ include $(CBLD_ROOT)/types/_c.mk
 # Note: if needed, override clean-build definitions here
 endif
 
-$(call cb_prepare_target_type,cb_c_prepare_app_vars,cb_c_define_app_rules)
+$(call cb_prepare_templ,cb_c_prepare_app_vars,cb_c_define_app_rules)
