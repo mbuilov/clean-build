@@ -4,139 +4,149 @@
 # Licensed under GPL version 2 or any later version, see COPYING
 #----------------------------------------------------------------------------------
 
-# generic support for precompiled headers
+# generic support for C/C++ precompiled headers
 
 # included by:
-#  $(CLEAN_BUILD_DIR)/compilers/gcc/pch.mk
-#  $(CLEAN_BUILD_DIR)/compilers/suncc/pch.mk
-#  $(CLEAN_BUILD_DIR)/compilers/msvc/pch.mk
+#  $(cb_dir)/compilers/gcc/pch.mk
+#  $(cb_dir)/compilers/suncc/pch.mk
+#  $(cb_dir)/compilers/msvc/pch.mk
 
-# reset additional user-modifiable variables at beginning of target makefile
-# PCH - either absolute or makefile-related path to header to precompile
-C_PREPARE_PCH_VARS := $(newline)PCH:=
+# reset additional makefile variables at beginning of the target makefile
+# 'pch' - either absolute or makefile-related path to C/C++ header file to precompile
+c_prepare_pch_vars := $(newline)pch:=
 
-ifndef TOCLEAN
+ifndef toclean
 
-# define target-specific variables: PCH, CC_WITH_PCH and CXX_WITH_PCH
-# $1 - EXE,LIB,DLL,KLIB
+# define target-specific variables: 'pch', 'cc_with_pch' and 'cxx_with_pch'
+# $1 - target type: exe,lib,dll,klib
 # $2 - name of pch rule generator macro
-# $3 - $(call fixpath,$(PCH))
-# $4 - $(filter $(CC_MASK),$(call fixpath,$(WITH_PCH)))
-# $5 - $(filter $(CXX_MASK),$(call fixpath,$(WITH_PCH)))
-# $6 - $(call FORM_OBJ_DIR,$1,$v)
-# $7 - $(call FORM_TRG,$1,$v)
-# $v - variant - one of $(GET_VARIANTS)
-# note: last line must be empty
-define PCH_VARS_TEMPL
-$7:PCH := $3
-$7:CC_WITH_PCH := $4
-$7:CXX_WITH_PCH := $5
+# $3 - $(call fixpath,$(pch))
+# $4 - $(filter $(cc_mask),$(call fixpath,$(with_pch)))
+# $5 - $(filter $(cxx_mask),$(call fixpath,$(with_pch)))
+# $6 - $(call form_obj_dir,$1,$v)
+# $7 - $(call form_trg,$1,$v)
+# $v - variant - one of $(get_variants)
+# note: last line must be empty!
+define pch_vars_templ
+$7:pch := $3
+$7:cc_with_pch := $4
+$7:cxx_with_pch := $5
 
 endef
 
-# define empty target-specific variables CC_WITH_PCH and CXX_WITH_PCH
-# $1 - $(call ALL_TARGETS,$t) where $t - one of EXE,LIB,DLL,KLIB
-# note: last line must be empty
-define WITH_PCH_RESET
-$1:CC_WITH_PCH:=
-$1:CXX_WITH_PCH:=
+# define empty target-specific variables 'cc_with_pch' and 'cxx_with_pch'
+# $1 - $(call all_targets,$t) where $t - target type: one of exe,lib,dll,klib
+# note: last line must be empty!
+define with_pch_reset
+$1:cc_with_pch:=
+$1:cxx_with_pch:=
 
 endef
 
-# call externally defined compiler-specific template $2, which must generate code for compiling precompiled header
-# $1 - EXE,LIB,DLL,KLIB
+# call externally defined compiler-specific template $2, which must generate code for precompiled header compilation
+# $1 - target type: exe,lib,dll,klib
 # $2 - name of pch rule generator macro
-# $3 - $(call fixpath,$(PCH))
-# $4 - $(filter $(CC_MASK),$(call fixpath,$(WITH_PCH)))
-# $5 - $(filter $(CXX_MASK),$(call fixpath,$(WITH_PCH)))
-# $6 - $(call FORM_OBJ_DIR,$1,$v)
-# $7 - $(call FORM_TRG,$1,$v)
-# $v - variant - one of $(GET_VARIANTS)
+# $3 - $(call fixpath,$(pch))
+# $4 - $(filter $(cc_mask),$(call fixpath,$(with_pch)))
+# $5 - $(filter $(cxx_mask),$(call fixpath,$(with_pch)))
+# $6 - $(call form_obj_dir,$1,$v)
+# $7 - $(call form_trg,$1,$v)
+# $v - variant - one of $(get_variants)
 # -- parameters for pch rule generator $2:
-#  $1 - EXE,LIB,DLL,KLIB
-#  $2 - $(call fixpath,$(PCH))
-#  $3 - $(filter $(CC_MASK),$(WITH_PCH))
-#  $4 - $(filter $(CXX_MASK),$(WITH_PCH))
-#  $5 - $(call FORM_OBJ_DIR,$1,$v)
-#  $6 - $(call FORM_TRG,$1,$v)
-#  $v - variant - one of $(GET_VARIANTS)
-# note: PCH_TEMPLATEv may use target-specific variables: PCH, CC_WITH_PCH, CXX_WITH_PCH in generated code
-PCH_TEMPLATE3 = $(PCH_VARS_TEMPL)$(call $2,$1,$3,$4,$5,$6,$7)
+#  $1 - target type: exe,lib,dll,klib
+#  $2 - $(call fixpath,$(pch))
+#  $3 - $(filter $(cc_mask),$(with_pch))
+#  $4 - $(filter $(cxx_mask),$(with_pch))
+#  $5 - $(call form_obj_dir,$1,$v)
+#  $6 - $(call form_trg,$1,$v)
+#  $v - variant - one of $(get_variants)
+# note: 'pch_templatev' may use target-specific variables: 'pch', 'cc_with_pch' and 'cxx_with_pch' in generated code
+pch_template3 = $(pch_vars_templ)$(call $2,$1,$3,$4,$5,$6,$7)
 
 # call externally defined compiler-specific generators $2 and $3
-# $1 - EXE,LIB,DLL,KLIB
+# $1 - target type: exe,lib,dll,klib
 # $2 - name of pch rule generator macro
 # $3 - name of sources generator macro
-# $4 - $(call fixpath,$(PCH))
-# $5 - $(filter $(CC_MASK),$(call fixpath,$(WITH_PCH)))
-# $6 - $(filter $(CXX_MASK),$(call fixpath,$(WITH_PCH)))
+# $4 - $(call fixpath,$(pch))
+# $5 - $(filter $(cc_mask),$(call fixpath,$(with_pch)))
+# $6 - $(filter $(cxx_mask),$(call fixpath,$(with_pch)))
 # -- parameters for sources generator $3:
-#  $1 - EXE,LIB,DLL,KLIB
-#  $2 - $(call fixpath,$(PCH))
-#  $3 - $(filter $(CC_MASK),$(call fixpath,$(WITH_PCH)))
-#  $4 - $(filter $(CXX_MASK),$(call fixpath,$(WITH_PCH)))
-PCH_TEMPLATE2 = $(call $3,$1,$4,$5,$6)$(foreach v,$(GET_VARIANTS),$(call \
-  PCH_TEMPLATE3,$1,$2,$4,$5,$6,$(call FORM_OBJ_DIR,$1,$v),$(call FORM_TRG,$1,$v)))
+#  $1 - target type: exe,lib,dll,klib
+#  $2 - $(call fixpath,$(pch))
+#  $3 - $(filter $(cc_mask),$(call fixpath,$(with_pch)))
+#  $4 - $(filter $(cxx_mask),$(call fixpath,$(with_pch)))
+pch_template2 = $(call $3,$1,$4,$5,$6)$(foreach v,$(get_variants),$(call \
+  pch_template3,$1,$2,$4,$5,$6,$(call form_obj_dir,$1,$v),$(call form_trg,$1,$v)))
 
-# $1 - EXE,LIB,DLL,KLIB
+# $1 - target type: exe,lib,dll,klib
 # $2 - name of pch rule generator macro
 # $3 - name of sources generator macro
-# $4 - $(call fixpath,$(WITH_PCH))
-PCH_TEMPLATE1 = $(call PCH_TEMPLATE2,$1,$2,$3,$(call fixpath,$(PCH)),$(filter $(CC_MASK),$4),$(filter $(CXX_MASK),$4))
+# $4 - $(call fixpath,$(with_pch))
+pch_template1 = $(call pch_template2,$1,$2,$3,$(call fixpath,$(pch)),$(filter $(cc_mask),$4),$(filter $(cxx_mask),$4))
 
-# generate code to eval to build with precompiled headers
-# $1 - EXE,LIB,DLL,KLIB
+# generate code to evaluate to build with precompiled header (generate sources, compile pch, compile generated sources)
+# $1 - target type: exe,lib,dll,klib
 # $2 - name of pch rule generator macro
 # $3 - name of sources generator macro
-# use global variables: PCH, WITH_PCH
-# note: must reset target-specific variables CC_WITH_PCH and CXX_WITH_PCH if not using precompiled header
-#  for the target, otherwise dependent DLL or LIB target may inherit these values from EXE or DLL
-PCH_TEMPLATE = $(if $(word 2,$(PCH) $(WITH_PCH)),$(call \
-  PCH_TEMPLATE1,$1,$2,$3,$(call fixpath,$(WITH_PCH))),$(call WITH_PCH_RESET,$(ALL_TARGETS)))
+# use target makefile variables: 'pch' and 'with_pch'
+# note: must reset target-specific variables 'cc_with_pch' and 'cxx_with_pch' if not using precompiled header for the target,
+#  otherwise dependent dll or lib may inherit these values from the target exe or dll
+# note: another option - use of 'keyed_redefine' macro with the target-specific variable 'trg' as a key, which is defined by
+#  'c_base_template' macro in the $(cb_dir)/types/c/c_base.mk
+pch_template = $(if $(and $(pch),$(with_pch)),$(call \
+  pch_template1,$1,$2,$3,$(call fixpath,$(with_pch))),$(call with_pch_reset,$(all_targets)))
 
-else # clean
+else # toclean
 
 # call externally defined compiler-specific generators $2 and $3, which must return objects to clean up
-# $1 - EXE,LIB,DLL,KLIB
+# $1 - target type: exe,lib,dll,klib
 # $2 - name of pch rule generator macro
 # $3 - name of sources generator macro
-# $4 - $(basename $(notdir $(PCH)))
-# $5 - $(filter $(CC_MASK),$(WITH_PCH))
-# $6 - $(filter $(CXX_MASK),$(WITH_PCH))
+# $4 - $(basename $(notdir $(pch)))
+# $5 - $(filter $(cc_mask),$(with_pch))
+# $6 - $(filter $(cxx_mask),$(with_pch))
 # -- parameters for sources generator $3 and rule generator $2:
-#  $1 - EXE,LIB,DLL,KLIB
-#  $2 - $(basename $(notdir $(PCH)))
-#  $3 - $(filter $(CC_MASK),$(WITH_PCH))
-#  $4 - $(filter $(CXX_MASK),$(WITH_PCH))
+#  $1 - target type: exe,lib,dll,klib
+#  $2 - $(basename $(notdir $(pch)))
+#  $3 - $(filter $(cc_mask),$(with_pch))
+#  $4 - $(filter $(cxx_mask),$(with_pch))
 # -- more parameters for pch rule generator $2:
-#  $5 - $(call FORM_OBJ_DIR,$1,$v)
-#  $v - variant - one of $(GET_VARIANTS)
-PCH_TEMPLATE1 = $(call $3,$1,$4,$5,$6)$(foreach v,$(GET_VARIANTS),$(call $2,$1,$4,$5,$6,$(call FORM_OBJ_DIR,$1,$v)))
+#  $5 - $(call form_obj_dir,$1,$v)
+#  $v - variant - one of $(get_variants)
+pch_template1 = $(call $3,$1,$4,$5,$6)$(foreach v,$(get_variants),$(call $2,$1,$4,$5,$6,$(call form_obj_dir,$1,$v)))
 
-# return objects created while building with precompiled header to clean up
-# $1 - EXE,LIB,DLL,KLIB
+# return objects to clean up created while building with precompiled header (objects of generated sources, pch object file)
+# $1 - target type: exe,lib,dll,klib
 # $2 - name of pch rule generator macro
 # $3 - name of sources generator macro
-# use global variables: PCH, WITH_PCH
-PCH_TEMPLATE = $(if $(PCH),$(if $(WITH_PCH),$(strip $(call PCH_TEMPLATE1,$1,$2,$3,$(basename \
-  $(notdir $(PCH))),$(filter $(CC_MASK),$(WITH_PCH)),$(filter $(CXX_MASK),$(WITH_PCH))))))
+# use target makefile variables: 'pch' and 'with_pch'
+pch_template = $(if $(pch),$(if $(with_pch),$(strip $(call pch_template1,$1,$2,$3,$(basename \
+  $(notdir $(pch))),$(filter $(cc_mask),$(with_pch)),$(filter $(cxx_mask),$(with_pch))))))
 
-endif # clean
+endif # toclean
 
 # tools colors:
 
 # compile precompiled header
-PCHCC_COLOR   := $(CC_COLOR)
-PCHCXX_COLOR  := $(CXX_COLOR)
-TPCHCC_COLOR  := $(PCHCC_COLOR)
-TPCHCXX_COLOR := $(PCHCXX_COLOR)
+CBLD_PCHCC_COLOR   ?= $(CBLD_CC_COLOR)
+CBLD_PCHCXX_COLOR  ?= $(CBLD_CXX_COLOR)
+CBLD_TPCHCC_COLOR  ?= $(CBLD_PCHCC_COLOR)
+CBLD_TPCHCXX_COLOR ?= $(CBLD_PCHCXX_COLOR)
 
-# compile using precompiled header
-PCC_COLOR   := $(CC_COLOR)
-PCXX_COLOR  := $(CXX_COLOR)
-TPCC_COLOR  := $(PCC_COLOR)
-TPCXX_COLOR := $(PCXX_COLOR)
+# compile sources using precompiled header
+CBLD_PCC_COLOR   := $(CBLD_CC_COLOR)
+CBLD_PCXX_COLOR  := $(CBLD_CXX_COLOR)
+CBLD_TPCC_COLOR  := $(CBLD_PCC_COLOR)
+CBLD_TPCXX_COLOR := $(CBLD_PCXX_COLOR)
+
+# makefile parsing first phase variables
+cb_first_phase_vars += c_prepare_pch_vars pch_vars_templ with_pch_reset pch_template3 pch_template2 pch_template1 pch_template
 
 # protect variables from modifications in target makefiles
-$(call SET_GLOBAL,C_PREPARE_PCH_VARS PCH_VARS_TEMPL WITH_PCH_RESET PCH_TEMPLATE3 PCH_TEMPLATE2 PCH_TEMPLATE1 PCH_TEMPLATE \
-  PCHCC_COLOR PCHCXX_COLOR TPCHCC_COLOR TPCHCXX_COLOR PCC_COLOR PCXX_COLOR TPCC_COLOR TPCXX_COLOR)
+# do not trace calls to macros used in ifdefs, exported to the environment of called tools or modified via operator +=
+$(call set_global,CBLD_PCHCC_COLOR CBLD_PCHCXX_COLOR CBLD_TPCHCC_COLOR CBLD_TPCHCXX_COLOR \
+  CBLD_PCC_COLOR CBLD_PCXX_COLOR CBLD_TPCC_COLOR CBLD_TPCXX_COLOR cb_first_phase_vars)
+
+# protect variables from modifications in target makefiles
+# note: trace namespace: pch
+$(call set_global,c_prepare_pch_vars pch_vars_templ with_pch_reset pch_template3 pch_template2 pch_template1 pch_template,pch)

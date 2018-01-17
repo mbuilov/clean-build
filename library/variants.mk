@@ -13,18 +13,18 @@
 # (*) variable $1 must be defined at the time of a call of this macro, $($1) may be empty
 get_target_name = $(firstword $($1))
 
-# get list of supported by the selected toolchain non-regular variants of a given target type
+# get list of additional non-regular variants of a given target type supported by the selected toolchain
 # $1 - target type: lib,exe,dll,...
-# example of target type-specific variant lists:
-#  exe_supported_variants := P
-#  lib_supported_variants := P D
+# example of additional target type-specific variant lists:
+#  exe_extra_variants := P
+#  lib_extra_variants := P D
 #  ...
-supported_variants = $($1_supported_variants)
+extra_variants = $($1_extra_variants)
 
 # filter-out unsupported variants of the target and return only supported ones (at least R)
 # $1 - target type: lib,exe,dll,...
 # $2 - list of specified variants of the target (may be empty)
-filter_variants_list = $(call filter_variants_list_f,$1,$2,supported_variants)
+filter_variants_list = $(call filter_variants_list_f,$1,$2,extra_variants)
 
 # extended version of 'filter_variants_list'
 # $1 - target type: lib,exe,dll,...
@@ -40,7 +40,7 @@ filter_variants_list_f = $(patsubst ,R,$(filter R $($3),$2))
 # note: returns non-empty variants list, containing at least R (regular) variant
 # $1 - target type: lib,exe,dll,... (*)
 # (*) variable $1 must be defined at the time of a call of this macro
-get_variants = $(call get_variants_f,$1,supported_variants)
+get_variants = $(call get_variants_f,$1,extra_variants)
 
 # extended version of 'get_variants'
 # $1 - target type: lib,exe,dll,... (*)
@@ -64,8 +64,8 @@ variant_suffix = $(if $(filter-out R,$2),$(call $1_variant_suffix,$2))
 # example of target type-specific filename generator function:
 #  $1 - target name, e.g. my_exe, may be empty
 #  $2 - target variant: R,P,D,S... (one of variants supported by the selected toolchain - result of $(get_variants), may be empty)
-#  exe_form_trg = $(1:%=$(bin_dir)/%$(call variant_suffix,exe,$2)$(CBLD_EXE_SUFFIX))
-#  lib_form_trg = $(1:%=$(lib_dir)/$(CBLD_LIB_PREFIX)%$(call variant_suffix,lib,$2)$(CBLD_LIB_SUFFIX))
+#  exe_form_trg = $(1:%=$(bin_dir)/%$(call variant_suffix,exe,$2)$(exe_suffix))
+#  lib_form_trg = $(1:%=$(lib_dir)/$(lib_prefix)%$(call variant_suffix,lib,$2)$(lib_suffix))
 #  ...
 #  note: use $(patsubst...) to return empty value if $1 is empty
 # (*) variable $1 must be defined at the time of a call of this macro, $($1) may be empty
@@ -99,5 +99,5 @@ $(call set_global,cb_first_phase_vars)
 
 # protect macros from modifications in target makefiles, allow tracing calls to them
 # note: trace namespace: variants
-$(call set_global,get_target_name supported_variants filter_variants_list filter_variants_list_f \
+$(call set_global,get_target_name extra_variants filter_variants_list filter_variants_list_f \
   get_variants get_variants_f variant_suffix form_trg all_targets form_obj_dir make_trg_path,variants)

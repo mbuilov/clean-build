@@ -4,7 +4,7 @@
 # Licensed under GPL version 2 or any later version, see COPYING
 #----------------------------------------------------------------------------------
 
-# different helper functions - this file is included by the $(cb_dir)/core/_defs.mk
+# different helper functions - this file is included by $(cb_dir)/core/_defs.mk
 
 ifeq (,$(filter-out undefined environment,$(origin trace_calls)))
 include $(dir $(lastword $(MAKEFILE_LIST)))../trace/trace.mk
@@ -111,12 +111,12 @@ xargs1 = $(if $2,$9$(call $1,$(wordlist 1,$3,$2),$5,$6,$7,$8,$9)$(call xargs1,$1
 
 # call function $1 many times with arguments from list $2 grouped by $3 elements
 # and with auxiliary arguments $4,$5,$6,$7,$8 separating function calls with $8
-# note: last 6-th argument of function $1 is <empty> on first call and $8 on next calls
+# note: last 6-th argument of function $1 is empty on first call and $8 on next calls
 xargs = $(call xargs1,$1,$2,$3,$(words x $(wordlist 1,$3,$2)),$4,$5,$6,$7,,$8)
 
 # assuming that function $1($(sublist $2 by $3),$4,$5,$6,$7) will return shell command
 # generate many shell commands separated by $(newline) - each command will be executed in new subshell
-# note: last 6-th argument of function $1 is <empty> on first call and $(newline) on next calls
+# note: last 6-th argument of function $1 is empty on first call and $(newline) on next calls
 xcmd = $(call xargs,$1,$2,$3,$4,$5,$6,$7,$(newline))
 
 # return list $1 without last element
@@ -241,8 +241,8 @@ mk_dir_deps = $(subst :|,:| $2,$(addprefix $(newline)$2,$(filter-out %:|,$(join 
 
 # $1 - recursive macro, on first call becomes simple
 # $2 - macro value
-# for example, if MY_VALUE is not defined yet, but it will be defined at time of MY_MACRO call, then:
-# MY_MACRO = $(call lazy_simple,MY_MACRO,$(MY_VALUE))
+# for example, if 'my_value' is not defined yet, but it will be defined at time of 'my_macro' call, then:
+#  my_macro = $(call lazy_simple,my_macro,$(my_value))
 lazy_simple = $(eval $(findstring override,$(origin $1)) $1:=$$2)$($1)
 
 # append/prepend text $2 to value of variable $1
@@ -268,7 +268,7 @@ expand_partially = $(eval define $1$(newline)$(call subst_var_refs,$(value $1),$
 # $2 - names of variables
 remove_var_refs = $(if $2,$(call remove_var_refs,$(subst $$($(firstword $2)),,$1),$(wordlist 2,999999,$2)),$1)
 
-# try to redefine macro as simple (non-recursive) variable
+# try to redefine macro as a simple (i.e. non-recursive) variable
 # $1 - macro name
 # $2 - list of variables to try to substitute with their values in $(value $1)
 # 1) check that variables in $2 are all simple
@@ -277,20 +277,20 @@ remove_var_refs = $(if $2,$(call remove_var_refs,$(subst $$($(firstword $2)),,$1
 try_make_simple = $(if $(filter $(words $2),$(words $(filter simple,$(foreach v,$2,$(flavor $v))))),$(if \
   $(findstring $$,$(call remove_var_refs,$(value $1),$2)),,$(eval $1:=$$($1))))
 
-# redefine macro $1 so that when expanded, it will give new value only if current key
-#  matches predefined one, else returns old value the macro have before it was redefined
+# redefine macro $1 so that when expanding, it will give a new value only if current key value matches
+#  the predefined one (constant tag), else returns an old value the macro had before it was redefined
 #
 # $1 - name of redefined macro
-# $2 - name of key variable
-# $3 - predefined key value
-# $4 - new value of redefined macro
+# $2 - name of key variable         (global or target-specific)
+# $3 - predefined key value         (constant tag)
+# $4 - new value of redefined macro (returned only if key value matches a tag)
 #
 # note: defines 2 variables:
 #  $3^o.$1 - old value of macro $1
 #  $3^n.$1 - new value of macro $1
 #
-# note: keyed_redefine is useful in target-specific context, to suppress
-#  inheritance of target-specific variables in dependent goals, e.g.:
+# note: 'keyed_redefine' is useful in target-specific context, to suppress
+#  inheritance of target-specific variables to dependent goals, e.g.:
 #
 #  A := 1
 #  my_target: K := x
@@ -300,19 +300,19 @@ try_make_simple = $(if $(filter $(words $2),$(words $(filter simple,$(foreach v,
 #  my_target:; $(info $@:A=$A) # 2
 #  my_depend:; $(info $@:A=$A) # 1
 keyed_redefine = $(eval $(if $(findstring simple,$(flavor $1)),$3^o.$1 := $$($1),define $3^o.$1$(newline)$(value \
-  $1)$(newline)endef)$(newline)$(if $(findstring $$,$4),define $3^n.$1$(newline)$4$(newline)endef,$3^n.$1 := $$4)$(newline)$1 = $$(if \
-  $$(filter $3,$$($2)),$$($3^n.$1),$$($3^o.$1)))
+  $1)$(newline)endef)$(newline)$(if $(findstring $$,$4),define $3^n.$1$(newline)$4$(newline)endef,$3^n.$1 := $$4)$(newline)$(findstring \
+  override,$(flavor $1)) $1 = $$(if $$(filter $3,$$($2)),$$($3^n.$1),$$($3^o.$1)))
 
 # protect variables of $(cb_dir)/trace/trace.mk from modification in target makefiles
 # note: do not trace calls to these macros
-# note: cb_target_makefile variable is used here temporary and will be redefined later
+# note: 'cb_target_makefile' variable is used here temporary and will be redefined later
 cb_target_makefile = $(call set_global,MAKE_TRACE_IN_COLOR make_trace_in_color \
   empty space tab comment backslash percent comma newline open_brace close_brace keyword_override keyword_define keyword_endef \
   format_traced_value infofn dump_vars dump_max dump_args tracefn encode_traced_var_name trace_calls_template check_if_traced trace_calls)
 
 # protect variables from modification in target makefiles
 # note: trace namespace: functions
-# note: cb_target_makefile variable is used here temporary and will be redefined later
+# note: 'cb_target_makefile' variable is used here temporary and will be redefined later
 cb_target_makefile += $(call set_global, \
   unspaces tospaces ifaddq qpath tolower toupper repl09 repl09AZ padto1 padto is_less1 is_less repl090 \
   is_less_float6 is_less_float5 is_less_float4 is_less_float3 is_less_float2 is_less_float1 is_less_float \

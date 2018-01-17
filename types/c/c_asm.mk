@@ -6,39 +6,42 @@
 
 # support for compiling assembler sources for the C/C++ targets
 
-# Assembler sources mask
-ASM_MASK := %.asm
-
-# user-defined assembler flags,
-#  normally taken from the environment (in project configuration makefile)
-# note: assume assembler is not used in tool mode
-ASMFLAGS:=
+# assembler sources mask
+asm_mask := %.asm
 
 # assembler flags for the target
-# $t - target type: EXE,DLL,LIB...
-# $v - non-empty variant: R,P,D,S... (one of variants supported by selected toolchain)
-# note: these flags should contain value of ASMFLAGS - standard user-defined assembler flags,
-#  that are normally taken from the environment (in project configuration makefile),
-#  their default values should be set in assembler-specific makefile, e.g.: $(CLEAN_BUILD_DIR)/compilers/nasm.mk.
-TRG_ASMFLAGS = $($t_ASMFLAGS)
+# $t - target type: exe,dll,lib...
+# $v - non-empty variant: R,P,D,S... (one of variants supported by the selected toolchain)
+# note: returned flags should include (at end) value of target makefile-defined 'asmflags' variable
+trg_asmflags = $(call $t_asmflags,$v) $(asmflags)
 
 # template for adding assembler support
-# $1 - target file: $(call FORM_TRG,$t,$v)
-# $2 - sources:     $(TRG_SRC)
-# $3 - sdeps:       $(TRG_SDEPS)
-# $4 - objdir:      $(call FORM_OBJ_DIR,$t,$v)
-# $t - target type: EXE,DLL,LIB...
-# $v - non-empty variant: R,P,D,S... (one of variants supported by selected toolchain)
-define ASM_TEMPLATE
-$1:$(call OBJ_RULES,ASM,$(filter $(ASM_MASK),$2),$3,$4,$(OBJ_SUFFIX))
-$1:VASMFLAGS := $(TRG_ASMFLAGS)
+# $1 - target file: $(call form_trg,$t,$v)
+# $2 - sources:     $(trg_src)
+# $3 - sdeps:       $(trg_sdeps)
+# $4 - objdir:      $(call form_obj_dir,$t,$v)
+# $t - target type: exe,dll,lib...
+# $v - non-empty variant: R,P,D,S... (one of variants supported by the selected toolchain)
+# note: no support for auto-dependencies generation for assembler sources
+# note: object compiler 'obj_asm' must be defined in the assembler-specific makefile
+define asm_template
+$1:$(call obj_rules,obj_asm,$(filter $(asm_mask),$2),$3,$4,$(obj_suffix),$t$(comma)$v)
+$1:asmflags := $(trg_asmflags)
 endef
 
-# tool color
-ASM_COLOR := [37m
+# assembler color
+CBLD_ASM_COLOR ?= [37m
 
-# patch C_BASE_TEMPLATE so all $(C_TARGETS) will be able to compile assembler sources
-$(call define_append,C_BASE_TEMPLATE,$(newline)$(value ASM_TEMPLATE))
+# patch 'c_base_template' so all $(c_target_types) will be able to compile assembler sources
+$(call define_append,c_base_template,$(newline)$(value asm_template))
+
+# makefile parsing first phase variables
+cb_first_phase_vars += trg_asmflags asm_template
 
 # protect variables from modifications in target makefiles
-$(call SET_GLOBAL,ASM_MASK ASMFLAGS TRG_ASMFLAGS=t;v ASM_TEMPLATE ASM_COLOR)
+# do not trace calls to macros used in ifdefs, exported to the environment of called tools or modified via operator +=
+$(call set_global,CBLD_ASM_COLOR)
+
+# protect variables from modifications in target makefiles
+# note: trace namespace: c_asm
+$(call set_global,asm_mask trg_asmflags=t;v asm_template,c_asm)

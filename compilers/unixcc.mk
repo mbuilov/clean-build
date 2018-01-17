@@ -4,74 +4,85 @@
 # Licensed under GPL version 2 or any later version, see COPYING
 #----------------------------------------------------------------------------------
 
-# common part of unix compiler toolchain (app-level), included by:
-#  $(CLEAN_BUILD_DIR)/compilers/gcc.mk
-#  $(CLEAN_BUILD_DIR)/compilers/suncc.mk
+# common part of unix compiler toolchain (application-level), included by:
+#  $(cb_dir)/compilers/gcc.mk
+#  $(cb_dir)/compilers/suncc.mk
 
-# RPATH - location where to search for external dependency libraries at runtime, e.g.: /opt/lib or $ORIGIN/../lib
-# note: RPATH may be overridden either in project configuration makefile or in command line
-# note: to define target-specific RPATH variable - use C_REDEFINE macro from $(CLEAN_BUILD_DIR)/types/c/c_base.mk, e.g.:
-#  EXE := my_exe
-#  $(call C_REDEFINE,RPATH,$(RPATH) my_rpath)
-RPATH:=
+# 'rpath' - location where to search for external dependency libraries at runtime, e.g.: /opt/lib or $ORIGIN/../lib
+# note: use 'rpath' to locate private dynamic libraries only, public ones - should be located via /etc/ld.so.conf or LD_LIBRARY_PATH
+# note: 'rpath' variable may be overridden in project configuration makefile or in command line
+# note: to define target-specific 'rpath' variable - use 'c_redefine' macro from $(cb_dir)/types/c/c_base.mk, e.g.:
+#  exe := my_exe
+#  $(call c_redefine,exe,rpath,my_rpath_value)
+rpath:=
 
-# reset additional user-modifiable variables at beginning of target makefile
-# MAP - linker map file (used mostly to list exported symbols)
-C_PREPARE_UNIX_APP_VARS = $(newline)MAP:=
+# reset additional makefile variables at beginning of the target makefile
+# 'map' - linker map file (used mostly to list exported symbols)
+c_prepare_unix_app_vars := $(newline)map:=
 
-# patch code executed at beginning of target makefile
-$(call define_append,C_PREPARE_APP_VARS,$$(C_PREPARE_UNIX_APP_VARS))
+# patch code executed at beginning of the target makefile
+$(call define_append,c_prepare_app_vars,$$(c_prepare_unix_app_vars))
 
-# optimization
-$(call try_make_simple,C_PREPARE_APP_VARS,C_PREPARE_UNIX_APP_VARS)
+# optimization: try to expand 'c_prepare_unix_app_vars' and redefine 'c_prepare_app_vars' as non-recursive variable
+$(call try_make_simple,c_prepare_app_vars,c_prepare_unix_app_vars)
 
-# auxiliary defines for EXE
-# $1 - $(call FORM_TRG,$t,$v)
-# $2 - $(call fixpath,$(MAP))
-# $t - EXE
+# auxiliary defines for an exe
+# $1 - $(call form_trg,$t,$v)
+# $2 - $(call fixpath,$(map))
+# $t - exe
 # $v - R,P
-# note: target-specific MAP variable is inherited by the DLLs this EXE depends on,
-#  so DLLs _must_ define their own target-specific MAP variable to override inherited EXE's one
-# note: last line must be empty
-define EXE_AUX_TEMPLATEv
-$1:MAP := $2
+# note: target-specific 'map' variable is inherited by the (child) dlls this exe depends on, so dependent dlls _must_ define their own
+#  target-specific 'map' variables to override one inherited from the (parent) exe
+# note: last line must be empty!
+define exe_aux_templv
+$1:map := $2
 $1:$2
 
 endef
 
-# auxiliary defines for DLL
-# $1 - $(call FORM_TRG,$t,$v)
-# $2 - $(call fixpath,$(MAP))
-# $t - DLL
+# auxiliary defines for a dll
+# $1 - $(call form_trg,$t,$v)
+# $2 - $(call fixpath,$(map))
+# $t - dll
 # $v - R
-# note: define DLL's own target-specific MAP variable to override inherited target-specific
-#  MAP variable of EXE (or another DLL) which depends on this DLL
-# note: last line must be empty
-define DLL_AUX_TEMPLATEv
-$1:MODVER := $(MODVER)
-$1:MAP := $2
+# note: define dll's own target-specific 'map' variable - override inherited target-specific 'map' variable of a (parent) exe
+#  (or another parent dll) which depends on this (child) dll
+# note: define target-specific 'modver' variable - it is used by 'mk_soname_option' macro in the $(cb_dir)/compilers/gcc.mk
+# note: last line must be empty!
+define dll_aux_templv
+$1:modver := $(modver)
+$1:map := $2
 $1:$2
 
 endef
 
-# $1 - $(call fixpath,$(MAP))
-# $t - EXE or DLL
-UNIX_MOD_AUX_APPt = $(foreach v,$(call GET_VARIANTS,$t),$(call $t_AUX_TEMPLATEv,$(call FORM_TRG,$t,$v),$1))
+# $1 - $(call fixpath,$(map))
+# $t - exe or dll
+unix_mod_aux_appt = $(foreach v,$(call get_variants,$t),$(call $t_aux_templatev,$(call form_trg,$t,$v),$1))
 
-# auxiliary defines for EXE or DLL
-# define target-specific variables: MAP, MODVER (only for DLL)
-UNIX_MOD_AUX_APP = $(foreach t,EXE DLL,$(if $($t),$(call UNIX_MOD_AUX_APPt,$(call fixpath,$(MAP)))))
+# auxiliary defines for exe or dll
+# define target-specific variables: 'map' and 'modver (only for dll)
+unix_mod_aux_app = $(foreach t,exe dll,$(if $($t),$(call unix_mod_aux_appt,$(call fixpath,$(map)))))
 
-# MAP variable is used only when building EXE or DLL
-ifdef CB_CHECKING
-MAP_VARIABLE_CHECK = $(if $(MAP),$(if $(LIB),$(if $(EXE)$(DLL),,$(warning MAP variable is not used when building a LIB))))
-$(call define_prepend,UNIX_MOD_AUX_APP,$$(MAP_VARIABLE_CHECK))
+# 'map' variable is used only when building exe or dll
+ifdef cb_checking
+map_variable_check = $(if $(map),$(if $(lib),$(if $(exe)$(dll),,$(warning 'map' variable is not used when building a lib))))
+$(eval unix_mod_aux_app = $$(map_variable_check)$(value unix_mod_aux_app))
 endif
 
-# for DLL:         define target-specific variable MODVER
-# for DLL and EXE: define target-specific variables RPATH and MAP
-$(call define_prepend,C_DEFINE_APP_RULES,$$(eval $$(UNIX_MOD_AUX_APP)))
+# patch 'c_define_app_rules' template (defined in $(cb_dir)/types/_c.mk)
+# for dll and exe: define target-specific variables 'rpath' and 'map'
+# for dll:         also define target-specific variable 'modver'
+$(call define_prepend,c_define_app_rules,$$(eval $$(unix_mod_aux_app)))
+
+# makefile parsing first phase variables
+cb_first_phase_vars += c_prepare_unix_app_vars exe_aux_templv dll_aux_templv unix_mod_aux_appt unix_mod_aux_app map_variable_check
 
 # protect variables from modifications in target makefiles
-$(call SET_GLOBAL,RPATH C_PREPARE_UNIX_APP_VARS \
-  EXE_AUX_TEMPLATEv=t;v DLL_AUX_TEMPLATEv=t;v UNIX_MOD_AUX_APPt=t UNIX_MOD_AUX_APP MAP_VARIABLE_CHECK)
+# do not trace calls to macros used in ifdefs, exported to the environment of called tools or modified via operator +=
+$(call set_global,cb_first_phase_vars)
+
+# protect variables from modifications in target makefiles
+# note: trace namespace: unixcc
+$(call set_global,rpath c_prepare_unix_app_vars \
+  exe_aux_templv=t;v dll_aux_templv=t;v unix_mod_aux_appt=t unix_mod_aux_app map_variable_check,unixcc)

@@ -55,6 +55,10 @@ CBLD_TRACE_FILTER_OUT ?=
 cb_check_cannot_trace = $(if $1,$(or $(filter $(CBLD_TRACE_FILTER_OUT),$1),$(if \
   $(CBLD_TRACE_FILTER),$(filter-out $(CBLD_TRACE_FILTER),$1))),1)
 
+# check that not trying to trace CBLD_% variables
+cb_check_tracing_env = $(if $(filter CBLD_%,$1),$(error tracing variables: $(filter \
+  CBLD_%,$1)$(newline)By convention, CBLD_... variables may be defined in the environment and so must not be redefined (or traced)),$1)
+
 ifdef cb_checking
 
 # patch 'trace_calls' macro so that it will protect redefined traced macros if they
@@ -109,7 +113,7 @@ else # cb_tracing
 # trace calls to macros
 # $1 - list: AAA=b1;b2;$$1=e1;e2 BBB=b1;b2=e1;e2;...
 # $2 - optional namespace name, if not specified, then do not trace calls for given macros
-set_global2 = $(if $1,$$(call trace_calls,$(subst $$,$$$$,$1)))
+set_global2 = $(if $1,$$(call trace_calls,$(subst $$,$$$$,$(cb_check_tracing_env))))
 set_global1 = $(if $(call cb_check_cannot_trace,$2),,$(call \
   set_global2,$(filter-out $(CBLD_NON_TRACEABLE_VARS) $(CBLD_NON_TRACEABLE_VARS:==%),$1)))
 
@@ -157,7 +161,7 @@ endef
 ifdef cb_tracing
 set_global5 = $(if $1,$(call dump_vars,$1,override global: ))
 set_global4 = $(call set_global5,$(filter $1,$(cb_protected_vars)))$(cb_protect_vars2)
-set_global3 = $(if $1,$$(call trace_calls,$(subst $$,$$$$,$1),!))
+set_global3 = $(if $1,$$(call trace_calls,$(subst $$,$$$$,$(cb_check_tracing_env)),!))
 set_global2 = $(if $1,$(call set_global4,$(foreach =,$1,$(firstword $(subst =, ,$=)))))$(call set_global3,$(filter-out $1,$2))
 set_global1 = $(if $(call cb_check_cannot_trace,$2),$(set_global4),$(call \
   set_global2,$(filter $(CBLD_NON_TRACEABLE_VARS) $(CBLD_NON_TRACEABLE_VARS:==%),$1),$1))
@@ -249,14 +253,14 @@ endef
 # note: do not trace calls to these macros
 # note: 'cb_target_makefile' variable is used here temporary and will be redefined later
 cb_target_makefile += $(call set_global,cb_checking cb_tracing CBLD_NON_TRACEABLE_VARS CBLD_TRACE_FILTER CBLD_TRACE_FILTER_OUT \
-  cb_check_cannot_trace set_global get_global env_remember set_global1 cb_reset_first_phase cb_reset_saved_vars \
+  cb_check_cannot_trace cb_check_tracing_env set_global get_global env_remember set_global1 cb_reset_first_phase cb_reset_saved_vars \
   cb_check_at_head cb_check_at_tail cb_protected_vars cb_encode_var_value cb_encode_var_name cb_protect_vars2 \
   set_global5 set_global4 set_global3 set_global2 \
   cb_var_access_err cb_reset_local_var cb_reset_local_vars cb_check_env_var cb_check_protected_var)
 
 # these macros must not be used in rule execution second phase
 cb_first_phase_vars := cb_checking cb_tracing \
-  cb_check_cannot_trace set_global env_remember set_global1 cb_reset_first_phase cb_reset_saved_vars \
+  cb_check_cannot_trace cb_check_tracing_env set_global env_remember set_global1 cb_reset_first_phase cb_reset_saved_vars \
   cb_check_at_head cb_check_at_tail cb_protected_vars cb_encode_var_value cb_encode_var_name cb_protect_vars2 \
   set_global5 set_global4 set_global3 set_global2 \
   cb_reset_local_var cb_reset_local_vars cb_check_env_var cb_check_protected_var \

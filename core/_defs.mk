@@ -139,7 +139,7 @@ else
 CBLD_OS ?=
 endif
 
-# CBLD_TCPU - processor architecture of build helper tools created while the build
+# processor architecture of build helper tools created while the build
 # note: CBLD_TCPU likely is the native processor architecture of the build toolchain
 # note: equivalent of '--build' Gnu Autoconf configure script option
 # note: CBLD_TCPU specification may also encode format of executable files, e.g. CBLD_TCPU=m68k-coff, it is checked by the C compiler
@@ -159,13 +159,13 @@ else
 CBLD_TCPU ?= x86
 endif
 
-# CBLD_CPU - processor architecture we are building the package for (x86, sparc64, armv5, mips24k, etc.)
+# processor architecture we are building the package for (x86, sparc64, armv5, mips24k, etc.)
 # note: equivalent of '--host' Gnu Autoconf configure script option
 # note: CBLD_CPU specification may also encode format of executable files, e.g. CBLD_CPU=m68k-coff, it is checked by the C compiler
 # note: normally CBLD_CPU get overridden by specifying it in command line
 CBLD_CPU ?= $(CBLD_TCPU)
 
-# CBLD_UTILS - flavor of system shell utilities (such as cp, mv, rm, etc.)
+# flavor of system shell utilities (such as cp, mv, rm, etc.)
 # note: $(CBLD_UTILS) value is used only to form name of standard makefile with definitions of shell utilities
 # note: normally CBLD_UTILS get overridden by specifying it in command line, for example: CBLD_UTILS:=gnu
 CBLD_UTILS ?= $(if \
@@ -179,7 +179,7 @@ CBLD_UTILS ?= $(if \
 #  variables and so not already saved in the $(cb_dir)/core/confsup.mk)
 $(call config_remember_vars,CBLD_BUILD CBLD_TARGET CBLD_OS CBLD_TCPU CBLD_CPU CBLD_UTILS)
 
-# 'utils_mk' - makefile with the definitions of shell utilities
+# makefile with the definitions of shell utilities
 utils_mk := $(cb_dir)/utils/$(CBLD_UTILS).mk
 
 ifeq (,$(wildcard $(utils_mk)))
@@ -483,10 +483,10 @@ add_generated_ret = $(add_generated)$1
 # define bin_dir/obj_dir/lib_dir/gen_dir assuming that we are not in the "tool mode"
 $(eval $(cb_set_sefault_dirs))
 
-# non-empty in "tool mode" - 'tool_mode' variable was set to that value prior evaluating $(cb_def_head), empty in normal mode.
+# non-empty (likely T) in "tool mode" - 'tool_mode' variable was set to that value prior evaluating $(cb_def_head), empty in normal mode.
 # note: $(tool_mode) should not be used in rule templates - use $(is_tool_mode) instead, because 'tool_mode' variable may be set to
 #  another value anywhere before $(make_continue), and so before the evaluation of rule templates.
-# reset value: we are currently not in "tool mode", $(cb_def_head) was not evaluated yet, but $(cb_set_sefault_dirs) has
+# reset the value: we are currently not in the "tool mode", $(cb_def_head) was not evaluated yet, but $(cb_set_sefault_dirs) had
 #  already been evaluated to set non-tool mode values of bin_dir/obj_dir/lib_dir/gen_dir.
 ifeq (file,$(origin tool_mode))
 is_tool_mode := $(tool_mode)
@@ -494,7 +494,7 @@ else
 is_tool_mode:=
 endif
 
-# 'tool_mode' may be set to non-empty value at the beginning of target makefile
+# 'tool_mode' may be set to non-empty value (likely T) at the beginning of target makefile
 #  (before including this file and so before evaluating $(cb_def_head))
 # reset 'tool_mode' if it was not set in the target makefile
 ifdef cb_checking
@@ -752,9 +752,9 @@ nonrelpath = $(patsubst $1/%,/%,$(addprefix $1,$2))
 # - we need absolute paths to sources to work with generated dependencies in .d files
 fixpath = $(abspath $(call nonrelpath,$(dir $(cb_target_makefile)),$1))
 
-# SED - path to stream editor executable - should be defined in $(utils_mk) makefile
+# 'sed' - stream editor executable, should be defined in $(utils_mk) makefile
 # 'sed_expr' - should also be defined in $(utils_mk) makefile
-# helper macro: convert multi-line sed script $1 to multiple sed expressions - one expression for each line of the script
+# this helper macro: convert multi-line sed script $1 to multiple sed expressions - one expression for each line of the script
 sed_multi_expr = $(foreach s,$(subst $(newline), ,$(unspaces)),-e $(call sed_expr,$(call tospaces,$s)))
 
 # define shell utilities
@@ -785,11 +785,12 @@ CBLD_SED_COLOR   ?= [32m
 # Note: this is the default value of 'modver' variable - per-module version number
 product_version := 0.0.1
 
-# CBLD_NO_DEPS - if defined, then do not generate auto-dependencies or process previously generated auto-dependencies
-CBLD_NO_DEPS ?=
+# CBLD_NO_DEPS - if defined, then do not generate auto-dependencies or process or delete previously generated auto-dependencies
+# note: by default, do not generate auto-dependencies for release builds
+CBLD_NO_DEPS ?= $(if $(debug),,1)
 
-# do not process dependencies when cleaning up
-no_deps := $(or $(CBLD_NO_DEPS),$(filter clean,$(MAKECMDGOALS)))
+# remember value of CBLD_NO_DEPS - it may be taken from the environment
+$(call config_remember_vars,CBLD_NO_DEPS)
 
 # makefile parsing first phase variables
 # Note: bin_dir/obj_dir/lib_dir/gen_dir change their values depending on the value of 'tool_mode' variable set in the last
@@ -805,7 +806,7 @@ cb_first_phase_vars += cb_needed_dirs build_system_goals bin_dir obj_dir lib_dir
 $(call set_global,MAKEFLAGS SHELL cb_needed_dirs cb_first_phase_vars CBLD_TARGET CBLD_OS CBLD_TCPU CBLD_CPU CBLD_UTILS \
   cb_mdebug build_system_goals no_clean_build_distclean_goal debug cb_to_clean order_deps cb_include_level cb_target_makefiles \
   cb_make_cont CBLD_CONF_COLOR CBLD_GEN_COLOR CBLD_MGEN_COLOR CBLD_CP_COLOR CBLD_RM_COLOR CBLD_RMDIR_COLOR CBLD_MKDIR_COLOR \
-  CBLD_TOUCH_COLOR CBLD_CAT_COLOR CBLD_SED_COLOR CBLD_NO_DEPS no_deps)
+  CBLD_TOUCH_COLOR CBLD_CAT_COLOR CBLD_SED_COLOR CBLD_NO_DEPS)
 
 # protect macros from modifications in target makefiles, allow tracing calls to them
 # note: trace namespace: core
@@ -826,7 +827,6 @@ $(call set_global,toclean==cb_to_clean,toclean)
 endif
 
 # auxiliary macros
-include $(cb_dir)/core/sdeps.mk
 include $(cb_dir)/core/nonpar.mk
 include $(cb_dir)/core/multi.mk
 include $(cb_dir)/core/runtool.mk

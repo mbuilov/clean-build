@@ -4,10 +4,10 @@
 # Licensed under GPL version 2 or any later version, see COPYING
 #----------------------------------------------------------------------------------
 
-# macros for explicit adding source file dependencies, like header files, etc:
+# macros for specifying source file dependencies, like header files, etc:
 # - an object file must be recompiled if any of source file dependency get updated
 
-# helper macro: make source dependencies list
+# helper macro: make source dependencies list (simple database, used later for extracting dependencies of given sources)
 # $1 - source(s), may be empty
 # $2 - dependencies of the source(s), must be non-empty
 # example: $(call form_sdeps,s1 s2,d1 d2 d3/d4) -> s1/|d1|d2|d3/d4 s2/|d1|d2|d3/d4

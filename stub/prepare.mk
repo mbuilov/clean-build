@@ -13,7 +13,7 @@
 # save values of environment variables - to check that no variables were accidentally overwritten
 #  due to collisions of the variable names
 # Note: save environment variables _before_ defining any makefile variable
-# if make was run in check mode, like: make -f my_project.mk C=1
+# check if make was run in the check mode, like: make -f my_project.mk C=1
 ifeq (command line,$(origin C))
 ifeq (1,$C)
 $(foreach =,$(filter-out MAKELEVEL GNUMAKEFLAGS MFLAGS MAKEOVERRIDES,$(.VARIABLES)),$(if \
