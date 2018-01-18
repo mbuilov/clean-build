@@ -49,26 +49,26 @@ CBLD_BUILD ?= $(top)/build
 # next variables are needed for generating:
 # - header file with version info (see $(CBLD_ROOT)/extensions/version/version.mk)
 # - under Windows, resource files with version info (see $(CBLD_ROOT)/compilers/msvc/stdres.mk)
-# Note: default values should be likely changed by the project authors
-product_names_h          := product_names.h
-product_name             := Sample app
-product_vendor_name      := Unkown Company/Author
-product_vendor_copyright := Copyright (C) 2018 Unkown Company/Author
+product_names_h   := product_names.h
+product_name      := Sample app
+product_vendor    := Unkown Company/Author
+product_copyright := Copyright (C) 2018 Unkown Company/Author
 
 # global product version
 # Note: this is the default value of 'modver' variable - per-module version number
 # format: major.minor.patch
 product_version := 1.0.0
 
-# Note: to export project variable, add it to the 'project_exported_vars' list, e.g.:
-#  export my_var := my_value
-#  project_exported_vars := my_var
+# Note: to export project variable, add it to 'project_exported_vars' list, e.g.:
+#  export MY_VAR := my_value
+#  project_exported_vars := MY_VAR
+# - this is needed to allow to override environment variables and to avoid tracing of exported variables
 
-# Note: may pre-define other clean-build macros here - predefined values will override default ones, e.g:
+# Note: may pre-define clean-build macros here - predefined values will override default ones, e.g:
 #  project_supported_targets := DEVEL PRODUCTION
 
-# include core clean-build definitions, processing of the CBLD_CONFIG and CBLD_OVERRIDES variables,
-#  check that the CBLD_ROOT variable - path to the clean-build - is defined
+# include core clean-build definitions, processing of CBLD_CONFIG and CBLD_OVERRIDES variables,
+#  check that CBLD_ROOT variable - path to the clean-build - is defined
 include $(dir $(lastword $(MAKEFILE_LIST)))overrides.mk
 
 # Note: may redefine core clean-build macros here, e.g.:

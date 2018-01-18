@@ -9,10 +9,10 @@
 
 # Note: This file should be copied to the directory of the project build system
 
-ifeq (,$(filter-out undefined environment,$(origin cb_c_prepare_app_vars)))
+ifeq (,$(filter-out undefined environment,$(origin c_prepare_app_vars)))
 include $(dir $(lastword $(MAKEFILE_LIST)))project.mk
 include $(CBLD_ROOT)/types/_c.mk
 # Note: if needed, override clean-build definitions here
 endif
 
-$(call cb_prepare_templ,cb_c_prepare_app_vars,cb_c_define_app_rules)
+$(call cb_prepare_templ,c_prepare_app_vars,c_define_app_rules)

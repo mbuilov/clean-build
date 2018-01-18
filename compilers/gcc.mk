@@ -13,16 +13,35 @@ include $(dir $(lastword $(MAKEFILE_LIST)))unixcc.mk
 CROSS_PREFIX ?=
 
 # C/C++ compilers and linkers
-CC  ?= $(CROSS_PREFIX)gcc
+# note: ignore Gnu Make defaults
+ifeq (default,$(origin CC))
+CC := $(CROSS_PREFIX)gcc
+else
+CC ?= $(CROSS_PREFIX)gcc
+endif
+
+ifeq (default,$(origin CXX))
+CXX := $(CROSS_PREFIX)g++
+else
 CXX ?= $(CROSS_PREFIX)g++
-AR  ?= $(CROSS_PREFIX)ar
+endif
+
+ifeq (default,$(origin AR))
+AR := $(CROSS_PREFIX)ar
+else
+AR ?= $(CROSS_PREFIX)ar
+endif
 
 # default values of user-defined C/C++ compiler flags
 CFLAGS   ?= $(if $(debug),-ggdb,-g -O2)
 CXXFLAGS ?= $(CFLAGS)
 
 # flags for the objects archiver
+ifdef (default,$(origin ARFLAGS))
+ARFLAGS := -crs
+else
 ARFLAGS ?= -crs
+endif
 
 # default values of user-defined gcc flags for linking executables and shared libraries
 LDFLAGS ?=
@@ -100,16 +119,16 @@ dll_ldflags  = $(if $(is_tool_mode),$(CBLD_DLL_TLDFLAGS),$(CBLD_DLL_LDFLAGS))
 lib_cflags   = $(if $(findstring P,$1),$(CBLD_PIE_COPTION),$(if $(findstring D,$1),$(CBLD_PIC_COPTION))) $(def_cflags)
 lib_cxxflags = $(if $(findstring P,$1),$(CBLD_PIE_COPTION),$(if $(findstring D,$1),$(CBLD_PIC_COPTION))) $(def_cxxflags)
 
+# gcc option to use the pipe for communication between the various stages of compilation
+pipe_option := -pipe
+
 # make linker command for linking an exe or dll
 # target-specific: 'tm' - defined in exe_template/dll_template/lib_template macros from $(cb_dir)/types/_c.mk
 # target-specific: 'compiler', 'cflags', 'cxxflags' - defined by 'c_base_template' in $(cb_dir)/types/c/c_base.mk
 # note: user-defined CFLAGS/CXXFLAGS must be added after $(cflags)/$(cxxflags) be able to override them
-get_linker = $(if $(tm),$(if \
-  $(compiler:cxx=),$(CBLD_TCC) $(cflags) $(CBLD_TCFLAGS),$(CBLD_TCXX) $(cxxflags) $(CBLD_TCXXFLAGS)),$(if \
-  $(compiler:cxx=),$(CC) $(cflags) $(CFLAGS),$(CXX) $(cxxflags) $(CXXFLAGS)))
-
-# gcc option to use the pipe for communication between the various stages of compilation
-pipe_option := -pipe
+get_linker = $(if $(compiler:cxx=),$(if \
+  $(tm),$(CBLD_TCC) $(pipe_option) $(cflags) $(CBLD_TCFLAGS),$(CC) $(pipe_option) $(cflags) $(CFLAGS)),$(if \
+  $(tm),$(CBLD_TCXX) $(pipe_option) $(cxxflags) $(CBLD_TCXXFLAGS),$(CXX) $(pipe_option) $(cxxflags) $(CXXFLAGS)))
 
 # prefix for passing options from gcc command line to the linker
 wlprefix := -Wl,
@@ -137,12 +156,12 @@ bdynamic_option := -Wl,-Bdynamic
 # $3 - target type: exe or dll
 # $4 - non-empty variant: R,P,D
 # target-specific: 'tm', 'libs', 'dlls', 'lib_dir '- defined by exe_template/dll_template/lib_template in $(cb_dir)/types/_c.mk 
-# target-specific: 'ldflags' - defined by 'c_base_template' in $(cb_dir)/types/c/c_base.mk
+# target-specific: ldflagss/syslibs - defined by 'c_base_template' in $(cb_dir)/types/c/c_base.mk
 # note: user-defined LDFLAGS must be added after $(ldflags) to be able to override them
-cmn_libs = $(pipe_option) -o $1 $2 $(mk_rpath_option) $(mk_rpath_link_option) $(if $(firstword \
+cmn_libs = $(mk_rpath_option) $(mk_rpath_link_option) $(ldflags) $(if \
+  $(tm),$(CBLD_TLDFLAGS),$(LDFLAGS)) -o $1 $2 $(if $(firstword \
   $(libs)$(dlls)),-L$(lib_dir) $(addprefix -l,$(call dep_imp_names,$3,$4)) $(if \
-  $(libs),$(bstatic_option) $(addprefix -l,$(call dep_lib_names,$3,$4)) $(bdynamic_option))) $(ldflags) $(if \
-  $(tm),$(CBLD_TLDFLAGS),$(LDFLAGS))
+  $(libs),$(bstatic_option) $(addprefix -l,$(call dep_lib_names,$3,$4)) $(bdynamic_option))) $(syslibs)
 
 # specify what symbols to export from a dll/exe
 # target-specific: 'map' - defined by exe_aux_templv/dll_aux_templv macros in $(cb_dir)/compilers/unixcc.mk
@@ -176,8 +195,8 @@ auto_deps_flags := $(if $(CBLD_NO_DEPS),,-MMD -MP)
 # target-specific: 'tm' - defined in exe_template/dll_template/lib_template in $(cb_dir)/types/_c.mk
 # target-specific: 'defines', 'include', 'cflags', 'cxxflags' - defined by 'c_base_template' in $(cb_dir)/types/c/c_base.mk
 # note: user-defined CFLAGS/CXXFLAGS must be added after cflags/cxxflags to be able to override them
-cc_params  = $(pipe_option) -c -o $1 $2 $(auto_deps_flags) $(defines) $(include) $(cflags) $(if $(tm),$(CBLD_TCFLAGS),$(CFLAGS))
-cxx_params = $(pipe_option) -c -o $1 $2 $(auto_deps_flags) $(defines) $(include) $(cxxflags) $(if $(tm),$(CBLD_TCXXFLAGS),$(CXXFLAGS))
+cc_params  = $(pipe_option) $(auto_deps_flags) $(defines) $(include) $(cflags) $(if $(tm),$(CBLD_TCFLAGS),$(CFLAGS)) -c -o $1 $2
+cxx_params = $(pipe_option) $(auto_deps_flags) $(defines) $(include) $(cxxflags) $(if $(tm),$(CBLD_TCXXFLAGS),$(CXXFLAGS)) -c -o $1 $2
 
 # C/C++ compilers for each variant of exe,dll,lib
 # $1 - target object file
@@ -235,6 +254,11 @@ $(call define_prepend,c_define_app_rules,$$(eval $$(foreach t,$(c_app_targets),$
 
 endif # !CBLD_NO_PCH
 
+# remember values the variables possibly defined in the environment
+$(call config_remember_vars,CROSS_PREFIX CC CXX AR CFLAGS CXXFLAGS ARFLAGS LDFLAGS CBLD_DEF_CFLAGS CBLD_DEF_CXXFLAGS \
+  CBLD_EXE_LDFLAGS CBLD_DLL_LDFLAGS CBLD_TCC CBLD_TCXX CBLD_TAR CBLD_TCFLAGS CBLD_TCXXFLAGS CBLD_TARFLAGS CBLD_TLDFLAGS \
+  CBLD_DEF_TCFLAGS CBLD_DEF_TCXXFLAGS CBLD_EXE_TLDFLAGS CBLD_DLL_TLDFLAGS CBLD_PIC_COPTION CBLD_PIE_COPTION CBLD_PIE_LOPTION)
+
 # makefile parsing first phase variables
 cb_first_phase_vars += def_cflags def_cxxflags
 
@@ -247,6 +271,6 @@ $(call set_global,CROSS_PREFIX CC CXX AR CFLAGS CXXFLAGS ARFLAGS LDFLAGS CBLD_DE
 
 # protect variables from modifications in target makefiles
 # note: trace namespace: gcc
-$(call set_global,def_cflags def_cxxflags get_linker pipe_option wlprefix mk_rpath_option rpath_link mk_rpath_link_option \
+$(call set_global,def_cflags def_cxxflags pipe_option get_linker wlprefix mk_rpath_option rpath_link mk_rpath_link_option \
   bstatic_option bdynamic_option cmn_libs mk_map_option mk_soname_option exe_ld dll_ld lib_ld auto_deps_flags \
   cc_params cxx_params obj_cc obj_cxx pch_cc pch_cxx,gcc)

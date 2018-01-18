@@ -6,8 +6,8 @@
 
 # original file: $(CBLD_ROOT)/stub/overrides.mk
 # description:   core clean-build definitions,
-#                processing of the CBLD_CONFIG and CBLD_OVERRIDES variables,
-#                checking that the CBLD_ROOT variable is defined
+#                processing of CBLD_CONFIG and CBLD_OVERRIDES variables,
+#                checking that CBLD_ROOT variable is defined
 
 # Note: This file should be copied AS IS to the directory of the project build system
 # Note: This file should be included at end of the project configuration makefile (e.g. 'project.mk')

@@ -17,7 +17,7 @@
 
 # Conventions:
 #  1) variables in lower case are always initialized with default values and _never_ taken from the environment,
-#  2) clean-build internal macros are prefixed with 'cb_' (except some common names, possibly redefined for the project),
+#  2) clean-build internal core macros are prefixed with 'cb_' (except some common names, possibly redefined for the project),
 #  3) user variables and parameters for build templates should also be in lower case,
 #  4) variables in UPPER case _may_ be taken from the environment or command line,
 #  5) clean-build specific variables that may be taken from the environment are in UPPER case and prefixed with 'CBLD_',
@@ -59,7 +59,7 @@ endif
 # note: SHELL, CBLD_CONFIG and CBLD_BUILD variables are not reset by the clean-build, so don't override them
 # note: filter-out %.^e - saved environment variables (see $(cb_dir)/stub/prepare.mk)
 cb_project_vars := $(strip $(foreach =,$(filter-out SHELL MAKEFLAGS CURDIR MAKEFILE_LIST .DEFAULT_GOAL \
-  %.^e CBLD_CONFIG CBLD_BUILD,$(.VARIABLES),$(if $(findstring file,$(origin $=)),$=))))
+  %.^e CBLD_CONFIG CBLD_BUILD,$(.VARIABLES)),$(if $(findstring file,$(origin $=)),$=)))
 
 # clean-build version: major.minor.patch
 clean_build_version := 0.9.1
@@ -564,7 +564,7 @@ endif
 # note: 'cb_update_percents' - defined in $(cb_dir)/core/suppress.mk
 ifdef cb_add_shown_percents
 $(eval define cb_def_head$(newline)$(subst \
-  else,else$(newline)$$$$(cb_target_makefile):$(newline)$(tab)$$(cb_update_percents)$(value cb_def_head))$(newline)endef)
+  else,else$(newline)$$$$(cb_target_makefile):$(newline)$(tab)$$$$(cb_update_percents),$(value cb_def_head))$(newline)endef)
 endif
 
 ifdef cb_checking
@@ -625,13 +625,8 @@ endif # cb_checking
 cb_def_tail = $(if $(findstring 2,$(cb_make_cont)),,$(if $(cb_include_level),cb_head_eval:=,include $(cb_dir)/core/all.mk))
 
 # prepend 'cb_def_tail' with $(cb_check_at_tail), if it's defined in the $(cb_dir)/core/protection.mk
-# note: if tracing, do not show result of expansion of $(cb_check_at_tail) - it's too noisy
 ifdef cb_check_at_tail
-ifdef cb_tracing
-$(call define_prepend,cb_def_tail,$$(eval $$(cb_check_at_tail)))
-else
 $(call define_prepend,cb_def_tail,$$(cb_check_at_tail)$(newline))
-endif
 endif
 
 # redefine 'define_targets' macro to produce an error if $(cb_def_head) was not evaluated prior expanding it
@@ -644,9 +639,9 @@ endif
 
 # remember new values of 'cb_head_eval' (which was reset to empty) and 'define_targets' (which produces an error),
 #  do not trace calls to them: value of 'cb_head_eval' is checked in 'cb_prepare_templ' below
-ifdef set_global1
+ifdef cb_checking
 $(eval define cb_def_tail$(newline)$(subst $(comma)include,$$(newline)$$(call \
-  set_global1,cb_head_eval$(if $(cb_checking), define_targets))$(comma)include,$(value cb_def_tail))$(newline)endef)
+  set_global1,cb_head_eval define_targets)$(comma)include,$(value cb_def_tail))$(newline)endef)
 endif
 
 # to define rules for building targets - just expand at end of makefile: $(define_targets)
@@ -680,7 +675,6 @@ $(eval cb_prepare_templ = $(subst \
 
 $(eval cb_prepare_templ = $(subst \
   value define_targets,call get_global,define_targets),$(value cb_prepare_templ))
-endif
 
 endif # cb_tracing
 
@@ -752,7 +746,7 @@ nonrelpath = $(patsubst $1/%,/%,$(addprefix $1,$2))
 # - we need absolute paths to sources to work with generated dependencies in .d files
 fixpath = $(abspath $(call nonrelpath,$(dir $(cb_target_makefile)),$1))
 
-# 'sed' - stream editor executable, should be defined in $(utils_mk) makefile
+# SED - stream editor executable, should be defined in $(utils_mk) makefile
 # 'sed_expr' - should also be defined in $(utils_mk) makefile
 # this helper macro: convert multi-line sed script $1 to multiple sed expressions - one expression for each line of the script
 sed_multi_expr = $(foreach s,$(subst $(newline), ,$(unspaces)),-e $(call sed_expr,$(call tospaces,$s)))

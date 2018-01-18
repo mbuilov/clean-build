@@ -6,70 +6,100 @@
 
 # system shell utilities - GNU specific
 
-# this file included by $(CLEAN_BUILD_DIR)/core/_defs.mk
+# this file is included by $(cb_dir)/core/_defs.mk
 
-# define unix utilities, then override some of them
+# define UNIX utilities, then override some of them
 include $(dir $(lastword $(MAKEFILE_LIST)))unix.mk
 
-# note: cannot unset some (Cygwin-specific) variables, such as "!::" or "CommonProgramFiles(x86)", so skip them out
-SKIPPED_ENV_VARS := $(if $(filter CYGWIN,$(OS)),CommonProgramFiles(x86) ProgramFiles(x86) !::)
-
 # script to print prepared environment in verbose mode (used for generating one-big-build instructions shell file)
-PRINT_ENV = for v in `env | cut -d= -f1`; do $(foreach \
-  x,PATH SHELL $(PASS_ENV_VARS) $(SKIPPED_ENV_VARS),[ "$x" = "$$v" ] ||) unset "$$v"; done$(foreach \
-  v,PATH SHELL $(PASS_ENV_VARS),$(newline)export $v='$($v)')
+# note: assume SHELL supports define & export in one command: e.g. "export A=B"
+print_env = $(foreach =,$(project_exported_vars),$(newline)export $=='$($=)')
 
-# delete file(s) $1 (short list, no more than PATH_ARGS_LIMIT), paths may contain spaces: '1 2/3 4' '5 6/7 8/9' ...
-DELETE_FILES = rm -f$(if $(VERBOSE),v) $1$(if $(VERBOSE), >&2)
+# NOTE: in verbose mode, stdout is used only for printing executed commands, all output of the commands must go to stderr
 
-# delete directories $1 (recursively) (short list, no more than PATH_ARGS_LIMIT), paths may contain spaces: '1 2/3 4' '5 6/7 8/9' ...
-DELETE_DIRS = rm -rf$(if $(VERBOSE),v) $1$(if $(VERBOSE), >&2)
+ifdef verbose
+# delete file(s) $1 (short list, no more than CBLD_MAX_PATH_ARGS)
+# note: if a path contains a space, it must be in quotes: '1 2/3 4' '5 6/7 8/9' ...
+delete_files = $(RM) -fv $1 >&2
+endif
 
-# try to delete directories $1 (non-recursively) if they are empty (short list, no more than PATH_ARGS_LIMIT), paths may contain spaces
-TRY_DELETE_DIRS = rmdir$(if $(VERBOSE), -v) --ignore-fail-on-non-empty $1$(if $(VERBOSE), >&2)
+ifdef verbose
+# delete directories $1 (recursively) (short list, no more than CBLD_MAX_PATH_ARGS)
+# note: if a path contains a space, it must be in quotes: '1 2/3 4' '5 6/7 8/9' ...
+delete_dirs = $(RM) -rfv $1 >&2
+endif
 
+# try to non-recursively delete directories $1 if they are empty (short list, no more than CBLD_MAX_PATH_ARGS)
+# note: if a path contains a space, it must be in quotes: '1 2/3 4' '5 6/7 8/9' ...
+ifdef verbose
+try_delete_dirs = $(RMDIR) --ignore-fail-on-non-empty -v $1 >&2
+else
+try_delete_dirs = $(RMDIR) --ignore-fail-on-non-empty $1
+endif
+
+ifdef verbose
 # copy file(s) (long list) preserving modification date, ownership and mode:
-# - file(s) $1 to directory $2 (paths to files $1 _must_ be without spaces, but path to directory $2 may contain spaces) or
-# - file $1 to file $2         (path to file $1 _must_ be without spaces, but path to file $2 may contain spaces)
-COPY_FILES2 = cp -p$(if $(VERBOSE),v) $1 $2$(if $(VERBOSE), >&2)
+# - file(s) $1 to directory $2 (paths to files $1 _must_ not contain spaces, but path to directory $2 may contain spaces) or
+# - file $1 to file $2         (path to file $1 _must_ not contain spaces, but path to file $2 may contain spaces)
+# note: if path to the directory/file $2 contains a space, it must be in quotes: '1 2/3 4'
+copy_files2 = $(CP) -pv $1 $2 >&2
+endif
 
+ifdef verbose
 # move file(s) (long list) preserving modification date, ownership and mode:
-# - file(s) $1 to directory $2 (paths to files $1 _must_ be without spaces, but path to directory $2 may contain spaces) or
-# - file $1 to file $2         (path to file $1 _must_ be without spaces, but path to file $2 may contain spaces)
-MOVE_FILES2 = mv$(if $(VERBOSE), -v) $1 $2$(if $(VERBOSE), >&2)
+# - file(s) $1 to directory $2 (paths to files $1 _must_ not contain spaces, but path to directory $2 may contain spaces) or
+# - file $1 to file $2         (path to file $1 _must_ not contain spaces, but path to file $2 may contain spaces)
+# note: if path to the directory/file $2 contains a space, it must be in quotes: '1 2/3 4'
+move_files2 = $(MV) -v $1 $2 >&2
+endif
 
-# create directory, path may contain spaces: '1 2/3 4'
-# to avoid races, CREATE_DIR must be called only if it's known that destination directory does not exist
-# note: CREATE_DIR must create intermediate parent directories of destination directory
-CREATE_DIR = mkdir -p$(if $(VERBOSE),v) $1$(if $(VERBOSE), >&2)
+ifdef verbose
+# create a directory
+# note: to avoid races, 'create_dir' must be called only if it's known that destination directory does not exist
+# note: 'create_dir' must create intermediate parent directories of the destination directory
+# note: if path to the directory $1 contains a space, it must be in quotes: '1 2/3 4'
+create_dir = $(MKDIR) -pv $1 >&2
+endif
 
 # escape command line argument to pass it to $(SED)
 # note: assume GNU sed is used, which understands \n and \t
-SED_EXPR = $(SHELL_ESCAPE)
+sed_expr = $(shell_escape)
 
-# create symbolic link $2 -> $1, paths may contain spaces: '/opt/bin/my app' -> '../x y z/n m'
+ifdef verbose
+# create symbolic link $2 -> $1
 # note: UNIX-specific
-CREATE_SIMLINK = ln -sf$(if $(VERBOSE),v) $1 $2$(if $(VERBOSE), >&2)
+# note: if path to the source or destination contains a space, it must be in quotes: '1 2/3 4'
+create_simlink = $(LN) -sfv $1 $2 >&2
+endif
 
-# set mode $1 of given file(s) $2 (short list, no more than PATH_ARGS_LIMIT), paths may contain spaces: '1 2/3 4' '5 6/7 8/9' ...
+ifdef verbose
+# set mode $1 of given file(s) $2 (short list, no more than CBLD_MAX_PATH_ARGS)
 # note: UNIX-specific
-CHANGE_MODE = chmod$(if $(VERBOSE), -v) $1 $2$(if $(VERBOSE), >&2)
+# note: if path to a file contains a space, it must be in quotes: '1 2/3 4'
+change_mode = $(CHMOD) -v $1 $2 >&2
+endif
 
-# execute command $2 in directory $1
-EXECUTE_IN = pushd $1 >/dev/null && { $2 && popd >/dev/null || { popd >/dev/null; false; } }
+# execute command $2 in the directory $1
+# note: if path to the directory $1 contains a space, it must be in quotes: '1 2/3 4'
+execute_in = pushd $1 >$(NUL) && { $2 && popd >$(NUL) || { popd >$(NUL); $(FALSE); } }
 
-# create directory (with intermediate parent directories) while installing things
-# $1 - path to directory to create, path may contain spaces, such as: '/opt/a b c'
-# note: INSTALL defined in $(CLEAN_BUILD_DIR)/utils/unix.mk
-INSTALL_DIR = $(INSTALL) -d$(if $(VERBOSE),v) $1$(if $(VERBOSE), >&2)
+ifdef verbose
+# create a directory (with intermediate parent directories) while installing things
+# $1 - path to the directory to create, path may contain spaces
+# note: if path to the directory $1 contains a space, it must be in quotes: '1 2/3 4'
+install_dir = $(INSTALL) -dv $1 >&2
+endif
 
+ifdef verbose
 # install file(s) (long list) to directory or copy file to file
-# $1 - file(s) to install (to support long list, paths _must_ be without spaces)
+# $1 - file(s) to install (to support long list, paths _must_ not contain spaces)
 # $2 - destination directory or file, path may contain spaces
 # $3 - optional access mode, such as -m644 (rw--r--r-) or -m755 (rwxr-xr-x)
-# note: overwrite INSTALL_FILES2 macro from $(CLEAN_BUILD_DIR)/utils/unix.mk
-INSTALL_FILES2 = $(INSTALL)$(if $(VERBOSE), -v) $3 $1 $2$(if $(VERBOSE), >&2)
+# note: if path to the directory/file $2 contains a space, it must be in quotes: '1 2/3 4'
+install_files2 = $(INSTALL) -v $3 $1 $2 >&2
+endif
 
-# protect variables from modifications in target makefiles
-$(call SET_GLOBAL,SKIPPED_ENV_VARS PRINT_ENV DELETE_FILES DELETE_DIRS TRY_DELETE_DIRS COPY_FILES2 MOVE_FILES2 \
-  CREATE_DIR SED_EXPR CREATE_SIMLINK CHANGE_MODE EXECUTE_IN INSTALL_DIR INSTALL_FILES2)
+# protect macros from modifications in target makefiles, allow tracing calls to them
+# note: trace namespace: utils
+$(call set_global,print_env=project_exported_vars delete_files delete_dirs try_delete_dirs copy_files2 move_files2 \
+  create_dir sed_expr create_simlink change_mode execute_in install_dir install_files2,utils)

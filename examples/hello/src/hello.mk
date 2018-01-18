@@ -7,36 +7,38 @@
 # add rules for building C/C++ sources
 include $(dir $(lastword $(MAKEFILE_LIST)))../make/c.mk
 
-# define DO_TEST_EXE_RET macro - generator of rule for testing built executables
-include $(MTOP)/extensions/ctest.mk
+# define 'do_test_exe_ret' macro - generator of rule for testing built executables
+include $(CBLD_ROOT)/extensions/ctest.mk
 
-# we will build S-variant of 'hello' executable - one with statically linked C runtime
-EXE := hello S
-SRC := hello.c
+# we will build S-variant of 'hello' executable - the one which is statically linked with the C runtime
+exe := hello S
+src := hello.c
 
 # generate rules for testing built executable and creating 'hello.out' output file
-# save the name of generated output file (the same as $(addsuffix .out,$(call ALL_TARGETS,EXE)))
-OUT := $(DO_TEST_EXE_RET)
+# save path to the generated output file in "local" variable 'out' (variable name chosen arbitrary)
+# Note: the same path value may be obtained as: $(addsuffix .out,$(call all_targets,exe))
+# Note: 'do_test_exe_ret' macro uses a value of defined above 'exe' variable
+out := $(do_test_exe_ret)
 
-# set makefile information for the 'hello' - a phony target defined below
-# (this information is used by the SUP function, which pretty-prints what a rule is doing)
-# Note: SET_MAKEFILE_INFO - one of predefined clean-build macros
-$(call SET_MAKEFILE_INFO,hello)
+# set makefile information for 'hello' - a phony target defined below
+#  (this information is used by 'suppress' function, which pretty-prints what a rule is doing)
+# Note: 'set_makefile_info' - one of clean-build predefined macros
+$(call set_makefile_info,hello)
 
 # define custom rule - print output of tested executable to stderr
-# Note: any output of rules should go to stderr, stdout is used
-#  by clean-build only for printing executed commands - this is
-#  needed for the (optional) generation of build-script
-# Note: $| - automatic variable - list of order-only dependencies of the target (but here is the only one - $(OUT))
-# Note: pass 1 as 4-th argument to SUP function to not update percents of executed makefiles
-hello: | $(OUT)
-	$(call SUP,CAT,$|,,1)$(call CAT_FILE,$|) >&2
+# Note: output of rules must go to stderr, stdout is used by clean-build only for logging
+#  executed commands - this is needed for the (optional) generation of a build-script
+# Note: must not use "local" variables in rule bodies - may use target-specific or automatic variables,
+#  e.g. $| - list of order-only dependencies of a target (here it contains only the $(out))
+# Note: 'suppress' and 'cat_file' - are clean-build predefined macros
+hello: | $(out)
+	$(call suppress,CAT,$|)$(call cat_file,$|) >&2
 
-# to complete predefined 'check' goal, it is needed to update our target 'hello'
+# to complete clean-build predefined 'check' goal, it is needed to update our target 'hello'
 check: hello
 
 # specify that 'hello' - is not a file, it is a PHONY target
 .PHONY: hello
 
 # define targets and rules how to build them
-$(DEFINE_TARGETS)
+$(define_targets)

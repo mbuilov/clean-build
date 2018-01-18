@@ -61,11 +61,19 @@ $(cb_target_makefiles):
 # reset at end of makefile parsing (the first phase):
 # 1) non-protected ("local") variables defined in last parsed target makefile
 # 2) protected variables from $(cb_first_phase_vars) list
-$(eval $(cb_reset_first_phase))
+# note: 'cb_reset_first_phase' - defined in $(cb_dir)/core/protection.mk
+$(cb_reset_first_phase)
 
 endif # cb_checking
 
+# check that environment variables are not accidentally overwritten
+# note: 'cb_check_env_vars' - defined in $(cb_dir)/core/protection.mk
+$(cb_check_env_vars)
+
 # at end of first phase - after all makefiles are parsed - print prepared environment variables for the rules
 ifdef verbose
-$(info $(print_env))
+prepared_env := $(print_env)
+ifdef prepared_env
+$(info $(prepared_env))
 endif
+endif # verbose

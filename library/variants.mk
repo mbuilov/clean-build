@@ -81,7 +81,7 @@ all_targets = $(foreach v,$(get_variants),$(call form_trg,$1,$v))
 # $2 - target variant: R,P,D,S... (one of variants supported by the selected toolchain - result of $(get_variants), may be empty)
 # add target-specific suffix (.exe,.lib,.dll,...) to distinguish objects for the targets with equal names (but different types)
 # (*) variable $1 must be defined at the time of a call of this macro
-form_obj_dir = $(obj_dir)/$(get_target_name)$(if $(filter-out R,$2),_$2).$1
+form_obj_dir = $(obj_dir)/$(get_target_name)$(if $(filter-out R,$2),_$2)-$1
 
 # construct full path to a target
 # $1 - target type: lib,exe,dll,...
