@@ -46,6 +46,8 @@ cxx_mask := %.cpp
 # $(modver) - module version (for dll, exe or driver) in form major.minor.patch (for example 1.2.3)
 # note: 'product_version' - defined in $(cb_dir)/core/_defs.mk, but generally redefined in project configuration makefile
 # note: 'syslibs' - used to specify external (system) libraries, e.g. -L/opt/lib -lext
+# note: may define 'src', 'include', 'defines', etc. as recursive variables and use $t (target type) and $v (variant), e.g.:
+#  src = $(if $(filter exe,$t),exe_src.c) comn_src.c
 define c_prepare_base_vars
 modver:=$(product_version)
 src:=
@@ -166,7 +168,6 @@ $1:defines  := $(call mk_defines_option,$(trg_defines))
 $1:cflags   := $(trg_cflags)
 $1:cxxflags := $(trg_cxxflags)
 $1:ldflags  := $(trg_ldflags)
-$1:syslibs  := $(syslibs)
 endef
 
 # $1 - $(call form_trg,$t,$v)

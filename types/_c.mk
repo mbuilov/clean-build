@@ -183,6 +183,7 @@ dep_imps = $(patsubst %,$(lib_dir)/$(imp_prefix)%$(imp_suffix),$(dep_imp_names))
 # note: define target-specific variable 'tm' with the current value of 'is_tool_mode'
 # note: target-specific variables are inherited by the dependencies, so templates for dependent libs/dlls
 #  _must_ set own values of 'compiler', 'include', 'defines', 'cflags' and other sensible variables
+# note: 'syslibs' - used to specify external (system) libraries, e.g. -L/opt/lib -lext
 # note: $(cb_dir)/compilers/msvc.mk redefines 'exe_template'
 define exe_template
 $(c_base_template)
@@ -190,6 +191,7 @@ $1:tm      := $(is_tool_mode)
 $1:libs    := $(libs)
 $1:dlls    := $(dlls)
 $1:lib_dir := $(lib_dir)
+$1:syslibs := $(syslibs)
 $1:$(call dep_libs,$t,$v) $(call dep_imps,$t,$v)
 	$$(call $t_ld,$$@,$$(filter %$(obj_suffix),$$^),$t,$v)
 endef
@@ -293,5 +295,6 @@ $(call set_global,c_app_targets c_target_types \
   exe_cflags lib_cflags dll_cflags exe_cxxflags lib_cxxflags dll_cxxflags exe_ldflags lib_ldflags dll_ldflags \
   exe_asmflags lib_asmflags dll_asmflags dll_exports_define dll_imports_define exe_suffix exe_form_trg lib_prefix \
   lib_suffix lib_form_trg dll_prefix dll_suffix dll_dir dll_form_trg lib_dep_map dll_dep_map imp_prefix imp_suffix \
-  dep_lib_names=libs dep_libs dep_imp_names=dlls dep_imps exe_template=t;v;exe;lib_dir;libs;dlls;syslibs;syslibpath \
-  dll_template=t;v;dll lib_template=t;v;lib c_prepare_app_vars c_define_app_rules c_check_app_rules c_compiler_mk,c)
+  dep_lib_names=libs dep_libs dep_imp_names=dlls dep_imps exe_template=t;v;exe;lib_dir;libs;dlls;syslibs \
+  dll_template=t;v;dll;lib_dir;libs;dlls;syslibs lib_template=t;v;lib c_prepare_app_vars c_define_app_rules \
+  c_check_app_rules c_compiler_mk,c)
