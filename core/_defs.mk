@@ -58,7 +58,7 @@ endif
 #  - save list of those variables to redefine them below with the 'override' keyword
 # note: SHELL, CBLD_CONFIG and CBLD_BUILD variables are not reset by the clean-build, so don't override them
 # note: filter-out %.^e - saved environment variables (see $(cb_dir)/stub/prepare.mk)
-cb_project_vars := $(strip $(foreach =,$(filter-out SHELL MAKEFLAGS CURDIR MAKEFILE_LIST .DEFAULT_GOAL \
+cb_project_vars := $(strip $(foreach =,$(filter-out SHELL MAKEFLAGS CURDIR MAKEFILE_LIST MAKECMDGOALS .DEFAULT_GOAL \
   %.^e CBLD_CONFIG CBLD_BUILD,$(.VARIABLES)),$(if $(findstring file,$(origin $=)),$=)))
 
 # clean-build version: major.minor.patch
@@ -508,14 +508,15 @@ endif
 # variable used to track makefiles include level
 cb_include_level:=
 
-# list of all processed target makefiles (absolute paths) - used in $(cb_dir)/core/all.mk
+# list of all processed target makefiles (absolute paths) - for the check that one makefile is not processed twice,
+#  also used in $(cb_dir)/core/all.mk - to properly compute percents of completed target makefiles
 # note: 'cb_target_makefiles' is never cleared, only appended (in $(cb_def_head))
 ifneq (,$(cb_checking)$(value cb_add_shown_percents))
 cb_target_makefiles:=
 endif
 
 # a chain of macros which should be evaluated for preparing target templates (resetting "local" variables - template parameters)
-# $(cb_def_head) was not evaluated yet, chain is empty
+# $(cb_def_head) was not evaluated yet, the chain is empty (it's checked in 'cb_prepare_templ')
 cb_head_eval:=
 
 # initially reset variable holding a number of section of $(make_continue), it is checked in 'cb_def_head'
@@ -554,25 +555,39 @@ ifdef cb_check_at_head
 $(call define_prepend,cb_def_head,$$(cb_check_at_head)$(newline))
 endif
 
-# add $(cb_target_makefile) to the list of processed target makefiles (note: only before the first $(make_continue) call)
 ifneq (,$(cb_checking)$(value cb_add_shown_percents))
+
+# add $(cb_target_makefile) to the list of processed target makefiles (note: only before the first $(make_continue) call)
 $(eval define cb_def_head$(newline)$(subst \
   else,else$(newline)cb_target_makefiles+=$$$$(cb_target_makefile),$(value cb_def_head))$(newline)endef)
-endif
-
-# if all targets of $(cb_target_makefile) are completed, update percents
-# note: 'cb_update_percents' - defined in $(cb_dir)/core/suppress.mk
-ifdef cb_add_shown_percents
-$(eval define cb_def_head$(newline)$(subst \
-  else,else$(newline)$$$$(cb_target_makefile):$(newline)$(tab)$$$$(cb_update_percents),$(value cb_def_head))$(newline)endef)
-endif
-
-ifdef cb_checking
 
 # remember new value of 'cb_target_makefiles' variable, without tracing calls to it because it's incremented
 # note: assume result of $(call set_global1,cb_target_makefiles) will give an empty line at end of expansion
+ifdef cb_checking
 $(eval define cb_def_head$(newline)$(subst \
   cb_make_cont:=$(newline),$$(call set_global1,cb_target_makefiles)cb_make_cont:=$(newline),$(value cb_def_head))$(newline)endef)
+endif
+
+# check that all targets are built/update percents of completed makefiles
+cb_check_targets=
+
+ifdef cb_checking
+# note: must be called in $(cb_target_makefile)'s rule body, where automatic variables $@ and $^ are defined
+cb_check_targets += $(foreach =,$(filter-out $(wildcard $^),$^),$(info $(@:-=): cannot build $=))
+endif
+
+ifdef cb_add_shown_percents
+# note: 'cb_update_percents' - defined in $(cb_dir)/core/suppress.mk
+cb_check_targets += $(cb_update_percents)
+endif
+
+# if all targets of $(cb_target_makefile) are completed, check that files exist/update percents
+$(eval define cb_def_head$(newline)$(subst \
+  else,else$(newline)$$$$(cb_target_makefile)-:$(newline)$(tab)$$$$(cb_check_targets),$(value cb_def_head))$(newline)endef)
+
+endif # cb_checking || cb_add_shown_percents
+
+ifdef cb_checking
 
 # check that $(cb_target_makefile) was not already processed (note: check only before the first $(make_continue))
 $(eval define cb_def_head$(newline)$(subst \
@@ -608,7 +623,7 @@ ifdef cb_checking
 # note: do not trace calls to 'tool_mode' after resetting it to $$(cb_tool_mode_access_error) - this is needed to pass the (next) check
 #  if value of 'tool_mode' is the '$(cb_tool_mode_access_error)' (or empty, or non-empty) at the beginning of $(cb_def_head)
 # note: assume result of $(call set_global1,tool_mode) will give an empty line at end of expansion
-$(eval define cb_def_head$(newline)$(subst endif,endif$(newline)tool_mode=$$$$(cb_tool_mode_access_error)$(newline)$$(call \
+$(eval define cb_def_head$(newline)$(subst endif$(newline),endif$(newline)tool_mode=$$$$(cb_tool_mode_access_error)$(newline)$$(call \
   set_global1,tool_mode),$(value cb_def_head))$(newline)endef)
 
 # when expanding $(cb_def_head), first restore 'tool_mode' variable, if it wasn't changed before $(cb_def_head)
@@ -660,6 +675,7 @@ cb_prepare_templ = $(if $(value cb_head_eval),,$(eval $(cb_def_head)))$(if $1,$(
   cb_head_eval=$(value cb_head_eval)$$(eval $$($1)))$(eval \
   define_targets=$$(eval $$($2))$(value define_targets))$(eval $(call $1)))
 
+
 ifdef set_global
 
 # remember new values of 'cb_head_eval' and 'define_targets'
@@ -671,10 +687,10 @@ $(eval cb_prepare_templ = $(subst $$$(open_brace)eval $$$(open_brace)call $$1,$$
 ifdef cb_tracing
 
 $(eval cb_prepare_templ = $(subst \
-  =$$(value cb_head_eval),=$$(call get_global,cb_head_eval)),$(value cb_prepare_templ))
+  =$$(value cb_head_eval),=$$(call get_global,cb_head_eval),$(value cb_prepare_templ)))
 
 $(eval cb_prepare_templ = $(subst \
-  value define_targets,call get_global,define_targets),$(value cb_prepare_templ))
+  value define_targets,call get_global$(comma)define_targets,$(value cb_prepare_templ)))
 
 endif # cb_tracing
 
@@ -809,7 +825,7 @@ $(call set_global,cb_project_vars clean_build_version cb_dir clean_build_require
   cb_set_sefault_dirs tool_base mk_tools_dir cb_tool_override_dirs tool_suffix get_tools get_tool cb_target_makefile \
   add_mdeps cb_add_what_makefile_builds set_makefile_info add_order_deps=order_deps=order_deps \
   need_gen_dirs std_target_vars1 cb_check_generated_at std_target_vars add_generated add_generated_ret \
-  is_tool_mode cb_tool_mode_access_error cb_def_head cb_def_tail define_targets cb_prepare_templ \
+  is_tool_mode cb_tool_mode_access_error cb_def_head cb_check_targets cb_def_tail define_targets cb_prepare_templ \
   cb_save_vars cb_restore_vars make_continue ospath nonrelpath fixpath sed_multi_expr product_version,core)
 
 # if 'toclean' value is non-empty, allow tracing calls to it (with trace namespace: toclean),

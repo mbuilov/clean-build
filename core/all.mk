@@ -25,7 +25,7 @@ $(eval $(call mk_dir_deps,$(cb_needed_dirs),$(dir $(cb_build))))
 $(addprefix $(dir $(cb_build)),$(cb_needed_dirs)):
 	$(call suppress,MKDIR,$@)$(call create_dir,$@)
 
-# note: $(cb_target_makefiles) - absolute paths of all processed target makefiles with '-' suffix
+# note: $(cb_target_makefiles) - absolute paths of all processed target makefiles
 #  (without suffix, if real makefile names are used - make always wants to recreate makefiles, even for the 'clean' goal)
 # note: <TARGET_MAKEFILES_COUNT> - number of target makefiles - used to compute percent of executed makefiles
 ifdef cb_add_shown_percents
@@ -52,24 +52,6 @@ check tests: all
 # note: don't try to update makefiles in $(MAKEFILE_LIST) - mark them as .PHONY targets
 .PHONY: $(build_system_goals) $(MAKEFILE_LIST)
 
-ifdef cb_checking
-
-# check that all targets are built
-$(cb_target_makefiles):
-	$(foreach f,$(filter-out $(wildcard $^),$^),$(info $(@:-=): cannot build $f))
-
-# reset at end of makefile parsing (the first phase):
-# 1) non-protected ("local") variables defined in last parsed target makefile
-# 2) protected variables from $(cb_first_phase_vars) list
-# note: 'cb_reset_first_phase' - defined in $(cb_dir)/core/protection.mk
-$(cb_reset_first_phase)
-
-endif # cb_checking
-
-# check that environment variables are not accidentally overwritten
-# note: 'cb_check_env_vars' - defined in $(cb_dir)/core/protection.mk
-$(cb_check_env_vars)
-
 # at end of first phase - after all makefiles are parsed - print prepared environment variables for the rules
 ifdef verbose
 prepared_env := $(print_env)
@@ -77,3 +59,13 @@ ifdef prepared_env
 $(info $(prepared_env))
 endif
 endif # verbose
+
+# check that environment variables were not accidentally overwritten
+# note: 'cb_check_env_vars' - defined in $(cb_dir)/core/protection.mk
+$(cb_check_env_vars)
+
+# reset at end of makefiles parsing (the first phase):
+# 1) non-protected ("local") variables defined in the last parsed target makefile
+# 2) protected variables from $(cb_first_phase_vars) list
+# note: 'cb_reset_first_phase' - defined in $(cb_dir)/core/protection.mk
+$(cb_reset_first_phase)
