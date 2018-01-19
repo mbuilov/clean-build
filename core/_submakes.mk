@@ -102,7 +102,7 @@ endif # cb_checking
 # $(cb_target_makefile) is built if all sub-makefiles in list $1 are built
 # note: $(cb_target_makefile)- and other order-dependent makefile names - are .PHONY targets
 # note: use order-only dependency, so normal dependencies of $(cb_target_makefile)-
-#  will be only files - for the checks in $(cb_dir)/core/all.mk (where automatic variable $^ is used)
+#  will be only files - for the checks in $(cb_dir)/core/_defs.mk (where automatic variable $^ is used)
 $(call define_prepend,cb_include_submakes,.PHONY: $$(addsuffix \
   -,$$1)$(newline)$$(cb_target_makefile)-:| $$(addsuffix -,$$1)$(newline))
 
