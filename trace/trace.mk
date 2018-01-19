@@ -27,12 +27,11 @@
 #   Note: command-line variables that are not also defined in the environment are unexported
 #   Note: undefined macros or macros having an empty value are not traced
 
-# MAKE_TRACE_IN_COLOR - if defined, print traces in colors, example:
-#  make -f my.mk MAKE_TRACE_IN_COLOR:=1
-MAKE_TRACE_IN_COLOR ?=
+# if defined and not 0, print traces in colors
+MAKE_TRACE_IN_COLOR ?= 1
 
 # for use in ifdefs
-make_trace_in_color := $(MAKE_TRACE_IN_COLOR)
+make_trace_in_color := $(MAKE_TRACE_IN_COLOR:0=)
 
 empty:=
 space:= $(empty) #
@@ -193,10 +192,8 @@ encode_traced_var_name = $1.^t
 # $4 - names of variables to dump before the traced call
 # $5 - names of variables to dump after the traced call
 # note: must use $$(call $2,_dump_params_): Gnu Make do not allow recursive calls: $(call a)->$(b)->$(call a)->$(b)->...
-# note: first line must be empty
 ifndef make_trace_in_color
 define trace_calls_template
-
 ifdef $1
 ifeq (simple,$(flavor $1))
 $2:=$$($1)
@@ -220,7 +217,6 @@ endif
 endef
 else # make_trace_in_color
 define trace_calls_template
-
 ifdef $1
 ifeq (simple,$(flavor $1))
 $2:=$$($1)
@@ -262,7 +258,7 @@ check_if_traced = $(filter \
 #   name            - macro name
 #   b1;b2;b3;$$1;b4 - names of variables to dump before traced call
 #   e1;e2           - names of variables to dump after traced call
-trace_calls = $(eval $(foreach :,$(subst ==,=;=,$1),$(foreach =,$(firstword $(subst =, ,$:)),$(if \
-  $(findstring undefined,$(origin $=)),,$(if $(call check_if_traced,$=),,$(call \
-  trace_calls_template,$=,$(call encode_traced_var_name,$=),$(if $(findstring command line,$(origin $=)),override,$(findstring \
-  override,$(origin $=))),$(subst ;, ,$(word 2,$(subst =, ,$:))),$(subst ;, ,$(word 3,$(subst =, ,$:)))))))))
+trace_calls = $(foreach =,$(subst ==,=;=,$1),$(foreach :,$(firstword $(subst =, ,$=)),$(if \
+  $(findstring undefined,$(origin $:)),,$(if $(call check_if_traced,$:),,$(eval $(call \
+  trace_calls_template,$:,$(call encode_traced_var_name,$:),$(if $(findstring command line,$(origin $:)),override,$(findstring \
+  override,$(origin $:))),$(subst ;, ,$(word 2,$(subst =, ,$=))),$(subst ;, ,$(word 3,$(subst =, ,$=)))))))))
