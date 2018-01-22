@@ -146,11 +146,13 @@ endif
 # $(call dump_vars,VAR1,Q: ) -> print 'Q: dump: VAR1=<xxx>'
 # note: surround dump with fake $(if ...) to avoid any text in result of $(dump_vars)
 ifndef make_trace_in_color
-dump_vars = $(if $(foreach =,$1,$(warning $2dump: $=$(if $(findstring \
-  simple,$(flavor $=)),:)=$(call format_traced_value,$(value $=),<,>,\,))),)
+dump_vars = $(if $(foreach =,$1,$(warning $2dump: $=$(foreach \
+  :,$(if $(call check_if_traced,$=),$(call encode_traced_var_name,$=),$=),$(if $(findstring \
+  simple,$(flavor $:)),:)=$(call format_traced_value,$(value $:),<,>,\,)))),)
 else
-dump_vars = $(if $(foreach =,$1,$(warning $2[35;1mdump[m: [34;1m$=[36m$(if $(findstring \
-  simple,$(flavor $=)),:)=$(call format_traced_value,$(value $=),[35;1m<[m,[35;1m>[m,[35m\[m))),)
+dump_vars = $(if $(foreach =,$1,$(warning $2[35;1mdump[m: [36;1m$=$(foreach \
+  :,$(if $(call check_if_traced,$=),$(call encode_traced_var_name,$=),$=),$(if $(findstring \
+  simple,$(flavor $:)),[31m:,[35m)=$(call format_traced_value,$(value $:),[36;1m<[m,[36;1m>[m,[36m\[m)))),)
 endif
 
 # maximum number of arguments of any macro
@@ -205,7 +207,7 @@ $(value $1)
 $(keyword_endef)
 $3 $(keyword_define) $1
 $$(foreach =,$$(words $$(mk_trace_level.^l)),$$(warning \
-  $$(mk_trace_level.^l) $$$$(call $1) $$={$$(dump_args))$$(call \
+  $$(mk_trace_level.^l) $1 $$={$$(dump_args))$$(call \
   dump_vars,$4,--> )$$(warning \
   --- $1 value---->$$(newline)$$(call format_traced_value,$$(value $2),<,>))$$(warning \
   --- $1 result--->)$$(eval mk_trace_level.^l+=$1->)$$(call \
@@ -228,10 +230,10 @@ $(value $1)
 $(keyword_endef)
 $3 $(keyword_define) $1
 $$(foreach =,$$(words $$(mk_trace_level.^l)),$$(warning \
-  $$(mk_trace_level.^l) [32;1m$$$$([33mcall[32m $1) [;32m$$=[36m{[m$$(dump_args))$$(call \
+  $$(mk_trace_level.^l) [32;1m$1 [;32m$$=[36m{[m$$(dump_args))$$(call \
   dump_vars,$4,[34;1m-->[m )$$(warning \
-  [32;1m--- $1 [33mvalue---->[m$$(newline)$$(call format_traced_value,$$(value $2),[35;1m<[m,[35;1m>[m))$$(warning \
-  [36;1m--- $1 [33mresult--->[m)$$(eval mk_trace_level.^l+=[36m$1[35;1m->[m)$$(call \
+  [33;1m--- $1 [35mvalue---->[m$$(newline)$$(call format_traced_value,$$(value $2),[35;1m<[m,[35;1m>[m))$$(warning \
+  [33;1m--- $1 [32mresult--->[m)$$(eval mk_trace_level.^l+=[36m$1[35;1m->[m)$$(call \
   infofn,$$(call $2,_dump_params_),$$=)$$(call dump_vars,$5,[34;1m<--[m )$$(eval \
   mk_trace_level.^l:=$$(wordlist 1,$$=,$$(mk_trace_level.^l)))$$(warning [31m<===== [36;1m}[;32m$$=[31;1m $$$$($1)[m))
 $(keyword_endef)
@@ -259,6 +261,6 @@ check_if_traced = $(filter \
 #   b1;b2;b3;$$1;b4 - names of variables to dump before traced call
 #   e1;e2           - names of variables to dump after traced call
 trace_calls = $(foreach =,$(subst ==,=;=,$1),$(foreach :,$(firstword $(subst =, ,$=)),$(if \
-  $(findstring undefined,$(origin $:)),,$(if $(call check_if_traced,$:),,$(eval $(call \
-  trace_calls_template,$:,$(call encode_traced_var_name,$:),$(if $(findstring command line,$(origin $:)),override,$(findstring \
+  $(findstring undefined,$(origin $:)),,$(if $(call check_if_traced,$:),$(warning warning: not tracing already traced macro: '$:'),$(eval \
+  $(call trace_calls_template,$:,$(call encode_traced_var_name,$:),$(if $(findstring command line,$(origin $:)),override,$(findstring \
   override,$(origin $:))),$(subst ;, ,$(word 2,$(subst =, ,$=))),$(subst ;, ,$(word 3,$(subst =, ,$=)))))))))
