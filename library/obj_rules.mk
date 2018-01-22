@@ -50,7 +50,7 @@ endef
 ifndef toclean
 obj_rules = $(if $2,$(call obj_rules_templ,$1,$2,$3,$4,$5,$6,$7,$(patsubst %,$4/%$5,$(basename $(notdir $2)))))
 else
-# just drop whole objects directory
+# just drop the whole objects directory
 # note: also cleanup auto-generated dependencies
 obj_rules = $(call toclean,$4)
 endif
