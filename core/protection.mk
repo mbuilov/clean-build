@@ -105,7 +105,7 @@ cb_env_var_ov = $(warning environment variable $= was overwritten:$(newline)--- 
 
 # check if an environment variable $= was accidentally overwritten
 define cb_check_env_var
-ifneq ($$(value $$=),$$(value $$=.^e))
+ifneq ("$$(value $$=)","$$(value $$=.^e)")
 $$(cb_env_var_ov)
 endif
 endef
@@ -230,7 +230,7 @@ cb_protected_var_ov = $(error protected variable '$=' was overwritten:$(newline)
 # note: use the $(value) function to get a value of variable $1 - variable is simple, but its name may be
 #  non-standard, e.g. CommonProgramFiles(x86)
 define cb_check_protected_var
-ifneq ($$(value $1),$$(call cb_encode_var_value,$$=))
+ifneq ("$$(value $1)","$$(call cb_encode_var_value,$$=)")
 ifeq (,$$(filter $$=,$$(temporary_overridden)))
 $$(call cb_protected_var_ov,$1)
 endif
