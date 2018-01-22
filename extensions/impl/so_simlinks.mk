@@ -4,51 +4,57 @@
 # Licensed under GPL version 2 or any later version, see COPYING
 #----------------------------------------------------------------------------------
 
-# rule templates for creating simlinks to built shared libraries
+# rule templates for creating symbolic links to built shared libraries
 # (so runtime library linker may find them by their SONAMEs)
 
-ifndef TOCLEAN
-
 # remember all created simlinks in one global list - to not try to create the same simlink twice
-CB_TEST_SHLIB_SIMLINKS_LIST:=
+cb_test_shlib_simlinks:=
 
-# $1 - $(LIB_DIR)/$(DLL_PREFIX)$(subst .,$(DLL_SUFFIX).,$d)         e.g.: /project/lib/libmylb.so.1
-# $2 - $(DLL_PREFIX)<library_name>$(DLL_SUFFIX)                     e.g.: libmylb.so
+ifndef toclean
+
+# $1 - $(lib_dir)/$(dll_prefix)$(subst .,$(dll_suffix).,$d)         e.g.: /project/lib/libmylb.so.1
+# $2 - $(dll_prefix)<library_name>$(dll_suffix)                     e.g.: libmylb.so
 # $d - built shared library in form <library_name>.<major_number>   e.g.: mylib.1
-# note: do not use STD_TARGET_VARS macro because rule target (simlink) is the prerequisite for the result
-#  of tested executable - TEST_FORM_SHLIB_SIMLINKS macro should be used to form a list of such prerequisites
-define SO_SOFTLINK_TEMPLATE
+# note: do not use 'std_target_vars' macro because rule target (simlink) is a prerequisite for the result of
+#  tested executable - 'test_form_shlib_simlinks' macro should be used to form a list of such prerequisites
+# note: 'create_simlink' - defined in $(cb_dir)/utils/unix.mk
+define so_softlink_template
 $1:| $(dir $1)$2
-	$$(call SUP,LN,$$@)$$(call CREATE_SIMLINK,$2,$$@)
-CB_TEST_SHLIB_SIMLINKS_LIST += $d
+	$$(call suppress,LN,$$@)$$(call create_simlink,$2,$$@)
+cb_test_shlib_simlinks += $d
 endef
 
-# remember new value of CB_TEST_SHLIB_SIMLINKS_LIST
-ifdef CB_CHECKING
-$(call define_append,SO_SOFTLINK_TEMPLATE,$(newline)$$(call SET_GLOBAL1,CB_TEST_SHLIB_SIMLINKS_LIST,0))
+# remember new value of 'cb_test_shlib_simlinks' list
+# note: do not trace calls to variables modified via operator +=
+ifdef cb_checking
+$(call define_append,so_softlink_template,$(newline)$$(call set_global1,cb_test_shlib_simlinks))
 endif
 
-else # TOCLEAN
+else # toclean
 
 # just clean generated simlinks
-SO_SOFTLINK_TEMPLATE = $(TOCLEAN)
+so_softlink_template = $(toclean)
 
-endif # TOCLEAN
+endif # toclean
 
-# get full paths to simlinks
-# $1 - built shared libraries needed by the executable, in form <library_name>.<major_number>
-TEST_FORM_SHLIB_SIMLINKS = $(addprefix $(LIB_DIR)/$(DLL_PREFIX),$(subst .,$(DLL_SUFFIX).,$1))
+# get full paths to created simlinks
+# $1 - built shared libraries in form <library_name>.<major_number>
+# note: convert: <library_name>.<major_number> -> $(lib_dir)/$(dll_prefix)<library_name>.$(dll_suffix).<major_number>
+test_form_shlib_simlinks = $(addprefix $(lib_dir)/$(dll_prefix),$(subst .,$(dll_suffix).,$1))
 
 # generate rules for creating simlinks to shared libraries
 # $1 - built shared libraries, in form <library_name>.<major_number>
-# note: convert: <library_name>.<major_number> -> $(LIB_DIR)/$(DLL_PREFIX)<library_name>.$(DLL_SUFFIX).<major_number>
-# note: convert: <library_name>.<major_number> -> $(DLL_PREFIX)<library_name>$(DLL_SUFFIX)
-TEST_CREATE_SHLIB_SIMLINKS = $(foreach d,$(filter-out $(CB_TEST_SHLIB_SIMLINKS_LIST),$1),$(eval $(call \
-  SO_SOFTLINK_TEMPLATE,$(call TEST_FORM_SHLIB_SIMLINKS,$d),$(DLL_PREFIX)$(firstword $(subst ., ,$d))$(DLL_SUFFIX))))
+# note: convert: <library_name>.<major_number> -> $(dll_prefix)<library_name>$(dll_suffix)
+test_create_shlib_simlinks = $(foreach d,$(filter-out $(cb_test_shlib_simlinks),$1),$(eval $(call \
+  so_softlink_template,$(call test_form_shlib_simlinks,$d),$(dll_prefix)$(firstword $(subst ., ,$d))$(dll_suffix))))
+
+# makefile parsing first phase variables
+cb_first_phase_vars += cb_test_shlib_simlinks so_softlink_template test_form_shlib_simlinks test_create_shlib_simlinks
+
+# protect macros from modifications in target makefiles,
+# do not trace calls to macros used in ifdefs, exported to the environment of called tools or modified via operator +=
+$(call set_global,cb_test_shlib_simlinks)
 
 # protect variables from modifications in target makefiles
-# note: do not trace calls to CB_TEST_SHLIB_SIMLINKS_LIST because it is incremented
-$(call SET_GLOBAL,CB_TEST_SHLIB_SIMLINKS_LIST,0)
-
-# protect variables from modifications in target makefiles
-$(call SET_GLOBAL,SO_SOFTLINK_TEMPLATE=d TEST_FORM_SHLIB_SIMLINKS TEST_CREATE_SHLIB_SIMLINKS=CB_TEST_SHLIB_SIMLINKS_LIST)
+# note: trace namespace: simlinks
+$(call set_global,so_softlink_template=d test_form_shlib_simlinks test_create_shlib_simlinks=cb_test_shlib_simlinks,simlinks)
