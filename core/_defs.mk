@@ -810,7 +810,9 @@ product_version := 0.0.1
 
 # CBLD_NO_DEPS - if defined, then do not generate auto-dependencies or process or delete previously generated auto-dependencies
 # note: by default, do not generate auto-dependencies for release builds
-CBLD_NO_DEPS ?= $(if $(debug),,1)
+ifeq (undefined,$(origin CBLD_NO_DEPS))
+CBLD_NO_DEPS := $(if $(debug),,1)
+endif
 
 # remember value of CBLD_NO_DEPS - it may be taken from the environment
 $(call config_remember_vars,CBLD_NO_DEPS)
