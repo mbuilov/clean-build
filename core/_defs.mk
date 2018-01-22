@@ -319,7 +319,7 @@ cb_to_clean:=
 ifeq (,$(filter clean,$(MAKECMDGOALS)))
 toclean:=
 else ifneq (,$(word 2,$(MAKECMDGOALS)))
-$(error clean goal must be specified alone, current goals: $(MAKECMDGOALS))
+$(error 'clean' goal must be specified alone, current goals: $(MAKECMDGOALS))
 else ifndef cb_checking
 toclean = $(eval cb_to_clean+=$$1)
 else
