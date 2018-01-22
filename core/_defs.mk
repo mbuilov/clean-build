@@ -128,49 +128,57 @@ CBLD_TARGET ?= RELEASE
 # operating system we are building for (WIN7, DEBIAN6, SOLARIS10, etc.)
 # note: normally CBLD_OS get overridden by specifying it in the command line
 # note: CBLD_OS value may affect default values of other variables (CBLD_TCPU, CBLD_UTILS, etc.)
+ifeq (undefined,$(origin CBLD_OS))
 ifneq (,$(filter /cygdrive/%,$(CURDIR)))
-CBLD_OS ?= CYGWIN
+CBLD_OS := CYGWIN
 else ifneq (environment,$(origin OS))
-CBLD_OS ?= $(call toupper,$(shell uname))
+CBLD_OS := $(call toupper,$(shell uname))
 else ifeq (Windows_NT,$(OS))
-CBLD_OS ?= WINDOWS
+CBLD_OS := WINDOWS
 else
 # unknown, should be defined in the project configuration makefile or in the command line
-CBLD_OS ?=
+CBLD_OS :=
 endif
+endif # !CBLD_OS
 
 # processor architecture of build helper tools created while the build
 # note: CBLD_TCPU likely is the native processor architecture of the build toolchain
 # note: equivalent of '--build' Gnu Autoconf configure script option
 # note: CBLD_TCPU specification may also encode format of executable files, e.g. CBLD_TCPU=m68k-coff, it is checked by the C compiler
 # note: normally CBLD_TCPU get overridden by specifying it in command line
+ifeq (undefined,$(origin CBLD_TCPU))
 ifndef CBLD_OS
-CBLD_TCPU ?= x86
+CBLD_TCPU := x86
 else ifeq (,$(filter WIN%,$(CBLD_OS)))
-CBLD_TCPU ?= $(shell uname -m)
+CBLD_TCPU := $(shell uname -m)
 else ifeq (AMD64,$(if $(findstring environment,$(origin PROCESSOR_ARCHITECTURE)),$(PROCESSOR_ARCHITECTURE)))
 # win64
-CBLD_TCPU ?= x86_64
+CBLD_TCPU := x86_64
 else ifeq (AMD64,$(if $(findstring environment,$(origin PROCESSOR_ARCHITEW6432)),$(PROCESSOR_ARCHITEW6432)))
 # wow64
-CBLD_TCPU ?= x86_64
+CBLD_TCPU := x86_64
 else
 # win32
-CBLD_TCPU ?= x86
+CBLD_TCPU := x86
 endif
+endif # !CBLD_TCPU
 
 # processor architecture we are building the package for (x86, sparc64, armv5, mips24k, etc.)
 # note: equivalent of '--host' Gnu Autoconf configure script option
 # note: CBLD_CPU specification may also encode format of executable files, e.g. CBLD_CPU=m68k-coff, it is checked by the C compiler
 # note: normally CBLD_CPU get overridden by specifying it in command line
-CBLD_CPU ?= $(CBLD_TCPU)
+ifeq (undefined,$(origin CBLD_CPU))
+CBLD_CPU := $(CBLD_TCPU)
+endif
 
 # flavor of system shell utilities (such as cp, mv, rm, etc.)
 # note: $(CBLD_UTILS) value is used only to form name of standard makefile with definitions of shell utilities
 # note: normally CBLD_UTILS get overridden by specifying it in command line, for example: CBLD_UTILS:=gnu
-CBLD_UTILS ?= $(if \
+ifeq (undefined,$(origin CBLD_UTILS))
+CBLD_UTILS := $(if \
   $(filter WIN%,$(CBLD_OS)),cmd,$(if \
   $(filter CYG% LIN%,$(CBLD_OS)),gnu,unix))
+endif
 
 # remember value of CBLD_BUILD if it was taken from the environment (in the project configuration makefile - $(cb_dir)/stub/project.mk)
 # note: else, if CBLD_BUILD was not taken from the environment - CBLD_BUILD should be already stored for the generated configuration
