@@ -4,6 +4,6 @@
 # Licensed under GPL version 2 or any later version, see COPYING
 #----------------------------------------------------------------------------------
 
-ifeq (,$(filter-out undefined environment,$(origin DO_TEST_EXE)))
+ifeq (,$(filter-out undefined environment,$(origin gen_exe_test)))
 include $(dir $(lastword $(MAKEFILE_LIST)))impl/_ctest.mk
 endif
