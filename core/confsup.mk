@@ -39,7 +39,7 @@ endif
 .PHONY: config
 
 # encode a value of variable $=
-cb_config_remember_var = $(if $(findstring simple,$(flavor $v)),$= := $$(empty)$(subst \,$$(backslash),$(subst \
+cb_config_remember_var = $(if $(findstring simple,$(flavor $=)),$= := $$(empty)$(subst \,$$(backslash),$(subst \
   $(comment),$$(comment),$(subst $(newline),$$(newline),$(subst $$,$$$$,$(value $=)))))$$(empty),define $=$(newline)$(subst \
   define,$$(keyword_define),$(subst endef,$$(keyword_endef),$(subst \,$$(backslash),$(value $=))))$(newline)endef)$(newline)
 
