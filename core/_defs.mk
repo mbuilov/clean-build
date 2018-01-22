@@ -433,7 +433,12 @@ ifdef cb_makefile_info_templ
 set_makefile_info = $(eval $(cb_makefile_info_templ))
 
 # optimize: do not call 'set_makefile_info' from 'std_target_vars1', include code of 'set_makefile_info' directly
+ifndef cb_tracing
+# note: use value of 'cb_makefile_info_templ' only if not tracing, else - it was modified for the tracing
 $(call define_prepend,std_target_vars1,$(value cb_makefile_info_templ)$(newline))
+else
+$(call define_prepend,std_target_vars1,$$(cb_makefile_info_templ)$(newline))
+endif
 
 endif # cb_makefile_info_templ
 
