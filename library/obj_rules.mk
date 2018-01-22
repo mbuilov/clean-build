@@ -50,13 +50,13 @@ endef
 ifndef toclean
 obj_rules = $(if $2,$(call obj_rules_templ,$1,$2,$3,$4,$5,$6,$7,$(patsubst %,$4/%$5,$(basename $(notdir $2)))))
 else
+# just drop whole objects directory
 # note: also cleanup auto-generated dependencies
-obj_rules_cleanup = $(call toclean,$1 $(if $3,$(patsubst %$2,%$3,$1)))
-obj_rules = $(if $2,$(call obj_rules_cleanup,$(patsubst %,$4/%$5,$(basename $(notdir $2))),$5,$7))
+obj_rules = $(call toclean,$4)
 endif
 
 # makefile parsing first phase variables
-cb_first_phase_vars += add_obj_sdeps obj_rules_templ obj_rules obj_rules_cleanup
+cb_first_phase_vars += add_obj_sdeps obj_rules_templ obj_rules
 
 # protect macros from modifications in target makefiles,
 # do not trace calls to macros used in ifdefs, exported to the environment of called tools or modified via operator +=
@@ -64,4 +64,4 @@ $(call set_global,cb_first_phase_vars)
 
 # protect variables from modifications in target makefiles
 # note: trace namespace: obj_rules
-$(call set_global,add_obj_sdeps obj_rules_templ obj_rules obj_rules_cleanup,obj_rules)
+$(call set_global,add_obj_sdeps obj_rules_templ obj_rules,obj_rules)
