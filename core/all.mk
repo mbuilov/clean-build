@@ -43,7 +43,7 @@ all:
 # cleanup built files
 # note: 'del_files_or_dirs' macro is defined in the included before $(utils_mk) makefile
 clean:
-	$(quiet)$(call del_files_or_dirs,$(cb_to_clean))
+	$(quiet)$(call del_files_or_dirs,$(sort $(cb_to_clean)))
 
 # build 'all' goal to build or run tests
 # note: assume rules for the 'check' and 'tests' goals are defined elsewhere
