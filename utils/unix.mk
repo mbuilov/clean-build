@@ -127,7 +127,7 @@ echo_line_escape = $(call shell_escape,$(subst \,\\,$(subst %,%%,$1))\n)
 # note: line must not contain $(newline)s
 # note: line will be ended with LF
 # NOTE: echoed line length must not exceed maximum command line length (at least 4096 characters)
-echo_line = $(PRINTF) $(echo_line_escape)
+echo_line = $(PRINTF) '%s\n' $(shell_escape)
 
 # print lines of text to output file or to stdout (for redirecting it to output file)
 # $1 - non-empty lines list, where entries are processed by $(unescape)
@@ -137,12 +137,12 @@ echo_line = $(PRINTF) $(echo_line_escape)
 # $6 - empty if overwrite file $2, non-empty if append text to it
 # note: if path to the file $2 contains a space, it must be in quotes: '1 2/3 4'
 # NOTE: total text length must not exceed maximum command line length (at least 4096 characters)
-echo_lines = $(if $6,$3,$4)$(PRINTF) $(call tospaces,$(subst $(space),\n,$(echo_line_escape)))$(if $2,>$(if $6,>) $2)
+echo_lines = $(if $6,$3,$4)$(PRINTF) -- $(call tospaces,$(subst $(space),\n,$(echo_line_escape)))$(if $2,>$(if $6,>) $2)
 
 # print lines of text (to stdout, for redirecting it to output file)
 # note: each line will be ended with LF
 # NOTE: total text length must not exceed maximum command line length (at least 4096 characters)
-echo_text = $(PRINTF) $(subst $(newline),\n,$(echo_line_escape))
+echo_text = $(PRINTF) -- $(subst $(newline),\n,$(echo_line_escape))
 
 # write lines of text $1 to the file $2 by $3 lines at one time
 # note: if path to the file $2 contains a space, it must be in quotes: '1 2/3 4'
