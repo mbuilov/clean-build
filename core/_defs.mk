@@ -657,12 +657,14 @@ ifdef cb_check_at_tail
 $(call define_prepend,cb_def_tail,$$(cb_check_at_tail)$(newline))
 endif
 
+# called by 'define_targets' if it was not properly redefined in 'cb_def_head'
+cb_no_def_head_err = $(error $$(cb_def_head) was not evaluated at head of makefile!)
+
 # redefine 'define_targets' macro to produce an error if $(cb_def_head) was not evaluated prior expanding it
 # note: the same check is performed in the $(cb_check_at_tail), but it will be done only after expanding templates added by the
 #  previous target makefile - this may lead to errors, because templates were not prepared by the previous $(cb_head_eval)
 ifdef cb_checking
-$(eval define cb_def_tail$(newline)$(subst :=,:=$$(newline)define_targets=$$$$(error \
-  $$$$$$$$(cb_def_head) was not evaluated at head of makefile!),$(value cb_def_tail))$(newline)endef)
+$(eval define cb_def_tail$(newline)$(subst :=,:=$$(newline)define_targets=$$$$(cb_no_def_head_err),$(value cb_def_tail))$(newline)endef)
 endif
 
 # remember new values of 'cb_head_eval' (which was reset to empty) and 'define_targets' (which produces an error),
@@ -675,7 +677,7 @@ endif
 # to define rules for building targets - just expand at end of makefile: $(define_targets)
 # note: initialize 'define_targets' to produce an error - 'cb_def_head' will reset it to just evaluate $(cb_def_tail)
 # note: $(define_targets) must not expand to any text - to allow calling it via just $(define_targets) in target makefiles
-define_targets = $(error $$(cb_def_head) was not evaluated at head of makefile!)
+define_targets = $(cb_no_def_head_err)
 
 # prepare template of target type (C, Java, etc.) for building (initialize its variables):
 # init1->init2...->initN <define variables of target type templates> rulesN->...->rules2->rules1
@@ -687,7 +689,6 @@ define_targets = $(error $$(cb_def_head) was not evaluated at head of makefile!)
 cb_prepare_templ = $(if $(value cb_head_eval),,$(eval $(cb_def_head)))$(if $1,$(eval \
   cb_head_eval=$(value cb_head_eval)$$(eval $$($1)))$(eval \
   define_targets=$$(eval $$($2))$(value define_targets))$(eval $(call $1)))
-
 
 ifdef set_global
 
@@ -840,8 +841,8 @@ $(call set_global,cb_project_vars clean_build_version cb_dir clean_build_require
   cb_set_sefault_dirs tool_base mk_tools_dir cb_tool_override_dirs tool_suffix get_tools get_tool cb_target_makefile \
   add_mdeps cb_add_what_makefile_builds set_makefile_info add_order_deps=order_deps=order_deps \
   need_gen_dirs std_target_vars1 cb_check_generated_at std_target_vars add_generated add_generated_ret \
-  is_tool_mode cb_tool_mode_access_error cb_def_head cb_check_targets cb_def_tail define_targets cb_prepare_templ \
-  cb_save_vars cb_restore_vars make_continue ospath nonrelpath fixpath sed_multi_expr product_version,core)
+  is_tool_mode cb_tool_mode_access_error cb_def_head cb_check_targets cb_def_tail cb_no_def_head_err define_targets \
+  cb_prepare_templ cb_save_vars cb_restore_vars make_continue ospath nonrelpath fixpath sed_multi_expr product_version,core)
 
 # if 'toclean' value is non-empty, allow tracing calls to it (with trace namespace: toclean),
 # else - just protect 'toclean' from changes, do not make it's value non-empty - because 'toclean' is checked in ifdefs
