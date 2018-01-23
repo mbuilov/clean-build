@@ -39,9 +39,12 @@ endif
 .PHONY: config
 
 # encode a value of variable $=
-cb_config_remember_var = $(if $(findstring simple,$(flavor $=)),$= := $$(empty)$(subst \,$$(backslash),$(subst \
-  $(comment),$$(comment),$(subst $(newline),$$(newline),$(subst $$,$$$$,$(value $=)))))$$(empty),define $=$(newline)$(subst \
+cb_config_remember_var = $(if $(findstring simple,$(flavor $=)),$(call cb_config_remember_simple_var,$=,$(if \
+  $(filter-out 1 $(words $(value $=)),$(words x$(value $=)x)),$$(empty))),define $=$(newline)$(subst \
   define,$$(keyword_define),$(subst endef,$$(keyword_endef),$(subst \,$$(backslash),$(value $=))))$(newline)endef)$(newline)
+# $2 - $(empty) if value of simple variable $1 contains leading/training white-spaces
+cb_config_remember_simple_var = $1 := $2$(subst \,$$(backslash),$(subst \
+  $(comment),$$(comment),$(subst $(newline),$$(newline),$(subst $$,$$$$,$(value $1)))))$2
 
 # Effective attributes of overridden variable v:
 #  environment v=E  +  command line v=C  +  file     v=F  ->  command line exported v=C
@@ -62,10 +65,18 @@ cb_config_remember_var = $(if $(findstring simple,$(flavor $=)),$= := $$(empty)$
 # list of variables stored in 'config_text' target-specific variable, updated as necessary
 # note: ignore auto-defined variables: SHELL, GNUMAKEFLAGS, 'clean_build_version', 'cb_dir', 'cb_build', CBLD_CONFIG, $(dump_max)
 # note: filter-out %.^e - saved environment variables (see $(cb_dir)/stub/prepare.mk)
-# note: sort values to remove duplicates possibly added by $(project_exported_vars)
-cb_config_saved_vars := $(sort $(foreach =,$(filter-out SHELL GNUMAKEFLAGS clean_build_version cb_dir cb_build CBLD_CONFIG \
+# note: $(project_exported_vars) may contain variables which $(origin) is "override"
+ifneq (file,$(origin cb_config_saved_vars))
+cb_config_saved_vars := $(foreach =,$(filter-out SHELL GNUMAKEFLAGS clean_build_version cb_dir cb_build CBLD_CONFIG \
   $(dump_max) %.^e,$(.VARIABLES)),$(if $(or $(findstring command line,$(origin $=)),$(findstring override,$(origin \
-  $=))),$=)) $(cb_project_vars) $(project_exported_vars))
+  $=)),$(filter $=,$(cb_project_vars)),$(filter $=,$(project_exported_vars))),$=))
+else
+# assume 'cb_config_saved_vars' was restored from $(CBLD_CONFIG)
+# only new command-line definitions may override variables restored from $(CBLD_CONFIG)
+# note: do not reorder variables in $(cb_config_saved_vars) - add new variables at end
+cb_config_saved_vars += $(foreach =,$(filter-out SHELL GNUMAKEFLAGS clean_build_version cb_dir cb_build CBLD_CONFIG \
+  $(dump_max) %.^e,$(.VARIABLES)),$(if $(findstring command line,$(origin $=)),$(if $(filter $=,$(cb_config_saved_vars)),,$=)))
+endif
 
 # note: save current values of variables in the target-specific variable 'config_text' - variables may be overwritten later
 config: config_text := define newline$(newline)$(newline)$(newline)endef$(newline)newline:= $$(newline)$(newline)comment:= \
@@ -80,7 +91,7 @@ config: config_text := define newline$(newline)$(newline)$(newline)endef$(newlin
 project_exported_vars += $(foreach =,$(cb_config_saved_vars),$(if $(findstring command line,$(origin $=)),$=))
 
 # finally define helper macro used to remember autoconfigured variables in the generated configuration makefile
-# $1 - names of macros
+# $1 - names of the macros
 # $2 - non-empty if macros should be forcibly exported, empty - otherwise
 # $3 - non-empty if macros should be saved again (likely with a new value)
 # note: if a variable is defined in the environment, it is saved as exported
@@ -94,7 +105,7 @@ config_remember_vars1 = $(if $1,$(eval config: config_text += $$(foreach =,$$1,$
   $$=)),ifneq (command line,$$$$(origin $$=))$$(newline)export override $$(cb_config_remember_var)endif$$(newline),export \
   $$(cb_config_remember_var)),$$(if $$(findstring environment,$$(origin $$=)),export )$$(cb_config_remember_var))))$(eval \
   project_exported_vars += $(if $2,$$1,$$(foreach =,$$1,$$(if $$(findstring environment,$$(origin $$=)),$$=))))$(eval \
-  cb_config_saved_vars += $$1)$(call set_global,project_exported_vars cb_config_saved_vars))
+  cb_config_saved_vars += $$(filter-out $$(cb_config_saved_vars),$$1))$(call set_global,project_exported_vars cb_config_saved_vars))
 
 # temporary define, to be able to call 'config_remember_vars' until 'set_global' is finally defined in $(cb_dir)/core/protection.mk
 set_global:=
@@ -119,7 +130,7 @@ config: C.^ :=
 config: cf := $(abspath $(CBLD_CONFIG))
 config:| $(abspath $(dir $(CBLD_CONFIG)))
 	$(call suppress,GEN,$(cf))$(call write_text,$(config_text)project_exported_vars := $(sort \
-  $(project_exported_vars)),$(cf),$(CBLD_CONFIG_WRITE_BY_LINES))
+  $(project_exported_vars))$(newline)cb_config_saved_vars := $(strip $(cb_config_saved_vars)),$(cf),$(CBLD_CONFIG_WRITE_BY_LINES))
 
 # if $(CBLD_CONFIG) makefile is generated under $(cb_build), create that directory automatically,
 # else - $(CBLD_CONFIG) makefile is outside of $(cb_build), configuration makefile directory must be created manually
