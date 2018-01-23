@@ -21,7 +21,9 @@ else # file: project_exported_vars
 
 # if 'project_exported_vars' was restored from $(CBLD_CONFIG) makefile, simulate environment variables:
 #  do not add 'override' attribute to 'file' variables marked as exported in $(CBLD_CONFIG) makefile
-cb_project_vars := $(filter-out project_exported_vars $(project_exported_vars),$(cb_project_vars))
+# also, do not override standard variables: 'newline', 'comment', 'empty', 'backslash', 'keyword_define', 'keyword_endef'
+cb_project_vars := $(filter-out project_exported_vars $(project_exported_vars) \
+  newline comment empty backslash keyword_define keyword_endef,$(cb_project_vars))
 
 # variables in $(project_exported_vars) may legally overwrite environment variables
 # note: %.^e - saved environment variables (see $(cb_dir)/stub/prepare.mk)
@@ -39,11 +41,11 @@ endif
 .PHONY: config
 
 # encode a value of variable $=
-cb_config_remember_var = $(if $(findstring simple,$(flavor $=)),$(call cb_config_remember_simple_var,$=,$(if \
+cb_config_remember_var = $(if $(findstring simple,$(flavor $=)),$(call cb_config_rem_simple_var,$=,$(if \
   $(filter-out 1 $(words $(value $=)),$(words x$(value $=)x)),$$(empty))),define $=$(newline)$(subst \
   define,$$(keyword_define),$(subst endef,$$(keyword_endef),$(subst \,$$(backslash),$(value $=))))$(newline)endef)$(newline)
 # $2 - $(empty) if value of simple variable $1 contains leading/training white-spaces
-cb_config_remember_simple_var = $1 := $2$(subst \,$$(backslash),$(subst \
+cb_config_rem_simple_var = $1 := $2$(subst \,$$(backslash),$(subst \
   $(comment),$$(comment),$(subst $(newline),$$(newline),$(subst $$,$$$$,$(value $1)))))$2
 
 # Effective attributes of overridden variable v:
@@ -151,4 +153,4 @@ cb_target_makefile += $(call set_global,project_exported_vars cb_config_saved_va
 # protect variables from modification in target makefiles
 # note: trace namespace: config
 # note: 'cb_target_makefile' variable is used here temporary and will be redefined later
-cb_target_makefile += $(call set_global,config_remember_vars cb_config_remember_var config_remember_vars1,config)
+cb_target_makefile += $(call set_global,config_remember_vars cb_config_remember_var cb_config_rem_simple_var config_remember_vars1,config)
