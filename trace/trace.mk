@@ -206,13 +206,14 @@ $(keyword_define) $2
 $(value $1)
 $(keyword_endef)
 $3 $(keyword_define) $1
-$$(foreach =,$$(words $$(mk_trace_level.^l)),$$(warning \
-  $$(mk_trace_level.^l) $1 $$={$$(dump_args))$$(call \
+$$(foreach tlvl=,$$(words $$(mk_trace_level.^l)),$$(warning \
+  $$(mk_trace_level.^l) $1 $$(tlvl=){$$(dump_args))$$(call \
   dump_vars,$4,--> )$$(warning \
   --- $1 value---->$$(newline)$$(call format_traced_value,$$(value $2),<,>))$$(warning \
   --- $1 result--->)$$(eval mk_trace_level.^l+=$1->)$$(call \
-  infofn,$$(call $2,_dump_params_),$$=)$$(call dump_vars,$5,<-- )$$(eval \
-  mk_trace_level.^l:=$$(wordlist 1,$$=,$$(mk_trace_level.^l)))$$(warning <===== }$$= $$$$($1)))
+  infofn,$$(call $2,_dump_params_),$$(tlvl=))$$(call dump_vars,$5,<-- )$$(eval \
+  mk_trace_level.^l:=$$(wordlist 1,$$(tlvl=),$$(mk_trace_level.^l)))$$(warning \
+  <===== }$$(tlvl=) $$$$($1)))
 $(keyword_endef)
 endif
 endif
@@ -229,13 +230,14 @@ $(keyword_define) $2
 $(value $1)
 $(keyword_endef)
 $3 $(keyword_define) $1
-$$(foreach =,$$(words $$(mk_trace_level.^l)),$$(warning \
-  $$(mk_trace_level.^l) [32;1m$1 [;32m$$=[36m{[m$$(dump_args))$$(call \
+$$(foreach tlvl=,$$(words $$(mk_trace_level.^l)),$$(warning \
+  $$(mk_trace_level.^l) [32;1m$1 [;32m$$(tlvl=)[36m{[m$$(dump_args))$$(call \
   dump_vars,$4,[34;1m-->[m )$$(warning \
   [33;1m--- $1 [35mvalue---->[m$$(newline)$$(call format_traced_value,$$(value $2),[35;1m<[m,[35;1m>[m))$$(warning \
   [33;1m--- $1 [32mresult--->[m)$$(eval mk_trace_level.^l+=[36m$1[35;1m->[m)$$(call \
-  infofn,$$(call $2,_dump_params_),$$=)$$(call dump_vars,$5,[34;1m<--[m )$$(eval \
-  mk_trace_level.^l:=$$(wordlist 1,$$=,$$(mk_trace_level.^l)))$$(warning [31m<===== [36;1m}[;32m$$=[31;1m $$$$($1)[m))
+  infofn,$$(call $2,_dump_params_),$$(tlvl=))$$(call dump_vars,$5,[34;1m<--[m )$$(eval \
+  mk_trace_level.^l:=$$(wordlist 1,$$(tlvl=),$$(mk_trace_level.^l)))$$(warning \
+  [31m<===== [36;1m}[;32m$$(tlvl=)[31;1m $$$$($1)[m))
 $(keyword_endef)
 endif
 endif
@@ -249,7 +251,7 @@ $(eval define trace_calls_template$(newline)$(subst _dump_params_,$$$$$(open_bra
 # check if a macro $1 is traced
 check_if_traced = $(filter \
   ^$$$(open_brace)warning$$(space)$$(mk_trace_level.^l)% \
-  ^$$$(open_brace)foreach$$(space)=$(comma)$$(words$$(space)$$(mk_trace_level.^l))%,^$(subst \
+  ^$$$(open_brace)foreach$$(space)tlvl=$(comma)$$(words$$(space)$$(mk_trace_level.^l))%,^$(subst \
   $(space),$$(space),$(subst $(tab),$$(tab),$(value $1))))
 
 # replace macros with their traced equivalents
