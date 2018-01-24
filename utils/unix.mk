@@ -59,7 +59,7 @@ delete_dirs = $(RM) -rf $1
 # note: $(cb_dir)/utils/gnu.mk overrides 'try_delete_dirs'
 try_delete_dirs = $(RMDIR) $1 2>$(NUL) || $(TRUE)
 
-# in directory $1 (path may contain spaces), delete files $2 (long list)
+# in a directory $1 (path may contain spaces), delete files $2 (long list)
 # note: to support long list, paths in $2 _must_ not contain spaces
 # note: if path to the directory $1 contains a space, it must be in quotes: '1 2/3 4'
 # note: $6 - empty on first call, $(newline) on next calls
