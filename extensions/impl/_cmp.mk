@@ -18,7 +18,7 @@ CBLD_CMP_COLOR ?= [1;36m
 # $1 - $(addsuffix .cmp,$2)
 # $2 - list of outputs of tested executables (absolute paths)
 # $3 - absolute path to the file to compare outputs with
-# note: 'compare_files' - defined in $(utils_mk) makefile
+# note: 'compare_files' - defined in $(utils_mk) makefile (such as $(cb_dir)/utils/unix.mk)
 define gen_cmp_text_templ
 $(std_target_vars)
 $(subst $(space),$(newline),$(join $(addsuffix :,$1),$2))
