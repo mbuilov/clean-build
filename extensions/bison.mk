@@ -4,33 +4,43 @@
 # Licensed under GPL version 2 or any later version, see COPYING
 #----------------------------------------------------------------------------------
 
-# rules for compiling bison source files - define BISON_COMPILE macro
+# support for bison compiler
 
-# Note: this file should be included after  AS IS to a custom project's build system directory 'make'
+ifeq (,$(filter-out undefined environment,$(origin bison_compiler)))
 
-ifeq (,$(filter-out undefined environment,$(origin BISON_COMPILE)))
-
-# Note: $(CLEAN_BUILD_DIR)/core/defs.mk must be included prior this file
+ifndef cb_target_makefile
+$(error 'defs.mk' must be included prior this file)
+endif
 
 # bison compiler executable
-BISON := bison
+BISON ?= bison
 
 # default bison flags
 # -y emulate POSIX Yacc, output file name will be "y.tab.c"
 # -d generate header
-BISON_FLAGS := -y -d
+# -o specify output filename
+BISON_FLAGS ?= -y -d -o
 
-# call bison compiler
+# bison compiler
 # $1 - target
 # $2 - source
-# note: bison called with default flags produces two files: header and source, use MULTI_TARGET macro to call bison, example:
-#  $(call MULTI_TARGET,$(GEN_DIR)/test/y.tab.h $(GEN_DIR)/test/y.tab.c,test.y,$$(call BISON_COMPILER,$$(@:h=c),$$<))
-BISON_COMPILE = $(call SUP,BISON,$2)$(BISON) $(BISON_FLAGS) -o $(call ospath,$1 $2)
+# note: bison compiler called with default flags produces two files at the same time: header and source,
+#  to avoid calling bison multiple times (one - for a header, second - for a source), use 'multi_target' macro:
+#  $(call multi_target,$(gen_dir)/test/y.tab.h $(gen_dir)/test/y.tab.c,test.y,$$(call bison_compiler,$(gen_dir)/test/y.tab.c,$$<))
+bison_compiler = $(call suppress,BISON,$2)$(BISON) $(BISON_FLAGS) $(call ospath,$1 $2)
 
 # tool color
-BISON_COLOR := $(GEN_COLOR)
+CBLD_BISON_COLOR ?= $(CBLD_GEN_COLOR)
 
-# protect variables from modifications in target makefiles
-$(call SET_GLOBAL,BISON BISON_FLAGS BISON_COMPILE BISON_COLOR)
+# remember values of variables possibly taken from the environment
+$(call config_remember_vars,BISON BISON_FLAGS)
 
-endif # !BISON_COMPILE
+# protect macros from modifications in target makefiles,
+# do not trace calls to macros used in ifdefs, exported to the environment of called tools or modified via operator +=
+$(call set_global,BISON BISON_FLAGS CBLD_BISON_COLOR)
+
+# protect macros from modifications in target makefiles, allow tracing calls to them
+# note: trace namespace: bison
+$(call set_global,bison_compiler,bison)
+
+endif # !bison_compiler

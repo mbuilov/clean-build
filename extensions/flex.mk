@@ -4,25 +4,40 @@
 # Licensed under GPL version 2 or any later version, see COPYING
 #----------------------------------------------------------------------------------
 
-ifeq (,$(filter-out undefined environment,$(origin DEF_HEAD_CODE)))
-include $(dir $(lastword $(MAKEFILE_LIST)))../core/_defs.mk
+# support for flex compiler
+
+ifeq (,$(filter-out undefined environment,$(origin flex_compiler)))
+
+ifndef cb_target_makefile
+$(error 'defs.mk' must be included prior this file)
 endif
 
 # flex compiler executable
-FLEX := flex
+FLEX ?= flex
 
-# default flex flags
-FLEX_FLAGS:=
+# flex compiler flags
+# -o specify output filename
+FLEX_FLAGS ?= -o
 
-# call flex compiler
+# flex compiler
 # $1 - target
 # $2 - source
 # example:
-#  $(call ADD_GENERATED_RET,$(GEN_DIR)/test/test.yy.c): $(call fixpath,test.l); $(call FLEX_COMPILER,$@,$<)
-FLEX_COMPILER = $(call SUP,FLEX,$2)$(FLEX) $(FLEX_FLAGS) -o$(call ospath,$1 $2)
+#  $(call add_generated_ret,$(gen_dir)/test/test.yy.c): $(call fixpath,test.l); $(call flex_compiler,$@,$<)
+flex_compiler = $(call suppress,FLEX,$2)$(FLEX) $(FLEX_FLAGS) $(call ospath,$1 $2)
 
 # tool color
-FLEX_COLOR := $(GEN_COLOR)
+CBLD_FLEX_COLOR ?= $(CBLD_GEN_COLOR)
 
-# protect variables from modifications in target makefiles
-$(call SET_GLOBAL,FLEX FLEX_FLAGS FLEX_COMPILER FLEX_COLOR)
+# remember values of variables possibly taken from the environment
+$(call config_remember_vars,FLEX FLEX_FLAGS)
+
+# protect macros from modifications in target makefiles,
+# do not trace calls to macros used in ifdefs, exported to the environment of called tools or modified via operator +=
+$(call set_global,FLEX FLEX_FLAGS CBLD_FLEX_COLOR)
+
+# protect macros from modifications in target makefiles, allow tracing calls to them
+# note: trace namespace: flex
+$(call set_global,flex_compiler,flex)
+
+endif # !flex_compiler
