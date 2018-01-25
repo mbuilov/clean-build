@@ -7,7 +7,7 @@
 # add rules for building C/C++ sources
 include $(dir $(lastword $(MAKEFILE_LIST)))../make/c.mk
 
-# include definition of 'gen_exe_test' macro - generator of a rule used for testing built executables
+# include definition of 'exe_test_rule_ret' macro - which generates a rule used for testing built executables
 include $(CBLD_ROOT)/extensions/ctest.mk
 
 # we will build S-variant of 'hello' executable - the one which is statically linked with the C runtime
@@ -17,8 +17,8 @@ src := hello.c
 # generate rules for testing built executable and creating 'hello.out' output file
 # save path to the generated output file in "local" variable 'out' (variable name chosen arbitrary)
 # Note: the same path value may be obtained as: $(addsuffix .out,$(call all_targets,exe))
-# Note: 'gen_exe_test_ret' macro uses the value of defined above 'exe' variable
-out := $(gen_exe_test_ret)
+# Note: 'exe_test_rule_ret' macro uses the value of defined above 'exe' variable
+out := $(exe_test_rule_ret)
 
 # set makefile information for 'hello' - a phony target defined below
 #  (this information is used by 'suppress' function, which pretty-prints what a rule is doing)
