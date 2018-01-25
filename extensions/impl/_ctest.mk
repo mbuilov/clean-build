@@ -9,8 +9,8 @@
 ifeq (,$(filter check clean,$(MAKECMDGOALS)))
 
 # do something only for the 'check' or 'clean' goals
-gen_exe_test:=
-gen_exe_test_ret:=
+exe_test_rule:=
+exe_test_rule_ret:=
 
 else # check or clean
 
@@ -23,7 +23,7 @@ CBLD_TEST_COLOR ?= [36m
 # $4 - environment variables to set for the executable, in form VAR=value, spaces must be replaced with $(space)
 # $r - $(call form_trg,exe,$v) where $v - variant of the $(exe)
 # note: define, but do not export variables $4 as target-specific ones here - to generate correct .bat/.sh build script in verbose mode
-define gen_exe_test_templ
+define exe_test_rule_templ
 $(call std_target_vars,$r.out)
 $(patsubst %,$r.out: %$(newline),$4)$r.out: $r
 	$$(call suppress,TEST,$$@)$$(call run_tool,$$< $(subst $$,$$$$,$1) > $$@,$3,,$(foreach =,$4,$(firstword $(subst =, ,$=))))
@@ -40,7 +40,7 @@ endif
 
 # create simlinks to shared libraries to be able to run tested executable
 # $$2 - built shared libraries needed by the executable, in form <library_name>.<major_number>
-$(call define_prepend,gen_exe_test_templ,$$r.out:| $$(call \
+$(call define_prepend,exe_test_rule_templ,$$r.out:| $$(call \
   test_form_shlib_simlinks,$$2)$$(call test_create_shlib_simlinks,$$2)$(newline))
 
 endif # CBLD_TEST_NEED_SHLIB_SIMLINKS
@@ -50,10 +50,10 @@ endif # CBLD_TEST_NEED_SHLIB_SIMLINKS
 # $2 - built shared libraries needed by the executable, in form <library_name>.<major_number>
 # $3 - dll search paths separated by $(pathsep) - appended to $(dll_path_var) (i.e. PATH or LD_LIBRARY_PATH environment variable)
 # $4 - environment variables to set for the executable, in form VAR=value, spaces must be replaced with $(space)
-gen_exe_test = $(foreach v,$(call get_variants,exe),$(foreach r,$(call form_trg,exe,$v),$(eval $(gen_exe_test_templ))))
+exe_test_rule = $(foreach v,$(call get_variants,exe),$(foreach r,$(call form_trg,exe,$v),$(eval $(exe_test_rule_templ))))
 
-# same as 'gen_exe_test', but return a list of output files created by tested executables (one file for each variant)
-gen_exe_test_ret = $(foreach v,$(call get_variants,exe),$(foreach r,$(call form_trg,exe,$v),$(eval $(gen_exe_test_templ))$r.out))
+# same as 'exe_test_rule', but return a list of output files created by tested executables (one file for each variant)
+exe_test_rule_ret = $(foreach v,$(call get_variants,exe),$(foreach r,$(call form_trg,exe,$v),$(eval $(exe_test_rule_templ))$r.out))
 
 endif # check or clean
 
@@ -61,7 +61,7 @@ endif # check or clean
 $(call config_remember_vars,CBLD_TEST_NEED_SHLIB_SIMLINKS)
 
 # makefile parsing first phase variables
-cb_first_phase_vars += gen_exe_test gen_exe_test_ret gen_exe_test_templ
+cb_first_phase_vars += exe_test_rule exe_test_rule_ret exe_test_rule_templ
 
 # protect macros from modifications in target makefiles,
 # do not trace calls to macros used in ifdefs, exported to the environment of called tools or modified via operator +=
@@ -69,4 +69,4 @@ $(call set_global,CBLD_TEST_COLOR CBLD_TEST_NEED_SHLIB_SIMLINKS cb_first_phase_v
 
 # protect macros from modifications in target makefiles, allow tracing calls to them
 # note: trace namespace: c_test
-$(call set_global,gen_exe_test=exe gen_exe_test_ret=exe gen_exe_test_templ=r,c_test)
+$(call set_global,exe_test_rule=exe exe_test_rule_ret=exe exe_test_rule_templ=r,c_test)
