@@ -22,7 +22,7 @@
 # $13 - ${exec_prefix}
 # $14 - ${libdir}
 # $15 - ${includedir}
-define PKGCONF_LIB_TEMPLATE
+define pkgconf_lib_template
 $(if $4,# $(subst $(newline),$(newline)# ,$4)$(newline))
 prefix=$(12)
 exec_prefix=$(13)
@@ -47,7 +47,8 @@ endef
 pkgconf_path = $(patsubst %/,%,$(subst \,/,$1))
 
 # try to replace in $1 prefix $2 with $3
-# note: paths $1 and $2 are previously processed by pkgconf_path, so there are no backslashes in them
+# note: paths $1 and $2 are previously processed by 'pkgconf_path', so there are no backslashes in them
+# note: paths $1 and $2 _may_ contain spaces
 pkgconf_replace_prefix = $(patsubst \%/,%,$(subst \$2/,\$3/,\$1/))
 
 # try to replace:
@@ -55,17 +56,17 @@ pkgconf_replace_prefix = $(patsubst \%/,%,$(subst \$2/,\$3/,\$1/))
 # $(13) - $(EXEC_PREFIX) -> ${prefix}
 # $(14) - $(DEVLIBDIR)   -> ${exec_prefix}/lib/x86_64-linux-gnu
 # $(15) - $(INCLUDEDIR)  -> ${prefix}/include
-PKGCONF_LIB_GENERATE1 = $(call PKGCONF_LIB_TEMPLATE,$1,$2,$3,$4,$5,$6,$7,$8,$9,$(10),$(11),$(12),$(call \
+pkgconf_lib_generate1 = $(call pkgconf_lib_template,$1,$2,$3,$4,$5,$6,$7,$8,$9,$(10),$(11),$(12),$(call \
   pkgconf_replace_prefix,$(13),$(12),$${prefix}),$(call \
   pkgconf_replace_prefix,$(14),$(13),$${exec_prefix}),$(call \
   pkgconf_replace_prefix,$(15),$(12),$${prefix}))
 
 # generate pkg-config file contents for the library
 # $1    - library name (human-readable), e.g. my library
-# $2    - library version, e.g. $(MODVER)
+# $2    - library version, e.g. $(modver)
 # $3    - library description (arbitrary text)
 # $4    - library comment (author, description, etc.)
-# $5    - project url, e.g. $(VENDOR_URL)
+# $5    - project url, e.g. $(product_url)
 # $6    - Requires section
 # $7    - Requires.private section
 # $8    - Conflicts section
@@ -76,8 +77,16 @@ PKGCONF_LIB_GENERATE1 = $(call PKGCONF_LIB_TEMPLATE,$1,$2,$3,$4,$5,$6,$7,$8,$9,$
 # $(13) - ${exec_prefix}, e.g. $(EXEC_PREFIX)
 # $(14) - ${libdir},      e.g. $(DEVLIBDIR)
 # $(15) - ${includedir},  e.g. $(INCLUDEDIR)
-PKGCONF_LIB_GENERATE = $(call PKGCONF_LIB_GENERATE1,$1,$2,$3,$4,$5,$6,$7,$8,$9,$(10),$(11),$(call \
+pkgconf_lib_generate = $(call pkgconf_lib_generate1,$1,$2,$3,$4,$5,$6,$7,$8,$9,$(10),$(11),$(call \
   pkgconf_path,$(12)),$(call pkgconf_path,$(13)),$(call pkgconf_path,$(14)),$(call pkgconf_path,$(15)))
 
-# protect variables from modifications in target makefiles
-$(call SET_GLOBAL,PKGCONF_LIB_TEMPLATE pkgconf_path pkgconf_replace_prefix PKGCONF_LIB_GENERATE1 PKGCONF_LIB_GENERATE)
+# makefile parsing first phase variables
+cb_first_phase_vars += pkgconf_lib_template pkgconf_path pkgconf_replace_prefix pkgconf_lib_generate1 pkgconf_lib_generate
+
+# protect macros from modifications in target makefiles,
+# do not trace calls to macros used in ifdefs, exported to the environment of called tools or modified via operator +=
+$(call set_global,cb_first_phase_vars)
+
+# protect macros from modifications in target makefiles, allow tracing calls to them
+# note: trace namespace: pkgconf_gen
+$(call set_global,pkgconf_lib_template pkgconf_path pkgconf_replace_prefix pkgconf_lib_generate1 pkgconf_lib_generate,pkgconf_gen)
