@@ -4,67 +4,75 @@
 # Licensed under GPL version 2 or any later version, see COPYING
 #----------------------------------------------------------------------------------
 
-# define unix-specific INSTALL_LIB macro
+# define Unix-specific 'install_lib' macro
 
-# included by $(CLEAN_BUILD_DIR)/install/impl/_install_lib.mk
+# included by $(cb_dir)/install/impl/_install_lib.mk
 
-# install shared libs and soname simlinks: libmylib.so.1 -> libmylib.so.1.2.3
-# $1 - library name without variant suffix (mylib for libmylib_pie.a)
-# $3 - where to install shared libraries, should be $$(D_LIBDIR)
-# note: override INSTALL_LIB_SHARED template from $(CLEAN_BUILD_DIR)/install/impl/_install_lib.mk
-# note: assume $(MODVER) may be empty
-define INSTALL_LIB_SHARED
-install_lib_$1_shared uninstall_lib_$1_shared: BUILT_DLLS := $$($1_BUILT_DLLS)
-install_lib_$1_shared: $$($1_BUILT_DLLS) | $$(call NEED_INSTALL_DIR_RET,$3)
-	$$(foreach d,$$(BUILT_DLLS),$$(call \
-  DO_INSTALL_FILES,$$d,$3/$$(notdir $$d)$(MODVER:%=.%),$(SHARED_LIB_FILE_ACCESS_MODE))$$(newline))$(foreach \
-  n,$(filter-out $(firstword $(subst ., ,$(MODVER))),$(MODVER)),$$(foreach d,$$(notdir $$(BUILT_DLLS)),$$(call \
-  DO_INSTALL_SIMLINK,$$d.$(MODVER),$3/$$d.$n)$$(newline)))
+# install shared libs and SONAME simlinks: libmylib.so.1 -> libmylib.so.1.2.3
+# $1 - library name without variant suffix (e.g. mylib for libmylib_pie.a)
+# $3 - where to install shared libraries, should be $$(d_libdir)
+# note: override 'install_lib_shared' template from $(cb_dir)/install/impl/_install_lib.mk
+# note: assume $(modver) may be empty, then do not install simlinks
+# note: also do not install simlinks if $(modver) contains only one digit, e.g.: libmylib.so.1
+define install_lib_shared
+install_lib_$1_shared uninstall_lib_$1_shared: built_dlls := $$($1_built_dlls)
+install_lib_$1_shared: $$($1_built_dlls) | $$(call need_install_dir_ret,$3)
+	$$(foreach d,$$(built_dlls),$$(call \
+  do_install_files,$$d,$3/$$(notdir $$d)$(modver:%=.%),$(CBLD_SHARED_LIB_ACCESS_MODE))$$(newline))$(foreach \
+  n,$(filter-out $(modver),$(firstword $(subst ., ,$(modver)))),$$(foreach d,$$(notdir $$(built_dlls)),$$(call \
+  do_install_simlink,$$d.$(modver),$3/$$d.$n)$$(newline)))
 uninstall_lib_$1_shared:
-	$$(call DO_UNINSTALL_FILES_IN,$3,$$(addsuffix $(MODVER:%=.%),$$(notdir $$(BUILT_DLLS)))$(foreach \
-  n,$(filter-out $(firstword $(subst ., ,$(MODVER))),$(MODVER)), $$(addsuffix .$n,$$(notdir $$(BUILT_DLLS)))))
+	$$(call do_uninstall_files_in,$3,$$(addsuffix $(modver:%=.%),$$(notdir $$(built_dlls)))$(foreach \
+  n,$(filter-out $(modver),$(firstword $(subst ., ,$(modver)))), $$(addsuffix .$n,$$(notdir $$(built_dlls)))))
 install_lib_$1:   install_lib_$1_shared
 uninstall_lib_$1: uninstall_lib_$1_shared
-$(call MAKEFILE_INFO_TEMPL,install_lib_$1_shared uninstall_lib_$1_shared)
+$(call cb_makefile_info_templ,install_lib_$1_shared uninstall_lib_$1_shared)
 endef
 
-# install compile-time development simlinks to shared libs
-# $1 - library name without variant suffix (mylib for libmylib_pie.a)
-# $2 - where to install compile-time simlinks to shared libraries, should be $$(D_DEVLIBDIR)
-# $3 - where to install shared libraries, should be $$(D_LIBDIR)
-# note: $(MODVER) must be non-empty
-define INSTALL_LIB_SIMLINKS
-install_lib_$1_simlinks uninstall_lib_$1_simlinks: BUILT_DLLS := $$(notdir $$($1_BUILT_DLLS))
-install_lib_$1_simlinks uninstall_lib_$1_simlinks: REL_PREFIX := $$(call \
+# install compile-time development simlinks to the installed shared libs: dev/libmylib.so -> ../lib/libmylib.so.1.2.3
+# $1 - library name without variant suffix (e.g. mylib for libmylib_pie.a)
+# $2 - where to install compile-time simlinks to shared libraries, should be $$(d_devlibdir)
+# $3 - shared libraries are installed, should be $$(d_libdir)
+# note: $(modver) must be non-empty
+define install_lib_simlinks
+install_lib_$1_simlinks uninstall_lib_$1_simlinks: built_dlls := $$(notdir $$($1_built_dlls))
+install_lib_$1_simlinks uninstall_lib_$1_simlinks: rel_prefix := $$(call \
   tospaces,$$(call relpath,$$(call unspaces,$2),$$(call unspaces,$3)))
-install_lib_$1_simlinks: install_lib_$1_shared | $$(call NEED_INSTALL_DIR_RET,$2)
-	$$(foreach d,$$(BUILT_DLLS),$$(call \
-  DO_INSTALL_SIMLINK,$$(REL_PREFIX)$$d.$(MODVER),$2/$$d)$$(newline))
+install_lib_$1_simlinks: install_lib_$1_shared | $$(call need_install_dir_ret,$2)
+	$$(foreach d,$$(built_dlls),$$(call \
+  do_install_simlink,$$(rel_prefix)$$d.$(modver),$2/$$d)$$(newline))
 uninstall_lib_$1_simlinks:
-	$$(call DO_UNINSTALL_FILES_IN,$2,$$(BUILT_DLLS))
+	$$(call do_uninstall_files_in,$2,$$(built_dlls))
 install_lib_$1:   install_lib_$1_simlinks
 uninstall_lib_$1: uninstall_lib_$1_simlinks
-$(call MAKEFILE_INFO_TEMPL,install_lib_$1_simlinks uninstall_lib_$1_simlinks)
+$(call cb_makefile_info_templ,install_lib_$1_simlinks uninstall_lib_$1_simlinks)
 endef
 
-# $1 - library name (mylib for libmylib.a)
-# $2 - where to install static libraries, should be $$(D_DEVLIBDIR)
-# $3 - where to install shared libraries, should be $$(D_LIBDIR)
-# $4 - where to install pkg-configs, should be $(D_PKG_LIBDIR) or $(D_PKG_DATADIR)
-# note: $(DEFINE_INSTALL_LIB_VARS) was evaluated before expanding this macro, so $1_... macros are defined
-define INSTALL_LIB_UNIX
-$(INSTALL_LIB_BASE)
-$(if $($1_LIBRARY_NO_INSTALL_SHARED),,$(if $($1_LIBRARY_NO_DEVEL),,$(if $(MODVER),$(if $($1_BUILT_DLLS),$(INSTALL_LIB_SIMLINKS)))))
-CLEAN_BUILD_GOALS += install_lib_$1_simlinks uninstall_lib_$1_simlinks
+# implementation of Unix-specific 'install_lib' macro
+# $1 - library name without variant suffix (e.g. mylib for libmylib_pie.a)
+# $2 - where to install static libraries, should be $$(d_devlibdir)
+# $3 - where to install shared libraries, should be $$(d_libdir)
+# $4 - where to install pkg-configs, should be $$(d_pkg_libdir), $$(d_pkg_datadir) or similar
+# note: $(define_install_lib_vars) was evaluated before expanding this macro (as required by 'install_lib_base'), so next
+#  variables are defined: '$1_library_no_install_shared', '$1_library_no_devel', '$1_built_dlls'
+define install_lib_unix
+$(install_lib_base)
+$(if $($1_library_no_install_shared),,$(if $($1_library_no_devel),,$(if $(modver),$(if $($1_built_dlls),$(install_lib_simlinks)))))
+build_system_goals += install_lib_$1_simlinks uninstall_lib_$1_simlinks
 endef
 
-# define rules for installing/uninstalling library and its headers
-# $1 - library name (mylib for libmylib.a)
-# note: assume LIB and DLL variables are defined before expanding this template
-# note: install LIBs to $(D_DEVLIBDIR), DLLs - to $(D_LIBDIR)
-INSTALL_LIB = $(eval $(DEFINE_INSTALL_LIB_VARS))$(eval $(call \
-  INSTALL_LIB_UNIX,$1,$$(D_DEVLIBDIR),$$(D_LIBDIR),$$(call \
-  DESTDIR_NORMALIZE,$(LIBRARY_PKGCONF_DIR))))
+# Unix specific: rules for installing/uninstalling the library and its headers
+# $1 - library name without variant suffix (e.g. mylib for libmylib_pie.a)
+# note: assume variables 'lib' and/or 'dll' are defined before expanding this template
+# note: install libs to $(d_devlibdir), dlls - to $(d_libdir)
+# note: 'lib_pkgconf_dir' - defined in $(cb_dir)/install/install_lib.mk
+install_lib = $(eval $(define_install_lib_vars))$(eval $(call \
+  install_lib_unix,$1,$$(d_devlibdir),$$(d_libdir),$$(call \
+  destdir_normalize,$$(lib_pkgconf_dir))))
 
-# protect variables from modifications in target makefiles
-$(call SET_GLOBAL,INSTALL_LIB_SIMLINKS INSTALL_LIB_UNIX INSTALL_LIB)
+# makefile parsing first phase variables
+cb_first_phase_vars += install_lib_simlinks install_lib_unix
+
+# protect macros from modifications in target makefiles, allow tracing calls to them
+# note: trace namespace: install_lib
+$(call set_global,install_lib_simlinks install_lib_unix,install_lib)

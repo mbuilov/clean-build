@@ -6,116 +6,115 @@
 
 # installation utility macros
 
-# included by $(CLEAN_BUILD_DIR)/install/impl/_install_lib.mk
+# included by $(cb_dir)/install/impl/_install_lib.mk
 
 # source definitions of standard installation directories, such as DESTDIR, PREFIX, BINDIR, LIBDIR, INCLUDEDIR, etc.
 include $(dir $(lastword $(MAKEFILE_LIST)))inst_dirs.mk
 
-# create directory (with intermediate parent directories) while installing things
-# $1 - path to directory to create, path may contain spaces, such as: "C:/Program Files/AcmeCorp"
-# note: pass non-empty 3-d argument to SUP function to not colorize tool arguments
-# note: pass non-empty 4-th argument to SUP function to not update percents of executed makefiles
-DO_INSTALL_DIRq = $(call SUP,MKDIR,$(ospath),1,1)$(INSTALL_DIR)
-DO_INSTALL_DIR  = $(call DO_INSTALL_DIRq,$(ifaddq))
+# create a directory (with intermediate parent directories) while installing things
+# $1 - path to the directory to create, path may contain spaces, such as: "C:/Program Files/AcmeCorp"
+# note: pass non-empty 3-d argument to 'suppress' function to not colorize tool arguments
+# note: 'install_dir' - defined in $(utils_mk) makefile (such as $(cb_dir)/utils/unix.mk)
+do_install_dirq = $(call suppress,MKDIR,$(ospath),1)$(install_dir)
+do_install_dir  = $(call do_install_dirq,$(ifaddq))
 
-# install file(s) (long list) to directory or copy file to file
+# install file(s) (long list) to a directory or copy file to a file
 # $1 - file(s) to install (to support long list, paths _must_ be without spaces)
 # $2 - destination directory or file, path may contain spaces
 # $3 - optional access mode, such as 644 (rw--r--r-) or 755 (rwxr-xr-x)
-# note: pass non-empty 3-d argument to SUP function to not colorize tool arguments
-# note: pass non-empty 4-th argument to SUP function to not update percents of executed makefiles
-DO_INSTALL_FILESq = $(call SUP,CP,$(ospath) -> $(call ospath,$2),1,1)$(INSTALL_FILES)
-DO_INSTALL_FILES  = $(call DO_INSTALL_FILESq,$1,$(call ifaddq,$2))
+# note: pass non-empty 3-d argument to 'suppress' function to not colorize tool arguments
+# note: 'install_files' - defined in $(utils_mk) makefile (such as $(cb_dir)/utils/unix.mk)
+do_install_filesq = $(call suppress,CP,$(ospath) -> $(call ospath,$2),1)$(install_files)
+do_install_files  = $(call do_install_filesq,$1,$(call ifaddq,$2))
 
 # create symbolic link $2 -> $1 while installing things
 # $1 - target, such as '../package 2/trg', path may contain spaces
 # $2 - simlink, such as '/opt/package 1/link', path may contain spaces
 # NOTE: for UNIX only
-# note: pass non-empty 3-d argument to SUP function to not colorize tool arguments
-# note: pass non-empty 4-th argument to SUP function to not update percents of executed makefiles
-DO_INSTALL_SIMLINKqq = $(call SUP,LN,$2 -> $1,1,1)$(CREATE_SIMLINK)
-DO_INSTALL_SIMLINK   = $(call DO_INSTALL_SIMLINKqq,$(ifaddq),$(call ifaddq,$2))
+# note: pass non-empty 3-d argument to 'suppress' function to not colorize tool arguments
+# note: 'create_simlink' - defined in $(utils_mk) makefile (such as $(cb_dir)/utils/unix.mk)
+do_install_simlinkqq = $(call suppress,LN,$2 -> $1,1)$(create_simlink)
+do_install_simlink   = $(call do_install_simlinkqq,$(ifaddq),$(call ifaddq,$2))
 
 # delete file or simlink while uninstalling things
 # $1 - file/simlink to delete, path may contain spaces, such as: "C:/Program Files/AcmeCorp/file 1.txt"
-# note: pass non-empty 3-d argument to SUP function to not colorize tool arguments
-# note: pass non-empty 4-th argument to SUP function to not update percents of executed makefiles
-DO_UNINSTALL_FILEq = $(call SUP,RM,$(ospath),1,1)$(DELETE_FILES)
-DO_UNINSTALL_FILE  = $(call DO_UNINSTALL_FILEq,$(ifaddq))
+# note: pass non-empty 3-d argument to 'suppress' function to not colorize tool arguments
+# note: 'delete_files' - defined in $(utils_mk) makefile (such as $(cb_dir)/utils/unix.mk)
+do_uninstall_fileq = $(call suppress,RM,$(ospath),1)$(delete_files)
+do_uninstall_file  = $(call do_uninstall_fileq,$(ifaddq))
 
-# delete files in directory while uninstalling things
-# $1 - path to directory where to delete files, path may contain spaces, such as: "C:/Program Files/AcmeCorp"
-# $2 - $1-relative paths to files to delete (long list), to support long list, paths _must_ be without spaces
-# note: pass non-empty 3-d argument to SUP function to not colorize tool arguments
-# note: pass non-empty 4-th argument to SUP function to not update percents of executed makefiles
-DO_UNINSTALL_FILES_INq = $(call SUP,RM,$(ospath) -> $(call ospath,$2),1,1)$(DELETE_FILES_IN)
-DO_UNINSTALL_FILES_IN  = $(call DO_UNINSTALL_FILES_INq,$(ifaddq),$2)
+# delete files in a directory while uninstalling things
+# $1 - path to the directory where to delete files, path may contain spaces, such as: "C:/Program Files/AcmeCorp"
+# $2 - $1-relative paths to the files to delete (long list), to support long list, paths _must_ be without spaces
+# note: pass non-empty 3-d argument to 'suppress' function to not colorize tool arguments
+# note: 'delete_files_in' - defined in $(utils_mk) makefile (such as $(cb_dir)/utils/unix.mk)
+do_uninstall_files_inq = $(call suppress,RM,$(ospath) -> $(call ospath,$2),1)$(delete_files_in)
+do_uninstall_files_in  = $(call do_uninstall_files_inq,$(ifaddq),$2)
 
-# recursively delete directory (with files in it) while uninstalling things
+# recursively delete a directory (with files in it) while uninstalling things
 # $1 - directory to delete, path may contain spaces, such as: "C:/Program Files/AcmeCorp"
-# note: pass non-empty 3-d argument to SUP function to not colorize tool arguments
-# note: pass non-empty 4-th argument to SUP function to not update percents of executed makefiles
-DO_UNINSTALL_DIRq = $(call SUP,RMDIR,$(ospath),1,1)$(DELETE_DIRS)
-DO_UNINSTALL_DIR  = $(call DO_UNINSTALL_DIRq,$(ifaddq))
+# note: pass non-empty 3-d argument to 'suppress' function to not colorize tool arguments
+# note: 'delete_dirs' - defined in $(utils_mk) makefile (such as $(cb_dir)/utils/unix.mk)
+do_uninstall_dirq = $(call suppress,RMDIR,$(ospath),1)$(delete_dirs)
+do_uninstall_dir  = $(call do_uninstall_dirq,$(ifaddq))
 
-# try to non-recursively delete directory if it is empty while uninstalling things
+# try to non-recursively delete a directory if it is empty while uninstalling things
 # $1 - directory to delete, path may contain spaces, such as: "C:/Program Files/AcmeCorp"
-# note: pass non-empty 3-d argument to SUP function to not colorize tool arguments
-# note: pass non-empty 4-th argument to SUP function to not update percents of executed makefiles
-DO_TRY_UNINSTALL_DIRq = $(call SUP,RMDIR,$(ospath),1,1)$(TRY_DELETE_DIRS)
-DO_TRY_UNINSTALL_DIR  = $(call DO_TRY_UNINSTALL_DIRq,$(ifaddq))
+# note: pass non-empty 3-d argument to 'suppress' function to not colorize tool arguments
+# note: 'try_delete_dirs' - defined in $(utils_mk) makefile (such as $(cb_dir)/utils/unix.mk)
+do_try_uninstall_dirq = $(call suppress,RMDIR,$(ospath),1)$(try_delete_dirs)
+do_try_uninstall_dir  = $(call do_try_uninstall_dirq,$(ifaddq))
 
 # global list of directories to install
-CB_NEEDED_INSTALL_DIRS:=
+cb_needed_install_dirs:=
 
-# PHONY target: install_dirs - depends on installed directories,
-# may be used to adjust installed directories after they are created - set access rights, etc.,
+# PHONY target: 'install_dirs' - depends on installed directories,
+#   may be used to adjust installed directories after they are created - set access rights, etc.,
 # for example:
-#  install: my_perms_on_dirs
-#  .PHONY: my_perms_on_dirs
-#  my_perms_on_dirs: install_dirs
-#      chmod o-rw $(SOME_DIRS)
+#  install: set_my_perms_on_dirs
+#  .PHONY: set_my_perms_on_dirs
+#  set_my_perms_on_dirs: install_dirs
+#      chmod o-rw $(some_dirs)
 install_dirs:
-CLEAN_BUILD_GOALS += install_dirs
 
-# define rule for creating installation directories,
-#  add those directories to global list CB_NEEDED_INSTALL_DIRS
+# register more goals supported by the build system
+build_system_goals += install_dirs
+
+# define the rule for creating installation directories,
+#  add those directories to global list 'cb_needed_install_dirs'
 # $1 - result of $(call split_dirs,$1) on directories processed by $(call unspaces,...)
 # $2 - list of directories to create: $(subst $(space),\ ,$(tospaces))
-define ADD_INSTALL_DIRS_TEMPL
+define add_install_dirs_templ
 $(subst :|,:| ,$(subst $(space),\ ,$(call tospaces,$(subst $(space),,$(mk_dir_deps)))))
 $2:
-	$$(call INSTALL_MKDIR,$$(subst \ , ,$$@))
+	$$(call do_install_dir,$$(subst \ , ,$$@))
 install_dirs: $2
-CB_NEEDED_INSTALL_DIRS += $1
+cb_needed_install_dirs += $1
 endef
 
-# remember new value of CB_NEEDED_INSTALL_DIRS
-# note: do not trace calls to CB_NEEDED_INSTALL_DIRS because its value is incremented
-ifdef CB_CHECKING
-$(call define_append,ADD_INSTALL_DIRS_TEMPL1,$(newline)$$(call SET_GLOBAL1,CB_NEEDED_INSTALL_DIRS,0))
+# remember new value of 'cb_needed_install_dirs'
+# note: do not trace calls to 'cb_needed_install_dirs' because its value is incremented
+ifdef cb_checking
+$(call define_append,add_install_dirs_templ,$(newline)$$(call set_global1,cb_needed_install_dirs))
 endif
 
-# add rule for creating directory while installing things
-# $1 - directory to install, absolute unix path, may contain spaces: C:/Program Files/AcmeCorp
-# note: assume directory path does not contain % symbols
-NEED_INSTALL_DIR1 = $(if $1,$(eval $(call ADD_INSTALL_DIRS_TEMPL,$1,$(subst $(space),\ ,$(tospaces)))))
-NEED_INSTALL_DIR  = $(call NEED_INSTALL_DIR1,$(filter-out $(CB_NEEDED_INSTALL_DIRS),$(call split_dirs,$(unspaces))))
+# register a rule for creating a directory while installing things
+# $1 - directory to install, absolute (unix) path, may contain spaces: C:/Program Files/AcmeCorp
+need_install_dir1 = $(if $1,$(eval $(call add_install_dirs_templ,$1,$(subst $(space),\ ,$(tospaces)))))
+need_install_dir = $(call need_install_dir1,$(filter-out $(cb_needed_install_dirs),$(subst %,$$(percent),$(call split_dirs,$(unspaces)))))
 
-# same as NEED_INSTALL_DIR, but return needed directory with spaces prefixed with slash: C:/Program\ Files/AcmeCorp
-NEED_INSTALL_DIR_RET = $(NEED_INSTALL_DIR)$(subst $(space),\ ,$1)
+# same as 'need_install_dir', but return needed directory with spaces prefixed by slash: C:/Program\ Files/AcmeCorp
+need_install_dir_ret = $(need_install_dir)$(subst $(space),\ ,$1)
 
 # makefile parsing first phase variables
-CB_FIRST_PHASE_VARS += CB_NEEDED_INSTALL_DIRS
+cb_first_phase_vars += cb_needed_install_dirs add_install_dirs_templ need_install_dir1 need_install_dir need_install_dir_ret
 
-# protect variables from modifications in target makefiles
-# note: do not trace calls to CB_FIRST_PHASE_VARS and CB_NEEDED_INSTALL_DIRS because theirs values are incremented
-$(call SET_GLOBAL1,CB_FIRST_PHASE_VARS CB_NEEDED_INSTALL_DIRS,0)
+# protect macros from modifications in target makefiles,
+# do not trace calls to macros used in ifdefs, exported to the environment of called tools or modified via operator +=
+$(call set_global,cb_needed_install_dirs build_system_goals cb_first_phase_vars)
 
-# protect variables from modifications in target makefiles
-$(call SET_GLOBAL,DO_INSTALL_DIRq DO_INSTALL_DIR DO_INSTALL_FILESq DO_INSTALL_FILES DO_INSTALL_SIMLINKqq DO_INSTALL_SIMLINK \
-  DO_UNINSTALL_FILEq DO_UNINSTALL_FILE DO_UNINSTALL_FILES_INq DO_UNINSTALL_FILES_IN DO_UNINSTALL_DIRq DO_UNINSTALL_DIR \
-  DO_TRY_UNINSTALL_DIRq DO_TRY_UNINSTALL_DIR ADD_INSTALL_DIRS_TEMPL NEED_INSTALL_DIR NEED_INSTALL_DIR_RET)
-
-# do not trace calls to macros modified via operator +=
-$(call SET_GLOBAL,CLEAN_BUILD_GOALS,0)
+# protect macros from modifications in target makefiles, allow tracing calls to them
+# note: trace namespace: inst_utils
+$(call set_global,do_install_dirq do_install_dir do_install_filesq do_install_files do_install_simlinkqq do_install_simlink \
+  do_uninstall_fileq do_uninstall_file do_uninstall_files_inq do_uninstall_files_in do_uninstall_dirq do_uninstall_dir \
+  do_try_uninstall_dirq do_try_uninstall_dir add_install_dirs_templ need_install_dir1 need_install_dir need_install_dir_ret,inst_utils)
