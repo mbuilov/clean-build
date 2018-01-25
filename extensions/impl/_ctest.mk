@@ -6,6 +6,10 @@
 
 # rule templates for testing built executables - for the 'check' goal
 
+ifndef cb_target_makefile
+$(error 'defs.mk' must be included prior this file)
+endif
+
 ifeq (,$(filter check clean,$(MAKECMDGOALS)))
 
 # do something only for the 'check' or 'clean' goals
