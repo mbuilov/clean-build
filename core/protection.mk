@@ -246,7 +246,7 @@ endef
 define cb_check_at_tail
 $(if $1,$(if $(cb_need_tail_code),$(error \
   $$(define_targets) was not expanded at end of $(cb_need_tail_code)),$(call set_global,cb_need_tail_code)),$(if \
-  $(cb_need_tail_code),,$(error $$(cb_def_head) was not evaluated at head of makefile!)))$(cb_check_env_vars)$(foreach \
+  $(cb_need_tail_code),,$(error $$(cb_def_head) was not evaluated at head of target makefile!)))$(cb_check_env_vars)$(foreach \
   =,$(cb_protected_vars),$(eval $(call cb_check_protected_var,$(cb_encode_var_name))))
 cb_need_tail_code:=
 endef
