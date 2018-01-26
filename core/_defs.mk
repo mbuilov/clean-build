@@ -603,7 +603,7 @@ $(eval define cb_def_head$(newline)$(subst \
   else,else$(newline)$$$$(if $$$$(filter $$$$(cb_target_makefile),$$$$(cb_target_makefiles)),$$$$(error \
   makefile $$$$(cb_target_makefile) was already processed!)),$(value cb_def_head))$(newline)endef)
 
-# remember new value of 'cb_make_cont' (without tracing calls to it)
+# remember new value of 'cb_make_cont' (without tracing calls to it - it's modified via +=)
 # note: assume result of $(call set_global1,cb_make_cont) will give an empty line at end of expansion
 $(eval define cb_def_head$(newline)$(subst \
   endif$(newline),endif$(newline)$$(call set_global1,cb_make_cont),$(value cb_def_head))$(newline)endef)
