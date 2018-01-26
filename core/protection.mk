@@ -26,15 +26,15 @@ ifneq (,$(cb_checking)$(cb_tracing))
 # note: trace namespace: project
 # note: filter-out %.^e - saved environment variables (see $(cb_dir)/stub/prepare.mk)
 # note: filter-out $(project_exported_vars) - exported variables (e.g. command-line ones) should not be traced
-# note: 'cb_target_makefile' variable is used here temporary and will be redefined later
-$(eval cb_target_makefile += $$(call set_global,$(foreach =,$(filter-out $(dump_max) %.^e $(project_exported_vars),$(.VARIABLES)),$(if \
+# note: 'cb_protected_vars' variable is used here temporary and will be redefined later
+$(eval cb_protected_vars += $$(call set_global,$(foreach =,$(filter-out $(dump_max) %.^e $(project_exported_vars),$(.VARIABLES)),$(if \
   $(findstring override,$(origin $=)),$=)),project))
 endif
 
 ifdef cb_checking
 # protect from changes $(project_exported_vars) (at least command-line variables), don't trace calls to them to avoid redefining the values
-# note: 'cb_target_makefile' variable is used here temporary and will be redefined later
-cb_target_makefile += $(call set_global,$(project_exported_vars))
+# note: 'cb_protected_vars' variable is used here temporary and will be redefined later
+cb_protected_vars += $(call set_global,$(project_exported_vars))
 endif
 
 ifdef cb_tracing
@@ -143,7 +143,8 @@ cb_first_phase_vars:=
 else # cb_checking
 
 # list of clean-build protected variables
-cb_protected_vars:=
+# note: cannot reset 'cb_protected_vars' here, will reset it below
+#cb_protected_vars:=
 
 # reset
 cb_need_tail_code:=
@@ -252,13 +253,15 @@ endef
 
 # protect variables from modifications in target makefiles
 # note: do not trace calls to these macros
-# note: 'cb_target_makefile' variable is used here temporary and will be redefined later
-cb_target_makefile += $(call set_global,cb_checking cb_tracing CBLD_NON_TRACEABLE_VARS CBLD_TRACE_FILTER CBLD_TRACE_FILTER_OUT \
+# note: 'cb_protected_vars' variable was temporary used to store calls to 'set_global' from $(cb_dir)/core/functions.mk and
+#  $(cb_dir)/core/confsup.mk, need to reset 'cb_protected_vars' just before calling first 'set_global'
+$(eval cb_protected_vars:=$(newline)$(value cb_protected_vars)$$(call set_global,cb_checking cb_tracing \
+  CBLD_NON_TRACEABLE_VARS CBLD_TRACE_FILTER CBLD_TRACE_FILTER_OUT \
   cb_check_cannot_trace cb_check_tracing_env set_global get_global env_remember cb_env_var_ov cb_check_env_var cb_check_env_vars \
   set_global1 cb_reset_first_phase cb_reset_saved_vars \
   cb_check_at_head cb_check_at_tail cb_protected_vars cb_encode_var_value cb_encode_var_name cb_protect_vars2 \
   set_global5 set_global4 set_global3 set_global2 \
-  cb_var_access_err cb_reset_local_var cb_reset_local_vars cb_protected_var_ov cb_check_protected_var)
+  cb_var_access_err cb_reset_local_var cb_reset_local_vars cb_protected_var_ov cb_check_protected_var))
 
 # these macros must not be used in rule execution second phase
 # note: 'cb_var_access_err' will be reset by 'cb_reset_first_phase' inplace

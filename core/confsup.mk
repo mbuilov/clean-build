@@ -147,10 +147,10 @@ endif # config
 
 # protect variables from modification in target makefiles
 # note: do not trace calls to these macros
-# note: 'cb_target_makefile' variable is used here temporary and will be redefined later
-cb_target_makefile += $(call set_global,project_exported_vars cb_config_saved_vars PATH CBLD_MAKEFILE_CONF_WRITE_BY_LINES)
+# note: 'cb_protected_vars' variable is used here temporary and will be redefined later
+cb_protected_vars += $(call set_global,project_exported_vars cb_config_saved_vars PATH CBLD_MAKEFILE_CONF_WRITE_BY_LINES)
 
 # protect variables from modification in target makefiles
 # note: trace namespace: config
-# note: 'cb_target_makefile' variable is used here temporary and will be redefined later
-cb_target_makefile += $(call set_global,config_remember_vars cb_config_remember_var cb_config_rem_simple_var config_remember_vars1,config)
+# note: 'cb_protected_vars' variable is used here temporary and will be redefined later
+cb_protected_vars += $(call set_global,config_remember_vars cb_config_remember_var cb_config_rem_simple_var config_remember_vars1,config)

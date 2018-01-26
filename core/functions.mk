@@ -305,15 +305,15 @@ keyed_redefine = $(eval $(if $(findstring simple,$(flavor $1)),$3^o.$1 := $$($1)
 
 # protect variables of $(cb_dir)/trace/trace.mk from modification in target makefiles
 # note: do not trace calls to these macros
-# note: 'cb_target_makefile' variable is used here temporary and will be redefined later
-cb_target_makefile = $(call set_global,MAKE_TRACE_IN_COLOR make_trace_in_color \
+# note: 'cb_protected_vars' variable is used here temporary and will be redefined later
+cb_protected_vars = $(call set_global,MAKE_TRACE_IN_COLOR make_trace_in_color \
   empty space tab comment backslash percent comma newline open_brace close_brace keyword_override keyword_define keyword_endef \
   format_traced_value infofn dump_vars dump_max dump_args tracefn encode_traced_var_name trace_calls_template check_if_traced trace_calls)
 
 # protect variables from modification in target makefiles
 # note: trace namespace: functions
-# note: 'cb_target_makefile' variable is used here temporary and will be redefined later
-cb_target_makefile += $(call set_global, \
+# note: 'cb_protected_vars' variable is used here temporary and will be redefined later
+cb_protected_vars += $(call set_global, \
   unspaces tospaces ifaddq qpath tolower toupper repl09 repl09AZ padto1 padto is_less1 is_less repl090 \
   is_less_float6 is_less_float5 is_less_float4 is_less_float3 is_less_float2 is_less_float1 is_less_float \
   strip_leading0 sort_numbers2 sort_numbers1 sort_numbers reverse \

@@ -113,10 +113,6 @@ $(foreach =,$(cb_project_vars),$(eval override $(if $(findstring simple,$(flavor
 # protect from changes project variables - which have the 'override' $(origin) and exported variables in the $(project_exported_vars)
 include $(cb_dir)/core/protection.mk
 
-# protect from modification macros defined in the $(cb_dir)/core/functions.mk, $(cb_dir)/core/confsup.mk and $(cb_dir)/core/protection.mk
-# note: 'cb_target_makefile' variable is used here temporary, it will be properly defined below
-$(cb_target_makefile)
-
 # list of project-supported target types
 # note: normally these defaults are overridden in project configuration makefile
 project_supported_targets := DEBUG RELEASE
