@@ -65,18 +65,19 @@ cb_config_rem_simple_var = $1 := $2$(subst \,$$(backslash),$(subst \
 # note: 'project_exported_vars' - will be saved at the end of generated $(CBLD_CONFIG) makefile
 
 # list of variables stored in 'config_text' target-specific variable, updated as necessary
-# note: ignore auto-defined variables: SHELL, GNUMAKEFLAGS, 'clean_build_version', 'cb_dir', 'cb_build', CBLD_CONFIG, $(dump_max)
+# note: ignore auto-defined variables and variables that should not be saved in the generated configuration makefile:
+#  SHELL, GNUMAKEFLAGS, 'clean_build_version', 'cb_dir', 'cb_build', 'cb_first_makefile' CBLD_CONFIG, $(dump_max)
 # note: filter-out %.^e - saved environment variables (see $(cb_dir)/stub/prepare.mk)
 # note: $(project_exported_vars) may contain variables which $(origin) is "override"
 ifneq (file,$(origin cb_config_saved_vars))
-cb_config_saved_vars := $(foreach =,$(filter-out SHELL GNUMAKEFLAGS clean_build_version cb_dir cb_build CBLD_CONFIG \
+cb_config_saved_vars := $(foreach =,$(filter-out SHELL GNUMAKEFLAGS clean_build_version cb_dir cb_build cb_first_makefile CBLD_CONFIG \
   $(dump_max) %.^e,$(.VARIABLES)),$(if $(or $(findstring command line,$(origin $=)),$(findstring override,$(origin \
   $=)),$(filter $=,$(cb_project_vars)),$(filter $=,$(project_exported_vars))),$=))
 else
 # assume 'cb_config_saved_vars' was restored from $(CBLD_CONFIG)
 # only new command-line definitions may override variables restored from $(CBLD_CONFIG)
 # note: do not reorder variables in $(cb_config_saved_vars) - add new variables at end
-cb_config_saved_vars += $(foreach =,$(filter-out SHELL GNUMAKEFLAGS clean_build_version cb_dir cb_build CBLD_CONFIG \
+cb_config_saved_vars += $(foreach =,$(filter-out SHELL GNUMAKEFLAGS clean_build_version cb_dir cb_build cb_first_makefile CBLD_CONFIG \
   $(dump_max) %.^e,$(.VARIABLES)),$(if $(findstring command line,$(origin $=)),$(if $(filter $=,$(cb_config_saved_vars)),,$=)))
 endif
 
