@@ -4,18 +4,21 @@
 # Licensed under GPL version 2 or any later version, see COPYING
 #----------------------------------------------------------------------------------
 
-# note: project configuration makefile should be already processed before this file
+ifndef cb_target_makefile
+$(error 'defs.mk' must be included prior this file)
+endif
 
-TOOL_MODE := 1
+tool_mode := 1
 
-ifeq (,$(filter-out undefined environment,$(origin C_PREPARE_APP_VARS)))
+# as in $(cb_dir)/stub/c.mk
+ifeq (,$(filter-out undefined environment,$(origin c_prepare_app_vars)))
 include $(dir $(lastword $(MAKEFILE_LIST)))../../types/_c.mk
 endif
 
-# as in $(CLEAN_BUILD_DIR)/stub/c.mk
-$(call CB_PREPARE_TARGET_TYPE,C_PREPARE_APP_VARS,C_DEFINE_APP_RULES)
+# as in $(cb_dir)/stub/c.mk
+$(call cb_prepare_templ,c_prepare_app_vars,c_define_app_rules)
 
-EXE := buildnumber S
-SRC := buildnumber.c
+exe := buildnumber S
+src := buildnumber.c
 
-$(DEFINE_TARGETS)
+$(define_targets)
