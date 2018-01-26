@@ -54,7 +54,7 @@ check tests: all
 
 # at end of first phase - after all makefiles are parsed - print prepared environment variables for the rules
 ifdef verbose
-prepared_env := $(print_env)
+prepared_env := $(subst $(newline)|,,$(subst $(newline)| ,$(newline),$(print_env)))
 ifdef prepared_env
 $(info $(prepared_env))
 endif

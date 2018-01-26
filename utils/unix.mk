@@ -9,7 +9,7 @@
 # this file is included by $(cb_dir)/core/_defs.mk
 
 # script to print prepared environment in verbose mode (used for generating one-big-build instructions shell file)
-print_env = $(foreach =,$(project_exported_vars),$(newline)$=='$($=)'$(newline)export $=)
+print_env = $(foreach =,$(project_exported_vars),$=='$($=)'$(newline)export $=$(newline)|)
 
 # command line length is limited, define maximum number of path arguments that may be passed via command line assuming
 #  the limit is 20000 chars (on Cygwin, on Unix it's generally much larger) and each path do not exceed 120 chars
