@@ -123,27 +123,36 @@ endif # clean && cb_mdebug
 
 # macro 'process_submakes' normally called with non-empty first argument $1, but to avoid defining global variable 1 for the
 #  next processed sub-makefiles, macro 'cb_submakes_eval' must be expanded by explicit $(call cb_submakes_eval) without arguments
-# note: call 'cb_def_tail' with argument @ - for the checks in 'cb_check_at_tail' macro (defined in $(cb_dir)/core/protection.mk)
-# note: process result of 'cb_def_tail' with separate $(eval) - for the checks performed while expanding $(eval argument)
-cb_submakes_eval = $(eval $(value cb_submakes_code))$(eval $(call cb_def_tail,@))
+cb_submakes_eval = $(eval $(value cb_submakes_code))
+
+# check that no environment or global variables were accidentally overwritten
+# note: 'cb_check_at_tail' - defined in $(cb_dir)/core/protection.mk
+ifdef cb_checking
+cb_submakes_eval += $(call cb_check_at_tail,@)
+endif
 
 # generate code 'cb_submakes_code' for including and processing given list of sub-makefiles $1,
 #  then evaluate it via call without parameters - to hide $1 argument from sub-makefiles
 # at end, check if it's needed to include $(cb_dir)/core/all.mk
 # note: make absolute paths to sub-makefiles
 process_submakes = $(eval define cb_submakes_code$(newline)$(call \
-  cb_include_submakes,$(cb_norm_makefiles),$(is_tool_mode))$(newline)endef)$(call cb_submakes_eval)
+  cb_include_submakes,$(cb_norm_makefiles),$(is_tool_mode))$(newline)endef)$(call \
+  cb_submakes_eval)$(if $(cb_include_level),,$(eval include $(cb_dir)/core/all.mk))
 
-# set 'cb_need_submakes' to non-empty value before including sub-makefiles - to check if a sub-makefile calls 'process_submakes',
+# check the value of 'tool_mode' variable - assign it to 'is_tool_mode'
+# adjust values of bin_dir/obj_dir/lib_dir/gen_dir variables according to if we are in the "tool" mode
+# note: 'cb_tool_mode_adjust' - defined in $(cb_dir)/core/_defs.mk
+cb_submakes_prepare = $(eval $(cb_tool_mode_adjust))
+
+# set 'cb_need_submakes_mk' to non-empty value before including sub-makefiles - to check if a sub-makefile calls 'process_submakes',
 #  it _must_ evaluate 'cb_submakes_prepare' prior calling 'process_submakes' - by including appropriate makefile of project build
 #  system, e.g. 'make/submakes.mk'
-# note: protect 'cb_need_submakes' to not reset it as a local variable, do not trace calls to it
+# note: protect 'cb_need_submakes_mk' to not reset it as a "local" variable at head of target makefile, do not trace calls to it
+# note: assume result of $(call set_global1,cb_need_submakes_mk) will give an empty line at end of expansion
 ifdef cb_checking
-cb_submakes_prepare = $(eval cb_need_submakes:=)
-$(eval process_submakes = $$(if $$(cb_need_submakes),$$(error submakes.mk was not included at head of makefile!))$(subst \
-  eval ,eval cb_need_submakes:=1$$(newline)$$(call set_global1,cb_need_submakes)$$(newline),$(value process_submakes)))
-else
-cb_submakes_prepare:=
+cb_submakes_prepare += $(eval cb_need_submakes_mk:=)
+$(eval process_submakes = $$(if $$(cb_need_submakes_mk),$$(error submakes.mk was not included at head of makefile!))$(subst \
+  eval define,eval cb_need_submakes_mk:=1$$(newline)$$(call set_global1,cb_need_submakes_mk)define,$(value process_submakes)))
 endif
 
 # makefile parsing first phase variables

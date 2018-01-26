@@ -60,12 +60,19 @@ $(info $(prepared_env))
 endif
 endif # verbose
 
+ifndef cb_checking
+
 # check that environment variables were not accidentally overwritten
 # note: 'cb_check_env_vars' - defined in $(cb_dir)/core/protection.mk
+# note: if cb_checking is defined, environment variables were already checked in 'cb_check_at_tail'
 $(cb_check_env_vars)
+
+else # cb_checking
 
 # reset at end of makefiles parsing (the first phase):
 # 1) non-protected ("local") variables defined in the last parsed target makefile
 # 2) protected variables from $(cb_first_phase_vars) list
 # note: 'cb_reset_first_phase' - defined in $(cb_dir)/core/protection.mk
 $(cb_reset_first_phase)
+
+endif # cb_checking

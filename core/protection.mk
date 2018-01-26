@@ -131,12 +131,6 @@ set_global1 = $(if $(call cb_check_cannot_trace,$2),,$(call \
 
 endif # cb_tracing
 
-# reset
-cb_reset_first_phase:=
-cb_reset_saved_vars:=
-cb_check_at_head:=
-cb_check_at_tail:=
-
 # list of first-phase variables - these are will be reset before the rule-execution second phase
 cb_first_phase_vars:=
 
@@ -240,16 +234,14 @@ endef
 
 # check that values of protected variables were not changed,
 # check that environment variables were not accidentally overwritten - their values are saved in $(cb_dir)/stub/prepare.mk
-# note: error is suppressed (only once) if variable name is specified in $(temporary_overridden)
+# note: error is suppressed if variable name is specified in $(temporary_overridden) ('cb_check_at_head' resets it)
 # note: 'cb_need_tail_code' is cleared after the checks to mark that $(cb_def_tail) was evaluated
-# note: $(cb_dir)/core/_submakes.mk calls $(cb_def_tail) with $1=@
-define cb_check_at_tail
-$(if $1,$(if $(cb_need_tail_code),$(error \
+# note: $(cb_dir)/core/_submakes.mk calls 'cb_check_at_tail' with $1=@
+# note: remember value of 'cb_need_tail_code' to pass checks in $(cb_check_protected_var)
+cb_check_at_tail = $(if $1,$(if $(cb_need_tail_code),$(error \
   $$(define_targets) was not expanded at end of $(cb_need_tail_code)),$(call set_global,cb_need_tail_code)),$(if \
-  $(cb_need_tail_code),,$(error $$(cb_def_head) was not evaluated at head of target makefile!)))$(cb_check_env_vars)$(foreach \
-  =,$(cb_protected_vars),$(eval $(call cb_check_protected_var,$(cb_encode_var_name))))
-cb_need_tail_code:=
-endef
+  $(cb_need_tail_code),cb_need_tail_code:=,$(error $$(cb_def_head) was not evaluated at head of target makefile!)))$(if \
+  $(cb_check_env_vars)$(foreach =,$(cb_protected_vars),$(eval $(call cb_check_protected_var,$(cb_encode_var_name)))),)
 
 # protect variables from modifications in target makefiles
 # note: do not trace calls to these macros
@@ -258,19 +250,17 @@ endef
 $(eval cb_protected_vars:=$(newline)$(value cb_protected_vars)$$(call set_global,cb_checking cb_tracing \
   CBLD_NON_TRACEABLE_VARS CBLD_TRACE_FILTER CBLD_TRACE_FILTER_OUT \
   cb_check_cannot_trace cb_check_tracing_env set_global get_global env_remember cb_env_var_ov cb_check_env_var cb_check_env_vars \
-  set_global1 cb_reset_first_phase cb_reset_saved_vars \
-  cb_check_at_head cb_check_at_tail cb_protected_vars cb_encode_var_value cb_encode_var_name cb_protect_vars2 \
-  set_global5 set_global4 set_global3 set_global2 \
-  cb_var_access_err cb_reset_local_var cb_reset_local_vars cb_protected_var_ov cb_check_protected_var))
+  set_global1 cb_protected_vars cb_encode_var_value cb_encode_var_name cb_protect_vars2 \
+  set_global5 set_global4 set_global3 set_global2 cb_var_access_err cb_reset_local_var cb_reset_local_vars cb_reset_saved_vars \
+  cb_reset_first_phase cb_check_at_head cb_protected_var_ov cb_check_protected_var cb_check_at_tail))
 
 # these macros must not be used in rule execution second phase
 # note: 'cb_var_access_err' will be reset by 'cb_reset_first_phase' inplace
 cb_first_phase_vars := cb_checking cb_tracing \
   cb_check_cannot_trace cb_check_tracing_env set_global env_remember cb_env_var_ov cb_check_env_var cb_check_env_vars \
-  set_global1 cb_reset_first_phase cb_reset_saved_vars \
-  cb_check_at_head cb_check_at_tail cb_protected_vars cb_encode_var_value cb_encode_var_name cb_protect_vars2 \
-  set_global5 set_global4 set_global3 set_global2 \
-  cb_reset_local_var cb_reset_local_vars cb_protected_var_ov cb_check_protected_var \
-  cb_first_phase_vars temporary_overridden cb_need_tail_code cb_target_makefile
+  set_global1 cb_protected_vars cb_encode_var_value cb_encode_var_name cb_protect_vars2 \
+  set_global5 set_global4 set_global3 set_global2 cb_reset_local_var cb_reset_local_vars cb_reset_saved_vars \
+  cb_reset_first_phase cb_check_at_head cb_protected_var_ov cb_check_protected_var cb_check_at_tail cb_first_phase_vars \
+  temporary_overridden cb_need_tail_code
 
 endif # cb_checking

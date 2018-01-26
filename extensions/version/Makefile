@@ -4,11 +4,15 @@
 # Licensed under GPL version 2 or any later version, see COPYING
 #----------------------------------------------------------------------------------
 
-ifndef cb_submakes_prepare
-$(error 'submakes.mk' must be included prior this file)
+ifndef cb_prepare_templ
+$(error 'project.mk' of the project build system must be included prior this file)
 endif
 
 # as in $(cb_dir)/stub/submakes.mk
+ifeq (,$(filter-out undefined environment,$(origin cb_submakes_prepare)))
+include $(cb_dir)/core/_submakes.mk
+endif
+
 $(cb_submakes_prepare)
 
 $(call process_submakes,buildnumber.mk version.mk)

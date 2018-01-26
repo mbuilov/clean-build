@@ -4,8 +4,8 @@
 # Licensed under GPL version 2 or any later version, see COPYING
 #----------------------------------------------------------------------------------
 
-ifndef cb_target_makefile
-$(error 'defs.mk' must be included prior this file)
+ifndef cb_prepare_templ
+$(error 'project.mk' of the project build system must be included prior this file)
 endif
 
 # as in $(cb_dir)/stub/defs.mk

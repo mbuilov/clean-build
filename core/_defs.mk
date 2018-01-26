@@ -260,8 +260,8 @@ def_obj_dir := $(cb_build)/obj-$(target_triplet)
 def_lib_dir := $(cb_build)/lib-$(target_triplet)
 def_gen_dir := $(cb_build)/gen-$(target_triplet)
 
-# code to evaluate for restoring default directories after the "tool mode"
-define cb_set_sefault_dirs
+# code to evaluate for restoring default directories after the "tool" mode
+define cb_set_default_dirs
 bin_dir:=$(def_bin_dir)
 obj_dir:=$(def_obj_dir)
 lib_dir:=$(def_lib_dir)
@@ -281,7 +281,7 @@ endif
 # $2 - $(CBLD_TCPU)
 mk_tools_dir = $1/bin-tool-$2-$(CBLD_TARGET)
 
-# code to evaluate for overriding default directories in the "tool mode"
+# code to evaluate for overriding default directories in the "tool" mode
 define cb_tool_override_dirs
 bin_dir:=$(call mk_tools_dir,$(tool_base),$(CBLD_TCPU))
 obj_dir:=$(tool_base)/obj-tool-$(CBLD_TCPU)-$(CBLD_TARGET)
@@ -289,14 +289,14 @@ lib_dir:=$(tool_base)/lib-tool-$(CBLD_TCPU)-$(CBLD_TARGET)
 gen_dir:=$(tool_base)/gen-tool-$(CBLD_TCPU)-$(CBLD_TARGET)
 endef
 
-# redefine 'cb_set_sefault_dirs' and 'cb_tool_override_dirs' as non-recursive variables
+# redefine 'cb_set_default_dirs' and 'cb_tool_override_dirs' as non-recursive variables
 ifndef set_global1
-cb_set_sefault_dirs   := $(cb_set_sefault_dirs)
+cb_set_default_dirs   := $(cb_set_default_dirs)
 cb_tool_override_dirs := $(cb_tool_override_dirs)
 else
 # remember new values of standard directories
 # note: trace namespace: dirs
-cb_set_sefault_dirs   := $(cb_set_sefault_dirs)$(newline)$(call set_global1,bin_dir obj_dir lib_dir gen_dir,dirs)
+cb_set_default_dirs   := $(cb_set_default_dirs)$(newline)$(call set_global1,bin_dir obj_dir lib_dir gen_dir,dirs)
 cb_tool_override_dirs := $(cb_tool_override_dirs)$(newline)$(call set_global1,bin_dir obj_dir lib_dir gen_dir,dirs)
 endif
 
@@ -331,8 +331,16 @@ else
 toclean = $(eval cb_to_clean+=$$1$(newline)$(call set_global1,cb_to_clean))
 endif
 
+# root makefile the build was started from
+# note: when building from the command line one of out-of-project tree external modules, such as $(cb_dir)/extensions/version/Makefile,
+#  which cannot include project configuration makefiles directly (because external modules are project-independent),
+#  'cb_first_makefile' automatically defined to the wrong value, it is required to specify 'cb_first_makefile' in the command line, e.g.:
+# $ make cb_first_makefile=/opt/clean-build/extensions/version/Makefile \
+#   --eval="include ./examples/hello/make/c_project.mk" -f /opt/clean-build/extensions/version/Makefile
+cb_first_makefile := $(abspath $(firstword $(MAKEFILE_LIST)))
+
 # absolute path to the target makefile
-cb_target_makefile := $(abspath $(firstword $(MAKEFILE_LIST)))
+cb_target_makefile := $(cb_first_makefile)
 
 # append makefiles (really .PHONY goals created from them) to the 'order_deps' list
 # note: this function is useful to specify dependency on all targets built by specified makefiles (a tree of makefiles)
@@ -481,7 +489,7 @@ add_order_deps:=
 endif # clean
 
 # add generated files $1 to build sequence
-# note: files must be generated under $(gen_dir),$(bin_dir),$(obj_dir) or $(lib_dir) directories
+# note: files must be generated under $(gen_dir), $(bin_dir), $(obj_dir) or $(lib_dir) directories
 # note: directories for generated files will be auto-created
 # note: generated files will be auto-deleted while completing the 'clean' goal
 add_generated = $(eval $(std_target_vars))
@@ -489,30 +497,55 @@ add_generated = $(eval $(std_target_vars))
 # same as 'add_generated', but return the list of generated files $1
 add_generated_ret = $(add_generated)$1
 
-# define bin_dir/obj_dir/lib_dir/gen_dir assuming that we are not in the "tool mode"
-$(eval $(cb_set_sefault_dirs))
-
-# non-empty (likely T) in "tool mode" - 'tool_mode' variable was set to that value prior evaluating $(cb_def_head), empty in normal mode.
-# note: $(tool_mode) should not be used in rule templates - use $(is_tool_mode) instead, because 'tool_mode' variable may be set to
-#  another value anywhere before $(make_continue), and so before the evaluation of rule templates.
-# reset the value: we are currently not in the "tool mode", $(cb_def_head) was not evaluated yet, but $(cb_set_sefault_dirs) had
-#  already been evaluated to set non-tool mode values of bin_dir/obj_dir/lib_dir/gen_dir.
-ifeq (file,$(origin tool_mode))
-is_tool_mode := $(tool_mode)
-else
-is_tool_mode:=
-endif
-
 # 'tool_mode' may be set to non-empty value (likely T) at the beginning of target makefile
 #  (before including this file and so before evaluating $(cb_def_head))
-# reset 'tool_mode' if it was not set in the target makefile
-ifdef cb_checking
-# do not allow to read 'tool_mode' in target makefiles, only to set it
-cb_tool_mode_access_error = $(error please use 'is_tool_mode' variable to check for "tool mode")
-tool_mode = $(cb_tool_mode_access_error)
-else ifneq (file,$(origin tool_mode))
+# if 'tool_mode' is not set - reset it - we are not in the "tool" mode
+# else - check its value while evaluation of 'cb_def_head'
+ifneq (file,$(origin tool_mode))
 tool_mode:=
 endif
+
+# non-empty (likely T) in the "tool" mode - 'tool_mode' variable was set to that value prior evaluating $(cb_def_head),
+#  empty in normal mode.
+# note: $(tool_mode) should not be used in rule templates - use $(is_tool_mode) instead, because 'tool_mode' variable may be set
+#  to another value anywhere before $(make_continue), and so before the evaluation of rule templates.
+# reset the value: we are currently not in the "tool" mode
+is_tool_mode:=
+
+# define bin_dir/obj_dir/lib_dir/gen_dir according that we are not in the "tool" mode
+$(eval $(cb_set_default_dirs))
+
+# code to evaluate at the beginning of target makefile to adjust variables for the "tool" mode
+# note: set 'is_tool_mode' variable to remember if we are in the "tool" mode - 'tool_mode' variable may be set to another value
+#  before calling $(make_continue), and this new value will affect the next sections of $(make_continue)
+define cb_tool_mode_adjust
+is_tool_mode:=$(tool_mode)
+$(if $(tool_mode),$(if \
+  $(is_tool_mode),,$(cb_tool_override_dirs)),$(if \
+  $(is_tool_mode),$(cb_set_default_dirs)))
+endef
+
+# remember new value of 'is_tool_mode'
+# note: trace namespace: is_tool_mode
+ifdef set_global1
+$(eval define cb_tool_mode_adjust$(newline)$(subst \
+  is_tool_mode:=$$(tool_mode),is_tool_mode:=$$(tool_mode)$(newline)$$(call \
+  set_global1,is_tool_mode,is_tool_mode),$(value cb_tool_mode_adjust))$(newline)endef)
+endif
+
+ifdef cb_checking
+
+# do not allow to read 'tool_mode' in target makefiles, only to set it
+cb_tool_mode_access_error = $(error please use 'is_tool_mode' variable to check for the "tool" mode)
+
+# use 'tool_mode' only to set value of 'is_tool_mode' variable, forbid reading $(tool_mode) in target makefiles
+# note: do not trace calls to 'tool_mode' after resetting it to $$(cb_tool_mode_access_error) - this is needed to pass the (next)
+#  check if value of 'tool_mode' is '$(cb_tool_mode_access_error)' (or empty, or non-empty)
+# note: assume result of $(call set_global1,tool_mode) will give an empty line at end of expansion
+$(call define_prepend,cb_tool_mode_adjust,$$(if $$(findstring $$$$(cb_tool_mode_access_error),$$(value tool_mode)),$$(eval \
+  tool_mode:=$$$$(is_tool_mode)))tool_mode=$$$$(cb_tool_mode_access_error)$(newline)$$(call set_global1,tool_mode))
+
+endif # cb_checking
 
 # variable used to track makefiles include level
 cb_include_level:=
@@ -536,9 +569,8 @@ cb_make_cont:=
 # NOTE: $(make_continue) before expanding $(cb_def_head) adds 2 to 'cb_make_cont' list (which is normally empty or contains 1 1...)
 #  - so we know if $(cb_def_head) was expanded from $(make_continue) - remove 2 from 'cb_make_cont' list in that case
 #  - if $(cb_def_head) was expanded not from $(make_continue) - no 2 in $(cb_make_cont) - reset 'cb_make_cont' variable
-# NOTE: set 'is_tool_mode' variable to remember if we are in "tool mode" - 'tool_mode' variable may be set to another value before
-#  calling $(make_continue)
 define cb_def_head
+$(cb_tool_mode_adjust)
 ifneq (,$(findstring 2,$(cb_make_cont)))
 cb_make_cont:=$$(subst 2,1,$$(cb_make_cont))
 else
@@ -546,10 +578,6 @@ cb_make_cont:=
 cb_head_eval=$$(eval $$(cb_def_head))
 define_targets=$$(eval $$(cb_def_tail))
 endif
-is_tool_mode:=$(tool_mode)
-$(if $(tool_mode),$(if \
-  $(is_tool_mode),,$(cb_tool_override_dirs)),$(if \
-  $(is_tool_mode),$(cb_set_sefault_dirs)))
 endef
 
 # show debug info prior defining targets, e.g.: "..../project/one.mk+2"
@@ -559,9 +587,11 @@ $(call define_prepend,cb_def_head,$$(info $$(subst \
   $$(space),,$$(cb_include_level))$$(cb_target_makefile)$$(if $$(findstring 2,$$(cb_make_cont)),+$$(words $$(cb_make_cont)))))
 endif
 
-# prepend 'cb_def_head' with $(cb_check_at_head), if it's defined in $(cb_dir)/core/protection.mk
-ifdef cb_check_at_head
-$(call define_prepend,cb_def_head,$$(cb_check_at_head)$(newline))
+# reset "local" variables, check if $(cb_def_tail) was evaluated after previous $(cb_def_head)
+# note: 'cb_check_at_head' - defined in $(cb_dir)/core/protection.mk
+ifdef cb_checking
+$(eval define cb_def_head$(newline)$(subst \
+  $$(cb_tool_mode_adjust),$$(cb_tool_mode_adjust)$(newline)$$(cb_check_at_head),$(value cb_def_head))$(newline)endef)
 endif
 
 ifneq (,$(cb_checking)$(value cb_add_shown_percents))
@@ -582,7 +612,7 @@ cb_check_targets=
 
 ifdef cb_checking
 # note: must be called in $(cb_target_makefile)'s rule body, where automatic variables $@ and $^ are defined
-cb_check_targets += $(foreach =,$(filter-out $(wildcard $^),$^),$(info $(@:-=): cannot build $=))
+cb_check_targets += $(foreach =,$(filter-out $(wildcard $^),$^),$(info $(@:-=): failed to build: $=))
 endif
 
 ifdef cb_add_shown_percents
@@ -604,52 +634,34 @@ $(eval define cb_def_head$(newline)$(subst \
   makefile $$$$(cb_target_makefile) was already processed!)),$(value cb_def_head))$(newline)endef)
 
 # remember new value of 'cb_make_cont' (without tracing calls to it - it's modified via +=)
-# note: assume result of $(call set_global1,cb_make_cont) will give an empty line at end of expansion
-$(eval define cb_def_head$(newline)$(subst \
-  endif$(newline),endif$(newline)$$(call set_global1,cb_make_cont),$(value cb_def_head))$(newline)endef)
+# note: result of $(call set_global1,cb_make_cont) will give an empty line at end of expansion
+$(call define_append,cb_def_head,$(newline)$$(call set_global1,cb_make_cont))
 
 endif # cb_checking
 
 ifdef set_global1
 
-# remember new values of 'is_tool_mode', 'cb_head_eval' and 'define_targets'
-# note: trace namespaces: is_tool_mode, def_code
-$(eval define cb_def_head$(newline)$(subst \
-  is_tool_mode:=$$(tool_mode),is_tool_mode:=$$(tool_mode)$(newline)$$(call set_global1,is_tool_mode,is_tool_mode),$(subst \
-  endif,$$(call set_global1,cb_head_eval define_targets,def_code)$(newline)endif,$(value cb_def_head)))$(newline)endef)
+# remember new values of 'cb_head_eval' and 'define_targets'
+# note: trace namespace: def_code
+$(eval define cb_def_head$(newline)$(subst endif,$$(call \
+  set_global1,cb_head_eval define_targets,def_code)$(newline)endif,$(value cb_def_head))$(newline)endef)
 
-ifndef cb_checking
-# trace (next) calls to 'tool_mode' if not checking makefiles, else - 'tool_mode' is protected at the end of $(cb_def_head)
+# trace (next) calls to 'tool_mode' if not checking makefiles, else - 'tool_mode' is protected in 'cb_tool_mode_adjust'
 # note: trace namespace: tool_mode
+ifndef cb_checking
 $(call define_prepend,cb_def_head,$$(call set_global1,tool_mode,tool_mode)$(newline))
 endif
 
 endif # set_global1
 
-ifdef cb_checking
-
-# use 'tool_mode' only to set value of 'is_tool_mode' variable, forbid reading $(tool_mode) in target makefiles
-# note: do not trace calls to 'tool_mode' after resetting it to $$(cb_tool_mode_access_error) - this is needed to pass the (next) check
-#  if value of 'tool_mode' is the '$(cb_tool_mode_access_error)' (or empty, or non-empty) at the beginning of $(cb_def_head)
-# note: assume result of $(call set_global1,tool_mode) will give an empty line at end of expansion
-$(eval define cb_def_head$(newline)$(subst endif$(newline),endif$(newline)tool_mode=$$$$(cb_tool_mode_access_error)$(newline)$$(call \
-  set_global1,tool_mode),$(value cb_def_head))$(newline)endef)
-
-# when expanding $(cb_def_head), first restore 'tool_mode' variable, if it wasn't changed before $(cb_def_head)
-$(call define_prepend,cb_def_head,$$(if $$(findstring $$$$(cb_tool_mode_access_error),$$(value \
-  tool_mode)),$$(eval tool_mode:=$$$$(is_tool_mode))))
-
-endif # cb_checking
-
 # ***********************************************
 # code to $(eval ...) at the end of each target makefile
 # include $(cb_dir)/core/all.mk only if $(cb_include_level) is empty and not inside the call of $(make_continue)
 # note: $(make_continue) before expanding $(cb_def_tail) adds 2 to $(cb_make_cont) list
-# note: $(cb_dir)/core/_submakes.mk calls 'cb_def_tail' with @ as first argument - for the checks in $(cb_check_at_tail)
 cb_def_tail = $(if $(findstring 2,$(cb_make_cont)),,$(if $(cb_include_level),cb_head_eval:=,include $(cb_dir)/core/all.mk))
 
-# prepend 'cb_def_tail' with $(cb_check_at_tail), if it's defined in the $(cb_dir)/core/protection.mk
-ifdef cb_check_at_tail
+# prepend 'cb_def_tail' with $(cb_check_at_tail) - it is defined in $(cb_dir)/core/protection.mk
+ifdef cb_checking
 $(call define_prepend,cb_def_tail,$$(cb_check_at_tail)$(newline))
 endif
 
@@ -657,7 +669,7 @@ endif
 cb_no_def_head_err = $(error $$(cb_def_head) was not evaluated at head of makefile!)
 
 # redefine 'define_targets' macro to produce an error if $(cb_def_head) was not evaluated prior expanding it
-# note: the same check is performed in the $(cb_check_at_tail), but it will be done only after expanding templates added by the
+# note: the same check is performed in $(cb_check_at_tail), but it will be done only after expanding templates added by the
 #  previous target makefile - this may lead to errors, because templates were not prepared by the previous $(cb_head_eval)
 ifdef cb_checking
 $(eval define cb_def_tail$(newline)$(subst :=,:=$$(newline)define_targets=$$$$(cb_no_def_head_err),$(value cb_def_tail))$(newline)endef)
@@ -718,7 +730,7 @@ cb_restore_vars = $(eval $(foreach v,$1,$(if $(findstring \
 
 # reset %.^s variables
 # note: 'cb_reset_saved_vars' - defined in $(cb_dir)/core/protection.mk
-ifdef cb_reset_saved_vars
+ifdef cb_checking
 $(eval cb_restore_vars = $(subst \
   $(close_brace)$(close_brace)$(close_brace),$(close_brace)$(close_brace)$$(cb_reset_saved_vars)$(close_brace),$(value \
   cb_restore_vars)))
@@ -817,11 +829,11 @@ $(call config_remember_vars,CBLD_NO_DEPS)
 # makefile parsing first phase variables
 # Note: bin_dir/obj_dir/lib_dir/gen_dir change their values depending on the value of 'tool_mode' variable set in the last
 #  parsed makefile, so clear these variables before rule execution second phase
-cb_first_phase_vars += cb_needed_dirs build_system_goals bin_dir obj_dir lib_dir gen_dir order_deps cb_set_sefault_dirs \
-  cb_tool_override_dirs toclean add_mdeps cb_add_what_makefile_builds set_makefile_info add_order_deps need_gen_dirs \
-  std_target_vars1 cb_check_generated_at std_target_vars add_generated add_generated_ret is_tool_mode \
-  cb_tool_mode_access_error tool_mode cb_include_level cb_target_makefiles cb_head_eval cb_make_cont cb_def_head \
-  cb_def_tail define_targets cb_prepare_templ cb_save_vars cb_restore_vars make_continue
+cb_first_phase_vars += cb_needed_dirs build_system_goals bin_dir obj_dir lib_dir gen_dir order_deps cb_set_default_dirs \
+  cb_tool_override_dirs toclean cb_target_makefile add_mdeps cb_add_what_makefile_builds set_makefile_info add_order_deps \
+  need_gen_dirs std_target_vars1 cb_check_generated_at std_target_vars add_generated add_generated_ret tool_mode is_tool_mode \
+  cb_tool_mode_adjust cb_tool_mode_access_error cb_include_level cb_target_makefiles cb_head_eval \
+  cb_make_cont cb_def_head cb_def_tail define_targets cb_prepare_templ cb_save_vars cb_restore_vars make_continue
 
 # protect macros from modifications in target makefiles,
 # do not trace calls to macros used in ifdefs, exported to the environment of called tools or modified via operator +=
@@ -834,10 +846,10 @@ $(call set_global,MAKEFLAGS SHELL cb_needed_dirs cb_first_phase_vars CBLD_TARGET
 # note: trace namespace: core
 $(call set_global,cb_project_vars clean_build_version cb_dir clean_build_required_version \
   cb_build project_supported_targets utils_mk target_triplet def_bin_dir def_obj_dir def_lib_dir def_gen_dir \
-  cb_set_sefault_dirs tool_base mk_tools_dir cb_tool_override_dirs tool_suffix get_tools get_tool cb_target_makefile \
-  add_mdeps cb_add_what_makefile_builds set_makefile_info add_order_deps=order_deps=order_deps \
-  need_gen_dirs std_target_vars1 cb_check_generated_at std_target_vars add_generated add_generated_ret \
-  is_tool_mode cb_tool_mode_access_error cb_def_head cb_check_targets cb_def_tail cb_no_def_head_err define_targets \
+  cb_set_default_dirs tool_base mk_tools_dir cb_tool_override_dirs tool_suffix get_tools get_tool cb_first_makefile \
+  cb_target_makefile add_mdeps cb_add_what_makefile_builds set_makefile_info add_order_deps=order_deps=order_deps need_gen_dirs \
+  std_target_vars1 cb_check_generated_at std_target_vars add_generated add_generated_ret is_tool_mode cb_tool_mode_adjust \
+  cb_tool_mode_access_error cb_def_head cb_check_targets cb_def_tail cb_no_def_head_err define_targets \
   cb_prepare_templ cb_save_vars cb_restore_vars make_continue ospath nonrelpath fixpath sed_multi_expr product_version,core)
 
 # if 'toclean' value is non-empty, allow tracing calls to it (with trace namespace: toclean),
