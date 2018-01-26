@@ -56,15 +56,20 @@ cb_check_cannot_trace = $(if $1,$(or $(filter $(CBLD_TRACE_FILTER_OUT),$1),$(if 
   $(CBLD_TRACE_FILTER),$(filter-out $(CBLD_TRACE_FILTER),$1))),1)
 
 # check that not trying to trace CBLD_% variables
-cb_check_tracing_env = $(if $(filter CBLD_%,$1),$(if $(findstring file,$(origin $1)),$(error tracing variables: $(filter \
-  CBLD_%,$1)$(newline)By convention, CBLD_... variables may be defined in the environment and so must not be redefined (or traced))))$1
+# $1 - names of traced macros
+# $2 - namespace
+# note: project variables, e.g. CBLD_ROOT, CBLD_OVERRIDES..... may be defined with 'override' keyword!!!!
+cb_check_tracing_env = $(if $(filter CBLD_%,$1),$(if $(filter file,$(foreach =,$(filter CBLD_%,$1),$(origin $=))),$(error \
+  tracing [$2]: $(foreach =,$(filter CBLD_%,$1),$(if $(findstring file,$(origin $=)),$=))$(newline)By convention, \
+  CBLD_... variables may be defined in the environment and so must not be redefined (or traced))))$(info \
+  tracing [$2]: $1)$1
 
 ifdef cb_checking
 
 # patch 'trace_calls' macro so that it will protect redefined traced macros if they
 #  were protected or it's specifically requested to protect them
-# trace_calls will pass second parameter to the trace_calls_template -
-#  if this parameter is not empty, then forcibly protect new values of traced macros
+# 'trace_calls' will pass second parameter to 'trace_calls_template' - if this parameter
+#  is not empty, then forcibly protect new values of traced macros
 $(eval trace_calls = $(subst =$(close_brace)$(close_brace)$(close_brace)$(close_brace),$(if \
   ,)=$(close_brace)$(close_brace)$(close_brace)$(comma)$$2$(close_brace),$(value trace_calls)))
 
@@ -78,7 +83,7 @@ endif # cb_tracing
 
 # protect macros from modifications in target makefiles or just trace calls to these macros
 # $1 - list of macro names for protection/tracking, in format:
-#  AAA=b1;b2;$$1=e1;e2 BBB=b1;b2=e1;e2;... (see description of trace_calls macro)
+#  AAA=b1;b2;$$1=e1;e2 BBB=b1;b2=e1;e2;... (see description of 'trace_calls' macro)
 #  note: list must be without names of variables to dump if not tracing - i.e. $2 is empty:
 # $2 - optional namespace name, if not specified, then do not trace calls for given macros
 #  (applicable for counters - modified via operator +=, or variables used in ifdefs)
@@ -127,7 +132,7 @@ else # cb_tracing
 # $2 - optional namespace name, if not specified, then do not trace calls for given macros
 set_global2 = $(if $1,$$(call trace_calls,$(subst $$,$$$$,$(cb_check_tracing_env))))
 set_global1 = $(if $(call cb_check_cannot_trace,$2),,$(call \
-  set_global2,$(filter-out $(CBLD_NON_TRACEABLE_VARS) $(CBLD_NON_TRACEABLE_VARS:==%),$1)))
+  set_global2,$(filter-out $(CBLD_NON_TRACEABLE_VARS) $(CBLD_NON_TRACEABLE_VARS:==%),$1),$2))
 
 endif # cb_tracing
 
@@ -168,10 +173,10 @@ endef
 ifdef cb_tracing
 set_global5 = $(if $1,$(call dump_vars,$1,override global: ))
 set_global4 = $(call set_global5,$(filter $1,$(cb_protected_vars)))$(cb_protect_vars2)
-set_global3 = $(if $1,$$(call trace_calls,$(subst $$,$$$$,$(cb_check_tracing_env)),!))
-set_global2 = $(if $1,$(call set_global4,$(foreach =,$1,$(firstword $(subst =, ,$=)))))$(call set_global3,$(filter-out $1,$2))
+set_global3 = $(if $1,$$(call trace_calls,$(subst $$,$$$$,$(cb_check_tracing_env)),$2))
+set_global2 = $(if $1,$(call set_global4,$(foreach =,$1,$(firstword $(subst =, ,$=)))))$(call set_global3,$(filter-out $1,$2),$3)
 set_global1 = $(if $(call cb_check_cannot_trace,$2),$(set_global4),$(call \
-  set_global2,$(filter $(CBLD_NON_TRACEABLE_VARS) $(CBLD_NON_TRACEABLE_VARS:==%),$1),$1))
+  set_global2,$(filter $(CBLD_NON_TRACEABLE_VARS) $(CBLD_NON_TRACEABLE_VARS:==%),$1),$1,$2))
 else
 set_global1 = $(call cb_protect_vars2,$(foreach =,$1,$(firstword $(subst =, ,$=))))
 endif
