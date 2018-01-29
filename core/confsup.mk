@@ -104,7 +104,7 @@ project_exported_vars += $(foreach =,$(cb_config_saved_vars),$(if $(findstring c
 # note: by default, variable is _not_ saved if it was already saved before
 config_remember_vars = $(call config_remember_vars1,$(if $3,$(foreach =,$1,$(if $(findstring \
   command line,$(origin $=)),,$=)),$(filter-out $(cb_config_saved_vars),$1)),$2)
-config_remember_vars1 = $(if $1,$(eval config: config_text += $$(foreach =,$$1,$$(if $$2,$$(if $$(findstring override,$$(origin \
+config_remember_vars1 = $(if $1,$(eval config: config_text += $$(foreach =,$$1,$(if $2,$$(if $$(findstring override,$$(origin \
   $$=)),ifneq (command line,$$$$(origin $$=))$$(newline)export override $$(cb_config_remember_var)endif$$(newline),export \
   $$(cb_config_remember_var)),$$(if $$(findstring environment,$$(origin $$=)),export )$$(cb_config_remember_var))))$(eval \
   project_exported_vars += $(if $2,$$1,$$(foreach =,$$1,$$(if $$(findstring environment,$$(origin $$=)),$$=))))$(eval \
