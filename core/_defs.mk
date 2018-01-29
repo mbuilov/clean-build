@@ -127,6 +127,8 @@ CBLD_TARGET ?= RELEASE
 ifeq (undefined,$(origin CBLD_OS))
 ifneq (,$(filter /cygdrive/%,$(CURDIR)))
 CBLD_OS := CYGWIN
+else ifneq (,$(filter /%,$(CURDIR)))
+CBLD_OS := MSYS
 else ifneq (environment,$(origin OS))
 CBLD_OS := $(call toupper,$(shell uname))
 else ifeq (Windows_NT,$(OS))
@@ -173,7 +175,7 @@ endif
 ifeq (undefined,$(origin CBLD_UTILS))
 CBLD_UTILS := $(if \
   $(filter WIN%,$(CBLD_OS)),cmd,$(if \
-  $(filter CYG% LIN%,$(CBLD_OS)),gnu,unix))
+  $(filter CYGWIN% LINUX% MSYS%,$(CBLD_OS)),gnu,unix))
 endif
 
 # remember value of CBLD_BUILD if it was taken from the environment (in the project configuration makefile - $(cb_dir)/stub/project.mk)
@@ -301,7 +303,7 @@ cb_tool_override_dirs := $(cb_tool_override_dirs)$(newline)$(call set_global1,bi
 endif
 
 # executable file suffix of the generated tools
-# note: $(cb_dir)/utils/cmd.mk redefines 'tool_suffix' to exe
+# note: $(cb_dir)/utils/cmd.mk redefines 'tool_suffix' to "exe"
 tool_suffix:=
 
 # macro to form absolute paths to the tools executables
@@ -789,7 +791,15 @@ fixpath = $(abspath $(call nonrelpath,$(dir $(cb_target_makefile)),$1))
 # this helper macro: convert multi-line sed script $1 to multiple sed expressions - one expression for each line of the script
 sed_multi_expr = $(foreach s,$(subst $(newline), ,$(unspaces)),-e $(call sed_expr,$(call tospaces,$s)))
 
+# define 'run_tool' macro
+# note: if included below $(utils_mk) is the $(cb_dir)/utils/cmd.mk - it will override some of macros defined here
+include $(cb_dir)/core/runtool.mk
+
 # define shell utilities
+# note: $(cb_dir)/utils/cmd.mk overrides macros defined above: 'tool_suffix', 'ospath', 'nonrelpath'
+# note: $(cb_dir)/utils/cmd.mk overrides macros defined in $(cb_dir)/core/suppress.mk: 'cb_print_percents', 'cb_colorize'
+# note: $(cb_dir)/utils/cmd.mk overrides macros defined in $(cb_dir)/core/runtool.mk:
+#  'pathsep', 'dll_path_var', 'show_tool_vars', 'show_tool_vars_end'
 include $(utils_mk)
 
 # if $(CBLD_CONFIG) was included, show it
@@ -860,7 +870,6 @@ else
 $(call set_global,toclean==cb_to_clean,toclean)
 endif
 
-# auxiliary macros
+# define auxiliary macros: 'non_parallel_execute', 'multi_target' and 'multi_target_ret'
 include $(cb_dir)/core/nonpar.mk
 include $(cb_dir)/core/multi.mk
-include $(cb_dir)/core/runtool.mk
