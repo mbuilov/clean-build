@@ -9,12 +9,13 @@
 # this file is included by $(cb_dir)/core/_defs.mk
 
 # script to print prepared environment in verbose mode (used for generating one-big-build instructions shell file)
+# note: 'print_env' - used by $(cb_dir)/core/all.mk
 print_env = $(foreach =,$(project_exported_vars),$=='$($=)'$(newline)export $=$(newline)|)
 
-# command line length is limited, define maximum number of path arguments that may be passed via command line assuming
+# command line length is limited, define the maximum number of path arguments that may be passed via the command line assuming
 #  the limit is 20000 chars (on Cygwin, on Unix it's generally much larger) and each path do not exceed 120 chars
 ifeq (undefined,$(origin CBLD_MAX_PATH_ARGS))
-CBLD_MAX_PATH_ARGS := $(if $(filter CYG%,$(CBLD_OS)),166,1000)
+CBLD_MAX_PATH_ARGS := $(if $(filter CYGWIN% MSYS%,$(CBLD_OS)),166,1000)
 endif
 
 # null device for redirecting output into
@@ -66,7 +67,7 @@ try_delete_dirs = $(RMDIR) $1 2>$(NUL) || $(TRUE)
 delete_files_in1 = $(if $6,$(quiet))$(CD) $2 && $(delete_files)
 delete_files_in  = $(call xcmd,delete_files_in1,$2,$(CBLD_MAX_PATH_ARGS),$1,,,)
 
-# delete files and/or directories (long list)
+# delete files and/or directories (recursively) (long list)
 # note: to support long list, the paths _must_ not contain spaces
 # note: $6 - empty on first call, $(newline) on next calls
 del_files_or_dirs1 = $(if $6,$(quiet))$(delete_dirs)
@@ -106,8 +107,8 @@ touch_files  = $(call xcmd,touch_files1,$1,$(CBLD_MAX_PATH_ARGS),,,,)
 create_dir = $(MKDIR) -p $1
 
 # compare content of two text files: $1 and $2
-# note: if path to a file contains a space, it must be in quotes: '1 2/3 4'
 # return an error code if they are differ
+# note: if path to a file contains a space, it must be in quotes: '1 2/3 4'
 compare_files = $(CMP) $1 $2
 
 # escape program argument to pass it via shell: "1 2" -> '"1 2"'
@@ -128,7 +129,7 @@ echo_line_escape = $(call shell_escape,$(subst \,\\,$(subst %,%%,$1))\n)
 # print one line of text (to stdout, for redirecting it to output file)
 # note: line must not contain $(newline)s
 # note: line will be ended with LF
-# NOTE: echoed line length must not exceed maximum command line length (at least 4096 characters)
+# NOTE: echoed line length must not exceed the maximum command line length (at least 4096 characters)
 echo_line = $(PRINTF) '%s\n' $(shell_escape)
 
 # print lines of text to output file or to stdout (for redirecting it to output file)
@@ -138,18 +139,18 @@ echo_line = $(PRINTF) '%s\n' $(shell_escape)
 # $4 - text to prepend before the command when $6 is empty
 # $6 - empty if overwrite file $2, non-empty if append text to it
 # note: if path to the file $2 contains a space, it must be in quotes: '1 2/3 4'
-# NOTE: total text length must not exceed maximum command line length (at least 4096 characters)
+# NOTE: total text length must not exceed the maximum command line length (at least 4096 characters)
 echo_lines = $(if $6,$3,$4)$(PRINTF) -- $(call tospaces,$(subst $(space),\n,$(echo_line_escape)))$(if $2,>$(if $6,>) $2)
 
 # print lines of text (to stdout, for redirecting it to output file)
 # note: each line will be ended with LF
-# NOTE: total text length must not exceed maximum command line length (at least 4096 characters)
+# NOTE: total text length must not exceed the maximum command line length (at least 4096 characters)
 echo_text = $(PRINTF) -- $(subst $(newline),\n,$(echo_line_escape))
 
 # write lines of text $1 to the file $2 by $3 lines at one time
 # note: if path to the file $2 contains a space, it must be in quotes: '1 2/3 4'
 # NOTE: any line must be less than the maximum command length (at least 4096 characters)
-# NOTE: number $3 must be adjusted so echoed at one time text length will not exceed maximum command length (at least 4096 characters)
+# NOTE: number $3 must be adjusted so echoed at one time text length will not exceed the maximum command length (at least 4096 characters)
 write_text = $(call xargs,echo_lines,$(subst $(newline),$$(empty) $$(empty),$(unspaces)),$3,$2,$(quiet),,,$(newline))
 
 # create symbolic link $2 -> $1
@@ -175,6 +176,7 @@ del_on_fail = || { $(delete_files); $(FALSE); }
 # create a directory (with intermediate parent directories) while installing things
 # $1 - path to the directory to create, path may contain spaces
 # note: if path to the directory $1 contains a space, it must be in quotes: '1 2/3 4'
+# note: directory $1 must not exist, 'install_dir' may be implemented via 'create_dir' (e.g. under WINDOWS)
 # note: $(cb_dir)/utils/gnu.mk overrides 'install_dir'
 install_dir = $(INSTALL) -d $1
 
@@ -209,7 +211,7 @@ $(call set_global,CBLD_MAX_PATH_ARGS NUL RM RMDIR TRUE FALSE CD CP MV TOUCH MKDI
 
 # protect macros from modifications in target makefiles, allow tracing calls to them
 # note: trace namespace: utils
-$(call set_global,print_env=project_exported_vars nul delete_files delete_dirs try_delete_dirs delete_files_in1 delete_files_in \
+$(call set_global,print_env=project_exported_vars delete_files delete_dirs try_delete_dirs delete_files_in1 delete_files_in \
   del_files_or_dirs1 del_files_or_dirs copy_files2 copy_files1 copy_files move_files2 move_files1 move_files \
   touch_files1 touch_files create_dir compare_files shell_escape sed_expr cat_file \
   echo_line_escape echo_line echo_lines echo_text write_text create_simlink change_mode execute_in \
