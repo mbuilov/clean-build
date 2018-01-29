@@ -15,7 +15,7 @@ pathsep := :
 # note: $(cb_dir)/utils/cmd.mk redefines 'dll_path_var' to PATH
 dll_path_var := LD_LIBRARY_PATH
 
-# show environment variables prerared for running a tool in a modified environment
+# show environment variables prepared for running a tool in a modified environment
 # $1 - tool to execute (with parameters - escaped by 'shell_escape' macro)
 # $2 - additional path(s) separated by $(pathsep) to append to $(dll_path_var)
 # $3 - directory to change to for executing a tool
