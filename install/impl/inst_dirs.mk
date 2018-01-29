@@ -15,7 +15,7 @@ CBLD_NO_DEVEL ?=
 
 # type of operating system on which to install
 # note: this value is used only to form the names of standard makefiles with definitions of installation templates
-CBLD_INSTALL_OS_TYPE ?= $(if $(filter CYG% WIN%,$(CBLD_OS)),windows,unix)
+CBLD_INSTALL_OS_TYPE ?= $(if $(filter CYGWIN% MSYS% WIN%,$(CBLD_OS)),windows,unix)
 
 # prefix for installed directories
 DESTDIR ?=
