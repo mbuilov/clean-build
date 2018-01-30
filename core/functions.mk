@@ -258,23 +258,31 @@ prepend_simple = $(if $(findstring simple,$(flavor $1)),$(eval $1:=$$2$$($1)),$(
 # substitute references to variables with their values in given text
 # $1 - text
 # $2 - names of variables
+# note: assume references to variables $2 are not escaped in $1, e.g.: ---$$(var)--
+# note: also may not work correctly for computed variable names, e.g.: ---$(v$(ar))--
 subst_var_refs = $(if $2,$(call subst_var_refs,$(subst $$($(firstword $2)),$(value $(firstword $2)),$1),$(wordlist 2,999999,$2)),$1)
 
 # redefine macro $1 partially expanding it - replace references to variables in list $2 with their values
+# note: assume references to variables $2 are not escaped in $(value $1), e.g.: ---$$(var)--
+# note: also may not work correctly for computed variable names, for example:   ---$(v$(ar))--
 expand_partially = $(eval define $1$(newline)$(call subst_var_refs,$(value $1),$2)$(newline)endef)
 
 # remove references to variables from given text
 # $1 - text
 # $2 - names of variables
+# note: assume references to variables $2 are not escaped in $1, e.g.: ---$$(var)--
+# note: also may not work correctly for computed variable names, e.g.: ---$(v$(ar))--
 remove_var_refs = $(if $2,$(call remove_var_refs,$(subst $$($(firstword $2)),,$1),$(wordlist 2,999999,$2)),$1)
 
 # try to redefine macro as a simple (i.e. non-recursive) variable
 # $1 - macro name
 # $2 - list of variables to try to substitute with their values in $(value $1)
 # 1) check that variables in $2 are all simple
-# 2) check that no other variables in the value of macro $1
-# 3) re-define macro $1 as simple (non-recursive) variable
-try_make_simple = $(if $(filter $(words $2),$(words $(filter simple,$(foreach v,$2,$(flavor $v))))),$(if \
+# 2) check that there is no references to other variables in the value of macro $1
+# 3) re-define macro $1 as a simple (non-recursive) variable
+# note: assume references to variables $2 are not escaped in $(value $1), e.g.: ---$$(var)--
+# note: also may not work correctly for computed variable names, for example:   ---$(v$(ar))--
+try_make_simple = $(if $(filter $(words $2),$(words $(filter simple,$(foreach =,$2,$(flavor $=))))),$(if \
   $(findstring $$,$(call remove_var_refs,$(value $1),$2)),,$(eval $1:=$$($1))))
 
 # redefine macro $1 so that when expanding, it will give a new value only if current key value matches
@@ -282,8 +290,8 @@ try_make_simple = $(if $(filter $(words $2),$(words $(filter simple,$(foreach v,
 #
 # $1 - name of redefined macro
 # $2 - name of key variable         (global or target-specific)
-# $3 - predefined key value         (constant tag)
-# $4 - new value of redefined macro (returned only if key value matches a tag)
+# $3 - predefined key value         (constant tag, must not contain %)
+# $4 - new value of redefined macro (returned only if key value matches tag $3)
 #
 # note: defines 2 variables:
 #  $3^o.$1 - old value of macro $1
