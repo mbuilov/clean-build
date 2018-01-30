@@ -38,7 +38,9 @@ TOUCH   ?= touch
 MKDIR   ?= mkdir
 CMP     ?= cmp
 SED     ?= sed
+GREP    ?= grep
 CAT     ?= cat
+ECHO    ?= echo
 PRINTF  ?= printf
 LN      ?= ln
 CHMOD   ?= chmod
@@ -124,13 +126,13 @@ sed_expr = $(subst \n,\$(newline),$(subst \t,\$(tab),$(shell_escape)))
 cat_file = $(CAT) $1
 
 # prepare printf argument, append \n
-echo_line_escape = $(call shell_escape,$(subst \,\\,$(subst %,%%,$1))\n)
+printf_line_escape = $(call shell_escape,$(subst \,\\,$(subst %,%%,$1))\n)
 
 # print one line of text (to stdout, for redirecting it to output file)
 # note: line must not contain $(newline)s
 # note: line will be ended with LF
-# NOTE: echoed line length must not exceed the maximum command line length (at least 4096 characters)
-echo_line = $(PRINTF) '%s\n' $(shell_escape)
+# NOTE: printed line length must not exceed the maximum command line length (at least 4096 characters)
+print_line = $(PRINTF) '%s\n' $(shell_escape)
 
 # print lines of text to output file or to stdout (for redirecting it to output file)
 # $1 - non-empty lines list, where entries are processed by $(unescape)
@@ -140,18 +142,18 @@ echo_line = $(PRINTF) '%s\n' $(shell_escape)
 # $6 - empty if overwrite file $2, non-empty if append text to it
 # note: if path to the file $2 contains a space, it must be in quotes: '1 2/3 4'
 # NOTE: total text length must not exceed the maximum command line length (at least 4096 characters)
-echo_lines = $(if $6,$3,$4)$(PRINTF) -- $(call tospaces,$(subst $(space),\n,$(echo_line_escape)))$(if $2,>$(if $6,>) $2)
+print_lines = $(if $6,$3,$4)$(PRINTF) -- $(call tospaces,$(subst $(space),\n,$(printf_line_escape)))$(if $2,>$(if $6,>) $2)
 
 # print lines of text (to stdout, for redirecting it to output file)
 # note: each line will be ended with LF
 # NOTE: total text length must not exceed the maximum command line length (at least 4096 characters)
-echo_text = $(PRINTF) -- $(subst $(newline),\n,$(echo_line_escape))
+print_text = $(PRINTF) -- $(subst $(newline),\n,$(printf_line_escape))
 
 # write lines of text $1 to the file $2 by $3 lines at one time
 # note: if path to the file $2 contains a space, it must be in quotes: '1 2/3 4'
 # NOTE: any line must be less than the maximum command length (at least 4096 characters)
-# NOTE: number $3 must be adjusted so echoed at one time text length will not exceed the maximum command length (at least 4096 characters)
-write_text = $(call xargs,echo_lines,$(subst $(newline),$$(empty) $$(empty),$(unspaces)),$3,$2,$(quiet),,,$(newline))
+# NOTE: number $3 must be adjusted so printed at one time text length will not exceed the maximum command length (at least 4096 characters)
+write_text = $(call xargs,print_lines,$(subst $(newline),$$(empty) $$(empty),$(unspaces)),$3,$2,$(quiet),,,$(newline))
 
 # create symbolic link $2 -> $1
 # note: UNIX-specific
@@ -202,11 +204,11 @@ CBLD_LN_COLOR    ?= [36m
 CBLD_CHMOD_COLOR ?= [1;35m
 
 # remember value of variables that may be taken from the environment
-$(call config_remember_vars,CBLD_MAX_PATH_ARGS NUL RM RMDIR TRUE FALSE CD CP MV TOUCH MKDIR CMP SED CAT PRINTF LN CHMOD INSTALL)
+$(call config_remember_vars,CBLD_MAX_PATH_ARGS NUL RM RMDIR TRUE FALSE CD CP MV TOUCH MKDIR CMP SED GREP CAT ECHO PRINTF LN CHMOD INSTALL)
 
 # protect macros from modifications in target makefiles,
 # do not trace calls to macros used in ifdefs, exported to the environment of called tools or modified via operator +=
-$(call set_global,CBLD_MAX_PATH_ARGS NUL RM RMDIR TRUE FALSE CD CP MV TOUCH MKDIR CMP SED CAT PRINTF LN CHMOD INSTALL \
+$(call set_global,CBLD_MAX_PATH_ARGS NUL RM RMDIR TRUE FALSE CD CP MV TOUCH MKDIR CMP SED GREP CAT ECHO PRINTF LN CHMOD INSTALL \
   CBLD_LN_COLOR CBLD_CHMOD_COLOR)
 
 # protect macros from modifications in target makefiles, allow tracing calls to them
@@ -214,7 +216,7 @@ $(call set_global,CBLD_MAX_PATH_ARGS NUL RM RMDIR TRUE FALSE CD CP MV TOUCH MKDI
 $(call set_global,print_env=project_exported_vars delete_files delete_dirs try_delete_dirs delete_files_in1 delete_files_in \
   del_files_or_dirs1 del_files_or_dirs copy_files2 copy_files1 copy_files move_files2 move_files1 move_files \
   touch_files1 touch_files create_dir compare_files shell_escape sed_expr cat_file \
-  echo_line_escape echo_line echo_lines echo_text write_text create_simlink change_mode execute_in \
+  printf_line_escape print_line print_lines print_text write_text create_simlink change_mode execute_in \
   del_on_fail install_dir install_files2 install_files1 install_files,utils)
 
 # protect macros from modifications in target makefiles, allow tracing calls to them
