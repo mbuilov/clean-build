@@ -23,9 +23,9 @@ endif
 
 ifneq (,$(cb_checking)$(cb_tracing))
 # now all project-defined variables (except some of exported) have the 'override' attribute - protect these variables from modification
-# note: trace namespace: project
+# note: trace namespace: project (*)
 # note: filter-out %.^e - saved environment variables (see $(cb_dir)/stub/prepare.mk)
-# note: filter-out $(project_exported_vars) - exported variables (e.g. command-line ones) should not be traced
+# note: filter-out $(project_exported_vars) - exported variables (e.g. command-line ones) should not be traced (to not change their value)
 # note: 'cb_protected_vars' variable is used here temporary and will be redefined later
 $(eval cb_protected_vars += $$(call set_global,$(foreach =,$(filter-out $(dump_max) %.^e $(project_exported_vars),$(.VARIABLES)),$(if \
   $(findstring override,$(origin $=)),$=)),project))
@@ -55,11 +55,13 @@ CBLD_TRACE_FILTER_OUT ?=
 cb_check_cannot_trace = $(if $1,$(or $(filter $(CBLD_TRACE_FILTER_OUT),$1),$(if \
   $(CBLD_TRACE_FILTER),$(filter-out $(CBLD_TRACE_FILTER),$1))),1)
 
-# check that not trying to trace CBLD_% variables
+# check that not trying to trace expansion of CBLD_... variables (they are mostly taken from the environment and should not be changed)
 # $1 - names of traced macros
 # $2 - namespace
-# note: project variables, e.g. CBLD_ROOT, CBLD_OVERRIDES..... may be defined with 'override' keyword!!!!
-cb_check_tracing_env = $(if $(filter CBLD_%,$1),$(if $(filter file,$(foreach =,$(filter CBLD_%,$1),$(origin $=))),$(error \
+# note: do not check project-specific variables (like CBLD_ROOT, CBLD_OVERRIDES, etc.) - they are traced only if not exported
+#  (i.e. not in $(project_exported_vars) list) - see above: trace namespace: project (*)
+# note: traced project-specific variables have the 'override' $(origin)
+cb_check_tracing_env = $(if $(filter CBLD_%,$1),$(if $(findstring file,$(foreach =,$(filter CBLD_%,$1),$(origin $=))),$(error \
   tracing [$2]: $(foreach =,$(filter CBLD_%,$1),$(if $(findstring file,$(origin $=)),$=))$(newline)By convention, \
   CBLD_... variables may be defined in the environment and so must not be redefined (or traced))))$(info \
   tracing [$2]: $1)$1
@@ -142,7 +144,7 @@ cb_first_phase_vars:=
 else # cb_checking
 
 # list of clean-build protected variables
-# note: cannot reset 'cb_protected_vars' here, will reset it below
+# note: cannot reset 'cb_protected_vars' here - it temporary holds a protection code, will reset 'cb_protected_vars' below
 #cb_protected_vars:=
 
 # reset
