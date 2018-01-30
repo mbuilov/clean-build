@@ -792,7 +792,7 @@ fixpath = $(abspath $(call nonrelpath,$(dir $(cb_target_makefile)),$1))
 sed_multi_expr = $(foreach s,$(subst $(newline), ,$(unspaces)),-e $(call sed_expr,$(call tospaces,$s)))
 
 # define 'run_tool' macro
-# note: if included below $(utils_mk) is the $(cb_dir)/utils/cmd.mk - it will override some of macros defined here
+# note: included below $(utils_mk) (e.g. $(cb_dir)/utils/cmd.mk) may override some of macros defined in this $(cb_dir)/core/runtool.mk
 include $(cb_dir)/core/runtool.mk
 
 # define shell utilities
