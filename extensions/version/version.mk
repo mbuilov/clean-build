@@ -61,7 +61,7 @@ $(generated): buildnumbers := $(product_buildnumbers)
 $(generated): $(if $(product_buildnumbers),,| $(call get_tool,buildnumber))
 	$(if $(buildnumbers),,$(eval $@: buildnumbers := $(shell $(call ospath,$(firstword $|)))))
 	$(if $(buildnumbers),,$(error 'product_buildnumbers' is not defined and failed to determine it))
-	$(call suppress,GEN,$@)$(call echo_text,$(subst <build_date>,$(subst /,-,$(word 2,$(buildnumbers))) $(word \
+	$(call suppress,GEN,$@)$(call print_text,$(subst <build_date>,$(subst /,-,$(word 2,$(buildnumbers))) $(word \
   3,$(buildnumbers)),$(subst <build_num>,$(firstword $(buildnumbers)),$(templ)))) > $(call ospath,$@)
 
 $(define_targets)
