@@ -103,6 +103,7 @@ MKDIR   ?= mkdir
 FC      ?= fc
 SED     ?= sed
 TYPE    ?= type
+ECHO    ?= echo
 
 # delete file(s) $1 (short list, no more than CBLD_MAX_PATH_ARGS)
 # note: if a path contains a space, it must be in double-quotes: "1 2\3 4" "5 6\7 8\9" ...
@@ -210,8 +211,8 @@ cat_file = $(TYPE) $(ospath)
 # print one line of text (to stdout, for redirecting it to output file)
 # note: line must not contain $(newline)s
 # note: line will be ended with CRLF
-# NOTE: echoed line length must not exceed the maximum command line length (8191 characters)
-echo_line = echo.$(unquoted_escape)
+# NOTE: printed line length must not exceed the maximum command line length (8191 characters)
+print_line = $(ECHO).$(unquoted_escape)
 
 # print lines of text to output file or to stdout (for redirecting it to output file)
 # $1 - non-empty lines list, where entries are processed by $(unescape)
@@ -221,19 +222,19 @@ echo_line = echo.$(unquoted_escape)
 # $6 - empty if overwrite file $2, non-empty if append text to it
 # note: if path to the file $2 contains a space, it must be in double-quotes: "1 2\3 4"
 # NOTE: total text length must not exceed the maximum command line length (8191 characters)
-echo_lines = $(if $6,$3,$4)$(call tospaces,(echo.$(subst \
-  $(space),$(close_brace)&&$(open_brace)echo.,$(unquoted_escape))))$(if $2,>$(if $6,>) $2)
+print_lines = $(if $6,$3,$4)$(call tospaces,($(ECHO).$(subst \
+  $(space),$(close_brace)&&$(open_brace)$(ECHO).,$(unquoted_escape))))$(if $2,>$(if $6,>) $2)
 
 # print lines of text (to stdout, for redirecting it to output file)
 # note: each line will be ended with CRLF
 # NOTE: total text length must not exceed the maximum command line length (8191 characters)
-echo_text = $(if $(findstring $(newline),$1),$(call echo_lines,$(subst $(newline),$$(empty) $$(empty),$(unspaces))),$(echo_line))
+print_text = $(if $(findstring $(newline),$1),$(call print_lines,$(subst $(newline),$$(empty) $$(empty),$(unspaces))),$(print_line))
 
 # write lines of text $1 to the file $2 by $3 lines at one time
 # note: if path to the file $2 contains a space, it must be in double-quotes: "1 2\3 4"
 # NOTE: any line must be less than the maximum command length (8191 characters)
-# NOTE: number $3 must be adjusted so echoed at one time text length will not exceed the maximum command length (8191 characters)
-write_text = $(call xargs,echo_lines,$(subst $(newline),$$(empty) $$(empty),$(unspaces)),$3,$2,$(quiet),,,$(newline))
+# NOTE: number $3 must be adjusted so printed at one time text length will not exceed the maximum command length (8191 characters)
+write_text = $(call xargs,print_lines,$(subst $(newline),$$(empty) $$(empty),$(unspaces)),$3,$2,$(quiet),,,$(newline))
 
 # create symbolic link $2 -> $1
 # note: UNIX-specific, so not defined for WINDOWS
@@ -285,7 +286,7 @@ show_tool_vars = $(info setlocal$(foreach =,$(if $2,PATH) $4,$(newline)set $==$(
 
 # show after executing a command
 # note: override 'show_tool_vars_end' macro from $(cb_dir)/core/runtool.mk
-show_tool_vars_end = $(newline)@echo endlocal
+show_tool_vars_end = $(newline)@$(ECHO) endlocal
 
 # windows terminal do not supports ANSI color escape sequences
 # note: override 'cb_print_percents' macro from $(cb_dir)/core/suppress.mk
@@ -302,14 +303,14 @@ endif
 # filter command's output through pipe, then send it to stderr
 # $1 - command
 # $2 - filtering expression to filter stdout, must be non-empty, for example: |$(FINDSTR) /BC:ABC |$(FINDSTR) /BC:CDE
-filter_output = (($1 2>&1 && echo ok>&2)$2)3>&2 2>&1 1>&3|$(FINDSTR) /BC:ok>$(NUL)
+filter_output = (($1 2>&1 && $(ECHO) ok>&2)$2)3>&2 2>&1 1>&3|$(FINDSTR) /BC:ok>$(NUL)
 
 # remember value of variables that may be taken from the environment
-$(call config_remember_vars,SHELL CBLD_DONT_STRIP_PATH CBLD_MAX_PATH_ARGS NUL DEL RD CD FIND FINDSTR COPY MOVE MKDIR FC SED TYPE)
+$(call config_remember_vars,SHELL CBLD_DONT_STRIP_PATH CBLD_MAX_PATH_ARGS NUL DEL RD CD FIND FINDSTR COPY MOVE MKDIR FC SED TYPE ECHO)
 
 # protect macros from modifications in target makefiles,
 # do not trace calls to macros used in ifdefs, exported to the environment of called tools or modified via operator +=
-$(call set_global,SHELL CBLD_DONT_STRIP_PATH CBLD_MAX_PATH_ARGS NUL DEL RD CD FIND FINDSTR COPY MOVE MKDIR FC SED TYPE \
+$(call set_global,SHELL CBLD_DONT_STRIP_PATH CBLD_MAX_PATH_ARGS NUL DEL RD CD FIND FINDSTR COPY MOVE MKDIR FC SED TYPE ECHO \
   create_simlink change_mode)
 
 # protect macros from modifications in target makefiles, allow tracing calls to them
@@ -317,7 +318,7 @@ $(call set_global,SHELL CBLD_DONT_STRIP_PATH CBLD_MAX_PATH_ARGS NUL DEL RD CD FI
 $(call set_global,print_env=project_exported_vars delete_files delete_dirs try_delete_dirs delete_files_in1 delete_files_in \
   del_files_or_dirs1 del_files_or_dirs filter_copy_output suppress_copy_output suppress_move_output copy_files1 copy_files \
   move_files1 move_files touch_files1 touch_files create_dir compare_files shell_escape unquoted_escape sed_expr cat_file \
-  echo_line echo_lines echo_text write_text execute_in del_on_fail install_dir install_files filter_output,utils)
+  print_line print_lines print_text write_text execute_in del_on_fail install_dir install_files filter_output,utils)
 
 # protect macros from modifications in target makefiles, allow tracing calls to them
 # note: trace namespace: core
