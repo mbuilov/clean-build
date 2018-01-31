@@ -4,7 +4,7 @@
 # Licensed under GPL version 2 or any later version, see COPYING
 #----------------------------------------------------------------------------------
 
-# support for rules that generate multiple files at once (e.g. by calling bison tool)
+# support for rules that generate multiple files at once (e.g. bison)
 
 ifndef toclean
 
@@ -18,7 +18,7 @@ cb_multi_targets:=
 
 # make a dependency chain of target files of a multi-target rule on each other: 1 2 3 4 -> 2:| 1; 3:| 2; 4:| 3;
 # $1 - list of generated files (absolute paths without spaces)
-# note: without dependency chain, a rule that generates some intermediate target, say 2, may return before the target is really created
+# note: without dependency chain, a rule that generates some intermediate target, say 2, may return before the target 2 is really created
 cb_multi_target_seq = $(subst |,:| ,$(subst $(space),$(newline),$(filter-out \
   ||%,$(join $(addsuffix |,$(wordlist 2,999999,$1) |),$1))))
 
