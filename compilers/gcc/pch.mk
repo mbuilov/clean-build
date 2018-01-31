@@ -4,7 +4,7 @@
 # Licensed under GPL version 2 or any later version, see COPYING
 #----------------------------------------------------------------------------------
 
-# gcc compiler precompiled headers support
+# gcc precompiled headers support
 
 # included by $(cb_dir)/compilers/gcc.mk
 
@@ -45,8 +45,7 @@ ifdef c_dep_suffix
 $(call define_prepend,gcc_pch_rule_templ,-include $$5$(c_dep_suffix)$(newline))
 endif
 
-# define a rule for building C/C++ precompiled header,
-#  as assumed by 'pch_template' macro from $(cb_dir)/types/c/pch.mk
+# define a rule for building C/C++ precompiled header, as assumed by 'pch_template' macro from $(cb_dir)/types/c/pch.mk
 # $1 - target type: exe,lib,dll,klib
 # $2 - $(call fixpath,$(pch))
 # $3 - $(filter $(cc_mask),$(call fixpath,$(with_pch)))
@@ -56,6 +55,7 @@ endif
 # $v - variant: R,P,D
 # note: in generated code, may use target-specific variables:
 #  'pch', 'cc_with_pch', 'cxx_with_pch' - defined by 'pch_vars_templ' macro from $(cb_dir)/types/c/pch.mk
+# note: this callback is passed to 'pch_template' macro defined in $(cb_dir)/types/c/pch.mk
 gcc_pch_templatev = $(if \
   $3,$(call gcc_pch_rule_templ,$1,$2,$3,$5,$5/$(basename $(notdir $2))_pch_c.h,pch_cc))$(if \
   $4,$(call gcc_pch_rule_templ,$1,$2,$4,$5,$5/$(basename $(notdir $2))_pch_cxx.h,pch_cxx))
@@ -63,11 +63,13 @@ gcc_pch_templatev = $(if \
 # code to evaluate to build with precompiled headers
 # $t - target type: exe,lib,dll,klib
 # note: defines target-specific variables: 'pch', 'cc_with_pch', 'cxx_with_pch' (in 'pch_template' macro)
+# note: 'pch_template' macro is defined in $(cb_dir)/types/c/pch.mk
+# note: called by 'c_define_app_rules' macro patched in $(cb_dir)/compilers/gcc.mk
 gcc_pch_templatet = $(call pch_template,$t,gcc_pch_templatev)
 
 else # toclean
 
-# return objects to cleanup created while building with precompiled header,
+# return objects to cleanup (which are created while building with precompiled header),
 #  as assumed by 'pch_template' macro from $(cb_dir)/types/c/pch.mk
 # $1 - target type: exe,lib,dll,klib
 # $2 - $(basename $(notdir $(pch)))
@@ -75,12 +77,16 @@ else # toclean
 # $4 - $(filter $(cxx_mask),$(with_pch))
 # $5 - $(call form_obj_dir,$1,$v)
 # $v - variant: R,P,D
+# note: $(c_dep_suffix) - may expand to an empty value
+# note: this callback is passed to 'pch_template' macro defined in $(cb_dir)/types/c/pch.mk
 gcc_pch_templatev = $(if \
   $3,$(addprefix $5/$2_pch_c.h,.gch $(c_dep_suffix))) $(if \
   $4,$(addprefix $5/$2_pch_cxx.h,.gch $(c_dep_suffix)))
 
 # cleanup objects created while building with precompiled header
 # $t - target type: exe,lib,dll,klib
+# note: 'pch_template' macro is defined in $(cb_dir)/types/c/pch.mk
+# note: called by 'c_define_app_rules' macro patched in $(cb_dir)/compilers/gcc.mk
 gcc_pch_templatet = $(call toclean,$(call pch_template,$t,gcc_pch_templatev))
 
 endif # toclean
