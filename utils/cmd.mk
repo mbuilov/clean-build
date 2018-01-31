@@ -91,7 +91,7 @@ nonrelpath = $(if $(findstring :,$2),$(call nonrelpath1,$1,$(sort $(filter %:,$(
 NUL ?= NUL
 
 # standard tools
-# note: most of them are the commands of the cmd.exe, except: find, findstr, fc, sed
+# note: most of them are builtin commands of cmd.exe, except: find, findstr, fc, sed
 DEL     ?= del
 RD      ?= rd
 CD      ?= cd
@@ -103,15 +103,18 @@ MKDIR   ?= mkdir
 FC      ?= fc
 SED     ?= sed
 TYPE    ?= type
-ECHO    ?= echo
+
+# note: assume 'echo' and 'rem' are builtin commands of cmd.exe, they are used in special forms:
+#  'echo.' - to print an empty line (ended with CRLF)
+#  'rem.>' - to create an empty file (of zero size)
 
 # delete file(s) $1 (short list, no more than CBLD_MAX_PATH_ARGS)
 # note: if a path contains a space, it must be in double-quotes: "1 2\3 4" "5 6\7 8\9" ...
-delete_files = for %%f in ($(ospath)) do if exist %%f $(DEL) /f/q %%f
+delete_files = for %%f in ($(ospath)) do if exist %%f $(DEL) /f /q %%f
 
 # delete directories $1 (recursively) (short list, no more than CBLD_MAX_PATH_ARGS)
 # note: if a path contains a space, it must be in double-quotes: "1 2\3 4" "5 6\7 8/9" ...
-delete_dirs = for %%f in ($(ospath)) do if exist %%f $(RD) /s/q %%f
+delete_dirs = for %%f in ($(ospath)) do if exist %%f $(RD) /s /q %%f
 
 # try to non-recursively delete directories $1 if they are empty (short list, no more than CBLD_MAX_PATH_ARGS)
 # note: if a path contains a space, it must be in double-quotes: "1 2\3 4" "5 6\7 8\9" ...
@@ -122,13 +125,13 @@ try_delete_dirs = $(RD) $(ospath) 2>$(NUL)
 # note: to support long list, paths in $2 _must_ not contain spaces
 # note: if path to the directory $1 contains a space, it must be in double-quotes: "1 2\3 4"
 # note: $6 - empty on first call, $(newline) on next calls
-delete_files_in1 = $(if $6,$(quiet))$(CD) $2 && for %%f in ($1) do if exist %%f $(DEL) /f/q %%f
+delete_files_in1 = $(if $6,$(quiet))$(CD) $2 && for %%f in ($1) do if exist %%f $(DEL) /f /q %%f
 delete_files_in  = $(call xcmd,delete_files_in1,$(call ospath,$2),$(CBLD_MAX_PATH_ARGS),$(ospath),,,)
 
 # delete files and/or directories (recursively) (long list)
 # note: to support long list, the paths _must_ not contain spaces
 # note: $6 - empty on first call, $(newline) on next calls
-del_files_or_dirs1 = $(if $6,$(quiet))for %%f in ($1) do if exist %%f\* ($(RD) /s/q %%f) else if exist %%f $(DEL) /f/q %%f
+del_files_or_dirs1 = $(if $6,$(quiet))for %%f in ($1) do if exist %%f\* ($(RD) /s /q %%f) else if exist %%f $(DEL) /f /q %%f
 del_files_or_dirs  = $(call xcmd,del_files_or_dirs1,$(ospath),$(CBLD_MAX_PATH_ARGS),,,,)
 
 # filter the output of the 'copy' or 'move' command:
@@ -155,9 +158,9 @@ suppress_move_output := $(suppress_copy_output)
 # - file $1 to file $2         (path to file $1 _must_ not contain spaces, but path to file $2 may contain spaces)
 # note: $6 - empty on first call, $(newline) on next calls
 # note: if path to the directory/file $2 contains a space, it must be in double-quotes: "1 2\3 4"
-copy_files1 = $(if $6,$(quiet))for %%f in ($1) do $(COPY) /y/b %%f $2$(suppress_copy_output)
+copy_files1 = $(if $6,$(quiet))for %%f in ($1) do $(COPY) /y /b %%f $2$(suppress_copy_output)
 copy_files  = $(if $(word 2,$1),$(call xcmd,copy_files1,$(ospath),$(CBLD_MAX_PATH_ARGS),$(call \
-  ospath,$2),,,),$(COPY) /y/b $(call ospath,$1 $2)$(suppress_copy_output))
+  ospath,$2),,,),$(COPY) /y /b $(call ospath,$1 $2)$(suppress_copy_output))
 
 # move file(s) (long list) preserving modification date:
 # - file(s) $1 to directory $2 (paths to files $1 _must_ not contain spaces, but path to directory $2 may contain spaces) or
@@ -171,7 +174,7 @@ move_files  = $(if $(word 2,$1),$(call xcmd,move_files1,$(ospath),$(CBLD_MAX_PAT
 # update modification date of given file(s) or create file(s) if they do not exist
 # note: to support long list, the paths _must_ not contain spaces
 # note: $6 - empty on first call, $(newline) on next calls
-touch_files1 = $(if $6,$(quiet))for %%f in ($1) do if exist %%f ($(COPY) /y/b %%f+,, %%f$(suppress_copy_output)) else rem. > %%f
+touch_files1 = $(if $6,$(quiet))for %%f in ($1) do if exist %%f ($(COPY) /y /b %%f+,, %%f$(suppress_copy_output)) else rem.> %%f
 touch_files  = $(call xcmd,touch_files1,$(ospath),$(CBLD_MAX_PATH_ARGS),,,,)
 
 # create a directory
@@ -196,7 +199,7 @@ compare_files = $(FC) /t $(call ospath,$1 $2)
 # escape program argument to pass it via shell: 1 " 2 -> "1 "" 2"
 shell_escape = "$(subst ","",$(subst \",\\",$(subst %,%%,$1)))"
 
-# escape special characters in unquoted argument of 'echo' or 'set' command
+# escape special characters in unquoted argument of 'echo' or 'set' builtin command of cmd.exe
 unquoted_escape = $(subst $(open_brace),^$(open_brace),$(subst $(close_brace),^$(close_brace),$(subst \
   %,%%,$(subst <,^<,$(subst >,^>,$(subst |,^|,$(subst &,^&,$(subst ",^",$(subst ^,^^,$1)))))))))
 
@@ -211,8 +214,10 @@ cat_file = $(TYPE) $(ospath)
 # print one line of text (to stdout, for redirecting it to output file)
 # note: line must not contain $(newline)s
 # note: line will be ended with CRLF
+# note: use dot '.' after 'echo' to print just an empty line if $(unquoted_escape) expands to nothing
+# note: surround whole expression by braces to avoid adding extra space at end of line in this example: $(call print_line,text) > f.out
 # NOTE: printed line length must not exceed the maximum command line length (8191 characters)
-print_line = $(ECHO).$(unquoted_escape)
+print_line = (echo.$(unquoted_escape))
 
 # print lines of text to output file or to stdout (for redirecting it to output file)
 # $1 - non-empty lines list, where entries are processed by $(unescape)
@@ -222,8 +227,8 @@ print_line = $(ECHO).$(unquoted_escape)
 # $6 - empty if overwrite file $2, non-empty if append text to it
 # note: if path to the file $2 contains a space, it must be in double-quotes: "1 2\3 4"
 # NOTE: total text length must not exceed the maximum command line length (8191 characters)
-print_lines = $(if $6,$3,$4)$(call tospaces,($(ECHO).$(subst \
-  $(space),$(close_brace)&&$(open_brace)$(ECHO).,$(unquoted_escape))))$(if $2,>$(if $6,>) $2)
+print_lines = $(if $6,$3,$4)$(call tospaces,(echo.$(subst \
+  $(space),$(close_brace)&&$(open_brace)echo.,$(unquoted_escape))))$(if $2,>$(if $6,>) $2)
 
 # print lines of text (to stdout, for redirecting it to output file)
 # note: each line will be ended with CRLF
@@ -286,32 +291,30 @@ show_tool_vars = $(info setlocal$(foreach =,$(if $2,PATH) $4,$(newline)set $==$(
 
 # show after executing a command
 # note: override 'show_tool_vars_end' macro from $(cb_dir)/core/runtool.mk
-show_tool_vars_end = $(newline)@$(ECHO) endlocal
+show_tool_vars_end = $(newline)@echo endlocal
 
-# windows terminal do not supports ANSI color escape sequences
-# note: override 'cb_print_percents' macro from $(cb_dir)/core/suppress.mk
-ifeq (,$(filter ansi-colors,$(.FEATURES)))
+# windows terminal does not support ANSI color escape sequences (until Windows 10)
+# note: 'ansi-colors' feature support is added to Gnu Make by this patch:
+#  https://github.com/mbuilov/gnumake-windows/blob/master/make-4.2.1-win32-colors.patch
+# note: override 'cb_print_percents' and 'cb_colorize' macros from $(cb_dir)/core/suppress.mk
+CBLD_ENABLE_ANSI_COLORS ?= $(filter ansi-colors,$(.FEATURES))
+ifeq (,$(CBLD_ENABLE_ANSI_COLORS))
 cb_print_percents = [$1]
-endif
-
-# windows terminal do not supports ANSI color escape sequences
-# note: override 'cb_colorize' macro from $(cb_dir)/core/suppress.mk
-ifeq (,$(filter ansi-colors,$(.FEATURES)))
 cb_colorize = $1$(padto)$2
 endif
 
 # filter command's output through pipe, then send it to stderr
 # $1 - command
 # $2 - filtering expression to filter stdout, must be non-empty, for example: |$(FINDSTR) /BC:ABC |$(FINDSTR) /BC:CDE
-filter_output = (($1 2>&1 && $(ECHO) ok>&2)$2)3>&2 2>&1 1>&3|$(FINDSTR) /BC:ok>$(NUL)
+filter_output = (($1 2>&1 && echo ok>&2)$2)3>&2 2>&1 1>&3|$(FINDSTR) /BC:ok>$(NUL)
 
 # remember value of variables that may be taken from the environment
-$(call config_remember_vars,SHELL CBLD_DONT_STRIP_PATH CBLD_MAX_PATH_ARGS NUL DEL RD CD FIND FINDSTR COPY MOVE MKDIR FC SED TYPE ECHO)
+$(call config_remember_vars,SHELL CBLD_DONT_STRIP_PATH CBLD_MAX_PATH_ARGS NUL DEL RD CD FIND FINDSTR COPY MOVE MKDIR FC SED TYPE)
 
 # protect macros from modifications in target makefiles,
 # do not trace calls to macros used in ifdefs, exported to the environment of called tools or modified via operator +=
-$(call set_global,SHELL CBLD_DONT_STRIP_PATH CBLD_MAX_PATH_ARGS NUL DEL RD CD FIND FINDSTR COPY MOVE MKDIR FC SED TYPE ECHO \
-  create_simlink change_mode)
+$(call set_global,SHELL CBLD_DONT_STRIP_PATH CBLD_MAX_PATH_ARGS NUL DEL RD CD FIND FINDSTR COPY MOVE MKDIR FC SED TYPE \
+  create_simlink change_mode CBLD_ENABLE_ANSI_COLORS)
 
 # protect macros from modifications in target makefiles, allow tracing calls to them
 # note: trace namespace: utils
