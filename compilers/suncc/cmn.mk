@@ -6,6 +6,9 @@
 
 # common suncc compiler definitions, included by $(cb_dir)/compilers/suncc.mk
 
+# note: c_dep_suffix - defined in $(cb_dir)/types/c/c_base.mk
+ifdef c_dep_suffix
+
 # $(SED) script used to generate dependencies file from suncc compiler output
 #
 # note: cannot use '-xMD' cc option - it generates .d files without phony targets for the header files, e.g.:
@@ -24,23 +27,26 @@
 #
 suncc_deps_script = \
 -e '/^$(tab)*\//!{p;d;}' \
--e 's/^\$(tab)*//;$(foreach x,$3,\@^$x.*@d;)s@.*@&:\$(newline)$2: &@;w $(basename $2).d'
+-e 's/^\$(tab)*//;$(foreach x,$3,\@^$x.*@d;)s@.*@&:\$(newline)$2: &@;w $(basename $2)$(c_dep_suffix)'
 
-# optimization: replace references to $(tab) and $(newline) with their values
-$(call expand_partially,suncc_deps_script,tab newline)
+# optimization: replace references to $(tab), $(newline) and $(c_dep_suffix) with their values
+$(call expand_partially,suncc_deps_script,tab newline c_dep_suffix)
 
-# either just call compiler or call compiler and auto-generate dependencies
+# call compiler and auto-generate dependencies
 # $1 - compiler with options
 # $2 - target object file
 # $3 - prefixes of system includes to filter out, e.g. /usr/include/
 # note: redirect compiler output to stderr, stdout is used for build-script generation (in verbose mode)
-# note: CBLD_NO_DEPS - defined in $(cb_dir)/core/_defs.mk
 # note: SED, GREP, NUL - defined in $(utils_mk) (e.g. $(cb_dir)/utils/unix.mk)
-ifeq (,$(CBLD_NO_DEPS))
-wrap_suncc = $1
-else
 wrap_suncc = { { $1 -H 2>&1 && $(ECHO) OK >&2; } | $(SED) -n $(suncc_deps_script) 2>&1; } 3>&2 2>&1 1>&3 3>&- | $(GREP) OK > $(NUL)
-endif
+
+else # !c_dep_suffix
+
+# just call compiler
+# $1 - compiler with options
+wrap_suncc = $1
+
+endif # !c_dep_suffix
 
 # protect macros from modifications in target makefiles, allow tracing calls to them
 # note: trace namespace: suncc
