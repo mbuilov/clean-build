@@ -31,7 +31,7 @@ endif
 ifndef toclean
 
 # $1  - target type: exe,lib,dll,klib
-# $2  - $(call fixpath,$(pch))
+# $2  - $(call fixpath,$(pch)), e.g. /project/include/xxx.h
 # $3  - sources to build with precompiled header (without directory part)
 # $4  - $(call form_obj_dir,$1,$v)
 # $5  - $(call form_trg,$1,$v)
@@ -40,16 +40,16 @@ ifndef toclean
 # $8  - pch source (e.g. /build/obj/xxx_pch.c   or /build/obj/xxx_pch.cc)
 # $9  - pch object (e.g. /build/obj/xxx_pch_c.o or /build/obj/xxx_pch_cc.o)
 # $10 - pch        (e.g. /build/obj/xxx_c.cpch  or /build/obj/xxx_cc.Cpch)
-# $11 - objects $(patsubst %,$4/%$(obj_suffix),$(basename $3))
-# $v  - variant: R,P,D
+# $11 - objects to build with pch: $(patsubst %,$4/%$(obj_suffix),$(basename $3))
+# $v  - non-empty variant: R,P,D
 # target-specific: 'pch' - defined by 'pch_vars_templ' from $(cb_dir)/types/c/pch.mk
-# note: when compiling pch header, two entities are created: pch object - $9 and pch - $(10), so add dependency of pch $(10) on
-#  pch object $9, like in 'multi_target' rule - when two files are generated at once by one call, also define target-specific
-#  variable '$7_built' - to check if pch has already been built while building pch object $9
+# note: when compiling pch header, two entities are created: pch object $9 and pch $(10), so add order-only dependency of pch $(10)
+#  on pch object $9 - to avoid parallel compilation of $(10) and $9, also define target-specific variable '$7_built' - to check if
+#  pch $(10) has already been built while building pch object $9
 # note: define target-specific variable 'pch_gen_dir' for use by cmn_pcc/cmn_pcxx
 # note: link pch object $9 to the target $5
-# note: add dependency of objects $(11) of the target on both pch $(10) and pch object $9 - for the (odd) case when pch $(10) is
-#  up-to-date, but pch object $9 is not: then don't start compiling objects $(11) until pch object $9 is recreated together with pch $(10)
+# note: add dependency of objects $(11) on pch object $9 - for the (odd) case when needed for the objects pch $(10) is up-to-date,
+#  but pch object $9 is not: then don't start compiling objects $(11) until pch object $9 is recreated together with pch $(10)
 # note: last line must be empty!
 define suncc_pch_rule_templ
 $5:$7_built:=
@@ -62,23 +62,24 @@ $9 $(10): $2 | $8 $4 $$(order_deps)
 $(subst $(space),$(newline),$(join $(addsuffix :|,$(11)),$(patsubst %,$6/%$(suffix $8),$3)))
 
 endef
+# note: 'c_dep_suffix' - defined in $(cb_dir)/types/c/c_base.mk
 ifdef c_dep_suffix
-$(call define_prepend,suncc_pch_rule_templ,-include $$9$(c_dep_suffix)$(newline))
+$(call define_prepend,suncc_pch_rule_templ,-include $$(basename $$9)$(c_dep_suffix)$(newline))
 endif
 
 # define a rule for building precompiled header
 # $1  - target type: exe,lib,dll,klib
-# $2  - $(call fixpath,$(pch))
+# $2  - $(call fixpath,$(pch)), e.g. /project/include/xxx.h
 # $3  - $(notdir $(filter $(cc_mask),$(call fixpath,$(with_pch))))
 #    or $(notdir $(filter $(cxx_mask),$(call fixpath,$(with_pch))))
 # $4  - $(call form_obj_dir,$1,$v)
 # $5  - $(call form_trg,$1,$v)
 # $6  - common objdir (for R-variant)
-# $7  - $(basename $(notdir $2))
+# $7  - $(basename $(notdir $2)), e.g. xxx
 # $8  - pch header compiler: 'pch_cc' or 'pch_cxx'
 # $9  - pch source suffix: 'c' or 'cc'
 # $10 - compiled pch extension: .cpch or .Cpch (predefined by suncc)
-# $v  - variant: R,P,D
+# $v  - non-empty variant: R,P,D
 # note: pch souce:  $6/$7_pch.$9
 # note: pch object: $4/$7_pch_$9$(obj_suffix)
 # note: pch:        $4/$7_$9$(10)
@@ -93,7 +94,7 @@ suncc_pch_rule = $(call suncc_pch_rule_templ,$1,$2,$3,$4,$5,$6,$8,$6/$7_pch.$9,$
 # $6 - $(call form_trg,$1,$v)
 # $7 - common objdir (for R-variant)
 # $8 - $(basename $(notdir $2))
-# $v - variant: R,P,D
+# $v - non-empty variant: R,P,D
 suncc_pch_templatev1 = $(if \
   $3,$(call suncc_pch_rule,$1,$2,$(notdir $3),$5,$6,$7,$8,pch_cc,c,.cpch))$(if \
   $4,$(call suncc_pch_rule,$1,$2,$(notdir $4),$5,$6,$7,$8,pch_cxx,cc,.Cpch))
@@ -105,14 +106,14 @@ suncc_pch_templatev1 = $(if \
 # $4 - $(filter $(cxx_mask),$(call fixpath,$(with_pch)))
 # $5 - $(call form_obj_dir,$1,$v)
 # $6 - $(call form_trg,$1,$v)
-# $v - variant: R,P,D
+# $v - non-empty variant: R,P,D
 # note: in generated code, may use target-specific variables:
 #  'pch', 'cc_with_pch', 'cxx_with_pch' - defined by 'pch_vars_templ' macro from $(cb_dir)/types/c/pch.mk
 # note: this callback is passed to 'pch_template' macro defined in $(cb_dir)/types/c/pch.mk
 suncc_pch_templatev = $(call suncc_pch_templatev1,$1,$2,$3,$4,$5,$6,$(call form_obj_dir,$1),$(basename $(notdir $2)))
 
 # $1 - common objdir (for R-variant)
-# $2 - $(call fixpath,$(pch))
+# $2 - $(call fixpath,$(pch)), e.g. /project/include/xxx.h
 # $3 - pch source (e.g. /build/obj/xxx_pch.c or /build/obj/xxx_pch.cc)
 # note: new value of 'cb_needed_dirs' will be accounted in the expanded next 'c_base_template' (see $(cb_dir)/types/c/c_base.mk)
 # note: last line must be empty!
@@ -175,7 +176,7 @@ else # toclean
 # $3 - $(filter $(cc_mask),$(with_pch))
 # $4 - $(filter $(cxx_mask),$(with_pch))
 # $5 - $(call form_obj_dir,$1,$v)
-# $v - variant: R,P,D
+# $v - non-empty variant: R,P,D
 # note: $(c_dep_suffix) - may expand to an empty value
 # note: this callback is passed to 'pch_template' macro defined in $(cb_dir)/types/c/pch.mk
 suncc_pch_templatev = $(if \
