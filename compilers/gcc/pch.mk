@@ -32,7 +32,7 @@ ifndef toclean
 # $5 - $4/$(basename $(notdir $2))_pch_c.h
 #   or $4/$(basename $(notdir $2))_pch_cxx.h
 # $6 - pch header compiler: 'pch_cc' or 'pch_cxx'
-# $v - variant: R,P,D
+# $v - non-empty variant: R,P,D
 # target-specific: 'pch' - defined by 'pch_vars_templ' from $(cb_dir)/types/c/pch.mk
 # note: last line must be empty!
 define gcc_pch_rule_templ
@@ -41,6 +41,7 @@ $5.gch: $2 | $4 $$(order_deps)
 	$$(call $6,$$@,$$(pch),$1,$v)
 
 endef
+# note: 'c_dep_suffix' - defined in $(cb_dir)/types/c/c_base.mk
 ifdef c_dep_suffix
 $(call define_prepend,gcc_pch_rule_templ,-include $$5$(c_dep_suffix)$(newline))
 endif
@@ -52,7 +53,7 @@ endif
 # $4 - $(filter $(cxx_mask),$(call fixpath,$(with_pch)))
 # $5 - $(call form_obj_dir,$1,$v)
 # $6 - $(call form_trg,$1,$v) (not used)
-# $v - variant: R,P,D
+# $v - non-empty variant: R,P,D
 # note: in generated code, may use target-specific variables:
 #  'pch', 'cc_with_pch', 'cxx_with_pch' - defined by 'pch_vars_templ' macro from $(cb_dir)/types/c/pch.mk
 # note: this callback is passed to 'pch_template' macro defined in $(cb_dir)/types/c/pch.mk
@@ -76,7 +77,7 @@ else # toclean
 # $3 - $(filter $(cc_mask),$(with_pch))
 # $4 - $(filter $(cxx_mask),$(with_pch))
 # $5 - $(call form_obj_dir,$1,$v)
-# $v - variant: R,P,D
+# $v - non-empty variant: R,P,D
 # note: $(c_dep_suffix) - may expand to an empty value
 # note: this callback is passed to 'pch_template' macro defined in $(cb_dir)/types/c/pch.mk
 gcc_pch_templatev = $(if \
