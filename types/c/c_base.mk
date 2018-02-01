@@ -31,7 +31,7 @@ c_target_types:=
 CBLD_NO_PCH ?= $(debug)
 
 # object file suffix
-# note: may overridden by the selected C/C++ compiler
+# note: may overridden by the selected C/C++ compiler - e.g. in included next $(c_compiler_mk)
 obj_suffix := .o
 
 # suffix of compiler-generated dependencies of the sources, empty if dependences generation is disabled
