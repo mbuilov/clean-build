@@ -5,7 +5,7 @@
 #----------------------------------------------------------------------------------
 
 # generic rules and definitions for building targets,
-#  defines constants, such as: CBLD_TARGET, CBLD_OS, CBLD_TCPU, CBLD_CPU
+#  defines constants, such as: CBLD_TARGET, CBLD_OS, CBLD_BCPU, CBLD_TCPU, CBLD_CPU
 #  different core macros, e.g.: 'toclean', 'add_generated', 'is_tool_mode', 'define_targets', 'make_continue', 'ospath', 'fixpath'
 #  and many more.
 
@@ -84,7 +84,7 @@ ifeq (,$(call ver_compatible,$(clean_build_version),$(clean_build_required_versi
 $(error incompatible clean-build version: $(clean_build_version), project needs: $(clean_build_required_version))
 endif
 
-# CBLD_BUILD - directory of built artifacts - must be defined prior including this makefile
+# required: CBLD_BUILD - directory of built artifacts - must be defined prior including this makefile
 # note: we need non-recursive (simple) value of CBLD_BUILD to create simple variables: def_bin_dir, def_lib_dir, etc.
 cb_build := $(abspath $(CBLD_BUILD))
 
@@ -117,56 +117,62 @@ include $(cb_dir)/core/protection.mk
 # note: normally these defaults are overridden in project configuration makefile
 project_supported_targets := DEBUG RELEASE
 
-# what target type to build (DEBUG, RELEASE, etc.)
+# required: what target type to build (DEBUG, RELEASE, etc.)
 # note: normally CBLD_TARGET get overridden by specifying it in the command line
 CBLD_TARGET ?= RELEASE
 
-# operating system we are building for (WIN7, DEBIAN6, SOLARIS10, etc.)
-# note: normally CBLD_OS get overridden by specifying it in the command line
-# note: CBLD_OS value may affect default values of other variables (CBLD_TCPU, CBLD_UTILS, etc.)
+# optional: the operating system we are building for (WINDOWS, LINUX, SUNOS, etc.)
+# note: CBLD_OS value may affect default values of other variables (CBLD_BCPU, CBLD_UTILS, etc.)
 ifeq (undefined,$(origin CBLD_OS))
-ifneq (,$(filter /cygdrive/%,$(CURDIR)))
-CBLD_OS := CYGWIN
-else ifneq (,$(filter /%,$(CURDIR)))
-CBLD_OS := MSYS
-else ifneq (environment,$(origin OS))
+ifneq (,$(filter /%,$(CURDIR)))
+# Cygwin:  CYGWIN_NT-6.1
+# MinGW64: MINGW64_NT-6.1
+# Solaris: SUNOS
+# Linux:   LINUX
 CBLD_OS := $(call toupper,$(shell uname))
-else ifeq (Windows_NT,$(OS))
+else ifneq ("$(CURDIR)","$(subst :,,$(CURDIR))")
 CBLD_OS := WINDOWS
 else
-# unknown, should be defined in the project configuration makefile or in the command line
-CBLD_OS :=
+# unknown
+CBLD_OS:=
 endif
 endif # !CBLD_OS
 
-# processor architecture of build helper tools created while the build
-# note: CBLD_TCPU likely is the native processor architecture of the build toolchain
+# optional: processor architecture of the Build machine
 # note: equivalent of '--build' Gnu Autoconf configure script option
-# note: CBLD_TCPU specification may also encode format of executable files, e.g. CBLD_TCPU=m68k-coff, it is checked by the C compiler
-# note: normally CBLD_TCPU get overridden by specifying it in command line
-ifeq (undefined,$(origin CBLD_TCPU))
+# note: CBLD_BCPU specification may also encode format of executable files, e.g. CBLD_BCPU=m68k-coff, it is checked by the C compiler
+ifeq (undefined,$(origin CBLD_BCPU))
 ifndef CBLD_OS
-CBLD_TCPU := x86
-else ifeq (,$(filter WIN%,$(CBLD_OS)))
-CBLD_TCPU := $(shell uname -m)
-else ifeq (AMD64,$(if $(findstring environment,$(origin PROCESSOR_ARCHITECTURE)),$(PROCESSOR_ARCHITECTURE)))
-# win64
-CBLD_TCPU := x86_64
-else ifeq (AMD64,$(if $(findstring environment,$(origin PROCESSOR_ARCHITEW6432)),$(PROCESSOR_ARCHITEW6432)))
-# wow64
-CBLD_TCPU := x86_64
+# unknown
+CBLD_BCPU:=
+else ifneq (,$(filter WIN%,$(CBLD_OS)))
+# x86, IA64, AMD64, ARM, ARM64, ...
+ifneq (undefined,$(origin PROCESSOR_ARCHITEW6432))
+CBLD_BCPU := $(PROCESSOR_ARCHITEW6432)
 else
-# win32
-CBLD_TCPU := x86
+CBLD_BCPU := $(PROCESSOR_ARCHITECTURE)
 endif
-endif # !CBLD_TCPU
+else # !WINDOWS
+# i386, x86_64, ...
+CBLD_BCPU := $(shell uname -p)
+ifeq (unknown,$(CBLD_BCPU))
+CBLD_BCPU := $(shell uname -m)
+endif
+endif # !WINDOWS
+endif # !CBLD_BCPU
 
-# processor architecture we are building the package for (x86, sparc64, armv5, mips24k, etc.)
+# optional: processor architecture we are building the package for (x86, i386, x86_64, AMD64, sparc64, armv5, mips24k, etc.)
 # note: equivalent of '--host' Gnu Autoconf configure script option
 # note: CBLD_CPU specification may also encode format of executable files, e.g. CBLD_CPU=m68k-coff, it is checked by the C compiler
-# note: normally CBLD_CPU get overridden by specifying it in command line
 ifeq (undefined,$(origin CBLD_CPU))
-CBLD_CPU := $(CBLD_TCPU)
+CBLD_CPU := $(CBLD_BCPU)
+endif
+
+# optional: processor architecture of build helper Tools created while the build
+# note: equivalent of '--target' Gnu Autoconf configure script option (not exact equivalent - CBLD_TCPU do not affects the built package)
+# note: CBLD_TCPU specification may also encode format of executable files, e.g. CBLD_TCPU=m68k-coff, it is checked by the C compiler
+ifeq (undefined,$(origin CBLD_TCPU))
+CBLD_TCPU := $(CBLD_BCPU)
 endif
 
 # flavor of system shell utilities (such as cp, mv, rm, etc.)
@@ -175,15 +181,15 @@ endif
 ifeq (undefined,$(origin CBLD_UTILS))
 CBLD_UTILS := $(if \
   $(filter WIN%,$(CBLD_OS)),cmd,$(if \
-  $(filter CYGWIN% LINUX% MSYS%,$(CBLD_OS)),gnu,unix))
+  $(filter CYGWIN% MINGW% LINUX%,$(CBLD_OS)),gnu,unix))
 endif
 
 # remember value of CBLD_BUILD if it was taken from the environment (in the project configuration makefile - $(cb_dir)/stub/project.mk)
 # note: else, if CBLD_BUILD was not taken from the environment - CBLD_BUILD should be already stored for the generated configuration
 #  makefile as a project variable (in the $(cb_dir)/core/confsup.mk)
-# note: remember autoconfigured variables: CBLD_TARGET, CBLD_OS, CBLD_TCPU, CBLD_TCPU and CBLD_UTILS (if they are not defined as project
-#  variables and so not already saved in the $(cb_dir)/core/confsup.mk)
-$(call config_remember_vars,CBLD_BUILD CBLD_TARGET CBLD_OS CBLD_TCPU CBLD_CPU CBLD_UTILS)
+# note: remember autoconfigured variables: CBLD_TARGET, CBLD_OS, CBLD_BCPU, CBLD_CPU, CBLD_TCPU and CBLD_UTILS (if they are not defined
+#  as a project variables and so are not already saved by the $(cb_dir)/core/confsup.mk)
+$(call config_remember_vars,CBLD_BUILD CBLD_TARGET CBLD_OS CBLD_BCPU CBLD_CPU CBLD_TCPU CBLD_UTILS)
 
 # makefile with the definitions of shell utilities
 utils_mk := $(cb_dir)/utils/$(CBLD_UTILS).mk
@@ -202,7 +208,7 @@ cb_mdebug:=
 endif
 
 ifdef cb_mdebug
-$(call dump_vars,CBLD_BUILD CBLD_CONFIG CBLD_TARGET CBLD_OS CBLD_TCPU CBLD_CPU CBLD_UTILS cb_dir cb_build utils_mk,,)
+$(call dump_vars,CBLD_BUILD CBLD_CONFIG CBLD_TARGET CBLD_OS CBLD_BCPU CBLD_CPU CBLD_TCPU CBLD_UTILS cb_dir cb_build utils_mk,,)
 endif
 
 # list of build system supported goals
@@ -847,7 +853,7 @@ cb_first_phase_vars += cb_needed_dirs build_system_goals bin_dir obj_dir lib_dir
 
 # protect macros from modifications in target makefiles,
 # do not trace calls to macros used in ifdefs, exported to the environment of called tools or modified via operator +=
-$(call set_global,MAKEFLAGS SHELL cb_needed_dirs cb_first_phase_vars CBLD_TARGET CBLD_OS CBLD_TCPU CBLD_CPU CBLD_UTILS \
+$(call set_global,MAKEFLAGS SHELL cb_needed_dirs cb_first_phase_vars CBLD_TARGET CBLD_OS CBLD_BCPU CBLD_CPU CBLD_TCPU CBLD_UTILS \
   cb_mdebug build_system_goals no_clean_build_distclean_goal debug cb_to_clean order_deps cb_include_level cb_target_makefiles \
   cb_make_cont CBLD_CONF_COLOR CBLD_GEN_COLOR CBLD_MGEN_COLOR CBLD_CP_COLOR CBLD_RM_COLOR CBLD_RMDIR_COLOR CBLD_MKDIR_COLOR \
   CBLD_TOUCH_COLOR CBLD_CAT_COLOR CBLD_SED_COLOR CBLD_NO_DEPS)
