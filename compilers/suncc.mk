@@ -4,20 +4,55 @@
 # Licensed under GPL version 2 or any later version, see COPYING
 #----------------------------------------------------------------------------------
 
-# suncc compiler toolchain (app-level), included by $(CLEAN_BUILD_DIR)/types/_c.mk
+# suncc compiler toolchain (application-level), included by $(cb_dir)/types/_c.mk
 
-# define RPATH and target-specific MAP and MODVER (for DLLs) variables
+# define 'rpath' and target-specific variables 'map' and 'modver' (for dlls only)
 include $(dir $(lastword $(MAKEFILE_LIST)))unixcc.mk
 
-# common suncc compiler definitions
-ifeq (,$(filter-out undefined environment,$(origin WRAP_SUNCC)))
-include $(CLEAN_BUILD_DIR)/compilers/suncc/cmn.mk
+# common suncc definitions
+ifeq (,$(filter-out undefined environment,$(origin wrap_suncc)))
+include $(cb_dir)/compilers/suncc/cmn.mk
 endif
 
-# target compilers/linkers
-CC  := cc
-CXX := CC
-AR  := /usr/ccs/bin$(if $(TCPU:x86_64=),,/amd64)/ar
+# specify abi
+# cpu=x86_64 bcpu=x86    -> -m64
+# cpu=x86    bcpu=x86_64 -> -m32
+CBLD_CPU_FLAGS  ?= $(if $(CBLD_CPU:x86_64=),$(if $(CBLD_CPU:x86=),,$(if $(CBLD_BCPU:x86_64=),, -m32)),$(if $(CBLD_BCPU:x86=),, -m64))
+CBLD_TCPU_FLAGS ?= $(if $(CBLD_TCPU:x86_64=),$(if $(CBLD_TCPU:x86=),,$(if $(CBLD_BCPU:x86_64=),, -m32)),$(if $(CBLD_BCPU:x86=),, -m64))
+
+# C/C++ compilers and linkers
+# note: ignore Gnu Make defaults
+ifeq (default,$(origin CC))
+CC := cc$(CBLD_CPU_FLAGS)
+else
+CC ?= cc$(CBLD_CPU_FLAGS)
+endif
+
+ifeq (default,$(origin CXX))
+CXX := CC$(CBLD_CPU_FLAGS)
+else
+CXX ?= CC$(CBLD_CPU_FLAGS)
+endif
+
+ifeq (default,$(origin AR))
+AR := /usr/ccs/bin$(if $(CBLD_BCPU:x86_64=),,/amd64)/ar
+else
+AR ?= /usr/ccs/bin$(if $(CBLD_BCPU:x86_64=),,/amd64)/ar
+endif
+
+# default values of user-defined C/C++ compiler flags
+# note: about '-xport64' option see https://docs.oracle.com/cd/E19205-01/819-5267/bkbgj/index.html
+CFLAGS   ?= $(if $(debug),-g,-xO4)$(if $(CBLD_CPU:x86_64=),, -xport64)
+CXXFLAGS ?= $(CFLAGS)
+
+# flags for the objects archiver 'ar'
+ifdef (default,$(origin ARFLAGS))
+ARFLAGS := -rcs
+else
+ARFLAGS ?= -rcs
+endif
+
+
 
 # native compilers/linkers to use for build tools
 TCC  := $(CC)
