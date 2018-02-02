@@ -12,18 +12,24 @@ include $(dir $(lastword $(MAKEFILE_LIST)))unixcc.mk
 # command prefix for cross-compilation
 CROSS_PREFIX ?=
 
+# specify abi
+# cpu=x86_64 bcpu=x86    -> -m64
+# cpu=x86    bcpu=x86_64 -> -m32
+CBLD_CPU_FLAGS  ?= $(if $(CBLD_CPU:x86_64=),$(if $(CBLD_CPU:x86=),,$(if $(CBLD_BCPU:x86_64=),, -m32)),$(if $(CBLD_BCPU:x86=),, -m64))
+CBLD_TCPU_FLAGS ?= $(if $(CBLD_TCPU:x86_64=),$(if $(CBLD_TCPU:x86=),,$(if $(CBLD_BCPU:x86_64=),, -m32)),$(if $(CBLD_BCPU:x86=),, -m64))
+
 # C/C++ compilers and linkers
 # note: ignore Gnu Make defaults
 ifeq (default,$(origin CC))
-CC := $(CROSS_PREFIX)gcc
+CC := $(CROSS_PREFIX)gcc$(CBLD_CPU_FLAGS)
 else
-CC ?= $(CROSS_PREFIX)gcc
+CC ?= $(CROSS_PREFIX)gcc$(CBLD_CPU_FLAGS)
 endif
 
 ifeq (default,$(origin CXX))
-CXX := $(CROSS_PREFIX)g++
+CXX := $(CROSS_PREFIX)g++$(CBLD_CPU_FLAGS)
 else
-CXX ?= $(CROSS_PREFIX)g++
+CXX ?= $(CROSS_PREFIX)g++$(CBLD_CPU_FLAGS)
 endif
 
 ifeq (default,$(origin AR))
@@ -36,11 +42,11 @@ endif
 CFLAGS   ?= $(if $(debug),-ggdb,-g -O2)
 CXXFLAGS ?= $(CFLAGS)
 
-# flags for the objects archiver
+# flags for the objects archiver 'ar'
 ifdef (default,$(origin ARFLAGS))
-ARFLAGS := -crs
+ARFLAGS := -rcs
 else
-ARFLAGS ?= -crs
+ARFLAGS ?= -rcs
 endif
 
 # default values of user-defined gcc flags for linking executables and shared libraries
@@ -55,14 +61,14 @@ CBLD_EXE_LDFLAGS ?= -Wl,--warn-common -Wl,--no-demangle
 CBLD_DLL_LDFLAGS ?= -Wl,--warn-common -Wl,--no-demangle -shared -Wl,--no-undefined
 
 # native compilers/linkers used to create build tools
-CBLD_TCC  ?= $(if $(CROSS_PREFIX),gcc,$(CC))
-CBLD_TCXX ?= $(if $(CROSS_PREFIX),g++,$(CXX))
+CBLD_TCC  ?= $(if $(filter $(CBLD_CPU),$(CBLD_TCPU)),$(CC),gcc$(CBLD_TCPU_FLAGS))
+CBLD_TCXX ?= $(if $(filter $(CBLD_CPU),$(CBLD_TCPU)),$(CC),g++$(CBLD_TCPU_FLAGS))
 CBLD_TAR  ?= $(if $(CROSS_PREFIX),ar,$(AR))
 
 # compiler/linker flags for the tool mode
 CBLD_TCFLAGS       ?= $(if $(debug),-ggdb,-g -O2)
 CBLD_TCXXFLAGS     ?= $(CBLD_TCFLAGS)
-CBLD_TARFLAGS      ?= -crs
+CBLD_TARFLAGS      ?= -rcs
 CBLD_TLDFLAGS      ?=
 CBLD_DEF_TCFLAGS   ?= -Wall -fvisibility=hidden -std=c99 -pedantic
 CBLD_DEF_TCXXFLAGS ?= -Wall -fvisibility=hidden
