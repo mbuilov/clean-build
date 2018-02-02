@@ -15,7 +15,7 @@ print_env = $(foreach =,$(project_exported_vars),$=='$($=)'$(newline)export $=$(
 # command line length is limited, define the maximum number of path arguments that may be passed via the command line assuming
 #  the limit is 20000 chars (on Cygwin, on Unix it's generally much larger) and each path do not exceed 120 chars
 ifeq (undefined,$(origin CBLD_MAX_PATH_ARGS))
-CBLD_MAX_PATH_ARGS := $(if $(filter CYGWIN% MSYS%,$(CBLD_OS)),166,1000)
+CBLD_MAX_PATH_ARGS := $(if $(filter CYGWIN% MINGW%,$(CBLD_OS)),166,1000)
 endif
 
 # null device for redirecting output into
