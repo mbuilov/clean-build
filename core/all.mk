@@ -6,6 +6,8 @@
 
 # define rule for the 'all' goal only at end of top-level makefile
 
+# note: because of the use of target-specific variables, cannot allow building arbitrary goals - only the top ones,
+#  like "all", "clean", "check" - see https://ciaranm.wordpress.com/2008/07/22/gnu-make-target-specific-variables-are-dumb
 ifneq (,$(filter-out $(build_system_goals),$(MAKECMDGOALS)))
 $(error Unsupported goal(s): $(filter-out $(build_system_goals),$(MAKECMDGOALS))$(newline)$(if \
 ,)Please select goal(s) from the list of supported ones: $(build_system_goals))
