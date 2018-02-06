@@ -121,7 +121,7 @@ project_supported_targets := DEBUG RELEASE
 # note: normally CBLD_TARGET get overridden by specifying it in the command line
 CBLD_TARGET ?= RELEASE
 
-# optional: the operating system we are building for (WINDOWS, LINUX, SUNOS, etc.)
+# optional: the operating system we are building on (WINDOWS, LINUX, SUNOS, etc.)
 # note: CBLD_OS value may affect default values of other variables (CBLD_BCPU, CBLD_UTILS, etc.)
 ifeq (undefined,$(origin CBLD_OS))
 ifneq (,$(filter /%,$(CURDIR)))
@@ -138,7 +138,7 @@ CBLD_OS:=
 endif
 endif # !CBLD_OS
 
-# optional: processor architecture of the Build machine
+# optional: processor architecture of the tools of the Build machine
 # note: equivalent of '--build' Gnu Autoconf configure script option
 # note: CBLD_BCPU specification may also encode format of executable files, e.g. CBLD_BCPU=m68k-coff, it is checked by the C compiler
 ifeq (undefined,$(origin CBLD_BCPU))
@@ -146,22 +146,22 @@ ifndef CBLD_OS
 # unknown
 CBLD_BCPU:=
 else ifneq (,$(filter WIN%,$(CBLD_OS)))
-# x86, IA64, AMD64, ARM, ARM64, ...
+# x86 IA64 AMD64 ARM ARM64 ...
 ifneq (undefined,$(origin PROCESSOR_ARCHITEW6432))
 CBLD_BCPU := $(PROCESSOR_ARCHITEW6432)
 else
 CBLD_BCPU := $(PROCESSOR_ARCHITECTURE)
 endif
-else # !WINDOWS
-# i386, x86_64, ...
-CBLD_BCPU := $(shell uname -p)
-ifeq (unknown,$(CBLD_BCPU))
+else ifneq (,$(filter SUN%,$(CBLD_OS)))
+# amd64 i386 sparcv9 sparc ...
+CBLD_BCPU := $(firstword $(shell isainfo))
+else
+# arm aarch64 m68k mips mips64 ppc ppc64 ppcle ppc64le sparc sparc64 i386 i686 x86_64 ...
 CBLD_BCPU := $(shell uname -m)
 endif
-endif # !WINDOWS
 endif # !CBLD_BCPU
 
-# optional: processor architecture we are building the package for (x86, i386, x86_64, AMD64, sparc64, armv5, mips24k, etc.)
+# optional: processor architecture we are building the package for
 # note: equivalent of '--host' Gnu Autoconf configure script option
 # note: CBLD_CPU specification may also encode format of executable files, e.g. CBLD_CPU=m68k-coff, it is checked by the C compiler
 ifeq (undefined,$(origin CBLD_CPU))
@@ -169,7 +169,7 @@ CBLD_CPU := $(CBLD_BCPU)
 endif
 
 # optional: processor architecture of build helper Tools created while the build
-# note: equivalent of '--target' Gnu Autoconf configure script option (not exact equivalent - CBLD_TCPU do not affects the built package)
+# note: CBLD_TCPU do not affects the built package
 # note: CBLD_TCPU specification may also encode format of executable files, e.g. CBLD_TCPU=m68k-coff, it is checked by the C compiler
 ifeq (undefined,$(origin CBLD_TCPU))
 CBLD_TCPU := $(CBLD_BCPU)
