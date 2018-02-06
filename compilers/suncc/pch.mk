@@ -46,7 +46,7 @@ ifndef toclean
 # note: when compiling pch header, two entities are created: pch object $9 and pch $(10), so add order-only dependency of pch $(10)
 #  on pch object $9 - to avoid parallel compilation of $(10) and $9, also define target-specific variable '$7_built' - to check if
 #  pch $(10) has already been built while building pch object $9
-# note: define target-specific variable 'pch_gen_dir' for use by cmn_pcc/cmn_pcxx
+# note: define target-specific variable 'pch_gen_dir' for use by cmn_pcc/cmn_pcxx in $(cb_dir)/compilers/suncc.mk
 # note: link pch object $9 to the target $5
 # note: add dependency of objects $(11) on pch object $9 - for the (odd) case when needed for the objects pch $(10) is up-to-date,
 #  but pch object $9 is not: then don't start compiling objects $(11) until pch object $9 is recreated together with pch $(10)
@@ -112,6 +112,7 @@ suncc_pch_templatev1 = $(if \
 # note: this callback is passed to 'pch_template' macro defined in $(cb_dir)/types/c/pch.mk
 suncc_pch_templatev = $(call suncc_pch_templatev1,$1,$2,$3,$4,$5,$6,$(call form_obj_dir,$1),$(basename $(notdir $2)))
 
+# generate a source file for compiling precompiled header
 # $1 - common objdir (for R-variant)
 # $2 - $(call fixpath,$(pch)), e.g. /project/include/xxx.h
 # $3 - pch source (e.g. /build/obj/xxx_pch.c or /build/obj/xxx_pch.cc)
@@ -124,6 +125,7 @@ $3:| $1
 
 endef
 
+# generate a source file for compiling it using precompiled header
 # $1 - common objdir (for R-variant)
 # $2 - $(call fixpath,$(pch))
 # $4 - source suffix: .c or .cc
