@@ -12,24 +12,25 @@ include $(dir $(lastword $(MAKEFILE_LIST)))unixcc.mk
 # command prefix for cross-compilation
 CROSS_PREFIX ?=
 
-# specify abi
-# cpu=x86_64 bcpu=x86    -> -m64
-# cpu=x86    bcpu=x86_64 -> -m32
-CBLD_CPU_FLAGS  ?= $(if $(CBLD_CPU:x86_64=),$(if $(CBLD_CPU:x86=),,$(if $(CBLD_BCPU:x86_64=),, -m32)),$(if $(CBLD_BCPU:x86=),, -m64))
-CBLD_TCPU_FLAGS ?= $(if $(CBLD_TCPU:x86_64=),$(if $(CBLD_TCPU:x86=),,$(if $(CBLD_BCPU:x86_64=),, -m32)),$(if $(CBLD_BCPU:x86=),, -m64))
+# target processor flags
+# assume by default, gcc will compile for CBLD_BCPU
+#  cpu=x86_64 bcpu=i686   -> -m64
+#  cpu=i686   bcpu=x86_64 -> -m32
+CBLD_CPU_CFLAGS  ?= $(if $(CBLD_CPU:x86_64=),$(if $(CBLD_CPU:i686=),,$(if $(CBLD_BCPU:x86_64=),, -m32)),$(if $(CBLD_BCPU:i686=),, -m64))
+CBLD_TCPU_CFLAGS ?= $(if $(CBLD_TCPU:x86_64=),$(if $(CBLD_TCPU:i686=),,$(if $(CBLD_BCPU:x86_64=),, -m32)),$(if $(CBLD_BCPU:i686=),, -m64))
 
 # C/C++ compilers and linkers
 # note: ignore Gnu Make defaults
 ifeq (default,$(origin CC))
-CC := $(CROSS_PREFIX)gcc$(CBLD_CPU_FLAGS)
+CC := $(CROSS_PREFIX)gcc$(CBLD_CPU_CFLAGS)
 else
-CC ?= $(CROSS_PREFIX)gcc$(CBLD_CPU_FLAGS)
+CC ?= $(CROSS_PREFIX)gcc$(CBLD_CPU_CFLAGS)
 endif
 
 ifeq (default,$(origin CXX))
-CXX := $(CROSS_PREFIX)g++$(CBLD_CPU_FLAGS)
+CXX := $(CROSS_PREFIX)g++$(CBLD_CPU_CFLAGS)
 else
-CXX ?= $(CROSS_PREFIX)g++$(CBLD_CPU_FLAGS)
+CXX ?= $(CROSS_PREFIX)g++$(CBLD_CPU_CFLAGS)
 endif
 
 ifeq (default,$(origin AR))
@@ -43,6 +44,7 @@ CFLAGS   ?= $(if $(debug),-ggdb,-g -O2)
 CXXFLAGS ?= $(CFLAGS)
 
 # flags for the objects archiver 'ar'
+# note: ignore Gnu Make defaults
 ifdef (default,$(origin ARFLAGS))
 ARFLAGS := -rcs
 else
@@ -53,16 +55,18 @@ endif
 LDFLAGS ?=
 
 # default gcc flags for compiling application-level C/C++ sources
-CBLD_DEF_CFLAGS   ?= -Wall -fvisibility=hidden -std=c99 -pedantic
-CBLD_DEF_CXXFLAGS ?= -Wall -fvisibility=hidden
+CBLD_CMN_CFLAGS   ?= -Wall -fvisibility=hidden
+CBLD_DEF_CFLAGS   ?= -std=c99 -pedantic $(CBLD_CMN_CFLAGS)
+CBLD_DEF_CXXFLAGS ?= $(CBLD_CMN_CFLAGS)
 
 # default gcc flags for linking an exe or dll
-CBLD_EXE_LDFLAGS ?= -Wl,--warn-common -Wl,--no-demangle
-CBLD_DLL_LDFLAGS ?= -Wl,--warn-common -Wl,--no-demangle -shared -Wl,--no-undefined
+CBLD_CMN_LDFLAGS ?= -Wl,--warn-common -Wl,--no-demangle
+CBLD_EXE_LDFLAGS ?= $(CBLD_CMN_LDFLAGS)
+CBLD_DLL_LDFLAGS ?= -shared -Wl,--no-undefined $(CBLD_CMN_LDFLAGS)
 
 # native compilers/linkers used to create build tools
-CBLD_TCC  ?= $(if $(filter $(CBLD_CPU),$(CBLD_TCPU)),$(CC),gcc$(CBLD_TCPU_FLAGS))
-CBLD_TCXX ?= $(if $(filter $(CBLD_CPU),$(CBLD_TCPU)),$(CC),g++$(CBLD_TCPU_FLAGS))
+CBLD_TCC  ?= $(if $(filter $(CBLD_CPU),$(CBLD_TCPU)),$(CC),gcc$(CBLD_TCPU_CFLAGS))
+CBLD_TCXX ?= $(if $(filter $(CBLD_CPU),$(CBLD_TCPU)),$(CC),g++$(CBLD_TCPU_CFLAGS))
 CBLD_TAR  ?= $(if $(CROSS_PREFIX),ar,$(AR))
 
 # compiler/linker flags for the tool mode
@@ -70,10 +74,12 @@ CBLD_TCFLAGS       ?= $(if $(debug),-ggdb,-g -O2)
 CBLD_TCXXFLAGS     ?= $(CBLD_TCFLAGS)
 CBLD_TARFLAGS      ?= -rcs
 CBLD_TLDFLAGS      ?=
-CBLD_DEF_TCFLAGS   ?= -Wall -fvisibility=hidden -std=c99 -pedantic
-CBLD_DEF_TCXXFLAGS ?= -Wall -fvisibility=hidden
-CBLD_EXE_TLDFLAGS  ?= -Wl,--warn-common -Wl,--no-demangle
-CBLD_DLL_TLDFLAGS  ?= -Wl,--warn-common -Wl,--no-demangle -shared -Wl,--no-undefined
+CBLD_CMN_TCFLAGS   ?= -Wall -fvisibility=hidden
+CBLD_DEF_TCFLAGS   ?= -std=c99 -pedantic $(CBLD_CMN_TCFLAGS)
+CBLD_DEF_TCXXFLAGS ?= $(CBLD_CMN_TCFLAGS)
+CBLD_CMN_TLDFLAGS  ?= -Wl,--warn-common -Wl,--no-demangle
+CBLD_EXE_TLDFLAGS  ?= $(CBLD_CMN_TLDFLAGS)
+CBLD_DLL_TLDFLAGS  ?= -shared -Wl,--no-undefined $(CBLD_CMN_TLDFLAGS)
 
 # gcc options to build position-independent executables/shared objects (dynamic libraries)
 CBLD_PIC_COPTION ?= -fpic
@@ -81,9 +87,9 @@ CBLD_PIE_COPTION ?= -fpie
 CBLD_PIE_LOPTION ?= -pie
 
 # supported target variants:
-# R - default variant (position-dependent code for exe, position-independent code for dll)
-# P - position-independent code in executables (for exe and lib)
-# D - position-independent code in shared libraries (for lib)
+# R - default variant: position-dependent code - for 'exe' or 'lib', position-independent code - for 'dll'
+# P - position-independent code - for 'exe' or 'lib' (linked to position-independent exe)
+# D - position-independent code - for 'lib' (linked to dll)
 # note: override defaults from $(cb_dir)/types/_c.mk
 exe_extra_variants := P
 lib_extra_variants := P D
@@ -106,6 +112,7 @@ def_cxxflags = $(if $(is_tool_mode),$(CBLD_DEF_TCXXFLAGS),$(CBLD_DEF_CXXFLAGS))
 # only one non-regular variant of an exe is supported: P - see $(exe_extra_variants) above
 # $1 - R or P
 # $(is_tool_mode) - non-empty in tool mode, empty otherwise
+# note: override defaults from $(cb_dir)/types/_c.mk
 # note: called by trg_cflags/trg_cxxflags/trg_ldflags from $(cb_dir)/types/c/c_base.mk
 exe_cflags   = $(if $(findstring P,$1),$(CBLD_PIE_COPTION)) $(def_cflags)
 exe_cxxflags = $(if $(findstring P,$1),$(CBLD_PIE_COPTION)) $(def_cxxflags)
@@ -114,6 +121,7 @@ exe_ldflags  = $(if $(findstring P,$1),$(CBLD_PIE_LOPTION)) $(if $(is_tool_mode)
 # no non-regular variants of a dll are supported
 # $1 - R
 # $(is_tool_mode) - non-empty in tool mode, empty otherwise
+# note: override defaults from $(cb_dir)/types/_c.mk
 # note: called by trg_cflags/trg_cxxflags/trg_ldflags from $(cb_dir)/types/c/c_base.mk
 dll_cflags   = $(def_cflags)
 dll_cxxflags = $(def_cxxflags)
@@ -121,6 +129,7 @@ dll_ldflags  = $(if $(is_tool_mode),$(CBLD_DLL_TLDFLAGS),$(CBLD_DLL_LDFLAGS))
 
 # two non-regular variants of a lib are supported: P and D - see $(lib_extra_variants) above
 # $1 - R, P or D
+# note: override defaults from $(cb_dir)/types/_c.mk
 # note: called by trg_cflags/trg_cxxflags/trg_ldflags from $(cb_dir)/types/c/c_base.mk
 lib_cflags   = $(if $(findstring P,$1),$(CBLD_PIE_COPTION),$(if $(findstring D,$1),$(CBLD_PIC_COPTION))) $(def_cflags)
 lib_cxxflags = $(if $(findstring P,$1),$(CBLD_PIE_COPTION),$(if $(findstring D,$1),$(CBLD_PIC_COPTION))) $(def_cxxflags)
@@ -143,9 +152,9 @@ wlprefix := -Wl,
 # possibly (if defined via 'c_redefine') target-specific: 'rpath' - defined in $(cb_dir)/compilers/unixcc.mk
 mk_rpath_option = $(addprefix $(wlprefix)-rpath=,$(rpath))
 
-# link-time path to search for shared libraries
+# link-time path used to search for shared libraries
 # note: assume if needed, it may be redefined as target-specific variable in the target makefile
-#  (via 'c_redefine' macro, like with 'rpath' variable)
+#  (via 'c_redefine' macro - see $(cb_dir)/types/c/c_base.mk, like with 'rpath' variable)
 rpath_link:=
 
 # option for specifying link-time search path for linking an exe or dll
@@ -164,6 +173,7 @@ bdynamic_option := -Wl,-Bdynamic
 # target-specific: 'tm', 'libs', 'dlls', 'lib_dir '- defined by exe_template/dll_template/lib_template in $(cb_dir)/types/_c.mk 
 # target-specific: ldflagss/syslibs - defined by 'c_base_template' in $(cb_dir)/types/c/c_base.mk
 # note: user-defined LDFLAGS must be added after $(ldflags) to be able to override them
+# note: dep_lib_names/dep_imp_names - defined in $(cb_dir)/types/_c.mk
 cmn_libs = $(mk_rpath_option) $(mk_rpath_link_option) $(ldflags) $(if \
   $(tm),$(CBLD_TLDFLAGS),$(LDFLAGS)) -o $1 $2 $(if $(firstword \
   $(libs)$(dlls)),-L$(lib_dir) $(addprefix -l,$(call dep_imp_names,$3,$4)) $(if \
@@ -256,24 +266,26 @@ $(call try_make_simple,c_prepare_app_vars,c_prepare_pch_vars)
 
 # for all application-level targets: add support for precompiled headers
 # note: patch 'c_define_app_rules' macro - defined in $(cb_dir)/types/_c.mk
+# note: 'c_app_targets' - defined in $(cb_dir)/types/_c.mk
 $(call define_prepend,c_define_app_rules,$$(eval $$(foreach t,$(c_app_targets),$$(if $$($$t),$$(gcc_pch_templatet)))))
 
 endif # !CBLD_NO_PCH
 
 # remember values the variables possibly defined in the environment
-$(call config_remember_vars,CROSS_PREFIX CC CXX AR CFLAGS CXXFLAGS ARFLAGS LDFLAGS CBLD_DEF_CFLAGS CBLD_DEF_CXXFLAGS \
-  CBLD_EXE_LDFLAGS CBLD_DLL_LDFLAGS CBLD_TCC CBLD_TCXX CBLD_TAR CBLD_TCFLAGS CBLD_TCXXFLAGS CBLD_TARFLAGS CBLD_TLDFLAGS \
-  CBLD_DEF_TCFLAGS CBLD_DEF_TCXXFLAGS CBLD_EXE_TLDFLAGS CBLD_DLL_TLDFLAGS CBLD_PIC_COPTION CBLD_PIE_COPTION CBLD_PIE_LOPTION)
+$(call config_remember_vars,CROSS_PREFIX CBLD_CPU_CFLAGS CBLD_TCPU_CFLAGS CC CXX AR CFLAGS CXXFLAGS ARFLAGS LDFLAGS \
+  CBLD_CMN_CFLAGS CBLD_DEF_CFLAGS CBLD_DEF_CXXFLAGS CBLD_CMN_LDFLAGS CBLD_EXE_LDFLAGS CBLD_DLL_LDFLAGS CBLD_TCC CBLD_TCXX CBLD_TAR \
+  CBLD_TCFLAGS CBLD_TCXXFLAGS CBLD_TARFLAGS CBLD_TLDFLAGS CBLD_CMN_TCFLAGS CBLD_DEF_TCFLAGS CBLD_DEF_TCXXFLAGS CBLD_CMN_TLDFLAGS \
+  CBLD_EXE_TLDFLAGS CBLD_DLL_TLDFLAGS CBLD_PIC_COPTION CBLD_PIE_COPTION CBLD_PIE_LOPTION)
 
 # makefile parsing first phase variables
 cb_first_phase_vars += def_cflags def_cxxflags
 
 # protect variables from modifications in target makefiles
 # do not trace calls to macros used in ifdefs, exported to the environment of called tools or modified via operator +=
-$(call set_global,CROSS_PREFIX CC CXX AR CFLAGS CXXFLAGS ARFLAGS LDFLAGS CBLD_DEF_CFLAGS CBLD_DEF_CXXFLAGS \
-  CBLD_EXE_LDFLAGS CBLD_DLL_LDFLAGS CBLD_TCC CBLD_TCXX CBLD_TAR CBLD_TCFLAGS CBLD_TCXXFLAGS CBLD_TARFLAGS CBLD_TLDFLAGS \
-  CBLD_DEF_TCFLAGS CBLD_DEF_TCXXFLAGS CBLD_EXE_TLDFLAGS CBLD_DLL_TLDFLAGS CBLD_PIC_COPTION CBLD_PIE_COPTION CBLD_PIE_LOPTION \
-  cb_first_phase_vars)
+$(call set_global,CROSS_PREFIX CBLD_CPU_CFLAGS CBLD_TCPU_CFLAGS CC CXX AR CFLAGS CXXFLAGS ARFLAGS LDFLAGS \
+  CBLD_CMN_CFLAGS CBLD_DEF_CFLAGS CBLD_DEF_CXXFLAGS CBLD_CMN_LDFLAGS CBLD_EXE_LDFLAGS CBLD_DLL_LDFLAGS CBLD_TCC CBLD_TCXX CBLD_TAR \
+  CBLD_TCFLAGS CBLD_TCXXFLAGS CBLD_TARFLAGS CBLD_TLDFLAGS CBLD_CMN_TCFLAGS CBLD_DEF_TCFLAGS CBLD_DEF_TCXXFLAGS CBLD_CMN_TLDFLAGS \
+  CBLD_EXE_TLDFLAGS CBLD_DLL_TLDFLAGS CBLD_PIC_COPTION CBLD_PIE_COPTION CBLD_PIE_LOPTION cb_first_phase_vars)
 
 # protect variables from modifications in target makefiles
 # note: trace namespace: gcc
