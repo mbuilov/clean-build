@@ -29,12 +29,18 @@ endif
 # note: $(cb_dir)/utils/cmd.mk redefines: cb_print_percents = [$1]
 cb_print_percents = [34m[[1;34m$1[34m][m
 
+# colorize arguments
+# $1 - color name, e.g. GEN
+# $2 - arguments (e.g. generated files)
+# note: $(cb_dir)/utils/cmd.mk redefines: cb_colorize = $2
+cb_colorize = $(patsubst %,$(CBLD_$1_COLOR)%[m,$2)
+
 # print in color short name of the called tool $1 with the argument $2
-# $1 - tool
-# $2 - argument
-# $3 - if empty, then colorize argument
-# note: $(cb_dir)/utils/cmd.mk redefines: cb_colorize = $1$(padto)$2
-cb_colorize = $(CBLD_$1_COLOR)$1[m$(padto)$(if $3,$2,$(join $(dir $2),$(addsuffix [m,$(addprefix $(CBLD_$1_COLOR),$(notdir $2)))))
+# $1 - tool, e.g. GEN
+# $2 - arguments (e.g. generated files)
+# $3 - if empty, then colorize arguments
+# note: $(cb_dir)/utils/cmd.mk redefines: cb_show_tool = $1$(padto)$2
+cb_show_tool = $(CBLD_$1_COLOR)$1[m$(padto)$(if $3,$2,$(join $(dir $2),$(call cb_colorize,$1,$(notdir $2))))
 
 ifeq (,$(filter distclean clean,$(MAKECMDGOALS)))
 
@@ -85,9 +91,9 @@ cb_fomat_percents = $(subst |,,$(subst \
 
 # target-specific: F.^, C.^
 ifdef cb_infomf
-suppress = $(info $(call cb_print_percents,$(cb_fomat_percents))$(F.^)$(C.^):$(cb_colorize))@
+suppress = $(info $(call cb_print_percents,$(cb_fomat_percents))$(F.^)$(C.^):$(cb_show_tool))@
 else
-suppress = $(info $(call cb_print_percents,$(cb_fomat_percents))$(cb_colorize))@
+suppress = $(info $(call cb_print_percents,$(cb_fomat_percents))$(cb_show_tool))@
 endif
 
 else # !quiet (verbose)
@@ -146,5 +152,5 @@ $(call set_global,verbose quiet cb_infomf cb_shown_percents cb_shown_remainder c
 
 # protect macros from modifications in target makefiles, allow tracing calls to them
 # note: trace namespace: suppress
-$(call set_global,cb_print_percents cb_colorize cb_update_percents=cb_shown_percents=cb_shown_percents \
+$(call set_global,cb_print_percents cb_colorize cb_show_tool cb_update_percents=cb_shown_percents=cb_shown_percents \
   cb_fomat_percents=cb_shown_percents suppress cb_makefile_info_templ,suppress)
