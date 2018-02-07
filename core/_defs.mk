@@ -429,13 +429,23 @@ endif # cb_checking
 
 ifdef cb_mdebug
 
+# show what a template builds (prior building the targets)
+# $1 - files the template builds
+# $2 - optional suffix (order-only dependencies)
+# note: 'cb_colorize' - defined in included below $(utils_mk)
+cb_what_makefile_builds = $(info $(call cb_colorize,TARGET,TARGET) $(if $(is_tool_mode),[T]: )$(join \
+  $(patsubst $(cb_build)/%,$(call cb_colorize,CB_BUILD,$$(cb_build))/%,$(dir $1)),$(call cb_colorize,TARGET,$(notdir $1)))$2)
+
+# for the 'cb_colorize' macro called in 'cb_what_makefile_builds'
+CBLD_TARGET_COLOR   ?= [32m
+CBLD_CB_BUILD_COLOR ?= [31;1m
+
 # fix template to print (while evaluating the template) what makefile builds
 # $1 - template name
 # $2 - expression that gives target file(s) the template builds
 # $3 - optional expression that gives order-only dependencies
 # note: expressions $2 and $3 are expanded while expanding template $1, _before_ evaluating result of the expansion
-cb_add_what_makefile_builds = $(call define_append,$1,$$(info \
-  $$(if $$(is_tool_mode),[T]: )$$(patsubst $$(cb_build)/%,%,$2)$(if $3,$$(if $3, | $3))))
+cb_add_what_makefile_builds = $(call define_append,$1,$$(call cb_what_makefile_builds,$2,$(if $3,$$(if $3, | $3))))
 
 # patch 'std_target_vars1' template - print what makefile builds
 $(call cb_add_what_makefile_builds,std_target_vars1,$$1,$$(order_deps))
@@ -587,12 +597,23 @@ define_targets=$$(eval $$(cb_def_tail))
 endif
 endef
 
-# show debug info prior defining targets, e.g.: "..../project/one.mk+2"
-# note: $(cb_make_cont) contains 2 if inside $(make_continue)
 ifdef cb_mdebug
-$(call define_prepend,cb_def_head,$$(info $$(subst \
-  $$(space),,$$(cb_include_level))$$(cb_target_makefile)$$(if $$(findstring 2,$$(cb_make_cont)),+$$(words $$(cb_make_cont)))))
-endif
+
+# show debug info prior defining targets, e.g.: ">>>>/project/one.mk+2"
+# note: $(cb_make_cont) contains 2 if inside $(make_continue)
+# note: 'cb_colorize' - defined in included below $(utils_mk)
+cb_show_leaf_mk = $(info $(call cb_colorize,LEAF,LEAF)  $(call cb_colorize,LEVEL,$(subst \
+  $(space),,$(cb_include_level)))$(dir $(cb_target_makefile))$(call cb_colorize,LEAF,$(notdir \
+  $(cb_target_makefile)))$(if $(findstring 2,$(cb_make_cont)),+$(words $(cb_make_cont))))
+
+# for the 'cb_colorize' macro called in 'cb_show_leaf_mk'
+CBLD_LEAF_COLOR  ?= [33;1m
+CBLD_LEVEL_COLOR ?= [36;1m
+
+# show debug info prior defining targets
+$(call define_prepend,cb_def_head,$$(cb_show_leaf_mk))
+
+endif # cb_mdebug
 
 # reset "local" variables, check if $(cb_def_tail) was evaluated after previous $(cb_def_head)
 # note: 'cb_check_at_head' - defined in $(cb_dir)/core/protection.mk
@@ -802,22 +823,22 @@ include $(cb_dir)/core/runtool.mk
 
 # define shell utilities
 # note: $(cb_dir)/utils/cmd.mk overrides macros defined above: 'tool_suffix', 'ospath', 'nonrelpath'
-# note: $(cb_dir)/utils/cmd.mk overrides macros defined in $(cb_dir)/core/suppress.mk: 'cb_print_percents', 'cb_colorize'
+# note: $(cb_dir)/utils/cmd.mk overrides macros defined in $(cb_dir)/core/suppress.mk: 'cb_print_percents', 'cb_colorize', 'cb_show_tool'
 # note: $(cb_dir)/utils/cmd.mk overrides macros defined in $(cb_dir)/core/runtool.mk:
 #  'pathsep', 'dll_path_var', 'show_tool_vars', 'show_tool_vars_end'
 include $(utils_mk)
 
 # if $(CBLD_CONFIG) was included, show it
-# note: $(cb_dir)/utils/cmd.mk redefines 'cb_colorize' macro defined in $(cb_dir)/core/suppress.mk, so show $(CBLD_CONFIG)
-#  _after_ including $(utils_mk)
+# note: $(cb_dir)/utils/cmd.mk redefines 'cb_show_tool' macro defined in $(cb_dir)/core/suppress.mk, so show $(CBLD_CONFIG) _after_
+#  including $(utils_mk)
 ifndef verbose
 ifneq (,$(filter $(CBLD_CONFIG),$(MAKEFILE_LIST)))
 CBLD_CONF_COLOR ?= [1;32m
-$(info $(call cb_print_percents,use)$(if $(cb_infomf),$(cb_target_makefile):)$(call cb_colorize,CONF,$(CBLD_CONFIG)))
+$(info $(call cb_print_percents,use)$(if $(cb_infomf),$(cb_target_makefile):)$(call cb_show_tool,CONF,$(CBLD_CONFIG)))
 endif
 endif
 
-# utilities colors - for 'suppress' function (and 'cb_colorize' macro)
+# utilities colors - for the 'suppress' function (and cb_colorize/cb_show_tool macros)
 CBLD_GEN_COLOR   ?= [1;32m
 CBLD_MGEN_COLOR  ?= [1;32m
 CBLD_CP_COLOR    ?= [1;36m
@@ -845,27 +866,28 @@ $(call config_remember_vars,CBLD_NO_DEPS)
 # Note: bin_dir/obj_dir/lib_dir/gen_dir change their values depending on the value of 'tool_mode' variable set in the last
 #  parsed makefile, so clear these variables before rule execution second phase
 cb_first_phase_vars += cb_needed_dirs build_system_goals bin_dir obj_dir lib_dir gen_dir order_deps cb_set_default_dirs \
-  cb_tool_override_dirs toclean cb_target_makefile add_mdeps cb_add_what_makefile_builds set_makefile_info add_order_deps \
-  need_gen_dirs std_target_vars1 cb_check_generated_at std_target_vars add_generated add_generated_ret tool_mode is_tool_mode \
-  cb_tool_mode_adjust cb_tool_mode_access_error cb_include_level cb_target_makefiles cb_head_eval \
-  cb_make_cont cb_def_head cb_def_tail define_targets cb_prepare_templ cb_save_vars cb_restore_vars make_continue
+  cb_tool_override_dirs toclean cb_target_makefile add_mdeps cb_what_makefile_builds cb_add_what_makefile_builds set_makefile_info \
+  add_order_deps need_gen_dirs std_target_vars1 cb_check_generated_at std_target_vars add_generated add_generated_ret tool_mode \
+  is_tool_mode cb_tool_mode_adjust cb_tool_mode_access_error cb_include_level cb_target_makefiles cb_head_eval \
+  cb_make_cont cb_def_head cb_show_leaf_mk cb_def_tail define_targets cb_prepare_templ cb_save_vars cb_restore_vars make_continue
 
 # protect macros from modifications in target makefiles,
 # do not trace calls to macros used in ifdefs, exported to the environment of called tools or modified via operator +=
 $(call set_global,MAKEFLAGS SHELL cb_needed_dirs cb_first_phase_vars CBLD_TARGET CBLD_OS CBLD_BCPU CBLD_CPU CBLD_TCPU CBLD_UTILS \
-  cb_mdebug build_system_goals no_clean_build_distclean_goal debug cb_to_clean order_deps cb_include_level cb_target_makefiles \
-  cb_make_cont CBLD_CONF_COLOR CBLD_GEN_COLOR CBLD_MGEN_COLOR CBLD_CP_COLOR CBLD_RM_COLOR CBLD_RMDIR_COLOR CBLD_MKDIR_COLOR \
-  CBLD_TOUCH_COLOR CBLD_CAT_COLOR CBLD_SED_COLOR CBLD_NO_DEPS)
+  cb_mdebug build_system_goals no_clean_build_distclean_goal debug cb_to_clean order_deps CBLD_TARGET_COLOR CBLD_CB_BUILD_COLOR \
+  cb_include_level cb_target_makefiles cb_make_cont CBLD_LEAF_COLOR CBLD_LEVEL_COLOR CBLD_CONF_COLOR CBLD_GEN_COLOR CBLD_MGEN_COLOR \
+  CBLD_CP_COLOR CBLD_RM_COLOR CBLD_RMDIR_COLOR CBLD_MKDIR_COLOR CBLD_TOUCH_COLOR CBLD_CAT_COLOR CBLD_SED_COLOR CBLD_NO_DEPS)
 
 # protect macros from modifications in target makefiles, allow tracing calls to them
 # note: trace namespace: core
 $(call set_global,cb_project_vars clean_build_version cb_dir clean_build_required_version \
   cb_build project_supported_targets utils_mk target_triplet def_bin_dir def_obj_dir def_lib_dir def_gen_dir \
   cb_set_default_dirs tool_base mk_tools_dir cb_tool_override_dirs tool_suffix get_tools get_tool cb_first_makefile \
-  cb_target_makefile add_mdeps cb_add_what_makefile_builds set_makefile_info add_order_deps=order_deps=order_deps need_gen_dirs \
-  std_target_vars1 cb_check_generated_at std_target_vars add_generated add_generated_ret is_tool_mode cb_tool_mode_adjust \
-  cb_tool_mode_access_error cb_def_head cb_check_targets cb_def_tail cb_no_def_head_err define_targets \
-  cb_prepare_templ cb_save_vars cb_restore_vars make_continue ospath nonrelpath fixpath sed_multi_expr product_version,core)
+  cb_target_makefile add_mdeps cb_what_makefile_builds cb_add_what_makefile_builds set_makefile_info \
+  add_order_deps=order_deps=order_deps need_gen_dirs std_target_vars1 cb_check_generated_at std_target_vars add_generated \
+  add_generated_ret is_tool_mode cb_tool_mode_adjust cb_tool_mode_access_error cb_def_head cb_show_leaf_mk cb_check_targets cb_def_tail \
+  cb_no_def_head_err define_targets cb_prepare_templ cb_save_vars cb_restore_vars make_continue ospath nonrelpath fixpath \
+  sed_multi_expr product_version,core)
 
 # if 'toclean' value is non-empty, allow tracing calls to it (with trace namespace: toclean),
 # else - just protect 'toclean' from changes, do not make it's value non-empty - because 'toclean' is checked in ifdefs

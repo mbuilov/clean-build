@@ -48,7 +48,7 @@ endif
 # $1 - absolute paths to sub-makefiles to include
 # $2 - current value of 'tool_mode'
 define cb_include_submakes
-cb_include_level+=.
+cb_include_level+=>
 $(foreach m,$1,$(cb_include_template))cb_include_level:=$(cb_include_level)
 endef
 
@@ -56,7 +56,7 @@ endef
 # note: assume result of $(call set_global1,...) will give an empty line at end of expansion
 ifdef cb_checking
 $(eval define cb_include_submakes$(newline)$(subst \
-  cb_include_level+=.$(newline),cb_include_level+=.$(newline)$$(call set_global1,cb_include_level),$(value \
+  cb_include_level+=>$(newline),cb_include_level+=>$(newline)$$(call set_global1,cb_include_level),$(value \
   cb_include_submakes))$(newline)$$(call set_global1,cb_include_level)$(newline)endef)
 endif
 
@@ -106,20 +106,27 @@ endif # cb_checking
 $(call define_prepend,cb_include_submakes,.PHONY: $$(addsuffix \
   -,$$1)$(newline)$$(cb_target_makefile)-:| $$(addsuffix -,$$1)$(newline))
 
-# show debug info
+endif # !toclean
+
 ifdef cb_mdebug
-$(call define_prepend,cb_include_submakes,$$(info G $$(subst \
-  $$(space),,$$(cb_include_level))$$(cb_target_makefile)$$(if $$(order_deps), | $$(order_deps))))
+
+# get debug info to show prior including sub-makefiles, e.g.: ">>>>/project/group.mk"
+# note: CBLD_LEVEL_COLOR and 'cb_colorize' - defined in $(cb_dir)/core/_defs.mk
+cb_submakefiles_info = $(call cb_colorize,GROUP,GROUP) $(call cb_colorize,LEVEL,$(subst $(space),,$(cb_include_level)))$(dir \
+  $(cb_target_makefile))$(call cb_colorize,GROUP,$(notdir $(cb_target_makefile)))
+
+# for the 'cb_colorize' macro called in 'cb_submakefiles_info'
+CBLD_GROUP_COLOR ?= [35;1m
+
+# note: 'order_deps' is defined only if not cleaning up
+ifndef toclean
+$(eval cb_submakefiles_info = $(value cb_submakefiles_info)$$(if $$(order_deps), | $$(order_deps)))
 endif
 
-else ifdef cb_mdebug # clean
+# show debug info prior including sub-makefiles
+$(call define_prepend,cb_include_submakes,$$(info $$(cb_submakefiles_info)))
 
-# show debug info when cleaning up
-# note: do not show 'order_deps' because it is not defined
-$(call define_prepend,cb_include_submakes,$$(info G $$(subst \
-  $$(space),,$$(cb_include_level))$$(cb_target_makefile)))
-
-endif # clean && cb_mdebug
+endif # cb_mdebug
 
 # macro 'process_submakes' normally called with non-empty first argument $1, but to avoid defining global variable 1 for the
 #  next processed sub-makefiles, macro 'cb_submakes_eval' must be expanded by explicit $(call cb_submakes_eval) without arguments
@@ -157,15 +164,16 @@ endif
 
 # makefile parsing first phase variables
 # note: do not reset 'process_submakes' macro - this causes problems with Gnu Make 3.81, which doesn't like when a macro redefines itself
-cb_first_phase_vars += cb_include_template cb_include_submakes add_mdeps1 add_mdeps2 add_mdeps3 cb_submakes_eval cb_submakes_prepare
+cb_first_phase_vars += cb_include_template cb_include_submakes add_mdeps1 add_mdeps2 add_mdeps3 cb_submakefiles_info \
+  cb_submakes_eval cb_submakes_prepare
 
 # protect 'cb_first_phase_vars' from modification in target makefiles,
 # do not trace calls to macros used in ifdefs, exported to the environment of called tools or modified via operator +=
-$(call set_global,cb_first_phase_vars CBLD_MAKEFILE_NAME CBLD_MAKEFILE_PATTERNS)
+$(call set_global,cb_first_phase_vars CBLD_MAKEFILE_NAME CBLD_MAKEFILE_PATTERNS CBLD_GROUP_COLOR)
 
 # protect variables from modifications in target makefiles
 # note: do not complain about redefined 'add_mdeps', re-protect it again with a new value
 # note: trace namespace: submakes
 $(call set_global,cb_norm_makefiles cb_include_template=order_deps;m \
-  cb_include_submakes add_mdeps1 add_mdeps2 add_mdeps3 add_mdeps=order_deps=order_deps \
+  cb_include_submakes add_mdeps1 add_mdeps2 add_mdeps3 add_mdeps=order_deps=order_deps cb_submakefiles_info=cb_include_level \
   cb_submakes_eval=cb_submakes_code process_submakes cb_submakes_prepare,submakes)
