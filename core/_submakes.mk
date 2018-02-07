@@ -156,7 +156,7 @@ $(eval process_submakes = $$(if $$(cb_need_submakes_mk),$$(error submakes.mk was
 endif
 
 # makefile parsing first phase variables
-# note: do not reset 'process_submakes' macro - it causes problems with Gnu Make 3.81, which doesn't like when a macro redefines itself
+# note: do not reset 'process_submakes' macro - this causes problems with Gnu Make 3.81, which doesn't like when a macro redefines itself
 cb_first_phase_vars += cb_include_template cb_include_submakes add_mdeps1 add_mdeps2 add_mdeps3 cb_submakes_eval cb_submakes_prepare
 
 # protect 'cb_first_phase_vars' from modification in target makefiles,
