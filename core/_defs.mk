@@ -309,8 +309,7 @@ cb_tool_override_dirs := $(cb_tool_override_dirs)$(newline)$(call set_global1,bi
 endif
 
 # executable file suffix of the generated tools
-# note: $(cb_dir)/utils/cmd.mk redefines 'tool_suffix' to "exe"
-tool_suffix:=
+tool_suffix := $(if $(filter WIN% CYGWIN% MINGW%,$(CBLD_OS)),.exe)
 
 # macro to form absolute paths to the tools executables
 # $1 - $(tool_base)
@@ -620,7 +619,7 @@ cb_check_targets=
 
 ifdef cb_checking
 # note: must be called in $(cb_target_makefile)'s rule body, where automatic variables $@ and $^ are defined
-cb_check_targets += $(foreach =,$(filter-out $(wildcard $^),$^),$(info $(@:-=): failed to build: $=))
+cb_check_targets += $(foreach =,$(filter-out $(wildcard $^),$^),$(info $(@:-=): warning: these files are not built: $=))
 endif
 
 ifdef cb_add_shown_percents
