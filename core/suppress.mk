@@ -27,7 +27,7 @@ endif
 
 # colorize printed percents
 # note: $(cb_dir)/utils/cmd.mk redefines: cb_print_percents = [$1]
-cb_print_percents = [34m[[1;34m$1[34m][m
+cb_print_percents = [34m[[1m$1[;34m][m
 
 # colorize arguments
 # $1 - color name, e.g. GEN
