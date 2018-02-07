@@ -184,6 +184,7 @@ set_global1 = $(call cb_protect_vars2,$(foreach =,$1,$(firstword $(subst =, ,$=)
 endif
 
 # redefine "local" variable $= to produce access error
+# note: string "!$(error " is checked below in 'cb_reset_local_var' macro
 cb_var_access_err = $(eval $(findstring override,$(origin $=)) $$==!$$(error \
   using local variable '$=', instead, define and use target-specific variable or register a global one via 'set_global' macro))
 
@@ -208,9 +209,8 @@ cb_reset_local_vars = $(foreach =,$(filter-out \
 cb_reset_saved_vars = $(foreach =,$(filter %.^s,$(.VARIABLES)),$(cb_var_access_err))
 
 # called from $(cb_dir)/core/all.mk
-# note: reset 'cb_var_access_err' macro at last
 # note: do not call 'cb_reset_local_var' - it will be reset before we may call it
-cb_reset_first_phase = $(cb_reset_local_vars)$(foreach =,$(cb_first_phase_vars) cb_var_access_err,<cb_reset_local_var>)
+cb_reset_first_phase = $(cb_reset_local_vars)$(foreach =,$(cb_first_phase_vars),<cb_reset_local_var>)
 $(eval cb_reset_first_phase = $(subst <cb_reset_local_var>,$(value cb_reset_local_var),$(value cb_reset_first_phase)))
 
 # reset "local" variables, check and set 'cb_need_tail_code' - $(cb_def_tail) must be evaluated after $(cb_def_head)
@@ -262,12 +262,13 @@ $(eval cb_protected_vars:=$(newline)$(value cb_protected_vars)$$(call set_global
   cb_reset_first_phase cb_check_at_head cb_protected_var_ov cb_check_protected_var cb_check_at_tail))
 
 # these macros must not be used in rule execution second phase
-# note: 'cb_var_access_err' will be reset by 'cb_reset_first_phase' inplace
+# note: do not reset 'cb_var_access_err' and 'cb_reset_first_phase' macros - this causes problems with Gnu Make 3.81, which doesn't
+#  like when a macro redefines itself
 cb_first_phase_vars := cb_checking cb_tracing \
   cb_check_cannot_trace cb_check_tracing_env set_global env_remember cb_env_var_ov cb_check_env_var cb_check_env_vars \
   set_global1 cb_protected_vars cb_encode_var_value cb_encode_var_name cb_protect_vars2 \
   set_global5 set_global4 set_global3 set_global2 cb_reset_local_var cb_reset_local_vars cb_reset_saved_vars \
-  cb_reset_first_phase cb_check_at_head cb_protected_var_ov cb_check_protected_var cb_check_at_tail cb_first_phase_vars \
+  cb_check_at_head cb_protected_var_ov cb_check_protected_var cb_check_at_tail cb_first_phase_vars \
   temporary_overridden cb_need_tail_code
 
 endif # cb_checking
