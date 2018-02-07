@@ -108,7 +108,7 @@ $(call define_prepend,cb_include_submakes,.PHONY: $$(addsuffix \
 
 # show debug info
 ifdef cb_mdebug
-$(call define_prepend,cb_include_submakes,$$(info $$(subst \
+$(call define_prepend,cb_include_submakes,$$(info G $$(subst \
   $$(space),,$$(cb_include_level))$$(cb_target_makefile)$$(if $$(order_deps), | $$(order_deps))))
 endif
 
@@ -116,7 +116,7 @@ else ifdef cb_mdebug # clean
 
 # show debug info when cleaning up
 # note: do not show 'order_deps' because it is not defined
-$(call define_prepend,cb_include_submakes,$$(info $$(subst \
+$(call define_prepend,cb_include_submakes,$$(info G $$(subst \
   $$(space),,$$(cb_include_level))$$(cb_target_makefile)))
 
 endif # clean && cb_mdebug
