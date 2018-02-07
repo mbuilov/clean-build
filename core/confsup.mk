@@ -41,9 +41,12 @@ endif
 .PHONY: config
 
 # encode a value of variable $=
-cb_config_remember_var = $(if $(findstring simple,$(flavor $=)),$(call cb_config_rem_simple_var,$=,$(if \
+# $1 - 'export ' or empty
+cb_config_remember_var = $(if $(findstring simple,$(flavor $=)),$1$(call cb_config_rem_simple_var,$=,$(if \
   $(filter-out 1 $(words $(value $=)),$(words x$(value $=)x)),$$(empty))),define $=$(newline)$(subst \
-  define,$$(keyword_define),$(subst endef,$$(keyword_endef),$(subst \,$$(backslash),$(value $=))))$(newline)endef)$(newline)
+  define,$$(keyword_define),$(subst endef,$$(keyword_endef),$(subst \,$$(backslash),$(value $=))))$(newline)endef$(if \
+  $1,$(newline)$1$=))$(newline)
+
 # $2 - $(empty) if value of simple variable $1 contains leading/training white-spaces
 cb_config_rem_simple_var = $1 := $2$(subst \,$$(backslash),$(subst \
   $(comment),$$(comment),$(subst $(newline),$$(newline),$(subst $$,$$$$,$(value $1)))))$2
@@ -82,12 +85,13 @@ cb_config_saved_vars += $(foreach =,$(filter-out SHELL GNUMAKEFLAGS clean_build_
 endif
 
 # note: save current values of variables in the target-specific variable 'config_text' - variables may be overwritten later
+# note: Gnu Make 3.81 do not understands 'export override a := b' or 'export define a' constructions
 config: config_text := define newline$(newline)$(newline)$(newline)endef$(newline)newline:= $$(newline)$(newline)comment:= \
   \$(comment)$(newline)empty:=$(newline)backslash:= \\$(comment)$(newline)keyword_define:= define$(newline)keyword_endef:= \
   endef$(newline)$(foreach =,$(cb_config_saved_vars),$(if $(or $(findstring command line,$(origin $=)),$(if $(findstring \
-  override,$(origin $=)),$(filter $=,$(project_exported_vars)))),ifneq (command line,$$(origin $=))$(newline)export override \
-  $(cb_config_remember_var)endif$(newline),$(if $(findstring override,$(origin $=)),override ,$(if \
-  $(filter $=,$(project_exported_vars)),export ))$(cb_config_remember_var)))
+  override,$(origin $=)),$(filter $=,$(project_exported_vars)))),ifneq (command line,$$(origin $=))$(newline)override \
+  $(cb_config_remember_var)export $=$(newline)endif$(newline),$(if $(findstring override,$(origin $=)),override )$(call \
+  cb_config_remember_var,$(if $(findstring override,$(origin $=)),,$(if $(filter $=,$(project_exported_vars)),export )))))
 
 # add command-line variables to the list of exported variables
 # note: now 'project_exported_vars' list may contain duplicates - it will be sorted just before saving it to $(CBLD_CONFIG) makefile
@@ -102,13 +106,15 @@ project_exported_vars += $(foreach =,$(cb_config_saved_vars),$(if $(findstring c
 # note: all variables in the list $1 _must_ be defined
 # note: exported variables are added to 'project_exported_vars' list permanently
 # note: by default, variable is _not_ saved if it was already saved before
+# note: Gnu Make 3.81 do not understands 'export override a := b' or 'export define a' constructions
 config_remember_vars = $(call config_remember_vars1,$(if $3,$(foreach =,$1,$(if $(findstring \
   command line,$(origin $=)),,$=)),$(filter-out $(cb_config_saved_vars),$1)),$2)
 config_remember_vars1 = $(if $1,$(eval config: config_text += $$(foreach =,$$1,$(if $2,$$(if $$(findstring override,$$(origin \
-  $$=)),ifneq (command line,$$$$(origin $$=))$$(newline)export override $$(cb_config_remember_var)endif$$(newline),export \
-  $$(cb_config_remember_var)),$$(if $$(findstring environment,$$(origin $$=)),export )$$(cb_config_remember_var))))$(eval \
-  project_exported_vars += $(if $2,$$1,$$(foreach =,$$1,$$(if $$(findstring environment,$$(origin $$=)),$$=))))$(eval \
-  cb_config_saved_vars += $$(filter-out $$(cb_config_saved_vars),$$1))$(call set_global,project_exported_vars cb_config_saved_vars))
+  $$=)),ifneq (command line,$$$$(origin $$=))$$(newline)override $$(call cb_config_remember_var,)export \
+  $$=$$(newline)endif$$(newline),$$(call cb_config_remember_var,export )),$$(call cb_config_remember_var,$$(if $$(findstring \
+  environment,$$(origin $$=)),export )))))$(eval project_exported_vars += $(if $2,$$1,$$(foreach =,$$1,$$(if $$(findstring \
+  environment,$$(origin $$=)),$$=))))$(eval cb_config_saved_vars += $$(filter-out $$(cb_config_saved_vars),$$1))$(call \
+  set_global,project_exported_vars cb_config_saved_vars))
 
 # temporary define, to be able to call 'config_remember_vars' until 'set_global' is finally defined in $(cb_dir)/core/protection.mk
 set_global:=
