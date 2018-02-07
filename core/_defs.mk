@@ -593,7 +593,7 @@ cb_make_cont:=$$(subst 2,1,$$(cb_make_cont))
 else
 cb_make_cont:=
 cb_head_eval=$$(eval $$(cb_def_head))
-define_targets=$$(eval $$(cb_def_tail))
+cb_def_targets=$$(cb_def_tail)
 endif
 endef
 
@@ -669,10 +669,10 @@ endif # cb_checking
 
 ifdef set_global1
 
-# remember new values of 'cb_head_eval' and 'define_targets'
+# remember new values of 'cb_head_eval' and 'cb_def_targets'
 # note: trace namespace: def_code
 $(eval define cb_def_head$(newline)$(subst endif,$$(call \
-  set_global1,cb_head_eval define_targets,def_code)$(newline)endif,$(value cb_def_head))$(newline)endef)
+  set_global1,cb_head_eval cb_def_targets,def_code)$(newline)endif,$(value cb_def_head))$(newline)endef)
 
 # trace (next) calls to 'tool_mode' if not checking makefiles, else - 'tool_mode' is protected in 'cb_tool_mode_adjust'
 # note: trace namespace: tool_mode
@@ -693,27 +693,31 @@ ifdef cb_checking
 $(call define_prepend,cb_def_tail,$$(cb_check_at_tail)$(newline))
 endif
 
-# called by 'define_targets' if it was not properly redefined in 'cb_def_head'
+# called by 'cb_def_targets' if it was not properly redefined in 'cb_def_head'
 cb_no_def_head_err = $(error $$(cb_def_head) was not evaluated at head of makefile!)
 
-# redefine 'define_targets' macro to produce an error if $(cb_def_head) was not evaluated prior expanding it
+# redefine 'cb_def_targets' macro to produce an error if $(cb_def_head) was not evaluated prior expanding it
 # note: the same check is performed in $(cb_check_at_tail), but it will be done only after expanding templates added by the
 #  previous target makefile - this may lead to errors, because templates were not prepared by the previous $(cb_head_eval)
 ifdef cb_checking
-$(eval define cb_def_tail$(newline)$(subst :=,:=$$(newline)define_targets=$$$$(cb_no_def_head_err),$(value cb_def_tail))$(newline)endef)
+$(eval define cb_def_tail$(newline)$(subst :=,:=$$(newline)cb_def_targets=$$$$(cb_no_def_head_err),$(value cb_def_tail))$(newline)endef)
 endif
 
-# remember new values of 'cb_head_eval' (which was reset to empty) and 'define_targets' (which produces an error),
+# remember new values of 'cb_head_eval' (which was reset to empty) and 'cb_def_targets' (which produces an error),
 #  do not trace calls to them: value of 'cb_head_eval' is checked in 'cb_prepare_templ' below
 ifdef cb_checking
 $(eval define cb_def_tail$(newline)$(subst $(comma)include,$$(newline)$$(call \
-  set_global1,cb_head_eval define_targets)$(comma)include,$(value cb_def_tail))$(newline)endef)
+  set_global1,cb_head_eval cb_def_targets)$(comma)include,$(value cb_def_tail))$(newline)endef)
 endif
 
+# initialize 'cb_def_targets' to produce an error - 'cb_def_head' will reset it to just expand $(cb_def_tail)
+cb_def_targets = $(cb_no_def_head_err)
+
 # to define rules for building targets - just expand at end of makefile: $(define_targets)
-# note: initialize 'define_targets' to produce an error - 'cb_def_head' will reset it to just evaluate $(cb_def_tail)
 # note: $(define_targets) must not expand to any text - to allow calling it via just $(define_targets) in target makefiles
-define_targets = $(cb_no_def_head_err)
+# note: result of expansion of $(cb_def_targets) contains a code that redefines 'cb_def_targets' macro - this code must not be
+#  evaluated while expanding 'cb_def_targets' - Gnu Make 3.81 doesn't like this, evaluate that code here
+define_targets = $(eval $(cb_def_targets))
 
 # prepare template of target type (C, Java, etc.) for building (initialize its variables):
 # init1->init2...->initN <define variables of target type templates> rulesN->...->rules2->rules1
@@ -724,23 +728,23 @@ define_targets = $(cb_no_def_head_err)
 # NOTE: if $1 is non-empty, then $2 must also be non-empty: $1 - init template (now), $2 - expand template (later)
 cb_prepare_templ = $(if $(value cb_head_eval),,$(eval $(cb_def_head)))$(if $1,$(eval \
   cb_head_eval=$(value cb_head_eval)$$(eval $$($1)))$(eval \
-  define_targets=$$(eval $$($2))$(value define_targets))$(eval $(call $1)))
+  cb_def_targets=$$(eval $$($2))$(value cb_def_targets))$(eval $(call $1)))
 
 ifdef set_global
 
-# remember new values of 'cb_head_eval' and 'define_targets'
+# remember new values of 'cb_head_eval' and 'cb_def_targets'
 # note: trace namespaces: def_code
 $(eval cb_prepare_templ = $(subst $$$(open_brace)eval $$$(open_brace)call $$1,$$(call \
-  set_global,cb_head_eval define_targets,def_code)$$$(open_brace)eval $$$(open_brace)call $$1,$(value cb_prepare_templ)))
+  set_global,cb_head_eval cb_def_targets,def_code)$$$(open_brace)eval $$$(open_brace)call $$1,$(value cb_prepare_templ)))
 
-# if 'cb_head_eval' and 'define_targets' are traced, get their original values
+# if 'cb_head_eval' and 'cb_def_targets' are traced, get their original values
 ifdef cb_tracing
 
 $(eval cb_prepare_templ = $(subst \
   =$$(value cb_head_eval),=$$(call get_global,cb_head_eval),$(value cb_prepare_templ)))
 
 $(eval cb_prepare_templ = $(subst \
-  value define_targets,call get_global$(comma)define_targets,$(value cb_prepare_templ)))
+  value cb_def_targets,call get_global$(comma)cb_def_targets,$(value cb_prepare_templ)))
 
 endif # cb_tracing
 
@@ -869,8 +873,8 @@ $(call config_remember_vars,CBLD_NO_DEPS)
 cb_first_phase_vars += cb_needed_dirs build_system_goals bin_dir obj_dir lib_dir gen_dir order_deps cb_set_default_dirs \
   cb_tool_override_dirs toclean cb_target_makefile add_mdeps cb_what_makefile_builds cb_add_what_makefile_builds set_makefile_info \
   add_order_deps need_gen_dirs std_target_vars1 cb_check_generated_at std_target_vars add_generated add_generated_ret tool_mode \
-  is_tool_mode cb_tool_mode_adjust cb_tool_mode_access_error cb_include_level cb_target_makefiles cb_head_eval \
-  cb_make_cont cb_def_head cb_show_leaf_mk cb_def_tail define_targets cb_prepare_templ cb_save_vars cb_restore_vars make_continue
+  is_tool_mode cb_tool_mode_adjust cb_tool_mode_access_error cb_include_level cb_target_makefiles cb_head_eval cb_make_cont \
+  cb_def_head cb_show_leaf_mk cb_def_tail cb_def_targets define_targets cb_prepare_templ cb_save_vars cb_restore_vars make_continue
 
 # protect macros from modifications in target makefiles,
 # do not trace calls to macros used in ifdefs, exported to the environment of called tools or modified via operator +=
@@ -886,9 +890,9 @@ $(call set_global,cb_project_vars clean_build_version cb_dir clean_build_require
   cb_set_default_dirs tool_base mk_tools_dir cb_tool_override_dirs tool_suffix get_tools get_tool cb_first_makefile \
   cb_target_makefile add_mdeps cb_what_makefile_builds cb_add_what_makefile_builds set_makefile_info \
   add_order_deps=order_deps=order_deps need_gen_dirs std_target_vars1 cb_check_generated_at std_target_vars add_generated \
-  add_generated_ret is_tool_mode cb_tool_mode_adjust cb_tool_mode_access_error cb_def_head cb_show_leaf_mk cb_check_targets cb_def_tail \
-  cb_no_def_head_err define_targets cb_prepare_templ cb_save_vars cb_restore_vars make_continue ospath nonrelpath fixpath \
-  sed_multi_expr product_version,core)
+  add_generated_ret is_tool_mode cb_tool_mode_adjust cb_tool_mode_access_error cb_def_head cb_show_leaf_mk cb_check_targets \
+  cb_def_tail cb_no_def_head_err cb_def_targets define_targets cb_prepare_templ cb_save_vars cb_restore_vars make_continue \
+  ospath nonrelpath fixpath sed_multi_expr product_version,core)
 
 # if 'toclean' value is non-empty, allow tracing calls to it (with trace namespace: toclean),
 # else - just protect 'toclean' from changes, do not make it's value non-empty - because 'toclean' is checked in ifdefs
