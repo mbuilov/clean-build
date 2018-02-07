@@ -574,7 +574,7 @@ ifneq (,$(cb_checking)$(value cb_add_shown_percents))
 cb_target_makefiles:=
 endif
 
-# a chain of macros which should be evaluated for preparing target templates (resetting "local" variables - template parameters)
+# a chain of macros which should be evaluated for preparing target templates (i.e. resetting "local" variables - template parameters)
 # $(cb_def_head) was not evaluated yet, the chain is empty (it's checked in 'cb_prepare_templ')
 cb_head_eval:=
 
@@ -829,6 +829,7 @@ include $(cb_dir)/core/runtool.mk
 include $(utils_mk)
 
 # if $(CBLD_CONFIG) was included, show it
+# note: 'cb_infomf' - defined in $(cb_dir)/core/suppress.mk
 # note: $(cb_dir)/utils/cmd.mk redefines 'cb_show_tool' macro defined in $(cb_dir)/core/suppress.mk, so show $(CBLD_CONFIG) _after_
 #  including $(utils_mk)
 ifndef verbose
