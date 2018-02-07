@@ -268,10 +268,6 @@ install_dir = $(create_dir)
 # note: if path to the directory/file $2 contains a space, it must be in double-quotes: "1 2\3 4"
 install_files = $(copy_files)
 
-# suffix of built tool executables
-# note: override 'tool_suffix' macro from $(cb_dir)/core/_defs.mk
-tool_suffix := .exe
-
 # paths separator, as used in %PATH% environment variable
 # note: override 'pathsep' macro from $(cb_dir)/core/runtool.mk
 pathsep := ;
@@ -325,7 +321,7 @@ $(call set_global,print_env=project_exported_vars delete_files delete_dirs try_d
 
 # protect macros from modifications in target makefiles, allow tracing calls to them
 # note: trace namespace: core
-# note: overridden above 'ospath', 'nonrelpath' and 'tool_suffix' are protected in $(cb_dir)/core/_defs.mk
+# note: overridden above 'ospath' and 'nonrelpath' are protected in $(cb_dir)/core/_defs.mk
 $(call set_global,nonrelpath1,core)
 
 # protect macros from modifications in target makefiles, allow tracing calls to them
