@@ -95,8 +95,10 @@ dll_exports_define := $(call c_define_special,__attribute__((visibility("default
 dll_imports_define:=
 
 # executable file suffix
+# WINDOWS - .exe
+# UNIX    - no suffix
 # note: may overridden by the selected toolchain
-exe_suffix:=
+exe_suffix := $(if $(filter WIN% CYGWIN% MINGW%,$(CBLD_OS)),.exe)
 
 # form target file name for the exe
 # $1 - target name, e.g. my_exe, may be empty
@@ -105,8 +107,10 @@ exe_suffix:=
 exe_form_trg = $(1:%=$(bin_dir)/%$(call variant_suffix,exe,$2)$(exe_suffix))
 
 # static library (archive) prefix/suffix
+# WINDOWS: lib/mylib.a
+# UNIX:    lib/libmylib.a
 # note: may overridden by the selected toolchain
-lib_prefix := lib
+lib_prefix := $(if $(filter WIN%,$(CBLD_OS)),,lib)
 lib_suffix := .a
 
 # form target file name for the lib
@@ -116,14 +120,24 @@ lib_suffix := .a
 lib_form_trg = $(1:%=$(lib_dir)/$(lib_prefix)%$(call variant_suffix,lib,$2)$(lib_suffix))
 
 # dynamically loaded library (shared object) prefix/suffix
+# for modver=1.2.3
+# WINDOWS: bin/mylib-1.dll
+# CYGWIN:  bin/cygmylib-1.dll
+# MINGW:   bin/libmylib-1.dll
+# UNIX:    lib/libmylib.so.1.2.3
 # note: may overridden by the selected toolchain
-dll_prefix := lib
-dll_suffix := .so
+dll_prefix := $(if $(filter WIN%,$(CBLD_OS)),,$(if $(filter CYGWIN%,$(CBLD_OS)),cyg,lib))
+dll_suffix := $(if $(filter WIN% CYGWIN% MINGW%,$(CBLD_OS)),.dll,.so)
 
-# assume import library and dll - the one same file
-# note: for WINDOWS - put dlls to $(bin_dir), but dll import libraries - put to $(lib_dir)
-# note: 'dll_dir' must be recursive because $(lib_dir) have different values in tool-mode and non-tool mode
+# for WINDOWS - put dlls to $(bin_dir), but dll import libraries - put to $(lib_dir)
+# for UNIX - assume import library and dll - the one same file
+# note: 'dll_dir' must be recursive because $(bin_dir)/$(lib_dir) have different values in tool-mode and non-tool mode
+# note: may overridden by the selected toolchain
+ifneq (,$(filter WIN% CYGWIN% MINGW%,$(CBLD_OS)))
+dll_dir = $(bin_dir)
+else
 dll_dir = $(lib_dir)
+endif
 
 # form target file name for the dll
 # $1 - target name, e.g. my_dll, may be empty
@@ -151,10 +165,14 @@ lib_dep_map = $(if $(findstring dll,$1),D,$2)
 dll_dep_map:=
 
 # prefix/suffix of import library of a dll
-# by default, assume dll and import library of it is the same one file
+# for modver=1.2.3
+# WINDOWS: lib/mylib-1.lib       - for bin/mylib-1.dll
+# CYGWIN:  lib/libmylib.dll.a    - for bin/cygmylib-1.dll
+# MINGW:   lib/libmylib.dll.a    - for bin/libmylib-1.dll
+# UNIX:    lib/libmylib.so.1.2.3 - dll and import library of it - is the same one file
 # note: may overridden by the selected toolchain
-imp_prefix := $(dll_prefix)
-imp_suffix := $(dll_suffix)
+imp_prefix := $(if $(filter WIN%,$(CBLD_OS)),,$(if $(filter CYGWIN% MINGW%,$(CBLD_OS)),lib,$(dll_prefix)))
+imp_suffix := $(if $(filter WIN%,$(CBLD_OS)),.lib,$(dll_suffix)$(if $(filter CYGWIN% MINGW%,$(CBLD_OS)),.a))
 
 # make the names of the files of static libraries the target depends on
 # $1 - target type: exe,dll
