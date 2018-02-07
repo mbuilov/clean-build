@@ -173,7 +173,7 @@ endef
 # 3.                            $(call trace_calls,v)   -> $(call set_global1,v) = trace protected v, protect new v
 # 4. $(call set_global1,v,n) -> $(call trace_calls,v,!) -> $(call set_global1,v) = protect v and trace it
 ifdef cb_tracing
-set_global5 = $(if $1,$(call dump_vars,$1,override global: ))
+set_global5 = $(if $1,$(call dump_vars,$1,overriding global: ))
 set_global4 = $(call set_global5,$(filter $1,$(cb_protected_vars)))$(cb_protect_vars2)
 set_global3 = $(if $1,$$(call trace_calls,$(subst $$,$$$$,$(cb_check_tracing_env)),$2))
 set_global2 = $(if $1,$(call set_global4,$(foreach =,$1,$(firstword $(subst =, ,$=)))))$(call set_global3,$(filter-out $1,$2),$3)
@@ -217,7 +217,7 @@ $(eval cb_reset_first_phase = $(subst <cb_reset_local_var>,$(value cb_reset_loca
 # note: reset 'temporary_overridden' variable - it may be set before previous $(cb_def_tail)
 # note: expansion of $(call set_global1,cb_need_tail_code) gives an empty line at end of expansion
 define cb_check_at_head
-$(if $(cb_need_tail_code),$(error $$(define_targets) was not evaluated at end of $(cb_need_tail_code)!))$$(cb_reset_local_vars)
+$(if $(cb_need_tail_code),$(error $$(define_targets) was not expanded at end of $(cb_need_tail_code)!))$$(cb_reset_local_vars)
 cb_need_tail_code := $(cb_target_makefile)
 $(call set_global1,cb_need_tail_code)temporary_overridden:=
 endef
