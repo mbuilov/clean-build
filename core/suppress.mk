@@ -28,7 +28,7 @@ endif
 # print percents
 # note: 'make_trace_in_color' - defined in $(cb_dir)/trace/trace.mk
 ifndef make_trace_in_color
-cb_print_percents = cb_print_percents = [$1]
+cb_print_percents = [$1]
 else
 cb_print_percents = [34m[[1m$1[;34m][m
 endif
