@@ -1,7 +1,7 @@
 #----------------------------------------------------------------------------------
 # clean-build - non-recursive build system based on GNU Make
-# Copyright (C) 2015-2017 Michael M. Builov, https://github.com/mbuilov/clean-build
-# Licensed under GPL version 2 or any later version, see COPYING
+# Copyright (C) 2015-2018 Michael M. Builov, https://github.com/mbuilov/clean-build
+# Licensed under GPL version 3 or any later version, see COPYING
 #----------------------------------------------------------------------------------
 
 # generic rules and definitions for building targets,
@@ -251,6 +251,15 @@ endif # distclean
 # define 'verbose' and 'quiet' constants, 'suppress' function and other macros
 include $(cb_dir)/core/suppress.mk
 
+# if $(CBLD_CONFIG) was included, show it
+# note: 'cb_infomf' - defined in $(cb_dir)/core/suppress.mk
+ifndef verbose
+ifneq (,$(filter $(CBLD_CONFIG),$(MAKEFILE_LIST)))
+CBLD_CONF_COLOR ?= [1;32m
+$(info $(call cb_print_percents,use)$(if $(cb_infomf),$(cb_target_makefile):)$(call cb_show_tool,CONF,$(CBLD_CONFIG)))
+endif
+endif
+
 # to simplify target makefiles, define 'debug' variable:
 #  $(debug) is non-empty for debugging targets like "PROJECTD" or "DEBUG"
 debug := $(filter DEBUG %D,$(CBLD_TARGET))
@@ -432,7 +441,7 @@ ifdef cb_mdebug
 # show what a template builds (prior building the targets)
 # $1 - files the template builds
 # $2 - optional suffix (order-only dependencies)
-# note: 'cb_colorize' - defined in included below $(utils_mk)
+# note: 'cb_colorize' - defined in included above $(cb_dir)/core/suppress.mk
 cb_what_makefile_builds = $(info $(call cb_colorize,TARGET,TARGET) $(if $(is_tool_mode),[T]: )$(join \
   $(patsubst $(cb_build)/%,$(call cb_colorize,CB_BUILD,$$(cb_build))/%,$(dir $1)),$(call cb_colorize,TARGET,$(notdir $1)))$2)
 
@@ -601,7 +610,7 @@ ifdef cb_mdebug
 
 # show debug info prior defining targets, e.g.: ">>>>/project/one.mk+2"
 # note: $(cb_make_cont) contains 2 if inside $(make_continue)
-# note: 'cb_colorize' - defined in included below $(utils_mk)
+# note: 'cb_colorize' - defined in included above $(cb_dir)/core/suppress.mk
 cb_show_leaf_mk = $(info $(call cb_colorize,LEAF,LEAF)  $(call cb_colorize,LEVEL,$(subst \
   $(space),,$(cb_include_level)))$(dir $(cb_target_makefile))$(call cb_colorize,LEAF,$(notdir \
   $(cb_target_makefile)))$(if $(findstring 2,$(cb_make_cont)),+$(words $(cb_make_cont))))
@@ -826,22 +835,9 @@ sed_multi_expr = $(foreach s,$(subst $(newline), ,$(unspaces)),-e $(call sed_exp
 include $(cb_dir)/core/runtool.mk
 
 # define shell utilities
-# note: $(cb_dir)/utils/cmd.mk overrides macros defined above: 'tool_suffix', 'ospath', 'nonrelpath'
-# note: $(cb_dir)/utils/cmd.mk overrides macros defined in $(cb_dir)/core/suppress.mk: 'cb_print_percents', 'cb_colorize', 'cb_show_tool'
-# note: $(cb_dir)/utils/cmd.mk overrides macros defined in $(cb_dir)/core/runtool.mk:
-#  'pathsep', 'dll_path_var', 'show_tool_vars', 'show_tool_vars_end'
+# note: $(cb_dir)/utils/cmd.mk overrides macros defined above: 'ospath', 'nonrelpath'
+# note: $(cb_dir)/utils/cmd.mk overrides macros defined in $(cb_dir)/core/runtool.mk: 'pathsep', 'show_tool_vars', 'show_tool_vars_end'
 include $(utils_mk)
-
-# if $(CBLD_CONFIG) was included, show it
-# note: 'cb_infomf' - defined in $(cb_dir)/core/suppress.mk
-# note: $(cb_dir)/utils/cmd.mk redefines 'cb_show_tool' macro defined in $(cb_dir)/core/suppress.mk, so show $(CBLD_CONFIG) _after_
-#  including $(utils_mk)
-ifndef verbose
-ifneq (,$(filter $(CBLD_CONFIG),$(MAKEFILE_LIST)))
-CBLD_CONF_COLOR ?= [1;32m
-$(info $(call cb_print_percents,use)$(if $(cb_infomf),$(cb_target_makefile):)$(call cb_show_tool,CONF,$(CBLD_CONFIG)))
-endif
-endif
 
 # utilities colors - for the 'suppress' function (and cb_colorize/cb_show_tool macros)
 CBLD_GEN_COLOR   ?= [1;32m
