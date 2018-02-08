@@ -1,7 +1,7 @@
 #----------------------------------------------------------------------------------
 # clean-build - non-recursive build system based on GNU Make
-# Copyright (C) 2015-2017 Michael M. Builov, https://github.com/mbuilov/clean-build
-# Licensed under GPL version 2 or any later version, see COPYING
+# Copyright (C) 2015-2018 Michael M. Builov, https://github.com/mbuilov/clean-build
+# Licensed under GPL version 3 or any later version, see COPYING
 #----------------------------------------------------------------------------------
 
 # define 'install_lib' - library installation macro
@@ -52,7 +52,7 @@ lib_pkgconf_generator:=
 # $(PKG_DATADIR) - for header-only libraries
 lib_pkgconf_dir = $(PKG_LIBDIR)
 
-# after (re-)defining above variables, just expand $(install_lib) to define next targets based on the values of $(lib) and/or $(dll):
+# after (re-)defining above variables, just expand $(install_lib) to define next goals based on the values of $(lib) and/or $(dll):
 #
 # for lib := mylib                            |
 #  or dll := mylib                            |
@@ -68,6 +68,6 @@ lib_pkgconf_dir = $(PKG_LIBDIR)
 # install_lib_mylib_headers                   |  install_lib_mylibS_headers       install_lib_mylibD_headers
 # install_lib_mylib_pkgconf                   |  install_lib_mylibS_pkgconf       install_lib_mylibD_pkgconf
 #
-# and their uninstall_... counterparts,
+# and their uninstall_lib_... counterparts,
 #
-# also, install_lib_mylib/uninstall_lib_mylib targets are will be added as dependencies for standard install/uninstall goals.
+# also, install_lib_mylib/uninstall_lib_mylib goals are will be added as dependencies for standard install/uninstall goals.
