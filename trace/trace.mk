@@ -1,12 +1,15 @@
 #----------------------------------------------------------------------------------
 # clean-build - non-recursive build system based on GNU Make
-# Copyright (C) 2015-2017 Michael M. Builov, https://github.com/mbuilov/clean-build
-# Licensed under GPL version 2 or any later version, see COPYING
+# Copyright (C) 2015-2018 Michael M. Builov, https://github.com/mbuilov/clean-build
+# Licensed under GPL version 3 or any later version, see COPYING
 #----------------------------------------------------------------------------------
 
-# support for tracing macro expansions, this file is self-contained and may be used alone
+# support for tracing macro expansions
 
-# - this file defines next minor helpers:
+# NOTE: this file is self-contained and may be used alone
+# NOTE: requires: Gnu Make 3.81 or later
+
+# this file defines next minor helpers:
 #
 #  1) infofn - wrap function call to print and return result of the call, example:
 #    A := $(call infofn,$(call func,...))
@@ -17,7 +20,7 @@
 #  3) tracefn - print function name and its arguments, example:
 #    func = $(tracefn)fn_body
 #
-# - and the major tracing macro:
+# and the major tracing macro:
 #
 #  4) trace_calls - replace macros with their traced equivalents, example:
 #    $(call trace_calls,macro1 macro2=b1;b2;b3;$$1=e1;e2 macro3 ...)
@@ -27,8 +30,16 @@
 #   Note: command-line variables that are not also defined in the environment are unexported
 #   Note: undefined macros or macros having an empty value are not traced
 
-# if defined and not 0, print traces in colors
+# to disable printing traces in colors, set MAKE_TRACE_IN_COLOR to empty or 0 value
+ifneq (,$(filter /%,$(CURDIR)))
+# assume UNIX terminal supports ANSI color escape sequences
 MAKE_TRACE_IN_COLOR ?= 1
+else
+# WINDOWS terminal does not support ANSI color escape sequences (until Windows 10, where color support can be somehow enabled)
+# note: 'ansi-colors' feature support is added to Gnu Make by this patch:
+#  https://github.com/mbuilov/gnumake-windows/blob/master/make-4.2.1-win32-colors.patch
+MAKE_TRACE_IN_COLOR ?= $(filter ansi-colors,$(.FEATURES))
+endif
 
 # for use in ifdefs
 make_trace_in_color := $(MAKE_TRACE_IN_COLOR:0=)
