@@ -1,7 +1,7 @@
 #----------------------------------------------------------------------------------
 # clean-build - non-recursive build system based on GNU Make
-# Copyright (C) 2015-2017 Michael M. Builov, https://github.com/mbuilov/clean-build
-# Licensed under GPL version 2 or any later version, see COPYING
+# Copyright (C) 2015-2018 Michael M. Builov, https://github.com/mbuilov/clean-build
+# Licensed under GPL version 3 or any later version, see COPYING
 #----------------------------------------------------------------------------------
 
 # system shell utilities - WINDOWS specific
@@ -17,7 +17,7 @@ $(error Unix version of Gnu Make is used with cmd.exe shell utilities - this con
   under Cygwin, native Gnu Make may be called as: /cygdrive/c/tools/gnumake-4.2.1.exe SED=C:/tools/sed.exe <args>)
 endif
 
-# shell must be cmd.exe, not /bin/sh (if build was started under Cygwin)
+# shell must be cmd.exe, not /bin/sh (if build is started from the Cygwin/Msys shell)
 ifneq (cmd.exe,$(notdir $(SHELL)))
 ifneq (undefined,$(origin ComSpec))
 SHELL := $(ComSpec)
@@ -45,12 +45,12 @@ ifneq (,$(or $(findstring \
   :\msys64\,$(PATH)),$(findstring \
   :\cygwin\,$(PATH)),$(findstring \
   :\cygwin64\,$(PATH))))
-$(warning stripping off msys/cygwin paths from the PATH - only native Windows tools should be used for the build)
+$(warning stripping off Msys/Cygwin paths from the PATH - only native Windows tools should be used for the build)
 PATH := $(call tospaces,$(subst $(space),;,$(strip $(foreach p,$(subst ;, ,$(call unspaces,$(PATH))),$(if $(or $(findstring \
   :\msys\,$p),$(findstring \
   :\msys64\,$p),$(findstring \
   :\cygwin\,$p),$(findstring \
-  :\cygwin64\,$p))),,$p))))
+  :\cygwin64\,$p)),,$p)))))
 endif
 
 # save new PATH value to the generated configuration makefile
@@ -72,7 +72,7 @@ print_env = setlocal$(newline)$(foreach =,$(project_exported_vars),SET "$==$($=)
 # assuming we use Windows XP or later and paths do not exceed 120 chars:
 CBLD_MAX_PATH_ARGS ?= 68
 
-# convert forward slashes used by make to backward ones accepted by windows programs
+# convert forward slashes used by make to backward ones accepted by Windows programs
 # note: override 'ospath' macro from $(cb_dir)/core/_defs.mk
 ospath = $(subst /,\,$1)
 
@@ -92,6 +92,7 @@ NUL ?= NUL
 
 # standard tools
 # note: most of them are builtin commands of cmd.exe, except: find, findstr, fc, sed
+# note: sed - stream editor, for Gnu Sed - see https://github.com/mbuilov/sed-windows
 DEL     ?= del
 RD      ?= rd
 CD      ?= cd
@@ -272,10 +273,6 @@ install_files = $(copy_files)
 # note: override 'pathsep' macro from $(cb_dir)/core/runtool.mk
 pathsep := ;
 
-# name of environment variable to modify in $(RUN_TOOL)
-# note: override 'dll_path_var' macro from $(cb_dir)/core/runtool.mk
-dll_path_var := PATH
-
 # if PATH environment variable was modified for calling a tool, print new PATH value for the generated batch
 # $1 - tool to execute (with parameters - escaped by 'shell_escape' macro)
 # $2 - additional path(s) separated by $(pathsep) to append to $(dll_path_var)
@@ -288,16 +285,6 @@ show_tool_vars = $(info setlocal$(foreach =,$(if $2,PATH) $4,$(newline)set $==$(
 # show after executing a command
 # note: override 'show_tool_vars_end' macro from $(cb_dir)/core/runtool.mk
 show_tool_vars_end = $(newline)@echo endlocal
-
-# windows terminal does not support ANSI color escape sequences (until Windows 10)
-# note: 'ansi-colors' feature support is added to Gnu Make by this patch:
-#  https://github.com/mbuilov/gnumake-windows/blob/master/make-4.2.1-win32-colors.patch
-# note: override 'cb_print_percents' and 'cb_colorize' macros from $(cb_dir)/core/suppress.mk
-CBLD_ENABLE_ANSI_COLORS ?= $(filter ansi-colors,$(.FEATURES))
-ifeq (,$(CBLD_ENABLE_ANSI_COLORS))
-cb_print_percents = [$1]
-cb_colorize = $1$(padto)$2
-endif
 
 # filter command's output through pipe, then send it to stderr
 # $1 - command
@@ -327,9 +314,4 @@ $(call set_global,nonrelpath1,core)
 # protect macros from modifications in target makefiles, allow tracing calls to them
 # note: trace namespace: runtool
 # note: overridde macros defined in $(cb_dir)/code/runtool.mk
-$(call set_global,pathsep dll_path_var show_tool_vars show_tool_vars_end,runtool)
-
-# protect macros from modifications in target makefiles, allow tracing calls to them
-# note: trace namespace: suppress
-# note: overridde macros defined in $(cb_dir)/code/suppress.mk
-$(call set_global,cb_print_percents cb_colorize,suppress)
+$(call set_global,pathsep show_tool_vars show_tool_vars_end,runtool)
