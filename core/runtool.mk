@@ -1,7 +1,7 @@
 #----------------------------------------------------------------------------------
 # clean-build - non-recursive build system based on GNU Make
-# Copyright (C) 2015-2017 Michael M. Builov, https://github.com/mbuilov/clean-build
-# Licensed under GPL version 2 or any later version, see COPYING
+# Copyright (C) 2015-2018 Michael M. Builov, https://github.com/mbuilov/clean-build
+# Licensed under GPL version 3 or any later version, see COPYING
 #----------------------------------------------------------------------------------
 
 # support for running a tool (with parameters) in a modified environment
@@ -12,8 +12,7 @@ pathsep := :
 
 # name of environment variable to modify in $(run_tool)
 # note: $(dll_path_var) should be PATH (for Windows) or LD_LIBRARY_PATH (for Unix-like OS)
-# note: $(cb_dir)/utils/cmd.mk redefines 'dll_path_var' to PATH
-dll_path_var := LD_LIBRARY_PATH
+dll_path_var := $(if $(filter WIN% CYGWIN% MINGW%,$(CBLD_OS)),PATH,LD_LIBRARY_PATH)
 
 # show environment variables prepared for running a tool in a modified environment
 # $1 - tool to execute (with parameters - escaped by 'shell_escape' macro)
