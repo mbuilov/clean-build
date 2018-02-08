@@ -1,7 +1,7 @@
 #----------------------------------------------------------------------------------
 # clean-build - non-recursive build system based on GNU Make
-# Copyright (C) 2015-2017 Michael M. Builov, https://github.com/mbuilov/clean-build
-# Licensed under GPL version 2 or any later version, see COPYING
+# Copyright (C) 2015-2018 Michael M. Builov, https://github.com/mbuilov/clean-build
+# Licensed under GPL version 3 or any later version, see COPYING
 #----------------------------------------------------------------------------------
 
 # rule templates for testing built executables - for the 'check' goal
@@ -18,6 +18,7 @@ exe_test_rule_ret:=
 
 else # check or clean
 
+# tool color for the 'suppress' macro
 CBLD_TEST_COLOR ?= [36m
 
 # run (built) $(exe) and send its stdout to $(exe).out

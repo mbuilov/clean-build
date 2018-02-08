@@ -1,7 +1,7 @@
 #----------------------------------------------------------------------------------
 # clean-build - non-recursive build system based on GNU Make
-# Copyright (C) 2015-2017 Michael M. Builov, https://github.com/mbuilov/clean-build
-# Licensed under GPL version 2 or any later version, see COPYING
+# Copyright (C) 2015-2018 Michael M. Builov, https://github.com/mbuilov/clean-build
+# Licensed under GPL version 3 or any later version, see COPYING
 #----------------------------------------------------------------------------------
 
 # support for bison compiler
@@ -24,12 +24,12 @@ BISON_FLAGS ?= -y -d -o
 # bison compiler
 # $1 - target
 # $2 - source
-# note: bison compiler called with default flags produces two files at the same time: header and source,
+# note: bison compiler called with default flags produces two files at once: header and source,
 #  to avoid calling bison multiple times (one - for a header, second - for a source), use 'multi_target' macro:
 #  $(call multi_target,$(gen_dir)/test/y.tab.h $(gen_dir)/test/y.tab.c,test.y,$$(call bison_compiler,$(gen_dir)/test/y.tab.c,$$<))
 bison_compiler = $(call suppress,BISON,$2)$(BISON) $(BISON_FLAGS) $(call ospath,$1 $2)
 
-# tool color
+# tool color for the 'suppress' macro
 CBLD_BISON_COLOR ?= $(CBLD_GEN_COLOR)
 
 # remember values of variables possibly taken from the environment

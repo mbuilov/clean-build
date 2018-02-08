@@ -1,7 +1,7 @@
 #----------------------------------------------------------------------------------
 # clean-build - non-recursive build system based on GNU Make
-# Copyright (C) 2015-2017 Michael M. Builov, https://github.com/mbuilov/clean-build
-# Licensed under GPL version 2 or any later version, see COPYING
+# Copyright (C) 2015-2018 Michael M. Builov, https://github.com/mbuilov/clean-build
+# Licensed under GPL version 3 or any later version, see COPYING
 #----------------------------------------------------------------------------------
 
 # support for flex compiler
@@ -26,7 +26,7 @@ FLEX_FLAGS ?= -o
 #  $(call add_generated_ret,$(gen_dir)/test/test.yy.c): $(call fixpath,test.l); $(call flex_compiler,$@,$<)
 flex_compiler = $(call suppress,FLEX,$2)$(FLEX) $(FLEX_FLAGS) $(call ospath,$1 $2)
 
-# tool color
+# tool color for the 'suppress' macro
 CBLD_FLEX_COLOR ?= $(CBLD_GEN_COLOR)
 
 # remember values of variables possibly taken from the environment
