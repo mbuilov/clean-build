@@ -1,7 +1,7 @@
 #----------------------------------------------------------------------------------
 # clean-build - non-recursive build system based on GNU Make
-# Copyright (C) 2015-2017 Michael M. Builov, https://github.com/mbuilov/clean-build
-# Licensed under GPL version 2 or any later version, see COPYING
+# Copyright (C) 2015-2018 Michael M. Builov, https://github.com/mbuilov/clean-build
+# Licensed under GPL version 3 or any later version, see COPYING
 #----------------------------------------------------------------------------------
 
 # define 'suppress' macro - used to pretty-print commands executed by the makefiles
@@ -25,22 +25,34 @@ else
 cb_infomf:=
 endif
 
-# colorize printed percents
-# note: $(cb_dir)/utils/cmd.mk redefines: cb_print_percents = [$1]
+# print percents
+# note: 'make_trace_in_color' - defined in $(cb_dir)/trace/trace.mk
+ifndef make_trace_in_color
+cb_print_percents = cb_print_percents = [$1]
+else
 cb_print_percents = [34m[[1m$1[;34m][m
+endif
 
-# colorize arguments
+# print tool arguments
 # $1 - color name, e.g. GEN
 # $2 - arguments (e.g. generated files)
-# note: $(cb_dir)/utils/cmd.mk redefines: cb_colorize = $2
+# note: 'make_trace_in_color' - defined in $(cb_dir)/trace/trace.mk
+ifndef make_trace_in_color
+cb_colorize = $2
+else
 cb_colorize = $(patsubst %,$(CBLD_$1_COLOR)%[m,$2)
+endif
 
-# print in color short name of the called tool $1 with the argument $2
+# print in short name of the called tool $1 with the argument $2
 # $1 - tool, e.g. GEN
 # $2 - arguments (e.g. generated files)
 # $3 - if empty, then colorize arguments
-# note: $(cb_dir)/utils/cmd.mk redefines: cb_show_tool = $1$(padto)$2
+# note: 'make_trace_in_color' - defined in $(cb_dir)/trace/trace.mk
+ifndef make_trace_in_color
+cb_show_tool = $1$(padto)$2
+else
 cb_show_tool = $(CBLD_$1_COLOR)$1[m$(padto)$(if $3,$2,$(join $(dir $2),$(call cb_colorize,$1,$(notdir $2))))
+endif
 
 ifeq (,$(filter distclean clean,$(MAKECMDGOALS)))
 
