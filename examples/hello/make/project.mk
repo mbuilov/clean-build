@@ -50,7 +50,7 @@ CBLD_BUILD ?= $(top)/build
 product_names_h   := product_names.h
 product_name      := Sample app
 product_vendor    := Michael M. Builov
-product_copyright := Copyright (C) 2015-2017 Michael M. Builov, https://github.com/mbuilov/clean-build
+product_copyright := Copyright (C) 2015-2018 Michael M. Builov, https://github.com/mbuilov/clean-build
 
 # global product version
 # Note: this is the default value of 'modver' variable - per-module version number
