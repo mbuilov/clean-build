@@ -1,7 +1,7 @@
 #----------------------------------------------------------------------------------
 # clean-build - non-recursive build system based on GNU Make
-# Copyright (C) 2015-2017 Michael M. Builov, https://github.com/mbuilov/clean-build
-# Licensed under GPL version 2 or any later version, see COPYING
+# Copyright (C) 2015-2018 Michael M. Builov, https://github.com/mbuilov/clean-build
+# Licensed under GPL version 3 or any later version, see COPYING
 #----------------------------------------------------------------------------------
 
 # this file is included by $(cb_dir)/core/_defs.mk, after including $(cb_dir)/core/functions.mk and $(cb_dir)/trace/trace.mk
