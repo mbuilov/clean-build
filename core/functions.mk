@@ -14,6 +14,7 @@ endif
 unspaces = $(subst $(space),$$(space),$(subst $(tab),$$(tab),$(subst $$,$$$$,$1)))
 
 # unhide spaces in string
+# note: assume there are no newlines in $1, else replace them: $(subst $(newline),$$(newline),$1)
 tospaces = $(eval tospaces_:=$(subst $(comment),$$(comment),$1))$(tospaces_)
 
 # add quotes if path has an embedded space(s):
