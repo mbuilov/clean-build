@@ -28,9 +28,7 @@ ifeq (,$(filter-out undefined environment,$(origin pch_template)))
 include $(cb_dir)/types/c/pch.mk
 endif
 
-ifndef toclean
-
-# $1  - target type: exe,lib,dll,klib
+# $1  - target type: exe,lib,dll,klib...
 # $2  - $(call fixpath,$(pch)), e.g. /project/include/xxx.h
 # $3  - sources to build with precompiled header (without directory part)
 # $4  - $(call form_obj_dir,$1,$v)
@@ -41,7 +39,7 @@ ifndef toclean
 # $9  - pch object (e.g. /build/obj/xxx_pch_c.o or /build/obj/xxx_pch_cc.o)
 # $10 - pch        (e.g. /build/obj/xxx_c.cpch  or /build/obj/xxx_cc.Cpch)
 # $11 - objects to build with pch: $(patsubst %,$4/%$(obj_suffix),$(basename $3))
-# $v  - non-empty variant: R,P,D
+# $v  - non-empty variant: R,P,D...
 # target-specific: 'pch' - defined by 'pch_vars_templ' from $(cb_dir)/types/c/pch.mk
 # note: when compiling pch header, two entities are created: pch object $9 and pch $(10), so add order-only dependency of pch $(10)
 #  on pch object $9 - to avoid parallel compilation of $(10) and $9, also define target-specific variable '$7_built' - to check if
@@ -68,7 +66,7 @@ $(call define_prepend,suncc_pch_rule_templ,-include $$(basename $$9)$(c_dep_suff
 endif
 
 # define a rule for building precompiled header
-# $1  - target type: exe,lib,dll,klib
+# $1  - target type: exe,lib,dll,klib...
 # $2  - $(call fixpath,$(pch)), e.g. /project/include/xxx.h
 # $3  - $(notdir $(filter $(cc_mask),$(call fixpath,$(with_pch))))
 #    or $(notdir $(filter $(cxx_mask),$(call fixpath,$(with_pch))))
@@ -79,14 +77,14 @@ endif
 # $8  - pch header compiler: 'pch_cc' or 'pch_cxx'
 # $9  - pch source suffix: 'c' or 'cc'
 # $10 - compiled pch extension: .cpch or .Cpch (predefined by suncc)
-# $v  - non-empty variant: R,P,D
+# $v  - non-empty variant: R,P,D...
 # note: pch souce:  $6/$7_pch.$9
 # note: pch object: $4/$7_pch_$9$(obj_suffix)
 # note: pch:        $4/$7_$9$(10)
 suncc_pch_rule = $(call suncc_pch_rule_templ,$1,$2,$3,$4,$5,$6,$8,$6/$7_pch.$9,$4/$7_pch_$9$(obj_suffix),$4/$7_$9$(10),$(patsubst \
   %,$4/%$(obj_suffix),$(basename $3)))
 
-# $1 - target type: exe,lib,dll,klib
+# $1 - target type: exe,lib,dll,klib...
 # $2 - $(call fixpath,$(pch))
 # $3 - $(filter $(cc_mask),$(call fixpath,$(with_pch)))
 # $4 - $(filter $(cxx_mask),$(call fixpath,$(with_pch)))
@@ -94,19 +92,19 @@ suncc_pch_rule = $(call suncc_pch_rule_templ,$1,$2,$3,$4,$5,$6,$8,$6/$7_pch.$9,$
 # $6 - $(call form_trg,$1,$v)
 # $7 - common objdir (for R-variant)
 # $8 - $(basename $(notdir $2))
-# $v - non-empty variant: R,P,D
+# $v - non-empty variant: R,P,D...
 suncc_pch_templatev1 = $(if \
   $3,$(call suncc_pch_rule,$1,$2,$(notdir $3),$5,$6,$7,$8,pch_cc,c,.cpch))$(if \
   $4,$(call suncc_pch_rule,$1,$2,$(notdir $4),$5,$6,$7,$8,pch_cxx,cc,.Cpch))
 
 # define a rule for building C/C++ precompiled header, as assumed by 'pch_template' macro from $(cb_dir)/types/c/pch.mk
-# $1 - target type: exe,lib,dll,klib
+# $1 - target type: exe,lib,dll,klib...
 # $2 - $(call fixpath,$(pch))
 # $3 - $(filter $(cc_mask),$(call fixpath,$(with_pch)))
 # $4 - $(filter $(cxx_mask),$(call fixpath,$(with_pch)))
 # $5 - $(call form_obj_dir,$1,$v)
 # $6 - $(call form_trg,$1,$v)
-# $v - non-empty variant: R,P,D
+# $v - non-empty variant: R,P,D...
 # note: in generated code, may use target-specific variables:
 #  'pch', 'cc_with_pch', 'cxx_with_pch' - defined by 'pch_vars_templ' macro from $(cb_dir)/types/c/pch.mk
 # note: this callback is passed to 'pch_template' macro defined in $(cb_dir)/types/c/pch.mk
@@ -155,7 +153,7 @@ suncc_pch_templategen1 = $(if \
   $4,$(call suncc_pch_gen_rule,$1,$2,$4,.cc))
 
 # generate sources for compiling with precompiled header, as assumed by 'pch_template' macro from $(cb_dir)/types/c/pch.mk
-# $1 - target type: exe,lib,dll,klib
+# $1 - target type: exe,lib,dll,klib...
 # $2 - $(call fixpath,$(pch))
 # $3 - $(filter $(cc_mask),$(call fixpath,$(with_pch)))
 # $4 - $(filter $(cxx_mask),$(call fixpath,$(with_pch)))
@@ -163,52 +161,11 @@ suncc_pch_templategen1 = $(if \
 suncc_pch_templategen = $(call suncc_pch_templategen1,$(call form_obj_dir,$1),$2,$3,$4)
 
 # code to evaluate to build with precompiled headers
-# $t - target type: exe,lib,dll,klib
+# $t - target type: exe,lib,dll,klib...
 # note: defines target-specific variables: 'pch', 'cc_with_pch', 'cxx_with_pch'
 # note: 'pch_template' macro is defined in $(cb_dir)/types/c/pch.mk
 # note: called by 'c_define_app_rules' macro patched in $(cb_dir)/compilers/suncc.mk
 suncc_pch_templatet = $(call pch_template,$t,suncc_pch_templatev,suncc_pch_templategen)
-
-else # toclean
-
-# return objects to cleanup (which are created while building with precompiled header),
-#  as assumed by 'pch_template' macro from $(cb_dir)/types/c/pch.mk
-# $1 - target type: exe,lib,dll,klib
-# $2 - $(basename $(notdir $(pch)))
-# $3 - $(filter $(cc_mask),$(with_pch))
-# $4 - $(filter $(cxx_mask),$(with_pch))
-# $5 - $(call form_obj_dir,$1,$v)
-# $v - non-empty variant: R,P,D
-# note: $(c_dep_suffix) - may expand to an empty value
-# note: this callback is passed to 'pch_template' macro defined in $(cb_dir)/types/c/pch.mk
-suncc_pch_templatev = $(if \
-  $3,$(addprefix $5/$2_,$(addprefix pch_c,$(obj_suffix) $(c_dep_suffix)) c.cpch)) $(if \
-  $4,$(addprefix $5/$2_,$(addprefix pch_cc,$(obj_suffix) $(c_dep_suffix)) cc.Cpch))
-
-# $1 - common objdir (for R-variant)
-# $2 - $(basename $(notdir $(pch)))
-# $3 - $(filter $(cc_mask),$(with_pch))
-# $4 - $(filter $(cxx_mask),$(with_pch))
-suncc_pch_templategen1 = $(if \
-  $3,$(patsubst %,$1/%.c,$2_pch $(notdir $3))) $(if \
-  $4,$(patsubst %,$1/%.cc,$2_pch $(notdir $4)))
-
-# return source files to cleanup (generated for building with precompiled header),
-#  as assumed by 'pch_template' macro from $(cb_dir)/types/c/pch.mk
-# $1 - target type: exe,lib,dll,klib
-# $2 - $(basename $(notdir $(pch)))
-# $3 - $(filter $(cc_mask),$(with_pch))
-# $4 - $(filter $(cxx_mask),$(with_pch))
-# note: this callback is passed to 'pch_template' macro defined in $(cb_dir)/types/c/pch.mk
-suncc_pch_templategen = $(call suncc_pch_templategen1,$(call form_obj_dir,$1),$2,$3,$4)
-
-# cleanup objects and source files created while building with precompiled header
-# $t - target type: exe,lib,dll,klib
-# note: 'pch_template' macro is defined in $(cb_dir)/types/c/pch.mk
-# note: called by 'c_define_app_rules' macro patched in $(cb_dir)/compilers/suncc.mk
-suncc_pch_templatet = $(call toclean,$(call pch_template,$t,suncc_pch_templatev,suncc_pch_templategen))
-
-endif # toclean
 
 # makefile parsing first phase variables
 cb_first_phase_vars += suncc_pch_rule_templ suncc_pch_rule suncc_pch_templatev1 suncc_pch_templatev suncc_pch_gen_templ \
