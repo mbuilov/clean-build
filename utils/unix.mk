@@ -143,7 +143,7 @@ printf_line_escape = $(call shell_escape,$(subst \,\\,$(subst %,%%,$1)))
 # note: if path to the file $2 contains a space, it must be in quotes: '1 2/3 4'
 # NOTE: printed batch length must not exceed the maximum command line length (at least 4096 characters)
 # note: used by 'write_string' macro
-write_string1 = $(if $6,$3,$4)$(PRINTF) -- $(call tospaces,$(printf_line_escape))$(if $2,>$(if $6,>) $2)
+write_string1 = $(if $6,$3,$4)$(PRINTF) -- $(call tospaces,$(call printf_line_escape,$(if $6, )$1))$(if $2,>$(if $6,>) $2)
 
 # write string $1 to the file $2 by $3 tokens at one time
 # note: there must be no $(newline)s in the string $1
