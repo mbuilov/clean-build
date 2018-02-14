@@ -487,32 +487,32 @@ endif # cb_makefile_info_templ
 #  so callers _may_ change 'cb_needed_dirs' without protecting it. Protect 'cb_needed_dirs' here.
 std_target_vars = $(call std_target_vars1,$1,$(patsubst %/,%,$(sort $(dir $1))))
 
-else # clean
+else # toclean
 
 # just delete (recursively, with all content) generated directories $1 (absolute paths) 
-# note: callers of 'need_gen_dirs' may assume that it will protect new value of 'cb_needed_dirs'
-#  so callers _may_ change 'cb_needed_dirs' without protecting it. Protect 'cb_needed_dirs' here (do not optimize!).
-# remember new values of 'cb_to_clean' and 'cb_needed_dirs' without tracing calls to them because they are incremented
 ifndef cb_checking
 need_gen_dirs = $(eval cb_to_clean+=$$1)
 else
+# remember new values of 'cb_to_clean' and 'cb_needed_dirs' without tracing calls to them because they are incremented
+# note: callers of 'need_gen_dirs' may assume that it will protect new value of 'cb_needed_dirs'
+#  so callers _may_ change 'cb_needed_dirs' without protecting it. Protect 'cb_needed_dirs' here (do not optimize!).
 need_gen_dirs = $(eval cb_to_clean+=$$1$(newline)$$(call set_global1,cb_to_clean cb_needed_dirs))
 endif
 
 # just delete target files $1 (absolute paths)
-# note: callers of 'std_target_vars' may assume that it will protect new value of 'cb_needed_dirs'
-#  so callers _may_ change 'cb_needed_dirs' without protecting it. Protect 'cb_needed_dirs' here (do not optimize!).
-# remember new values of 'cb_to_clean' and 'cb_needed_dirs' without tracing calls to them because they are incremented
 ifndef cb_checking
 std_target_vars = cb_to_clean+=$1
 else
+# remember new values of 'cb_to_clean' and 'cb_needed_dirs' without tracing calls to them because they are incremented
+# note: callers of 'std_target_vars' may assume that it will protect new value of 'cb_needed_dirs'
+#  so callers _may_ change 'cb_needed_dirs' without protecting it. Protect 'cb_needed_dirs' here (do not optimize!).
 std_target_vars = cb_to_clean+=$1$(newline)$(call set_global1,cb_to_clean cb_needed_dirs)
 endif
 
 # do nothing if cleaning up
 add_order_deps:=
 
-endif # clean
+endif # toclean
 
 # add generated files $1 to build sequence
 # note: files must be generated under $(gen_dir), $(bin_dir), $(obj_dir) or $(lib_dir) directories
