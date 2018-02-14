@@ -15,8 +15,6 @@
 # 'pch' - either absolute or makefile-related path to C/C++ header file to precompile
 c_prepare_pch_vars := $(newline)pch:=
 
-ifndef toclean
-
 # define target-specific variables: 'pch', 'cc_with_pch' and 'cxx_with_pch'
 # $1 - target type: exe,lib,dll,klib
 # $2 - name of pch rule generator macro
@@ -95,35 +93,6 @@ pch_template1 = $(call pch_template2,$1,$2,$3,$(call fixpath,$(pch)),$(filter $(
 #  'c_base_template' macro in the $(cb_dir)/types/c/c_base.mk
 pch_template = $(if $(and $(pch),$(with_pch)),$(call \
   pch_template1,$1,$2,$3,$(call fixpath,$(with_pch))),$(call with_pch_reset,$(all_targets)))
-
-else # toclean
-
-# call externally defined compiler-specific generators $2 and $3, which must return objects to clean up
-# $1 - target type: exe,lib,dll,klib
-# $2 - name of pch rule generator macro
-# $3 - name of sources generator macro
-# $4 - $(basename $(notdir $(pch)))
-# $5 - $(filter $(cc_mask),$(with_pch))
-# $6 - $(filter $(cxx_mask),$(with_pch))
-# -- parameters for sources generator $3 and rule generator $2:
-#  $1 - target type: exe,lib,dll,klib
-#  $2 - $(basename $(notdir $(pch)))
-#  $3 - $(filter $(cc_mask),$(with_pch))
-#  $4 - $(filter $(cxx_mask),$(with_pch))
-# -- more parameters for pch rule generator $2:
-#  $5 - $(call form_obj_dir,$1,$v)
-#  $v - variant - one of $(get_variants)
-pch_template1 = $(call $3,$1,$4,$5,$6)$(foreach v,$(get_variants),$(call $2,$1,$4,$5,$6,$(call form_obj_dir,$1,$v)))
-
-# return objects to clean up created while building with precompiled header (objects of generated sources, pch object file)
-# $1 - target type: exe,lib,dll,klib
-# $2 - name of pch rule generator macro
-# $3 - name of sources generator macro
-# use target makefile variables: 'pch' and 'with_pch'
-pch_template = $(if $(pch),$(if $(with_pch),$(strip $(call pch_template1,$1,$2,$3,$(basename \
-  $(notdir $(pch))),$(filter $(cc_mask),$(with_pch)),$(filter $(cxx_mask),$(with_pch))))))
-
-endif # toclean
 
 # tools colors:
 
