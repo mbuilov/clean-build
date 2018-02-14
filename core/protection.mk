@@ -32,7 +32,8 @@ $(eval cb_protected_vars += $$(call set_global,$(foreach =,$(filter-out $(dump_m
 endif
 
 ifdef cb_checking
-# protect from changes $(project_exported_vars) (at least command-line variables), don't trace calls to them to avoid redefining the values
+# protect from changes $(project_exported_vars) (at least command-line variables), don't trace calls to them to avoid redefining values
+#  of exported variables
 # note: 'cb_protected_vars' variable is used here temporary and will be redefined later
 cb_protected_vars += $(call set_global,$(project_exported_vars))
 endif
@@ -104,6 +105,11 @@ endif
 # $1 - list of variable names
 env_remember = $(foreach =,$1,$(if $(findstring file,$(origin $=.^e)),$(eval $$=.^e:=$$(value $$=))))$(set_global1)
 
+# trace calls to macros, except those used in ifdefs, exported to the environment of called tools or modified via operator +=
+# note: trace namespace: core
+# note: 'cb_protected_vars' variable is used here temporary and will be redefined later
+cb_protected_vars += $(call set_global,get_global env_remember,core)
+
 # show a warning about overwritten environment variable $=
 # note: variable name may be non-standard, e.g. CommonProgramFiles(x86)
 cb_env_var_ov = $(warning environment variable $= was overwritten:$(newline)--- old value:$(newline)$(value \
@@ -136,6 +142,10 @@ set_global2 = $(if $1,$$(call trace_calls,$(subst $$,$$$$,$(cb_check_tracing_env
 set_global1 = $(if $(call cb_check_cannot_trace,$2),,$(call \
   set_global2,$(filter-out $(CBLD_NON_TRACEABLE_VARS) $(CBLD_NON_TRACEABLE_VARS:==%),$1),$2))
 
+# 'cb_protected_vars' variable was temporary used to store calls to 'set_global' from $(cb_dir)/core/functions.mk and
+#  $(cb_dir)/core/confsup.mk - now 'set_global1' macro is defined, so evaluate those calls
+$(eval $(value cb_protected_vars))
+
 endif # cb_tracing
 
 # list of first-phase variables - these are will be reset before the rule-execution second phase
@@ -144,7 +154,7 @@ cb_first_phase_vars:=
 else # cb_checking
 
 # list of clean-build protected variables
-# note: cannot reset 'cb_protected_vars' here - it temporary holds a protection code, will reset 'cb_protected_vars' below
+# note: cannot reset 'cb_protected_vars' here - it temporary holds a protection code, will reset 'cb_protected_vars' below in $(eval ...)
 #cb_protected_vars:=
 
 # reset
@@ -182,6 +192,11 @@ set_global1 = $(if $(call cb_check_cannot_trace,$2),$(set_global4),$(call \
 else
 set_global1 = $(call cb_protect_vars2,$(foreach =,$1,$(firstword $(subst =, ,$=))))
 endif
+
+# 'cb_protected_vars' variable was temporary used to store calls to 'set_global' from $(cb_dir)/core/functions.mk and
+#  $(cb_dir)/core/confsup.mk - now 'set_global1' macro is defined, so evaluate those calls
+# note: need to reset 'cb_protected_vars' to empty value just before the first call to 'set_global'
+$(eval cb_protected_vars:=$(newline)$(value cb_protected_vars))
 
 # redefine "local" variable $= to produce access error
 # note: string "!$(error " is checked below in 'cb_reset_local_var' macro
@@ -252,14 +267,12 @@ cb_check_at_tail = $(if $1,$(if $(cb_need_tail_code),$(error \
 
 # protect variables from modifications in target makefiles
 # note: do not trace calls to these macros
-# note: 'cb_protected_vars' variable was temporary used to store calls to 'set_global' from $(cb_dir)/core/functions.mk and
-#  $(cb_dir)/core/confsup.mk, need to reset 'cb_protected_vars' just before calling first 'set_global'
-$(eval cb_protected_vars:=$(newline)$(value cb_protected_vars)$$(call set_global,cb_checking cb_tracing \
+$(call set_global,cb_checking cb_tracing \
   CBLD_NON_TRACEABLE_VARS CBLD_TRACE_FILTER CBLD_TRACE_FILTER_OUT \
-  cb_check_cannot_trace cb_check_tracing_env set_global get_global env_remember cb_env_var_ov cb_check_env_var cb_check_env_vars \
+  cb_check_cannot_trace cb_check_tracing_env set_global cb_env_var_ov cb_check_env_var cb_check_env_vars \
   set_global1 cb_protected_vars cb_encode_var_value cb_encode_var_name cb_protect_vars2 \
   set_global5 set_global4 set_global3 set_global2 cb_var_access_err cb_reset_local_var cb_reset_local_vars cb_reset_saved_vars \
-  cb_reset_first_phase cb_check_at_head cb_protected_var_ov cb_check_protected_var cb_check_at_tail))
+  cb_reset_first_phase cb_check_at_head cb_protected_var_ov cb_check_protected_var cb_check_at_tail)
 
 # these macros must not be used in rule execution second phase
 # note: do not reset 'cb_var_access_err' and 'cb_reset_first_phase' macros - this causes problems with Gnu Make 3.81, which doesn't
