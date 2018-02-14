@@ -225,7 +225,7 @@ print_short_string = (set/p=$(unquoted_escape))<NUL
 # note: if path to the file $2 contains a space, it must be in double-quotes: "1 2\3 4"
 # NOTE: printed batch length must not exceed the maximum command line length (8191 characters)
 # note: used by 'write_string' macro
-write_string1 = $(if $6,$3,$4)(set/p=$(tospaces))<NUL$(if $2,>$(if $6,>) $2)
+write_string1 = $(if $6,$3,$4)(set/p=$(if $6, )$(tospaces))<NUL$(if $2,>$(if $6,>) $2)
 
 # write string $1 to the file $2 by $3 tokens at one time
 # note: there must be no $(newline)s in the string $1
