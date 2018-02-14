@@ -154,10 +154,11 @@ trg_ldflags  = $(call $t_ldflags,$v) $(ldflags)
 # $t - target type: exe,dll,lib...
 # $v - non-empty variant: R,P,D,S... (one of variants supported by the selected toolchain)
 # note: object compilers 'obj_cc' and 'obj_cxx' must be defined in the compiler-specific makefile (e.g. $(cb_dir)/compilers/gcc.mk)
-# note: define target-specific variable 'trg' - an unique namespace name, for use by 'c_redefine' macro (see below)
-# note: 'std_target_vars' also changes 'cb_needed_dirs', so do not remember its new value here
+# note: define target-specific variable 'objdir' - directory of object files of a module
+# note: target-specific variable 'objdir' forms an unique namespace name for the target, it is used in the 'c_redefine' macro (see below)
+# note: 'std_target_vars' also changes 'cb_needed_dirs', so do not remember its new value here - it will be saved in $(std_target_vars)
 define c_base_template
-$1:trg := $(notdir $4)
+$1:objdir := $4
 cb_needed_dirs+=$4
 $(std_target_vars)
 $1:$(call obj_rules,obj_cc,$(filter $(cc_mask),$2),$3,$4,$(obj_suffix),$t$(comma)$v,$(c_dep_suffix))
@@ -194,19 +195,21 @@ c_rules_templ = $(foreach t,$(c_target_types),$(if $($t),$(c_rules_templt)))
 # this code is normally evaluated at end of target makefile
 c_define_rules = $(call c_rules_templ,$(trg_src),$(trg_sdeps))
 
-# get value of 'trg' key variable defined by 'c_base_template' (expanded in current target makefile)
-# $1 - exe,dll,...
+# form namespace name of the target - make value of 'objdir' target-specific variable defined by 'c_base_template'
+# $1 - target type: exe,dll,lib...
 # $2 - non-empty variant: R,P,D,S... (one of variants supported by the selected toolchain)
-trg_key_current_value = $(notdir $(form_obj_dir))
+trg_form_namespace = $(notdir $(form_obj_dir))
+
+# get namespace name of the target - process value of 'objdir' target-specific variable defined by 'c_base_template'
+trg_get_namespace = $(notdir $(objdir))
 
 # For the target type $1: redefine macro $2 with new value $3 as target-specific variable bound to namespace identified by
-#  target-specific variable 'trg'.
+#  target-specific variable 'objdir' (which is defined by 'c_base_template')
 # This is usable when it's needed to redefine some variable (e.g. 'def_cflags') as target-specific (e.g. for an exe) to allow
 #  inheritance of that variable to dependent objects (of exe), but preventing its inheritance to dependent dlls and their objects.
-# note: target-specific variable 'trg', those value is used as a namespace name, is defined by 'c_base_template' (see above)
 # example: $(call c_redefine,exe,def_cflags,-Wall)
 c_redefine = $(foreach v,$(get_variants),$(eval \
-  $(call form_trg,$1,$v): $$(call keyed_redefine,$$2,trg,$(call trg_key_current_value,$1,$v),$$3)))
+  $(call form_trg,$1,$v): $$(call keyed_redefine,$$2,trg_get_namespace,$(call trg_form_namespace,$1,$v),$$3)))
 
 # do not support compiling assembler sources by default
 # note: 'c_asm_supported' may be overridden in project configuration makefile, which must also define 
@@ -225,7 +228,7 @@ $(call config_remember_vars,CBLD_NO_PCH)
 # makefile parsing first phase variables
 cb_first_phase_vars += c_prepare_base_vars trg_compiler trg_include trg_defines c_get_sources trg_src trg_sdeps \
   trg_cflags trg_cxxflags trg_ldflags c_base_template c_rules_templv c_rules_templt c_rules_templ c_define_rules \
-  trg_key_current_value c_redefine
+  trg_form_namespace c_redefine
 
 # protect variables from modifications in target makefiles
 # do not trace calls to macros used in ifdefs, exported to the environment of called tools or modified via operator +=
@@ -237,7 +240,7 @@ $(call set_global,c_target_types obj_suffix c_dep_suffix cc_mask cxx_mask c_prep
   trg_compiler=t;v trg_include=t;v;include trg_defines=t;v;defines c_get_sources=src;with_pch trg_src trg_sdeps=sdeps \
   mk_include_option c_define_special c_define_escape_value c_define_escape_values mk_defines_option1 mk_defines_option \
   trg_cflags=t;v trg_cxxflags=t;v trg_ldflags=t;v c_base_template=t;v;$$t \
-  c_rules_templv=t;v c_rules_templt=t c_rules_templ c_define_rules trg_key_current_value c_redefine,c_base)
+  c_rules_templv=t;v c_rules_templt=t c_rules_templ c_define_rules trg_form_namespace trg_get_namespace c_redefine,c_base)
 
 # KCC_COLOR  := [31m
 # KCXX_COLOR := [36m
