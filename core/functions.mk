@@ -10,11 +10,19 @@ ifeq (,$(filter-out undefined environment,$(origin trace_calls)))
 include $(dir $(lastword $(MAKEFILE_LIST)))../trace/trace.mk
 endif
 
-# hide spaces in string
+# hide spaces in string, to unhide - use 'tospaces'
+# note: newlines are not processed by default, if needed, hide them like this:
+#  $(subst $(newline),$$(newline),$(unspaces))
 unspaces = $(subst $(space),$$(space),$(subst $(tab),$$(tab),$(subst $$,$$$$,$1)))
 
-# unhide spaces in string
-# note: assume there are no newlines in $1, else replace them: $(subst $(newline),$$(newline),$1)
+# make space-separated list of tokens, to convert back to string - use 'tospaces'
+# note: newlines are not processed by default, if needed, hide them like this:
+#  $(subst $(newline),$$(newline),$(sptokens))
+sptokens = $(subst $(space),$$(empty) $$(empty),$(subst $(tab),$$(tab),$(subst $$,$$$$,$1)))
+
+# unhide spaces in string or convert space-separated list of tokens back to string
+# note: assume there are no newlines in $1, else - hide them before the call:
+#  $(call tospaces,$(subst $(newline),$$(newline),$1))
 tospaces = $(eval tospaces_:=$(subst $(comment),$$(comment),$1))$(tospaces_)
 
 # add quotes if path has an embedded space(s):
@@ -289,8 +297,8 @@ try_make_simple = $(if $(filter $(words $2),$(words $(filter simple,$(foreach =,
 # redefine macro $1 so that when expanding, it will give a new value only if current key value matches
 #  the predefined one (constant tag), else returns an old value the macro had before it was redefined
 #
-# $1 - name of redefined macro
-# $2 - name of key variable         (global or target-specific)
+# $1 - name of redefined macro      (constant string)
+# $2 - name of key variable         (global or target-specific, may be a recursive macro)
 # $3 - predefined key value         (constant tag, must not contain %)
 # $4 - new value of redefined macro (returned only if key value matches tag $3)
 #
@@ -323,7 +331,7 @@ cb_protected_vars = $(call set_global,MAKE_TRACE_IN_COLOR make_trace_in_color \
 # note: trace namespace: functions
 # note: 'cb_protected_vars' variable is used here temporary and will be redefined later
 cb_protected_vars += $(call set_global, \
-  unspaces tospaces ifaddq qpath tolower toupper repl09 repl09AZ padto1 padto is_less1 is_less repl090 \
+  unspaces sptokens tospaces ifaddq qpath tolower toupper repl09 repl09AZ padto1 padto is_less1 is_less repl090 \
   is_less_float6 is_less_float5 is_less_float4 is_less_float3 is_less_float2 is_less_float1 is_less_float \
   strip_leading0 sort_numbers2 sort_numbers1 sort_numbers reverse \
   xargs1 xargs xcmd trim uniq uniq1 neq patsubst_multiple cut_heads cut_tails \
