@@ -23,16 +23,14 @@ ifeq (,$(filter-out undefined environment,$(origin pch_template)))
 include $(cb_dir)/types/c/pch.mk
 endif
 
-ifndef toclean
-
-# $1 - target type: exe,lib,dll,klib
+# $1 - target type: exe,lib,dll,klib...
 # $2 - $(call fixpath,$(pch)), e.g. C:/project/include/xxx.h
 # $3 - $(call form_obj_dir,$1,$v)
 # $4 - $(call form_trg,$1,$v)
 # $5 - pch header compiler: 'pch_cc' or 'pch_cxx'
 # $6 - pch object (e.g. C:/build/obj/xxx_pch_c.obj or C:/build/obj/xxx_pch_cpp.obj)
 # $7 - pch        (e.g. C:/build/obj/xxx_c.pch     or C:/build/obj/xxx_cpp.pch)
-# $v - non-empty variant: R,S,RU,SU
+# $v - non-empty variant: R,S,RU,SU...
 # target-specific: 'pch' - defined by 'pch_vars_templ' from $(cb_dir)/types/c/pch.mk
 # note: when compiling pch header, two entities are created: pch object $6 and pch $7, so add order-only dependency of pch $7 on
 #  pch object $6 - to avoid parallel compilation of $7 and $6, also define target-specific variable '$5_built' - to check if pch $7
@@ -78,7 +76,7 @@ $(call expand_partially,msvc_pch_rule_templ_mp,msvc_pch_templ_base)
 endif
 
 # define a rule for building precompiled header
-# $1 - target type: exe,lib,dll,klib
+# $1 - target type: exe,lib,dll,klib...
 # $2 - $(call fixpath,$(pch)), e.g. C:/project/include/xxx.h
 # $3 - $(call form_obj_dir,$1,$v)
 # $4 - $(call form_trg,$1,$v)
@@ -87,20 +85,20 @@ endif
 # $7 - pch source type: 'c' or 'cpp'
 # $8 - $(filter $(cc_mask),$(call fixpath,$(with_pch)))
 #   or $(filter $(cxx_mask),$(call fixpath,$(with_pch)))
-# $v - non-empty variant: R,S,RU,SU
+# $v - non-empty variant: R,S,RU,SU...
 # note: pch object: $3/$5_pch_$7$(obj_suffix)
 # note: pch:        $3/$5_$7.pch
 msvc_pch_rule    = $(call msvc_pch_rule_templ,$1,$2,$3,$4,$6,$3/$5_pch_$7$(obj_suffix),$3/$5_$7.pch,$8)
 msvc_pch_rule_mp = $(call msvc_pch_rule_templ_mp,$1,$2,$3,$4,$6,$3/$5_pch_$7$(obj_suffix),$3/$5_$7.pch)
 
 # define a rule for building C/C++ precompiled header, as assumed by 'pch_template' macro from $(cb_dir)/types/c/pch.mk
-# $1 - target type: exe,lib,dll,klib
+# $1 - target type: exe,lib,dll,klib...
 # $2 - $(call fixpath,$(pch))
 # $3 - $(filter $(cc_mask),$(call fixpath,$(with_pch)))
 # $4 - $(filter $(cxx_mask),$(call fixpath,$(with_pch)))
 # $5 - $(call form_obj_dir,$1,$v)
 # $6 - $(call form_trg,$1,$v)
-# $v - non-empty variant: R,S,RU,SU
+# $v - non-empty variant: R,S,RU,SU...
 # note: in generated code, may use target-specific variables:
 #  'pch', 'cc_with_pch', 'cxx_with_pch' - defined by 'pch_vars_templ' macro from $(cb_dir)/types/c/pch.mk
 # note: this callback is passed to 'pch_template' macro defined in $(cb_dir)/types/c/pch.mk
@@ -123,42 +121,17 @@ msvc_pch_template_mpv = $(if \
   $3,$(addprefix $5/$(basename $(notdir $2))_,pch_c$(obj_suffix) c.pch:| pch_cpp$(obj_suffix) cpp.pch)$(newline)))
 
 # code to evaluate to build with precompiled headers
-# $t - target type: exe,lib,dll,klib
+# $t - target type: exe,lib,dll,klib...
 # note: defines target-specific variables: 'pch', 'cc_with_pch', 'cxx_with_pch'
 # note: 'pch_template' macro is defined in $(cb_dir)/types/c/pch.mk
 # note: called by 'c_define_app_rules' macro patched in $(cb_dir)/compilers/msvc.mk
 msvc_pch_templatet    = $(call pch_template,$t,msvc_pch_templatev)
 msvc_pch_template_mpt = $(call pch_template,$t,msvc_pch_template_mpv)
 
-else # toclean
-
-# return objects to cleanup (which are created while building with precompiled header),
-#  as assumed by 'pch_template' macro from $(cb_dir)/types/c/pch.mk
-# $1 - target type: exe,lib,dll,klib
-# $2 - $(basename $(notdir $(pch)))
-# $3 - $(filter $(cc_mask),$(with_pch))
-# $4 - $(filter $(cxx_mask),$(with_pch))
-# $5 - $(call form_obj_dir,$1,$v)
-# $v - non-empty variant: R,S,RU,SU
-# note: $(c_dep_suffix) - may expand to an empty value
-# note: this callback is passed to 'pch_template' macro defined in $(cb_dir)/types/c/pch.mk
-msvc_pch_templatev = $(if \
-  $3,$(addprefix $5/$2_,$(addprefix pch_c,$(obj_suffix) $(c_dep_suffix)) c.pch)) $(if \
-  $4,$(addprefix $5/$2_,$(addprefix pch_cpp,$(obj_suffix) $(c_dep_suffix)) cpp.pch))
-
-# cleanup objects created while building with precompiled header
-# $t - target type: exe,lib,dll,klib
-# note: 'pch_template' macro is defined in $(cb_dir)/types/c/pch.mk
-# note: called by 'c_define_app_rules' macro patched in $(cb_dir)/compilers/msvc.mk
-msvc_pch_templatet    = $(call toclean,$(call pch_template,$t,msvc_pch_templatev))
-msvc_pch_template_mpt = $(msvc_pch_templatet)
-
-endif # toclean
-
 # msvc options for use precompiled header
 # $1 - objdir/
 # $2 - generated pch suffix: 'c' or 'cpp'
-# target-specific: 'pch' (e.g. C:/project/include/xxx.h)
+# target-specific: 'pch' (e.g. C:/project/include/xxx.h) - defined by 'pch_vars_templ' macro from $(cb_dir)/types/c/pch.mk
 msvc_use_pch = $(addsuffix $(call ospath,$(pch)),/FI /Yu) /Fp$(ospath)$(basename $(notdir $(pch)))_$2.pch
 
 # msvc options to create precompiled header
@@ -167,41 +140,44 @@ msvc_use_pch = $(addsuffix $(call ospath,$(pch)),/FI /Yu) /Fp$(ospath)$(basename
 # $3 - pch        (e.g. C:/build/obj/xxx_c.pch or C:/build/obj/xxx_cpp.pch)
 msvc_create_pch = $(addsuffix $(call ospath,$2),/FI /Yc) /Fp$(call ospath,$3) /Yl_$(basename $(notdir $3))
 
-# compile multiple sources at once, some of them using a precompiled header
+# form commands to compile multiple sources at once, some of them using a precompiled header
 # $1 - target type: exe,dll,lib,...
 # $2 - non-empty variant: R,S,RU,SU,...
 # $3 - C compiler macro to compile sources _not_ using a precompiled header, e.g. 'obj_mcc'
 # $4 - C++ compiler macro to compile sources _not_ using a precompiled header, e.g. 'obj_mcxx'
 # $5 - C compiler macro to compile sources using a precompiled header, e.g. 'obj_pmcc'
 # $6 - C++ compiler macro to compile sources using a precompiled header, e.g. 'obj_pmcxx'
-# target-specific: 'obj_dir', 'pch', 'cc_with_pch', 'cxx_with_pch'
+# target-specific: 'objdir' - defined by 'c_base_template' from $(cb_dir)/types/c/c_base.mk
+# target-specific: 'pch', 'cc_with_pch', 'cxx_with_pch' - defined by 'pch_vars_templ' macro from $(cb_dir)/types/c/pch.mk
 # note: recompile all $(cc_with_pch) or $(cxx_with_pch) sources if corresponding pch header or its object is newer than the target module
 # note: compiler macros ('obj_mcc', 'obj_mcxx', 'obj_pmcc', 'obj_pmcxx') are called with parameters:
 #  $1 - sources
-#  $2 - target type: exe,dll,lib,...
-#  $3 - non-empty variant: R,S,RU,SU,...
+#  $2 - target type: exe,dll,lib...
+#  $3 - non-empty variant: R,S,RU,SU...
 # note: 'newer_sources' - defined in $(cb_dir)/compilers/msvc/cmn.mk
 cmn_pmcl = $(call cmn_pmcl1,$1,$2,$3,$4,$5,$6,$(sort $(newer_sources) $(if \
-  $(filter $(addprefix $(obj_dir)/$(basename $(notdir $(pch)))_,pch_c$(obj_suffix) c.pch),$?),$(cc_with_pch)) $(if \
-  $(filter $(addprefix $(obj_dir)/$(basename $(notdir $(pch)))_,pch_cpp$(obj_suffix) cpp.pch),$?),$(cxx_with_pch))))
+  $(filter $(addprefix $(objdir)/$(basename $(notdir $(pch)))_,pch_c$(obj_suffix) c.pch),$?),$(cc_with_pch)) $(if \
+  $(filter $(addprefix $(objdir)/$(basename $(notdir $(pch)))_,pch_cpp$(obj_suffix) cpp.pch),$?),$(cxx_with_pch))))
 
-# $1 - target type: exe,dll,lib,...
-# $2 - non-empty variant: R,S,RU,SU,...
+# form commands to compile multiple sources at once, some of them using a precompiled header
+# $1 - target type: exe,dll,lib...
+# $2 - non-empty variant: R,S,RU,SU...
 # $3 - C compiler macro to compile sources _not_ using a precompiled header, e.g. 'obj_mcc'
 # $4 - C++ compiler macro to compile sources _not_ using a precompiled header, e.g. 'obj_mcxx'
 # $5 - C compiler macro to compile sources using a precompiled header, e.g. 'obj_pmcc'
 # $6 - C++ compiler macro to compile sources using a precompiled header, e.g. 'obj_pmcxx'
-# $7 - sources - result of $(newer_sources) + ...
-# target-specific: 'cc_with_pch', 'cxx_with_pch'
+# $7 - sources - result of $(newer_sources) + ... (list may be empty)
+# target-specific: 'cc_with_pch', 'cxx_with_pch' - defined by 'pch_vars_templ' macro from $(cb_dir)/types/c/pch.mk
 cmn_pmcl1 = $(call cmn_pmcl2,$1,$2,$3,$4,$5,$6,$7,$(filter $7,$(cc_with_pch)),$(filter $7,$(cxx_with_pch)))
 
-# $1 - target type: exe,dll,lib,...
-# $2 - non-empty variant: R,S,RU,SU,...
+# form commands to compile multiple sources at once, some of them using a precompiled header
+# $1 - target type: exe,dll,lib...
+# $2 - non-empty variant: R,S,RU,SU...
 # $3 - C compiler macro to compile sources _not_ using a precompiled header, e.g. 'obj_mcc'
 # $4 - C++ compiler macro to compile sources _not_ using a precompiled header, e.g. 'obj_mcxx'
 # $5 - C compiler macro to compile sources using a precompiled header, e.g. 'obj_pmcc'
 # $6 - C++ compiler macro to compile sources using a precompiled header, e.g. 'obj_pmcxx'
-# $7 - sources - result of $(newer_sources) + ...
+# $7 - sources - result of $(newer_sources) + ... (list may be empty)
 # $8 - $(filter $7,$(cc_with_pch))
 # $9 - $(filter $7,$(cxx_with_pch))
 # note: 'cmn_mcl1' and 'cmn_mcl2' - defined in $(cb_dir)/compilers/msvc/cmn.mk
