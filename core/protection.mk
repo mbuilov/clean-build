@@ -40,21 +40,26 @@ endif
 
 ifdef cb_tracing
 
-# list of macros those tracing is disabled
-CBLD_NON_TRACEABLE_VARS ?=
+# macros to trace
+# empty by default - trace all vars
+CBLD_TRACE_VARS ?=
+
+# macros those tracing is disabled
+# empty by default - trace all vars
+CBLD_TRACE_VARS_EXCEPT ?=
 
 # namespaces to trace, e.g.: functions config
 # empty by default - trace all namespaces
-CBLD_TRACE_FILTER ?=
+CBLD_TRACE_NAMESPACES ?=
 
 # namespaces to not trace, e.g.: functions config
 # empty by default - trace all namespaces
-CBLD_TRACE_FILTER_OUT ?=
+CBLD_TRACE_NAMESPACES_EXCEPT ?=
 
 # check if cannot trace variables of given namespace
 # $1 - optional namespace name
-cb_check_cannot_trace = $(if $1,$(or $(filter $(CBLD_TRACE_FILTER_OUT),$1),$(if \
-  $(CBLD_TRACE_FILTER),$(filter-out $(CBLD_TRACE_FILTER),$1))),1)
+cb_check_cannot_trace = $(if $1,$(or $(filter $(CBLD_TRACE_NAMESPACES_EXCEPT),$1),$(if \
+  $(CBLD_TRACE_NAMESPACES),$(filter-out $(CBLD_TRACE_NAMESPACES),$1))),1)
 
 # check that not trying to trace expansion of CBLD_... variables (they are mostly taken from the environment and should not be changed)
 # $1 - names of traced macros
@@ -138,9 +143,10 @@ else # cb_tracing
 # trace calls to macros
 # $1 - list: AAA=b1;b2;$$1=e1;e2 BBB=b1;b2=e1;e2;...
 # $2 - optional namespace name, if not specified, then do not trace calls for given macros
-set_global2 = $(if $1,$$(call trace_calls,$(subst $$,$$$$,$(cb_check_tracing_env))))
+set_global3 = $(if $1,$$(call trace_calls,$(subst $$,$$$$,$(cb_check_tracing_env))))
+set_global2 = $(call set_global3,$(if $(CBLD_TRACE_VARS),$(filter $(CBLD_TRACE_VARS) $(CBLD_TRACE_VARS:==%),$1),$1),$2)
 set_global1 = $(if $(call cb_check_cannot_trace,$2),,$(call \
-  set_global2,$(filter-out $(CBLD_NON_TRACEABLE_VARS) $(CBLD_NON_TRACEABLE_VARS:==%),$1),$2))
+  set_global2,$(filter-out $(CBLD_TRACE_VARS_EXCEPT) $(CBLD_TRACE_VARS_EXCEPT:==%),$1),$2))
 
 # 'cb_protected_vars' variable was temporary used to store calls to 'set_global' from $(cb_dir)/core/functions.mk and
 #  $(cb_dir)/core/confsup.mk - now 'set_global1' macro is defined, so evaluate those calls
@@ -183,12 +189,15 @@ endef
 # 3.                            $(call trace_calls,v)   -> $(call set_global1,v) = trace protected v, protect new v
 # 4. $(call set_global1,v,n) -> $(call trace_calls,v,!) -> $(call set_global1,v) = protect v and trace it
 ifdef cb_tracing
-set_global5 = $(if $1,$(call dump_vars,$1,overriding global: ))
-set_global4 = $(call set_global5,$(filter $1,$(cb_protected_vars)))$(cb_protect_vars2)
-set_global3 = $(if $1,$$(call trace_calls,$(subst $$,$$$$,$(cb_check_tracing_env)),$2))
-set_global2 = $(if $1,$(call set_global4,$(foreach =,$1,$(firstword $(subst =, ,$=)))))$(call set_global3,$(filter-out $1,$2),$3)
-set_global1 = $(if $(call cb_check_cannot_trace,$2),$(set_global4),$(call \
-  set_global2,$(filter $(CBLD_NON_TRACEABLE_VARS) $(CBLD_NON_TRACEABLE_VARS:==%),$1),$1,$2))
+set_global6 = $(if $1,$(call dump_vars,$1,overriding global: ))
+set_global5 = $(call set_global6,$(filter $1,$(cb_protected_vars)))$(cb_protect_vars2)
+set_global4 = $(if $1,$$(call trace_calls,$(subst $$,$$$$,$(cb_check_tracing_env)),$2))
+set_global3 = $(if $(CBLD_TRACE_VARS),$(call set_global4,$(filter \
+  $(CBLD_TRACE_VARS) $(CBLD_TRACE_VARS:==%),$1),$2,$3 $(filter-out \
+  $(CBLD_TRACE_VARS) $(CBLD_TRACE_VARS:==%),$1)),$(set_global4))
+set_global2 = $(call set_global3,$(filter-out $3,$1),$2,$3)
+set_global1 = $(if $(call cb_check_cannot_trace,$2),$(set_global5),$(call \
+  set_global2,$1,$2,$(filter $(CBLD_TRACE_VARS_EXCEPT) $(CBLD_TRACE_VARS_EXCEPT:==%),$1)))
 else
 set_global1 = $(call cb_protect_vars2,$(foreach =,$1,$(firstword $(subst =, ,$=))))
 endif
@@ -268,10 +277,10 @@ cb_check_at_tail = $(if $1,$(if $(cb_need_tail_code),$(error \
 # protect variables from modifications in target makefiles
 # note: do not trace calls to these macros
 $(call set_global,cb_checking cb_tracing \
-  CBLD_NON_TRACEABLE_VARS CBLD_TRACE_FILTER CBLD_TRACE_FILTER_OUT \
+  CBLD_TRACE_VARS CBLD_TRACE_VARS_EXCEPT CBLD_TRACE_NAMESPACES CBLD_TRACE_NAMESPACES_EXCEPT \
   cb_check_cannot_trace cb_check_tracing_env set_global cb_env_var_ov cb_check_env_var cb_check_env_vars \
-  set_global1 cb_protected_vars cb_encode_var_value cb_encode_var_name cb_protect_vars2 \
-  set_global5 set_global4 set_global3 set_global2 cb_var_access_err cb_reset_local_var cb_reset_local_vars cb_reset_saved_vars \
+  set_global1 set_global3 set_global2 cb_protected_vars cb_encode_var_value cb_encode_var_name cb_protect_vars2 \
+  set_global6 set_global5 set_global4 cb_var_access_err cb_reset_local_var cb_reset_local_vars cb_reset_saved_vars \
   cb_reset_first_phase cb_check_at_head cb_protected_var_ov cb_check_protected_var cb_check_at_tail)
 
 # these macros must not be used in rule execution second phase
@@ -279,8 +288,8 @@ $(call set_global,cb_checking cb_tracing \
 #  like when a macro redefines itself
 cb_first_phase_vars := cb_checking cb_tracing \
   cb_check_cannot_trace cb_check_tracing_env set_global env_remember cb_env_var_ov cb_check_env_var cb_check_env_vars \
-  set_global1 cb_protected_vars cb_encode_var_value cb_encode_var_name cb_protect_vars2 \
-  set_global5 set_global4 set_global3 set_global2 cb_reset_local_var cb_reset_local_vars cb_reset_saved_vars \
+  set_global1 set_global3 set_global2 cb_protected_vars cb_encode_var_value cb_encode_var_name cb_protect_vars2 \
+  set_global6 set_global5 set_global4 cb_reset_local_var cb_reset_local_vars cb_reset_saved_vars \
   cb_check_at_head cb_protected_var_ov cb_check_protected_var cb_check_at_tail cb_first_phase_vars \
   temporary_overridden cb_need_tail_code
 
