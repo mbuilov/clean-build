@@ -131,14 +131,14 @@ $(call config_remember_vars,PATH CBLD_MAKEFILE_CONF_WRITE_BY_LINES)
 
 # generate configuration makefile
 # note: 'suppress' - defined in $(cb_dir)/core/suppress.mk
-# note: 'write_text' - defined in $(cb_dir)/utils/$(CBLD_UTILS).mk
+# note: 'write_lines' - defined in $(cb_dir)/utils/$(CBLD_UTILS).mk
 # note: 'config_text' - defined above as target-specific variable
 # note: define target-specific variables F.^ and C.^ - for 'suppress' function
 config: F.^ := $(abspath $(firstword $(MAKEFILE_LIST)))
 config: C.^ :=
 config: cf := $(abspath $(CBLD_CONFIG))
 config:| $(abspath $(dir $(CBLD_CONFIG)))
-	$(call suppress,GEN,$(cf))$(call write_text,$(config_text)project_exported_vars := $(sort \
+	$(call suppress,GEN,$(cf))$(call write_lines,$(config_text)project_exported_vars := $(sort \
   $(project_exported_vars))$(newline)cb_config_saved_vars := $(strip $(cb_config_saved_vars)),$(cf),$(CBLD_MAKEFILE_CONF_WRITE_BY_LINES))
 
 # if $(CBLD_CONFIG) makefile is generated under $(cb_build), create that directory automatically,
