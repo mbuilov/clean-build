@@ -83,7 +83,7 @@ del_files_or_dirs  = $(call xcmd,del_files_or_dirs1,$1,$(CBLD_MAX_PATH_ARGS),,,,
 # note: $(cb_dir)/utils/gnu.mk overrides 'copy_files2'
 copy_files2 = $(CP) -p $1 $2
 copy_files1 = $(if $6,$(quiet))$(copy_files2)
-copy_files  = $(if $(word 2,$1),$(call xcmd,copy_files1,$1,$(CBLD_MAX_PATH_ARGS),$2,,,),$(copy_files2))
+copy_files  = $(if $(findstring $(space),$1),$(call xcmd,copy_files1,$1,$(CBLD_MAX_PATH_ARGS),$2,,,),$(copy_files2))
 
 # move file(s) (long list) preserving modification date, ownership and mode:
 # - file(s) $1 to directory $2 (paths to files $1 _must_ not contain spaces, but path to directory $2 may contain spaces) or
@@ -93,7 +93,7 @@ copy_files  = $(if $(word 2,$1),$(call xcmd,copy_files1,$1,$(CBLD_MAX_PATH_ARGS)
 # note: $(cb_dir)/utils/gnu.mk overrides 'move_files2'
 move_files2 = $(MV) $1 $2
 move_files1 = $(if $6,$(quiet))$(move_files2)
-move_files  = $(if $(word 2,$1),$(call xcmd,move_files1,$1,$(CBLD_MAX_PATH_ARGS),$2,,,),$(move_files2))
+move_files  = $(if $(findstring $(space),$1),$(call xcmd,move_files1,$1,$(CBLD_MAX_PATH_ARGS),$2,,,),$(move_files2))
 
 # update modification date of given file(s) or create file(s) if they do not exist
 # note: to support long list, the paths _must_ not contain spaces
@@ -113,6 +113,10 @@ create_dir = $(MKDIR) -p $1
 # note: if path to a file contains a space, it must be in quotes: '1 2/3 4'
 compare_files = $(CMP) $1 $2
 
+# print content of a given file (to stdout, for redirecting it to output file)
+# note: if path to the file $1 contains a space, it must be in quotes: '1 2/3 4'
+cat_file = $(CAT) $1
+
 # escape program argument to pass it via shell: "1 2" -> '"1 2"'
 shell_escape = '$(subst ','"'"',$1)'
 
@@ -121,39 +125,62 @@ shell_escape = '$(subst ','"'"',$1)'
 # note: $(cb_dir)/utils/gnu.mk overrides 'sed_expr'
 sed_expr = $(subst \n,\$(newline),$(subst \t,\$(tab),$(shell_escape)))
 
-# print content of a given file (to stdout, for redirecting it to output file)
-# note: if path to the file $1 contains a space, it must be in quotes: '1 2/3 4'
-cat_file = $(CAT) $1
+# print short string (to stdout, for redirecting it to output file)
+# note: there must be no $(newline)s in the string $1
+# NOTE: printed string length must not exceed the maximum command line length (at least 4096 characters)
+print_short_string = $(PRINTF) '%s' $(shell_escape)
 
-# prepare printf argument, append \n
-printf_line_escape = $(call shell_escape,$(subst \,\\,$(subst %,%%,$1))\n)
+# prepare printf argument
+printf_line_escape = $(call shell_escape,$(subst \,\\,$(subst %,%%,$1)))
 
-# print one line of text (to stdout, for redirecting it to output file)
+# write batch of text tokens to output file or to stdout (for redirecting it to output file
+# $1 - tokens list, where entries are processed by $(sptokens)
+# $2 - if not empty, then a file to print to (path to the file may contain spaces)
+# $3 - text to prepend before the command when $6 is non-empty
+# $4 - text to prepend before the command when $6 is empty
+# $6 - empty if overwrite file $2, non-empty if append text to it
+# note: there must be no $(newline)s among text tokens
+# note: if path to the file $2 contains a space, it must be in quotes: '1 2/3 4'
+# NOTE: printed batch length must not exceed the maximum command line length (at least 4096 characters)
+# note: used by 'write_string' macro
+write_string1 = $(if $6,$3,$4)$(PRINTF) -- $(call tospaces,$(printf_line_escape))$(if $2,>$(if $6,>) $2)
+
+# write string $1 to the file $2 by $3 tokens at one time
+# note: there must be no $(newline)s in the string $1
+# note: if path to the file $2 contains a space, it must be in quotes: '1 2/3 4'
+# NOTE: number $3 must be adjusted so printed at one time text length will not exceed the maximum command length (at least 4096 characters)
+# NOTE: nothing is printed if string $1 is empty
+write_string = $(call xargs,write_string1,$(sptokens),$3,$2,$(quiet),,,$(newline))
+
+# print one short line of text (to stdout, for redirecting it to output file)
 # note: line must not contain $(newline)s
-# note: line will be ended with LF
+# note: line will be ended with LF: line -> line\n
 # NOTE: printed line length must not exceed the maximum command line length (at least 4096 characters)
-print_line = $(PRINTF) '%s\n' $(shell_escape)
+print_short_line = $(PRINTF) '%s\n' $(shell_escape)
 
-# print lines of text to output file or to stdout (for redirecting it to output file)
-# $1 - non-empty lines list, where entries are processed by $(unescape)
+# print small batch of short text lines (to stdout, for redirecting it to output file)
+# note: each line will be ended with LF: line1$(newline)line2 -> line1\nline2\n
+# NOTE: total text length must not exceed the maximum command line length (at least 4096 characters)
+print_some_lines = $(PRINTF) -- $(subst $(newline),\n,$(call printf_line_escape,$1$(newline)))
+
+# write batch of text lines to output file or to stdout (for redirecting it to output file)
+# $1 - lines list, where entries are processed by $(unspaces)
 # $2 - if not empty, then a file to print to (path to the file may contain spaces)
 # $3 - text to prepend before the command when $6 is non-empty
 # $4 - text to prepend before the command when $6 is empty
 # $6 - empty if overwrite file $2, non-empty if append text to it
 # note: if path to the file $2 contains a space, it must be in quotes: '1 2/3 4'
-# NOTE: total text length must not exceed the maximum command line length (at least 4096 characters)
-print_lines = $(if $6,$3,$4)$(PRINTF) -- $(call tospaces,$(subst $(space),\n,$(printf_line_escape)))$(if $2,>$(if $6,>) $2)
-
-# print lines of text (to stdout, for redirecting it to output file)
-# note: each line will be ended with LF
-# NOTE: total text length must not exceed the maximum command line length (at least 4096 characters)
-print_text = $(PRINTF) -- $(subst $(newline),\n,$(printf_line_escape))
+# note: each line will be ended with LF: line1$(space)line2 -> line1\nline2\n
+# NOTE: printed batch length must not exceed the maximum command line length (at least 4096 characters)
+# note: used by 'write_lines' macro
+write_lines1 = $(if $6,$3,$4)$(PRINTF) -- $(call tospaces,$(subst $(space),\n,$(call printf_line_escape,$1 )))$(if $2,>$(if $6,>) $2)
 
 # write lines of text $1 to the file $2 by $3 lines at one time
 # note: if path to the file $2 contains a space, it must be in quotes: '1 2/3 4'
 # NOTE: any line must be less than the maximum command length (at least 4096 characters)
 # NOTE: number $3 must be adjusted so printed at one time text length will not exceed the maximum command length (at least 4096 characters)
-write_text = $(call xargs,print_lines,$(subst $(newline),$$(empty) $$(empty),$(unspaces)),$3,$2,$(quiet),,,$(newline))
+# NOTE: nothing is printed if text $1 is empty
+write_lines = $(call xargs,write_lines1,$(subst $(newline),$$(empty) $$(empty),$(unspaces)),$3,$2,$(quiet),,,$(newline))
 
 # create symbolic link $2 -> $1
 # note: UNIX-specific
@@ -215,8 +242,8 @@ $(call set_global,CBLD_MAX_PATH_ARGS NUL RM RMDIR TRUE FALSE CD CP MV TOUCH MKDI
 # note: trace namespace: utils
 $(call set_global,print_env=project_exported_vars delete_files delete_dirs try_delete_dirs delete_files_in1 delete_files_in \
   del_files_or_dirs1 del_files_or_dirs copy_files2 copy_files1 copy_files move_files2 move_files1 move_files \
-  touch_files1 touch_files create_dir compare_files shell_escape sed_expr cat_file \
-  printf_line_escape print_line print_lines print_text write_text create_simlink change_mode execute_in \
+  touch_files1 touch_files create_dir compare_files cat_file shell_escape sed_expr print_short_string printf_line_escape \
+  write_string1 write_string print_short_line print_some_lines write_lines1 write_lines create_simlink change_mode execute_in \
   del_on_fail install_dir install_files2 install_files1 install_files,utils)
 
 # protect macros from modifications in target makefiles, allow tracing calls to them
