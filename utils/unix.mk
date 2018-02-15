@@ -8,6 +8,9 @@
 
 # this file is included by $(cb_dir)/core/_defs.mk
 
+# common utilities definitions
+include $(dir $(lastword $(MAKEFILE_LIST)))common.mk
+
 # script to print prepared environment in verbose mode (used for generating one-big-build instructions shell file)
 # note: 'print_env' - used by $(cb_dir)/core/all.mk
 print_env = $(foreach =,$(project_exported_vars),$=='$($=)'$(newline)export $=$(newline)|)
@@ -37,7 +40,6 @@ MV      ?= mv
 TOUCH   ?= touch
 MKDIR   ?= mkdir
 CMP     ?= cmp
-SED     ?= sed
 GREP    ?= grep
 CAT     ?= cat
 ECHO    ?= echo
@@ -120,11 +122,6 @@ cat_file = $(CAT) $1
 # escape program argument to pass it via shell: "1 2" -> '"1 2"'
 shell_escape = '$(subst ','"'"',$1)'
 
-# escape command line argument to pass it to $(SED)
-# note: unix sed do not understands \n and \t escape sequences
-# note: $(cb_dir)/utils/gnu.mk overrides 'sed_expr'
-sed_expr = $(subst \n,\$(newline),$(subst \t,\$(tab),$(shell_escape)))
-
 # print short string (to stdout, for redirecting it to output file)
 # note: there must be no $(newline)s in the string $1
 # NOTE: printed string length must not exceed the maximum command line length (at least 4096 characters)
@@ -134,7 +131,7 @@ print_short_string = $(PRINTF) '%s' $(shell_escape)
 printf_line_escape = $(call shell_escape,$(subst \,\\,$(subst %,%%,$1)))
 
 # write batch of text tokens to output file or to stdout (for redirecting it to output file
-# $1 - tokens list, where entries are processed by $(sptokens)
+# $1 - tokens list, where entries are processed by $(hide_tabs)
 # $2 - if not empty, then a file to print to (path to the file may contain spaces)
 # $3 - text to prepend before the command when $6 is non-empty
 # $4 - text to prepend before the command when $6 is empty
@@ -143,14 +140,14 @@ printf_line_escape = $(call shell_escape,$(subst \,\\,$(subst %,%%,$1)))
 # note: if path to the file $2 contains a space, it must be in quotes: '1 2/3 4'
 # NOTE: printed batch length must not exceed the maximum command line length (at least 4096 characters)
 # note: used by 'write_string' macro
-write_string1 = $(if $6,$3,$4)$(PRINTF) -- $(call tospaces,$(call printf_line_escape,$(if $6, )$1))$(if $2,>$(if $6,>) $2)
+write_string1 = $(if $6,$3,$4)$(PRINTF) -- $(call unhide_comments,$(call printf_line_escape,$(if $6, )$1))$(if $2,>$(if $6,>) $2)
 
 # write string $1 to the file $2 by $3 tokens at one time
 # note: there must be no $(newline)s in the string $1
 # note: if path to the file $2 contains a space, it must be in quotes: '1 2/3 4'
 # NOTE: number $3 must be adjusted so printed at one time text length will not exceed the maximum command length (at least 4096 characters)
 # NOTE: nothing is printed if string $1 is empty
-write_string = $(call xargs,write_string1,$(sptokens),$3,$2,$(quiet),,,$(newline))
+write_string = $(call xargs,write_string1,$(subst $(space),$$(empty) $$(empty),$(hide_tabs)),$3,$2,$(quiet),,,$(newline))
 
 # print one short line of text (to stdout, for redirecting it to output file)
 # note: line must not contain $(newline)s
@@ -164,7 +161,7 @@ print_short_line = $(PRINTF) '%s\n' $(shell_escape)
 print_some_lines = $(PRINTF) -- $(subst $(newline),\n,$(call printf_line_escape,$1$(newline)))
 
 # write batch of text lines to output file or to stdout (for redirecting it to output file)
-# $1 - lines list, where entries are processed by $(unspaces)
+# $1 - lines list, where entries are processed by $(hide_tab_spaces)
 # $2 - if not empty, then a file to print to (path to the file may contain spaces)
 # $3 - text to prepend before the command when $6 is non-empty
 # $4 - text to prepend before the command when $6 is empty
@@ -173,14 +170,15 @@ print_some_lines = $(PRINTF) -- $(subst $(newline),\n,$(call printf_line_escape,
 # note: each line will be ended with LF: line1$(space)line2 -> line1\nline2\n
 # NOTE: printed batch length must not exceed the maximum command line length (at least 4096 characters)
 # note: used by 'write_lines' macro
-write_lines1 = $(if $6,$3,$4)$(PRINTF) -- $(call tospaces,$(subst $(space),\n,$(call printf_line_escape,$1 )))$(if $2,>$(if $6,>) $2)
+write_lines1 = $(if $6,$3,$4)$(PRINTF) -- $(call \
+  unhide_comments,$(subst $(space),\n,$(call printf_line_escape,$1 )))$(if $2,>$(if $6,>) $2)
 
 # write lines of text $1 to the file $2 by $3 lines at one time
 # note: if path to the file $2 contains a space, it must be in quotes: '1 2/3 4'
 # NOTE: any line must be less than the maximum command length (at least 4096 characters)
 # NOTE: number $3 must be adjusted so printed at one time text length will not exceed the maximum command length (at least 4096 characters)
 # NOTE: nothing is printed if text $1 is empty
-write_lines = $(call xargs,write_lines1,$(subst $(newline),$$(empty) $$(empty),$(unspaces)),$3,$2,$(quiet),,,$(newline))
+write_lines = $(call xargs,write_lines1,$(subst $(newline),$$(empty) $$(empty),$(hide_tab_spaces)),$3,$2,$(quiet),,,$(newline))
 
 # create symbolic link $2 -> $1
 # note: UNIX-specific
@@ -231,18 +229,18 @@ CBLD_LN_COLOR    ?= [36m
 CBLD_CHMOD_COLOR ?= [1;35m
 
 # remember value of variables that may be taken from the environment
-$(call config_remember_vars,CBLD_MAX_PATH_ARGS NUL RM RMDIR TRUE FALSE CD CP MV TOUCH MKDIR CMP SED GREP CAT ECHO PRINTF LN CHMOD INSTALL)
+$(call config_remember_vars,CBLD_MAX_PATH_ARGS NUL RM RMDIR TRUE FALSE CD CP MV TOUCH MKDIR CMP GREP CAT ECHO PRINTF LN CHMOD INSTALL)
 
 # protect macros from modifications in target makefiles,
 # do not trace calls to macros used in ifdefs, exported to the environment of called tools or modified via operator +=
-$(call set_global,CBLD_MAX_PATH_ARGS NUL RM RMDIR TRUE FALSE CD CP MV TOUCH MKDIR CMP SED GREP CAT ECHO PRINTF LN CHMOD INSTALL \
+$(call set_global,CBLD_MAX_PATH_ARGS NUL RM RMDIR TRUE FALSE CD CP MV TOUCH MKDIR CMP GREP CAT ECHO PRINTF LN CHMOD INSTALL \
   CBLD_LN_COLOR CBLD_CHMOD_COLOR)
 
 # protect macros from modifications in target makefiles, allow tracing calls to them
 # note: trace namespace: utils
 $(call set_global,print_env=project_exported_vars delete_files delete_dirs try_delete_dirs delete_files_in1 delete_files_in \
   del_files_or_dirs1 del_files_or_dirs copy_files2 copy_files1 copy_files move_files2 move_files1 move_files \
-  touch_files1 touch_files create_dir compare_files cat_file shell_escape sed_expr print_short_string printf_line_escape \
+  touch_files1 touch_files create_dir compare_files cat_file shell_escape print_short_string printf_line_escape \
   write_string1 write_string print_short_line print_some_lines write_lines1 write_lines create_simlink change_mode execute_in \
   del_on_fail install_dir install_files2 install_files1 install_files,utils)
 
