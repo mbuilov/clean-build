@@ -8,17 +8,27 @@
 
 # this file is included by $(cb_dir)/core/_defs.mk
 
+# common utilities definitions
+include $(dir $(lastword $(MAKEFILE_LIST)))common.mk
+
+ifneq (,$(filter /%,$(CURDIR)))
+$(error Unix version of Gnu Make does not work with cmd.exe as SHELL - please \
+  select Unix shell utilities (start build with CBLD_UTILS=unix) or use Gnu Make built \
+  natively for the Windows platform (see https://github.com/mbuilov/gnumake-windows).$(newline)Tip: \
+  under Cygwin, native Gnu Make be started like this: /cygdrive/c/tools/gnumake-4.2.1.exe <goals>)
+endif
+
 # synchronize make output for parallel builds
 MAKEFLAGS += -O
 
-ifneq (,$(filter /%,$(CURDIR)))
-$(error Unix version of Gnu Make is used with cmd.exe shell utilities - this configuration is not supported, \
-  please either select Unix shell utilities - start build with CBLD_UTILS=unix or use Gnu Make executable built \
-  natively for the Windows platform (see https://github.com/mbuilov/gnumake-windows).$(newline)Tip: \
-  under Cygwin, native Windows build may be started like: /cygdrive/c/tools/gnumake-4.2.1.exe SED=C:/tools/sed.exe <goals>)
-endif
+# by default, check and fix SHELL
+CBLD_DONT_FIX_SHELL ?=
+
+ifeq (,$(CBLD_DONT_FIX_SHELL))
 
 # shell must be cmd.exe, not /bin/sh (if build is started from the Cygwin/Msys shell)
+# note: by default, ComSpec/SystemRoot are defined if build was started from cmd.exe window
+#  else, if build was started from Cygwin/Msys shell - COMSPEC/SYSTEMROOT are defined
 ifneq (cmd.exe,$(notdir $(SHELL)))
 ifneq (undefined,$(origin ComSpec))
 SHELL := $(ComSpec)
@@ -30,36 +40,38 @@ else ifneq (undefined,$(origin SYSTEMROOT))
 SHELL := $(SYSTEMROOT)\System32\cmd.exe
 else
 $(error unable to determine path to cmd.exe for the SHELL: both COMSPEC and SYSTEMROOT variables are undefined,$(newline)please \
-  set the SHELL explicitly, e.g. $(MAKE) SHELL=C:\Windows\System32\cmd.exe)
+  specify SHELL explicitly, e.g. $(MAKE) SHELL=C:\Windows\System32\cmd.exe)
 endif
 endif # SHELL != cmd.exe
 
-# by default, strip off paths to Unix tools from the PATH - to use only native windows shell utilities (find, del, move, md, etc.)
-CBLD_DONT_STRIP_ENV_PATH ?=
+endif # !CBLD_DONT_FIX_SHELL
 
-ifeq (,$(CBLD_DONT_STRIP_ENV_PATH))
+# by default, fix environment variable PATH
+CBLD_DONT_FIX_ENV_PATH ?=
 
-# note: Cygwin paths may look like: C:\cygwin64\usr\local\bin;C:\cygwin64\bin
-# note: Msys paths may look like: C:\msys64\mingw64\bin;C:\msys64\usr\local\bin;C:\msys64\usr\bin
-ifneq (,$(or $(findstring \
-  :\msys\,$(PATH)),$(findstring \
-  :\msys64\,$(PATH)),$(findstring \
-  :\cygwin\,$(PATH)),$(findstring \
-  :\cygwin64\,$(PATH))))
-$(warning stripping off Msys/Cygwin paths from the PATH - only native Windows tools should be used for the build)
-PATH := $(call tospaces,$(subst $(space),;,$(strip $(foreach p,$(subst ;, ,$(call unspaces,$(PATH))),$(if $(or $(findstring \
-  :\msys\,$p),$(findstring \
-  :\msys64\,$p),$(findstring \
-  :\cygwin\,$p),$(findstring \
-  :\cygwin64\,$p)),,$p)))))
+ifeq (,$(CBLD_DONT_FIX_ENV_PATH))
+
+# system root path, e.g. C:\Windows
+# note: do not protect 'sysroot' - it is used temporary
+ifneq (undefined,$(origin SystemRoot))
+sysroot := $(SystemRoot)
+else ifneq (undefined,$(origin SYSTEMROOT))
+sysroot := $(SYSTEMROOT)
+else
+$(error unable to determine system root path: both SystemRoot and SYSTEMROOT variables are undefined)
 endif
+
+# fix environment variable PATH - use native Windows utilities (find, cd, mkdir, etc.) over than Cygwin/Msys ones
+# note: do not protect 'filt_sysroot' - it is used temporary
+filt_sysroot = $(strip $(filter $2,$1) $(filter-out $2,$1))
+PATH := $(call unhide_raw,$(subst $(space),;,$(call filt_sysroot,$(subst ;, ,$(call hide_spaces,$(PATH))),$(sysroot) $(sysroot)\\%)))
 
 # save new PATH value to the generated configuration makefile
 # note: pass 1 as second argument to 'config_remember_vars' - to forcibly export variable PATH
 # note: pass 1 as third argument to 'config_remember_vars' - to save a new value of the PATH
 $(call config_remember_vars,PATH,1,1)
 
-endif # !CBLD_DONT_STRIP_ENV_PATH
+endif # !CBLD_DONT_FIX_ENV_PATH
 
 # script to print prepared environment in verbose mode (used for generating one-big-build instructions batch file)
 # note: 'print_env' - used by $(cb_dir)/core/all.mk
@@ -73,7 +85,7 @@ print_env = setlocal$(newline)$(foreach =,$(project_exported_vars),SET "$==$($=)
 # assuming we use Windows XP or later and paths do not exceed 120 chars:
 CBLD_MAX_PATH_ARGS ?= 68
 
-# convert forward slashes used by make to backward ones accepted by Windows programs
+# convert forward slashes used by make to backward ones accepted by native Windows programs
 # note: override 'ospath' macro from $(cb_dir)/core/_defs.mk
 ospath = $(subst /,\,$1)
 
@@ -92,8 +104,7 @@ nonrelpath = $(if $(findstring :,$2),$(call nonrelpath1,$1,$(sort $(filter %:,$(
 NUL ?= NUL
 
 # standard tools
-# note: most of them are builtin commands of cmd.exe, except: find, findstr, fc, sed
-# note: sed - stream editor, for Gnu Sed - see https://github.com/mbuilov/sed-windows
+# note: most of them are builtin commands of cmd.exe, except: find, findstr, fc
 DEL     ?= del
 RD      ?= rd
 CD      ?= cd
@@ -101,9 +112,8 @@ FIND    ?= find
 FINDSTR ?= findstr
 COPY    ?= copy
 MOVE    ?= move
-MKDIR   ?= mkdir
+MKDIR   ?= md
 FC      ?= fc
-SED     ?= sed
 TYPE    ?= type
 
 # note: assume 'echo' and 'rem' are builtin commands of cmd.exe, they are used in special forms:
@@ -201,10 +211,6 @@ cat_file = $(TYPE) $(ospath)
 # escape program argument to pass it via shell: 1 " 2 -> "1 "" 2"
 shell_escape = "$(subst ","",$(subst \",\\",$(subst %,%%,$1)))"
 
-# escape command line argument to pass it to $(SED)
-# note: assume GNU sed is used, which understands \n and \t escape sequences
-sed_expr = $(shell_escape)
-
 # escape special characters in unquoted argument of 'echo' or 'set' builtin commands of cmd.exe
 unquoted_escape = $(subst $(open_brace),^$(open_brace),$(subst $(close_brace),^$(close_brace),$(subst \
   %,%%,$(subst <,^<,$(subst >,^>,$(subst |,^|,$(subst &,^&,$(subst ",^",$(subst ^,^^,$1)))))))))
@@ -216,7 +222,7 @@ unquoted_escape = $(subst $(open_brace),^$(open_brace),$(subst $(close_brace),^$
 print_short_string = (set/p=$(unquoted_escape))<NUL
 
 # write batch of text tokens to output file or to stdout (for redirecting it to output file)
-# $1 - tokens list, where entries are processed by $(call sptokens,$(unquoted_escape))
+# $1 - tokens list, where entries are processed by $(call hide_tabs,$(unquoted_escape))
 # $2 - if not empty, then a file to print to (path to the file may contain spaces)
 # $3 - text to prepend before the command when $6 is non-empty
 # $4 - text to prepend before the command when $6 is empty
@@ -225,14 +231,15 @@ print_short_string = (set/p=$(unquoted_escape))<NUL
 # note: if path to the file $2 contains a space, it must be in double-quotes: "1 2\3 4"
 # NOTE: printed batch length must not exceed the maximum command line length (8191 characters)
 # note: used by 'write_string' macro
-write_string1 = $(if $6,$3,$4)(set/p=$(if $6, )$(tospaces))<NUL$(if $2,>$(if $6,>) $2)
+write_string1 = $(if $6,$3,$4)(set/p=$(if $6, )$(unhide_comments))<NUL$(if $2,>$(if $6,>) $2)
 
 # write string $1 to the file $2 by $3 tokens at one time
 # note: there must be no $(newline)s in the string $1
 # note: if path to the file $2 contains a space, it must be in double-quotes: "1 2\3 4"
 # NOTE: number $3 must be adjusted so printed at one time text length will not exceed the maximum command length (8191 characters)
 # NOTE: nothing is printed if string $1 is empty
-write_string = $(call xargs,write_string1,$(call sptokens,$(unquoted_escape)),$3,$2,$(quiet),,,$(newline))
+write_string = $(call xargs,write_string1,$(subst $(space),$$(empty) $$(empty),$(call \
+  hide_tabs,$(unquoted_escape))),$3,$2,$(quiet),,,$(newline))
 
 # print one short line of text (to stdout, for redirecting it to output file)
 # note: line must not contain $(newline)s
@@ -248,7 +255,7 @@ print_short_line = (echo.$(unquoted_escape))
 print_some_lines = (echo.$(subst $(newline),$(close_brace)&&$(open_brace)echo.,$(unquoted_escape)))
 
 # write batch of text lines to output file or to stdout (for redirecting it to output file)
-# $1 - lines list, where entries are processed by $(call unspaces,$(unquoted_escape))
+# $1 - lines list, where entries are processed by $(call hide_tab_spaces,$(unquoted_escape))
 # $2 - if not empty, then a file to print to (path to the file may contain spaces)
 # $3 - text to prepend before the command when $6 is non-empty
 # $4 - text to prepend before the command when $6 is empty
@@ -257,15 +264,16 @@ print_some_lines = (echo.$(subst $(newline),$(close_brace)&&$(open_brace)echo.,$
 # note: each line will be ended with CRLF: line1$(space)line2 -> line1\nline2\n
 # NOTE: printed batch length must not exceed the maximum command line length (8191 characters)
 # note: used by 'write_lines' macro
-write_lines1 = $(if $6,$3,$4)(echo.$(call tospaces,$(subst $(space),$(close_brace)&&$(open_brace)echo.,$1)))$(if $2,>$(if $6,>) $2)
+write_lines1 = $(if $6,$3,$4)(echo.$(call \
+  unhide_comments,$(subst $(space),$(close_brace)&&$(open_brace)echo.,$1)))$(if $2,>$(if $6,>) $2)
 
 # write lines of text $1 to the file $2 by $3 lines at one time
 # note: if path to the file $2 contains a space, it must be in double-quotes: "1 2\3 4"
 # NOTE: any line must be less than the maximum command length (8191 characters)
 # NOTE: number $3 must be adjusted so printed at one time text length will not exceed the maximum command length (8191 characters)
 # NOTE: nothing is printed if text $1 is empty
-write_lines = $(call xargs,write_lines1,$(subst \
-  $(newline),$$(empty) $$(empty),$(call unspaces,$(unquoted_escape))),$3,$2,$(quiet),,,$(newline))
+write_lines = $(call xargs,write_lines1,$(subst $(newline),$$(empty) $$(empty),$(call \
+  hide_tab_spaces,$(unquoted_escape))),$3,$2,$(quiet),,,$(newline))
 
 # create symbolic link $2 -> $1
 # note: UNIX-specific, so not defined for WINDOWS
@@ -323,24 +331,25 @@ show_tool_vars_end = $(newline)@echo endlocal
 filter_output = (($1 2>&1 &&^(echo ok^)>&2)$2)3>&2 2>&1 1>&3|$(FINDSTR) /XC:ok >$(NUL)
 
 # remember value of variables that may be taken from the environment
-$(call config_remember_vars,SHELL CBLD_DONT_STRIP_ENV_PATH CBLD_MAX_PATH_ARGS NUL DEL RD CD FIND FINDSTR COPY MOVE MKDIR FC SED TYPE)
+$(call config_remember_vars,CBLD_DONT_FIX_SHELL SHELL CBLD_DONT_FIX_ENV_PATH CBLD_MAX_PATH_ARGS \
+  NUL DEL RD CD FIND FINDSTR COPY MOVE MKDIR FC TYPE)
 
 # protect macros from modifications in target makefiles,
 # do not trace calls to macros used in ifdefs, exported to the environment of called tools or modified via operator +=
-$(call set_global,SHELL CBLD_DONT_STRIP_ENV_PATH CBLD_MAX_PATH_ARGS NUL DEL RD CD FIND FINDSTR COPY MOVE MKDIR FC SED TYPE \
-  create_simlink change_mode CBLD_ENABLE_ANSI_COLORS)
+$(call set_global,CBLD_DONT_FIX_SHELL SHELL CBLD_DONT_FIX_ENV_PATH CBLD_MAX_PATH_ARGS \
+  NUL DEL RD CD FIND FINDSTR COPY MOVE MKDIR FC TYPE create_simlink change_mode)
 
 # protect macros from modifications in target makefiles, allow tracing calls to them
 # note: trace namespace: utils
 $(call set_global,print_env=project_exported_vars delete_files delete_dirs try_delete_dirs delete_files_in1 delete_files_in \
   del_files_or_dirs1 del_files_or_dirs filter_copy_output suppress_copy_output suppress_move_output copy_files1 copy_files \
-  move_files1 move_files touch_files1 touch_files create_dir compare_files cat_file shell_escape sed_expr unquoted_escape \
+  move_files1 move_files touch_files1 touch_files create_dir compare_files cat_file shell_escape unquoted_escape \
   print_short_string write_string1 write_string print_short_line print_some_lines write_lines1 write_lines \
   execute_in del_on_fail install_dir install_files filter_output,utils)
 
 # protect macros from modifications in target makefiles, allow tracing calls to them
 # note: trace namespace: core
-# note: overridden above 'ospath' and 'nonrelpath' are protected in $(cb_dir)/core/_defs.mk
+# note: overridden above 'ospath' and 'nonrelpath' are protected in $(cb_dir)/core/_defs.mk, which includes this file
 $(call set_global,nonrelpath1,core)
 
 # protect macros from modifications in target makefiles, allow tracing calls to them
