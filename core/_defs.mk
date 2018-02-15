@@ -812,7 +812,7 @@ endif
 
 # ========== functions ==========
 
-# for UNIX: don't change paths when converting from make internal file path to path accepted by $(utils_mk)
+# convert paths from Gnu Make representation to the form accepted by the native build tools
 # note: $(cb_dir)/utils/cmd.mk included below redefines ospath
 ospath = $1
 
@@ -824,11 +824,6 @@ nonrelpath = $(patsubst $1/%,/%,$(addprefix $1,$2))
 # add absolute path to directory of target makefile to given non-absolute paths
 # - we need absolute paths to sources to work with generated dependencies in .d files
 fixpath = $(abspath $(call nonrelpath,$(dir $(cb_target_makefile)),$1))
-
-# SED - stream editor executable, should be defined in $(utils_mk) makefile
-# 'sed_expr' - should also be defined in $(utils_mk) makefile
-# this helper macro: convert multi-line sed script $1 to multiple sed expressions - one expression for each line of the script
-sed_multi_expr = $(foreach s,$(subst $(newline), ,$(unspaces)),-e $(call sed_expr,$(call tospaces,$s)))
 
 # define 'run_tool' macro
 # note: included below $(utils_mk) (e.g. $(cb_dir)/utils/cmd.mk) may override some of macros defined in this $(cb_dir)/core/runtool.mk
@@ -842,13 +837,6 @@ include $(utils_mk)
 # utilities colors - for the 'suppress' function (and cb_colorize/cb_show_tool macros)
 CBLD_GEN_COLOR   ?= [1;32m
 CBLD_MGEN_COLOR  ?= [1;32m
-CBLD_CP_COLOR    ?= [1;36m
-CBLD_RM_COLOR    ?= [1;31m
-CBLD_RMDIR_COLOR ?= [1;31m
-CBLD_MKDIR_COLOR ?= [36m
-CBLD_TOUCH_COLOR ?= [36m
-CBLD_CAT_COLOR   ?= [32m
-CBLD_SED_COLOR   ?= [32m
 
 # product version in form major.minor or major.minor.patch
 # Note: this is the default value of 'modver' variable - per-module version number
@@ -877,7 +865,7 @@ cb_first_phase_vars += cb_needed_dirs build_system_goals bin_dir obj_dir lib_dir
 $(call set_global,MAKEFLAGS SHELL cb_needed_dirs cb_first_phase_vars CBLD_TARGET CBLD_OS CBLD_BCPU CBLD_CPU CBLD_TCPU CBLD_UTILS \
   cb_mdebug build_system_goals no_clean_build_distclean_goal debug cb_to_clean order_deps CBLD_TARGET_COLOR CBLD_CB_BUILD_COLOR \
   cb_include_level cb_target_makefiles cb_make_cont CBLD_LEAF_COLOR CBLD_LEVEL_COLOR CBLD_CONF_COLOR CBLD_GEN_COLOR CBLD_MGEN_COLOR \
-  CBLD_CP_COLOR CBLD_RM_COLOR CBLD_RMDIR_COLOR CBLD_MKDIR_COLOR CBLD_TOUCH_COLOR CBLD_CAT_COLOR CBLD_SED_COLOR CBLD_NO_DEPS)
+  CBLD_NO_DEPS)
 
 # protect macros from modifications in target makefiles, allow tracing calls to them
 # note: trace namespace: core
@@ -888,7 +876,7 @@ $(call set_global,cb_project_vars clean_build_version cb_dir clean_build_require
   add_order_deps=order_deps=order_deps need_gen_dirs std_target_vars1 cb_check_generated_at std_target_vars add_generated \
   add_generated_ret is_tool_mode cb_tool_mode_adjust cb_tool_mode_access_error cb_def_head cb_show_leaf_mk cb_check_targets \
   cb_def_tail cb_no_def_head_err cb_def_targets define_targets cb_prepare_templ cb_save_vars cb_restore_vars make_continue \
-  ospath nonrelpath fixpath sed_multi_expr product_version,core)
+  ospath nonrelpath fixpath product_version,core)
 
 # if 'toclean' value is non-empty, allow tracing calls to it (with trace namespace: toclean),
 # else - just protect 'toclean' from changes, do not make it's value non-empty - because 'toclean' is checked in ifdefs
