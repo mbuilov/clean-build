@@ -10,20 +10,26 @@ ifeq (,$(filter-out undefined environment,$(origin trace_calls)))
 include $(dir $(lastword $(MAKEFILE_LIST)))../trace/trace.mk
 endif
 
-# hide spaces in string, to unhide - use 'tospaces'
-# note: newlines are not processed by default, if needed, hide them like this:
-#  $(subst $(newline),$$(newline),$(unspaces))
-unspaces = $(subst $(space),$$(space),$(subst $(tab),$$(tab),$(subst $$,$$$$,$1)))
+# hide macro expansions
+hide = $(subst $$,$$$$,$1)
 
-# make space-separated list of tokens, to convert back to string - use 'tospaces'
-# note: newlines are not processed by default, if needed, hide them like this:
-#  $(subst $(newline),$$(newline),$(sptokens))
-sptokens = $(subst $(space),$$(empty) $$(empty),$(subst $(tab),$$(tab),$(subst $$,$$$$,$1)))
+# note: assume no newlines and comments in $1
+unhide_raw = $(eval unhide_:=$1)$(unhide_)
 
-# unhide spaces in string or convert space-separated list of tokens back to string
-# note: assume there are no newlines in $1, else - hide them before the call:
-#  $(call tospaces,$(subst $(newline),$$(newline),$1))
-tospaces = $(eval tospaces_:=$(subst $(comment),$$(comment),$1))$(tospaces_)
+# note: assume no newlines in $1
+unhide_comments = $(call unhide_raw,$(subst \#,\\\#,$1))
+
+# unhide macro expansions
+unhide = $(call unhide_comments,$(subst $(newline),$$(newline),$1))
+
+# hide spaces in string
+hide_spaces = $(subst $(space),$$(space),$(hide))
+
+# hide tabs in string
+hide_tabs = $(subst $(tab),$$(tab),$(hide))
+
+# hide tabs and spaces in string
+hide_tab_spaces = $(subst $(tab),$$(tab),$(hide_spaces))
 
 # add quotes if path has an embedded space(s):
 # $(call ifaddq,a b) -> "a b"
@@ -33,7 +39,8 @@ ifaddq = $(if $(findstring $(space),$1),"$1",$1)
 
 # unhide spaces in paths adding some prefix:
 # $(call qpath,a$(space)b cd,-I) -> -I"a b" -Icd
-qpath = $(foreach x,$1,$2$(call ifaddq,$(call unspaces,$x)))
+# note: assume no newlines, comments and tabs in $1
+qpath = $(foreach x,$1,$2$(call ifaddq,$(call unhide_raw,$x)))
 
 # map [A-Z] -> [a-z]
 tolower = $(subst \
@@ -330,8 +337,8 @@ cb_protected_vars = $(call set_global,MAKE_TRACE_IN_COLOR make_trace_in_color \
 # protect variables from modification in target makefiles
 # note: trace namespace: functions
 # note: 'cb_protected_vars' variable is used here temporary and will be redefined later
-cb_protected_vars += $(call set_global, \
-  unspaces sptokens tospaces ifaddq qpath tolower toupper repl09 repl09AZ padto1 padto is_less1 is_less repl090 \
+cb_protected_vars += $(call set_global,hide unhide_raw unhide_comments unhide hide_spaces hide_tabs hide_tab_spaces \
+  ifaddq qpath tolower toupper repl09 repl09AZ padto1 padto is_less1 is_less repl090 \
   is_less_float6 is_less_float5 is_less_float4 is_less_float3 is_less_float2 is_less_float1 is_less_float \
   strip_leading0 sort_numbers2 sort_numbers1 sort_numbers reverse \
   xargs1 xargs xcmd trim uniq uniq1 neq patsubst_multiple cut_heads cut_tails \
