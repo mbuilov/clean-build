@@ -61,7 +61,7 @@ endef
 unix_mod_aux_appt = $(foreach v,$(call get_variants,$t),$(call $t_aux_templv,$(call form_trg,$t,$v),$1))
 
 # auxiliary defines for exe or dll
-# define target-specific variables: 'map' and 'modver (only for dll)
+# define target-specific variables: 'map' and 'modver' (only for dll)
 unix_mod_aux_app = $(foreach t,exe dll,$(if $($t),$(call unix_mod_aux_appt,$(call fixpath,$(map)))))
 
 # 'map' variable is used only when building exe or dll
