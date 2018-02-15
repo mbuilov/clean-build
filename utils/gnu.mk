@@ -62,10 +62,6 @@ ifdef verbose
 create_dir = $(MKDIR) -pv $1 >&2
 endif
 
-# escape command line argument to pass it to $(SED)
-# note: assume GNU sed is used, which understands \n and \t escape sequences
-sed_expr = $(shell_escape)
-
 ifdef verbose
 # create symbolic link $2 -> $1
 # note: UNIX-specific
@@ -103,4 +99,4 @@ endif
 # protect macros from modifications in target makefiles, allow tracing calls to them
 # note: trace namespace: utils
 $(call set_global,print_env=project_exported_vars delete_files delete_dirs try_delete_dirs copy_files2 move_files2 \
-  create_dir sed_expr create_simlink change_mode execute_in install_dir install_files2,utils)
+  create_dir create_simlink change_mode execute_in install_dir install_files2,utils)
