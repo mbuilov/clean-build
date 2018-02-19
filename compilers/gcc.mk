@@ -9,6 +9,11 @@
 # define 'rpath' and target-specific variables 'map' and 'modver' (for dlls only)
 include $(dir $(lastword $(MAKEFILE_LIST)))unixcc.mk
 
+# common gcc definitions
+ifeq (,$(filter-out undefined environment,$(origin gcc_rsp_wrap)))
+include $(cb_dir)/compilers/gcc/cmn.mk
+endif
+
 # command prefix for cross-compilation
 CROSS_PREFIX ?=
 
@@ -134,22 +139,18 @@ dll_ldflags  = $(if $(is_tool_mode),$(CBLD_DLL_TLDFLAGS),$(CBLD_DLL_LDFLAGS))
 lib_cflags   = $(if $(findstring P,$1),$(CBLD_PIE_COPTION),$(if $(findstring D,$1),$(CBLD_PIC_COPTION))) $(def_cflags)
 lib_cxxflags = $(if $(findstring P,$1),$(CBLD_PIE_COPTION),$(if $(findstring D,$1),$(CBLD_PIC_COPTION))) $(def_cxxflags)
 
-# gcc option to use the pipe for communication between the various stages of compilation
-pipe_option := -pipe
-
 # make linker command for linking an exe or dll
 # target-specific: 'tm' - defined in exe_template/dll_template/lib_template macros from $(cb_dir)/types/_c.mk
 # target-specific: 'compiler', 'cflags', 'cxxflags' - defined by 'c_base_template' in $(cb_dir)/types/c/c_base.mk
 # note: user-defined CFLAGS/CXXFLAGS must be added after $(cflags)/$(cxxflags) be able to override them
+# note: 'pipe_option' - defined in $(cb_dir)/compilers/gcc/cmn.mk
 get_linker = $(if $(compiler:cxx=),$(if \
   $(tm),$(CBLD_TCC) $(pipe_option) $(cflags) $(CBLD_TCFLAGS),$(CC) $(pipe_option) $(cflags) $(CFLAGS)),$(if \
   $(tm),$(CBLD_TCXX) $(pipe_option) $(cxxflags) $(CBLD_TCXXFLAGS),$(CXX) $(pipe_option) $(cxxflags) $(CXXFLAGS)))
 
-# prefix for passing options from gcc command line to the linker
-wlprefix := -Wl,
-
 # option for specifying dynamic linker runtime search path for an exe or dll
 # possibly (if defined via 'c_redefine') target-specific: 'rpath' - defined in $(cb_dir)/compilers/unixcc.mk
+# note: 'wlprefix' - defined in $(cb_dir)/compilers/gcc/cmn.mk
 mk_rpath_option = $(addprefix $(wlprefix)-rpath=,$(rpath))
 
 # link-time path used to search for shared libraries
@@ -159,6 +160,7 @@ rpath_link:=
 
 # option for specifying link-time search path for linking an exe or dll
 # possibly (if defined via 'c_redefine') target-specific: 'rpath_link' - defined above
+# note: 'wlprefix' - defined in $(cb_dir)/compilers/gcc/cmn.mk
 mk_rpath_link_option = $(addprefix $(wlprefix)-rpath-link=,$(rpath_link))
 
 # gcc options to begin the list of static/dynamic libraries to link to the target
@@ -175,17 +177,19 @@ bdynamic_option := -Wl,-Bdynamic
 # note: user-defined LDFLAGS must be added after $(ldflags) to be able to override them
 # note: dep_lib_names/dep_imp_names - defined in $(cb_dir)/types/_c.mk
 cmn_libs = $(mk_rpath_option) $(mk_rpath_link_option) $(ldflags) $(if \
-  $(tm),$(CBLD_TLDFLAGS),$(LDFLAGS)) -o $1 $2 $(if $(firstword \
-  $(libs)$(dlls)),-L$(lib_dir) $(addprefix -l,$(call dep_imp_names,$3,$4)) $(if \
+  $(tm),$(CBLD_TLDFLAGS),$(LDFLAGS)) -o $(call gcc_path,$1 $2) $(if $(firstword \
+  $(libs)$(dlls)),-L$(call gcc_path,$(lib_dir)) $(addprefix -l,$(call dep_imp_names,$3,$4)) $(if \
   $(libs),$(bstatic_option) $(addprefix -l,$(call dep_lib_names,$3,$4)) $(bdynamic_option))) $(syslibs)
 
 # specify what symbols to export from a dll/exe
 # target-specific: 'map' - defined by exe_aux_templv/dll_aux_templv macros in $(cb_dir)/compilers/unixcc.mk
+# note: 'wlprefix' - defined in $(cb_dir)/compilers/gcc/cmn.mk
 mk_map_option = $(addprefix $(wlprefix)--version-script=,$(map))
 
 # append "soname" option if target shared library have a version info (e.g. some number after .so)
 # $1 - full path to the target shared library, for ex. /aa/bb/cc/libmy_lib.so, if modver=1.2.3 then "soname" will be libmy_lib.so.1
 # target-specific: 'modver' - defined by 'dll_aux_templv' macro in $(cb_dir)/compilers/unixcc.mk
+# note: 'wlprefix' - defined in $(cb_dir)/compilers/gcc/cmn.mk
 mk_soname_option = $(addprefix $(wlprefix)-soname=$(notdir $1).,$(firstword $(subst ., ,$(modver))))
 
 # linkers for each variant of exe,dll,lib
@@ -195,13 +199,12 @@ mk_soname_option = $(addprefix $(wlprefix)-soname=$(notdir $1).,$(firstword $(su
 # $4 - non-empty variant: R,P,D
 # target-specific: 'tm' - defined in exe_template/dll_template/lib_template in $(cb_dir)/types/_c.mk
 # note: used by exe_template/dll_template/lib_template macros from $(cb_dir)/types/_c.mk
-exe_ld = $(call suppress,$(tm)EXE,$1)$(get_linker) $(mk_map_option) $(cmn_libs)
-dll_ld = $(call suppress,$(tm)DLL,$1)$(get_linker) $(mk_map_option) $(mk_soname_option) $(cmn_libs)
-lib_ld = $(call suppress,$(tm)LIB,$1)$(if $(tm),$(CBLD_TAR) $(CBLD_TARFLAGS),$(AR) $(ARFLAGS)) $1 $2
-
-# flags for auto-dependencies generation
-# note: CBLD_NO_DEPS - defined in $(cb_dir)/core/_defs.mk
-auto_deps_flags := $(if $(CBLD_NO_DEPS),,-MMD -MP)
+# note: 'gcc_rsp_wrap' and CBLD_LINK_ARGS_LIMIT - defined in $(cb_dir)/compilers/gcc/cmn.mk
+# note: 'unix_ar_wrap' - defined in $(cb_dir)/compilers/unixcc.mk
+exe_ld = $(call gcc_rsp_wrap,$(tm)EXE,$1,$(get_linker),$(mk_map_option) $(cmn_libs))
+dll_ld = $(call gcc_rsp_wrap,$(tm)DLL,$1,$(get_linker),$(mk_map_option) $(mk_soname_option) $(cmn_libs))
+lib_ld = $(call suppress,$(tm)LIB,$1)$(call unix_ar_wrap,$(gcc_path),$(if \
+  $(tm),$(CBLD_TAR) $(CBLD_TARFLAGS),$(AR) $(ARFLAGS)),$(call gcc_path,$2),$(CBLD_LINK_ARGS_LIMIT))
 
 # parameters of application-level C and C++ compilers
 # $1 - target object file
@@ -211,6 +214,7 @@ auto_deps_flags := $(if $(CBLD_NO_DEPS),,-MMD -MP)
 # target-specific: 'tm' - defined in exe_template/dll_template/lib_template in $(cb_dir)/types/_c.mk
 # target-specific: 'defines', 'include', 'cflags', 'cxxflags' - defined by 'c_base_template' in $(cb_dir)/types/c/c_base.mk
 # note: user-defined CFLAGS/CXXFLAGS must be added after cflags/cxxflags to be able to override them
+# note: 'pipe_option', 'auto_deps_flags' - are defined in $(cb_dir)/compilers/gcc/cmn.mk
 cc_params  = $(pipe_option) $(auto_deps_flags) $(defines) $(include) $(cflags) $(if $(tm),$(CBLD_TCFLAGS),$(CFLAGS)) -c -o $1 $2
 cxx_params = $(pipe_option) $(auto_deps_flags) $(defines) $(include) $(cxxflags) $(if $(tm),$(CBLD_TCXXFLAGS),$(CXXFLAGS)) -c -o $1 $2
 
@@ -289,6 +293,6 @@ $(call set_global,CROSS_PREFIX CBLD_CPU_CFLAGS CBLD_TCPU_CFLAGS CC CXX AR CFLAGS
 
 # protect variables from modifications in target makefiles
 # note: trace namespace: gcc
-$(call set_global,def_cflags def_cxxflags pipe_option get_linker wlprefix mk_rpath_option rpath_link mk_rpath_link_option \
-  bstatic_option bdynamic_option cmn_libs mk_map_option mk_soname_option exe_ld dll_ld lib_ld auto_deps_flags \
+$(call set_global,def_cflags def_cxxflags get_linker mk_rpath_option rpath_link mk_rpath_link_option \
+  bstatic_option bdynamic_option cmn_libs mk_map_option mk_soname_option exe_ld dll_ld lib_ld \
   cc_params cxx_params obj_cc obj_cxx pch_cc pch_cxx,gcc)
