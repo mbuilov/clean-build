@@ -39,6 +39,11 @@ try_delete_dirs = $(RMDIR) --ignore-fail-on-non-empty $1
 endif
 
 ifdef verbose
+# show info about files $1 deleted in the directory $2, this info may be printed to build script
+delete_files_in1_info = pushd $2 >$(NUL) && { $(delete_files) && popd >$(NUL) || { popd >$(NUL); $(FALSE); } }
+endif
+
+ifdef verbose
 # copy file(s) (long list) preserving modification date, ownership and mode:
 # - file(s) $1 to directory $2 (paths to files $1 _must_ not contain spaces, but path to directory $2 may contain spaces) or
 # - file $1 to file $2         (path to file $1 _must_ not contain spaces, but path to file $2 may contain spaces)
@@ -98,5 +103,5 @@ endif
 
 # protect macros from modifications in target makefiles, allow tracing calls to them
 # note: trace namespace: utils
-$(call set_global,print_env=project_exported_vars delete_files delete_dirs try_delete_dirs copy_files2 move_files2 \
-  create_dir create_simlink change_mode execute_in_info install_dir install_files2,utils)
+$(call set_global,print_env=project_exported_vars delete_files delete_dirs try_delete_dirs delete_files_in1_info \
+  copy_files2 move_files2 create_dir create_simlink change_mode execute_in_info install_dir install_files2,utils)
