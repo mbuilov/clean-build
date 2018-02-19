@@ -113,19 +113,20 @@ trg_sdeps = $(call fix_sdeps,$(sdeps))
 
 # make compiler options string to specify search path of included headers
 # note: assume there are no spaces in include paths
+# note: 'mk_include_option' macro is overridden in $(cb_dir)/compilers/gcc/cmn.mk
 # note: 'mk_include_option' macro is overridden in $(cb_dir)/compilers/msvc/cmn.mk
 mk_include_option = $(addprefix -I,$1)
 
 # helper macro for passing C-define value containing special symbols (e.g. quoted string) to the C/C++ compiler
 # result of this macro will be processed by 'c_define_escape_value' macro
 # example: defines := MY_MESSAGE=$(call c_define_special,"my message")
-c_define_special = $(unspaces)
+c_define_special = $(hide_tab_spaces)
 
 # process result of 'c_define_special' to make shell-escaped value of C-define for passing it to the C/C++ compiler
 # $1 - define_name     (the name of C-macro definition)
 # $d - $1="1$(space)2" (for example)
 # returns: define_name='"1 2"'
-c_define_escape_value = $1=$(call shell_escape,$(call tospaces,$(patsubst $1=%,%,$d)))
+c_define_escape_value = $1=$(call shell_escape,$(call unhide_comments,$(patsubst $1=%,%,$d)))
 
 # process result of 'c_define_special' to make shell-escaped values of C-defines for passing them to the C/C++ compiler
 # $1 - list of defines in form name1=value1 name2=value2 ...
