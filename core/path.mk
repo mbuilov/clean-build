@@ -29,7 +29,7 @@ endif # win-make
 # ***********************************************
 # prepend absolute path to directory of target makefile to given non-absolute paths
 # - we need absolute paths to sources to work with generated dependencies in .d files
-# note: assume there are no spaces in paths (or spaces are 'hidden', e.g. by 'path_unspaces')
+# note: assume there are no spaces in the paths (or spaces are "hidden", e.g. by 'path_unspaces')
 # note: 'fixpath' works with Gnu Make paths (/cygdrive/c/file, /c/file or c:/file), not native paths (c:\file), to convert
 #  Gnu Make paths to native ones - use 'ospath' macro
 fixpath = $(abspath $(call nonrelp,$(dir $(cb_target_makefile)),$1))
@@ -40,10 +40,10 @@ CBLD_IS_MSYS_MAKE ?= $(filter MINGW%,$(CBLD_OS))
 # ***********************************************
 # 'ospath' - convert paths from Gnu Make representation to the form accepted by the native build tools, then shell-escape them
 #  so they may be passed via the command line
-# note: assume there are no spaces in paths (or spaces are 'hidden', e.g. by 'path_unspaces')
-# note: assume there are no weird characters in the paths - 'shell_escape' macro from $(utils_mk) should be used
-# note: use 'ospath' to pass paths to native tools, it's not required to use 'ospath' when redirecting output in rules, e.g.:
-#  "$(command) > $(call ospath,$@)" vs "$(command) > $@"
+# note: assume there are no spaces in the paths (or spaces are "hidden", e.g. by 'path_unspaces')
+# note: assume there are no weird characters in the paths - else 'shell_escape' macro from $(utils_mk) should be used
+# note: use 'ospath' to pass paths to native tools, it's _not_ required to use 'ospath' when redirecting output in rules, e.g.:
+#  $(command) > $@
 ifneq (,$(filter /cygdrive/%,$(CURDIR)))
 
 # cyg-make: /cygdrive/c/1/2/3 -> c:\\1\\2\\3
@@ -78,11 +78,11 @@ endif
 
 # ***********************************************
 # add (double-)quotes if Gnu Make or native path has an embedded spaces:
-# $(call ifaddq,a b) -> 'a b'
-# $(call ifaddq,ab)  -> ab
+#  $(call ifaddq,a b) -> 'a b'
+#  $(call ifaddq,ab)  -> ab
 # note: quoting type depends on the shell used by Gnu Make, assume Windows version of Gnu Make uses cmd.exe, Unix version - sh
 # note: when redirecting output in rules, use 'ifaddq' if output file contains spaces, e.g.:
-#  "$(command) > $(call ifaddq,$@)"
+#  $(command) > $(call ifaddq,$@)
 ifneq (,$(filter /%,$(CURDIR)))
 ifaddq = $(if $(findstring $(space),$1),'$1',$1)
 else # win-make
@@ -95,7 +95,7 @@ path_unspaces = $(subst $(space),?,$1)
 
 # ***********************************************
 # unhide spaces in native paths (result of $(ospath)) adding some prefix:
-# $(call qpath,a?b cd,-I) -> -I'a b' -Icd
+#  $(call qpath,a?b cd,-I) -> -I'a b' -Icd
 # note: assume spaces are hidden via 'path_unspaces'
 # note: quoting type depends on the shell used by Gnu Make, assume Windows version of Gnu Make uses cmd.exe, Unix version - sh
 # note: use 'qpath' to pass paths to native tools:
@@ -108,7 +108,7 @@ endif # win-make
 
 # ***********************************************
 # unhide spaces in Gnu Make paths:
-# $(call gmake_path,/a?b /cd) -> /a\ b /cd
+#  $(call gmake_path,/a?b /cd) -> /a\ b /cd
 # note: assume spaces are hidden via 'path_unspaces'
 # note: use 'gmake_path' when specifying rule targets which may contain hidden spaces:
 #  $(call gmake_path,$(files)):; echo 1 > $(call ifaddq,$@)
