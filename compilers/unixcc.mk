@@ -75,6 +75,20 @@ endif
 # for dll:         also define target-specific variable 'modver'
 $(call define_prepend,c_define_app_rules,$$(eval $$(unix_mod_aux_app)))
 
+# wrapper around ar - files archiver
+# $1 - output file      (libmy_lib.a)
+# $2 - archiver command (ar -crs)
+# $3 - objects          (1.o 2.o ...)
+# $4 - number of objects that may be added to archive at once (that number is limited by the maximum command line length)
+# note: 'xcmd' - defined in $(cb_dir)/core/functions.mk
+unix_ar_wrap = $(call xcmd,ar_add_files,$3,$4,$2,$1)
+
+# callback of 'unix_ar_wrap'
+# $1 - objects
+# $2 - archiver command
+# $3 - output file
+ar_add_files = $2 $3 $1
+
 # makefile parsing first phase variables
 cb_first_phase_vars += c_prepare_unix_app_vars exe_aux_templv dll_aux_templv unix_mod_aux_appt unix_mod_aux_app map_variable_check
 
@@ -85,4 +99,4 @@ $(call set_global,cb_first_phase_vars)
 # protect variables from modifications in target makefiles
 # note: trace namespace: unixcc
 $(call set_global,rpath c_prepare_unix_app_vars \
-  exe_aux_templv=t;v dll_aux_templv=t;v unix_mod_aux_appt=t unix_mod_aux_app map_variable_check,unixcc)
+  exe_aux_templv=t;v dll_aux_templv=t;v unix_mod_aux_appt=t unix_mod_aux_app map_variable_check unix_ar_wrap ar_add_files,unixcc)
