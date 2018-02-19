@@ -215,8 +215,10 @@ lib_ld = $(call suppress,$(tm)LIB,$1)$(call unix_ar_wrap,$(gcc_path),$(if \
 # target-specific: 'defines', 'include', 'cflags', 'cxxflags' - defined by 'c_base_template' in $(cb_dir)/types/c/c_base.mk
 # note: user-defined CFLAGS/CXXFLAGS must be added after cflags/cxxflags to be able to override them
 # note: 'pipe_option', 'auto_deps_flags' - are defined in $(cb_dir)/compilers/gcc/cmn.mk
-cc_params  = $(pipe_option) $(auto_deps_flags) $(defines) $(include) $(cflags) $(if $(tm),$(CBLD_TCFLAGS),$(CFLAGS)) -c -o $1 $2
-cxx_params = $(pipe_option) $(auto_deps_flags) $(defines) $(include) $(cxxflags) $(if $(tm),$(CBLD_TCXXFLAGS),$(CXXFLAGS)) -c -o $1 $2
+cc_params  = $(pipe_option) $(auto_deps_flags) $(defines) $(include) $(cflags) $(if \
+  $(tm),$(CBLD_TCFLAGS),$(CFLAGS)) -c -o $(call gcc_path,$1 $2)
+cxx_params = $(pipe_option) $(auto_deps_flags) $(defines) $(include) $(cxxflags) $(if \
+  $(tm),$(CBLD_TCXXFLAGS),$(CXXFLAGS)) -c -o $(call gcc_path,$1 $2)
 
 # C/C++ compilers for each variant of exe,dll,lib
 # $1 - target object file
