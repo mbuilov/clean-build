@@ -7,12 +7,22 @@
 # stream editor, standard Unix utility, for Windows version of Gnu Sed - see https://github.com/mbuilov/sed-windows
 SED ?= sed
 
+# assume native sed is used, e.g. Windows version of Gnu Sed under Windows, except under Cygwin/Msys
+CBLD_IS_NATIVE_SED ?= $(filter-out CYGWIN% MINGW%,$(CBLD_OS))
+
+# convert path from Gnu Make representation to the form accepted by SED
+ifneq (,$(CBLD_IS_NATIVE_SED:0=))
+sed_path = $(ospath)
+else
+sed_path = $1
+endif
+
 # assume Gnu Sed is used under these OSes
 CBLD_IS_GNU_SED ?= $(filter WIN% CYGWIN% MINGW% LINUX%,$(CBLD_OS))
 
 # escape command line argument to pass it to $(SED)
 # note: 'shell_escape' - defined in $(utils_mk), e.g. $(cb_dir)/utils/unix.mk
-ifneq (,$(CBLD_IS_GNU_SED))
+ifneq (,$(CBLD_IS_GNU_SED:0=))
 
 # Gnu Sed understands \n and \t escape sequences
 sed_expr = $(shell_escape)
@@ -32,12 +42,12 @@ sed_multi_expr = $(foreach s,$(subst $(newline), ,$(hide_tab_spaces)),-e $(call 
 CBLD_SED_COLOR ?= [32m
 
 # remember value of variables that may be taken from the environment
-$(call config_remember_vars,SED CBLD_IS_GNU_SED)
+$(call config_remember_vars,SED CBLD_IS_NATIVE_SED CBLD_IS_GNU_SED)
 
 # protect macros from modifications in target makefiles,
 # do not trace calls to macros used in ifdefs, exported to the environment of called tools or modified via operator +=
-$(call set_global,SED CBLD_IS_GNU_SED CBLD_SED_COLOR)
+$(call set_global,SED CBLD_IS_NATIVE_SED CBLD_IS_GNU_SED CBLD_SED_COLOR)
 
 # protect macros from modifications in target makefiles, allow tracing calls to them
 # note: trace namespace: sed
-$(call set_global,sed_expr sed_multi_expr,sed)
+$(call set_global,sed_path sed_expr sed_multi_expr,sed)
