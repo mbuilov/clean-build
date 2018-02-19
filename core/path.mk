@@ -54,7 +54,7 @@ ospath1 = $(if $(findstring /cygdrive/,$1),$(foreach p,$1,$(if $(filter /cygdriv
 ospath = $(subst /,\\,$(if $(findstring /cygdrive/,$1),$(call ospath1,$(patsubst /cygdrive/$(cygdrive)%,$(cygdrive):%,$1)),$1))
 
 else ifneq (,$(filter /%,$(CURDIR)))
-ifeq (,$(CBLD_IS_MSYS_MAKE))
+ifeq (,$(CBLD_IS_MSYS_MAKE:0=))
 
 # unix-make: /1/2/3 -> /1/2/3
 ospath = $1
