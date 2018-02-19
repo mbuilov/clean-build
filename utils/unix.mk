@@ -71,7 +71,14 @@ try_delete_dirs = $(RMDIR) $1 2>$(NUL) || $(TRUE)
 # note: to support long list, paths in $2 _must_ not contain spaces
 # note: if path to directory $1 contains a space, use 'ifaddq' to add quotes: '1 2/3 4'
 # note: $6 - empty on first call, $(newline) on next calls
+ifdef quiet
 delete_files_in1 = $(if $6,$(quiet))$(CD) $2 && $(delete_files)
+else # verbose
+# show info about files $1 deleted in the directory $2, this info may be printed to build script
+# note: 'delete_files_in1_info' - overridden in $(cb_dir)/utils/gnu.mk
+delete_files_in1_info = ( $(CD) $2 && $(delete_files) )
+delete_files_in1 = $(info $(delete_files_in1_info))@$(CD) $2 && $(delete_files)
+endif # verbose
 delete_files_in  = $(call xcmd,delete_files_in1,$2,$(CBLD_MAX_PATH_ARGS),$1,,,)
 
 # delete files and/or directories (recursively) (long list)
@@ -237,7 +244,7 @@ $(call set_global,CBLD_MAX_PATH_ARGS NUL RM RMDIR TRUE FALSE CD CP MV TOUCH MKDI
 # protect macros from modifications in target makefiles, allow tracing calls to them
 # note: trace namespace: utils
 $(call set_global,print_env=project_exported_vars shell_escape delete_files delete_dirs try_delete_dirs \
-  delete_files_in1 delete_files_in del_files_or_dirs1 del_files_or_dirs copy_files2 copy_files1 copy_files \
+  delete_files_in1 delete_files_in1_info delete_files_in del_files_or_dirs1 del_files_or_dirs copy_files2 copy_files1 copy_files \
   move_files2 move_files1 move_files touch_files1 touch_files create_dir compare_files cat_file print_short_string \
   printf_line_escape write_string1 write_string print_short_line print_some_lines write_lines1 write_lines create_simlink \
   change_mode execute_in execute_in_info del_on_fail install_dir install_files2 install_files1 install_files,utils)
