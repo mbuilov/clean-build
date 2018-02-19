@@ -6,8 +6,8 @@
 
 # generic rules and definitions for building targets,
 #  defines constants, such as: CBLD_TARGET, CBLD_OS, CBLD_BCPU, CBLD_TCPU, CBLD_CPU
-#  different core macros, e.g.: 'toclean', 'add_generated', 'is_tool_mode', 'define_targets', 'make_continue', 'ospath', 'fixpath'
-#  and many more.
+#  different core macros, e.g.: 'toclean', 'add_generated', 'is_tool_mode', 'define_targets', 'make_continue', 'fixpath',
+#  'ospath' and many more
 
 # Note.
 #  Any variable defined in the environment or command line by default is exported to sub-processes spawned by make.
@@ -56,7 +56,8 @@ endif
 
 # assume project configuration makefile, which have included this makefile, defines some variables
 #  - save list of those variables to redefine them below with the 'override' keyword
-# note: SHELL, CBLD_CONFIG and CBLD_BUILD variables are not reset by the clean-build, so don't override them
+# note: CBLD_CONFIG and CBLD_BUILD variables are used by the clean-build only before including target makefiles, so
+#  do not add 'override' attribute to them to protect from changes in target makefiles
 # note: filter-out %.^e - saved environment variables (see $(cb_dir)/stub/prepare.mk)
 cb_project_vars := $(strip $(foreach =,$(filter-out SHELL MAKEFLAGS CURDIR MAKEFILE_LIST MAKECMDGOALS .DEFAULT_GOAL \
   %.^e CBLD_CONFIG CBLD_BUILD,$(.VARIABLES)),$(if $(findstring file,$(origin $=)),$=)))
@@ -113,6 +114,10 @@ $(foreach =,$(cb_project_vars),$(eval override $(if $(findstring simple,$(flavor
 # protect from changes project variables - which have the 'override' $(origin) and exported variables in the $(project_exported_vars)
 include $(cb_dir)/core/protection.mk
 
+# autoconfigure values of: CBLD_OS, CBLD_BCPU, CBLD_CPU, CBLD_TCPU, CBLD_UTILS
+# define 'utils_mk' - makefile with definitions of shell utilities (included below)
+include $(cb_dir)/core/aconf.mk
+
 # list of project-supported target types
 # note: normally these defaults are overridden in project configuration makefile
 project_supported_targets := DEBUG RELEASE
@@ -120,84 +125,6 @@ project_supported_targets := DEBUG RELEASE
 # required: what target type to build (DEBUG, RELEASE, etc.)
 # note: normally CBLD_TARGET get overridden by specifying it in the command line
 CBLD_TARGET ?= RELEASE
-
-# optional: the operating system we are building on (WINDOWS, LINUX, SUNOS, etc.)
-# note: CBLD_OS value may affect default values of other variables (CBLD_BCPU, CBLD_UTILS, etc.)
-ifeq (undefined,$(origin CBLD_OS))
-ifneq (,$(filter /%,$(CURDIR)))
-# Cygwin:  CYGWIN_NT-6.1
-# MinGW64: MINGW64_NT-6.1
-# Solaris: SUNOS
-# Linux:   LINUX
-CBLD_OS := $(call toupper,$(shell uname))
-else ifneq ("$(CURDIR)","$(subst :,,$(CURDIR))")
-CBLD_OS := WINDOWS
-else
-# unknown
-CBLD_OS:=
-endif
-endif # !CBLD_OS
-
-# optional: processor architecture of the tools of the Build machine
-# note: equivalent of '--build' Gnu Autoconf configure script option
-# note: CBLD_BCPU specification may also encode format of executable files, e.g. CBLD_BCPU=m68k-coff, it is checked by the C compiler
-ifeq (undefined,$(origin CBLD_BCPU))
-ifndef CBLD_OS
-# unknown
-CBLD_BCPU:=
-else ifneq (,$(filter WIN%,$(CBLD_OS)))
-# x86 IA64 AMD64 ARM ARM64 ...
-ifneq (undefined,$(origin PROCESSOR_ARCHITEW6432))
-CBLD_BCPU := $(PROCESSOR_ARCHITEW6432)
-else
-CBLD_BCPU := $(PROCESSOR_ARCHITECTURE)
-endif
-else ifneq (,$(filter SUN%,$(CBLD_OS)))
-# amd64 i386 sparcv9 sparc ...
-CBLD_BCPU := $(firstword $(shell isainfo))
-else
-# arm aarch64 m68k mips mips64 ppc ppc64 ppcle ppc64le sparc sparc64 i386 i686 x86_64 ...
-CBLD_BCPU := $(shell uname -m)
-endif
-endif # !CBLD_BCPU
-
-# optional: processor architecture we are building the package for
-# note: equivalent of '--host' Gnu Autoconf configure script option
-# note: CBLD_CPU specification may also encode format of executable files, e.g. CBLD_CPU=m68k-coff, it is checked by the C compiler
-ifeq (undefined,$(origin CBLD_CPU))
-CBLD_CPU := $(CBLD_BCPU)
-endif
-
-# optional: processor architecture of build helper Tools created while the build
-# note: CBLD_TCPU do not affects the built package
-# note: CBLD_TCPU specification may also encode format of executable files, e.g. CBLD_TCPU=m68k-coff, it is checked by the C compiler
-ifeq (undefined,$(origin CBLD_TCPU))
-CBLD_TCPU := $(CBLD_BCPU)
-endif
-
-# flavor of system shell utilities (such as cp, mv, rm, etc.)
-# note: $(CBLD_UTILS) value is used only to form name of standard makefile with definitions of shell utilities
-# note: normally CBLD_UTILS get overridden by specifying it in command line, for example: CBLD_UTILS:=gnu
-ifeq (undefined,$(origin CBLD_UTILS))
-CBLD_UTILS := $(if \
-  $(filter WIN%,$(CBLD_OS)),cmd,$(if \
-  $(filter CYGWIN% MINGW% LINUX%,$(CBLD_OS)),gnu,unix))
-endif
-
-# remember value of CBLD_BUILD if it was taken from the environment (in the project configuration makefile - $(cb_dir)/stub/project.mk)
-# note: else, if CBLD_BUILD was not taken from the environment - CBLD_BUILD should be already stored for the generated configuration
-#  makefile as a project variable (in the $(cb_dir)/core/confsup.mk)
-# note: remember autoconfigured variables: CBLD_TARGET, CBLD_OS, CBLD_BCPU, CBLD_CPU, CBLD_TCPU and CBLD_UTILS (if they are not defined
-#  as a project variables and so are not already saved by the $(cb_dir)/core/confsup.mk)
-$(call config_remember_vars,CBLD_BUILD CBLD_TARGET CBLD_OS CBLD_BCPU CBLD_CPU CBLD_TCPU CBLD_UTILS)
-
-# makefile with the definitions of shell utilities
-utils_mk := $(cb_dir)/utils/$(CBLD_UTILS).mk
-
-ifeq (,$(wildcard $(utils_mk)))
-$(error file '$(utils_mk)' was not found, check $(if $(findstring file,$(origin \
-  utils_mk)),values of CBLD_OS=$(CBLD_OS) and CBLD_UTILS=$(CBLD_UTILS),value of overridden 'utils_mk' variable))
-endif
 
 # run via $(MAKE) D=1 to debug makefiles
 ifeq (command line,$(origin D))
@@ -810,27 +737,14 @@ ifdef cb_checking
 $(eval make_continue = $(subst $$(call define_targets),$$(call set_global,cb_make_cont)$$(call define_targets),$(value make_continue)))
 endif
 
-# ========== functions ==========
-
-# convert paths from Gnu Make representation to the form accepted by the native build tools
-# note: $(cb_dir)/utils/cmd.mk included below redefines ospath
-ospath = $1
-
-# make path not relative: add prefix $1 only to non-absolute paths in $2
-# note: path prefix $1 must end with /
-# note: $(cb_dir)/utils/cmd.mk included below redefines nonrelpath
-nonrelpath = $(patsubst $1/%,/%,$(addprefix $1,$2))
-
-# add absolute path to directory of target makefile to given non-absolute paths
-# - we need absolute paths to sources to work with generated dependencies in .d files
-fixpath = $(abspath $(call nonrelpath,$(dir $(cb_target_makefile)),$1))
+# define functions: 'fixpath', 'ospath', 'ifaddq', 'path_unspaces', 'qpath' and 'gmake_path'
+include $(cb_dir)/core/path.mk
 
 # define 'run_tool' macro
 # note: included below $(utils_mk) (e.g. $(cb_dir)/utils/cmd.mk) may override some of macros defined in this $(cb_dir)/core/runtool.mk
 include $(cb_dir)/core/runtool.mk
 
 # define shell utilities
-# note: $(cb_dir)/utils/cmd.mk overrides macros defined above: 'ospath', 'nonrelpath'
 # note: $(cb_dir)/utils/cmd.mk overrides macros defined in $(cb_dir)/core/runtool.mk: 'pathsep', 'show_tool_vars', 'show_tool_vars_end'
 include $(utils_mk)
 
@@ -848,8 +762,9 @@ ifeq (undefined,$(origin CBLD_NO_DEPS))
 CBLD_NO_DEPS := $(if $(debug),,1)
 endif
 
-# remember value of CBLD_NO_DEPS - it may be taken from the environment
-$(call config_remember_vars,CBLD_NO_DEPS)
+# remember values of variables possibly taken from the environment
+# note: CBLD_BUILD - initialized in the project configuration makefile - $(cb_dir)/stub/project.mk
+$(call config_remember_vars,CBLD_BUILD CBLD_TARGET CBLD_NO_DEPS)
 
 # makefile parsing first phase variables
 # Note: bin_dir/obj_dir/lib_dir/gen_dir change their values depending on the value of 'tool_mode' variable set in the last
@@ -862,7 +777,7 @@ cb_first_phase_vars += cb_needed_dirs build_system_goals bin_dir obj_dir lib_dir
 
 # protect macros from modifications in target makefiles,
 # do not trace calls to macros used in ifdefs, exported to the environment of called tools or modified via operator +=
-$(call set_global,MAKEFLAGS SHELL cb_needed_dirs cb_first_phase_vars CBLD_TARGET CBLD_OS CBLD_BCPU CBLD_CPU CBLD_TCPU CBLD_UTILS \
+$(call set_global,MAKEFLAGS SHELL cb_needed_dirs cb_first_phase_vars CBLD_BUILD CBLD_TARGET \
   cb_mdebug build_system_goals no_clean_build_distclean_goal debug cb_to_clean order_deps CBLD_TARGET_COLOR CBLD_CB_BUILD_COLOR \
   cb_include_level cb_target_makefiles cb_make_cont CBLD_LEAF_COLOR CBLD_LEVEL_COLOR CBLD_CONF_COLOR CBLD_GEN_COLOR CBLD_MGEN_COLOR \
   CBLD_NO_DEPS)
@@ -870,13 +785,13 @@ $(call set_global,MAKEFLAGS SHELL cb_needed_dirs cb_first_phase_vars CBLD_TARGET
 # protect macros from modifications in target makefiles, allow tracing calls to them
 # note: trace namespace: core
 $(call set_global,cb_project_vars clean_build_version cb_dir clean_build_required_version \
-  cb_build project_supported_targets utils_mk target_triplet def_bin_dir def_obj_dir def_lib_dir def_gen_dir \
+  cb_build project_supported_targets target_triplet def_bin_dir def_obj_dir def_lib_dir def_gen_dir \
   cb_set_default_dirs tool_base mk_tools_dir cb_tool_override_dirs tool_suffix get_tools get_tool cb_first_makefile \
   cb_target_makefile add_mdeps cb_what_makefile_builds cb_add_what_makefile_builds set_makefile_info \
   add_order_deps=order_deps=order_deps need_gen_dirs std_target_vars1 cb_check_generated_at std_target_vars add_generated \
   add_generated_ret is_tool_mode cb_tool_mode_adjust cb_tool_mode_access_error cb_def_head cb_show_leaf_mk cb_check_targets \
   cb_def_tail cb_no_def_head_err cb_def_targets define_targets cb_prepare_templ cb_save_vars cb_restore_vars make_continue \
-  ospath nonrelpath fixpath product_version,core)
+  product_version,core)
 
 # if 'toclean' value is non-empty, allow tracing calls to it (with trace namespace: toclean),
 # else - just protect 'toclean' from changes, do not make it's value non-empty - because 'toclean' is checked in ifdefs
