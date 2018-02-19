@@ -31,17 +31,6 @@ hide_tabs = $(subst $(tab),$$(tab),$(hide))
 # hide tabs and spaces in string
 hide_tab_spaces = $(subst $(tab),$$(tab),$(hide_spaces))
 
-# add quotes if path has an embedded space(s):
-# $(call ifaddq,a b) -> "a b"
-# $(call ifaddq,ab)  -> ab
-# note: overridden in $(cb_dir)/utils/unix.mk
-ifaddq = $(if $(findstring $(space),$1),"$1",$1)
-
-# unhide spaces in paths adding some prefix:
-# $(call qpath,a$(space)b cd,-I) -> -I"a b" -Icd
-# note: assume no newlines, comments and tabs in $1
-qpath = $(foreach x,$1,$2$(call ifaddq,$(call unhide_raw,$x)))
-
 # map [A-Z] -> [a-z]
 tolower = $(subst \
   A,a,$(subst B,b,$(subst C,c,$(subst D,d,$(subst E,e,$(subst F,f,$(subst G,g,$(subst H,h,$(subst I,i,$(subst \
@@ -338,7 +327,7 @@ cb_protected_vars = $(call set_global,MAKE_TRACE_IN_COLOR make_trace_in_color \
 # note: trace namespace: functions
 # note: 'cb_protected_vars' variable is used here temporary and will be redefined later
 cb_protected_vars += $(call set_global,hide unhide_raw unhide_comments unhide hide_spaces hide_tabs hide_tab_spaces \
-  ifaddq qpath tolower toupper repl09 repl09AZ padto1 padto is_less1 is_less repl090 \
+  tolower toupper repl09 repl09AZ padto1 padto is_less1 is_less repl090 \
   is_less_float6 is_less_float5 is_less_float4 is_less_float3 is_less_float2 is_less_float1 is_less_float \
   strip_leading0 sort_numbers2 sort_numbers1 sort_numbers reverse \
   xargs1 xargs xcmd trim uniq uniq1 neq patsubst_multiple cut_heads cut_tails \
