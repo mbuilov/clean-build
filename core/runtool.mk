@@ -19,10 +19,10 @@ dll_path_var := $(if $(filter WIN% CYGWIN% MINGW%,$(CBLD_OS)),PATH,LD_LIBRARY_PA
 # $2 - additional path(s) separated by $(pathsep) to append to $(dll_path_var)
 # $3 - directory to change to for executing a tool
 # $4 - names of variables to set in the environment (export) to run given tool
-# note: 'shell_escape', 'execute_in' macros - are defined in $(utils_mk) makefile
+# note: 'shell_escape', 'execute_in_info' macros - are defined in $(utils_mk) makefile
 # note: $(cb_dir)/utils/cmd.mk redefines show_tool_vars/show_tool_vars_end macros
 show_tool_vars1 = $(foreach =,$(if $2,$(dll_path_var)) $4,$==$(call shell_escape,$($=))) $1
-show_tool_vars = $(info $(if $3,$(call execute_in,$3,$(show_tool_vars1)),$(show_tool_vars1)))
+show_tool_vars = $(info $(if $3,$(call execute_in_info,$3,$(show_tool_vars1)),$(show_tool_vars1)))
 
 # note: $(cb_dir)/utils/cmd.mk redefines 'show_tool_vars_end'
 show_tool_vars_end:=
@@ -34,7 +34,7 @@ show_tool_vars_end:=
 # $4 - names of variables to set in the environment (export) to run given tool
 # note: this function should be used in rule body, where automatic variable $@ is defined
 # note: 'execute_in' macro - defined in $(utils_mk) makefile
-# note: calling a tool _must_ not produce any output to stdout, tool's stdout must be
+# note: calling a tool _must_ not produce any output to stdout of make, tool's stdout must be
 #  redirected either to a file or to stderr, e.g. './my_tool >file' or './my_tool >&2'
 run_tool = $(if $2$4,$(if $2,$(eval $$@:export $$(dll_path_var):=$(if $(findstring undefined,$(origin $(dll_path_var))),,$(if \
   $($(dll_path_var)),$$($(dll_path_var))$$(pathsep)))$$2))$(foreach =,$4,$(eval $$@:export $$=:=$$($$=)))$(if \
