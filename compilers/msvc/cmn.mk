@@ -4,9 +4,9 @@
 # Licensed under GPL version 3 or any later version, see COPYING
 #----------------------------------------------------------------------------------
 
-# common msvc compiler definitions, included by $(CLEAN_BUILD_DIR)/compilers/msvc.mk
+# common msvc compiler definitions, included by $(cb_dir)/compilers/msvc.mk
 
-# Microsoft Visual C++ (MSVC++) versions
+# Microsoft Visual C++ (MSVC++) product versions
 #---------------------------------------------------------------------------------
 # MSVC++ _MSC_VER    product name      C++ compiler default installation path
 #---------------------------------------------------------------------------------
@@ -22,257 +22,261 @@
 #  14.10   1910   Visual Studio 2017   Microsoft Visual Studio\2017\Community\VC\Tools\MSVC\14.10.25017\bin\HostX86\x86\cl.exe
 #  14.11   1911   Visual Studio 2017   Microsoft Visual Studio\2017\Community\VC\Tools\MSVC\14.11.25503\bin\HostX86\x86\cl.exe
 
-# map Visual Studio version -> MSVC++ version
-VS2002 := 7
-VS2003 := 7.1
-VS2005 := 8
-VS2008 := 9
-VS2010 := 10
-VS2012 := 11
-VS2013 := 12
-VS2015 := 14
-VS2017 := 14.1
+# map Visual Studio abbreviated product name -> MSVC++ product version
+vs2002 := 7
+vs2003 := 7.1
+vs2005 := 8
+vs2008 := 9
+vs2010 := 10
+vs2012 := 11
+vs2013 := 12
+vs2015 := 14
+vs2017 := 14.1
 
-# map _MSC_VER major -> MSVC++ version major
-MSC_VER_12 := 6
-MSC_VER_13 := 7
-MSC_VER_14 := 8
-MSC_VER_15 := 9
-MSC_VER_16 := 10
-MSC_VER_17 := 11
-MSC_VER_18 := 12
-MSC_VER_19 := 14
+# map _MSC_VER (C++ compiler version) major number -> MSVC++ product version major number
+msc_ver_12 := 6
+msc_ver_13 := 7
+msc_ver_14 := 8
+msc_ver_15 := 9
+msc_ver_16 := 10
+msc_ver_17 := 11
+msc_ver_18 := 12
+msc_ver_19 := 14
 
-# Windows tools, such as rc.exe, mc.exe, cl.exe, link.exe, produce excessive output in stdout,
-#  by default, try to filter this output out by wrapping calls to the tools.
-# If not empty, then do not wrap tools
-NO_WRAP:=
+# Creating a process on Windows costs more time than on Unix, so it takes more total time to call compiler for each source
+#  individually over than compiling multiple sources at once - where compiler internally schedules the compilation by cloning
+#  itself and working in service mode, also compiler internally may parallelize compilation depending on available CPUs.
 
-# Creating a process on Windows costs more time than on Unix,
-# so when compiling in parallel, it takes more total time to
-# call compiler for each source individually over than
-# compiling multiple sources at once, so that compiler itself
-# internally may parallel the compilation cloning itself and
-# working in service mode.
-
-# By default, compile all sources of a module at once (however, different modules may be compiled in parallel)
-# Run via $(MAKE) S=1 to compile each source individually (without /MP compiler option)
+# run via $(MAKE) S=1 to compile each source individually
 ifeq (command line,$(origin S))
-SEQ_BUILD := $(S:0=)
+seq_build := $(S:0=)
 else
-SEQ_BUILD:=
+# compile all sources of a module at once by default (with /MP option)
+seq_build:=
 endif
 
-# strings to strip off from link.exe output (spaces are replaced with ?)
-LINKER_STRIP_STRINGS_en := Generating?code Finished?generating?code
-# cp1251 ".Ð¾Ð·Ð´Ð°Ð½Ð¸Ðµ?ÐºÐ¾Ð´Ð° .Ð¾Ð·Ð´Ð°Ð½Ð¸Ðµ?ÐºÐ¾Ð´Ð°?Ð·Ð°Ð²ÐµÑÑÐµÐ½Ð¾"
-LINKER_STRIP_STRINGS_ru_cp1251 := .îçäàíèå?êîäà .îçäàíèå?êîäà?çàâåðøåíî
-# cp1251 ".Ð¾Ð·Ð´Ð°Ð½Ð¸Ðµ?ÐºÐ¾Ð´Ð° .Ð¾Ð·Ð´Ð°Ð½Ð¸Ðµ?ÐºÐ¾Ð´Ð°?Ð·Ð°Ð²ÐµÑÑÐµÐ½Ð¾" as cp866 converted to cp1251
-LINKER_STRIP_STRINGS_ru_cp1251_as_cp866_to_cp1251 := .þ÷ôðýøõ?úþôð .þ÷ôðýøõ?úþôð?÷ðòõ¨°õýþ
+# Windows tools, such as rc.exe, mc.exe, cl.exe, link.exe, produce excessive output in stdout,
+#  by default, try to filter this output out by wrapping calls to the tools. Also, wrapping is
+#  required for source dependencies auto-generation.
+# If not empty and not 0, then do not wrap tools
+CBLD_NO_WRAP_MSVC_TOOLS ?=
 
-# code to define linker wrapper macro
-define MSVC_WRAP_LINKER_TEMPL
+# for use in ifdefs
+no_wrap_msvc_tools := $(CBLD_NO_WRAP_MSVC_TOOLS:0=)
+
+# include patterns for filtering excessive output of msvc++ tools
+ifndef no_wrap_msvc_tools
+ifneq (,$(filter /%,$(CURDIR)))
+$(error TODO: wrapping of MSVC tools with Unix shell utilities is not implemented yet. \
+  For now, please use cmd.exe shell utilities - start build with CBLD_UTILS=cmd or define CBLD_NO_WRAP_MSVC_TOOLS=1)
+endif
+ifeq (,$(filter-out undefined environment,$(origin linker_strip_strings_en)))
+include $(dir $(lastword $(MAKEFILE_LIST)))patterns.mk
+endif
+endif
+
+# code to define linker wrapper macro (for stripping outout of link.exe)
+define msvc_wrap_linker_templ
 
 # call linker and strip-off diagnostic message and message about generated .exp-file
 # $1 - linker with options
-# note: send output to stderr in VERBOSE mode, this is needed for build script generation
-ifdef VERBOSE
-<WRAP_LINKER> = $1 >&2
+# note: send output to stderr in verbose mode, this is needed for build script generation
+ifdef verbose
+<wrap_linker> = $1 >&2
 else
-<WRAP_LINKER> = $1
+<wrap_linker> = $1
 endif
 
 # $1 - linker with options
-# note: FILTER_OUTPUT sends command output to stderr
-# note: no diagnostic message is printed in DEBUG
-# target-specific: IMP (may be empty)
-ifndef NO_WRAP
-$(eval <WRAP_LINKER> = $$(if $$(IMP),$$(call \
-  FILTER_OUTPUT,$$1,|$(FINDSTR) /VC:$$(basename $$(notdir $$(IMP))).exp),$(value <WRAP_LINKER>)))
-ifndef DEBUG
-ifneq (,<STRIP_EXPR>)
-<WRAP_LINKER> = $(call FILTER_OUTPUT,$1,<STRIP_EXPR>$(patsubst %, |$(FINDSTR) /VC:%.exp,$(basename $(notdir $(IMP)))))
+# target-specific: 'imp' (may be empty) - defined by mod_exports_template/no_exports_template from $(cb_dir)/compilers/msvc/exp.mk
+# note: no diagnostic message is printed in debug build, so ignore <strip_expr>
+# note: 'filter_output' - sends command output to stderr, defined in $(cb_dir)/utils/cmd.mk
+ifndef no_wrap_msvc_tools
+$(eval <wrap_linker> = $$(if $$(imp),$$(call \
+  filter_output,$$1,|$(FIND) /V "$$(basename $$(notdir $$(imp))).exp"),$(value <wrap_linker>)))
+ifndef debug
+ifneq (,<strip_expr>)
+<wrap_linker> = $(call filter_output,$1,<strip_expr>$(patsubst %, |$(FIND) /V "%.exp",$(basename $(notdir $(imp)))))
 endif
 endif
 endif
 
 endef
 
-# define the linker wrapper
-# $1 - linker wrapper name, e.g. WRAP_LINKER
-# $2 - strings to strip-off from link.exe output, e.g. $(LINKER_STRIP_STRINGS_en)
-MSVC_DEFINE_LINKER_WRAPPER = $(eval $(subst <WRAP_LINKER>,$1,$(subst \
-  <STRIP_EXPR>,$(call qpath,$2,|$(FINDSTR) /VBRC:),$(value MSVC_WRAP_LINKER_TEMPL))))
+# define the linker wrapper (for stripping outout of link.exe)
+# $1 - linker wrapper name, e.g. 'wrap_linker'
+# $2 - strings to strip-off from link.exe output, e.g. $(linker_strip_strings_en)
+msvc_define_linker_wrapper = $(eval $(subst <wrap_linker>,$1,$(subst \
+  <strip_expr>,$(call qpath,$2,|$(FINDSTR) /VBRC:),$(value msvc_wrap_linker_templ))))
 
-# $(SED) expression to match C compiler messages about included files (used for dependencies auto-generation)
-# NOTE: /showIncludes compiler option is available only for Visual Studio .NET and later!
-# how to get pattern:
-#  V := C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\include\varargs.h
-#  X := $(wordlist 2,999999,$(shell cl.exe /nologo /showIncludes /FI "$V" /TC /c "$V" /E 2>&1 >NUL))
-#  P := $(subst ?, ,$(firstword $(subst $(subst $(space),?,$V), ,$(subst $(space),?,$X))))
-INCLUDING_FILE_PATTERN_en := Note: including file:
-# utf8 "ÐÑÐ¸Ð¼ÐµÑÐ°Ð½Ð¸Ðµ: Ð²ÐºÐ»ÑÑÐµÐ½Ð¸Ðµ ÑÐ°Ð¹Ð»Ð°:"
-INCLUDING_FILE_PATTERN_ru_utf8 := ÐÑÐ¸Ð¼ÐµÑÐ°Ð½Ð¸Ðµ: Ð²ÐºÐ»ÑÑÐµÐ½Ð¸Ðµ ÑÐ°Ð¹Ð»Ð°:
-INCLUDING_FILE_PATTERN_ru_utf8_bytes := \xd0\x9f\xd1\x80\xd0\xb8\xd0\xbc\xd0\xb5\xd1\x87\xd0\xb0\xd0\xbd\xd0\xb8\xd0\xb5: \xd0\xb2\xd0\xba\xd0\xbb\xd1\x8e\xd1\x87\xd0\xb5\xd0\xbd\xd0\xb8\xd0\xb5 \xd1\x84\xd0\xb0\xd0\xb9\xd0\xbb\xd0\xb0:
-# cp1251 "ÐÑÐ¸Ð¼ÐµÑÐ°Ð½Ð¸Ðµ: Ð²ÐºÐ»ÑÑÐµÐ½Ð¸Ðµ ÑÐ°Ð¹Ð»Ð°:"
-INCLUDING_FILE_PATTERN_ru_cp1251 := Ïðèìå÷àíèå: âêëþ÷åíèå ôàéëà:
-INCLUDING_FILE_PATTERN_ru_cp1251_bytes := \xcf\xf0\xe8\xec\xe5\xf7\xe0\xed\xe8\xe5: \xe2\xea\xeb\xfe\xf7\xe5\xed\xe8\xe5 \xf4\xe0\xe9\xeb\xe0:
-# cp866 "ÐÑÐ¸Ð¼ÐµÑÐ°Ð½Ð¸Ðµ: Ð²ÐºÐ»ÑÑÐµÐ½Ð¸Ðµ ÑÐ°Ð¹Ð»Ð°:"
-INCLUDING_FILE_PATTERN_ru_cp866 := à¨¬¥ç ­¨¥: ¢ª«îç¥­¨¥ ä ©« :
-INCLUDING_FILE_PATTERN_ru_cp866_bytes := \x8f\xe0\xa8\xac\xa5\xe7\xa0\xad\xa8\xa5: \xa2\xaa\xab\xee\xe7\xa5\xad\xa8\xa5 \xe4\xa0\xa9\xab\xa0:
-
-# $(SED) script to generate dependencies file from msvc compiler output
+# $(SED) script used to auto-generate dependencies file from the output of cl.exe
 # $1 - compiler with options (unused)
 # $2 - path to the source, e.g. C:\project\src\src.c
 # $3 - target object file, e.g. C:\build\obj\src.obj
-# $4 - included header file search pattern - one of $(INCLUDING_FILE_PATTERN_...)
-# $5 - prefixes of system includes to filter out, e.g. $(UDEPS_INCLUDE_FILTER)/$(KDEPS_INCLUDE_FILTER)
-
-# s/\x0d//;                                - fix line endings - remove carriage-return (CR)
-# /^$(notdir $2)$$/d;                      - delete compiled source file name printed by cl.exe, start new circle
-# /^$4 /!{p;d;}                            - print all lines not started with $4 pattern and space, start new circle
-# s/^$4 *//;                               - strip-off leading $4 pattern with spaces
-# $(subst ?, ,$(foreach x,$5,\@^$x.*@Id;)) - delete lines started with system include paths, start new circle
-# s/ /\\ /g;                               - escape spaces in included file path
-# s@.*@&:\n$3: &@;w $(basename $3).d       - make dependencies, then write to generated dep-file (e.g. C:\build\obj\src.d)
-
-MSVC_DEPS_SCRIPT = \
+# $4 - included header file search pattern, e.g. $(cl_including_file_pattern_en)
+# $5 - prefixes of system includes to filter out, e.g. $(CBLD_DEPS_INCLUDE_FILTER)
+#
+# s/\x0d//;                                       - fix line endings - remove carriage-return (CR)
+# /^$(notdir $2)$$/d;                             - delete compiled source file name printed by cl.exe, start new circle
+# /^$4 /!{p;d;}                                   - print all lines not started with $4 pattern and a space, start new circle
+# s/^$4 *//;                                      - strip-off leading $4 pattern with spaces
+# $(subst ?, ,$(foreach x,$5,\@^$x.*@Id;))        - delete lines started with system include paths, start new circle
+# s/ /\\ /g;                                      - escape spaces in included file path
+# s@.*@&:\n$3: &@;w $(basename $3)$(c_dep_suffix) - make dependencies, then write to generated dep-file (e.g. C:\build\obj\src.d)
+#
+msvc_deps_script = \
 -e "s/\x0d//;/^$(notdir $2)$$/d;/^$4 /!{p;d;}" \
--e "s/^$4 *//;$(subst ?, ,$(foreach x,$5,\@^$x.*@Id;))s/ /\\ /g;s@.*@&:\n$3: &@;w $(basename $3).d"
+-e "s/^$4 *//;$(subst ?, ,$(foreach x,$5,\@^$x.*@Id;))s/ /\\ /g;s@.*@&:\n$3: &@;w $(basename $3)$(c_dep_suffix)"
 
-# code to define compiler wrapper macros
-define MSVC_WRAP_COMPLIER_TEMPL
+# code to define compiler wrapper macros (for calling cl.exe with and without dependencies auto-generation)
+# note: 'filter_output' - defined in $(cb_dir)/utils/cmd.mk
+# note: 'c_dep_suffix' - defined in $(cb_dir)/types/c/c_base.mk
+define msvc_wrap_complier_templ
 
 # just strip-off names of compiled sources
 # $1 - compiler with options
 # $2 - path(s) to the source(s) (non-empty)
-# note: FILTER_OUTPUT sends command output to stderr
-# note: send output to stderr in VERBOSE mode, this is needed for build script generation
-ifndef NO_WRAP
-<WRAP_CC_NODEP> = $(call FILTER_OUTPUT,$1,$(addprefix |$(FINDSTR) /VXC:,$(notdir $2)))
-else ifdef VERBOSE
-<WRAP_CC_NODEP> = $1 >&2
+# note: 'filter_output' sends command output to stderr
+# note: send output to stderr in verbose mode, this is needed for build script generation
+ifndef no_wrap_msvc_tools
+<wrap_cc_nodep> = $(call filter_output,$1,$(addprefix |$(FINDSTR) /VXC:,$(notdir $2)))
+else ifdef verbose
+<wrap_cc_nodep> = $1 >&2
 else
-<WRAP_CC_NODEP> = $1
+<wrap_cc_nodep> = $1
 endif
 
-# if NO_DEPS is set, do not auto-generate dependencies
-$(eval <WRAP_CC_DEP> = $(value <WRAP_CC_NODEP>))
+# if 'no_wrap_msvc_tools' is set, do not auto-generate dependencies
+$(eval <wrap_cc_dep> = $(value <wrap_cc_nodep>))
 
 # call compiler and auto-generate dependencies
 # $1 - compiler with options
 # $2 - path to the source
 # $3 - target object file
-# note: send output to stderr in VERBOSE mode, this is needed for build script generation
+# note: send output to stderr in verbose mode, this is needed for build script generation
 # note: may auto-generate dependencies only if building sources sequentially, because /showIncludes option conflicts with /MP
-ifndef NO_WRAP
-ifndef NO_DEPS
-<WRAP_CC_DEP> = (($1 /showIncludes 2>&1 && set/p="C">&2<NUL)|$(SED) -n $(call \
-  MSVC_DEPS_SCRIPT,$1,$2,$3,<INCLUDING_FILE_PATTERN>,<DEPS_INCLUDE_FILTER>) 2>&1 && set/p="S">&2<NUL)3>&2 2>&1 1>&3|$(FINDSTR) /BC:CS>NUL
+ifndef no_wrap_msvc_tools
+ifdef c_dep_suffix
+<wrap_cc_dep> = (($1 /showIncludes 2>&1 && set/p"=C">&2<NUL)|$(SED) -n $(call \
+  msvc_deps_script,$1,$2,$3,<incl_pattern>,<deps_filter>) 2>&1 && set/p"=S">&2<NUL)3>&2 2>&1 1>&3|$(FINDSTR) /XC:CS>NUL
 endif
 endif
 
 endef
 
-# define compiler wrappers
-# $1 - no-dep compiler wrapper name, e.g. WRAP_CCN
-# $2 - dep compiler no-dep wrapper name, e.g. WRAP_CCD
-# $3 - regular expression used to match paths to included headers, e.g. $(INCLUDING_FILE_PATTERN_en)
-# $4 - prefixes of system include paths to filter-out, e.g. $(subst \,\\,$(VCINCLUDE) $(UMINCLUDE))
-MSVC_DEFINE_COMPILER_WRAPPERS = $(eval $(subst <WRAP_CC_NODEP>,$1,$(subst <WRAP_CC_DEP>,$2,$(subst \
-  <INCLUDING_FILE_PATTERN>,$3,$(subst <DEPS_INCLUDE_FILTER>,$4,$(value MSVC_WRAP_COMPLIER_TEMPL))))))
+# define compiler wrappers (for calling cl.exe with and without dependencies auto-generation)
+# $1 - no-dep compiler wrapper name, e.g. 'wrap_ccn'
+# $2 - dep compiler no-dep wrapper name, e.g. 'wrap_ccd'
+# $3 - regular expression used to match paths to included headers, e.g. $(cl_including_file_pattern_en)
+# $4 - prefixes of system include paths to filter-out, e.g. $(CBLD_DEPS_INCLUDE_FILTER)
+msvc_define_compiler_wrappers = $(eval $(subst <wrap_cc_nodep>,$1,$(subst <wrap_cc_dep>,$2,$(subst \
+  <incl_pattern>,$3,$(subst <deps_filter>,$4,$(value msvc_wrap_complier_templ))))))
 
-# make version string: major.minor.patch -> major.minor
-# target-specific: MODVER
-MODVER_MAJOR_MINOR = $(subst $(space),.,$(wordlist 1,2,$(subst ., ,$(MODVER)) 0 0))
+# make version string for the link.exe: major.minor.patch -> major.minor, e.g.:
+#  1.2.3 -> 1.2
+#  1.2   -> 1.2
+#  1     -> 1.0
+#        -> 0.0
+# target-specific: 'modver' - defined by 'exe_dll_aux_template' from $(cb_dir)/compilers/msvc.mk
+modver_major_minor = $(subst $(space),.,$(wordlist 1,2,$(subst ., ,$(modver)) 0 0))
 
-# version of EXE,DLL,DRV,KDLL
-MK_VERSION_OPTION = /VERSION:$(MODVER_MAJOR_MINOR)
+# make linker option that sets module version, for exe,dll,drv,kdll...
+mk_version_option = /VERSION:$(modver_major_minor)
 
-# make compiler options string to specify included headers search path
+# make compiler options string to specify search path of included headers
 # note: assume there are no spaces in include paths
-# note: override default implementation from $(CLEAN_BUILD_DIR)/types/c/c_base.mk
-MK_INCLUDE_OPTION = $(addprefix /I,$(ospath))
+# note: override default implementation from $(cb_dir)/types/c/c_base.mk
+mk_include_option = $(addprefix /I,$(ospath))
 
-# make compiler options string to specify defines
-# note: override default implementation from $(CLEAN_BUILD_DIR)/types/c/c_base.mk
-MK_DEFINES_OPTION1 = $(addprefix /D,$1)
+# make compiler options string to pass C-macro definitions to the C/C++ compiler
+# note: override default implementation from $(cb_dir)/types/c/c_base.mk
+mk_defines_option1 = $(addprefix /D,$1)
 
-# add source-file dependencies for the target,
-#  define target-specific variables: SRC, SDEPS, OBJ_DIR
-# parameters (same as for C_BASE_TEMPLATE):
-# $1 - target file: $(call FORM_TRG,$t,$v)
-# $2 - sources:     $(TRG_SRC)
-# $3 - sdeps:       $(TRG_SDEPS)
-# $4 - objdir:      $(call FORM_OBJ_DIR,$t,$v)
-# $t - EXE,DLL,LIB...
-# $v - non-empty variant: R,P,D,S... (one of variants supported by selected toolchain)
-define MP_TARGET_SRC_DEPS
-$1: SRC := $2
-$1: SDEPS := $3
-$1: OBJ_DIR := $4
-$1: $2 $(sort $(call ALL_SDEPS,$3)) | $4
+# for the multi-source build, when all sources of a module are compiled at once - a target exe,dll,lib... will depend on sources instead
+#  of objects, so add source-file dependencies for the target, together with the dependencies of the sources (result of 'all_sdeps'),
+#  define target-specific variables: 'src', 'sdeps'
+# parameters are the same as for 'c_base_template' from $(cb_dir)/types/c/c_base.mk:
+# $1 - target file: $(call form_trg,$t,$v)
+# $2 - sources:     $(trg_src)
+# $3 - sdeps:       $(trg_sdeps)
+# $4 - objdir:      $(call form_obj_dir,$t,$v)
+# $t - target type: exe,dll,lib...
+# $v - non-empty variant: R,P,D,S... (one of variants supported by the selected toolchain)
+# note: 'all_sdeps' - defined in $(cb_dir)/library/sdeps.mk
+# note: intermediate objects are will be created in objdir $4, so create it before the target creation
+define mp_target_src_deps
+$1: src := $2
+$1: sdeps := $3
+$1: $2 $(sort $(call all_sdeps,$3)) | $4
 endef
 
-# C_BASE_TEMPLATE_MP will have the same value as C_BASE_TEMPLATE,
-#  but without calls to OBJ_RULES for C/C++ sources and
-#  with $(MP_TARGET_SRC_DEPS) at last line
-$(eval define C_BASE_TEMPLATE_MP$(newline)$(subst $(newline)$$1:$$(call \
-  OBJ_RULES,CC,$$(filter $$(CC_MASK),$$2),$$3,$$4)$(newline)$$1:$$(call \
-  OBJ_RULES,CXX,$$(filter $$(CXX_MASK),$$2),$$3,$$4),,$(value \
-  C_BASE_TEMPLATE))$(newline)$$(MP_TARGET_SRC_DEPS)$(newline)endef)
+# define 'c_base_template_mp' - it will have the same value as 'c_base_template', but without calls to 'obj_rules' for C/C++ sources,
+#  and with $(mp_target_src_deps) at last line
+# note: 'obj_rules' - macro defined in $(cb_dir)/library/obj_rules.mk, defines rules for building objects from individual sources
+# note: 'c_base_template' - defined in $(cb_dir)/types/c/c_base.mk
+$(eval define c_base_template_mp$(newline)$(call tospaces,$(subst $(space),$$(newline),$(strip $(foreach l,$(subst $(newline), ,$(call \
+  unspaces,$(value c_base_template))),$(if $(findstring obj_rules,$l),,$l)))))$(newline)$$(mp_target_src_deps)$(newline)endef)
 
-# get list of sources newer than the target (EXE,DLL,LIB,...)
-# target-specific: SRC, SDEPS
-# note: assume called in context of the rule creating target EXE,DLL,LIB,... (by the linker command, such as EXE_LD,DLL_LD,LIB_LD,...)
-# note: assume C_BASE_TEMPLATE_MP was used for the target EXE,DLL,LIB,.., so target-specific variables SRC and SDEPS are defined
-NEWER_SOURCES = $(sort $(filter $(SRC),$? $(call R_FILTER_SDEPS,$?,$(SDEPS))))
+# get list of sources newer than the target (exe,dll,lib...)
+# target-specific: 'src', 'sdeps' - defined by 'mp_target_src_deps' template
+# note: assume called in context of a rule creating target exe,dll,lib... (by the linker command, such as exe_ld,dll_ld,lib_ld...)
+# note: assume 'c_base_template_mp' was used for the target exe,dll,lib.., so target-specific variables 'src' and 'sdeps' are defined
+# note: 'r_filter_sdeps' - defined in $(cb_dir)/library/sdeps.mk
+newer_sources = $(sort $(filter $(src),$? $(call r_filter_sdeps,$?,$(sdeps))))
 
-# It is possible to exceed maximum command string length if compiling too many sources at once,
-#  to prevent this, split all sources of a module to groups, then compile groups one after each other.
-# Maximum number of sources in a group compiled at once.
-MCL_MAX_COUNT := 50
+# It is possible to exceed maximum command string length if compiling too many sources at once, to prevent this, split
+#  all sources of a module to groups, then compile groups sequentially - one after each other.
+# Maximum number of sources in a group compiled at once, by default set to $(CBLD_MAX_PATH_ARGS) from $(cb_dir)/utils/cmd.mk
+CBLD_MCL_MAX_PATH_ARGS ?= $(CBLD_MAX_PATH_ARGS)
 
-# compile multiple sources at once
-# $1 - target type: EXE,DLL,LIB,...
-# $2 - non-empty variant: R,S,RU,SU,...
-# $3 - C compiler macro, e.g. OBJ_MCC
-# $4 - C++ compiler macro, e.g. OBJ_MCXX
-# note: compiler macros called with parameters:
-#  $1 - sources
-#  $2 - target type: EXE,DLL,LIB,...
-#  $3 - non-empty variant: R,S,RU,SU,...
-CMN_MCL = $(call CMN_MCL1,$1,$2,$3,$4,$(NEWER_SOURCES))
+# form commands to compile multiple sources at once
+# $1 - target type: exe,dll,lib...
+# $2 - non-empty variant: R,S,RU,SU...
+# $3 - C compiler macro, e.g. 'obj_mcc'
+# $4 - C++ compiler macro, e.g. 'obj_mcxx'
+# note: compiler macros are called with parameters:
+#  $1 - sources (non-empty list)
+#  $2 - target type: exe,dll,lib...
+#  $3 - non-empty variant: R,S,RU,SU...
+cmn_mcl = $(call cmn_mcl1,$1,$2,$3,$4,$(newer_sources))
 
-# compile multiple sources at once
-# $1 - target type: EXE,DLL,LIB,...
-# $2 - non-empty variant: R,S,RU,SU,...
-# $3 - C compiler macro, e.g. OBJ_MCC
-# $4 - C++ compiler macro, e.g. OBJ_MCXX
-# $5 - sources (result of $(NEWER_SOURCES))
-CMN_MCL1 = $(call CMN_MCL2,$1,$2,$3,$4,$(filter $(CC_MASK),$5),$(filter $(CXX_MASK),$5))
+# form commands to compile multiple sources at once
+# $1 - target type: exe,dll,lib...
+# $2 - non-empty variant: R,S,RU,SU...
+# $3 - C compiler macro, e.g. 'obj_mcc'
+# $4 - C++ compiler macro, e.g. 'obj_mcxx'
+# $5 - sources (result of $(newer_sources)), list may be empty
+# note: 'cc_mask' and 'cxx_mask' - defined in $(cb_dir)/types/c/c_base.mk
+# note: this macro is also used by 'cmn_pmcl2' macro from $(cb_dir)/compilers/msvc/pch.mk
+cmn_mcl1 = $(call cmn_mcl2,$1,$2,$3,$4,$(filter $(cc_mask),$5),$(filter $(cxx_mask),$5))
 
-# $1 - target type: EXE,DLL,LIB,...
-# $2 - non-empty variant: R,S,RU,SU
-# $3 - C compiler macro, e.g. OBJ_MCC or OBJ_PMCC
-# $4 - C++ compiler macro, e.g. OBJ_MCXX or OBJ_PMCXX
-# $5 - C sources
-# $6 - C++ sources
-CMN_MCL2 = $(if \
-  $5,$(call xcmd,$3,$5,$(MCL_MAX_COUNT),$1,$2)$(newline))$(if \
-  $6,$(call xcmd,$4,$6,$(MCL_MAX_COUNT),$1,$2)$(newline))
+# form commands to compile multiple sources at once
+# $1 - target type: exe,dll,lib...
+# $2 - non-empty variant: R,S,RU,SU...
+# $3 - C compiler macro, e.g. 'obj_mcc' or 'obj_pmcc'
+# $4 - C++ compiler macro, e.g. 'obj_mcxx' or 'obj_pmcxx'
+# $5 - C sources (list may be empty)
+# $6 - C++ sources (list may be empty)
+# note: this macro is also used by 'cmn_pmcl2' macro from $(cb_dir)/compilers/msvc/pch.mk
+cmn_mcl2 = $(if \
+  $5,$(call xcmd,$3,$5,$(CBLD_MCL_MAX_PATH_ARGS),$1,$2)$(newline))$(if \
+  $6,$(call xcmd,$4,$6,$(CBLD_MCL_MAX_PATH_ARGS),$1,$2)$(newline))
+
+# remember values of variables possibly taken from the environment
+$(call config_remember_vars,CBLD_NO_WRAP_MSVC_TOOLS CBLD_MCL_MAX_PATH_ARGS)
+
+# makefile parsing first phase variables
+cb_first_phase_vars += msvc_wrap_linker_templ msvc_define_linker_wrapper msvc_deps_script msvc_wrap_complier_templ \
+  msvc_define_compiler_wrappers mp_target_src_deps c_base_template_mp
 
 # protect variables from modifications in target makefiles
-# note: do not trace calls to these variables because they are used in ifdefs
-$(call SET_GLOBAL,NO_WRAP SEQ_BUILD,0)
+# do not trace calls to macros used in ifdefs, exported to the environment of called tools or modified via operator +=
+$(call set_global,seq_build CBLD_NO_WRAP_MSVC_TOOLS no_wrap_msvc_tools CBLD_MCL_MAX_PATH_ARGS cb_first_phase_vars)
 
-# protect variables from modifications in target makefiles
-$(call SET_GLOBAL,VS2002 VS2003 VS2005 VS2008 VS2010 VS2012 VS2013 VS2015 VS2017 \
-  LINKER_STRIP_STRINGS_en LINKER_STRIP_STRINGS_ru_cp1251 LINKER_STRIP_STRINGS_ru_cp1251_as_cp866_to_cp1251 \
-  MSVC_WRAP_LINKER_TEMPL MSVC_DEFINE_LINKER_WRAPPER \
-  INCLUDING_FILE_PATTERN_en INCLUDING_FILE_PATTERN_ru_utf8 INCLUDING_FILE_PATTERN_ru_utf8_bytes \
-  INCLUDING_FILE_PATTERN_ru_cp1251 INCLUDING_FILE_PATTERN_ru_cp1251_bytes \
-  INCLUDING_FILE_PATTERN_ru_cp866 INCLUDING_FILE_PATTERN_ru_cp866_bytes MSVC_DEPS_SCRIPT \
-  MSVC_WRAP_COMPLIER_TEMPL MSVC_DEFINE_COMPILER_WRAPPERS \
-  MODVER_MAJOR_MINOR MK_VERSION_OPTION MK_INCLUDE_OPTION MK_DEFINES_OPTION1 \
-  MP_TARGET_SRC_DEPS C_BASE_TEMPLATE_MP NEWER_SOURCES MCL_MAX_COUNT CMN_MCL CMN_MCL1 CMN_MCL2)
+# protect macros from modifications in target makefiles, allow tracing calls to them
+# note: trace namespace: msvc
+$(call set_global,vs2002 vs2003 vs2005 vs2008 vs2010 vs2012 vs2013 vs2015 vs2017 \
+  msc_ver_12 msc_ver_13 msc_ver_14 msc_ver_15 msc_ver_16 msc_ver_17 msc_ver_18 msc_ver_19 \
+  msvc_wrap_linker_templ msvc_define_linker_wrapper msvc_deps_script msvc_wrap_complier_templ msvc_define_compiler_wrappers \
+  modver_major_minor mk_version_option mk_include_option mk_defines_option1 mp_target_src_deps c_base_template_mp \
+  newer_sources cmn_mcl cmn_mcl1 cmn_mcl2,msvc)
