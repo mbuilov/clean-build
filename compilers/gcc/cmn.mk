@@ -43,7 +43,7 @@ CBLD_LINK_ARGS_LIMIT ?= $(CBLD_MAX_PATH_ARGS)
 # $3 - linker command (linker executable with flags)
 # $4 - additional linker arguments (object files, libraries, flags)
 # $5 - name of .rsp file, if empty, then .rsp file is not needed
-gcc_rsp_wrap1 = $(if $5,$(call suppress,GEN,$5)$(call write_string,$4,$5,$(CBLD_LINK_ARGS_LIMIT))$(newline))$(call \
+gcc_rsp_wrap1 = $(if $5,$(call suppress,GEN,$5)$(call write_options,$4,$5,$(CBLD_LINK_ARGS_LIMIT))$(newline))$(call \
   suppress,$1,$2)$3 $(if $5,@$(call gcc_path,$5),$4)
 
 # check if linker command line is too long - it is needed to create a response file for passing arguments to the linker
