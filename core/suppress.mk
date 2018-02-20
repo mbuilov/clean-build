@@ -115,7 +115,7 @@ cb_add_shown_percents:=
 
 ifdef cb_infomf
 # target-specific: F.^, C.^
-suppress = $(info $(F.^)$(C.^):)
+suppress = $(info $(F.^)$(C.^):$(cb_show_tool))
 else
 suppress:=
 endif
