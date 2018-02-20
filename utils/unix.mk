@@ -153,7 +153,7 @@ write_options1 = $(if $6,$3,$4)$(PRINTF) -- $(call unhide_comments,$(call printf
 # note: if path to file $2 contains a space, use 'ifaddq' to add quotes: '1 2/3 4'
 # NOTE: number $3 must be adjusted so printed at one time text length will not exceed the maximum command length (at least 4096 characters)
 # NOTE: nothing is printed if string $1 is empty, output file is _not_ created in this case
-write_options = $(call xargs,write_options1,$(subst $(space), $$(space) ,$(hide_tabs)),$3,$2,$(quiet),,,$(newline))
+write_options = $(call xargs,write_options1,$(subst $(space),$$(empty) $$(empty),$(hide_tabs)),$3,$2,$(quiet),,,$(newline))
 
 # print one short line of text (to stdout, for redirecting it to output file)
 # note: line must not contain $(newline)s
