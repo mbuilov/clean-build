@@ -210,42 +210,53 @@ cat_file = $(TYPE) $(ospath)
 unquoted_escape = $(subst $(open_brace),^$(open_brace),$(subst $(close_brace),^$(close_brace),$(subst \
   %,%%,$(subst <,^<,$(subst >,^>,$(subst |,^|,$(subst &,^&,$(subst ",^",$(subst ^,^^,$1)))))))))
 
-# print short string (to stdout, for redirecting it to output file)
+# print short string of options (to stdout, for redirecting it to output file)
+# note: string $1 must not begin with '=', leading spaces and tabs are will be ignored
 # note: there must be no $(newline)s in the string $1
-# note: surround whole expression by braces to specify the end of argument
+# note: surround whole expression by braces to specify the end of argument (to not ignore trailing spaces)
 # NOTE: printed string length must not exceed the maximum command line length (8191 characters)
-print_short_string = (set/p=$(unquoted_escape))<NUL
+print_short_options = (set/p=$(unquoted_escape))<NUL
 
-# write batch of text tokens to output file or to stdout (for redirecting it to output file)
-# $1 - tokens list, where entries are processed by $(call hide_tabs,$(unquoted_escape))
+# write batch of text token groups to output file or to stdout (for redirecting it to output file)
+# $1 - list of token groups, where entries are processed by $(call hide,$(unquoted_escape))
 # $2 - if not empty, then a file to print to (path to the file may contain spaces)
 # $3 - text to prepend before the command when $6 is non-empty
 # $4 - text to prepend before the command when $6 is empty
 # $6 - empty if overwrite file $2, non-empty if append text to it
+# $7 - non-empty if there will next calls of this function
+# note: first token of any group must not be '=', leading $(space)s and $(tab)s are will be ignored
 # note: there must be no $(newline)s among text tokens
 # note: if path to file $2 contains a space, use 'ifaddq' to add double-quotes: "1 2/3 4"
 # NOTE: printed batch length must not exceed the maximum command line length (8191 characters)
-# note: used by 'write_string' macro
-write_string1 = $(if $6,$3,$4)(set/p=$(if $6, )$(unhide_comments))<NUL$(if $2,>$(if $6,>) $2)
+write_options1 = $(if $6,$3,$4)(set/p=$(unhide_comments)$(if $7, ))<NUL$(if $2,>$(if $6,>) $2)
 
-# write string $1 to file $2, by $3 tokens at one time
+# tokenize string so each token group will not begin with $(space), $(tab) or '=', except if they are at the beginning
+# "1  2 =3" -> "1 $(space)  $(space) 2 $(space) = 3" -> "1$(space)$(space) 2$(space)= 3"
+tokenize_options = $(call tokenize_options1,$(subst $(space)=, = ,$(subst $(tab), $$(tab) ,$(subst $(space), $$(space) ,$1))))
+tokenize_options1 = $(if $1,$(call tokenize_options2,$(wordlist 2,999999,$1),$(firstword $1)))
+tokenize_options2 = $(if $(filter $$(space) $$(tab) =,$(firstword $1)),$(call \
+  tokenize_options2,$(wordlist 2,999999,$1),$2$(firstword $1)),$2 $(tokenize_options1))
+
+# write string of options $1 to file $2, by $3 token groups at one time
+# note: string $1 must not begin with '=', leading spaces and tabs are will be ignored
 # note: there must be no $(newline)s in the string $1
 # note: if path to file $2 contains a space, use 'ifaddq' to add double-quotes: "1 2/3 4"
 # NOTE: number $3 must be adjusted so printed at one time text length will not exceed the maximum command length (8191 characters)
 # NOTE: nothing is printed if string $1 is empty, output file is _not_ created in this case
-write_string = $(call xargs,write_string1,$(subst $(space),$$(empty) $$(empty),$(call \
-  hide_tabs,$(unquoted_escape))),$3,$2,$(quiet),,,$(newline))
+write_options = $(call xargs,write_options1,$(call tokenize_options,$(call hide,$(unquoted_escape))),$3,$2,$(quiet),,,$(newline))
 
 # print one short line of text (to stdout, for redirecting it to output file)
 # note: line must not contain $(newline)s
 # note: line will be ended with CRLF: line -> line\n
 # note: use dot '.' after 'echo' to print just an empty line if text $1 is empty
-# note: surround whole expression by braces to specify the end of argument
+# note: surround whole expression by braces to specify the end of argument (to not ignore trailing spaces)
 # NOTE: printed line length must not exceed the maximum command line length (8191 characters)
 print_short_line = (echo.$(unquoted_escape))
 
 # print small batch of short text lines (to stdout, for redirecting it to output file)
 # note: each line will be ended with CRLF: line1$(newline)line2 -> line1\nline2\n
+# note: use dot '.' after 'echo' to print just an empty line if text line is empty
+# note: surround whole expression by braces to specify the end of argument (to not ignore trailing spaces)
 # NOTE: total text length must not exceed the maximum command line length (8191 characters)
 print_some_lines = (echo.$(subst $(newline),$(close_brace)&&$(open_brace)echo.,$(unquoted_escape)))
 
@@ -258,7 +269,6 @@ print_some_lines = (echo.$(subst $(newline),$(close_brace)&&$(open_brace)echo.,$
 # note: if path to file $2 contains a space, use 'ifaddq' to add double-quotes: "1 2/3 4"
 # note: each line will be ended with CRLF: line1$(space)line2 -> line1\nline2\n
 # NOTE: printed batch length must not exceed the maximum command line length (8191 characters)
-# note: used by 'write_lines' macro
 write_lines1 = $(if $6,$3,$4)(echo.$(call \
   unhide_comments,$(subst $(space),$(close_brace)&&$(open_brace)echo.,$1)))$(if $2,>$(if $6,>) $2)
 
@@ -344,8 +354,9 @@ $(call set_global,CBLD_DONT_FIX_MAKE_SHELL SHELL CBLD_DONT_FIX_ENV_PATH CBLD_MAX
 $(call set_global,print_env=project_exported_vars ifaddq shell_escape delete_files delete_dirs try_delete_dirs \
   delete_files_in2 delete_files_in1 delete_files_in del_files_or_dirs1 del_files_or_dirs filter_copy_output \
   suppress_copy_output suppress_move_output copy_files1 copy_files move_files1 move_files touch_files1 touch_files \
-  create_dir compare_files cat_file unquoted_escape print_short_string write_string1 write_string print_short_line \
-  print_some_lines write_lines1 write_lines execute_in execute_in_info del_on_fail install_dir install_files filter_output,utils)
+  create_dir compare_files cat_file unquoted_escape print_short_options write_options1 tokenize_options tokenize_options1 \
+  tokenize_options2 write_options print_short_line print_some_lines write_lines1 write_lines execute_in execute_in_info \
+  del_on_fail install_dir install_files filter_output,utils)
 
 # protect macros from modifications in target makefiles, allow tracing calls to them
 # note: trace namespace: runtool

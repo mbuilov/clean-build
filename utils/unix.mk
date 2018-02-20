@@ -129,10 +129,10 @@ compare_files = $(CMP) $1 $2
 # note: if path to file $1 contains a space, use 'ifaddq' to add quotes: '1 2/3 4'
 cat_file = $(CAT) $1
 
-# print short string (to stdout, for redirecting it to output file)
+# print short string of options (to stdout, for redirecting it to output file)
 # note: there must be no $(newline)s in the string $1
 # NOTE: printed string length must not exceed the maximum command line length (at least 4096 characters)
-print_short_string = $(PRINTF) '%s' $(shell_escape)
+print_short_options = $(PRINTF) '%s' $(shell_escape)
 
 # prepare printf argument
 printf_line_escape = $(call shell_escape,$(subst \,\\,$(subst %,%%,$1)))
@@ -146,15 +146,14 @@ printf_line_escape = $(call shell_escape,$(subst \,\\,$(subst %,%%,$1)))
 # note: there must be no $(newline)s among text tokens
 # note: if path to file $2 contains a space, use 'ifaddq' to add quotes: '1 2/3 4'
 # NOTE: printed batch length must not exceed the maximum command line length (at least 4096 characters)
-# note: used by 'write_string' macro
-write_string1 = $(if $6,$3,$4)$(PRINTF) -- $(call unhide_comments,$(call printf_line_escape,$(if $6, )$1))$(if $2,>$(if $6,>) $2)
+write_options1 = $(if $6,$3,$4)$(PRINTF) -- $(call unhide_comments,$(call printf_line_escape,$(if $6, )$1))$(if $2,>$(if $6,>) $2)
 
-# write string $1 to file $2, by $3 tokens at one time
+# write string of options $1 to file $2, by $3 tokens at one time
 # note: there must be no $(newline)s in the string $1
 # note: if path to file $2 contains a space, use 'ifaddq' to add quotes: '1 2/3 4'
 # NOTE: number $3 must be adjusted so printed at one time text length will not exceed the maximum command length (at least 4096 characters)
 # NOTE: nothing is printed if string $1 is empty, output file is _not_ created in this case
-write_string = $(call xargs,write_string1,$(subst $(space),$$(empty) $$(empty),$(hide_tabs)),$3,$2,$(quiet),,,$(newline))
+write_options = $(call xargs,write_options1,$(subst $(space), $$(space) ,$(hide_tabs)),$3,$2,$(quiet),,,$(newline))
 
 # print one short line of text (to stdout, for redirecting it to output file)
 # note: line must not contain $(newline)s
@@ -176,7 +175,6 @@ print_some_lines = $(PRINTF) -- $(subst $(newline),\n,$(call printf_line_escape,
 # note: if path to file $2 contains a space, use 'ifaddq' to add quotes: '1 2/3 4'
 # note: each line will be ended with LF: line1$(space)line2 -> line1\nline2\n
 # NOTE: printed batch length must not exceed the maximum command line length (at least 4096 characters)
-# note: used by 'write_lines' macro
 write_lines1 = $(if $6,$3,$4)$(PRINTF) -- $(call \
   unhide_comments,$(subst $(space),\n,$(call printf_line_escape,$1 )))$(if $2,>$(if $6,>) $2)
 
@@ -245,8 +243,8 @@ $(call set_global,CBLD_MAX_PATH_ARGS NUL RM RMDIR TRUE FALSE CD CP MV TOUCH MKDI
 # note: trace namespace: utils
 $(call set_global,print_env=project_exported_vars shell_escape delete_files delete_dirs try_delete_dirs \
   delete_files_in1 delete_files_in1_info delete_files_in del_files_or_dirs1 del_files_or_dirs copy_files2 copy_files1 copy_files \
-  move_files2 move_files1 move_files touch_files1 touch_files create_dir compare_files cat_file print_short_string \
-  printf_line_escape write_string1 write_string print_short_line print_some_lines write_lines1 write_lines create_simlink \
+  move_files2 move_files1 move_files touch_files1 touch_files create_dir compare_files cat_file print_short_options \
+  printf_line_escape write_options1 write_options print_short_line print_some_lines write_lines1 write_lines create_simlink \
   change_mode execute_in execute_in_info del_on_fail install_dir install_files2 install_files1 install_files,utils)
 
 # protect macros from modifications in target makefiles, allow tracing calls to them
