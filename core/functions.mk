@@ -106,22 +106,25 @@ reverse = $(if $(word 5,$1),$(call reverse,$(wordlist 5,999999,$1))) $(word 4,$1
 # $2 - full arguments list
 # $3 - sublist size
 # $4 - sublist size + 1 if $2 is big enough
-# $5 - auxiliary function argument 1
-# $6 - auxiliary function argument 2
-# $7 - auxiliary function argument 3
-# $8 - auxiliary function argument 4
-# $9 - function calls first separator
+# $5 - function argument 2 ($4-th parameter of 'xargs')
+# $6 - function argument 3 ($5-th parameter of 'xargs')
+# $7 - function argument 4 ($6-th parameter of 'xargs')
+# $8 - function argument 5 ($7-th parameter of 'xargs')
+# $9 - function calls first separator, function argument 6
 # $(10) - function calls separator
-xargs1 = $(if $2,$9$(call $1,$(wordlist 1,$3,$2),$5,$6,$7,$8,$9)$(call xargs1,$1,$(wordlist $4,999999,$2),$3,$4,$5,$6,$7,$8,$(10),$(10)))
+xargs1 = $(if $2,$9$(call $1,$(wordlist 1,$3,$2),$5,$6,$7,$8,$9,$(word $4,$2))$(call \
+  xargs1,$1,$(wordlist $4,999999,$2),$3,$4,$5,$6,$7,$8,$(10),$(10)))
 
 # call function $1 many times with arguments from list $2 grouped by $3 elements
-# and with auxiliary arguments $4,$5,$6,$7,$8 separating function calls with $8
-# note: last 6-th argument of function $1 is empty on first call and $8 on next calls
+# and with auxiliary arguments $4,$5,$6,$7 separating function calls with $8
+# note: 6-th argument of function $1 is empty on first call and $8 on next calls
+# note: 7-th argument of function $1 is non-empty if there will be next calls of the function
 xargs = $(call xargs1,$1,$2,$3,$(words x $(wordlist 1,$3,$2)),$4,$5,$6,$7,,$8)
 
 # assuming that function $1($(sublist $2 by $3),$4,$5,$6,$7) will return shell command
 # generate many shell commands separated by $(newline) - each command will be executed in new subshell
-# note: last 6-th argument of function $1 is empty on first call and $(newline) on next calls
+# note: 6-th argument of function $1 is empty on first call and $(newline) on next calls
+# note: 7-th argument of function $1 is non-empty if there will be next calls of the function
 xcmd = $(call xargs,$1,$2,$3,$4,$5,$6,$7,$(newline))
 
 # return list $1 without last element
