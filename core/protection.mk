@@ -106,14 +106,27 @@ else
 get_global = $(value $1)
 endif
 
-# remember new values of the variables possibly defined in the environment
+# list of environment variables modified in makefiles
+# note: this list is updated via 'env_remember' macro
+# note: this list is used by 'print_env' macro of $(utils.mk) - e.g. $(cb_dir)/utils/unix.mk
+cb_changed_env_vars:=
+
+# remember new values of variables possibly defined in the environment
 # $1 - list of variable names
-env_remember = $(foreach =,$1,$(if $(findstring file,$(origin $=.^e)),$(eval $$=.^e:=$$(value $$=))))$(set_global)
+env_remember = $(call env_remember1,$(foreach =,$1,$(if $(findstring file,$(origin $=.^e)),$(eval $$=.^e:=$$(value $$=))$=)))
+
+# update value of 'cb_changed_env_vars'
+ifdef cb_checking
+env_remember += $(set_global)
+env_remember1 = $(if $1,$(eval cb_changed_env_vars+=$$1)$(call set_global,cb_changed_env_vars))
+else
+env_remember1 = $(eval cb_changed_env_vars+=$$1)
+endif
 
 # trace calls to macros, except those used in ifdefs, exported to the environment of called tools or modified via operator +=
 # note: trace namespace: core
 # note: 'cb_protected_vars' variable is used here temporary and will be redefined later
-cb_protected_vars += $(call set_global,get_global env_remember,core)
+cb_protected_vars += $(call set_global,get_global env_remember env_remember1,core)
 
 # show a warning about overwritten environment variable $=
 # note: variable name may be non-standard, e.g. CommonProgramFiles(x86)
@@ -278,7 +291,7 @@ cb_check_at_tail = $(if $1,$(if $(cb_need_tail_code),$(error \
 # note: do not trace calls to these macros
 $(call set_global,cb_checking cb_tracing \
   CBLD_TRACE_VARS CBLD_TRACE_VARS_EXCEPT CBLD_TRACE_NAMESPACES CBLD_TRACE_NAMESPACES_EXCEPT \
-  cb_check_cannot_trace cb_check_tracing_env set_global cb_env_var_ov cb_check_env_var cb_check_env_vars \
+  cb_check_cannot_trace cb_check_tracing_env set_global cb_changed_env_vars cb_env_var_ov cb_check_env_var cb_check_env_vars \
   set_global1 set_global3 set_global2 cb_protected_vars cb_encode_var_value cb_encode_var_name cb_protect_vars2 \
   set_global6 set_global5 set_global4 cb_var_access_err cb_reset_local_var cb_reset_local_vars cb_reset_saved_vars \
   cb_reset_first_phase cb_check_at_head cb_protected_var_ov cb_check_protected_var cb_check_at_tail)
@@ -286,8 +299,8 @@ $(call set_global,cb_checking cb_tracing \
 # these macros must not be used in rule execution second phase
 # note: do not reset 'cb_var_access_err' and 'cb_reset_first_phase' macros - this causes problems with Gnu Make 3.81, which doesn't
 #  like when a macro redefines itself
-cb_first_phase_vars := cb_checking cb_tracing \
-  cb_check_cannot_trace cb_check_tracing_env set_global env_remember cb_env_var_ov cb_check_env_var cb_check_env_vars \
+cb_first_phase_vars := cb_checking cb_tracing cb_check_cannot_trace cb_check_tracing_env set_global \
+  cb_changed_env_vars env_remember env_remember1 cb_env_var_ov cb_check_env_var cb_check_env_vars \
   set_global1 set_global3 set_global2 cb_protected_vars cb_encode_var_value cb_encode_var_name cb_protect_vars2 \
   set_global6 set_global5 set_global4 cb_reset_local_var cb_reset_local_vars cb_reset_saved_vars \
   cb_check_at_head cb_protected_var_ov cb_check_protected_var cb_check_at_tail cb_first_phase_vars \
