@@ -127,7 +127,7 @@ xcmd = $(call xargs,$1,$2,$3,$4,$5,$6,$7,$(newline))
 # return list $1 without last element
 trim = $(wordlist 2,$(words $1),x $1)
 
-# remove duplicates in list $1 preserving order of elements
+# remove duplicates in list $1 preserving order of elements: 1 2 3 2 1 -> 1 2 3
 uniq = $(strip $(uniq1))
 uniq1 = $(if $1,$(firstword $1) $(call uniq1,$(filter-out $(firstword $1),$1)))
 
