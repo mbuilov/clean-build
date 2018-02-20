@@ -50,7 +50,7 @@ CXXFLAGS ?= $(CFLAGS)
 
 # flags for the objects archiver 'ar'
 # note: ignore Gnu Make defaults
-ifdef (default,$(origin ARFLAGS))
+ifeq (default,$(origin ARFLAGS))
 ARFLAGS := -rcs
 else
 ARFLAGS ?= -rcs
