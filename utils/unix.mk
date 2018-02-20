@@ -13,7 +13,7 @@ include $(dir $(lastword $(MAKEFILE_LIST)))common.mk
 
 # script to print prepared environment in verbose mode (used for generating one-big-build instructions shell file)
 # note: 'print_env' - used by $(cb_dir)/core/all.mk
-print_env = $(foreach =,$(project_exported_vars),$=='$($=)'$(newline)export $=$(newline)|)
+print_env = $(foreach =,$(call uniq,$(project_exported_vars) $(cb_changed_env_vars)),$=='$($=)'$(newline)export $=$(newline)|)
 
 # command line length is limited, define the maximum number of path arguments that may be passed via the command line assuming
 #  the limit is 20000 chars (on Cygwin, on Unix it's generally much larger) and each path do not exceed 120 chars

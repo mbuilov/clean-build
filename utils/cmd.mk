@@ -66,6 +66,9 @@ endif
 filt_sysroot = $(strip $(filter $2,$1) $(filter-out $2,$1))
 PATH := $(call unhide_raw,$(subst $(space),;,$(call filt_sysroot,$(subst ;, ,$(call hide_spaces,$(PATH))),$(sysroot) $(sysroot)\\%)))
 
+# do not complain about changed environment variable
+$(call env_remember,PATH)
+
 # save new PATH value to the generated configuration makefile
 # note: pass 1 as second argument to 'config_remember_vars' - to forcibly export variable PATH
 # note: pass 1 as third argument to 'config_remember_vars' - to save a new value of the PATH
@@ -75,7 +78,8 @@ endif # !CBLD_DONT_FIX_ENV_PATH
 
 # script to print prepared environment in verbose mode (used for generating one-big-build instructions batch file)
 # note: 'print_env' - used by $(cb_dir)/core/all.mk
-print_env = setlocal$(newline)$(foreach =,$(project_exported_vars),SET "$==$($=)"$(newline)|)
+print_env = setlocal$(if $(or $(cb_changed_env_vars),$(project_exported_vars)),$(newline)$(foreach \
+  =,$(call uniq,$(project_exported_vars) $(cb_changed_env_vars)),SET "$==$($=)"$(newline)|))
 
 # command line length of cmd.exe is limited:
 # for Windows 95   - 127 chars;

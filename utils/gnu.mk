@@ -14,7 +14,7 @@ include $(dir $(lastword $(MAKEFILE_LIST)))unix.mk
 # script to print prepared environment in verbose mode (used for generating one-big-build instructions shell file)
 # note: assume SHELL supports define & export in one command: e.g. "export A=B"
 # note: 'print_env' - used by $(cb_dir)/core/all.mk
-print_env = $(foreach =,$(project_exported_vars),export $=='$($=)'$(newline)|)
+print_env = $(foreach =,$(call uniq,$(project_exported_vars) $(cb_changed_env_vars)),export $=='$($=)'$(newline)|)
 
 # NOTE: in verbose mode, stdout is used only for printing executed commands, all output of the commands must go to stderr
 
