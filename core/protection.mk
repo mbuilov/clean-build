@@ -108,7 +108,7 @@ endif
 
 # remember new values of the variables possibly defined in the environment
 # $1 - list of variable names
-env_remember = $(foreach =,$1,$(if $(findstring file,$(origin $=.^e)),$(eval $$=.^e:=$$(value $$=))))$(set_global1)
+env_remember = $(foreach =,$1,$(if $(findstring file,$(origin $=.^e)),$(eval $$=.^e:=$$(value $$=))))$(set_global)
 
 # trace calls to macros, except those used in ifdefs, exported to the environment of called tools or modified via operator +=
 # note: trace namespace: core
@@ -119,7 +119,7 @@ cb_protected_vars += $(call set_global,get_global env_remember,core)
 # note: variable name may be non-standard, e.g. CommonProgramFiles(x86)
 cb_env_var_ov = $(warning environment variable $= was overwritten:$(newline)--- old value:$(newline)$(value \
   $=.^e)$(newline)+++ new value:$(newline)$(value $=)$(newline)tip: \
-  use 'env_remember' function to remember a new value of the environment variable$(newline))
+  use 'env_remember' function to remember a new value of environment variable$(newline))
 
 # check if an environment variable $= was accidentally overwritten
 define cb_check_env_var
