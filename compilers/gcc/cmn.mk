@@ -19,7 +19,7 @@ auto_deps_flags := $(if $(CBLD_NO_DEPS),,-MMD -MP)
 # assume native gcc is used, e.g. Windows version of gcc under Windows/Msys, except under Cygwin
 CBLD_IS_NATIVE_GCC ?= $(filter-out CYGWIN%,$(CBLD_OS))
 
-# convert path from Gnu Make representation to the form accepted by GCC tools (e.g. to pass path to headers)
+# 'gcc_path' - convert path from Gnu Make representation to the form accepted by GCC tools (e.g. to pass path to headers)
 ifneq (,$(CBLD_IS_NATIVE_GCC:0=))
 gcc_path = $(ospath)
 else
