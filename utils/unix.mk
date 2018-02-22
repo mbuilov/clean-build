@@ -49,7 +49,17 @@ CHMOD   ?= chmod
 INSTALL ?= install
 
 # escape program argument to pass it via shell: "1 2" -> '"1 2"'
+# note: not expecting newlines in $1
 shell_escape = '$(subst ','"'"',$1)'
+
+# undo 'shell_escape': c:\\'xx'"'"'yy' -> c:\xx'yy
+# note: not expecting newlines in $1
+# note: the only case when shell argument may be escaped without quotes - 'ospath' function, e.g. c:/file -> c:\\file
+#shell_unescape = $(call unhide_comments,$(subst $(space),,$(eval _q:=)$(eval _d:=)$(foreach x,$(subst ', ' ,$(hide_tab_spaces)),$(if \
+#  $(_q),$(if $(findstring ',$x),$(eval _q:=),$x),$(if \
+#  $(_d),$(if $(findstring ",$x),$(eval _d:=),$x),$(if \
+#  $(findstring ',$x),$(eval _q:=1),$(if \
+#  $(findstring ",$x),$(eval _d:=1),$(subst \\,\,$x))))))))
 
 # delete file(s) $1 (short list, no more than CBLD_MAX_PATH_ARGS)
 # note: if a path contains a space, use 'ifaddq' to add quotes: '1 2/3 4' '5 6/7 8/9' ...
@@ -153,7 +163,7 @@ write_options1 = $(if $6,$3,$4)$(PRINTF) -- $(call unhide_comments,$(call printf
 # note: if path to file $2 contains a space, use 'ifaddq' to add quotes: '1 2/3 4'
 # NOTE: number $3 must be adjusted so printed at one time text length will not exceed the maximum command length (at least 4096 characters)
 # NOTE: nothing is printed if string $1 is empty, output file is _not_ created in this case
-write_options = $(call xargs,write_options1,$(subst $(space),$$(empty) $$(empty),$(hide_tabs)),$3,$2,$(quiet),,,$(newline))
+write_options = $(call xargs,write_options1,$(subst $(space), $$(empty),$$(empty)$(hide_tabs)),$3,$2,$(quiet),,,$(newline))
 
 # print one short line of text (to stdout, for redirecting it to output file)
 # note: line must not contain $(newline)s
@@ -183,7 +193,8 @@ write_lines1 = $(if $6,$3,$4)$(PRINTF) -- $(call \
 # NOTE: any line must be less than the maximum command length (at least 4096 characters)
 # NOTE: number $3 must be adjusted so printed at one time text length will not exceed the maximum command length (at least 4096 characters)
 # NOTE: nothing is printed if text $1 is empty, output file is _not_ created in this case
-write_lines = $(call xargs,write_lines1,$(subst $(newline),$$(empty) $$(empty),$(hide_tab_spaces)),$3,$2,$(quiet),,,$(newline))
+write_lines = $(call xargs,write_lines1,$(subst $$(empty)$$(empty),$$(empty),$(subst \
+  $(newline),$$(empty) $$(empty),$(hide_tab_spaces))),$3,$2,$(quiet),,,$(newline))
 
 # create symbolic link $2 -> $1
 # note: UNIX-specific
