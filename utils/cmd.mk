@@ -110,7 +110,61 @@ TYPE    ?= type
 #  'rem.>' - to create an empty file (of zero size)
 
 # escape program argument to pass it via shell: 1 " 2 -> "1 "" 2"
-shell_escape = "$(subst ","",$(subst \",\\",$(subst %,%%,$1)))"
+# NOTE: assume Gnu Make calls a rule in batch-mode (via temporary created .bat-file), otherwise no need to escape %
+#  (this may be a bug in Gnu Make - it should run command via .bat-file if there is % in the command)
+# NOTE: cmd.exe requires escaping backslashes \ only if they are before double-quote ", proper escaping described here:
+#  https://blogs.msdn.microsoft.com/twistylittlepassagesallalike/2011/04/23/everyone-quotes-command-line-arguments-the-wrong-way
+# note: for now, process maximum 4 backslashes before double-quote or at end of argument: \\\\" or x\\\\
+# note: not expecting newlines in $1
+shell_escape = $(subst \
+  \\\\\\\",\\\\\\\\",$(subst \
+  \\\\\",\\\\\\",$(subst \
+  \\\",\\\\",$(subst \
+  \",\\",$(subst %,%%,"$(subst ","",$1)")))))
+
+# convert escaped program arguments string to the form accepted by standard unix shell, e.g.: c:\file "1 "" 2" -> c:\\file '1 " 2'
+# NOTE: cmd.exe requires escaping backslashes \ only if they are before double-quote ", proper escaping described here:
+#  https://blogs.msdn.microsoft.com/twistylittlepassagesallalike/2011/04/23/everyone-quotes-command-line-arguments-the-wrong-way
+# note: for now, process maximum 4 escaped backslashes before double-quotes: \\\\\\\\"
+# note: not expecting newlines in $1
+# note: assume double-quotes are escaped only by two double-quotes inside double-quotes, e.g.: "1""2" -> 1"2
+# note: assume single quotes may be found only inside double-quotes, e.g.: "a'b" -> a'b
+# algorithm:
+# 1) hide $, tabs and spaces, so there are no single $ inside the result, except $(space) or $(tab): <1 2$3> -> <1$(space)2$$3>
+# 2) un-escape % escaped by two %: %% -> %
+# 3) un-escaped backslashes before double-quotes: \\" -> \"
+# 4) replace two adjacent double-quotes: "" -> +$+
+# 5) identify backslashes as tokens: <1/2> -> <1 / 2>
+# 6) identify double-quotes as tokens: <"1"> -> < " 1 " >
+# 7) in "quote-mode":
+#   "    - ends "quote-mode"              "..."    ->   '...'
+#   +$+  - escaped double quote           "...""   ->   '..."
+#   '    - escape to pass via unix shell  "...a'b  ->   '...a'"'"'b
+# 8) in "double-quote-mode":
+#   "    - escaped double quote           """      ->   '"    change to "quote-mode"   (for ex. """1"    -> '"1')
+#   +$+  - escaped double quote           """"     ->   '"                             (for ex. """""1"  -> '""1'  or """" -> '"')
+#   else - ends "double-quote-mode"       ""a      ->   ''a
+# 9)  "   - enter "quote-mode"
+# 10) +$+ - enter "double-quote-mode"
+# 11) else - escape unquoted backslashes
+# 12) at end of line, in "double-quote-mode", add terminating quote
+shell_args_to_unix = $(call unhide_comments,$(subst $(space),,$(subst +$$+,'',$(eval _q:=)$(eval _d:=)$(foreach x,$(subst \
+  ", " ,$(subst \
+  \, \ ,$(subst \
+  "", +$$+ ,$(subst \
+  \\\\\",\\\\",$(subst \
+  \\\\",\\\",$(subst \
+  \\\",\\",$(subst \
+  \\",\",$(subst \
+  %%,%,$(hide_tab_spaces))))))))),$(if \
+  $(_q),$(if $(findstring \
+    ",$x),$(eval _q:=)',$(if $(findstring \
+    +$$+,$x),",$(subst ','"'"',$x))),$(if \
+  $(_d),$(if $(findstring \
+    ",$x),"$(eval _d:=)$(eval _q:=1),$(if $(findstring \
+    +$$+,$x),",$(eval _d:=)')),$(if $(findstring \
+  ",$x),$(eval _q:=1)',$(if $(findstring \
+  +$$+,$x),$(eval _d:=')',$(subst \,\\,$x)))))))))$(_d)
 
 # delete file(s) $1 (short list, no more than CBLD_MAX_PATH_ARGS)
 # note: if a path contains a space, use 'ifaddq' to add double-quotes: "1 2/3 4" "5 6/7 8/9" ...
@@ -208,14 +262,15 @@ cat_file = $(TYPE) $(ospath)
 
 # escape special characters in unquoted argument of 'echo' or 'set' builtin commands of cmd.exe
 unquoted_escape = $(subst $(open_brace),^$(open_brace),$(subst $(close_brace),^$(close_brace),$(subst \
-  %,%%,$(subst <,^<,$(subst >,^>,$(subst |,^|,$(subst &,^&,$(subst ",^",$(subst ^,^^,$1)))))))))
+  %,%%,$(subst !,^!,$(subst <,^<,$(subst >,^>,$(subst |,^|,$(subst &,^&,$(subst ",^",$(subst ^,^^,$1))))))))))
 
 # print short string of options (to stdout, for redirecting it to output file)
 # note: string $1 must not begin with '=', leading spaces and tabs are will be ignored
 # note: there must be no $(newline)s in the string $1
 # note: surround whole expression by braces to specify the end of argument (to not ignore trailing spaces)
+# note: ignore result of builtin command 'set' - it's failed always
 # NOTE: printed string length must not exceed the maximum command line length (8191 characters)
-print_short_options = (set/p=$(unquoted_escape))<NUL
+print_short_options = ((set/p=$(unquoted_escape))<NUL & cmd /c)
 
 # write batch of text token groups to output file or to stdout (for redirecting it to output file)
 # $1 - list of token groups, where entries are processed by $(call hide,$(unquoted_escape))
@@ -223,19 +278,19 @@ print_short_options = (set/p=$(unquoted_escape))<NUL
 # $3 - text to prepend before the command when $6 is non-empty
 # $4 - text to prepend before the command when $6 is empty
 # $6 - empty if overwrite file $2, non-empty if append text to it
-# $7 - non-empty if there will next calls of this function
 # note: first token of any group must not be '=', leading $(space)s and $(tab)s are will be ignored
 # note: there must be no $(newline)s among text tokens
+# note: surround whole expression by braces to specify the end of argument (to not ignore trailing spaces)
+# note: ignore result of builtin command 'set' - it's failed always
 # note: if path to file $2 contains a space, use 'ifaddq' to add double-quotes: "1 2/3 4"
 # NOTE: printed batch length must not exceed the maximum command line length (8191 characters)
-write_options1 = $(if $6,$3,$4)(set/p=$(unhide_comments)$(if $7, ))<NUL$(if $2,>$(if $6,>) $2)
+write_options1 = $(if $6,$3,$4)((set/p=$(call unhide_comments,$(subst $(space),,$1)))<NUL & cmd /c)$(if $2,>$(if $6,>) $2)
 
 # tokenize string so each token group will not begin with $(space), $(tab) or '=', except if they are at the beginning
-# "1  2 =3" -> "1 $(space)  $(space) 2 $(space) = 3" -> "1$(space)$(space) 2$(space)= 3"
-tokenize_options = $(call tokenize_options1,$(subst $(space)=, = ,$(subst $(tab), $$(tab) ,$(subst $(space), $$(space) ,$1))))
-tokenize_options1 = $(if $1,$(call tokenize_options2,$(wordlist 2,999999,$1),$(firstword $1)))
-tokenize_options2 = $(if $(filter $$(space) $$(tab) =,$(firstword $1)),$(call \
-  tokenize_options2,$(wordlist 2,999999,$1),$2$(firstword $1)),$2 $(tokenize_options1))
+# "1  2 =3" -> "1 $s  $s 2 $s =3" -> "1 $s  $s 2 $s = 3" -> "1 $s $s 2 $s = 3" -> "1$(space)$(space) 2$(space)= 3"
+# note: ignore spaces, tabs or = at the beginning
+tokenize_options = $(wordlist 2,999999,$(subst $(space)=,=,$(subst $(space)$$t,$$(tab),$(subst $(space)$$s,$$(space),$(strip \
+  $(subst $(space)=, = ,$(subst $(tab), $$t ,$(subst $(space), $$s , $(hide)))))))))
 
 # write string of options $1 to file $2, by $3 token groups at one time
 # note: string $1 must not begin with '=', leading spaces and tabs are will be ignored
@@ -243,7 +298,7 @@ tokenize_options2 = $(if $(filter $$(space) $$(tab) =,$(firstword $1)),$(call \
 # note: if path to file $2 contains a space, use 'ifaddq' to add double-quotes: "1 2/3 4"
 # NOTE: number $3 must be adjusted so printed at one time text length will not exceed the maximum command length (8191 characters)
 # NOTE: nothing is printed if string $1 is empty, output file is _not_ created in this case
-write_options = $(call xargs,write_options1,$(call tokenize_options,$(call hide,$(unquoted_escape))),$3,$2,$(quiet),,,$(newline))
+write_options = $(call xargs,write_options1,$(call tokenize_options,$(unquoted_escape)),$3,$2,$(quiet),,,$(newline))
 
 # print one short line of text (to stdout, for redirecting it to output file)
 # note: line must not contain $(newline)s
@@ -277,8 +332,8 @@ write_lines1 = $(if $6,$3,$4)(echo.$(call \
 # NOTE: any line must be less than the maximum command length (8191 characters)
 # NOTE: number $3 must be adjusted so printed at one time text length will not exceed the maximum command length (8191 characters)
 # NOTE: nothing is printed if text $1 is empty, output file is _not_ created in this case
-write_lines = $(call xargs,write_lines1,$(subst $(newline),$$(empty) $$(empty),$(call \
-  hide_tab_spaces,$(unquoted_escape))),$3,$2,$(quiet),,,$(newline))
+write_lines = $(call xargs,write_lines1,$(subst $$(empty)$$(empty),$$(empty),$(subst \
+  $(newline),$$(empty) $$(empty),$(call hide_tab_spaces,$(unquoted_escape))),$3,$2,$(quiet),,,$(newline)))
 
 # create symbolic link $2 -> $1
 # note: UNIX-specific, so not defined for WINDOWS
@@ -351,11 +406,11 @@ $(call set_global,CBLD_DONT_FIX_MAKE_SHELL SHELL CBLD_DONT_FIX_ENV_PATH CBLD_MAX
 
 # protect macros from modifications in target makefiles, allow tracing calls to them
 # note: trace namespace: utils
-$(call set_global,print_env=project_exported_vars ifaddq shell_escape delete_files delete_dirs try_delete_dirs \
+$(call set_global,print_env=project_exported_vars ifaddq shell_escape shell_args_to_unix delete_files delete_dirs try_delete_dirs \
   delete_files_in2 delete_files_in1 delete_files_in del_files_or_dirs1 del_files_or_dirs filter_copy_output \
   suppress_copy_output suppress_move_output copy_files1 copy_files move_files1 move_files touch_files1 touch_files \
-  create_dir compare_files cat_file unquoted_escape print_short_options write_options1 tokenize_options tokenize_options1 \
-  tokenize_options2 write_options print_short_line print_some_lines write_lines1 write_lines execute_in execute_in_info \
+  create_dir compare_files cat_file unquoted_escape print_short_options write_options1 tokenize_options \
+  write_options print_short_line print_some_lines write_lines1 write_lines execute_in execute_in_info \
   del_on_fail install_dir install_files filter_output,utils)
 
 # protect macros from modifications in target makefiles, allow tracing calls to them
