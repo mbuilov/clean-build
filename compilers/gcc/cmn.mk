@@ -1,5 +1,5 @@
 #----------------------------------------------------------------------------------
-# clean-build - non-recursive cross-platform build system based on GNU Make
+# clean-build - non-recursive cross-platform build system based on GNU Make v3.81
 # Copyright (C) 2015-2018 Michael M. Builov, https://github.com/mbuilov/clean-build
 # Licensed under GPL version 3 or any later version, see COPYING
 #----------------------------------------------------------------------------------
@@ -16,7 +16,7 @@ pipe_option := -pipe
 # note: CBLD_NO_DEPS - defined in $(cb_dir)/core/_defs.mk
 auto_deps_flags := $(if $(CBLD_NO_DEPS),,-MMD -MP)
 
-# assume native gcc is used, e.g. Windows version of gcc under Windows/Msys, except under Cygwin
+# assume native gcc is used, e.g. Windows port of gcc tools under Windows/Msys, except under Cygwin
 CBLD_IS_NATIVE_GCC ?= $(filter-out CYGWIN%,$(CBLD_OS))
 
 # 'gcc_path' - convert path from Gnu Make representation to the form accepted by GCC tools (e.g. to pass path to headers)
@@ -43,7 +43,10 @@ CBLD_LINK_ARGS_LIMIT ?= $(CBLD_MAX_PATH_ARGS)
 # $3 - linker command (linker executable with flags)
 # $4 - additional linker arguments (object files, libraries, flags)
 # $5 - name of .rsp file, if empty, then .rsp file is not needed
-gcc_rsp_wrap1 = $(if $5,$(call suppress,GEN,$5)$(call write_options,$4,$5,$(CBLD_LINK_ARGS_LIMIT))$(newline))$(call \
+# note: gcc response file parsing code assumes that arguments are passed via unix shell, but cmd.exe may be used as a shell...
+#  convert gcc arguments to the form accepted by gcc response file parsing code via 'shell_args_to_unix' - defined in $(utils_mk)
+gcc_rsp_wrap1 = $(if $5,$(call suppress,GEN,$5)$(call \
+  write_options,$(call shell_args_to_unix,$4),$5,$(CBLD_LINK_ARGS_LIMIT))$(newline))$(call \
   suppress,$1,$2)$3 $(if $5,@$(call gcc_path,$5),$4)
 
 # check if linker command line is too long - it is needed to create a response file for passing arguments to the linker
