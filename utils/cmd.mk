@@ -1,5 +1,5 @@
 #----------------------------------------------------------------------------------
-# clean-build - non-recursive cross-platform build system based on GNU Make
+# clean-build - non-recursive cross-platform build system based on GNU Make v3.81
 # Copyright (C) 2015-2018 Michael M. Builov, https://github.com/mbuilov/clean-build
 # Licensed under GPL version 3 or any later version, see COPYING
 #----------------------------------------------------------------------------------
@@ -123,6 +123,7 @@ shell_escape = $(subst \
   \",\\",$(subst %,%%,"$(subst ","",$1)")))))
 
 # convert escaped program arguments string to the form accepted by standard unix shell, e.g.: c:\file "1 "" 2" -> c:\\file '1 " 2'
+# note: assume arguments are escaped by 'shell_escape' macro, except paths, which are - result of 'ospath' macro
 # NOTE: cmd.exe requires escaping backslashes \ only if they are before double-quote ", proper escaping described here:
 #  https://blogs.msdn.microsoft.com/twistylittlepassagesallalike/2011/04/23/everyone-quotes-command-line-arguments-the-wrong-way
 # note: for now, process maximum 4 escaped backslashes before double-quotes: \\\\\\\\"
@@ -133,22 +134,22 @@ shell_escape = $(subst \
 # 1) hide $, tabs and spaces, so there are no single $ inside the result, except $(space) or $(tab): <1 2$3> -> <1$(space)2$$3>
 # 2) un-escape % escaped by two %: %% -> %
 # 3) un-escaped backslashes before double-quotes: \\" -> \"
-# 4) replace two adjacent double-quotes: "" -> +$+
-# 5) identify backslashes as tokens: <1/2> -> <1 / 2>
-# 6) identify double-quotes as tokens: <"1"> -> < " 1 " >
+# 4) replace two adjacent double-quotes and identify tokens: <1""2> -> <1 +$+ 2>
+# 5) identify backslashes as tokens:                         <1/2>  -> <1 / 2>
+# 6) identify double-quotes as tokens:                       <"1">  -> < " 1 " >
 # 7) in "quote-mode":
-#   "    - ends "quote-mode"              "..."    ->   '...'
-#   +$+  - escaped double quote           "...""   ->   '..."
-#   '    - escape to pass via unix shell  "...a'b  ->   '...a'"'"'b
+#   "    - ends "quote-mode",          print '     "..."    ->   '...'
+#   +$+  - escaped double quote,       print "     "...""   ->   '..."
+#   '    - escape quote to pass it via unix shell  "...a'b  ->   '...a'"'"'b
 # 8) in "double-quote-mode":
-#   "    - escaped double quote           """      ->   '"    change to "quote-mode"   (for ex. """1"    -> '"1')
-#   +$+  - escaped double quote           """"     ->   '"                             (for ex. """""1"  -> '""1'  or """" -> '"')
-#   else - ends "double-quote-mode"       ""a      ->   ''a
-# 9)  "   - enter "quote-mode"
-# 10) +$+ - enter "double-quote-mode"
-# 11) else - escape unquoted backslashes
-# 12) at end of line, in "double-quote-mode", add terminating quote
-shell_args_to_unix = $(call unhide_comments,$(subst $(space),,$(subst +$$+,'',$(eval _q:=)$(eval _d:=)$(foreach x,$(subst \
+#   "    - escaped double quote,       print "     """      ->   '"   change to "quote-mode"  (for ex. """1"    -> '"1')
+#   +$+  - escaped double quote,       print "     """"     ->   '"                           (for ex. """""1"  -> '""1'  or """" -> '"')
+#   else - ends "double-quote-mode",   print '     ""a      ->   ''a
+# 9)  "   - enter "quote-mode",        print '
+# 10) +$+ - enter "double-quote-mode", print '
+# 11) else - escape unquoted backslashes: \\ -> \
+# 12) at end of line, if in "double-quote-mode", then add terminating quote
+shell_args_to_unix = $(call unhide_comments,$(subst $(space),,$(eval _q:=)$(eval _d:=)$(foreach x,$(subst \
   ", " ,$(subst \
   \, \ ,$(subst \
   "", +$$+ ,$(subst \
@@ -164,7 +165,7 @@ shell_args_to_unix = $(call unhide_comments,$(subst $(space),,$(subst +$$+,'',$(
     ",$x),"$(eval _d:=)$(eval _q:=1),$(if $(findstring \
     +$$+,$x),",$(eval _d:=)')),$(if $(findstring \
   ",$x),$(eval _q:=1)',$(if $(findstring \
-  +$$+,$x),$(eval _d:=')',$(subst \,\\,$x)))))))))$(_d)
+  +$$+,$x),$(eval _d:=')',$(subst \,\\,$x))))))))$(_d)
 
 # delete file(s) $1 (short list, no more than CBLD_MAX_PATH_ARGS)
 # note: if a path contains a space, use 'ifaddq' to add double-quotes: "1 2/3 4" "5 6/7 8/9" ...
