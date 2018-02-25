@@ -10,25 +10,25 @@ ifeq (,$(filter-out undefined environment,$(origin trace_calls)))
 include $(dir $(lastword $(MAKEFILE_LIST)))../trace/trace.mk
 endif
 
-# hide macro expansions
+# hide macro expansions in $1
 hide = $(subst $$,$$$$,$1)
 
-# note: assume no newlines and comments in $1
+# NOTE: assume no newlines and comments in $1
 unhide_raw = $(eval unhide_:=$1)$(unhide_)
 
-# note: assume no newlines in $1
-unhide_comments = $(call unhide_raw,$(subst \#,\\\#,$1))
+# NOTE: assume no newlines in $1
+unhide_comments = $(call unhide_raw,$(subst \#,$$(comment),$1))
 
-# unhide macro expansions
+# unhide macro expansions in $1
 unhide = $(call unhide_comments,$(subst $(newline),$$(newline),$1))
 
-# hide spaces in string
+# hide spaces in $1
 hide_spaces = $(subst $(space),$$(space),$(hide))
 
-# hide tabs in string
+# hide tabs in $1
 hide_tabs = $(subst $(tab),$$(tab),$(hide))
 
-# hide tabs and spaces in string
+# hide tabs and spaces in $1
 hide_tab_spaces = $(subst $(tab),$$(tab),$(hide_spaces))
 
 # map [A-Z] -> [a-z]
@@ -58,6 +58,7 @@ padto1 = $(subst .,       ,$(subst ..,      ,$(subst ...,     ,$(subst \
   ....,    ,$(subst .....,   ,$(subst ......,  ,$(subst ......., ,$(repl09AZ))))))))
 
 # return string of spaces to add to given argument to align total argument length to fixed width (8 chars)
+# note: argument $1 must be non-empty, not bigger than 7 characters, all characters must be in range: [0-9A-Z]
 # note: cache computed padding values
 padto = $(if $(findstring undefined,$(origin $1.^pad)),$(eval $1.^pad:=$$(padto1)))$($1.^pad)
 
@@ -66,7 +67,7 @@ padto = $(if $(findstring undefined,$(origin $1.^pad)),$(eval $1.^pad:=$$(padto1
 is_less1 = $(if $(filter-out $3,$(lastword $(sort $3 $4))),1,$(if $(filter $3,$4),$(filter-out $1,$(lastword $(sort $1 $2)))))
 
 # compare numbers: check if $1 < $2
-# note: assume there are no leading zeros in $1 or $2
+# note: assume there are no leading zeros in $1 or $2, except if $1 or $2 is zero
 is_less = $(call is_less1,$1,$2,$(repl09),$(call repl09,$2))
 
 # replace [0-9] characters with ' 0'
@@ -74,9 +75,9 @@ repl090 = $(subst 9, 0,$(subst 8, 0,$(subst 7, 0,$(subst 6, 0,$(subst 5, 0,$(sub
   4, 0,$(subst 3, 0,$(subst 2, 0,$(subst 1, 0,$(subst 0, 0,$1))))))))))
 
 # compare floating point numbers: check if $1 < $2, e.g. 1.21 < 2.4
-# 1) compare integer parts (that must be present)
-# 2) if they are equal, compare fractional parts (may be optional)
-# note: assume there are no leading zeros in integer parts of $1 or $2
+# 1) compare integer parts (which must be present)
+# 2) if they are equal, compare fractional parts (which are optional)
+# note: assume there are no leading zeros in integer parts of $1 or $2, except if they are zero
 is_less_float6 = $(filter-out $1,$(lastword $(sort $1 $2)))
 is_less_float5 = $(subst $(space),,$(wordlist $(words .$1),999999,$2))
 is_less_float4 = $(call is_less_float6,$1$(call is_less_float5,$3,$4),$2$(call is_less_float5,$4,$3))
