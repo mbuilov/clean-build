@@ -392,7 +392,7 @@ endif # !NO_PCH
 # override templates defined in $(CLEAN_BUILD_DIR)/types/_c.mk:
 #  EXE_TEMPLATE, DLL_TEMPLATE and LIB_TEMPLATE will not call OBJ_RULES for C/C++ sources if $(TMD)MP_BUILD is defined,
 #  instead, we will build the target module directly from sources, ignoring object files that are generated as a side-effect
-# note: $(C_BASE_TEMPLATE_MP) defines target-specific variables: SRC, SDEPS, OBJ_DIR
+# note: $(C_BASE_TEMPLATE_MP) defines target-specific variables: SRC, SDEPS, objdir
 # note: here TMD - makefile variable defined by DEF_HEAD_CODE template from $(CLEAN_BUILD_DIR)/core/_defs.mk
 # note: {,T}MP_BUILD - global constant variable
 C_BASE_TEMPLATE_OR_MP = $(if $($(TMD)MP_BUILD),$(C_BASE_TEMPLATE_MP),$(C_BASE_TEMPLATE))
@@ -405,10 +405,10 @@ $(eval define LIB_TEMPLATE$(newline)$(subst $$(C_BASE_TEMPLATE),$$(C_BASE_TEMPLA
 # $2 - objects for linking the target (may be empty, if no .asm sources were assembled and pch is not used)
 # $3 - target type: EXE,DLL,LIB
 # $4 - non-empty variant: R,S,RU,SU
-# target-specific: OBJ_DIR, SRC (defined by C_BASE_TEMPLATE_MP)
-EXE_LD_MP = $(call MULTISOURCE_CL,$3,$4)$(call EXE_LD1,$1,$(patsubst %,$(OBJ_DIR)/%$(OBJ_SUFFIX),$(basename $(notdir $(SRC)))) $2,$3,$4)
-DLL_LD_MP = $(call MULTISOURCE_CL,$3,$4)$(call DLL_LD1,$1,$(patsubst %,$(OBJ_DIR)/%$(OBJ_SUFFIX),$(basename $(notdir $(SRC)))) $2,$3,$4)
-LIB_LD_MP = $(call MULTISOURCE_CL,$3,$4)$(call LIB_LD1,$1,$(patsubst %,$(OBJ_DIR)/%$(OBJ_SUFFIX),$(basename $(notdir $(SRC)))) $2,$3,$4)
+# target-specific: objdir, SRC (defined by C_BASE_TEMPLATE_MP)
+EXE_LD_MP = $(call MULTISOURCE_CL,$3,$4)$(call EXE_LD1,$1,$(patsubst %,$(objdir)/%$(OBJ_SUFFIX),$(basename $(notdir $(SRC)))) $2,$3,$4)
+DLL_LD_MP = $(call MULTISOURCE_CL,$3,$4)$(call DLL_LD1,$1,$(patsubst %,$(objdir)/%$(OBJ_SUFFIX),$(basename $(notdir $(SRC)))) $2,$3,$4)
+LIB_LD_MP = $(call MULTISOURCE_CL,$3,$4)$(call LIB_LD1,$1,$(patsubst %,$(objdir)/%$(OBJ_SUFFIX),$(basename $(notdir $(SRC)))) $2,$3,$4)
 
 # define linkers
 # $1 - path to target EXE,DLL,LIB
@@ -426,10 +426,10 @@ LIB_LD = $(if $($(TMD)MP_BUILD),$(LIB_LD_MP),$(LIB_LD1))
 # $1 - sources
 # $2 - target type: EXE,DLL,LIB
 # $3 - non-empty variant: R,S,RU,SU
-# target-specific: TMD, OBJ_DIR (defined by C_BASE_TEMPLATE_MP)
+# target-specific: TMD, objdir (defined by C_BASE_TEMPLATE_MP)
 # note: {,T}MP_BUILD - global constant variable
-CC_PARAMS_MP  = $($(TMD)MP_BUILD) $(call CC_PARAMS,$(OBJ_DIR)/,$1,$2,$3)
-CXX_PARAMS_MP = $($(TMD)MP_BUILD) $(call CXX_PARAMS,$(OBJ_DIR)/,$1,$2,$3)
+CC_PARAMS_MP  = $($(TMD)MP_BUILD) $(call CC_PARAMS,$(objdir)/,$1,$2,$3)
+CXX_PARAMS_MP = $($(TMD)MP_BUILD) $(call CXX_PARAMS,$(objdir)/,$1,$2,$3)
 
 # C/C++ multi-source compilers for each variant of EXE,DLL,LIB
 # $1 - sources (non-empty list)
@@ -454,10 +454,10 @@ else # !NO_PCH
 # $1 - sources (non-empty list)
 # $2 - target type: EXE,DLL,LIB
 # $3 - non-empty variant: R,S,RU,SU
-# target-specific: TMD, OBJ_DIR (defined by C_BASE_TEMPLATE_MP)
+# target-specific: TMD, objdir (defined by C_BASE_TEMPLATE_MP)
 # note: do not auto-generate dependencies
-OBJ_PMCC  = $(call SUP,$(TMD)PCC,$1)$(call $(TMD)WRAP_CCN,$($(TMD)VCCL) $(call MSVC_USE_PCH,$(OBJ_DIR)/,c) $(CC_PARAMS_MP),$1)
-OBJ_PMCXX = $(call SUP,$(TMD)PCXX,$1)$(call $(TMD)WRAP_CCN,$($(TMD)VCCL) $(call MSVC_USE_PCH,$(OBJ_DIR)/,cpp) $(CXX_PARAMS_MP),$1)
+OBJ_PMCC  = $(call SUP,$(TMD)PCC,$1)$(call $(TMD)WRAP_CCN,$($(TMD)VCCL) $(call MSVC_USE_PCH,$(objdir)/,c) $(CC_PARAMS_MP),$1)
+OBJ_PMCXX = $(call SUP,$(TMD)PCXX,$1)$(call $(TMD)WRAP_CCN,$($(TMD)VCCL) $(call MSVC_USE_PCH,$(objdir)/,cpp) $(CXX_PARAMS_MP),$1)
 
 # compile multiple sources at once
 # $1 - target type: EXE,DLL,LIB,...
