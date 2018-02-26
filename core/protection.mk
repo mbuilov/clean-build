@@ -246,8 +246,10 @@ cb_reset_local_vars = $(foreach =,$(filter-out \
 cb_reset_saved_vars = $(foreach =,$(filter %.^s,$(.VARIABLES)),$(cb_var_access_err))
 
 # called from $(cb_dir)/core/all.mk
-# note: do not call 'cb_reset_local_var' - it will be reset before we may call it
-cb_reset_first_phase = $(cb_reset_local_vars)$(foreach =,$(cb_first_phase_vars),<cb_reset_local_var>)
+cb_reset_first_phase = $(cb_reset_local_vars)$(foreach =,$(cb_first_phase_vars),$(if \
+  $(findstring undefined,$(origin $=)),,<cb_reset_local_var>))
+
+# note: don't call 'cb_reset_local_var' - it will be reset before we may call it
 $(eval cb_reset_first_phase = $(subst <cb_reset_local_var>,$(value cb_reset_local_var),$(value cb_reset_first_phase)))
 
 # reset "local" variables, check and set 'cb_need_tail_code' - $(cb_def_tail) must be evaluated after $(cb_def_head)
