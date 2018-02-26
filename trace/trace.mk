@@ -1,5 +1,5 @@
 #----------------------------------------------------------------------------------
-# clean-build - non-recursive cross-platform build system based on GNU Make
+# clean-build - non-recursive cross-platform build system based on GNU Make v3.81
 # Copyright (C) 2015-2018 Michael M. Builov, https://github.com/mbuilov/clean-build
 # Licensed under GPL version 3 or any later version, see COPYING
 #----------------------------------------------------------------------------------
@@ -7,18 +7,25 @@
 # support for tracing macro expansions
 
 # NOTE: this file is self-contained and may be used alone
-# NOTE: requires: Gnu Make 3.81 or later
+# NOTE: requires: Gnu Make v3.81 or later
 
 # this file defines next minor helpers:
 #
 #  1) infofn - wrap function call to print and return result of the call, example:
 #    A := $(call infofn,$(call func,...))
+#    parameters:
+#      $1 - function call expression
+#      $2 - optional prefix shown at beginning of printed result
 #
 #  2) dump_vars - print values of the variables, example:
 #    $(call dump_vars,A B C...)
+#    parameters:
+#      $1 - list of names of variables
+#      $2 - optional context printed before 'dump' word
 #
 #  3) tracefn - print function name and its arguments, example:
 #    func = $(tracefn)fn_body
+#    note: 'func' in this example must be called via $(call func...), not just $(func), otherwise 'func' name is not shown
 #
 # and the major tracing macro:
 #
@@ -189,7 +196,7 @@ $(eval dump_args = $(subst $(space):,, $(dump_args)))
 ifndef make_trace_in_color
 tracefn = $(warning tracefn: $$($0)$(subst $(newline),$(newline)|,$(dump_args)))
 else
-tracefn = $(warning [35;1mtracefn[m: [32m$$($0)$(subst $(newline),$(newline)[35;1m|[36m,$(dump_args)))
+tracefn = $(warning [35;1mtracefn[m: [32m$$($0)[m$(subst $(newline),$(newline)[35;1m|[36m,$(dump_args)))
 endif
 
 # trace level

@@ -1,5 +1,5 @@
 #----------------------------------------------------------------------------------
-# clean-build - non-recursive cross-platform build system based on GNU Make
+# clean-build - non-recursive cross-platform build system based on GNU Make v3.81
 # Copyright (C) 2015-2018 Michael M. Builov, https://github.com/mbuilov/clean-build
 # Licensed under GPL version 3 or any later version, see COPYING
 #----------------------------------------------------------------------------------
@@ -66,7 +66,7 @@ product_version := 1.0.0
 #  project_supported_targets := DEVEL PRODUCTION
 
 # CBLD_ROOT - path to clean-build build system
-# Note: normally CBLD_ROOT is defined in command line or taken from the environment, but for this bundled
+# Note: normally CBLD_ROOT is defined in the command line or taken from the environment, but for this bundled
 #  example it may be deduced automatically
 CBLD_ROOT := $(abspath $(top)/../..)
 

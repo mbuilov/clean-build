@@ -1,5 +1,5 @@
 #----------------------------------------------------------------------------------
-# clean-build - non-recursive cross-platform build system based on GNU Make
+# clean-build - non-recursive cross-platform build system based on GNU Make v3.81
 # Copyright (C) 2015-2018 Michael M. Builov, https://github.com/mbuilov/clean-build
 # Licensed under GPL version 3 or any later version, see COPYING
 #----------------------------------------------------------------------------------
@@ -52,14 +52,9 @@ INSTALL ?= install
 # note: not expecting newlines in $1
 shell_escape = '$(subst ','"'"',$1)'
 
-# undo 'shell_escape': c:\\'xx'"'"'yy' -> c:\xx'yy
-# note: not expecting newlines in $1
-# note: the only case when shell argument may be escaped without quotes - 'ospath' function, e.g. c:/file -> c:\\file
-#shell_unescape = $(call unhide_comments,$(subst $(space),,$(eval _q:=)$(eval _d:=)$(foreach x,$(subst ', ' ,$(hide_tab_spaces)),$(if \
-#  $(_q),$(if $(findstring ',$x),$(eval _q:=),$x),$(if \
-#  $(_d),$(if $(findstring ",$x),$(eval _d:=),$x),$(if \
-#  $(findstring ',$x),$(eval _q:=1),$(if \
-#  $(findstring ",$x),$(eval _d:=1),$(subst \\,\,$x))))))))
+# convert escaped program arguments string to the form accepted by standard unix shell
+# do nothing, arguments are already in the required form
+shell_args_to_unix = $1
 
 # delete file(s) $1 (short list, no more than CBLD_MAX_PATH_ARGS)
 # note: if a path contains a space, use 'ifaddq' to add quotes: '1 2/3 4' '5 6/7 8/9' ...
@@ -252,7 +247,7 @@ $(call set_global,CBLD_MAX_PATH_ARGS NUL RM RMDIR TRUE FALSE CD CP MV TOUCH MKDI
 
 # protect macros from modifications in target makefiles, allow tracing calls to them
 # note: trace namespace: utils
-$(call set_global,print_env=project_exported_vars shell_escape delete_files delete_dirs try_delete_dirs \
+$(call set_global,print_env=project_exported_vars shell_escape shell_args_to_unix delete_files delete_dirs try_delete_dirs \
   delete_files_in1 delete_files_in1_info delete_files_in del_files_or_dirs1 del_files_or_dirs copy_files2 copy_files1 copy_files \
   move_files2 move_files1 move_files touch_files1 touch_files create_dir compare_files cat_file print_short_options \
   printf_line_escape write_options1 write_options print_short_line print_some_lines write_lines1 write_lines create_simlink \
