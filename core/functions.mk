@@ -60,7 +60,7 @@ padto1 = $(subst .,       ,$(subst ..,      ,$(subst ...,     ,$(subst \
 # return string of spaces to add to given argument to align total argument length to fixed width (8 chars)
 # note: argument $1 must be non-empty, not bigger than 7 characters, all characters must be in range: [0-9A-Z]
 # note: cache computed padding values
-padto = $(if $(findstring undefined,$(origin $1.^pad)),$(eval $1.^pad:=$$(padto1)))$($1.^pad)
+padto = $(if $(findstring undefined,$(origin $1.^pad)),$(eval $$1.^pad:=$$(padto1)))$($1.^pad)
 
 # 1) check number of digits: if $4 > $3 -> $2 > $1
 # 2) else if number of digits are equal, check number values
@@ -128,9 +128,6 @@ xargs = $(call xargs1,$1,$2,$3,$(words x $(wordlist 1,$3,$2)),$4,$5,$6,$7,,$8)
 # note: 7-th argument of function $1 is non-empty if there will be next calls of the function
 xcmd = $(call xargs,$1,$2,$3,$4,$5,$6,$7,$(newline))
 
-# return list $1 without last element
-trim = $(wordlist 2,$(words $1),x $1)
-
 # remove duplicates in list $1 preserving order of elements: 1 2 3 2 1 -> 1 2 3
 uniq = $(strip $(uniq1))
 uniq1 = $(if $1,$(firstword $1) $(call uniq1,$(filter-out $(firstword $1),$1)))
@@ -155,6 +152,9 @@ patsubst_multiple = $(if $1,$(call patsubst_multiple,$(wordlist 2,999999,$1),$2,
 #  $(call cut_tails,1 2,a1 b2) -> a b
 cut_heads = $(call patsubst_multiple,$(addsuffix %,$1),%,$2)
 cut_tails = $(call patsubst_multiple,$(addprefix %,$1),%,$2)
+
+# return list $1 without last element
+trim = $(wordlist 2,$(words $1),x $1)
 
 # remove last path element
 # 1 2 3 -> 1 2, .. .. -> .. .. ..
@@ -181,7 +181,7 @@ cmn_path1 = $(if $1,$(if $(subst /$(firstword $1)/,,/$(firstword $2)/),,/$(first
 cmn_path = $(patsubst //%,%/,$(call cmn_path1,/$(subst /, ,$1),/$(subst /, ,$2)))
 
 # convert "a/b/c/" -> "../../../"
-back_prefix = $(addsuffix /,$(subst $(space),/,$(foreach x,$(subst /, ,$1),..)))
+back_prefix = $(subst / ,../,$(filter /,$(subst /, / ,$1)) )
 
 # compute relative path from directory $1 to destination file or directory $2
 # $1:     /aa/bb/cc/    - path to current directory
@@ -229,9 +229,11 @@ ver_compatible = $(call ver_compatible1,$(ver_major),$(call \
 # returns empty directory name prefixed by $2 if no parent directory:
 # 1/2/3 -> 1/2
 # 1     -> $(empty)
+# note: assume $1 - is a non-absolute path or it's parent directory is not / (e.g. /xxx is not allowed)
 get_dir = $(patsubst $2.,$2,$(patsubst %/,$2%,$(dir $1)))
 
 # split paths to list of intermediate directories: 1/2/3 -> 1 1/2 1/2/3
+# note: assume $1 - is a non-absolute path or it's parent directory is not / (e.g. /xxx is not allowed)
 split_dirs1 = $(if $1,$1 $(call split_dirs1,$(get_dir)))
 split_dirs = $(sort $(split_dirs1))
 
@@ -246,23 +248,24 @@ split_dirs = $(sort $(split_dirs1))
 #
 # $1 - list of directories - result of $(split_dirs)
 # $2 - prefix to add to all directories
-mk_dir_deps = $(subst :|,:| $2,$(addprefix $(newline)$2,$(filter-out %:|,$(join $1,$(call get_dir,$1,:|)))))
+mk_dir_deps = $(if $(findstring $(space),$1),$(subst :|,:| $2,$(subst \
+  $(space),$(newline)$2,$2$(filter-out %:|,$(join $1,$(call get_dir,$1,:|))))))
 
 # $1 - recursive macro, on first call becomes simple
-# $2 - macro value
+# $2 - macro value, expanded at the time of the first call
 # for example, if 'my_value' is not defined yet, but it will be defined at time of 'my_macro' call, then:
 #  my_macro = $(call lazy_simple,my_macro,$(my_value))
-lazy_simple = $(eval $(findstring override,$(origin $1)) $1:=$$2)$($1)
+lazy_simple = $(eval $(findstring override,$(origin $1)) $$1:=$$2)$($1)
 
-# append/prepend text $2 to a value of variable $1
+# append/prepend text $2 to the value of variable $1
 # note: do not adds a space between joined $1 and $2, unlike operator += does
-define_append = $(eval define $1$(newline)$(value $1)$2$(newline)endef)
-define_prepend = $(eval define $1$(newline)$2$(value $1)$(newline)endef)
+define_append = $(eval define $$1$(newline)$(value $1)$2$(newline)endef)
+define_prepend = $(eval define $$1$(newline)$2$(value $1)$(newline)endef)
 
-# append/prepend simple (already expanded) text $2 to a value of variable $1
+# append/prepend simple (already expanded) text $2 to the value of variable $1
 # note: do not adds a space between joined $1 and $2, unlike operator += does
-append_simple = $(if $(findstring simple,$(flavor $1)),$(eval $1:=$$($1)$$2),$(define_append))
-prepend_simple = $(if $(findstring simple,$(flavor $1)),$(eval $1:=$$2$$($1)),$(define_prepend))
+append_simple = $(if $(findstring simple,$(flavor $1)),$(eval $$1:=$$($$1)$$2),$(define_append))
+prepend_simple = $(if $(findstring simple,$(flavor $1)),$(eval $$1:=$$2$$($$1)),$(define_prepend))
 
 # substitute references to variables with their values in given text
 # $1 - text
@@ -274,7 +277,7 @@ subst_var_refs = $(if $2,$(call subst_var_refs,$(subst $$($(firstword $2)),$(val
 # redefine macro $1 partially expanding it - replace references to variables in list $2 with their values
 # note: assume references to variables $2 are not escaped in $(value $1), e.g.: ---$$(var)--
 # note: also may not work correctly for computed variable names, for example:   ---$(v$(ar))--
-expand_partially = $(eval define $1$(newline)$(call subst_var_refs,$(value $1),$2)$(newline)endef)
+expand_partially = $(eval define $$1$(newline)$(call subst_var_refs,$(value $1),$2)$(newline)endef)
 
 # remove references to variables from given text
 # $1 - text
@@ -287,12 +290,12 @@ remove_var_refs = $(if $2,$(call remove_var_refs,$(subst $$($(firstword $2)),,$1
 # $1 - macro name
 # $2 - list of variables to try to substitute with their values in $(value $1)
 # 1) check that variables in $2 are all simple
-# 2) check that there is no references to other variables in the value of macro $1
+# 2) check that there are no references to other variables in the value of macro $1
 # 3) re-define macro $1 as a simple (non-recursive) variable
 # note: assume references to variables $2 are not escaped in $(value $1), e.g.: ---$$(var)--
 # note: also may not work correctly for computed variable names, for example:   ---$(v$(ar))--
 try_make_simple = $(if $(filter $(words $2),$(words $(filter simple,$(foreach =,$2,$(flavor $=))))),$(if \
-  $(findstring $$,$(call remove_var_refs,$(value $1),$2)),,$(eval $1:=$$($1))))
+  $(findstring $$,$(call remove_var_refs,$(value $1),$2)),,$(eval $$1:=$$($$1))))
 
 # redefine macro $1 so that when expanding, it will give a new value only if current key value matches
 #  the predefined one (constant tag), else returns an old value the macro had before it was redefined
@@ -316,9 +319,9 @@ try_make_simple = $(if $(filter $(words $2),$(words $(filter simple,$(foreach =,
 #  my_depend: K := a
 #  my_target:; $(info $@:A=$A) # 2
 #  my_depend:; $(info $@:A=$A) # 1
-keyed_redefine = $(eval $(if $(findstring simple,$(flavor $1)),$3^o.$1 := $$($1),define $3^o.$1$(newline)$(value \
-  $1)$(newline)endef)$(newline)$(if $(findstring $$,$4),define $3^n.$1$(newline)$4$(newline)endef,$3^n.$1 := $$4)$(newline)$(findstring \
-  override,$(flavor $1)) $1 = $$(if $$(filter $3,$$($2)),$$($3^n.$1),$$($3^o.$1)))
+keyed_redefine = $(eval $(if $(findstring simple,$(flavor $1)),$$3^o.$$1 := $$($$1),define $$3^o.$$1$(newline)$(value \
+  $1)$(newline)endef)$(newline)$(if $(findstring $$,$4),define $$3^n.$$1$(newline)$4$(newline)endef,$$3^n.$$1 := $$4)$(newline)$(findstring \
+  override,$(flavor $1)) $$1 = $$(if $$(filter $3,$$($2)),$$($3^n.$1),$$($3^o.$1)))
 
 # protect variables of $(cb_dir)/trace/trace.mk from modification in target makefiles
 # note: do not trace calls to these macros
@@ -334,7 +337,7 @@ cb_protected_vars += $(call set_global,hide unhide_raw unhide_comments unhide hi
   tolower toupper repl09 repl09AZ padto1 padto is_less1 is_less repl090 \
   is_less_float6 is_less_float5 is_less_float4 is_less_float3 is_less_float2 is_less_float1 is_less_float \
   strip_leading0 sort_numbers2 sort_numbers1 sort_numbers reverse \
-  xargs1 xargs xcmd trim uniq uniq1 neq patsubst_multiple cut_heads cut_tails \
+  xargs1 xargs xcmd uniq uniq1 neq patsubst_multiple cut_heads cut_tails trim \
   normp2 normp1 normp cmn_path1 cmn_path back_prefix relpath2 relpath1 relpath \
   ver_major ver_minor ver_patch ver_compatible1 ver_compatible \
   get_dir split_dirs1 split_dirs mk_dir_deps lazy_simple \
