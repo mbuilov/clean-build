@@ -268,7 +268,7 @@ unquoted_escape = $(subst $(open_brace),^$(open_brace),$(subst $(close_brace),^$
 # print short string of options (to stdout, for redirecting it to output file)
 # note: string $1 must not begin with '=', leading spaces and tabs are will be ignored
 # note: there must be no $(newline)s in the string $1
-# note: surround whole expression by braces to specify the end of argument (to not ignore trailing spaces)
+# note: surround whole set expression by braces to specify the end of argument (to not ignore trailing spaces)
 # note: ignore result of builtin command 'set' - it's failed always
 # NOTE: printed string length must not exceed the maximum command line length (8191 characters)
 print_short_options = ((set/p=$(unquoted_escape))<NUL & cmd /c)
@@ -281,7 +281,7 @@ print_short_options = ((set/p=$(unquoted_escape))<NUL & cmd /c)
 # $6 - empty if overwrite file $2, non-empty if append text to it
 # note: first token of any group must not be '=', leading $(space)s and $(tab)s are will be ignored
 # note: there must be no $(newline)s among text tokens
-# note: surround whole expression by braces to specify the end of argument (to not ignore trailing spaces)
+# note: surround whole set expression by braces to specify the end of argument (to not ignore trailing spaces)
 # note: ignore result of builtin command 'set' - it's failed always
 # note: if path to file $2 contains a space, use 'ifaddq' to add double-quotes: "1 2/3 4"
 # NOTE: printed batch length must not exceed the maximum command line length (8191 characters)
@@ -305,16 +305,16 @@ write_options = $(call xargs,write_options1,$(call tokenize_options,$(unquoted_e
 # note: line must not contain $(newline)s
 # note: line will be ended with CRLF: line -> line\n
 # note: use dot '.' after 'echo' to print just an empty line if text $1 is empty
-# note: surround whole expression by braces to specify the end of argument (to not ignore trailing spaces)
+# note: surround whole echo expression by braces to specify the end of argument (to not ignore trailing spaces)
 # NOTE: printed line length must not exceed the maximum command line length (8191 characters)
 print_short_line = (echo.$(unquoted_escape))
 
 # print small batch of short text lines (to stdout, for redirecting it to output file)
 # note: each line will be ended with CRLF: line1$(newline)line2 -> line1\nline2\n
 # note: use dot '.' after 'echo' to print just an empty line if text line is empty
-# note: surround whole expression by braces to specify the end of argument (to not ignore trailing spaces)
+# note: surround whole echo expression by braces to specify the end of argument (to not ignore trailing spaces)
 # NOTE: total text length must not exceed the maximum command line length (8191 characters)
-print_some_lines = (echo.$(subst $(newline),$(close_brace)&&$(open_brace)echo.,$(unquoted_escape)))
+print_some_lines = ((echo.$(subst $(newline),$(close_brace)&&$(open_brace)echo.,$(unquoted_escape))))
 
 # write batch of text lines to output file or to stdout (for redirecting it to output file)
 # $1 - lines list, where entries are processed by $(call hide_tab_spaces,$(unquoted_escape))
