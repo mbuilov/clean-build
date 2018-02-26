@@ -133,9 +133,8 @@ $(call config_remember_vars,PATH CBLD_MAKEFILE_CONF_WRITE_BY_LINES)
 # note: 'suppress' - defined in $(cb_dir)/core/suppress.mk
 # note: 'write_lines' - defined in $(cb_dir)/utils/$(CBLD_UTILS).mk
 # note: 'config_text' - defined above as target-specific variable
-# note: define target-specific variables F.^ and C.^ - for 'suppress' function
-config: F.^ := $(abspath $(firstword $(MAKEFILE_LIST)))
-config: C.^ :=
+# note: define target-specific variable C.^ - for 'suppress' function
+config: C.^ := $(abspath $(firstword $(MAKEFILE_LIST)))
 config: cf := $(abspath $(CBLD_CONFIG))
 config:| $(abspath $(dir $(CBLD_CONFIG)))
 	$(call suppress,GEN,$(cf))$(call write_lines,$(config_text)project_exported_vars := $(sort \

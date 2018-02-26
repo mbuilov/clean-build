@@ -298,10 +298,9 @@ add_mdeps:=
 # note: expressions $2 and $3 are expanded while expanding template $1, _before_ evaluating expansion result
 cb_add_what_makefile_builds:=
 
-# to be able to use 'suppress' function in the rules of the target(s) $1, define target-specific variables:
-# F.^ - holds the path to current target makefile
-# C.^ - holds the number of section in the target makefile after a call to $(make_continue)
-# note: these target-specific variables are automatically defined for the targets registered via std_target_vars/add_generated macros
+# to be able to use 'suppress' function in the rules of the target(s) $1, define target-specific variable:
+# C.^ - holds a path to the current target makefile and a number of section in the target makefile after a call to $(make_continue)
+# note: this target-specific variable is automatically defined for the targets registered via std_target_vars/add_generated macros
 set_makefile_info:=
 
 ifndef toclean
@@ -369,8 +368,9 @@ ifdef cb_mdebug
 # $1 - files the template builds
 # $2 - optional suffix (order-only dependencies)
 # note: 'cb_colorize' - defined in included above $(cb_dir)/core/suppress.mk
-cb_what_makefile_builds = $(info $(call cb_colorize,TARGET,TARGET) $(if $(is_tool_mode),[T]: )$(join \
-  $(patsubst $(cb_build)/%,$(call cb_colorize,CB_BUILD,$$(cb_build))/%,$(dir $1)),$(call cb_colorize,TARGET,$(notdir $1)))$2)
+cb_what_makefile_builds = $(info $(call cb_what_makefile_builds1,$1,$2,$(call cb_colorize,TARGET,TARGET) $(if $(is_tool_mode),[T]: )))
+cb_what_makefile_builds1 = $3$(subst $(space),$2$(newline)$3,$(join $(patsubst $(cb_build)/%,$(call \
+  cb_colorize,CB_BUILD,$$(cb_build))/%,$(dir $1)),$(call cb_colorize,TARGET,$(notdir $1))))$2
 
 # for the 'cb_colorize' macro called in 'cb_what_makefile_builds'
 CBLD_TARGET_COLOR   ?= [32m
@@ -392,9 +392,8 @@ endif # cb_mdebug
 # note: 'suppress' and 'cb_makefile_info_templ' - defined in included above $(cb_dir)/core/suppress.mk
 ifdef cb_makefile_info_templ
 
-# to be able to use 'suppress' function in the rules of the target(s) $1, define target-specific variables:
-# F.^ - holds the path to current target makefile
-# C.^ - holds the number of section in the target makefile after a call to $(make_continue)
+# to be able to use 'suppress' function in the rules of the target(s) $1, define target-specific variable:
+# C.^ - holds a path to the current target makefile and a number of section in the target makefile after a call to $(make_continue)
 set_makefile_info = $(eval $(cb_makefile_info_templ))
 
 # optimize: do not call 'set_makefile_info' from 'std_target_vars1', include code of 'set_makefile_info' directly
@@ -449,6 +448,20 @@ add_generated = $(eval $(std_target_vars))
 
 # same as 'add_generated', but return the list of generated files $1
 add_generated_ret = $(add_generated)$1
+
+# register macro $1 as target makefile-specific:
+#  as alternative to 'set_global', define a macro that will be visible in rules of all targets built by the current target makefile
+# note: all targets the targets of current makefile depend on are also inherit that macro, but it must not be used in rules of the
+#  dependencies - the macro is inherited only if current target makefile is in build, otherwise the macro is not defined
+ifndef cb_checking
+set_makefile_specific = $(eval $$(cb_target_makefile)-: $$1 = $(subst $(newline),$$(newline),$(value $1)))
+else
+# check that makefile-specific variable is used only in rules of target makefile where the variable was defined
+# note: target-specific variable F.^ is defined by 'cb_def_head' for each target makefile
+set_makefile_specific = $(eval $$(cb_target_makefile)-: $$1 = $$(if $$(subst |$(cb_target_makefile)|,,|$$(F.^)|),$$(error \
+  makefile-specific variable '$1' cannot be used in $$(F.^) - it may be used only in rules of $(cb_target_makefile), \
+  for which the variable was defined),$(subst $(newline),$$(newline),$(value $1))))
+endif
 
 # 'tool_mode' may be set to non-empty value (likely T) at the beginning of target makefile
 #  (before including this file and so before evaluating $(cb_def_head))
@@ -593,9 +606,11 @@ endif # cb_checking || cb_add_shown_percents
 ifdef cb_checking
 
 # check that $(cb_target_makefile) was not already processed (note: check only before the first $(make_continue))
+# remember the name of current target makefile in target-specific variable F.^ - for the checks in 'set_makefile_specific'
 $(eval define cb_def_head$(newline)$(subst \
   else,else$(newline)$$$$(if $$$$(filter $$$$(cb_target_makefile),$$$$(cb_target_makefiles)),$$$$(error \
-  makefile $$$$(cb_target_makefile) was already processed!)),$(value cb_def_head))$(newline)endef)
+  makefile $$$$(cb_target_makefile) was already processed!))$$$$(cb_target_makefile)-:F.^:=$$$$(cb_target_makefile),$(value \
+  cb_def_head))$(newline)endef)
 
 # remember new value of 'cb_make_cont' (without tracing calls to it - it's modified via +=)
 # note: result of $(call set_global1,cb_make_cont) will give an empty line at end of expansion
@@ -770,10 +785,11 @@ $(call config_remember_vars,CBLD_BUILD CBLD_TARGET CBLD_NO_DEPS)
 # Note: bin_dir/obj_dir/lib_dir/gen_dir change their values depending on the value of 'tool_mode' variable set in the last
 #  parsed makefile, so clear these variables before rule execution second phase
 cb_first_phase_vars += cb_needed_dirs build_system_goals bin_dir obj_dir lib_dir gen_dir order_deps cb_set_default_dirs \
-  cb_tool_override_dirs toclean cb_target_makefile add_mdeps cb_what_makefile_builds cb_add_what_makefile_builds set_makefile_info \
-  add_order_deps need_gen_dirs std_target_vars1 cb_check_generated_at std_target_vars add_generated add_generated_ret tool_mode \
-  is_tool_mode cb_tool_mode_adjust cb_tool_mode_access_error cb_include_level cb_target_makefiles cb_head_eval cb_make_cont \
-  cb_def_head cb_show_leaf_mk cb_def_tail cb_def_targets define_targets cb_prepare_templ cb_save_vars cb_restore_vars make_continue
+  cb_tool_override_dirs toclean cb_target_makefile add_mdeps cb_what_makefile_builds cb_what_makefile_builds1 \
+  cb_add_what_makefile_builds set_makefile_info add_order_deps need_gen_dirs std_target_vars1 cb_check_generated_at std_target_vars \
+  add_generated add_generated_ret set_makefile_specific tool_mode is_tool_mode cb_tool_mode_adjust cb_tool_mode_access_error \
+  cb_include_level cb_target_makefiles cb_head_eval cb_make_cont cb_def_head cb_show_leaf_mk cb_def_tail cb_def_targets define_targets \
+  cb_prepare_templ cb_save_vars cb_restore_vars make_continue
 
 # protect macros from modifications in target makefiles,
 # do not trace calls to macros used in ifdefs, exported to the environment of called tools or modified via operator +=
@@ -787,11 +803,11 @@ $(call set_global,MAKEFLAGS SHELL cb_needed_dirs cb_first_phase_vars CBLD_BUILD 
 $(call set_global,cb_project_vars clean_build_version cb_dir clean_build_required_version \
   cb_build project_supported_targets target_triplet def_bin_dir def_obj_dir def_lib_dir def_gen_dir \
   cb_set_default_dirs tool_base mk_tools_dir cb_tool_override_dirs tool_suffix get_tools get_tool cb_first_makefile \
-  cb_target_makefile add_mdeps cb_what_makefile_builds cb_add_what_makefile_builds set_makefile_info \
+  cb_target_makefile add_mdeps cb_what_makefile_builds cb_what_makefile_builds1 cb_add_what_makefile_builds set_makefile_info \
   add_order_deps=order_deps=order_deps need_gen_dirs std_target_vars1 cb_check_generated_at std_target_vars add_generated \
-  add_generated_ret is_tool_mode cb_tool_mode_adjust cb_tool_mode_access_error cb_def_head cb_show_leaf_mk cb_check_targets \
-  cb_def_tail cb_no_def_head_err cb_def_targets define_targets cb_prepare_templ cb_save_vars cb_restore_vars make_continue \
-  product_version,core)
+  add_generated_ret set_makefile_specific is_tool_mode cb_tool_mode_adjust cb_tool_mode_access_error cb_def_head cb_show_leaf_mk \
+  cb_check_targets cb_def_tail cb_no_def_head_err cb_def_targets define_targets cb_prepare_templ cb_save_vars cb_restore_vars \
+  make_continue product_version,core)
 
 # if 'toclean' value is non-empty, allow tracing calls to it (with trace namespace: toclean),
 # else - just protect 'toclean' from changes, do not make it's value non-empty - because 'toclean' is checked in ifdefs

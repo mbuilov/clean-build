@@ -57,7 +57,7 @@ endif
 ifeq (,$(filter distclean clean,$(MAKECMDGOALS)))
 
 # suppress: suppress output of executed build tool, print some pretty message instead, like "CC  source.c"
-# target-specific: F.^, C.^
+# target-specific: C.^
 # $1 - the tool
 # $2 - tool arguments
 # $3 - if empty, then colorize argument of the called tool
@@ -101,9 +101,9 @@ cb_fomat_percents = $(subst |,,$(subst \
   |9%,09%,$(subst \
   |100%,FIN,|$(words $(cb_shown_percents))%))))))))))))
 
-# target-specific: F.^, C.^
+# target-specific: C.^
 ifdef cb_infomf
-suppress = $(info $(call cb_print_percents,$(cb_fomat_percents))$(F.^)$(C.^):$(cb_show_tool))@
+suppress = $(info $(call cb_print_percents,$(cb_fomat_percents))$(C.^):$(cb_show_tool))@
 else
 suppress = $(info $(call cb_print_percents,$(cb_fomat_percents))$(cb_show_tool))@
 endif
@@ -114,8 +114,8 @@ else # !quiet (verbose)
 cb_add_shown_percents:=
 
 ifdef cb_infomf
-# target-specific: F.^, C.^
-suppress = $(info $(F.^)$(C.^):$(cb_show_tool))
+# target-specific: C.^
+suppress = $(info $(C.^):$(cb_show_tool))
 else
 suppress:=
 endif
@@ -124,28 +124,19 @@ endif # !quiet (verbose)
 
 # not cleaning up: define 'cb_makefile_info_templ'
 #  - for given target(s) $1, define target-specific variables for printing makefile info
-# $(F.^) - makefile which specifies how to build the target
-# $(C.^) - number of section in the makefile after a call to $(make_continue)
+# $(C.^) - makefile which specifies how to build the target and a number of section in the makefile after a call to $(make_continue)
 # note: $(cb_make_cont) list is empty or 1 1 1 .. 1 2 (inside 'make_continue') or 1 1 1 1... (before 'make_continue'):
 # note: 'make_continue' is equivalent of: ... cb_make_cont+=2 $(TAIL) cb_make_cont=$(subst 2,1,$(cb_make_cont)) $(HEAD) ...
 ifdef cb_infomf
 
-define cb_makefile_info_templ
-$1:F.^:=$(cb_target_makefile)
-$1:C.^:=$(subst +0,,+$(words $(subst 2,,$(cb_make_cont))))
-endef
+cb_makefile_info_templ = $1:C.^:=$$(cb_target_makefile)$(subst +0,,+$(words $(subst 2,,$(cb_make_cont))))
 
-else ifdef quiet
-
-# remember $(cb_target_makefile) to properly update percents of executed makefiles in the 'suppress' macro
-cb_makefile_info_templ = $1:F.^:=$(cb_target_makefile)
-
-else # !quiet (verbose)
+else # !cb_infomf
 
 # reset
 cb_makefile_info_templ:=
 
-endif # !quiet (verbose)
+endif # !cb_infomf
 
 else # distclean || clean
 
