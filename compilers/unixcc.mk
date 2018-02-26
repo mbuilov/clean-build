@@ -87,7 +87,8 @@ unix_ar_wrap = $(call xcmd,ar_add_files,$3,$4,$2,$1)
 # $1 - objects
 # $2 - archiver command
 # $3 - output file
-ar_add_files = $2 $3 $1
+# $6 - empty on first call, $(newline) on next calls
+ar_add_files = $(if $6,$(quiet))$2 $3 $1
 
 # makefile parsing first phase variables
 cb_first_phase_vars += c_prepare_unix_app_vars exe_aux_templv dll_aux_templv unix_mod_aux_appt unix_mod_aux_app map_variable_check
