@@ -454,14 +454,17 @@ add_generated_ret = $(add_generated)$1
 # note: all targets the targets of current makefile depend on are also inherit that macro, but it must not be used in rules of the
 #  dependencies - the macro is inherited only if current target makefile is in build, otherwise the macro is not defined
 ifndef cb_checking
-set_makefile_specific = $(eval $$(cb_target_makefile)-: $$1 = $(subst $(newline),$$(newline),$(value $1)))
+set_makefile_specific1 = $(eval $$(cb_target_makefile)-: $$1 = $(subst $(newline),$$(newline),$(value $1)))
 else
 # check that makefile-specific variable is used only in rules of target makefile where the variable was defined
 # note: target-specific variable F.^ is defined by 'cb_def_head' for each target makefile
-set_makefile_specific = $(eval $$(cb_target_makefile)-: $$1 = $$(if $$(subst |$(cb_target_makefile)|,,|$$(F.^)|),$$(error \
+set_makefile_specific1 = $(eval $$(cb_target_makefile)-: $$1 = $$(if $$(subst |$(cb_target_makefile)|,,|$$(F.^)|),$$(error \
   makefile-specific variable '$1' cannot be used in $$(F.^) - it may be used only in rules of $(cb_target_makefile), \
   for which the variable was defined),$(subst $(newline),$$(newline),$(value $1))))
 endif
+
+# register list of variables as target makefile-specific
+set_makefile_specific = $(if $(findstring $(space),$1),$(foreach =,$1,$(call set_makefile_specific1,$=)),$(set_makefile_specific1))
 
 # 'tool_mode' may be set to non-empty value (likely T) at the beginning of target makefile
 #  (before including this file and so before evaluating $(cb_def_head))
@@ -606,7 +609,7 @@ endif # cb_checking || cb_add_shown_percents
 ifdef cb_checking
 
 # check that $(cb_target_makefile) was not already processed (note: check only before the first $(make_continue))
-# remember the name of current target makefile in target-specific variable F.^ - for the checks in 'set_makefile_specific'
+# remember the name of current target makefile in target-specific variable F.^ - for the checks in 'set_makefile_specific1'
 $(eval define cb_def_head$(newline)$(subst \
   else,else$(newline)$$$$(if $$$$(filter $$$$(cb_target_makefile),$$$$(cb_target_makefiles)),$$$$(error \
   makefile $$$$(cb_target_makefile) was already processed!))$$$$(cb_target_makefile)-:F.^:=$$$$(cb_target_makefile),$(value \
@@ -787,9 +790,9 @@ $(call config_remember_vars,CBLD_BUILD CBLD_TARGET CBLD_NO_DEPS)
 cb_first_phase_vars += cb_needed_dirs build_system_goals bin_dir obj_dir lib_dir gen_dir order_deps cb_set_default_dirs \
   cb_tool_override_dirs toclean cb_target_makefile add_mdeps cb_what_makefile_builds cb_what_makefile_builds1 \
   cb_add_what_makefile_builds set_makefile_info add_order_deps need_gen_dirs std_target_vars1 cb_check_generated_at std_target_vars \
-  add_generated add_generated_ret set_makefile_specific tool_mode is_tool_mode cb_tool_mode_adjust cb_tool_mode_access_error \
-  cb_include_level cb_target_makefiles cb_head_eval cb_make_cont cb_def_head cb_show_leaf_mk cb_def_tail cb_def_targets define_targets \
-  cb_prepare_templ cb_save_vars cb_restore_vars make_continue
+  add_generated add_generated_ret set_makefile_specific1 set_makefile_specific tool_mode is_tool_mode cb_tool_mode_adjust \
+  cb_tool_mode_access_error cb_include_level cb_target_makefiles cb_head_eval cb_make_cont cb_def_head cb_show_leaf_mk cb_def_tail \
+  cb_def_targets define_targets cb_prepare_templ cb_save_vars cb_restore_vars make_continue
 
 # protect macros from modifications in target makefiles,
 # do not trace calls to macros used in ifdefs, exported to the environment of called tools or modified via operator +=
@@ -805,9 +808,9 @@ $(call set_global,cb_project_vars clean_build_version cb_dir clean_build_require
   cb_set_default_dirs tool_base mk_tools_dir cb_tool_override_dirs tool_suffix get_tools get_tool cb_first_makefile \
   cb_target_makefile add_mdeps cb_what_makefile_builds cb_what_makefile_builds1 cb_add_what_makefile_builds set_makefile_info \
   add_order_deps=order_deps=order_deps need_gen_dirs std_target_vars1 cb_check_generated_at std_target_vars add_generated \
-  add_generated_ret set_makefile_specific is_tool_mode cb_tool_mode_adjust cb_tool_mode_access_error cb_def_head cb_show_leaf_mk \
-  cb_check_targets cb_def_tail cb_no_def_head_err cb_def_targets define_targets cb_prepare_templ cb_save_vars cb_restore_vars \
-  make_continue product_version,core)
+  add_generated_ret set_makefile_specific1 set_makefile_specific is_tool_mode cb_tool_mode_adjust cb_tool_mode_access_error \
+  cb_def_head cb_show_leaf_mk cb_check_targets cb_def_tail cb_no_def_head_err cb_def_targets define_targets cb_prepare_templ \
+  cb_save_vars cb_restore_vars make_continue product_version,core)
 
 # if 'toclean' value is non-empty, allow tracing calls to it (with trace namespace: toclean),
 # else - just protect 'toclean' from changes, do not make it's value non-empty - because 'toclean' is checked in ifdefs
