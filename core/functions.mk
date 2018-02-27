@@ -323,6 +323,20 @@ keyed_redefine = $(eval $(if $(findstring simple,$(flavor $1)),$$3^o.$$1 := $$($
   $1)$(newline)endef)$(newline)$(if $(findstring $$,$4),define $$3^n.$$1$(newline)$4$(newline)endef,$$3^n.$$1 := $$4)$(newline)$(findstring \
   override,$(flavor $1)) $$1 = $$(if $$(filter $3,$$($2)),$$($3^n.$1),$$($3^o.$1)))
 
+# define recursive (multi-line) variable $2 as target-specific variable of target(s) $1
+# note: this macro is not needed for non-recursive (i.e. simple) variables, simple target-specific variable may be defined like:
+#  my_target: my_var := $(my_var)
+define_target_specific1 = $(eval $$1: $$2 = $(subst $(newline),$$(newline),$(value $2)))
+
+# same as define_target_specific1, but return target(s) $1
+define_target_specific1_ret = $(define_target_specific1)$1
+
+# define a list of recursive (multi-line) variables as target-specific variables of target(s) $1
+define_target_specific = $(if $(findstring $(space),$2),$(foreach =,$2,$(call define_target_specific1,$1,$=)),$(define_target_specific1))
+
+# same as define_target_specific, but return target(s) $1
+define_target_specific_ret = $(define_target_specific)$1
+
 # protect variables of $(cb_dir)/trace/trace.mk from modification in target makefiles
 # note: do not trace calls to these macros
 # note: 'cb_protected_vars' variable is used here temporary and will be redefined later
@@ -342,4 +356,5 @@ cb_protected_vars += $(call set_global,hide unhide_raw unhide_comments unhide hi
   ver_major ver_minor ver_patch ver_compatible1 ver_compatible \
   get_dir split_dirs1 split_dirs mk_dir_deps lazy_simple \
   define_append=$$1=$$1 define_prepend=$$1=$$1 append_simple=$$1=$$1 prepend_simple=$$1=$$1 \
-  subst_var_refs expand_partially=$$1=$$1 remove_var_refs try_make_simple=$$1;$$2=$$1 keyed_redefine,functions)
+  subst_var_refs expand_partially=$$1=$$1 remove_var_refs try_make_simple=$$1;$$2=$$1 keyed_redefine \
+  define_target_specific1 define_target_specific1_ret define_target_specific define_target_specific_ret,functions)
