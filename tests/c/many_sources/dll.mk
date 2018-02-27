@@ -11,7 +11,7 @@ include $(dir $(lastword $(MAKEFILE_LIST)))make/c.mk
 # define 'test_gen_dir' - where test sources are generated
 include $(top)/n.mk
 
-lib := test
+dll := test
 src := bar.c $(generated) $(test_gen_dir)/foo.c
 
 # define targets and rules how to build them

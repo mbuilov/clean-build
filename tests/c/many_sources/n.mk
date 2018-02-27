@@ -9,13 +9,17 @@
 # included by: gen.mk, lib.mk
 
 # will generate 1000 sources
+# sequence: 1 1 1 1 ...
 n := 1
 n := $n $n $n $n $n $n $n $n $n $n
 n := $n $n $n $n $n $n $n $n $n $n
 n := $n $n $n $n $n $n $n $n $n $n
 
-# temporary counter
-c:=
+# sequence: 0 1 2 3 ...
+seq := $(eval c:=)$(foreach i,$n,$(words $c)$(eval c+=1))
+
+# where test sources are generated
+test_gen_dir := $(gen_dir)/tests/c/many_sources
 
 # make list of generated sources: $(gen_dir)/tests/c/many_sources/f0.c $(gen_dir)/tests/c/many_sources/f1.c ...
-generated := $(patsubst %,$(gen_dir)/tests/c/many_sources/%.c,$(foreach i,$n,f$(words $c)$(eval c+=1)))
+generated := $(patsubst %,$(test_gen_dir)/f%.c,$(seq))

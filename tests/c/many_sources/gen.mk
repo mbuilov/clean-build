@@ -7,7 +7,9 @@
 # generic definitions
 include $(dir $(lastword $(MAKEFILE_LIST)))make/defs.mk
 
-# define 'generated' - list of generated sources: $(gen_dir)/tests/c/many_sources/f0.c $(gen_dir)/tests/c/many_sources/f1.c ...
+# define 'seq'          - sequence of numbers: 0 1 2 ...
+# define 'generated'    - list of generated sources: $(gen_dir)/tests/c/many_sources/f0.c $(gen_dir)/tests/c/many_sources/f1.c ...
+# define 'test_gen_dir' - where test sources are generated
 include $(top)/n.mk
 
 # source template
@@ -20,13 +22,31 @@ int foo$1(void)
 }
 endef
 
-# define target makefile-specific variable 'src_text_templ'
-$(call set_makefile_specific,src_text_templ)
+# define target makefile-specific variables 'src_text_templ' and 'seq'
+# note: 'seq' - defined in $(top)/n.mk
+$(call set_makefile_specific,src_text_templ seq)
 
 # define rules
 # note: use target makefile-specific variable 'src_text_templ' defined above
+# note: 'generated' - defined in $(top)/n.mk
 $(call add_generated_ret,$(generated)):
 	$(call suppress,GEN,$@)$(call print_some_lines,$(call src_text_templ,$(patsubst f%,%,$(basename $(notdir $@))))) > $@
+
+# foo.c template
+# note: 'seq' - target makefile-specific variable registered above via 'set_makefile_specific'
+define foo_templ
+int foo$(subst $(space),(void);$(newline)int foo,$(seq))(void);
+int foo() {return 0
++ foo$(subst $(space),()$(newline)+ foo,$(seq))()
+;}
+endef
+
+# 1) define target-specific recursive variable 'foo_templ'
+# 2) register generated source $(test_gen_dir)/foo.c
+# 3) define a rules for generating $(test_gen_dir)/foo.c
+# note: 'test_gen_dir' - defined in $(top)/n.mk
+$(call add_generated_ret,$(call define_target_specific_ret,$(test_gen_dir)/foo.c,foo_templ)):
+	$(call suppress,GEN,$@)$(call write_lines,$(foo_templ),$@,$(CBLD_MAX_PATH_ARGS))
 
 # define targets and rules how to build them
 $(define_targets)
