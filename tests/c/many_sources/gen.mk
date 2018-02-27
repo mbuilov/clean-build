@@ -12,6 +12,8 @@ include $(dir $(lastword $(MAKEFILE_LIST)))make/defs.mk
 # define 'test_gen_dir' - where test sources are generated
 include $(top)/n.mk
 
+ifndef toclean
+
 # source template
 # $1 - number: 0,1,2...
 define src_text_templ
@@ -47,6 +49,13 @@ endef
 # note: 'test_gen_dir' - defined in $(top)/n.mk
 $(call add_generated_ret,$(call define_target_specific_ret,$(test_gen_dir)/foo.c,foo_templ)):
 	$(call suppress,GEN,$@)$(call write_lines,$(foo_templ),$@,$(CBLD_MAX_PATH_ARGS))
+
+else # toclean
+
+# delete whole directory with generated sources on cleanup
+$(call toclean,$(test_gen_dir))
+
+endif # toclean
 
 # define targets and rules how to build them
 $(define_targets)
