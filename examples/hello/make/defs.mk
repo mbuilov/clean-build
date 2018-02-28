@@ -9,8 +9,8 @@
 
 # Note: This file should be copied AS IS to the directory of the project build system
 
-ifeq (,$(filter-out undefined environment,$(origin cb_prepare_templ)))
+ifeq (,$(filter-out undefined environment,$(origin cb_prepare)))
 include $(dir $(lastword $(MAKEFILE_LIST)))project.mk
 endif
 
-$(cb_prepare_templ)
+$(cb_prepare)
