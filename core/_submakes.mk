@@ -8,13 +8,14 @@
 
 # Note: $(cb_dir)/core/_defs.mk must be included prior this file - this is done by the $(cb_dir)/stub/submakes.mk
 
-# the name of a file to look for, if sub-makefile is specified by its directory path
+# the name of a file to look for - if a sub-makefile is specified by its directory path, i.e. sub-makefile name does not end on
+#  one of $(CBLD_MAKEFILE_PATTERNS)
 CBLD_MAKEFILE_NAME ?= Makefile
 
 # recognized extensions and names of sub-makefiles
 CBLD_MAKEFILE_PATTERNS ?= .mk .mak /makefile /$(CBLD_MAKEFILE_NAME)
 
-# generate code of 'cb_norm_makefiles' macro - multiple patsubsts in $2, such as:
+# generate code of 'cb_norm_makefiles' macro - multiple patsubsts in $2 - for each pattern of $(CBLD_MAKEFILE_PATTERNS), such as:
 # $(patsubst %/Makefile/Makefile,%/Makefile,$(patsubst %.mak/Makefile,%.mak,...,$2))
 cb_norm_makefiles = $(if $1,$(call cb_norm_makefiles,$(wordlist 2,999999,$1),$$(patsubst \
   %$(firstword $1)/$(CBLD_MAKEFILE_NAME),%$(firstword $1),$2)),$2)
@@ -37,7 +38,7 @@ include $m
 endef
 
 # remember new value of 'cb_target_makefile'
-# note: 'tool_mode' value will be processed in 'cb_def_head'
+# note: 'tool_mode' value will be processed in 'cb_def_head', do not protect it here
 # note: trace namespace: core
 ifdef set_global1
 $(eval define cb_include_template$(newline)$(subst include,$$(call \
@@ -47,13 +48,14 @@ endif
 # generate code for processing given list of sub-makefiles
 # $1 - absolute paths to sub-makefiles to include
 # $2 - current value of 'tool_mode'
+# note: restore value of 'cb_include_level' at end
 define cb_include_submakes
 cb_include_level+=>
 $(foreach m,$1,$(cb_include_template))cb_include_level:=$(cb_include_level)
 endef
 
 # remember new value of 'cb_include_level', without tracing calls to it because it is incremented
-# note: assume result of $(call set_global1,...) will give an empty line at end of expansion
+# note: assume result of $(call set_global1,...) will give an empty line at end of expansion (because it's called without namespace name)
 ifdef cb_checking
 $(eval define cb_include_submakes$(newline)$(subst \
   cb_include_level+=>$(newline),cb_include_level+=>$(newline)$$(call set_global1,cb_include_level),$(value \
@@ -66,7 +68,7 @@ ifndef toclean
 $(call define_prepend,cb_include_template,order_deps:=$$(order_deps)$(newline))
 
 # remember new value of 'order_deps', without tracing calls to it because it is incremented
-# note: assume result of $(call set_global1,...) will give an empty line at end of expansion
+# note: assume result of $(call set_global1,...) will give an empty line at end of expansion (because it's called without namespace name)
 ifdef cb_checking
 $(eval define cb_include_template$(newline)$(subst include,$$(call \
   set_global1,order_deps)include,$(value cb_include_template))$(newline)endef)
@@ -101,8 +103,8 @@ endif # cb_checking
 
 # $(cb_target_makefile) is built if all sub-makefiles in list $1 are built
 # note: $(cb_target_makefile)- and other order-dependent makefile names - are .PHONY targets
-# note: use order-only dependency, so normal dependencies of $(cb_target_makefile)-
-#  will be only files - for the checks in $(cb_dir)/core/_defs.mk (where automatic variable $^ is used)
+# note: use order-only dependencies between .PHONY targets because they are not files, though normal dependencies
+#  between .PHONY targets will be processed in the same way
 $(call define_prepend,cb_include_submakes,.PHONY: $$(addsuffix \
   -,$$1)$(newline)$$(cb_target_makefile)-:| $$(addsuffix -,$$1)$(newline))
 
