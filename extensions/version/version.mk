@@ -4,12 +4,12 @@
 # Licensed under GPL version 3 or any later version, see COPYING
 #----------------------------------------------------------------------------------
 
-ifndef cb_prepare_templ
+ifndef cb_prepare
 $(error 'project.mk' of the project build system must be included prior this file)
 endif
 
 # as in $(cb_dir)/stub/defs.mk
-$(cb_prepare_templ)
+$(cb_prepare)
 
 # next variables must be defined for this makefile (in the project configuration makefile, like in $(cb_dir)/stub/project.mk)
 

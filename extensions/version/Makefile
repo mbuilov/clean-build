@@ -4,7 +4,7 @@
 # Licensed under GPL version 3 or any later version, see COPYING
 #----------------------------------------------------------------------------------
 
-ifndef cb_prepare_templ
+ifndef cb_prepare
 $(error 'project.mk' of the project build system must be included prior this file)
 endif
 

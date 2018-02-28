@@ -12,7 +12,7 @@ endif
 tool_mode := T
 
 # as in $(cb_dir)/stub/c.mk
-$(call cb_prepare_templ,c_prepare_app_vars,c_define_app_rules)
+$(call cb_prepare,c_prepare_app_vars,c_define_app_rules)
 
 exe := buildnumber S
 src := buildnumber.c
