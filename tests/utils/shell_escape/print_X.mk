@@ -1,0 +1,3 @@
+$(info $(value X))
+all:
+	@:

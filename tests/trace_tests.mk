@@ -1,3 +1,7 @@
+$(info ================ tracing ==================)
+
+# test tracing macros
+
 c_dir := $(dir $(lastword $(MAKEFILE_LIST)))
 
 include $(c_dir)../trace/trace.mk
@@ -116,4 +120,4 @@ endif
 
 #######################################
 all:
-	@echo success
+	@:

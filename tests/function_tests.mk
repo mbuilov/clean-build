@@ -1,3 +1,7 @@
+$(info ================ functions ================)
+
+# test functions
+
 c_dir := $(dir $(lastword $(MAKEFILE_LIST)))
 
 include $(c_dir)../core/functions.mk
@@ -838,4 +842,4 @@ endif
 
 #######################################
 all:
-	@echo success
+	@:

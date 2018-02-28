@@ -13,4 +13,4 @@ ifeq (,$(filter-out undefined environment,$(origin c_define_app_rules)))
 include $(dir $(lastword $(MAKEFILE_LIST)))c_project.mk
 endif
 
-$(call cb_prepare_templ,c_prepare_app_vars,c_define_app_rules)
+$(call cb_prepare,c_prepare_app_vars,c_define_app_rules)
