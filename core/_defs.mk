@@ -527,7 +527,7 @@ cb_target_makefiles:=
 endif
 
 # a chain of macros which should be evaluated for preparing target templates (i.e. resetting "local" variables - template parameters)
-# $(cb_def_head) was not evaluated yet, the chain is empty (it's checked in 'cb_prepare_templ')
+# $(cb_def_head) was not evaluated yet, the chain is empty (it's checked in 'cb_prepare')
 cb_head_eval:=
 
 # initially reset variable holding a number of section of $(make_continue), it is checked in 'cb_def_head'
@@ -658,7 +658,7 @@ $(eval define cb_def_tail$(newline)$(subst :=,:=$$(newline)cb_def_targets=$$$$(c
 endif
 
 # remember new values of 'cb_head_eval' (which was reset to empty) and 'cb_def_targets' (which produces an error),
-#  do not trace calls to them: value of 'cb_head_eval' is checked in 'cb_prepare_templ' below
+#  do not trace calls to them: value of 'cb_head_eval' is checked in 'cb_prepare' below
 ifdef cb_checking
 $(eval define cb_def_tail$(newline)$(subst $(comma)include,$$(newline)$$(call \
   set_global1,cb_head_eval cb_def_targets)$(comma)include,$(value cb_def_tail))$(newline)endef)
@@ -680,7 +680,7 @@ define_targets = $(eval $(cb_def_targets))
 # NOTE: if $1 is empty, just evaluate $(cb_def_head), if it wasn't evaluated yet
 # NOTE: if $1 is non-empty, expand it now via $(call $1) to not pass any parameters into the expansion
 # NOTE: if $1 is non-empty, then $2 must also be non-empty: $1 - init template (now), $2 - expand template (later)
-cb_prepare_templ = $(if $(value cb_head_eval),,$(eval $(cb_def_head)))$(if $1,$(eval \
+cb_prepare = $(if $(value cb_head_eval),,$(eval $(cb_def_head)))$(if $1,$(eval \
   cb_head_eval=$(value cb_head_eval)$$(eval $$($1)))$(eval \
   cb_def_targets=$$(eval $$($2))$(value cb_def_targets))$(eval $(call $1)))
 
@@ -688,18 +688,13 @@ ifdef set_global
 
 # remember new values of 'cb_head_eval' and 'cb_def_targets'
 # note: trace namespaces: def_code
-$(eval cb_prepare_templ = $(subst $$$(open_brace)eval $$$(open_brace)call $$1,$$(call \
-  set_global,cb_head_eval cb_def_targets,def_code)$$$(open_brace)eval $$$(open_brace)call $$1,$(value cb_prepare_templ)))
+$(eval cb_prepare = $(subst $$$(open_brace)eval $$$(open_brace)call $$1,$$(call \
+  set_global,cb_head_eval cb_def_targets,def_code)$$$(open_brace)eval $$$(open_brace)call $$1,$(value cb_prepare)))
 
 # if 'cb_head_eval' and 'cb_def_targets' are traced, get their original values
 ifdef cb_tracing
-
-$(eval cb_prepare_templ = $(subst \
-  =$$(value cb_head_eval),=$$(call get_global,cb_head_eval),$(value cb_prepare_templ)))
-
-$(eval cb_prepare_templ = $(subst \
-  value cb_def_targets,call get_global$(comma)cb_def_targets,$(value cb_prepare_templ)))
-
+$(eval cb_prepare = $(subst =$$(value cb_head_eval),=$$(call get_global,cb_head_eval),$(value cb_prepare)))
+$(eval cb_prepare = $(subst value cb_def_targets,call get_global$(comma)cb_def_targets,$(value cb_prepare)))
 endif # cb_tracing
 
 endif # set_global
@@ -792,7 +787,7 @@ cb_first_phase_vars += cb_needed_dirs build_system_goals bin_dir obj_dir lib_dir
   cb_add_what_makefile_builds set_makefile_info add_order_deps need_gen_dirs std_target_vars1 cb_check_generated_at std_target_vars \
   add_generated add_generated_ret set_makefile_specific1 set_makefile_specific tool_mode is_tool_mode cb_tool_mode_adjust \
   cb_tool_mode_access_error cb_include_level cb_target_makefiles cb_head_eval cb_make_cont cb_def_head cb_show_leaf_mk cb_def_tail \
-  cb_def_targets define_targets cb_prepare_templ cb_save_vars cb_restore_vars make_continue
+  cb_def_targets define_targets cb_prepare cb_save_vars cb_restore_vars make_continue
 
 # protect macros from modifications in target makefiles,
 # do not trace calls to macros used in ifdefs, exported to the environment of called tools or modified via operator +=
@@ -809,7 +804,7 @@ $(call set_global,cb_project_vars clean_build_version cb_dir clean_build_require
   cb_target_makefile add_mdeps cb_what_makefile_builds cb_what_makefile_builds1 cb_add_what_makefile_builds set_makefile_info \
   add_order_deps=order_deps=order_deps need_gen_dirs std_target_vars1 cb_check_generated_at std_target_vars add_generated \
   add_generated_ret set_makefile_specific1 set_makefile_specific is_tool_mode cb_tool_mode_adjust cb_tool_mode_access_error \
-  cb_def_head cb_show_leaf_mk cb_check_targets cb_def_tail cb_no_def_head_err cb_def_targets define_targets cb_prepare_templ \
+  cb_def_head cb_show_leaf_mk cb_check_targets cb_def_tail cb_no_def_head_err cb_def_targets define_targets cb_prepare \
   cb_save_vars cb_restore_vars make_continue product_version,core)
 
 # if 'toclean' value is non-empty, allow tracing calls to it (with trace namespace: toclean),
