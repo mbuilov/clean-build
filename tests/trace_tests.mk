@@ -7,114 +7,114 @@ c_dir := $(dir $(lastword $(MAKEFILE_LIST)))
 include $(c_dir)../trace/trace.mk
 
 # sample function
-A = $(subst x,y,$1)
+a = $(subst x,y,$1)
 
 #######################################
 # test 'infofn'
 
-X := $(call infofn,$(call A,1 x 2 y 3 z))
+x := $(call infofn,$(call a,1 x 2 y 3 z))
 
 # 'infofn' must not affect returned value
-ifneq ("1 y 2 y 3 z","$X")
+ifneq ("1 y 2 y 3 z","$x")
 $(error test failed!)
 endif
 
-X := $(call infofn,$(call A,1 x 2 y 3 z),test: )
+x := $(call infofn,$(call a,1 x 2 y 3 z),test: )
 
 # 'infofn' must not affect returned value
-ifneq ("1 y 2 y 3 z","$X")
+ifneq ("1 y 2 y 3 z","$x")
 $(error test failed!)
 endif
 
 #######################################
 # test 'dump_vars'
 
-Y := 1$(call dump_vars)2
+y := 1$(call dump_vars)2
 
 # 'dump_vars' must not produce any value
-ifneq ("$Y","12")
+ifneq ("$y","12")
 $(error test failed!)
 endif
 
-Y := 1$(call dump_vars,,test: )2
+y := 1$(call dump_vars,,test: )2
 
 # 'dump_vars' must not produce any value
-ifneq ("$Y","12")
+ifneq ("$y","12")
 $(error test failed!)
 endif
 
-Y := 1$(call dump_vars,X)2
+y := 1$(call dump_vars,x)2
 
 # 'dump_vars' must not produce any value
-ifneq ("$Y","12")
+ifneq ("$y","12")
 $(error test failed!)
 endif
 
-Y := 1$(call dump_vars,X Y,test: )2
+y := 1$(call dump_vars,x y,test: )2
 
 # 'dump_vars' must not produce any value
-ifneq ("$Y","12")
+ifneq ("$y","12")
 $(error test failed!)
 endif
 
 #######################################
 # test 'tracefn'
 
-Z = $(tracefn)$(call A,2x3y)
+z = $(tracefn)$(call a,2x3y)
 
-Y := $Z
+y := $z
 
 # 'tracefn' must not affect returned value
-ifneq ("$Y","2y3y")
+ifneq ("$y","2y3y")
 $(error test failed!)
 endif
 
-Y := $(call Z)
+y := $(call z)
 
 # 'tracefn' must not affect returned value
-ifneq ("$Y","2y3y")
+ifneq ("$y","2y3y")
 $(error test failed!)
 endif
 
-Y := $(call Z,1)
+y := $(call z,1)
 
 # 'tracefn' must not affect returned value
-ifneq ("$Y","2y3y")
+ifneq ("$y","2y3y")
 $(error test failed!)
 endif
 
-Y := $(call Z,1,2)
+y := $(call z,1,2)
 
 # 'tracefn' must not affect returned value
-ifneq ("$Y","2y3y")
+ifneq ("$y","2y3y")
 $(error test failed!)
 endif
 
 #######################################
 # test 'trace_calls'
 
-$(call trace_calls,A)
+$(call trace_calls,a)
 
-X := $(call A,1 x 2 y 3 z,$Y)
+x := $(call a,1 x 2 y 3 z,$Y)
 
 # 'trace_calls' must not affect returned value
-ifneq ("$X","1 y 2 y 3 z")
+ifneq ("$x","1 y 2 y 3 z")
 $(error test failed!)
 endif
 
-define T
+define t
 $(filter X,$1)
 $2-$2
 endef
 
-X := $(call T,Y X z,$Y)
+x := $(call t,Y X z,$Y)
 
-$(call trace_calls,T)
+$(call trace_calls,t)
 
-Y := $(call T,Y X z,$Y)
+y := $(call t,Y X z,$Y)
 
 # 'trace_calls' must not affect returned value
-ifneq ("$X","$Y")
+ifneq ("$x","$y")
 $(error test failed!)
 endif
 

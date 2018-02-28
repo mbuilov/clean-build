@@ -9,169 +9,169 @@ include $(c_dir)../core/functions.mk
 #######################################
 # test 'hide/unhide_raw'
 
-E = 1 $2 3
-H := $(call hide,$(value E))
+e = 1 $2 3
+h := $(call hide,$(value e))
 
 # note: 'unhide_raw' expects no newlines and comments in $1
-U := $(call unhide_raw,$H)
+u := $(call unhide_raw,$h)
 
-ifneq ("$(value E)","$U")
+ifneq ("$(value e)","$u")
 $(error test failed!)
 endif
 
 #######################################
 # test 'unhide_comments'
 
-E = 1 $2 \# 3 \\#
-H := $(call hide,$(value E))
+e = 1 $2 \# 3 \\#
+h := $(call hide,$(value e))
 
 # note: 'unhide_comments' expects no newlines in $1
-U := $(call unhide_comments,$H)
+u := $(call unhide_comments,$h)
 
-ifneq ("$(value E)","$U")
+ifneq ("$(value e)","$u")
 $(error test failed!)
 endif
 
 #######################################
 # test 'unhide'
 
-define E
+define e
 1 $2 \#
 3 \\#
 endef
 
-H := $(call hide,$(value E))
-U := $(call unhide,$H)
+h := $(call hide,$(value e))
+u := $(call unhide,$h)
 
-ifneq ("$(subst $(newline),...,$(value E))","$(subst $(newline),...,$U)")
+ifneq ("$(subst $(newline),...,$(value e))","$(subst $(newline),...,$u)")
 $(error test failed!)
 endif
 
 #######################################
 # test 'hide_spaces'
 
-E = 1 $2 \# 3 \\#
+e = 1 $2 \# 3 \\#
 
-H := $(call hide_spaces,$(value E))
+h := $(call hide_spaces,$(value e))
 
-ifneq (1,$(words $H))
+ifneq (1,$(words $h))
 $(error test failed!)
 endif
 
-U := $(call unhide,$H)
+u := $(call unhide,$h)
 
-ifneq ("$(value E)","$U")
+ifneq ("$(value e)","$u")
 $(error test failed!)
 endif
 
 #######################################
 # test 'hide_tabs'
 
-E = 1	$2 \# 3 \\#
+e = 1	$2 \# 3 \\#
 
-H := $(call hide_tabs,$(value E))
+h := $(call hide_tabs,$(value e))
 
-ifneq (4,$(words $H))
+ifneq (4,$(words $h))
 $(error test failed!)
 endif
 
-U := $(call unhide,$H)
+u := $(call unhide,$h)
 
-ifneq ("$(value E)","$U")
+ifneq ("$(value e)","$u")
 $(error test failed!)
 endif
 
 #######################################
 # test 'hide_tab_spaces'
 
-E = 1	$2 \# 3 \\#
+e = 1	$2 \# 3 \\#
 
-H := $(call hide_tab_spaces,$(value E))
+h := $(call hide_tab_spaces,$(value e))
 
-ifneq (1,$(words $H))
+ifneq (1,$(words $h))
 $(error test failed!)
 endif
 
-U := $(call unhide,$H)
+u := $(call unhide,$h)
 
-ifneq ("$(value E)","$U")
+ifneq ("$(value e)","$u")
 $(error test failed!)
 endif
 
 #######################################
 # test 'tolower'
 
-E = 1A B C D E F G H I J K L M N O P Q R S T U V W X Y Z A B C D E F G H I J K L M N O P Q R S T U V W X Y Z2
+e = 1A B C D E F G H I J K L M N O P Q R S T U V W X Y Z A B C D E F G H I J K L M N O P Q R S T U V W X Y Z2
 
-H := $(call tolower,$(value E))
+h := $(call tolower,$(value e))
 
-ifneq ("$H","1a b c d e f g h i j k l m n o p q r s t u v w x y z a b c d e f g h i j k l m n o p q r s t u v w x y z2")
+ifneq ("$h","1a b c d e f g h i j k l m n o p q r s t u v w x y z a b c d e f g h i j k l m n o p q r s t u v w x y z2")
 $(error test failed!)
 endif
 
 #######################################
 # test 'toupper'
 
-E = 1a b c d e f g h i j k l m n o p q r s t u v w x y z a b c d e f g h i j k l m n o p q r s t u v w x y z2
+e = 1a b c d e f g h i j k l m n o p q r s t u v w x y z a b c d e f g h i j k l m n o p q r s t u v w x y z2
 
-H := $(call toupper,$(value E))
+h := $(call toupper,$(value e))
 
-ifneq ("$H","1A B C D E F G H I J K L M N O P Q R S T U V W X Y Z A B C D E F G H I J K L M N O P Q R S T U V W X Y Z2")
+ifneq ("$h","1A B C D E F G H I J K L M N O P Q R S T U V W X Y Z A B C D E F G H I J K L M N O P Q R S T U V W X Y Z2")
 $(error test failed!)
 endif
 
 #######################################
 # test 'repl09'
 
-E = 0a 1 2m3 z4 5r y678i9
+e = 0a 1 2m3 z4 5r y678i9
 
-H := $(call repl09,$(value E))
+h := $(call repl09,$(value e))
 
-ifneq ("$H",".a . .m. z. .r y...i.")
+ifneq ("$h",".a . .m. z. .r y...i.")
 $(error test failed!)
 endif
 
 #######################################
 # test 'repl09AZ'
 
-E = A B CDEFGH0aI JKLMN O1PQ R2STmU3 Vz4 W5r XYy678iZ9
+e = A B CDEFGH0aI JKLMN O1PQ R2STmU3 Vz4 W5r XYy678iZ9
 
-H := $(call repl09AZ,$(value E))
+h := $(call repl09AZ,$(value e))
 
-ifneq ("$H",". . .......a. ..... .... ....m.. .z. ..r ..y...i..")
+ifneq ("$h",". . .......a. ..... .... ....m.. .z. ..r ..y...i..")
 $(error test failed!)
 endif
 
 #######################################
 # test 'padto'
 
-H1 := $(call padto,A)
-H2 := $(call padto,AB)
-H3 := $(call padto,AB3)
-H4 := $(call padto,AB3C)
-H5 := $(call padto,AB3CD)
-H6 := $(call padto,AB3CD6)
-H7 := $(call padto,AB3DE6F)
+h1 := $(call padto,A)
+h2 := $(call padto,AB)
+h3 := $(call padto,AB3)
+h4 := $(call padto,AB3C)
+h5 := $(call padto,AB3CD)
+h6 := $(call padto,AB3CD6)
+h7 := $(call padto,AB3DE6F)
 
-ifneq ("$(H1)","       ")
+ifneq ("$(h1)","       ")
 $(error test failed!)
 endif
-ifneq ("$(H2)","      ")
+ifneq ("$(h2)","      ")
 $(error test failed!)
 endif
-ifneq ("$(H3)","     ")
+ifneq ("$(h3)","     ")
 $(error test failed!)
 endif
-ifneq ("$(H4)","    ")
+ifneq ("$(h4)","    ")
 $(error test failed!)
 endif
-ifneq ("$(H5)","   ")
+ifneq ("$(h5)","   ")
 $(error test failed!)
 endif
-ifneq ("$(H6)","  ")
+ifneq ("$(h6)","  ")
 $(error test failed!)
 endif
-ifneq ("$(H7)"," ")
+ifneq ("$(h7)"," ")
 $(error test failed!)
 endif
 
@@ -359,9 +359,9 @@ endif
 
 fn = <$6>($1)-$2-$3-$4-$5$(if $7,+)
 
-T := $(call xargs,fn,a b c d e f g h i j k l m n o p,3,1,2,3,4,S)
+t := $(call xargs,fn,a b c d e f g h i j k l m n o p,3,1,2,3,4,S)
 
-ifneq ("<>(a b c)-1-2-3-4+S<S>(d e f)-1-2-3-4+S<S>(g h i)-1-2-3-4+S<S>(j k l)-1-2-3-4+S<S>(m n o)-1-2-3-4+S<S>(p)-1-2-3-4","$T")
+ifneq ("<>(a b c)-1-2-3-4+S<S>(d e f)-1-2-3-4+S<S>(g h i)-1-2-3-4+S<S>(j k l)-1-2-3-4+S<S>(m n o)-1-2-3-4+S<S>(p)-1-2-3-4","$t")
 $(error test failed!)
 endif
 
@@ -370,9 +370,9 @@ endif
 
 fn = $(if $6,!)($1)-$2-$3-$4-$5$(if $7,+)
 
-T := $(call xcmd,fn,a b c d e f g h i j k l m n o p,3,1,2,3,4)
+t := $(call xcmd,fn,a b c d e f g h i j k l m n o p,3,1,2,3,4)
 
-define E
+define e
 (a b c)-1-2-3-4+
 !(d e f)-1-2-3-4+
 !(g h i)-1-2-3-4+
@@ -381,7 +381,7 @@ define E
 !(p)-1-2-3-4
 endef
 
-ifneq ("$(value E)","$T")
+ifneq ("$(value e)","$t")
 $(error test failed!)
 endif
 
@@ -639,37 +639,37 @@ endif
 #######################################
 # test 'mk_dir_deps'
 
-define H
+define h
 1/2:| 1
 1/2/3:| 1/2
 endef
 
-ifneq ("$(value H)","$(call mk_dir_deps,1 1/2 1/2/3)")
+ifneq ("$(value h)","$(call mk_dir_deps,1 1/2 1/2/3)")
 $(error test failed!)
 endif
 
-define H
+define h
 xx/1/2:| xx/1
 xx/1/2/3:| xx/1/2
 endef
 
-ifneq ("$(value H)","$(call mk_dir_deps,1 1/2 1/2/3,xx/)")
+ifneq ("$(value h)","$(call mk_dir_deps,1 1/2 1/2/3,xx/)")
 $(error test failed!)
 endif
 
-define H
+define h
 1/2:| 1
 endef
 
-ifneq ("$(value H)","$(call mk_dir_deps,1 1/2)")
+ifneq ("$(value h)","$(call mk_dir_deps,1 1/2)")
 $(error test failed!)
 endif
 
-define H
+define h
 /xx/1/2:| /xx/1
 endef
 
-ifneq ("$(value H)","$(call mk_dir_deps,1 1/2,/xx/)")
+ifneq ("$(value h)","$(call mk_dir_deps,1 1/2,/xx/)")
 $(error test failed!)
 endif
 
@@ -680,163 +680,163 @@ endif
 #######################################
 # test 'lazy_simple'
 
-A = $(call lazy_simple,A,$B+$C)
+a = $(call lazy_simple,a,$b+$c)
 
-B := 1
-C := 2
+b := 1
+c := 2
 
-ifneq ("1+2","$A")
+ifneq ("1+2","$a")
 $(error test failed!)
 endif
 
-ifneq ("simple","$(flavor A)")
+ifneq ("simple","$(flavor a)")
 $(error test failed!)
 endif
 
 #######################################
 # test 'define_append'
 
-A = 1
+a = 1
 
-ifneq ("","$(call define_append,A,$$B)")
+ifneq ("","$(call define_append,a,$$b)")
 $(error test failed!)
 endif
 
-ifneq ("1$$B","$(value A)")
+ifneq ("1$$b","$(value a)")
 $(error test failed!)
 endif
 
-ifneq ("recursive","$(flavor A)")
+ifneq ("recursive","$(flavor a)")
 $(error test failed!)
 endif
 
 #######################################
 # test 'define_prepend'
 
-A = 1
+a = 1
 
-ifneq ("","$(call define_prepend,A,$$B)")
+ifneq ("","$(call define_prepend,a,$$b)")
 $(error test failed!)
 endif
 
-ifneq ("$$B1","$(value A)")
+ifneq ("$$b1","$(value a)")
 $(error test failed!)
 endif
 
-ifneq ("recursive","$(flavor A)")
+ifneq ("recursive","$(flavor a)")
 $(error test failed!)
 endif
 
 #######################################
 # test 'append_simple'
 
-A := 1
+a := 1
 
-ifneq ("","$(call append_simple,A,2)")
+ifneq ("","$(call append_simple,a,2)")
 $(error test failed!)
 endif
 
-ifneq ("12","$A")
+ifneq ("12","$a")
 $(error test failed!)
 endif
 
-ifneq ("simple","$(flavor A)")
+ifneq ("simple","$(flavor a)")
 $(error test failed!)
 endif
 
 #######################################
 # test 'prepend_simple'
 
-A := 1
+a := 1
 
-ifneq ("","$(call prepend_simple,A,2)")
+ifneq ("","$(call prepend_simple,a,2)")
 $(error test failed!)
 endif
 
-ifneq ("21","$A")
+ifneq ("21","$a")
 $(error test failed!)
 endif
 
-ifneq ("simple","$(flavor A)")
+ifneq ("simple","$(flavor a)")
 $(error test failed!)
 endif
 
 #######################################
 # test 'subst_var_refs'
 
-H = 1$(D)+$(BB)+4
-D = 2
-BB = a b
+h = 1$(d)+$(bb)+4
+d = 2
+bb = a b
 
-ifneq ("12+a b+4","$(call subst_var_refs,$(value H),D BB)")
+ifneq ("12+a b+4","$(call subst_var_refs,$(value h),d bb)")
 $(error test failed!)
 endif
 
 #######################################
 # test 'expand_partially'
 
-H = 1$(D)+$(BB)+4
-D = 2
-BB = a b
+h = 1$(d)+$(bb)+4
+d = 2
+bb = a b
 
-ifneq ("","$(call expand_partially,H,D BB)")
+ifneq ("","$(call expand_partially,h,d bb)")
 $(error test failed!)
 endif
 
-ifneq ("12+a b+4","$(value H)")
+ifneq ("12+a b+4","$(value h)")
 $(error test failed!)
 endif
 
-ifneq ("recursive","$(flavor H)")
+ifneq ("recursive","$(flavor h)")
 $(error test failed!)
 endif
 
 #######################################
 # test 'remove_var_refs'
 
-H = 1$(D)+$(BB)+4
+h = 1$(d)+$(bb)+4
 
-ifneq ("1++4","$(call remove_var_refs,$(value H),D BB)")
+ifneq ("1++4","$(call remove_var_refs,$(value h),d bb)")
 $(error test failed!)
 endif
 
 #######################################
 # test 'try_make_simple'
 
-H = 1$(D)+$(BB)+4
-D := 2
-BB := a b
+h = 1$(d)+$(bb)+4
+d := 2
+bb := a b
 
-ifneq ("","$(call try_make_simple,H,D BB)")
+ifneq ("","$(call try_make_simple,h,d bb)")
 $(error test failed!)
 endif
 
-ifneq ("12+a b+4","$(value H)")
+ifneq ("12+a b+4","$(value h)")
 $(error test failed!)
 endif
 
-ifneq ("simple","$(flavor H)")
+ifneq ("simple","$(flavor h)")
 $(error test failed!)
 endif
 
 #######################################
 # test 'keyed_redefine'
 
-A := 1
+a := 1
 
-ifneq ("","$(call keyed_redefine,A,K,k1,2)")
+ifneq ("","$(call keyed_redefine,a,k,k1,2)")
 $(error test failed!)
 endif
 
-K := kd
+k := kd
 
-ifneq ("1","$A")
+ifneq ("1","$a")
 $(error test failed!)
 endif
 
-K := k1
+k := k1
 
-ifneq ("2","$A")
+ifneq ("2","$a")
 $(error test failed!)
 endif
 
