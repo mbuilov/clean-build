@@ -120,7 +120,7 @@ ifdef cb_checking
 env_remember += $(set_global)
 env_remember1 = $(if $1,$(eval cb_changed_env_vars+=$$1)$(call set_global,cb_changed_env_vars))
 else
-env_remember1 = $(eval cb_changed_env_vars+=$$1)
+env_remember1 = $(if $1,$(eval cb_changed_env_vars+=$$1))
 endif
 
 # trace calls to macros, except those used in ifdefs, exported to the environment of called tools or modified via operator +=
