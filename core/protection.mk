@@ -113,7 +113,7 @@ cb_changed_env_vars:=
 
 # remember new values of variables possibly defined in the environment
 # $1 - list of variable names
-env_remember = $(call env_remember1,$(foreach =,$1,$(if $(findstring file,$(origin $=.^e)),$(eval $$=.^e:=$$(value $$=))$=)))
+env_remember = $(call env_remember1,$(strip $(foreach =,$1,$(if $(findstring file,$(origin $=.^e)),$(eval $$=.^e:=$$(value $$=))$=))))
 
 # update value of 'cb_changed_env_vars'
 ifdef cb_checking
