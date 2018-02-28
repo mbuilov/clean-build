@@ -535,13 +535,13 @@ cb_make_cont:=
 
 # ***********************************************
 # code to $(eval ...) at the beginning of each target makefile
-# NOTE: $(make_continue) before expanding $(cb_def_head) adds 2 to 'cb_make_cont' list (which is normally empty or contains 1 1...)
-#  - so we know if $(cb_def_head) was expanded from $(make_continue) - remove 2 from 'cb_make_cont' list in that case
-#  - if $(cb_def_head) was expanded not from $(make_continue) - no 2 in $(cb_make_cont) - reset 'cb_make_cont' variable
+# NOTE: $(make_continue) before expanding $(cb_def_head) adds ~ to 'cb_make_cont' list (which is normally empty or contains 1 1...)
+#  - so we know if $(cb_def_head) was expanded from $(make_continue) - remove ~ from 'cb_make_cont' list in that case
+#  - if $(cb_def_head) was expanded not from $(make_continue) - no ~ in $(cb_make_cont) - reset 'cb_make_cont' variable
 define cb_def_head
 $(cb_tool_mode_adjust)
-ifneq (,$(findstring 2,$(cb_make_cont)))
-cb_make_cont:=$$(subst 2,1,$$(cb_make_cont))
+ifneq (,$(findstring ~,$(cb_make_cont)))
+cb_make_cont:=$$(subst ~,1,$$(cb_make_cont))
 else
 cb_make_cont:=
 cb_head_eval=$$(eval $$(cb_def_head))
@@ -552,11 +552,11 @@ endef
 ifdef cb_mdebug
 
 # show debug info prior defining targets, e.g.: ">>>>/project/one.mk+2"
-# note: $(cb_make_cont) contains 2 if inside $(make_continue)
+# note: $(cb_make_cont) contains ~ if inside $(make_continue)
 # note: 'cb_colorize' - defined in included above $(cb_dir)/core/suppress.mk
 cb_show_leaf_mk = $(info $(call cb_colorize,LEAF,LEAF)  $(call cb_colorize,LEVEL,$(subst \
   $(space),,$(cb_include_level)))$(dir $(cb_target_makefile))$(call cb_colorize,LEAF,$(notdir \
-  $(cb_target_makefile)))$(if $(findstring 2,$(cb_make_cont)),+$(words $(cb_make_cont))))
+  $(cb_target_makefile)))$(if $(findstring ~,$(cb_make_cont)),+$(words $(cb_make_cont))))
 
 # for the 'cb_colorize' macro called in 'cb_show_leaf_mk'
 CBLD_LEAF_COLOR  ?= [33;1m
@@ -639,8 +639,8 @@ endif # set_global1
 # ***********************************************
 # code to $(eval ...) at the end of each target makefile
 # include $(cb_dir)/core/all.mk only if $(cb_include_level) is empty and not inside the call of $(make_continue)
-# note: $(make_continue) before expanding $(cb_def_tail) adds 2 to $(cb_make_cont) list
-cb_def_tail = $(if $(findstring 2,$(cb_make_cont)),,$(if $(cb_include_level),cb_head_eval:=,include $(cb_dir)/core/all.mk))
+# note: $(make_continue) before expanding $(cb_def_tail) adds ~ to $(cb_make_cont) list
+cb_def_tail = $(if $(findstring ~,$(cb_make_cont)),,$(if $(cb_include_level),cb_head_eval:=,include $(cb_dir)/core/all.mk))
 
 # prepend 'cb_def_tail' with $(cb_check_at_tail) - it is defined in $(cb_dir)/core/protection.mk
 ifdef cb_checking
@@ -734,7 +734,7 @@ endif
 # ...
 # $(define_targets)
 
-# $(make_continue) is equivalent of: ... cb_make_cont+=2 $(TAIL) cb_make_cont=$(subst 2,1,$(cb_make_cont)) $(HEAD) ...
+# $(make_continue) is equivalent of: ... cb_make_cont+=~ $(TAIL) cb_make_cont=$(subst ~,1,$(cb_make_cont)) $(HEAD) ...
 # $1 - names of "local" variables to pass through $(make_continue) - all "local" variables are reset by default in $(define_targets)
 # 1) increment cb_make_cont
 # 2) evaluate tail code with $(define_targets)
@@ -743,7 +743,7 @@ endif
 # note: $(call define_targets) with empty arguments list to not pass any to 'cb_def_tail'
 # note: $(call cb_head_eval) with empty arguments list to not pass any to 'cb_def_head'
 # note: $(make_continue) must not expand to any text - to be able to call it with just $(make_continue) in target makefile
-make_continue = $(if $1,$(cb_save_vars))$(eval cb_make_cont+=2)$(call define_targets)$(call cb_head_eval)$(if $1,$(cb_restore_vars))
+make_continue = $(if $1,$(cb_save_vars))$(eval cb_make_cont+=~)$(call define_targets)$(call cb_head_eval)$(if $1,$(cb_restore_vars))
 
 # remember new value of 'cb_make_cont' (without tracing calls to it)
 ifdef cb_checking

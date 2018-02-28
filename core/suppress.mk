@@ -125,11 +125,11 @@ endif # !quiet (verbose)
 # not cleaning up: define 'cb_makefile_info_templ'
 #  - for given target(s) $1, define target-specific variables for printing makefile info
 # $(C.^) - makefile which specifies how to build the target and a number of section in the makefile after a call to $(make_continue)
-# note: $(cb_make_cont) list is empty or 1 1 1 .. 1 2 (inside 'make_continue') or 1 1 1 1... (before 'make_continue'):
-# note: 'make_continue' is equivalent of: ... cb_make_cont+=2 $(TAIL) cb_make_cont=$(subst 2,1,$(cb_make_cont)) $(HEAD) ...
+# note: $(cb_make_cont) list is empty or 1 1 1 .. 1 ~ (inside 'make_continue') or 1 1 1 1... (before 'make_continue'):
+# note: 'make_continue' is equivalent of: ... cb_make_cont+=~ $(TAIL) cb_make_cont=$(subst ~,1,$(cb_make_cont)) $(HEAD) ...
 ifdef cb_infomf
 
-cb_makefile_info_templ = $1:C.^:=$$(cb_target_makefile)$(subst +0,,+$(words $(subst 2,,$(cb_make_cont))))
+cb_makefile_info_templ = $1:C.^:=$$(cb_target_makefile)$(subst +0,,+$(words $(subst ~,,$(cb_make_cont))))
 
 else # !cb_infomf
 
