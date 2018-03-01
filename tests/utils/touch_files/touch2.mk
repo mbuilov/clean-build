@@ -1,4 +1,4 @@
-# check that touch.mk has created files
+# touch pre-existing files -> update creation date
 
 # note: do not use full project infrastructure
 
@@ -26,8 +26,13 @@ g_dir := $(gen_dir)/touch_files
 # define 'files' variable
 include $(a_dir)/files.mk
 
-# 'all' goal will fail if any of $(files) or $(g_dir)/touched.txt files was not created by the touch.mk
-all: $(files) $(g_dir)/touched.txt
+# define target-specific variable 'files' for use in the rule
+$(g_dir)/touched2.txt: files := $(files)
+$(call add_generated_ret,$(g_dir)/touched2.txt):
+	$(call suppress,TOUCH,$@)$(call touch_files,$(files) $@)
+
+# just delete whole 'g_dir' directory on cleanup
+$(call toclean,$(g_dir))
 
 # this macro must be expanded at end of target makefile, as required by 'cb_prepare' expanded at head
 $(define_targets)

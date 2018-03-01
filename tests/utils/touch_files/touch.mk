@@ -1,3 +1,5 @@
+# touch non-existing files -> create them
+
 # note: do not use full project infrastructure
 
 # absolute path to the directory of this makefile
@@ -27,8 +29,7 @@ include $(a_dir)/files.mk
 # define target-specific variable 'files' for use in the rule
 $(g_dir)/touched.txt: files := $(files)
 $(call add_generated_ret,$(g_dir)/touched.txt):
-	$(call suppress,GEN,$@)$(call touch_files,$(files))
-	$(quiet)$(call touch_files,$@)
+	$(call suppress,TOUCH,$@)$(call touch_files,$(files) $@)
 
 # just delete whole 'g_dir' directory on cleanup
 $(call toclean,$(g_dir))

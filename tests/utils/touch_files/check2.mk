@@ -1,4 +1,4 @@
-# check that touch.mk has created files
+# check that touch2.mk has updated files creation date
 
 # note: do not use full project infrastructure
 
@@ -26,8 +26,13 @@ g_dir := $(gen_dir)/touch_files
 # define 'files' variable
 include $(a_dir)/files.mk
 
-# 'all' goal will fail if any of $(files) or $(g_dir)/touched.txt files was not created by the touch.mk
-all: $(files) $(g_dir)/touched.txt
+# check that creation date of $(files) - updated by touch2.mk - is newer than $(g_dir)/touched.txt
+$(g_dir)/touched.txt: $(files) $(g_dir)/touched2.txt
+	$(if $(filter-out $?,$^),$(error files $(filter-out $?,$^) must be newer than $@))
+
+# generate $(g_dir)/touched3.txt
+$(call add_generated_ret,$(g_dir)/touched3.txt): $(g_dir)/touched.txt
+	$(call suppress,TOUCH,$@)$(call touch_files,$@)
 
 # this macro must be expanded at end of target makefile, as required by 'cb_prepare' expanded at head
 $(define_targets)
