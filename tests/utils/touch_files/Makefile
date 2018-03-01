@@ -10,7 +10,7 @@ all clean distclean: c_dir := $(dir $(lastword $(MAKEFILE_LIST)))
 all clean distclean:
 	$(MAKE) -f $(c_dir)touch.mk $@
 	$(if $(filter all,$@),$(MAKE) -f $(c_dir)check.mk)
-	$(MAKE) -f $(c_dir)touch2.mk $@
-	$(MAKE) -f $(c_dir)check2.mk $@
+	$(if $(filter all,$@),$(MAKE) -f $(c_dir)touch.mk test_phase:=2)
+	$(if $(filter all,$@),$(MAKE) -f $(c_dir)check.mk test_phase:=2)
 
 .PHONY: all clean distclean

@@ -1,4 +1,8 @@
-# check that touch.mk has created files
+# first test phase:  check that touch.mk has created files
+# second test phase: check that touch.mk has updated files creation date - they are not older than touched1.txt created on first phase
+ifneq (command line,$(origin test_phase))
+test_phase := 1
+endif
 
 # note: do not use full project infrastructure
 
@@ -26,8 +30,14 @@ g_dir := $(gen_dir)/touch_files
 # define 'files' variable
 include $(a_dir)/files.mk
 
-# 'all' goal will fail if any of $(files) or $(g_dir)/touched.txt files was not created by the touch.mk
-all: $(files) $(g_dir)/touched.txt
+# 'all' goal will fail if any of $(files) or $(g_dir)/touched1.txt files was not created by the touch.mk
+all: $(files) $(g_dir)/touched1.txt
+
+# check that creation date of $(files) is not older than $(g_dir)/touched1.txt
+ifeq (2,$(test_phase))
+$(files): $(g_dir)/touched1.txt
+	$(error file $@ must not be older than $<)
+endif
 
 # this macro must be expanded at end of target makefile, as required by 'cb_prepare' expanded at head
 $(define_targets)

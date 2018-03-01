@@ -1,4 +1,8 @@
-# touch non-existing files -> create them
+# first test phase:  touch non-existing files -> create them, touched1.txt should be created the last
+# second test phase: touch existing files     -> update their creation date, create touched2.txt
+ifneq (command line,$(origin test_phase))
+test_phase := 1
+endif
 
 # note: do not use full project infrastructure
 
@@ -26,10 +30,14 @@ g_dir := $(gen_dir)/touch_files
 # define 'files' variable
 include $(a_dir)/files.mk
 
-# define target-specific variable 'files' for use in the rule
-$(g_dir)/touched.txt: files := $(files)
-$(call add_generated_ret,$(g_dir)/touched.txt):
-	$(call suppress,TOUCH,$@)$(call touch_files,$(files) $@)
+# define target-specific variable 'files' for use in next rule
+$(g_dir)/touched$(test_phase).txt: files := $(files)
+
+# note: create 'touched$(test_phase).txt' file _after_ $(files) - next we will update them and check that they are not
+#  older than 'touched$(test_phase).txt'
+$(call add_generated_ret,$(g_dir)/touched$(test_phase).txt):
+	$(call suppress,TOUCH,$@)$(call touch_files,$(files))
+	$(quiet)$(call touch_files,$@)
 
 # just delete whole 'g_dir' directory on cleanup
 $(call toclean,$(g_dir))
