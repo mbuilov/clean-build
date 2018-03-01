@@ -13,14 +13,14 @@ CBLD_BUILD ?= $(a_dir)/build
 #  (protected from changes), so 'a_dir' does not need to be redefined as target-specific variable
 include $(a_dir)/../../../core/_defs.mk
 
-# this must be expanded at head of target makefile
+# this must be expanded at head of any target makefile
 # note: $(define_targets) must be expanded at tail of target makefile
 $(cb_prepare)
 
 # directory where to generate files
-# note: 'gen_dir' - defined in $(a_dir)/../../core/_defs.mk
-# note: here 'shell_escape' - arbitrary name, should be unique to avoid names collision
-# note: 'g_dir' variable will be reset just before second "rule execution" phase
+# note: 'gen_dir' - defined in included above core/_defs.mk
+# note: here 'shell_escape' - arbitrary directory name, should be unique to avoid names collision
+# note: 'g_dir' variable will be reset just before second "rule execution" make phase
 g_dir := $(gen_dir)/shell_escape
 
 # define target-specific recursive macro (function) 'test'
@@ -39,7 +39,7 @@ $(g_dir)/out.txt: t8  := 1"2
 $(g_dir)/out.txt: t9  := "2
 $(g_dir)/out.txt: t10 := '2'
 $(g_dir)/out.txt: t11 := \'2\'
-$(g_dir)/out.txt: t12 := } '\#$$2' " (e) " {\\+\*} \( \a ^$$%\#@?
+$(g_dir)/out.txt: t12 := } '\#$$2' " (e) " {\\\\"+\*} \( \a ^$$%\#@?
 
 # register generated file '$(g_dir)/out.txt', define a rule for generating it - call target-specific macro 'test' defined above
 # note: variable 'g_dir' is not available in the "rule execution" phase, so use instead automatic variable $@
