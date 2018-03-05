@@ -221,7 +221,7 @@ $3 $1 = $$(warning $$(mk_trace_level.^l) $1:=$$(call \
   format_traced_value,$$($2),<,>,\,))$$($2)
 else
 $(keyword_define) $2
-$(value $1)
+$(subst define ,$$(keyword_define) ,$(subst $(newline)endef,$(newline)$$(keyword_endef),$(subst \,$$(backslash),$(value $1))))
 $(keyword_endef)
 $3 $(keyword_define) $1
 $$(foreach tlvl=,$$(words $$(mk_trace_level.^l)),$$(warning \
@@ -245,7 +245,7 @@ $3 $1 = $$(warning $$(mk_trace_level.^l) [33;1m$1[36m:=$$(call \
   format_traced_value,$$($2),[31;1m<[m,[31;1m>[m,[31m\[m))$$($2)
 else
 $(keyword_define) $2
-$(value $1)
+$(subst define ,$$(keyword_define) ,$(subst $(newline)endef,$(newline)$$(keyword_endef),$(subst \,$$(backslash),$(value $1))))
 $(keyword_endef)
 $3 $(keyword_define) $1
 $$(foreach tlvl=,$$(words $$(mk_trace_level.^l)),$$(warning \
