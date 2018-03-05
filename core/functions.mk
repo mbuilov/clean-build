@@ -257,10 +257,17 @@ mk_dir_deps = $(if $(findstring $(space),$1),$(subst :|,:| $2,$(subst \
 #  my_macro = $(call lazy_simple,my_macro,$(my_value))
 lazy_simple = $(eval $(findstring override,$(origin $1)) $$1:=$$2)$($1)
 
+# return code for defining recursive (multi-line) variable $1 with (multi-line) value $2
+# note: returned code should be evaluated via $(eval)
+# note: $1 may be expanded at time of eval to get variable name, for example, if $v contains variable name:
+#  $(eval $(call define_multiline,$$v,$(value $v)))
+define_multiline = define $1$(newline)$(subst define ,$$(keyword_define) ,$(subst \
+  $(newline)endef,$(newline)$$(keyword_endef),$(subst \,$$(backslash),$2)))$(newline)endef
+
 # append/prepend text $2 to the value of variable $1
 # note: do not adds a space between joined $1 and $2, unlike operator += does
-define_append = $(eval define $$1$(newline)$(value $1)$2$(newline)endef)
-define_prepend = $(eval define $$1$(newline)$2$(value $1)$(newline)endef)
+define_append = $(eval $(call define_multiline,$$1,$(value $1)$2))
+define_prepend = $(eval $(call define_multiline,$$1,$2$(value $1)))
 
 # append/prepend simple (already expanded) text $2 to the value of variable $1
 # note: do not adds a space between joined $1 and $2, unlike operator += does
@@ -270,20 +277,20 @@ prepend_simple = $(if $(findstring simple,$(flavor $1)),$(eval $$1:=$$2$$($$1)),
 # substitute references to variables with their values in given text
 # $1 - text
 # $2 - names of variables
-# note: assume references to variables $2 are not escaped in $1, e.g.: ---$$(var)--
-# note: also may not work correctly for computed variable names, e.g.: ---$(v$(ar))--
+# note: assume references to variables $2 are not escaped in $1, e.g. not expecting: ---$$(var)--
+# note: also may not work correctly for computed variable names, e.g. not expecting: ---$(v$(ar))--
 subst_var_refs = $(if $2,$(call subst_var_refs,$(subst $$($(firstword $2)),$(value $(firstword $2)),$1),$(wordlist 2,999999,$2)),$1)
 
 # redefine macro $1 partially expanding it - replace references to variables in list $2 with their values
-# note: assume references to variables $2 are not escaped in $(value $1), e.g.: ---$$(var)--
-# note: also may not work correctly for computed variable names, for example:   ---$(v$(ar))--
-expand_partially = $(eval define $$1$(newline)$(call subst_var_refs,$(value $1),$2)$(newline)endef)
+# note: assume references to variables $2 are not escaped in $(value $1), e.g. not expecting: ---$$(var)--
+# note: also may not work correctly for computed variable names, for example not expecting:   ---$(v$(ar))--
+expand_partially = $(eval $(call define_multiline,$$1,$(call subst_var_refs,$(value $1),$2)))
 
 # remove references to variables from given text
 # $1 - text
 # $2 - names of variables
-# note: assume references to variables $2 are not escaped in $1, e.g.: ---$$(var)--
-# note: also may not work correctly for computed variable names, e.g.: ---$(v$(ar))--
+# note: assume references to variables $2 are not escaped in $1, e.g. not expecting: ---$$(var)--
+# note: also may not work correctly for computed variable names, e.g. not expecting: ---$(v$(ar))--
 remove_var_refs = $(if $2,$(call remove_var_refs,$(subst $$($(firstword $2)),,$1),$(wordlist 2,999999,$2)),$1)
 
 # try to redefine macro as a simple (i.e. non-recursive) variable
@@ -292,8 +299,8 @@ remove_var_refs = $(if $2,$(call remove_var_refs,$(subst $$($(firstword $2)),,$1
 # 1) check that variables in $2 are all simple
 # 2) check that there are no references to other variables in the value of macro $1
 # 3) re-define macro $1 as a simple (non-recursive) variable
-# note: assume references to variables $2 are not escaped in $(value $1), e.g.: ---$$(var)--
-# note: also may not work correctly for computed variable names, for example:   ---$(v$(ar))--
+# note: assume references to variables $2 are not escaped in $(value $1), e.g. not expecting: ---$$(var)--
+# note: also may not work correctly for computed variable names, for example not expecting:   ---$(v$(ar))--
 try_make_simple = $(if $(filter $(words $2),$(words $(filter simple,$(foreach =,$2,$(flavor $=))))),$(if \
   $(findstring $$,$(call remove_var_refs,$(value $1),$2)),,$(eval $$1:=$$($$1))))
 
@@ -319,23 +326,23 @@ try_make_simple = $(if $(filter $(words $2),$(words $(filter simple,$(foreach =,
 #  my_depend: K := a
 #  my_target:; $(info $@:A=$A) # 2
 #  my_depend:; $(info $@:A=$A) # 1
-keyed_redefine = $(eval $(if $(findstring simple,$(flavor $1)),$$3^o.$$1 := $$($$1),define $$3^o.$$1$(newline)$(value \
-  $1)$(newline)endef)$(newline)$(if $(findstring $$,$4),define $$3^n.$$1$(newline)$4$(newline)endef,$$3^n.$$1 := $$4)$(newline)$(findstring \
-  override,$(flavor $1)) $$1 = $$(if $$(filter $3,$$($2)),$$($3^n.$1),$$($3^o.$1)))
+keyed_redefine = $(eval $(if $(findstring simple,$(flavor $1)),$$3^o.$$1 := $$($$1),$(call define_multiline,$$3^o.$$1,$(value \
+  $1)))$(newline)$(if $(findstring $$,$4),$(call define_multiline,$$3^n.$$1,$4),$$3^n.$$1 := $$4)$(newline)$(findstring \
+  override,$(origin $1)) $$1 = $$(if $$(filter $3,$$($2)),$$($3^n.$1),$$($3^o.$1)))
 
-# define recursive (multi-line) variable $2 as target-specific variable of target(s) $1
-# note: this macro is not needed for non-recursive (i.e. simple) variables, simple target-specific variable may be defined like:
+# redefine recursive (multi-line) variable $1 as target-specific variable, e.g.:
+#  define my_var
+#  ...
+#  endef
+#  my_target: $(call define_target_specific1,my_var)
+# note: this macro is not needed for non-recursive (i.e. simple) variables, simple target-specific variable may be defined just like:
 #  my_target: my_var := $(my_var)
-define_target_specific1 = $(eval $$1: $$2 = $(subst $(newline),$$(newline),$(value $2)))
+define_target_specific1 = $(eval $(findstring override,$(origin $1)) $(if $(findstring \
+  simple,$(flavor $1)),$$1 := $$($$1),$(call define_multiline,$$1$(value $1))))
 
-# same as define_target_specific1, but return target(s) $1
-define_target_specific1_ret = $(define_target_specific1)$1
-
-# define a list of recursive (multi-line) variables as target-specific variables of target(s) $1
-define_target_specific = $(if $(findstring $(space),$2),$(foreach =,$2,$(call define_target_specific1,$1,$=)),$(define_target_specific1))
-
-# same as define_target_specific, but return target(s) $1
-define_target_specific_ret = $(define_target_specific)$1
+# define a list of recursive (multi-line) variables as target-specific variables, e.g.:
+# my_target: $(call define_target_specific,my_var1 my_var2 my_var3)
+define_target_specific = $(if $(findstring $(space),$1),$(foreach =,$1,$(call define_target_specific1,$=)),$(define_target_specific1))
 
 # protect variables of $(cb_dir)/trace/trace.mk from modification in target makefiles
 # note: do not trace calls to these macros
@@ -354,7 +361,7 @@ cb_protected_vars += $(call set_global,hide unhide_raw unhide_comments unhide hi
   xargs1 xargs xcmd uniq uniq1 neq patsubst_multiple cut_heads cut_tails trim \
   normp2 normp1 normp cmn_path1 cmn_path back_prefix relpath2 relpath1 relpath \
   ver_major ver_minor ver_patch ver_compatible1 ver_compatible \
-  get_dir split_dirs1 split_dirs mk_dir_deps lazy_simple \
+  get_dir split_dirs1 split_dirs mk_dir_deps lazy_simple define_multiline \
   define_append=$$1=$$1 define_prepend=$$1=$$1 append_simple=$$1=$$1 prepend_simple=$$1=$$1 \
   subst_var_refs expand_partially=$$1=$$1 remove_var_refs try_make_simple=$$1;$$2=$$1 keyed_redefine \
-  define_target_specific1 define_target_specific1_ret define_target_specific define_target_specific_ret,functions)
+  define_target_specific1 define_target_specific,functions)
