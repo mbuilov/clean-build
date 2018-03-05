@@ -4,210 +4,138 @@
 # Licensed under GPL version 3 or any later version, see COPYING
 #----------------------------------------------------------------------------------
 
-# define 'cb_gen_seq' - generator of sequences: [a-z][a-z][a-z][a-z][a-z]
-#  max combinations: 26*26*26*26*26 +  26*26*26*26 + 26*26*26 + 26*26 + 26 = 12.356.630
+# define 'cb_gen_seq' - sequence generator: 0 1 2 ... 9999999
 
-cb_pat4:=
-cb_pat3:=
-cb_pat2:=
-cb_pat1:=
+cb_p6:=
+cb_p5:=
+cb_p4:=
+cb_p3:=
+cb_p2:=
+cb_p1:=
 
 cb_gen_overflow = $(error overflow in 'cb_gen')
 
-cb_gen4 := cb__4_gen
-cb__4_gen = $(eval cb_gen4:=cb_a4_gen)
-cb_a4_gen = a$(eval cb_gen4:=cb_b4_gen)
-cb_b4_gen = b$(eval cb_gen4:=cb_c4_gen)
-cb_c4_gen = c$(eval cb_gen4:=cb_d4_gen)
-cb_d4_gen = d$(eval cb_gen4:=cb_e4_gen)
-cb_e4_gen = e$(eval cb_gen4:=cb_f4_gen)
-cb_f4_gen = f$(eval cb_gen4:=cb_g4_gen)
-cb_g4_gen = g$(eval cb_gen4:=cb_h4_gen)
-cb_h4_gen = h$(eval cb_gen4:=cb_i4_gen)
-cb_i4_gen = i$(eval cb_gen4:=cb_j4_gen)
-cb_j4_gen = j$(eval cb_gen4:=cb_k4_gen)
-cb_k4_gen = k$(eval cb_gen4:=cb_l4_gen)
-cb_l4_gen = l$(eval cb_gen4:=cb_m4_gen)
-cb_m4_gen = m$(eval cb_gen4:=cb_n4_gen)
-cb_n4_gen = n$(eval cb_gen4:=cb_o4_gen)
-cb_o4_gen = o$(eval cb_gen4:=cb_p4_gen)
-cb_p4_gen = p$(eval cb_gen4:=cb_q4_gen)
-cb_q4_gen = q$(eval cb_gen4:=cb_r4_gen)
-cb_r4_gen = r$(eval cb_gen4:=cb_s4_gen)
-cb_s4_gen = s$(eval cb_gen4:=cb_t4_gen)
-cb_t4_gen = t$(eval cb_gen4:=cb_u4_gen)
-cb_u4_gen = u$(eval cb_gen4:=cb_v4_gen)
-cb_v4_gen = v$(eval cb_gen4:=cb_w4_gen)
-cb_w4_gen = w$(eval cb_gen4:=cb_x4_gen)
-cb_x4_gen = x$(eval cb_gen4:=cb_y4_gen)
-cb_y4_gen = y$(eval cb_gen4:=cb_z4_gen)
-cb_z4_gen = z$(eval cb_gen4:=cb_gen_overflow)
+cb_g6 := cb_61g
+cb_60g = 0$(eval cb_g6:=cb_61g)
+cb_61g = 1$(eval cb_g6:=cb_62g)
+cb_62g = 2$(eval cb_g6:=cb_63g)
+cb_63g = 3$(eval cb_g6:=cb_64g)
+cb_64g = 4$(eval cb_g6:=cb_65g)
+cb_65g = 5$(eval cb_g6:=cb_66g)
+cb_66g = 6$(eval cb_g6:=cb_67g)
+cb_67g = 7$(eval cb_g6:=cb_68g)
+cb_68g = 8$(eval cb_g6:=cb_69g)
+cb_69g = 9$(eval cb_g6:=cb_gen_overflow)
 
-cb_gen3 := cb__3_gen
-cb__3_gen = $(eval cb_gen3:=cb_a3_gen)
-cb_a3_gen = $(eval cb_pat4:=$($(cb_gen4)))$(cb_pat4)a$(eval cb_gen3:=cb_b3_gen)
-cb_b3_gen = $(cb_pat4)b$(eval cb_gen3:=cb_c3_gen)
-cb_c3_gen = $(cb_pat4)c$(eval cb_gen3:=cb_d3_gen)
-cb_d3_gen = $(cb_pat4)d$(eval cb_gen3:=cb_e3_gen)
-cb_e3_gen = $(cb_pat4)e$(eval cb_gen3:=cb_f3_gen)
-cb_f3_gen = $(cb_pat4)f$(eval cb_gen3:=cb_g3_gen)
-cb_g3_gen = $(cb_pat4)g$(eval cb_gen3:=cb_h3_gen)
-cb_h3_gen = $(cb_pat4)h$(eval cb_gen3:=cb_i3_gen)
-cb_i3_gen = $(cb_pat4)i$(eval cb_gen3:=cb_j3_gen)
-cb_j3_gen = $(cb_pat4)j$(eval cb_gen3:=cb_k3_gen)
-cb_k3_gen = $(cb_pat4)k$(eval cb_gen3:=cb_l3_gen)
-cb_l3_gen = $(cb_pat4)l$(eval cb_gen3:=cb_m3_gen)
-cb_m3_gen = $(cb_pat4)m$(eval cb_gen3:=cb_n3_gen)
-cb_n3_gen = $(cb_pat4)n$(eval cb_gen3:=cb_o3_gen)
-cb_o3_gen = $(cb_pat4)o$(eval cb_gen3:=cb_p3_gen)
-cb_p3_gen = $(cb_pat4)p$(eval cb_gen3:=cb_q3_gen)
-cb_q3_gen = $(cb_pat4)q$(eval cb_gen3:=cb_r3_gen)
-cb_r3_gen = $(cb_pat4)r$(eval cb_gen3:=cb_s3_gen)
-cb_s3_gen = $(cb_pat4)s$(eval cb_gen3:=cb_t3_gen)
-cb_t3_gen = $(cb_pat4)t$(eval cb_gen3:=cb_u3_gen)
-cb_u3_gen = $(cb_pat4)u$(eval cb_gen3:=cb_v3_gen)
-cb_v3_gen = $(cb_pat4)v$(eval cb_gen3:=cb_w3_gen)
-cb_w3_gen = $(cb_pat4)w$(eval cb_gen3:=cb_x3_gen)
-cb_x3_gen = $(cb_pat4)x$(eval cb_gen3:=cb_y3_gen)
-cb_y3_gen = $(cb_pat4)y$(eval cb_gen3:=cb_z3_gen)
-cb_z3_gen = $(cb_pat4)z$(eval cb_gen3:=cb_a3_gen)
+cb_g5 := cb_51g
+cb_50g = $(eval cb_p6:=$($(cb_g6)))$(cb_p6)0$(eval cb_g5:=cb_51g)
+cb_51g = $(cb_p6)1$(eval cb_g5:=cb_52g)
+cb_52g = $(cb_p6)2$(eval cb_g5:=cb_53g)
+cb_53g = $(cb_p6)3$(eval cb_g5:=cb_54g)
+cb_54g = $(cb_p6)4$(eval cb_g5:=cb_55g)
+cb_55g = $(cb_p6)5$(eval cb_g5:=cb_56g)
+cb_56g = $(cb_p6)6$(eval cb_g5:=cb_57g)
+cb_57g = $(cb_p6)7$(eval cb_g5:=cb_58g)
+cb_58g = $(cb_p6)8$(eval cb_g5:=cb_59g)
+cb_59g = $(cb_p6)9$(eval cb_g5:=cb_50g)
 
-cb_gen2 := cb__2_gen
-cb__2_gen = $(eval cb_gen2:=cb_a2_gen)
-cb_a2_gen = $(eval cb_pat3:=$($(cb_gen3)))$(cb_pat3)a$(eval cb_gen2:=cb_b2_gen)
-cb_b2_gen = $(cb_pat3)b$(eval cb_gen2:=cb_c2_gen)
-cb_c2_gen = $(cb_pat3)c$(eval cb_gen2:=cb_d2_gen)
-cb_d2_gen = $(cb_pat3)d$(eval cb_gen2:=cb_e2_gen)
-cb_e2_gen = $(cb_pat3)e$(eval cb_gen2:=cb_f2_gen)
-cb_f2_gen = $(cb_pat3)f$(eval cb_gen2:=cb_g2_gen)
-cb_g2_gen = $(cb_pat3)g$(eval cb_gen2:=cb_h2_gen)
-cb_h2_gen = $(cb_pat3)h$(eval cb_gen2:=cb_i2_gen)
-cb_i2_gen = $(cb_pat3)i$(eval cb_gen2:=cb_j2_gen)
-cb_j2_gen = $(cb_pat3)j$(eval cb_gen2:=cb_k2_gen)
-cb_k2_gen = $(cb_pat3)k$(eval cb_gen2:=cb_l2_gen)
-cb_l2_gen = $(cb_pat3)l$(eval cb_gen2:=cb_m2_gen)
-cb_m2_gen = $(cb_pat3)m$(eval cb_gen2:=cb_n2_gen)
-cb_n2_gen = $(cb_pat3)n$(eval cb_gen2:=cb_o2_gen)
-cb_o2_gen = $(cb_pat3)o$(eval cb_gen2:=cb_p2_gen)
-cb_p2_gen = $(cb_pat3)p$(eval cb_gen2:=cb_q2_gen)
-cb_q2_gen = $(cb_pat3)q$(eval cb_gen2:=cb_r2_gen)
-cb_r2_gen = $(cb_pat3)r$(eval cb_gen2:=cb_s2_gen)
-cb_s2_gen = $(cb_pat3)s$(eval cb_gen2:=cb_t2_gen)
-cb_t2_gen = $(cb_pat3)t$(eval cb_gen2:=cb_u2_gen)
-cb_u2_gen = $(cb_pat3)u$(eval cb_gen2:=cb_v2_gen)
-cb_v2_gen = $(cb_pat3)v$(eval cb_gen2:=cb_w2_gen)
-cb_w2_gen = $(cb_pat3)w$(eval cb_gen2:=cb_x2_gen)
-cb_x2_gen = $(cb_pat3)x$(eval cb_gen2:=cb_y2_gen)
-cb_y2_gen = $(cb_pat3)y$(eval cb_gen2:=cb_z2_gen)
-cb_z2_gen = $(cb_pat3)z$(eval cb_gen2:=cb_a2_gen)
+cb_g4 := cb_41g
+cb_40g = $(eval cb_p5:=$($(cb_g5)))$(cb_p5)0$(eval cb_g4:=cb_41g)
+cb_41g = $(cb_p5)1$(eval cb_g4:=cb_42g)
+cb_42g = $(cb_p5)2$(eval cb_g4:=cb_43g)
+cb_43g = $(cb_p5)3$(eval cb_g4:=cb_44g)
+cb_44g = $(cb_p5)4$(eval cb_g4:=cb_45g)
+cb_45g = $(cb_p5)5$(eval cb_g4:=cb_46g)
+cb_46g = $(cb_p5)6$(eval cb_g4:=cb_47g)
+cb_47g = $(cb_p5)7$(eval cb_g4:=cb_48g)
+cb_48g = $(cb_p5)8$(eval cb_g4:=cb_49g)
+cb_49g = $(cb_p5)9$(eval cb_g4:=cb_40g)
 
-cb_gen1 := cb__1_gen
-cb__1_gen = $(eval cb_gen1:=cb_a1_gen)
-cb_a1_gen = $(eval cb_pat2:=$($(cb_gen2)))$(cb_pat2)a$(eval cb_gen1:=cb_b1_gen)
-cb_b1_gen = $(cb_pat2)b$(eval cb_gen1:=cb_c1_gen)
-cb_c1_gen = $(cb_pat2)c$(eval cb_gen1:=cb_d1_gen)
-cb_d1_gen = $(cb_pat2)d$(eval cb_gen1:=cb_e1_gen)
-cb_e1_gen = $(cb_pat2)e$(eval cb_gen1:=cb_f1_gen)
-cb_f1_gen = $(cb_pat2)f$(eval cb_gen1:=cb_g1_gen)
-cb_g1_gen = $(cb_pat2)g$(eval cb_gen1:=cb_h1_gen)
-cb_h1_gen = $(cb_pat2)h$(eval cb_gen1:=cb_i1_gen)
-cb_i1_gen = $(cb_pat2)i$(eval cb_gen1:=cb_j1_gen)
-cb_j1_gen = $(cb_pat2)j$(eval cb_gen1:=cb_k1_gen)
-cb_k1_gen = $(cb_pat2)k$(eval cb_gen1:=cb_l1_gen)
-cb_l1_gen = $(cb_pat2)l$(eval cb_gen1:=cb_m1_gen)
-cb_m1_gen = $(cb_pat2)m$(eval cb_gen1:=cb_n1_gen)
-cb_n1_gen = $(cb_pat2)n$(eval cb_gen1:=cb_o1_gen)
-cb_o1_gen = $(cb_pat2)o$(eval cb_gen1:=cb_p1_gen)
-cb_p1_gen = $(cb_pat2)p$(eval cb_gen1:=cb_q1_gen)
-cb_q1_gen = $(cb_pat2)q$(eval cb_gen1:=cb_r1_gen)
-cb_r1_gen = $(cb_pat2)r$(eval cb_gen1:=cb_s1_gen)
-cb_s1_gen = $(cb_pat2)s$(eval cb_gen1:=cb_t1_gen)
-cb_t1_gen = $(cb_pat2)t$(eval cb_gen1:=cb_u1_gen)
-cb_u1_gen = $(cb_pat2)u$(eval cb_gen1:=cb_v1_gen)
-cb_v1_gen = $(cb_pat2)v$(eval cb_gen1:=cb_w1_gen)
-cb_w1_gen = $(cb_pat2)w$(eval cb_gen1:=cb_x1_gen)
-cb_x1_gen = $(cb_pat2)x$(eval cb_gen1:=cb_y1_gen)
-cb_y1_gen = $(cb_pat2)y$(eval cb_gen1:=cb_z1_gen)
-cb_z1_gen = $(cb_pat2)z$(eval cb_gen1:=cb_a1_gen)
+cb_g3 := cb_31g
+cb_30g = $(eval cb_p4:=$($(cb_g4)))$(cb_p4)0$(eval cb_g3:=cb_31g)
+cb_31g = $(cb_p4)1$(eval cb_g3:=cb_32g)
+cb_32g = $(cb_p4)2$(eval cb_g3:=cb_33g)
+cb_33g = $(cb_p4)3$(eval cb_g3:=cb_34g)
+cb_34g = $(cb_p4)4$(eval cb_g3:=cb_35g)
+cb_35g = $(cb_p4)5$(eval cb_g3:=cb_36g)
+cb_36g = $(cb_p4)6$(eval cb_g3:=cb_37g)
+cb_37g = $(cb_p4)7$(eval cb_g3:=cb_38g)
+cb_38g = $(cb_p4)8$(eval cb_g3:=cb_39g)
+cb_39g = $(cb_p4)9$(eval cb_g3:=cb_30g)
 
-cb_gen := cb_a_gen
-cb_a_gen = $(eval cb_pat1:=$($(cb_gen1)))$(cb_pat1)a$(eval cb_gen:=cb_b_gen)
-cb_b_gen = $(cb_pat1)b$(eval cb_gen:=cb_c_gen)
-cb_c_gen = $(cb_pat1)c$(eval cb_gen:=cb_d_gen)
-cb_d_gen = $(cb_pat1)d$(eval cb_gen:=cb_e_gen)
-cb_e_gen = $(cb_pat1)e$(eval cb_gen:=cb_f_gen)
-cb_f_gen = $(cb_pat1)f$(eval cb_gen:=cb_g_gen)
-cb_g_gen = $(cb_pat1)g$(eval cb_gen:=cb_h_gen)
-cb_h_gen = $(cb_pat1)h$(eval cb_gen:=cb_i_gen)
-cb_i_gen = $(cb_pat1)i$(eval cb_gen:=cb_j_gen)
-cb_j_gen = $(cb_pat1)j$(eval cb_gen:=cb_k_gen)
-cb_k_gen = $(cb_pat1)k$(eval cb_gen:=cb_l_gen)
-cb_l_gen = $(cb_pat1)l$(eval cb_gen:=cb_m_gen)
-cb_m_gen = $(cb_pat1)m$(eval cb_gen:=cb_n_gen)
-cb_n_gen = $(cb_pat1)n$(eval cb_gen:=cb_o_gen)
-cb_o_gen = $(cb_pat1)o$(eval cb_gen:=cb_p_gen)
-cb_p_gen = $(cb_pat1)p$(eval cb_gen:=cb_q_gen)
-cb_q_gen = $(cb_pat1)q$(eval cb_gen:=cb_r_gen)
-cb_r_gen = $(cb_pat1)r$(eval cb_gen:=cb_s_gen)
-cb_s_gen = $(cb_pat1)s$(eval cb_gen:=cb_t_gen)
-cb_t_gen = $(cb_pat1)t$(eval cb_gen:=cb_u_gen)
-cb_u_gen = $(cb_pat1)u$(eval cb_gen:=cb_v_gen)
-cb_v_gen = $(cb_pat1)v$(eval cb_gen:=cb_w_gen)
-cb_w_gen = $(cb_pat1)w$(eval cb_gen:=cb_x_gen)
-cb_x_gen = $(cb_pat1)x$(eval cb_gen:=cb_y_gen)
-cb_y_gen = $(cb_pat1)y$(eval cb_gen:=cb_z_gen)
-cb_z_gen = $(cb_pat1)z$(eval cb_gen:=cb_a_gen)
+cb_g2 := cb_21g
+cb_20g = $(eval cb_p3:=$($(cb_g3)))$(cb_p3)0$(eval cb_g2:=cb_21g)
+cb_21g = $(cb_p3)1$(eval cb_g2:=cb_22g)
+cb_22g = $(cb_p3)2$(eval cb_g2:=cb_23g)
+cb_23g = $(cb_p3)3$(eval cb_g2:=cb_24g)
+cb_24g = $(cb_p3)4$(eval cb_g2:=cb_25g)
+cb_25g = $(cb_p3)5$(eval cb_g2:=cb_26g)
+cb_26g = $(cb_p3)6$(eval cb_g2:=cb_27g)
+cb_27g = $(cb_p3)7$(eval cb_g2:=cb_28g)
+cb_28g = $(cb_p3)8$(eval cb_g2:=cb_29g)
+cb_29g = $(cb_p3)9$(eval cb_g2:=cb_20g)
 
-# generate next sequence 
+cb_g1 := cb_11g
+cb_10g = $(eval cb_p2:=$($(cb_g2)))$(cb_p2)0$(eval cb_g1:=cb_11g)
+cb_11g = $(cb_p2)1$(eval cb_g1:=cb_12g)
+cb_12g = $(cb_p2)2$(eval cb_g1:=cb_13g)
+cb_13g = $(cb_p2)3$(eval cb_g1:=cb_14g)
+cb_14g = $(cb_p2)4$(eval cb_g1:=cb_15g)
+cb_15g = $(cb_p2)5$(eval cb_g1:=cb_16g)
+cb_16g = $(cb_p2)6$(eval cb_g1:=cb_17g)
+cb_17g = $(cb_p2)7$(eval cb_g1:=cb_18g)
+cb_18g = $(cb_p2)8$(eval cb_g1:=cb_19g)
+cb_19g = $(cb_p2)9$(eval cb_g1:=cb_10g)
+
+cb_gen := cb__g
+cb__g = $(eval cb_p1:=)0$(eval cb_gen:=cb_1g)
+cb_0g = $(eval cb_p1:=$($(cb_g1)))$(cb_p1)0$(eval cb_gen:=cb_1g)
+cb_1g = $(cb_p1)1$(eval cb_gen:=cb_2g)
+cb_2g = $(cb_p1)2$(eval cb_gen:=cb_3g)
+cb_3g = $(cb_p1)3$(eval cb_gen:=cb_4g)
+cb_4g = $(cb_p1)4$(eval cb_gen:=cb_5g)
+cb_5g = $(cb_p1)5$(eval cb_gen:=cb_6g)
+cb_6g = $(cb_p1)6$(eval cb_gen:=cb_7g)
+cb_7g = $(cb_p1)7$(eval cb_gen:=cb_8g)
+cb_8g = $(cb_p1)8$(eval cb_gen:=cb_9g)
+cb_9g = $(cb_p1)9$(eval cb_gen:=cb_0g)
+
+# generate next sequence number
 ifndef cb_checking
 cb_gen_seq = $($(cb_gen))
 else
-$(eval cb_a3_gen = $(subst $$(cb_pat4),$$(call set_global,cb_pat4 cb_gen4)$$(cb_pat4),$(value cb_a3_gen)))
-$(eval cb_a2_gen = $(subst $$(cb_pat3),$$(call set_global,cb_pat3 cb_gen3)$$(cb_pat3),$(value cb_a2_gen)))
-$(eval cb_a1_gen = $(subst $$(cb_pat2),$$(call set_global,cb_pat2 cb_gen2)$$(cb_pat2),$(value cb_a1_gen)))
-$(eval cb_a_gen = $(subst $$(cb_pat1),$$(call set_global,cb_pat1 cb_gen1)$$(cb_pat1),$(value cb_a_gen)))
+$(eval cb_50g = $(subst $$(cb_p6),$$(call set_global,cb_p6 cb_g6)$$(cb_p6),$(value cb_50g)))
+$(eval cb_40g = $(subst $$(cb_p5),$$(call set_global,cb_p5 cb_g5)$$(cb_p5),$(value cb_40g)))
+$(eval cb_30g = $(subst $$(cb_p4),$$(call set_global,cb_p4 cb_g4)$$(cb_p4),$(value cb_30g)))
+$(eval cb_20g = $(subst $$(cb_p3),$$(call set_global,cb_p3 cb_g3)$$(cb_p3),$(value cb_20g)))
+$(eval cb_10g = $(subst $$(cb_p2),$$(call set_global,cb_p2 cb_g2)$$(cb_p2),$(value cb_10g)))
+$(eval cb_0g = $(subst $$(cb_p1),$$(call set_global,cb_p1 cb_g1)$$(cb_p1),$(value cb_0g)))
 cb_gen_seq = $($(cb_gen))$(call set_global,cb_gen)
 endif
 
 # makefile parsing first phase variables
 cb_first_phase_vars += \
-  cb_pat4 cb_pat3 cb_pat2 cb_pat1 cb_gen_overflow \
-  cb_gen4 cb__4_gen \
-  cb_a4_gen cb_b4_gen cb_c4_gen cb_d4_gen cb_e4_gen cb_f4_gen cb_g4_gen cb_h4_gen cb_i4_gen cb_j4_gen cb_k4_gen cb_l4_gen cb_m4_gen \
-  cb_n4_gen cb_o4_gen cb_p4_gen cb_q4_gen cb_r4_gen cb_s4_gen cb_t4_gen cb_u4_gen cb_v4_gen cb_w4_gen cb_x4_gen cb_y4_gen cb_z4_gen \
-  cb_gen3 cb__3_gen \
-  cb_a3_gen cb_b3_gen cb_c3_gen cb_d3_gen cb_e3_gen cb_f3_gen cb_g3_gen cb_h3_gen cb_i3_gen cb_j3_gen cb_k3_gen cb_l3_gen cb_m3_gen \
-  cb_n3_gen cb_o3_gen cb_p3_gen cb_q3_gen cb_r3_gen cb_s3_gen cb_t3_gen cb_u3_gen cb_v3_gen cb_w3_gen cb_x3_gen cb_y3_gen cb_z3_gen \
-  cb_gen2 cb__2_gen \
-  cb_a2_gen cb_b2_gen cb_c2_gen cb_d2_gen cb_e2_gen cb_f2_gen cb_g2_gen cb_h2_gen cb_i2_gen cb_j2_gen cb_k2_gen cb_l2_gen cb_m2_gen \
-  cb_n2_gen cb_o2_gen cb_p2_gen cb_q2_gen cb_r2_gen cb_s2_gen cb_t2_gen cb_u2_gen cb_v2_gen cb_w2_gen cb_x2_gen cb_y2_gen cb_z2_gen \
-  cb_gen1 cb__1_gen \
-  cb_a1_gen cb_b1_gen cb_c1_gen cb_d1_gen cb_e1_gen cb_f1_gen cb_g1_gen cb_h1_gen cb_i1_gen cb_j1_gen cb_k1_gen cb_l1_gen cb_m1_gen \
-  cb_n1_gen cb_o1_gen cb_p1_gen cb_q1_gen cb_r1_gen cb_s1_gen cb_t1_gen cb_u1_gen cb_v1_gen cb_w1_gen cb_x1_gen cb_y1_gen cb_z1_gen \
-  cb_gen \
-  cb_a_gen cb_b_gen cb_c_gen cb_d_gen cb_e_gen cb_f_gen cb_g_gen cb_h_gen cb_i_gen cb_j_gen cb_k_gen cb_l_gen cb_m_gen \
-  cb_n_gen cb_o_gen cb_p_gen cb_q_gen cb_r_gen cb_s_gen cb_t_gen cb_u_gen cb_v_gen cb_w_gen cb_x_gen cb_y_gen cb_z_gen \
+  cb_p6 cb_p5 cb_p4 cb_p3 cb_p2 cb_p1 cb_gen_overflow \
+  cb_g6 cb_60g cb_61g cb_62g cb_63g cb_64g cb_65g cb_66g cb_67g cb_68g cb_69g \
+  cb_g5 cb_50g cb_51g cb_52g cb_53g cb_54g cb_55g cb_56g cb_57g cb_58g cb_59g \
+  cb_g4 cb_40g cb_41g cb_42g cb_43g cb_44g cb_45g cb_46g cb_47g cb_48g cb_49g \
+  cb_g3 cb_30g cb_31g cb_32g cb_33g cb_34g cb_35g cb_36g cb_37g cb_38g cb_39g \
+  cb_g2 cb_20g cb_21g cb_22g cb_23g cb_24g cb_25g cb_26g cb_27g cb_28g cb_29g \
+  cb_g1 cb_10g cb_11g cb_12g cb_13g cb_14g cb_15g cb_16g cb_17g cb_18g cb_19g \
+  cb_gen cb__g cb_0g cb_1g cb_2g cb_3g cb_4g cb_5g cb_6g cb_7g cb_8g cb_9g \
   cb_gen_seq
 
 # protect macros from modifications in target makefiles,
 # do not trace calls to these macros
 $(call set_global, \
-  cb_pat4 cb_pat3 cb_pat2 cb_pat1 cb_gen_overflow \
-  cb_gen4 cb__4_gen \
-  cb_a4_gen cb_b4_gen cb_c4_gen cb_d4_gen cb_e4_gen cb_f4_gen cb_g4_gen cb_h4_gen cb_i4_gen cb_j4_gen cb_k4_gen cb_l4_gen cb_m4_gen \
-  cb_n4_gen cb_o4_gen cb_p4_gen cb_q4_gen cb_r4_gen cb_s4_gen cb_t4_gen cb_u4_gen cb_v4_gen cb_w4_gen cb_x4_gen cb_y4_gen cb_z4_gen \
-  cb_gen3 cb__3_gen \
-  cb_a3_gen cb_b3_gen cb_c3_gen cb_d3_gen cb_e3_gen cb_f3_gen cb_g3_gen cb_h3_gen cb_i3_gen cb_j3_gen cb_k3_gen cb_l3_gen cb_m3_gen \
-  cb_n3_gen cb_o3_gen cb_p3_gen cb_q3_gen cb_r3_gen cb_s3_gen cb_t3_gen cb_u3_gen cb_v3_gen cb_w3_gen cb_x3_gen cb_y3_gen cb_z3_gen \
-  cb_gen2 cb__2_gen \
-  cb_a2_gen cb_b2_gen cb_c2_gen cb_d2_gen cb_e2_gen cb_f2_gen cb_g2_gen cb_h2_gen cb_i2_gen cb_j2_gen cb_k2_gen cb_l2_gen cb_m2_gen \
-  cb_n2_gen cb_o2_gen cb_p2_gen cb_q2_gen cb_r2_gen cb_s2_gen cb_t2_gen cb_u2_gen cb_v2_gen cb_w2_gen cb_x2_gen cb_y2_gen cb_z2_gen \
-  cb_gen1 cb__1_gen \
-  cb_a1_gen cb_b1_gen cb_c1_gen cb_d1_gen cb_e1_gen cb_f1_gen cb_g1_gen cb_h1_gen cb_i1_gen cb_j1_gen cb_k1_gen cb_l1_gen cb_m1_gen \
-  cb_n1_gen cb_o1_gen cb_p1_gen cb_q1_gen cb_r1_gen cb_s1_gen cb_t1_gen cb_u1_gen cb_v1_gen cb_w1_gen cb_x1_gen cb_y1_gen cb_z1_gen \
-  cb_gen \
-  cb_a_gen cb_b_gen cb_c_gen cb_d_gen cb_e_gen cb_f_gen cb_g_gen cb_h_gen cb_i_gen cb_j_gen cb_k_gen cb_l_gen cb_m_gen \
-  cb_n_gen cb_o_gen cb_p_gen cb_q_gen cb_r_gen cb_s_gen cb_t_gen cb_u_gen cb_v_gen cb_w_gen cb_x_gen cb_y_gen cb_z_gen)
+  cb_p6 cb_p5 cb_p4 cb_p3 cb_p2 cb_p1 cb_gen_overflow \
+  cb_g6 cb_60g cb_61g cb_62g cb_63g cb_64g cb_65g cb_66g cb_67g cb_68g cb_69g \
+  cb_g5 cb_50g cb_51g cb_52g cb_53g cb_54g cb_55g cb_56g cb_57g cb_58g cb_59g \
+  cb_g4 cb_40g cb_41g cb_42g cb_43g cb_44g cb_45g cb_46g cb_47g cb_48g cb_49g \
+  cb_g3 cb_30g cb_31g cb_32g cb_33g cb_34g cb_35g cb_36g cb_37g cb_38g cb_39g \
+  cb_g2 cb_20g cb_21g cb_22g cb_23g cb_24g cb_25g cb_26g cb_27g cb_28g cb_29g \
+  cb_g1 cb_10g cb_11g cb_12g cb_13g cb_14g cb_15g cb_16g cb_17g cb_18g cb_19g \
+  cb_gen cb__g cb_0g cb_1g cb_2g cb_3g cb_4g cb_5g cb_6g cb_7g cb_8g cb_9g)
 
 # protect macros from modifications in target makefiles, allow tracing calls to them
 # note: trace namespace: cb_gen_seq
