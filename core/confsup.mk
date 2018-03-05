@@ -42,6 +42,7 @@ endif
 
 # encode a value of variable $=
 # $1 - 'export ' or empty
+# note: cannot use 'define_multiline' macro from $(cb_dir)/core/functions.mk because configuration makefile is read first
 cb_config_remember_var = $(if $(findstring simple,$(flavor $=)),$1$(call cb_config_rem_simple_var,$=,$(if \
   $(filter-out 1 $(words $(value $=)),$(words x$(value $=)x)),$$(empty))),define $=$(newline)$(subst \
   define,$$(keyword_define),$(subst endef,$$(keyword_endef),$(subst \,$$(backslash),$(value $=))))$(newline)endef$(if \
