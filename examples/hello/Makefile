@@ -31,16 +31,21 @@ ifneq (distclean,$(MAKECMDGOALS))
 #  relative to the directory of current makefile
 to_make += src/hello.mk
 
-# Under Windows, executables and dynamic libraries should have version info - use predefined
-#  rule to generate "product_names.h", which is included in the version info resource file.
-# CBLD_GENERATE_PRODUCT_NAMES_H - not empty and not 0 if "product_names.h" should be generated
-# note: CBLD_GENERATE_PRODUCT_NAMES_H may be already defined by the clean-build if building under Windows
-CBLD_GENERATE_PRODUCT_NAMES_H ?=
+# Under Windows, executables and dynamic libraries should have version info.
+# clean-build provides a rule for generating resource file with such info.
+# Generated resource file will include "product_names.h" - a header with version info constants.
+# CBLD_NEED_PRODUCT_NAMES_H - not empty and not 0 if "product_names.h" is needed (e.g. for the resource file)
+# note: CBLD_NEED_PRODUCT_NAMES_H may be already defined by the clean-build if building under Windows
+CBLD_NEED_PRODUCT_NAMES_H ?=
 
+# generate "product_names.h" if needed
 # Note: CBLD_ROOT - path to clean-build - variable defined by 'make/project.mk'
-ifneq (,$(CBLD_GENERATE_PRODUCT_NAMES_H:0=))
+ifneq (,$(CBLD_NEED_PRODUCT_NAMES_H:0=))
 to_make += $(CBLD_ROOT)/extensions/version
 endif
+
+# remember values of variables possibly taken from the environment
+$(call config_remember_vars,CBLD_NEED_PRODUCT_NAMES_H)
 
 endif # !distclean
 
