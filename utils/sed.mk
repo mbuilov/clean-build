@@ -41,7 +41,7 @@ sed_multi_expr = $(foreach s,$(subst $(newline), ,$(hide_tab_spaces)),-e $(call 
 # utilities colors - for the 'suppress' function (and cb_colorize/cb_show_tool macros)
 CBLD_SED_COLOR ?= [32m
 
-# remember value of variables that may be taken from the environment
+# remember values of variables possibly taken from the environment
 $(call config_remember_vars,SED CBLD_IS_NATIVE_SED CBLD_IS_GNU_SED)
 
 # protect macros from modifications in target makefiles,
