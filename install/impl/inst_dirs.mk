@@ -150,7 +150,7 @@ uninstall:
 # register more goals supported by the build system
 build_system_goals += install uninstall
 
-# remember value of variables possibly taken from the environment
+# remember values of variables possibly taken from the environment
 $(call config_remember_vars,CBLD_NO_DEVEL CBLD_INSTALL_OS_TYPE DESTDIR PREFIX EXEC_PREFIX BINDIR SBINDIR LIBEXECDIR DATAROOTDIR \
   DATADIR SYSCONFDIR SHAREDSTATEDIR LOCALSTATEDIR RUNSTATEDIR INCLUDEDIR DOCDIR HTMLDIR DVIDIR PDFDIR PSDIR LIBDIR DEVLIBDIR \
   LOCALEDIR INFODIR MANDIR MAN1DIR MAN2DIR MAN3DIR MAN4DIR MAN5DIR MAN6DIR MAN7DIR MAN8DIR PKG_LIBDIR PKG_DATADIR)
