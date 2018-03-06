@@ -47,6 +47,7 @@ endef
 # $6 - auxiliary parameter of $1 macro
 # $7 - suffix of auto-generated dependencies (e.g. $(c_dep_suffix)), empty if dependencies generation is not supported
 # returns: list of object files
+# note: object compiler $1 should call 'suppress' macro to properly update percent of building targets
 ifndef toclean
 obj_rules = $(if $2,$(call obj_rules_templ,$1,$2,$3,$4,$5,$6,$7,$(patsubst %,$4/%$5,$(basename $(notdir $2)))))
 else
