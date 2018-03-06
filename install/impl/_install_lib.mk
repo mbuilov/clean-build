@@ -229,7 +229,7 @@ endif
 # define operating system specific 'install_lib' macro
 include $(install_lib_mk)
 
-# remember value of variables possibly taken from the environment
+# remember values of variables possibly taken from the environment
 $(call config_remember_vars,CBLD_NO_INSTALL_HEADERS CBLD_NO_INSTALL_STATIC CBLD_NO_INSTALL_SHARED CBLD_NO_INSTALL_IMPORT \
   CBLD_NO_INSTALL_PKGCONF CBLD_INST_CONF_WRITE_BY_LINES CBLD_STATIC_LIB_ACCESS_MODE CBLD_SHARED_LIB_ACCESS_MODE \
   CBLD_LIB_HEADERS_ACCESS_MODE CBLD_LIB_CONF_ACCESS_MODE)
