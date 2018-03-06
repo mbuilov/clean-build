@@ -154,11 +154,13 @@ printf_line_escape = $(call shell_escape,$(subst \,\\,$(subst %,%%,$1)))
 write_options1 = $(if $6,$3,$4)$(PRINTF) -- $(call unhide_comments,$(call printf_line_escape,$(if $6, )$1))$(if $2,>$(if $6,>) $2)
 
 # write string of options $1 to file $2, by $3 tokens at one time
+# note: one leading space will be ignored
 # note: there must be no $(newline)s in the string $1
 # note: if path to file $2 contains a space, use 'ifaddq' to add quotes: '1 2/3 4'
 # NOTE: number $3 must be adjusted so printed at one time text length will not exceed the maximum command length (at least 4096 characters)
 # NOTE: nothing is printed if string $1 is empty, output file is _not_ created in this case
-write_options = $(call xargs,write_options1,$(subst $(space), $$(empty),$$(empty)$(hide_tabs)),$3,$2,$(quiet),,,$(newline))
+write_options = $(call xargs,write_options1,$(subst \
+  $(space) , $$(empty) ,$(subst $(space) , $$(empty) ,$(hide_tabs)$$(empty))),$3,$2,$(quiet),,,$(newline))
 
 # print one short line of text (to stdout, for redirecting it to output file)
 # note: line must not contain $(newline)s
@@ -188,8 +190,8 @@ write_lines1 = $(if $6,$3,$4)$(PRINTF) -- $(call \
 # NOTE: any line must be less than the maximum command length (at least 4096 characters)
 # NOTE: number $3 must be adjusted so printed at one time text length will not exceed the maximum command length (at least 4096 characters)
 # NOTE: nothing is printed if text $1 is empty, output file is _not_ created in this case
-write_lines = $(call xargs,write_lines1,$(subst $$(empty)$$(empty),$$(empty),$(subst \
-  $(newline),$$(empty) $$(empty),$(hide_tab_spaces))),$3,$2,$(quiet),,,$(newline))
+write_lines = $(call xargs,write_lines1,$(subst $(space) , $$(empty) ,$(subst $(space) , $$(empty) ,$(subst \
+  $(newline), ,$$(empty)$(hide_tab_spaces)$$(empty)))),$3,$2,$(quiet),,,$(newline))
 
 # create symbolic link $2 -> $1
 # note: UNIX-specific
@@ -237,7 +239,7 @@ install_files  = $(call xcmd,install_files1,$1,$(CBLD_MAX_PATH_ARGS),$2,$(addpre
 CBLD_LN_COLOR    ?= [36m
 CBLD_CHMOD_COLOR ?= [1;35m
 
-# remember value of variables that may be taken from the environment
+# remember values of variables possibly be taken from the environment
 $(call config_remember_vars,CBLD_MAX_PATH_ARGS NUL RM RMDIR TRUE FALSE CD CP MV TOUCH MKDIR CMP GREP CAT ECHO PRINTF LN CHMOD INSTALL)
 
 # protect macros from modifications in target makefiles,
@@ -252,7 +254,3 @@ $(call set_global,print_env=project_exported_vars shell_escape shell_args_to_uni
   move_files2 move_files1 move_files touch_files1 touch_files create_dir compare_files cat_file print_short_options \
   printf_line_escape write_options1 write_options print_short_line print_some_lines write_lines1 write_lines create_simlink \
   change_mode execute_in execute_in_info del_on_fail install_dir install_files2 install_files1 install_files,utils)
-
-# protect macros from modifications in target makefiles, allow tracing calls to them
-# note: trace namespace: functions
-$(call set_global,ifaddq,functions)
