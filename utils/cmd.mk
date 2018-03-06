@@ -78,7 +78,7 @@ endif # !CBLD_DONT_FIX_ENV_PATH
 
 # script to print prepared environment in verbose mode (used for generating one-big-build instructions batch file)
 # note: 'print_env' - used by $(cb_dir)/core/all.mk
-print_env = setlocal$(if $(or $(cb_changed_env_vars),$(project_exported_vars)),$(newline)$(foreach \
+print_env = $(if $(or $(cb_changed_env_vars),$(project_exported_vars)),setlocal$(newline)$(foreach \
   =,$(call uniq,$(project_exported_vars) $(cb_changed_env_vars)),SET "$==$($=)"$(newline)|))
 
 # command line length of cmd.exe is limited:
@@ -325,16 +325,16 @@ print_some_lines = ((echo.$(subst $(newline),$(close_brace)&&$(open_brace)echo.,
 # note: if path to file $2 contains a space, use 'ifaddq' to add double-quotes: "1 2/3 4"
 # note: each line will be ended with CRLF: line1$(space)line2 -> line1\nline2\n
 # NOTE: printed batch length must not exceed the maximum command line length (8191 characters)
-write_lines1 = $(if $6,$3,$4)(echo.$(call \
-  unhide_comments,$(subst $(space),$(close_brace)&&$(open_brace)echo.,$1)))$(if $2,>$(if $6,>) $2)
+write_lines1 = $(if $6,$3,$4)((echo.$(call \
+  unhide_comments,$(subst $(space),$(close_brace)&&$(open_brace)echo.,$1))))$(if $2,>$(if $6,>) $2)
 
 # write lines of text $1 to file $2, by $3 lines at one time
 # note: if path to file $2 contains a space, use 'ifaddq' to add double-quotes: "1 2/3 4"
 # NOTE: any line must be less than the maximum command length (8191 characters)
 # NOTE: number $3 must be adjusted so printed at one time text length will not exceed the maximum command length (8191 characters)
 # NOTE: nothing is printed if text $1 is empty, output file is _not_ created in this case
-write_lines = $(call xargs,write_lines1,$(subst $$(empty)$$(empty),$$(empty),$(subst \
-  $(newline),$$(empty) $$(empty),$(call hide_tab_spaces,$(unquoted_escape))),$3,$2,$(quiet),,,$(newline)))
+write_lines = $(call xargs,write_lines1,$(subst $(space) , $$(empty) ,$(subst $(space) , $$(empty) ,$(subst \
+  $(newline), ,$$(empty)$(call hide_tab_spaces,$(unquoted_escape))$$(empty)))),$3,$2,$(quiet),,,$(newline))
 
 # create symbolic link $2 -> $1
 # note: UNIX-specific, so not defined for WINDOWS
@@ -396,7 +396,7 @@ show_tool_vars_end = $(newline)@echo endlocal
 #  (3>&2 2>&1 1>&3 ^(echo a^)>&2)|c:\cygwin64\bin\xxd.exe   -> 00000000: 610d 0a
 filter_output = (($1 2>&1 &&^(echo ok^)>&2)$2)3>&2 2>&1 1>&3|$(FINDSTR) /XC:ok >$(NUL)
 
-# remember value of variables that may be taken from the environment
+# remember values of variables possibly taken from the environment
 $(call config_remember_vars,CBLD_DONT_FIX_MAKE_SHELL SHELL CBLD_DONT_FIX_ENV_PATH CBLD_MAX_PATH_ARGS \
   NUL DEL RD CD FIND FINDSTR COPY MOVE MD FC TYPE)
 
@@ -407,7 +407,7 @@ $(call set_global,CBLD_DONT_FIX_MAKE_SHELL SHELL CBLD_DONT_FIX_ENV_PATH CBLD_MAX
 
 # protect macros from modifications in target makefiles, allow tracing calls to them
 # note: trace namespace: utils
-$(call set_global,print_env=project_exported_vars ifaddq shell_escape shell_args_to_unix delete_files delete_dirs try_delete_dirs \
+$(call set_global,print_env=project_exported_vars shell_escape shell_args_to_unix delete_files delete_dirs try_delete_dirs \
   delete_files_in2 delete_files_in1 delete_files_in del_files_or_dirs1 del_files_or_dirs filter_copy_output \
   suppress_copy_output suppress_move_output copy_files1 copy_files move_files1 move_files touch_files1 touch_files \
   create_dir compare_files cat_file unquoted_escape print_short_options write_options1 tokenize_options \
