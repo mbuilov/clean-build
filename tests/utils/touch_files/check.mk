@@ -30,7 +30,7 @@ g_dir := $(gen_dir)/touch_files
 # define 'files' variable
 include $(a_dir)/files.mk
 
-# 'all' goal will fail if any of $(files) or $(g_dir)/touched1.txt files was not created by the touch.mk
+# 'all' goal will fail if any of $(files) or $(g_dir)/touched1.txt files were not created by the touch.mk
 all: $(files) $(g_dir)/touched1.txt
 
 # check that creation date of $(files) is not older than $(g_dir)/touched1.txt
