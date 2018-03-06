@@ -23,17 +23,16 @@ cb_needed_dirs := $(call split_dirs,$(cb_needed_dirs:$(dir $(cb_build))%=%))
 $(eval $(call mk_dir_deps,$(cb_needed_dirs),$(dir $(cb_build))))
 
 # define rules for creating $(cb_build)-relative directories
-# note: 'create_dir' macro is defined in the included before $(utils_mk) makefile
-$(addprefix $(dir $(cb_build)),$(cb_needed_dirs)):
+# note: 'create_dir' - defined in the included before $(utils_mk) makefile
+$(call suppress_targets,$(addprefix $(dir $(cb_build)),$(cb_needed_dirs))):
 	$(call suppress,MKDIR,$@)$(call create_dir,$@)
 
-# note: $(cb_target_makefiles) - absolute paths of all processed target makefiles
-#  (without suffix, if real makefile names are used - make always wants to recreate makefiles, even for the 'clean' goal)
-# note: <TARGET_MAKEFILES_COUNT> - number of target makefiles - used to compute percent of executed makefiles
-ifdef cb_add_shown_percents
-$(eval cb_add_shown_percents = $(subst \
-  <TARGET_MAKEFILES_COUNT>,$(words $(cb_target_makefiles)),$(subst \
-  <TARGET_MAKEFILES_COUNT1>,$(words $(cb_target_makefiles) 1),$(value cb_add_shown_percents))))
+# fix 'cb_add_shown_percents' macro from $(cb_dir)/core/suppress.mk
+# note: 'suppress_targets' - defined in $(cb_dir)/core/suppress.mk
+# note: 'cb_gen_seq' - defined in $(cb_dir)/code/gen_seq.mk included by $(cb_dir)/core/suppress.mk
+# note: <TRG_COUNT> - number of targets - used to compute build completion percent
+ifneq ($$1,$(value suppress_targets))
+$(eval cb_add_shown_percents = $(subst <TRG_COUNT>,$(cb_gen_seq),$(subst <TRG_COUNT1>,$(cb_gen_seq),$(value cb_add_shown_percents))))
 endif
 
 # define rule for default goal 'all'
