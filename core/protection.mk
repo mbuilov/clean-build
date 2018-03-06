@@ -7,16 +7,36 @@
 # this file is included by $(cb_dir)/core/_defs.mk, after including $(cb_dir)/core/functions.mk and $(cb_dir)/trace/trace.mk
 # define macros for variables protection from accidental changes in target makefiles
 
-# run via $(MAKE) C=1 to check the makefiles
+# run via "$(MAKE) C=1" to check the makefiles
 ifeq (command line,$(origin C))
 cb_checking := $(C:0=)
 else
 cb_checking:=
 endif
 
-# run via $(MAKE) T=1 to trace clean-build macros (most of them)
+# macros to trace
+# empty by default - trace all vars
+CBLD_TRACE_VARS ?=
+
+# macros those tracing is disabled
+# empty by default - trace all vars
+CBLD_TRACE_VARS_EXCEPT ?=
+
+# namespaces to trace, e.g.: functions config
+# empty by default - trace all namespaces
+CBLD_TRACE_NAMESPACES ?=
+
+# namespaces to not trace, e.g.: functions config
+# empty by default - trace all namespaces
+CBLD_TRACE_NAMESPACES_EXCEPT ?=
+
+# run via "$(MAKE) T=1" to trace clean-build macros (most of them)
 ifeq (command line,$(origin T))
 cb_tracing := $(T:0=)
+else ifdef CBLD_TRACE_VARS
+cb_tracing := 1
+else ifdef CBLD_TRACE_NAMESPACES
+cb_tracing := 1
 else
 cb_tracing:=
 endif
@@ -39,22 +59,6 @@ cb_protected_vars += $(call set_global,$(project_exported_vars))
 endif
 
 ifdef cb_tracing
-
-# macros to trace
-# empty by default - trace all vars
-CBLD_TRACE_VARS ?=
-
-# macros those tracing is disabled
-# empty by default - trace all vars
-CBLD_TRACE_VARS_EXCEPT ?=
-
-# namespaces to trace, e.g.: functions config
-# empty by default - trace all namespaces
-CBLD_TRACE_NAMESPACES ?=
-
-# namespaces to not trace, e.g.: functions config
-# empty by default - trace all namespaces
-CBLD_TRACE_NAMESPACES_EXCEPT ?=
 
 # check if cannot trace variables of given namespace
 # $1 - optional namespace name
@@ -83,8 +87,8 @@ $(eval trace_calls = $(subst =$(close_brace)$(close_brace)$(close_brace)$(close_
 
 # patch 'trace_calls_template' - check if traced macro is protected or second parameter of 'trace_calls' is not empty -
 #  then protect new value of traced macro
-# note: do not pass second parameter to the 'set_global1' macro to not try to trace already traced macro
-trace_calls_template += $(if $(or $6,$(filter $1,$(cb_protected_vars))),$(newline)$(call set_global1,$1))
+# note: 'set_global6' - defined below
+trace_calls_template += $(if $(or $6,$(filter $1,$(cb_protected_vars))),$(newline)$(set_global6))
 
 endif # cb_checking
 endif # cb_tracing
@@ -202,9 +206,9 @@ endef
 # 3.                            $(call trace_calls,v)   -> $(call set_global1,v) = trace protected v, protect new v
 # 4. $(call set_global1,v,n) -> $(call trace_calls,v,!) -> $(call set_global1,v) = protect v and trace it
 ifdef cb_tracing
-set_global6 = $(if $1,$(call dump_vars,$1,overriding global: ))
-set_global5 = $(call set_global6,$(filter $1,$(cb_protected_vars)))$(cb_protect_vars2)
-set_global4 = $(if $1,$$(call trace_calls,$(subst $$,$$$$,$(cb_check_tracing_env)),$2))
+set_global6 = $(call dump_vars,$(filter $1,$(cb_protected_vars)),overriding global: )$(cb_protect_vars2)
+set_global5 = $(call set_global6,$(foreach =,$1,$(firstword $(subst =, ,$=))))
+set_global4 = $(if $1,$$(call trace_calls,$(subst $$,$$$$,$(cb_check_tracing_env)),$2)$(if $3,$(newline)))$(if $3,$(call set_global5,$3))
 set_global3 = $(if $(CBLD_TRACE_VARS),$(call set_global4,$(filter \
   $(CBLD_TRACE_VARS) $(CBLD_TRACE_VARS:==%),$1),$2,$3 $(filter-out \
   $(CBLD_TRACE_VARS) $(CBLD_TRACE_VARS:==%),$1)),$(set_global4))
@@ -291,8 +295,7 @@ cb_check_at_tail = $(if $1,$(if $(cb_need_tail_code),$(error \
 
 # protect variables from modifications in target makefiles
 # note: do not trace calls to these macros
-$(call set_global,cb_checking cb_tracing \
-  CBLD_TRACE_VARS CBLD_TRACE_VARS_EXCEPT CBLD_TRACE_NAMESPACES CBLD_TRACE_NAMESPACES_EXCEPT \
+$(call set_global,cb_checking CBLD_TRACE_VARS CBLD_TRACE_VARS_EXCEPT CBLD_TRACE_NAMESPACES CBLD_TRACE_NAMESPACES_EXCEPT cb_tracing \
   cb_check_cannot_trace cb_check_tracing_env set_global cb_changed_env_vars cb_env_var_ov cb_check_env_var cb_check_env_vars \
   set_global1 set_global3 set_global2 cb_protected_vars cb_encode_var_value cb_encode_var_name cb_protect_vars2 \
   set_global6 set_global5 set_global4 cb_var_access_err cb_reset_local_var cb_reset_local_vars cb_reset_saved_vars \
