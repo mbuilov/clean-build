@@ -44,25 +44,25 @@ $(g_dir)/out.txt: t12 := } '\#$$2' " (e) " {\\\\"+\*} \( \a ^$$%\#@?
 # register generated file '$(g_dir)/out.txt', define a rule for generating it - call target-specific macro 'test' defined above
 # note: variable 'g_dir' is not available in the "rule execution" phase, so use instead automatic variable $@
 $(call add_generated_ret,$(g_dir)/out.txt):
-	$(call test,$(t1)) >> $@
-	$(call test,$(t2)) >> $@
-	$(call test,$(t3)) >> $@
-	$(call test,$(t4)) >> $@
-	$(call test,$(t5)) >> $@
-	$(call test,$(t6)) >> $@
-	$(call test,$(t7)) >> $@
-	$(call test,$(t8)) >> $@
-	$(call test,$(t9)) >> $@
-	$(call test,$(t10)) >> $@
-	$(call test,$(t11)) >> $@
-	$(call test,$(t12)) >> $@
+	$(call suppress,GEN,$@)$(call test,$(t1)) >> $@
+	$(quiet)$(call test,$(t2)) >> $@
+	$(quiet)$(call test,$(t3)) >> $@
+	$(quiet)$(call test,$(t4)) >> $@
+	$(quiet)$(call test,$(t5)) >> $@
+	$(quiet)$(call test,$(t6)) >> $@
+	$(quiet)$(call test,$(t7)) >> $@
+	$(quiet)$(call test,$(t8)) >> $@
+	$(quiet)$(call test,$(t9)) >> $@
+	$(quiet)$(call test,$(t10)) >> $@
+	$(quiet)$(call test,$(t11)) >> $@
+	$(quiet)$(call test,$(t12)) >> $@
 
 # register generated file '$(g_dir)/cmp.txt', define a rule for generating it - call one of shell utilities macros 'compare_files'
 # note: automatic variable $< - the name of the first prerequisite: $(a_dir)/result.txt
 # note: automatic variable $^ - names of all prerequisites:         $(a_dir)/result.txt $(g_dir)/out.txt
 # note: automatic variable $@ - target file:                        $(g_dir)/cmp.txt
 $(call add_generated_ret,$(g_dir)/cmp.txt): $(a_dir)/result.txt $(g_dir)/out.txt
-	$(call compare_files,$<,$(lastword $^)) > $@
+	$(call suppress,CMP,$@)$(call compare_files,$<,$(lastword $^)) > $@
 
 # this macro must be expanded at end of target makefile, as required by 'cb_prepare' expanded at head
 $(define_targets)
