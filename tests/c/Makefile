@@ -1,13 +1,11 @@
-c_dir := $(dir $(lastword $(MAKEFILE_LIST)))
-
+# the first goal will be the default
 all:
 
-many_sources:
-	$(MAKE) -f $(c_dir)many_sources/Makefile
+# define target-specific variable 'c_dir' - path to the directory of this makefile
+all clean distclean: c_dir := $(dir $(lastword $(MAKEFILE_LIST)))
 
-all: \
-  many_sources
-	@echo all tests passed
+# tests
+all clean distclean:
+	$(MAKE) -f $(c_dir)many_sources/Makefile $@
 
-.PHONY: all \
-  many_sources
+.PHONY: all clean distclean
