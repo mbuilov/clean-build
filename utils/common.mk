@@ -16,7 +16,8 @@ CBLD_RMDIR_COLOR ?= [1;31m
 CBLD_MKDIR_COLOR ?= [36m
 CBLD_TOUCH_COLOR ?= [36m
 CBLD_CAT_COLOR   ?= [32m
+CBLD_CMP_COLOR   ?= [32m
 
 # protect macros from modifications in target makefiles,
 # do not trace calls to macros used in ifdefs, exported to the environment of called tools or modified via operator +=
-$(call set_global,CBLD_CP_COLOR CBLD_RM_COLOR CBLD_RMDIR_COLOR CBLD_MKDIR_COLOR CBLD_TOUCH_COLOR CBLD_CAT_COLOR)
+$(call set_global,CBLD_CP_COLOR CBLD_RM_COLOR CBLD_RMDIR_COLOR CBLD_MKDIR_COLOR CBLD_TOUCH_COLOR CBLD_CAT_COLOR CBLD_CMP_COLOR)
