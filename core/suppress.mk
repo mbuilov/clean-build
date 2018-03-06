@@ -6,7 +6,7 @@
 
 # define 'suppress' macro - used to pretty-print commands executed by the makefiles
 
-# run via $(MAKE) V=1 for commands echoing and verbose output
+# run via "$(MAKE) V=1" for commands echoing and verbose output
 ifeq (command line,$(origin V))
 verbose := $(V:0=)
 else
@@ -17,7 +17,7 @@ endif
 # @ in non-verbose build
 quiet := $(if $(verbose),,@)
 
-# run via $(MAKE) M=1 to print the name of the makefile the target defined in
+# run via "$(MAKE) M=1" to print the name of the makefile the target defined in
 ifeq (command line,$(origin M))
 cb_infomf := $(M:0=)
 else
