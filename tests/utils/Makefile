@@ -4,7 +4,7 @@ all:
 # define target-specific variable 'c_dir' - path to the directory of this makefile
 all clean distclean: c_dir := $(dir $(lastword $(MAKEFILE_LIST)))
 
-# test 'shell_escape' macro
+# tests
 all clean distclean:
 	$(MAKE) -f $(c_dir)shell_escape/Makefile $@
 	$(MAKE) -f $(c_dir)touch_files/Makefile $@
