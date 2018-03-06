@@ -39,7 +39,7 @@ $(call add_generated_ret,$(g_dir)/touched$(test_phase).txt):
 	$(call suppress,TOUCH,$@)$(call touch_files,$(files))
 	$(quiet)$(call touch_files,$@)
 
-# just delete whole 'g_dir' directory on cleanup
+# just delete whole 'g_dir' directory with generated files on cleanup
 $(call toclean,$(g_dir))
 
 # this macro must be expanded at end of target makefile, as required by 'cb_prepare' expanded at head
