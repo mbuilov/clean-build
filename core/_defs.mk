@@ -126,7 +126,7 @@ project_supported_targets := DEBUG RELEASE
 # note: normally CBLD_TARGET get overridden by specifying it in the command line
 CBLD_TARGET ?= RELEASE
 
-# run via $(MAKE) D=1 to debug makefiles
+# run via "$(MAKE) D=1" to debug makefiles
 ifeq (command line,$(origin D))
 cb_mdebug := $(D:0=)
 else
@@ -393,7 +393,7 @@ $(call cb_add_what_makefile_builds,std_target_vars1,$$1,$$(order_deps))
 
 endif # cb_mdebug
 
-# define target-specific variables for the 'suppress' function in "makefile info" mode (enabled via $(MAKE) M=1)
+# define target-specific variables for the 'suppress' function in "makefile info" mode (enabled via "$(MAKE) M=1")
 # note: 'suppress' and 'cb_makefile_info' macros - defined in included above $(cb_dir)/core/suppress.mk
 ifdef cb_makefile_info
 
