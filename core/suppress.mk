@@ -4,7 +4,7 @@
 # Licensed under GPL version 3 or any later version, see COPYING
 #----------------------------------------------------------------------------------
 
-# define 'suppress' macro - used to pretty-print commands executed by the makefiles
+# define 'suppress' macro - used to pretty-print commands executed in rules
 
 # run via "$(MAKE) V=1" for commands echoing and verbose output
 ifeq (command line,$(origin V))
@@ -17,7 +17,7 @@ endif
 # @ in non-verbose build
 quiet := $(if $(verbose),,@)
 
-# run via "$(MAKE) M=1" to print the name of the makefile the target defined in
+# run via "$(MAKE) M=1" to print makefiles where targets were defined
 ifeq (command line,$(origin M))
 cb_infomf := $(M:0=)
 else
@@ -57,35 +57,34 @@ endif
 ifeq (,$(filter distclean clean,$(MAKECMDGOALS)))
 
 # define macros:
-# a) 'suppress' - suppress output of executed build tool, print some pretty message instead, like "CC  source.c",
-#  update percent of building targets
+# a) 'suppress' - suppress output of executed build tool and print some pretty message instead, like "CC  source.c" and update percent
+#   of building targets
 #  $1 - the tool
 #  $2 - tool arguments
 #  $3 - if empty, then colorize argument of the called tool
 #  $4 - if empty, then update percent of building targets
-# b) 'suppress_targets' - to register (leaf) targets in those rules the 'suppress' macro is used
+# b) 'suppress_targets' - register (leaf) targets in those rules the 'suppress' macro is used (for updating percent of building targets)
 #  $1 - targets
-# c) 'suppress_more' - to call 'suppress', but do not update percent of building targets
+# c) 'suppress_more' - to call 'suppress' without updating percent of building targets
 #  $1 - the tool
 #  $2 - tool arguments
 #  $3 - if empty, then colorize argument of the called tool
-# note: 'cb_add_shown_percents' and 'cb_fomat_percents' macros - are used at second phase, after parsing makefiles,
-#  so no need to protect new values of 'cb_shown_percents' and 'cb_shown_remainder' variables
+# note: 'cb_add_shown_percents' and 'cb_fomat_percents' macros - are used at second phase, after parsing makefiles, so no need to protect
+#  new values of 'cb_shown_percents' and 'cb_shown_remainder' variables
 ifdef quiet
 
-# add definition of 'cb_gen_seq' macro - for the 'suppress_targets' macro defined below
+# add definition of 'cb_gen_seq' macro - used by the 'suppress_targets' macro defined below
 include $(cb_dir)/core/gen_seq.mk
 
-# 'suppress_targets' - register (leaf) target(s) in those rules the 'suppress' macro is used
-# note: the 'suppress' macro should be expanded in rules of these registered (leaf) targets to properly update percent of building targets
+# 'suppress_targets' - register (leaf) target(s) in those rules the 'suppress' macro is used (for updating percent of building targets)
 # note: here 'cb_gen_seq' is used to count all targets while the first "makefiles parsing" phase - this value will be used in
 #  $(cb_dir)/core/all.mk for replacing placeholders <TRG_COUNT> and <TRG_COUNT1> in the defined below 'cb_add_shown_percents'
 suppress_targets = $(if $(foreach =,$1,$(cb_gen_seq)),)
 
 # same as 'suppress_targets', but return passed target(s) $1
-suppress_targets_ret = $(suppress_targets)$1
+suppress_targets_r = $(suppress_targets)$1
 
-# used to hold current percents of executed target makefiles
+# used to hold current percent of building targets
 cb_shown_percents:=
 cb_shown_remainder:=
 
@@ -133,7 +132,7 @@ else # !quiet (verbose)
 
 # do not need to replace <TRG_COUNT> and <TRG_COUNT1> in the $(cb_dir)/core/all.mk
 suppress_targets:=
-suppress_targets_ret = $1
+suppress_targets_r = $1
 
 ifdef cb_infomf
 # target-specific: C.^ - defined by the 'cb_makefile_info' macro (below)
@@ -144,8 +143,8 @@ endif
 
 endif # !quiet (verbose)
 
-# 'suppress' macro should be used only once in a rule of a target registered via 'suppress_targets', to show next
-#  commands of the rule - use 'suppress_more' macro, which do not updates percent of building targets
+# 'suppress' macro should be used only once in a rule of a target registered via 'suppress_targets', to show next commands of the rule
+#  - use 'suppress_more' macro, which do not updates percent of building targets
 # $1 - the tool
 # $2 - tool arguments
 # $3 - if empty, then colorize argument of the called tool
@@ -155,8 +154,8 @@ else
 suppress_more:=
 endif
 
-# not cleaning up, define 'cb_makefile_info' macro - for given target(s) $1, define target-specific variable:
-# $(C.^) - makefile which specifies how to build the target and a number of section in the makefile after a call to $(make_continue)
+# not cleaning up, define 'cb_makefile_info' macro - for given targets $1, define target-specific variable:
+# $(C.^) - makefile which specifies how to build the targets and a number of section in the makefile after a call to $(make_continue)
 # note: $(cb_make_cont) list is empty or 1 1 1 .. 1 ~ (inside 'make_continue') or 1 1 1 1... (before 'make_continue'):
 # note: 'make_continue' is equivalent of: ... cb_make_cont+=~ $(TAIL) cb_make_cont=$(subst ~,1,$(cb_make_cont)) $(HEAD) ...
 ifdef cb_infomf
@@ -168,13 +167,13 @@ endif
 else # distclean || clean
 
 # do not need to replace <TRG_COUNT> and <TRG_COUNT1> in the $(cb_dir)/core/all.mk
-suppress_targets = $1
-suppress_targets_ret = $1
+suppress_targets:=
+suppress_targets_r = $1
 
 endif # distclean || clean
 
 # makefile parsing first phase variables
-cb_first_phase_vars += suppress_targets suppress_targets_ret cb_makefile_info
+cb_first_phase_vars += suppress_targets suppress_targets_r cb_makefile_info
 
 # protect macros from modifications in target makefiles,
 # do not trace calls to macros used in ifdefs, exported to the environment of called tools or modified via operator +=
@@ -182,6 +181,6 @@ $(call set_global,verbose quiet cb_infomf cb_shown_percents cb_shown_remainder c
 
 # protect macros from modifications in target makefiles, allow tracing calls to them
 # note: trace namespace: suppress
-$(call set_global,cb_print_percents cb_colorize cb_show_tool suppress_targets suppress_targets_ret \
+$(call set_global,cb_print_percents cb_colorize cb_show_tool suppress_targets suppress_targets_r \
   cb_update_percents=cb_shown_percents=cb_shown_percents cb_fomat_percents=cb_shown_percents \
   suppress suppress_more cb_makefile_info,suppress)
