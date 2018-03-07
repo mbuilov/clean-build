@@ -14,24 +14,24 @@ include $(CBLD_ROOT)/extensions/ctest.mk
 exe := hello S
 src := hello.c
 
-# generate rules for testing built executable and creating 'hello.out' output file
-# save path to the generated output file in "local" variable 'out' (variable name chosen arbitrary)
-# Note: the same path value may be obtained as: $(addsuffix .out,$(call all_targets,exe))
-# Note: 'exe_test_rule_ret' macro uses the value of defined above 'exe' variable
+# define rules for testing built executable and creating 'hello.out' output file
+# note: 'exe_test_rule_ret' returns an absolute path to the generated output file - save returned path in "local" variable 'out'
+# note: the same path value may be obtained as: $(addsuffix .out,$(call all_targets,exe))
+# note: 'exe_test_rule_ret' macro uses a value of defined above 'exe' variable
 out := $(exe_test_rule_ret)
 
-# set makefile information for 'hello' - a phony target defined below
-#  (this information is used by 'suppress' function, which pretty-prints what a rule is doing)
-# Note: 'set_makefile_info' - one of clean-build predefined macros
-$(call set_makefile_info,hello)
-
-# define custom rule - print output of tested executable to stderr
-# Note: output of rules must go to stderr, stdout is used by clean-build only for logging
-#  executed commands - this is needed for the (optional) generation of a build-script
-# Note: must not use "local" variables in rule bodies - may use target-specific or automatic variables,
-#  e.g. $| - list of order-only dependencies of a target (here it contains only the $(out))
-# Note: 'suppress' and 'cat_file' - are clean-build predefined macros
-hello: | $(out)
+# define custom rule - print output of tested executable to stderr, for this:
+# 1) set makefile information for 'hello' (an introduced phony target) - this information is used by the 'suppress' function
+#   in "makefile info" mode (enabled via "$(MAKE) M=1"); 'suppress' function pretty-prints what a rule is doing
+# 2) register 'hello' as a leaf target - in those rule the 'suppress' function is used for updating percent of building targets
+#
+# Note: output of rules must go to stderr, stdout is used by clean-build only for logging executed commands - this is needed
+#  for the (optional) generation of a build-script
+# Note: must not use "local" variables (e.g. 'out') in rule bodies - may use only target-specific, automatic or "global"
+#  (registered by 'set_global' macro) variables, here use $| (automatic variable) - list of order-only dependencies of the target,
+#  for this rule it contains only the $(out)
+# Note: 'cat_file' - one of clean-build defined shell utilities functions
+$(call suppress_targets_ret,$(call set_makefile_info_ret,hello)): | $(out)
 	$(call suppress,CAT,$|)$(call cat_file,$|) >&2
 
 # to complete clean-build predefined 'check' goal, it is needed to update our target 'hello'

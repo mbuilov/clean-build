@@ -33,7 +33,7 @@ define obj_rules_templ
 $8
 $(subst $(space),$(newline),$(join $(addsuffix :,$8),$2))
 $(call add_obj_sdeps,$(subst |,| ,$(call filter_sdeps,$2,$3,$5)),$4)
-$(call suppress_targets,$8):| $4 $$(order_deps)
+$(call suppress_targets_ret,$8):| $4 $$(order_deps)
 	$$(call $1,$$@,$$<,$6)
 $(if $7,-include $(patsubst %$5,%$7,$8))
 endef

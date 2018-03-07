@@ -300,10 +300,17 @@ add_mdeps:=
 # note: expressions $2 and $3 are expanded while expanding template $1, _before_ evaluating expansion result
 cb_add_what_makefile_builds:=
 
-# to be able to use 'suppress' function in the rules of the target(s) $1, define target-specific variable:
+# macro that defines target-specific variable for the 'suppress' function in "makefile info" mode (enabled via "$(MAKE) M=1"):
 # C.^ - holds a path to the current target makefile and a number of section in the target makefile after a call to $(make_continue)
-# note: this target-specific variable is automatically defined for the targets registered via std_target_vars/add_generated macros
-set_target_info:=
+# note: do _not_ call this macro for the targets registered via std_target_vars/add_generated macros - they call 'set_makefile_info'
+#  implicitly
+# note: 'set_makefile_info' does nothing in non-"makefile info" mode
+# note: this macro may be called only for the root target (e.g. an exe), dependent targets (e.g. objs) will inherit target-specific
+#  variable C.^ from the parent (exe)
+set_makefile_info:=
+
+# same as 'set_makefile_info', but return passed targets $1
+set_makefile_info_ret = $1
 
 ifndef toclean
 
@@ -393,15 +400,18 @@ $(call cb_add_what_makefile_builds,std_target_vars1,$$1,$$(order_deps))
 
 endif # cb_mdebug
 
-# define target-specific variables for the 'suppress' function in "makefile info" mode (enabled via "$(MAKE) M=1")
+# 'cb_makefile_info' - defined in "makefile info" mode (enabled via "$(MAKE) M=1")
 # note: 'suppress' and 'cb_makefile_info' macros - defined in included above $(cb_dir)/core/suppress.mk
 ifdef cb_makefile_info
 
-# to be able to use the 'suppress' function in the rules of the target(s) $1, define target-specific variable:
+# define target-specific variable for the 'suppress' function in "makefile info" mode
 # C.^ - holds a path to the current target makefile and a number of section in the target makefile after a call to $(make_continue)
-set_target_info = $(eval $(cb_makefile_info))
+set_makefile_info = $(eval $(cb_makefile_info))
 
-# optimize: do not call 'set_target_info' from 'std_target_vars1', include code of 'set_target_info' directly
+# same as 'set_makefile_info', but return passed targets $1
+set_makefile_info_ret = $(set_makefile_info_ret)$1
+
+# optimize: do not call 'set_makefile_info' from 'std_target_vars1', include code of 'set_makefile_info' directly
 ifndef cb_tracing
 # note: use value of 'cb_makefile_info' only if not tracing, else - it was modified for the tracing
 $(call define_prepend,std_target_vars1,$(value cb_makefile_info)$(newline))
@@ -412,9 +422,9 @@ endif
 endif # cb_makefile_info
 
 # register targets - to properly count percent of building targets by the calls to 'suppress' macro
-# note: 'suppress_targets' - defined in $(cb_dir)/core/suppress.mk
-ifneq ($$1,$(value suppress_targets))
-$(eval define std_target_vars1$(newline)$(subst $$1:|,$$(suppress_targets):|,$(value std_target_vars1))$(newline)endef)
+# note: 'suppress_targets' and 'suppress_targets_ret' - are defined in $(cb_dir)/core/suppress.mk
+ifdef suppress_targets
+$(eval define std_target_vars1$(newline)$(subst $$1:|,$$(suppress_targets_ret):|,$(value std_target_vars1))$(newline)endef)
 endif
 
 # register targets as the main ones built by the current makefile, add standard target-specific variables
@@ -773,10 +783,11 @@ $(call config_remember_vars,CBLD_BUILD CBLD_TARGET CBLD_NO_DEPS)
 #  parsed makefile, so clear these variables before rule execution second phase
 cb_first_phase_vars += cb_needed_dirs build_system_goals bin_dir obj_dir lib_dir gen_dir order_deps cb_set_default_dirs \
   cb_tool_override_dirs toclean cb_target_makefile add_mdeps cb_what_makefile_builds cb_what_makefile_builds1 \
-  cb_add_what_makefile_builds set_target_info add_order_deps need_gen_dirs std_target_vars1 cb_check_generated_at std_target_vars \
-  add_generated add_generated_ret set_makefile_specific2 set_makefile_specific1 set_makefile_specific tool_mode is_tool_mode \
-  cb_tool_mode_adjust cb_tool_mode_access_error cb_include_level cb_target_makefiles cb_head_eval cb_make_cont cb_def_head \
-  cb_show_leaf_mk cb_def_tail cb_def_targets define_targets cb_prepare cb_save_vars cb_restore_vars make_continue
+  cb_add_what_makefile_builds set_makefile_info set_makefile_info_ret add_order_deps need_gen_dirs std_target_vars1 \
+  cb_check_generated_at std_target_vars add_generated add_generated_ret set_makefile_specific2 set_makefile_specific1 \
+  set_makefile_specific tool_mode is_tool_mode cb_tool_mode_adjust cb_tool_mode_access_error cb_include_level \
+  cb_target_makefiles cb_head_eval cb_make_cont cb_def_head cb_show_leaf_mk cb_def_tail cb_def_targets define_targets \
+  cb_prepare cb_save_vars cb_restore_vars make_continue
 
 # protect macros from modifications in target makefiles,
 # do not trace calls to macros used in ifdefs, exported to the environment of called tools or modified via operator +=
@@ -790,9 +801,9 @@ $(call set_global,MAKEFLAGS SHELL cb_needed_dirs cb_first_phase_vars CBLD_BUILD 
 $(call set_global,cb_project_vars clean_build_version cb_dir clean_build_required_version \
   cb_build project_supported_targets target_triplet def_bin_dir def_obj_dir def_lib_dir def_gen_dir \
   cb_set_default_dirs tool_base mk_tools_dir cb_tool_override_dirs tool_suffix get_tools get_tool cb_first_makefile \
-  cb_target_makefile add_mdeps cb_what_makefile_builds cb_what_makefile_builds1 cb_add_what_makefile_builds set_target_info \
-  add_order_deps=order_deps=order_deps need_gen_dirs std_target_vars1 cb_check_generated_at std_target_vars add_generated \
-  add_generated_ret set_makefile_specific2 set_makefile_specific1 set_makefile_specific is_tool_mode cb_tool_mode_adjust \
+  cb_target_makefile add_mdeps cb_what_makefile_builds cb_what_makefile_builds1 cb_add_what_makefile_builds set_makefile_info \
+  set_makefile_info_ret add_order_deps=order_deps=order_deps need_gen_dirs std_target_vars1 cb_check_generated_at std_target_vars \
+  add_generated add_generated_ret set_makefile_specific2 set_makefile_specific1 set_makefile_specific is_tool_mode cb_tool_mode_adjust \
   cb_tool_mode_access_error cb_def_head cb_show_leaf_mk cb_check_targets cb_def_tail cb_no_def_head_err cb_def_targets \
   define_targets cb_prepare cb_save_vars cb_restore_vars make_continue product_version,core)
 
