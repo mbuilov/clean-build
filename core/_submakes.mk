@@ -84,7 +84,7 @@ add_mdeps1 = $(if $1,$(eval order_deps+=$$1)$(add_mdeps2))
 ifneq (file,$(origin cb_target_makefiles))
 add_mdeps2 = $(eval $$1:$(newline))
 else
-# filter-out already processed dependent target makefiles
+# filter-out already processed dependent target makefiles - we know that they are exist
 add_mdeps2 = $(call add_mdeps3,$(filter-out $(cb_target_makefiles:=-),$1))
 add_mdeps3 = $(if $1,$(eval $$1:$(newline)))
 endif
