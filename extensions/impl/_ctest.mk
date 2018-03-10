@@ -14,7 +14,7 @@ ifeq (,$(filter check clean,$(MAKECMDGOALS)))
 
 # do something only for the 'check' or 'clean' goals
 exe_test_rule:=
-exe_test_rule_ret:=
+exe_test_rule_r:=
 
 else # check or clean
 
@@ -29,8 +29,7 @@ CBLD_TEST_COLOR ?= [36m
 # $r - $(call form_trg,exe,$v) where $v - variant of the $(exe)
 # note: define, but do not export variables $4 as target-specific ones here - to generate correct .bat/.sh build script in verbose mode
 define exe_test_rule_templ
-$(call std_target_vars,$r.out)
-$(patsubst %,$r.out: %$(newline),$4)$r.out: $r
+$(patsubst %,$r.out: %$(newline),$4)$(call cb_target_vars_r,$r.out): $r
 	$$(call suppress,TEST,$$@)$$(call run_tool,$$< $(subst $$,$$$$,$1) > $$@,$3,,$(foreach =,$4,$(firstword $(subst =, ,$=))))
 endef
 
@@ -58,7 +57,7 @@ endif # CBLD_TEST_NEED_SHLIB_SIMLINKS
 exe_test_rule = $(foreach v,$(call get_variants,exe),$(foreach r,$(call form_trg,exe,$v),$(eval $(exe_test_rule_templ))))
 
 # same as 'exe_test_rule', but return a list of output files created by tested executables (one file for each variant)
-exe_test_rule_ret = $(foreach v,$(call get_variants,exe),$(foreach r,$(call form_trg,exe,$v),$(eval $(exe_test_rule_templ))$r.out))
+exe_test_rule_r = $(foreach v,$(call get_variants,exe),$(foreach r,$(call form_trg,exe,$v),$(eval $(exe_test_rule_templ))$r.out))
 
 endif # check or clean
 
@@ -66,7 +65,7 @@ endif # check or clean
 $(call config_remember_vars,CBLD_TEST_NEED_SHLIB_SIMLINKS)
 
 # makefile parsing first phase variables
-cb_first_phase_vars += exe_test_rule exe_test_rule_ret exe_test_rule_templ
+cb_first_phase_vars += exe_test_rule exe_test_rule_r exe_test_rule_templ
 
 # protect macros from modifications in target makefiles,
 # do not trace calls to macros used in ifdefs, exported to the environment of called tools or modified via operator +=
@@ -74,4 +73,4 @@ $(call set_global,CBLD_TEST_COLOR CBLD_TEST_NEED_SHLIB_SIMLINKS cb_first_phase_v
 
 # protect macros from modifications in target makefiles, allow tracing calls to them
 # note: trace namespace: c_test
-$(call set_global,exe_test_rule=exe exe_test_rule_ret=exe exe_test_rule_templ=r,c_test)
+$(call set_global,exe_test_rule=exe exe_test_rule_r=exe exe_test_rule_templ=r,c_test)

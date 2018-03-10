@@ -157,11 +157,11 @@ trg_ldflags  = $(call $t_ldflags,$v) $(ldflags)
 # note: object compilers 'obj_cc' and 'obj_cxx' must be defined in the compiler-specific makefile (e.g. $(cb_dir)/compilers/gcc.mk)
 # note: define target-specific variable 'objdir' - directory of object files of a module
 # note: target-specific variable 'objdir' forms an unique namespace name for the target, it is used in the 'c_redefine' macro (see below)
-# note: 'std_target_vars' also changes 'cb_needed_dirs', so do not remember its new value here - it will be saved in $(std_target_vars)
+# note: 'cb_target_vars' also changes 'cb_needed_dirs', so do not remember its new value here - it will be saved in $(cb_target_vars)
 define c_base_template
 $1:objdir := $4
 cb_needed_dirs+=$4
-$(std_target_vars)
+$(cb_target_vars)
 $1:$(call obj_rules,obj_cc,$(filter $(cc_mask),$2),$3,$4,$(obj_suffix),$t$(comma)$v,$(c_dep_suffix))
 $1:$(call obj_rules,obj_cxx,$(filter $(cxx_mask),$2),$3,$4,$(obj_suffix),$t$(comma)$v,$(c_dep_suffix))
 $1:compiler := $(trg_compiler)

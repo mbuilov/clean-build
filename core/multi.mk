@@ -19,7 +19,7 @@ cb_multi_targets:=
 # make a dependency chain of target files of a multi-target rule on each other: 1 2 3 4 -> 2:| 1; 3:| 2; 4:| 3;
 # $1 - list of generated files (absolute paths without spaces)
 # note: without dependency chain, a rule that generates some intermediate target, say 2, may return before the target 2 is really created
-cb_multi_target_seq = $(subst |,:| ,$(subst $(space),$(newline),$(filter-out \
+cb_multi_target_dep = $(subst |,:| ,$(subst $(space),$(newline),$(filter-out \
   ||%,$(join $(addsuffix |,$(wordlist 2,999999,$1) |),$1))))
 
 # when some tool (e.g. bison) generates many files, call the tool only once:
@@ -48,9 +48,8 @@ cb_multi_target_seq = $(subst |,:| ,$(subst $(space),$(newline),$(filter-out \
 #  also will be re-generated, this may lead to unexpected rebuilds on second make invocation.
 #
 define cb_multi_target_rule
-$(cb_multi_target_seq)
-$(std_target_vars)
-$1: $(call fixpath,$2)
+$(cb_multi_target_dep)
+$(cb_target_vars_r): $(call fixpath,$2)
 	$$(if $$(filter $4,$$(cb_multi_targets)),,$$(eval cb_multi_targets+=$4)$$(call suppress,MGEN,$1)$3)
 cb_multi_target_num+=1
 endef
@@ -85,15 +84,15 @@ endif # cb_checking
 else # toclean
 
 # just delete files on 'clean'
-multi_target = $(eval $(std_target_vars))
+multi_target = $(eval $(cb_target_vars))
 
 endif # toclean
 
 # same as 'multi_target', but return the list of generated files $1
-multi_target_ret = $(multi_target)$1
+multi_target_r = $(multi_target)$1
 
 # makefile parsing first phase variables
-cb_first_phase_vars += cb_multi_target_num cb_multi_target_seq cb_multi_target_rule multi_target cb_check_multi_rule multi_target_ret
+cb_first_phase_vars += cb_multi_target_num cb_multi_target_dep cb_multi_target_rule multi_target cb_check_multi_rule multi_target_r
 
 # protect macros from modifications in target makefiles,
 # do not trace calls to macros used in ifdefs, exported to the environment of called tools or modified via operator +=
@@ -101,5 +100,5 @@ $(call set_global,cb_first_phase_vars cb_multi_target_num cb_multi_targets)
 
 # protect macros from modifications in target makefiles, allow tracing calls to them
 # note: trace namespace: multi
-$(call set_global,cb_multi_target_seq cb_multi_target_rule=cb_multi_target_num=cb_multi_target_num \
-  multi_target cb_check_multi_rule multi_target_ret,multi)
+$(call set_global,cb_multi_target_dep cb_multi_target_rule=cb_multi_target_num=cb_multi_target_num \
+  multi_target cb_check_multi_rule multi_target_r,multi)

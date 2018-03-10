@@ -35,7 +35,7 @@ $(g_dir)/touched$(test_phase).txt: files := $(files)
 
 # note: create 'touched$(test_phase).txt' file _after_ $(files) - next we will update them and check that they are not
 #  older than 'touched$(test_phase).txt'
-$(call add_generated_ret,$(g_dir)/touched$(test_phase).txt):
+$(call add_generated_r,$(g_dir)/touched$(test_phase).txt):
 	$(call suppress,TOUCH,$@)$(call touch_files,$(files))
 	$(quiet)$(call touch_files,$@)
 

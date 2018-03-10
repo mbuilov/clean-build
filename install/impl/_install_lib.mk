@@ -86,7 +86,7 @@ endef
 # $2 - where to install static libraries, should be $$(d_devlibdir)
 define install_lib_static
 install_lib_$1_static uninstall_lib_$1_static: built_libs := $$($1_built_libs)
-install_lib_$1_static: $$($1_built_libs) | $$(call need_install_dir_ret,$2)
+install_lib_$1_static: $$($1_built_libs) | $$(call need_install_dir_r,$2)
 	$$(call do_install_files,$$(built_libs),$2,$(CBLD_STATIC_LIB_ACCESS_MODE))
 uninstall_lib_$1_static:
 	$$(call do_uninstall_files_in,$2,$$(notdir $$(built_libs)))
@@ -101,7 +101,7 @@ endef
 # note: this template is overridden in $(cb_dir)/install/impl/install_lib_unix.mk
 define install_lib_shared
 install_lib_$1_shared uninstall_lib_$1_shared: built_dlls := $$($1_built_dlls)
-install_lib_$1_shared: $$($1_built_dlls) | $$(call need_install_dir_ret,$3)
+install_lib_$1_shared: $$($1_built_dlls) | $$(call need_install_dir_r,$3)
 	$$(call do_install_files,$$(built_dlls),$3,$(CBLD_SHARED_LIB_ACCESS_MODE))
 uninstall_lib_$1_shared:
 	$$(call do_uninstall_files_in,$3,$$(notdir $$(built_dlls)))
@@ -115,7 +115,7 @@ endef
 # note: $(define_install_lib_vars) must be evaluated before expanding this template, so '$1_library_hdir' is defined
 define install_lib_headers
 install_lib_$1_headers uninstall_lib_$1_headers: headers := $$($1_library_headers)
-install_lib_$1_headers: $$($1_library_headers) | $$(call need_install_dir_ret,$$(d_includedir)$($1_library_hdir))
+install_lib_$1_headers: $$($1_library_headers) | $$(call need_install_dir_r,$$(d_includedir)$($1_library_hdir))
 	$$(call do_install_files,$$(headers),$$(d_includedir)$($1_library_hdir),$(CBLD_LIB_HEADERS_ACCESS_MODE))
 uninstall_lib_$1_headers:
 	$$(call do_uninstall_files_in,$$(d_includedir)$($1_library_hdir),$$(notdir $$(headers)))$(if \
@@ -164,7 +164,7 @@ tmp_conf_text := $$($6)
 ifdef tmp_conf_text
 install_lib_$1_$3 uninstall_lib_$1_$3: conf_text := $$(tmp_conf_text)
 install_lib_$1_$3 uninstall_lib_$1_$3: conf_file := $4/$3
-install_lib_$1_$3:| $$(call need_install_dir_ret,$4)
+install_lib_$1_$3:| $$(call need_install_dir_r,$4)
 	$$(call install_text,$$(conf_text),$$(conf_file),$(CBLD_INST_CONF_WRITE_BY_LINES),$(CBLD_LIB_CONF_ACCESS_MODE))
 uninstall_lib_$1_$3:
 	$$(call do_uninstall_file,$$(conf_file))

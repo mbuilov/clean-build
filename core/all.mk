@@ -23,15 +23,16 @@ cb_needed_dirs := $(call split_dirs,$(cb_needed_dirs:$(dir $(cb_build))%=%))
 $(eval $(call mk_dir_deps,$(cb_needed_dirs),$(dir $(cb_build))))
 
 # define rules for creating $(cb_build)-relative directories
+# note: 'suppress_targets_r' - defined in $(cb_dir)/core/suppress.mk
 # note: 'create_dir' - defined in the included before $(utils_mk) makefile
-$(call suppress_targets,$(addprefix $(dir $(cb_build)),$(cb_needed_dirs))):
+$(call suppress_targets_r,$(addprefix $(dir $(cb_build)),$(cb_needed_dirs))):
 	$(call suppress,MKDIR,$@)$(call create_dir,$@)
 
 # fix 'cb_add_shown_percents' macro from $(cb_dir)/core/suppress.mk
 # note: 'suppress_targets' - defined in $(cb_dir)/core/suppress.mk
 # note: 'cb_gen_seq' - defined in $(cb_dir)/code/gen_seq.mk included by $(cb_dir)/core/suppress.mk
 # note: <TRG_COUNT> - number of targets - used to compute build completion percent
-ifneq ($$1,$(value suppress_targets))
+ifdef suppress_targets
 $(eval cb_add_shown_percents = $(subst <TRG_COUNT>,$(cb_gen_seq),$(subst <TRG_COUNT1>,$(cb_gen_seq),$(value cb_add_shown_percents))))
 endif
 

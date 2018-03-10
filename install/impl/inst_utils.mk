@@ -104,10 +104,10 @@ need_install_dir1 = $(if $1,$(eval $(call add_install_dirs_templ,$1,$(subst $(sp
 need_install_dir = $(call need_install_dir1,$(filter-out $(cb_needed_install_dirs),$(subst %,$$(percent),$(call split_dirs,$(unspaces)))))
 
 # same as 'need_install_dir', but return needed directory with spaces prefixed by slash: C:/Program\ Files/AcmeCorp
-need_install_dir_ret = $(need_install_dir)$(subst $(space),\ ,$1)
+need_install_dir_r = $(need_install_dir)$(subst $(space),\ ,$1)
 
 # makefile parsing first phase variables
-cb_first_phase_vars += cb_needed_install_dirs add_install_dirs_templ need_install_dir1 need_install_dir need_install_dir_ret
+cb_first_phase_vars += cb_needed_install_dirs add_install_dirs_templ need_install_dir1 need_install_dir need_install_dir_r
 
 # protect macros from modifications in target makefiles,
 # do not trace calls to macros used in ifdefs, exported to the environment of called tools or modified via operator +=
@@ -117,4 +117,4 @@ $(call set_global,cb_needed_install_dirs build_system_goals cb_first_phase_vars)
 # note: trace namespace: inst_utils
 $(call set_global,do_install_dirq do_install_dir do_install_filesq do_install_files do_install_simlinkqq do_install_simlink \
   do_uninstall_fileq do_uninstall_file do_uninstall_files_inq do_uninstall_files_in do_uninstall_dirq do_uninstall_dir \
-  do_try_uninstall_dirq do_try_uninstall_dir add_install_dirs_templ need_install_dir1 need_install_dir need_install_dir_ret,inst_utils)
+  do_try_uninstall_dirq do_try_uninstall_dir add_install_dirs_templ need_install_dir1 need_install_dir need_install_dir_r,inst_utils)

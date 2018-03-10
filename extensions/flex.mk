@@ -23,7 +23,7 @@ FLEX_FLAGS ?= -o
 # $1 - target
 # $2 - source
 # example:
-#  $(call add_generated_ret,$(gen_dir)/test/test.yy.c): $(call fixpath,test.l); $(call flex_compiler,$@,$<)
+#  $(call add_generated_r,$(gen_dir)/test/test.yy.c): $(call fixpath,test.l); $(call flex_compiler,$@,$<)
 flex_compiler = $(call suppress,FLEX,$2)$(FLEX) $(FLEX_FLAGS) $(call ospath,$1 $2)
 
 # tool color for the 'suppress' macro

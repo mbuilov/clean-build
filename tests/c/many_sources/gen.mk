@@ -31,7 +31,7 @@ $(call set_makefile_specific,src_text_templ seq)
 # define rules
 # note: use target makefile-specific variable 'src_text_templ' defined above
 # note: 'generated' - defined in $(top)/n.mk
-$(call add_generated_ret,$(generated)):
+$(call add_generated_r,$(generated)):
 	$(call suppress,GEN,$@)$(call print_some_lines,$(call src_text_templ,$(patsubst f%,%,$(basename $(notdir $@))))) > $@
 
 # foo.c template
@@ -47,7 +47,8 @@ endef
 # 2) register generated source $(test_gen_dir)/foo.c
 # 3) define a rules for generating $(test_gen_dir)/foo.c
 # note: 'test_gen_dir' - defined in $(top)/n.mk
-$(call add_generated_ret,$(call define_target_specific_ret,$(test_gen_dir)/foo.c,foo_templ)):
+$(test_gen_dir)/foo.c: $(call define_target_specific,foo_templ)
+$(call add_generated_r,$(test_gen_dir)/foo.c):
 	$(call suppress,GEN,$@)$(call write_lines,$(foo_templ),$@,$(CBLD_MAX_PATH_ARGS))
 
 else # toclean

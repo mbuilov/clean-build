@@ -43,7 +43,7 @@ $(g_dir)/out.txt: t12 := } '\#$$2' " (e) " {\\\\"+\*} \( \a ^$$%\#@?
 
 # register generated file '$(g_dir)/out.txt', define a rule for generating it - call target-specific macro 'test' defined above
 # note: variable 'g_dir' is not available in the "rule execution" phase, so use instead automatic variable $@
-$(call add_generated_ret,$(g_dir)/out.txt):
+$(call add_generated_r,$(g_dir)/out.txt):
 	$(call suppress,GEN,$@)$(call test,$(t1)) >> $@
 	$(quiet)$(call test,$(t2)) >> $@
 	$(quiet)$(call test,$(t3)) >> $@
@@ -61,7 +61,7 @@ $(call add_generated_ret,$(g_dir)/out.txt):
 # note: automatic variable $< - the name of the first prerequisite: $(a_dir)/result.txt
 # note: automatic variable $^ - names of all prerequisites:         $(a_dir)/result.txt $(g_dir)/out.txt
 # note: automatic variable $@ - target file:                        $(g_dir)/cmp.txt
-$(call add_generated_ret,$(g_dir)/cmp.txt): $(a_dir)/result.txt $(g_dir)/out.txt
+$(call add_generated_r,$(g_dir)/cmp.txt): $(a_dir)/result.txt $(g_dir)/out.txt
 	$(call suppress,CMP,$@)$(call compare_files,$<,$(lastword $^)) > $@
 
 # this macro must be expanded at end of target makefile, as required by 'cb_prepare' expanded at head

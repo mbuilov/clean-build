@@ -4,139 +4,116 @@
 # Licensed under GPL version 3 or any later version, see COPYING
 #----------------------------------------------------------------------------------
 
-# define 'cb_gen_seq' - sequence generator: 0 1 2 ... 9999999
+# define '$zgen_seq' - sequence generator: 0 1 2 ... 9999999
 
-cb_p6:=
-cb_p5:=
-cb_p4:=
-cb_p3:=
-cb_p2:=
-cb_p1:=
+# generator prefix - may be defined before including this file
+ifeq (,$(filter-out undefined environment,$(origin z)))
+z := cb_
+endif
 
-cb_gen_overflow = $(error overflow in 'cb_gen')
+# generated number prefixes
+$zp6:=
+$zp5:=
+$zp4:=
+$zp3:=
+$zp2:=
+$zp1:=
 
-cb_g6 := cb_61g
-cb_60g = 0$(eval cb_g6:=cb_61g)
-cb_61g = 1$(eval cb_g6:=cb_62g)
-cb_62g = 2$(eval cb_g6:=cb_63g)
-cb_63g = 3$(eval cb_g6:=cb_64g)
-cb_64g = 4$(eval cb_g6:=cb_65g)
-cb_65g = 5$(eval cb_g6:=cb_66g)
-cb_66g = 6$(eval cb_g6:=cb_67g)
-cb_67g = 7$(eval cb_g6:=cb_68g)
-cb_68g = 8$(eval cb_g6:=cb_69g)
-cb_69g = 9$(eval cb_g6:=cb_gen_overflow)
+$(eval $zgen_overflow = $$(error overflow in '$zgen'))
 
-cb_g5 := cb_51g
-cb_50g = $(eval cb_p6:=$($(cb_g6)))$(cb_p6)0$(eval cb_g5:=cb_51g)
-cb_51g = $(cb_p6)1$(eval cb_g5:=cb_52g)
-cb_52g = $(cb_p6)2$(eval cb_g5:=cb_53g)
-cb_53g = $(cb_p6)3$(eval cb_g5:=cb_54g)
-cb_54g = $(cb_p6)4$(eval cb_g5:=cb_55g)
-cb_55g = $(cb_p6)5$(eval cb_g5:=cb_56g)
-cb_56g = $(cb_p6)6$(eval cb_g5:=cb_57g)
-cb_57g = $(cb_p6)7$(eval cb_g5:=cb_58g)
-cb_58g = $(cb_p6)8$(eval cb_g5:=cb_59g)
-cb_59g = $(cb_p6)9$(eval cb_g5:=cb_50g)
+# this makefile may be included multiple times
+ifeq (,$(filter-out undefined environment,$(origin cb_gen_step_template)))
 
-cb_g4 := cb_41g
-cb_40g = $(eval cb_p5:=$($(cb_g5)))$(cb_p5)0$(eval cb_g4:=cb_41g)
-cb_41g = $(cb_p5)1$(eval cb_g4:=cb_42g)
-cb_42g = $(cb_p5)2$(eval cb_g4:=cb_43g)
-cb_43g = $(cb_p5)3$(eval cb_g4:=cb_44g)
-cb_44g = $(cb_p5)4$(eval cb_g4:=cb_45g)
-cb_45g = $(cb_p5)5$(eval cb_g4:=cb_46g)
-cb_46g = $(cb_p5)6$(eval cb_g4:=cb_47g)
-cb_47g = $(cb_p5)7$(eval cb_g4:=cb_48g)
-cb_48g = $(cb_p5)8$(eval cb_g4:=cb_49g)
-cb_49g = $(cb_p5)9$(eval cb_g4:=cb_40g)
+# generate next number
+# $z - name prefix
+# $n - order
+# $p - next (higher) order
+# '$zg$n' - "pointer" to the function returning next number value
+# '$zp$p' - generated number prefix
+# '$zg$p' - "pointer" to the function returning next number prefix value
+define cb_gen_step_template
+$zg$n := $z$n1g
+$z$n0g = $(eval $zp$p:=$($($zg$p)))$(call set_global,$zg$p $zp$p)$($zp$p)0$(eval $zg$n:=$z$n1g)
+$z$n1g = $($zp$p)1$(eval $zg$n:=$z$n2g)
+$z$n2g = $($zp$p)2$(eval $zg$n:=$z$n3g)
+$z$n3g = $($zp$p)3$(eval $zg$n:=$z$n4g)
+$z$n4g = $($zp$p)4$(eval $zg$n:=$z$n5g)
+$z$n5g = $($zp$p)5$(eval $zg$n:=$z$n6g)
+$z$n6g = $($zp$p)6$(eval $zg$n:=$z$n7g)
+$z$n7g = $($zp$p)7$(eval $zg$n:=$z$n8g)
+$z$n8g = $($zp$p)8$(eval $zg$n:=$z$n9g)
+$z$n9g = $($zp$p)9$(eval $zg$n:=$z$n0g)
+endef
 
-cb_g3 := cb_31g
-cb_30g = $(eval cb_p4:=$($(cb_g4)))$(cb_p4)0$(eval cb_g3:=cb_31g)
-cb_31g = $(cb_p4)1$(eval cb_g3:=cb_32g)
-cb_32g = $(cb_p4)2$(eval cb_g3:=cb_33g)
-cb_33g = $(cb_p4)3$(eval cb_g3:=cb_34g)
-cb_34g = $(cb_p4)4$(eval cb_g3:=cb_35g)
-cb_35g = $(cb_p4)5$(eval cb_g3:=cb_36g)
-cb_36g = $(cb_p4)6$(eval cb_g3:=cb_37g)
-cb_37g = $(cb_p4)7$(eval cb_g3:=cb_38g)
-cb_38g = $(cb_p4)8$(eval cb_g3:=cb_39g)
-cb_39g = $(cb_p4)9$(eval cb_g3:=cb_30g)
-
-cb_g2 := cb_21g
-cb_20g = $(eval cb_p3:=$($(cb_g3)))$(cb_p3)0$(eval cb_g2:=cb_21g)
-cb_21g = $(cb_p3)1$(eval cb_g2:=cb_22g)
-cb_22g = $(cb_p3)2$(eval cb_g2:=cb_23g)
-cb_23g = $(cb_p3)3$(eval cb_g2:=cb_24g)
-cb_24g = $(cb_p3)4$(eval cb_g2:=cb_25g)
-cb_25g = $(cb_p3)5$(eval cb_g2:=cb_26g)
-cb_26g = $(cb_p3)6$(eval cb_g2:=cb_27g)
-cb_27g = $(cb_p3)7$(eval cb_g2:=cb_28g)
-cb_28g = $(cb_p3)8$(eval cb_g2:=cb_29g)
-cb_29g = $(cb_p3)9$(eval cb_g2:=cb_20g)
-
-cb_g1 := cb_11g
-cb_10g = $(eval cb_p2:=$($(cb_g2)))$(cb_p2)0$(eval cb_g1:=cb_11g)
-cb_11g = $(cb_p2)1$(eval cb_g1:=cb_12g)
-cb_12g = $(cb_p2)2$(eval cb_g1:=cb_13g)
-cb_13g = $(cb_p2)3$(eval cb_g1:=cb_14g)
-cb_14g = $(cb_p2)4$(eval cb_g1:=cb_15g)
-cb_15g = $(cb_p2)5$(eval cb_g1:=cb_16g)
-cb_16g = $(cb_p2)6$(eval cb_g1:=cb_17g)
-cb_17g = $(cb_p2)7$(eval cb_g1:=cb_18g)
-cb_18g = $(cb_p2)8$(eval cb_g1:=cb_19g)
-cb_19g = $(cb_p2)9$(eval cb_g1:=cb_10g)
-
-cb_gen := cb__g
-cb__g = $(eval cb_p1:=)0$(eval cb_gen:=cb_1g)
-cb_0g = $(eval cb_p1:=$($(cb_g1)))$(cb_p1)0$(eval cb_gen:=cb_1g)
-cb_1g = $(cb_p1)1$(eval cb_gen:=cb_2g)
-cb_2g = $(cb_p1)2$(eval cb_gen:=cb_3g)
-cb_3g = $(cb_p1)3$(eval cb_gen:=cb_4g)
-cb_4g = $(cb_p1)4$(eval cb_gen:=cb_5g)
-cb_5g = $(cb_p1)5$(eval cb_gen:=cb_6g)
-cb_6g = $(cb_p1)6$(eval cb_gen:=cb_7g)
-cb_7g = $(cb_p1)7$(eval cb_gen:=cb_8g)
-cb_8g = $(cb_p1)8$(eval cb_gen:=cb_9g)
-cb_9g = $(cb_p1)9$(eval cb_gen:=cb_0g)
-
-# generate next sequence number
+# remove call to 'set_global' if not in "check-mode"
 ifndef cb_checking
-cb_gen_seq = $($(cb_gen))
+cb_gen_step_value = $(subst $$(call set_global,$$zg$$p $$zp$$p),,$(value cb_gen_step_template))
 else
-$(eval cb_50g = $(subst $$(cb_p6),$$(call set_global,cb_p6 cb_g6)$$(cb_p6),$(value cb_50g)))
-$(eval cb_40g = $(subst $$(cb_p5),$$(call set_global,cb_p5 cb_g5)$$(cb_p5),$(value cb_40g)))
-$(eval cb_30g = $(subst $$(cb_p4),$$(call set_global,cb_p4 cb_g4)$$(cb_p4),$(value cb_30g)))
-$(eval cb_20g = $(subst $$(cb_p3),$$(call set_global,cb_p3 cb_g3)$$(cb_p3),$(value cb_20g)))
-$(eval cb_10g = $(subst $$(cb_p2),$$(call set_global,cb_p2 cb_g2)$$(cb_p2),$(value cb_10g)))
-$(eval cb_0g = $(subst $$(cb_p1),$$(call set_global,cb_p1 cb_g1)$$(cb_p1),$(value cb_0g)))
-cb_gen_seq = $($(cb_gen))$(call set_global,cb_gen)
+cb_gen_step_value = $(value cb_gen_step_template)
+endif
+
+endif # !defined cb_gen_step_template
+
+# define $zg6:
+# 1) $z$n0g is not used
+# 2) $($zp$p) is not used
+# 3) next value after $z$n9g must be $zgen_overflow
+$(eval $(subst \
+  $$z,$z,$(subst \
+  $$n,6,$(subst \
+  $$z$$n0g,$$zgen_overflow,$(subst \
+  $$($$zp$$p),,$(subst \
+  $$z$$n0g = $$(eval $$zp$$p:=$$($$($$zg$$p)))$$(call set_global,$$zg$$p $$zp$$p)$$($$zp$$p)0$$(eval $$zg$$n:=$$z$$n1g),,$(value \
+  cb_gen_step_template)))))))
+
+# define $zg5, $zg4, $zg3, $zg2, $zg1
+$(eval $(subst $$z,$z,$(subst $$n,5,$(subst $$p,6,$(cb_gen_step_value)))))
+$(eval $(subst $$z,$z,$(subst $$n,4,$(subst $$p,5,$(cb_gen_step_value)))))
+$(eval $(subst $$z,$z,$(subst $$n,3,$(subst $$p,4,$(cb_gen_step_value)))))
+$(eval $(subst $$z,$z,$(subst $$n,2,$(subst $$p,3,$(cb_gen_step_value)))))
+$(eval $(subst $$z,$z,$(subst $$n,1,$(subst $$p,2,$(cb_gen_step_value)))))
+
+# define $zgen:
+# 1) initially set $zgen to point to $z_g - to return 0 as the first value of $zgen
+$(eval $(subst \
+  $$z,$z,$(subst \
+  $$n,en,$(subst \
+  $$p,1,$(subst \
+  := $$z$$n1g,:= $z_g,$(cb_gen_step_value))))))
+
+# define $z_g function (called by $zgen at first time - to return 0 as the first value)
+$(eval $z_g = 0$$(eval $zgen:=$zen1g))
+
+# define $zgen_seq - generate next sequence number
+ifndef cb_checking
+$(eval $zgen_seq = $$($$($zgen)))
+else
+$(eval $zgen_seq = $$($$($zgen))$$(call set_global,$zgen))
 endif
 
 # makefile parsing first phase variables
-cb_first_phase_vars += \
-  cb_p6 cb_p5 cb_p4 cb_p3 cb_p2 cb_p1 cb_gen_overflow \
-  cb_g6 cb_60g cb_61g cb_62g cb_63g cb_64g cb_65g cb_66g cb_67g cb_68g cb_69g \
-  cb_g5 cb_50g cb_51g cb_52g cb_53g cb_54g cb_55g cb_56g cb_57g cb_58g cb_59g \
-  cb_g4 cb_40g cb_41g cb_42g cb_43g cb_44g cb_45g cb_46g cb_47g cb_48g cb_49g \
-  cb_g3 cb_30g cb_31g cb_32g cb_33g cb_34g cb_35g cb_36g cb_37g cb_38g cb_39g \
-  cb_g2 cb_20g cb_21g cb_22g cb_23g cb_24g cb_25g cb_26g cb_27g cb_28g cb_29g \
-  cb_g1 cb_10g cb_11g cb_12g cb_13g cb_14g cb_15g cb_16g cb_17g cb_18g cb_19g \
-  cb_gen cb__g cb_0g cb_1g cb_2g cb_3g cb_4g cb_5g cb_6g cb_7g cb_8g cb_9g \
-  cb_gen_seq
+cb_first_phase_vars += $zp6 $zp5 $zp4 $zp3 $zp2 $zp1 $zgen_overflow \
+  $zg6 $z60g $z61g $z62g $z63g $z64g $z65g $z66g $z67g $z68g $z69g \
+  $zg5 $z50g $z51g $z52g $z53g $z54g $z55g $z56g $z57g $z58g $z59g \
+  $zg4 $z40g $z41g $z42g $z43g $z44g $z45g $z46g $z47g $z48g $z49g \
+  $zg3 $z30g $z31g $z32g $z33g $z34g $z35g $z36g $z37g $z38g $z39g \
+  $zg2 $z20g $z21g $z22g $z23g $z24g $z25g $z26g $z27g $z28g $z29g \
+  $zg1 $z10g $z11g $z12g $z13g $z14g $z15g $z16g $z17g $z18g $z19g \
+  $zgen $zen0g $zen1g $zen2g $zen3g $zen4g $zen5g $zen6g $zen7g $zen8g $zen9g \
+  $z_g $zgen_seq
 
 # protect macros from modifications in target makefiles,
 # do not trace calls to these macros
-$(call set_global, \
-  cb_p6 cb_p5 cb_p4 cb_p3 cb_p2 cb_p1 cb_gen_overflow \
-  cb_g6 cb_60g cb_61g cb_62g cb_63g cb_64g cb_65g cb_66g cb_67g cb_68g cb_69g \
-  cb_g5 cb_50g cb_51g cb_52g cb_53g cb_54g cb_55g cb_56g cb_57g cb_58g cb_59g \
-  cb_g4 cb_40g cb_41g cb_42g cb_43g cb_44g cb_45g cb_46g cb_47g cb_48g cb_49g \
-  cb_g3 cb_30g cb_31g cb_32g cb_33g cb_34g cb_35g cb_36g cb_37g cb_38g cb_39g \
-  cb_g2 cb_20g cb_21g cb_22g cb_23g cb_24g cb_25g cb_26g cb_27g cb_28g cb_29g \
-  cb_g1 cb_10g cb_11g cb_12g cb_13g cb_14g cb_15g cb_16g cb_17g cb_18g cb_19g \
-  cb_gen cb__g cb_0g cb_1g cb_2g cb_3g cb_4g cb_5g cb_6g cb_7g cb_8g cb_9g)
+$(call set_global,$zp6 $zp5 $zp4 $zp3 $zp2 $zp1 $zgen_overflow \
+  $zg6 $z60g $z61g $z62g $z63g $z64g $z65g $z66g $z67g $z68g $z69g \
+  $zg5 $z50g $z51g $z52g $z53g $z54g $z55g $z56g $z57g $z58g $z59g \
+  $zg4 $z40g $z41g $z42g $z43g $z44g $z45g $z46g $z47g $z48g $z49g \
+  $zg3 $z30g $z31g $z32g $z33g $z34g $z35g $z36g $z37g $z38g $z39g \
+  $zg2 $z20g $z21g $z22g $z23g $z24g $z25g $z26g $z27g $z28g $z29g \
+  $zg1 $z10g $z11g $z12g $z13g $z14g $z15g $z16g $z17g $z18g $z19g \
+  $zgen $zen0g $zen1g $zen2g $zen3g $zen4g $zen5g $zen6g $zen7g $zen8g $zen9g \
+  $z_g)
 
 # protect macros from modifications in target makefiles, allow tracing calls to them
-# note: trace namespace: cb_gen_seq
-$(call set_global,cb_gen_seq,cb_gen_seq)
+# note: trace namespace: $zgen_seq
+$(call set_global,$zgen_seq,$zgen_seq)

@@ -7,18 +7,21 @@
 # add rules for building C/C++ sources
 include $(dir $(lastword $(MAKEFILE_LIST)))../make/c.mk
 
-# include definition of 'exe_test_rule_ret' macro - which generates a rule used for testing built executables
+# include definition of 'exe_test_rule_r' macro - which generates a rule used for testing built executables
 include $(CBLD_ROOT)/extensions/ctest.mk
 
 # we will build S-variant of 'hello' executable - the one which is statically linked with the C runtime
 exe := hello S
 src := hello.c
 
+# define next rules only if 'check' is in the make goals list
+ifneq (,$(filter check,$(MAKECMDGOALS)))
+
 # define rules for testing built executable and creating 'hello.out' output file
-# note: 'exe_test_rule_ret' returns an absolute path to the generated output file - save returned path in "local" variable 'out'
+# note: 'exe_test_rule_r' returns an absolute path to the generated output file - save returned path in "local" variable 'out'
 # note: the same path value may be obtained as: $(addsuffix .out,$(call all_targets,exe))
-# note: 'exe_test_rule_ret' macro uses a value of defined above 'exe' variable
-out := $(exe_test_rule_ret)
+# note: 'exe_test_rule_r' macro uses a value of defined above 'exe' variable
+out := $(exe_test_rule_r)
 
 # define custom rule - print output of tested executable to stderr, for this:
 # 1) set makefile information for 'hello' (an introduced phony target) - this information is used by the 'suppress' function
@@ -31,7 +34,7 @@ out := $(exe_test_rule_ret)
 #  (registered by 'set_global' macro) variables, here use $| (automatic variable) - list of order-only dependencies of the target,
 #  for this rule it contains only the $(out)
 # Note: 'cat_file' - one of clean-build defined shell utilities functions
-$(call suppress_targets_ret,$(call set_makefile_info_ret,hello)): | $(out)
+$(call suppress_targets_r,$(call set_makefile_info_r,hello)): | $(out)
 	$(call suppress,CAT,$|)$(call cat_file,$|) >&2
 
 # to complete clean-build predefined 'check' goal, it is needed to update our target 'hello'
@@ -39,6 +42,8 @@ check: hello
 
 # specify that 'hello' - is not a file, it is a PHONY target
 .PHONY: hello
+
+endif # check
 
 # define targets and rules how to build them
 $(define_targets)

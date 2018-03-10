@@ -15,11 +15,12 @@ ifndef toclean
 # $1 - $(lib_dir)/$(dll_prefix)$(subst .,$(dll_suffix).,$d)         e.g.: /project/lib/libmylb.so.1
 # $2 - $(dll_prefix)<library_name>$(dll_suffix)                     e.g.: libmylb.so
 # $d - built shared library in form <library_name>.<major_number>   e.g.: mylib.1
-# note: do not use 'std_target_vars' macro because rule target (simlink) is a prerequisite for the result of
-#  tested executable - 'test_form_shlib_simlinks' macro should be used to form a list of such prerequisites
+# note: do not use 'cb_target_vars' macro because rule target (simlink) is a prerequisite for the result of tested executable
+#  - needed target-specific variables will be inherited from that result
+# note: 'test_form_shlib_simlinks' macro should be used to form a list of such prerequisites
 # note: 'create_simlink' - defined in $(cb_dir)/utils/unix.mk
 define so_softlink_template
-$1:| $(dir $1)$2
+$(suppress_targets_r):| $(dir $1)$2
 	$$(call suppress,LN,$$@)$$(call create_simlink,$2,$$@)
 cb_test_shlib_simlinks += $d
 endef

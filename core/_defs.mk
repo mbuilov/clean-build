@@ -293,36 +293,35 @@ cb_target_makefile := $(cb_first_makefile)
 # note: overridden in $(cb_dir)/core/_submakes.mk
 add_mdeps:=
 
-# macro that patches given evaluable template - to print what makefile builds
-# $1 - template name
-# $2 - expression that gives target file(s) the template builds
-# $3 - optional expression that gives order-only dependencies
-# note: expressions $2 and $3 are expanded while expanding template $1, _before_ evaluating expansion result
-cb_add_what_makefile_builds:=
-
-# macro that defines target-specific variable for the 'suppress' function in "makefile info" mode (enabled via "$(MAKE) M=1"):
-# C.^ - holds a path to the current target makefile and a number of section in the target makefile after a call to $(make_continue)
-# note: do _not_ call this macro for the targets registered via std_target_vars/add_generated macros - they call 'set_makefile_info'
-#  implicitly
+# for the targets $1, define target-specific variable - used by the 'suppress' function in "makefile info" mode (enabled via "$(MAKE) M=1"):
+# C.^ - makefile which specifies how to build the targets and a number of section in the makefile after a call to $(make_continue)
+# note: do not call this macro for the targets registered via 'cb_target_vars'/'add_generated' - they call 'set_makefile_info' implicitly
 # note: 'set_makefile_info' does nothing in non-"makefile info" mode
-# note: this macro may be called only for the root target (e.g. an exe), dependent targets (e.g. objs) will inherit target-specific
+# note: it is possible to call this macro only for the root target (e.g. an exe), dependent targets (e.g. objs) will inherit target-specific
 #  variable C.^ from the parent (exe)
 set_makefile_info:=
 
 # same as 'set_makefile_info', but return passed targets $1
-set_makefile_info_ret = $1
+set_makefile_info_r = $1
+
+# patch given evaluable template - to print what targets current makefile builds
+# $1 - template name
+# $2 - expression that gives targets the template builds
+# $3 - optional expression that gives order-only dependencies of the targets
+# note: expressions $2 and $3 are expanded while expanding template $1, _before_ evaluating expansion result
+cb_add_what_makefile_builds:=
 
 ifndef toclean
 
-# define a .PHONY goal which will depend on main targets (registered via 'std_target_vars' macro defined below)
+# define a .PHONY goal which will depend on main targets (registered via 'cb_target_vars' macro defined below)
 .PHONY: $(cb_target_makefile)-
 
 # default goal 'all' - depends only on the root makefile
 all: $(cb_target_makefile)-
 
 # order-only dependencies of all leaf makefile targets
-# note: 'order_deps' variable should not be directly modified in target makefiles,
-#  use 'add_order_deps/add_mdeps' functions to append value(s) to 'order_deps'
+# note: 'order_deps' variable should not be directly modified in target makefiles, use 'add_order_deps/add_mdeps' functions to append
+#  value(s) to 'order_deps'
 order_deps:=
 
 # append value(s) to 'order_deps' list
@@ -335,8 +334,8 @@ endif
 
 # add directories $1 to the list of auto-created ones - 'cb_needed_dirs'
 # note: these directories are will be auto-deleted while cleaning up
-# note: callers of 'need_gen_dirs' may assume that it will protect new value of 'cb_needed_dirs'
-#  so callers _may_ change 'cb_needed_dirs' without protecting it. Protect 'cb_needed_dirs' here.
+# note: callers of 'need_gen_dirs' may assume that it will protect new value of 'cb_needed_dirs', so callers
+#  _may_ change 'cb_needed_dirs' without protecting it - before the call. Protect 'cb_needed_dirs' here.
 ifndef cb_checking
 need_gen_dirs = $(eval cb_needed_dirs+=$$1)
 else
@@ -345,39 +344,44 @@ need_gen_dirs = $(eval cb_needed_dirs+=$$1$(newline)$(call set_global1,cb_needed
 endif
 
 # register targets as main ones built by the current makefile, add standard target-specific variables
-# $1 - target file(s) to build (absolute paths)
-# $2 - directories of target file(s) (absolute paths)
+# $1 - target files to build (absolute paths)
+# $2 - directories of target files (absolute paths)
 # note: postpone expansion of $(order_deps) to optimize parsing
 # note: .PHONY target $(cb_target_makefile)- will depend on the registered main targets in list $1
-# note: callers of 'std_target_vars1' may assume that it will protect new value of 'cb_needed_dirs'
-#  so callers _may_ change 'cb_needed_dirs' without protecting it. Protect 'cb_needed_dirs' here.
+# note: callers of 'cb_target_vars1' may assume that it will protect new value of 'cb_needed_dirs', so callers
+#  _may_ change 'cb_needed_dirs' without protecting it - before the call. Protect 'cb_needed_dirs' here.
 # note: rules of the targets should contain only one call to the 'suppress' macro - to properly update percent of building targets
-# note: use 'suppress_more' macro instead of additional calls to 'suppress' macro - e.g. if a rule consists of multiple commands
-define std_target_vars1
+# note: if a rule consists of multiple commands - use 'suppress_more' macro instead of additional calls to the 'suppress' macro
+define cb_target_vars1
 $1:| $2 $$(order_deps)
 $(cb_target_makefile)-:$1
 cb_needed_dirs+=$2
 endef
 
-ifdef cb_checking
+# note: 'suppress' and 'cb_makefile_info' macros - defined in included above $(cb_dir)/core/suppress.mk
+# note: 'cb_makefile_info' - defined to non-empty value in "makefile info" mode (enabled via "$(MAKE) M=1")
+ifdef cb_makefile_info
 
-# remember new value of 'cb_needed_dirs', without tracing calls to it because it's incremented
-$(call define_append,std_target_vars1,$(newline)$$(call set_global1,cb_needed_dirs))
+# for the targets $1, define target-specific variable - used by the 'suppress' function in "makefile info" mode:
+# C.^ - makefile which specifies how to build the targets and a number of section in the makefile after a call to $(make_continue)
+set_makefile_info = $(eval $(cb_makefile_info))
+set_makefile_info_r = $(set_makefile_info)$1
 
-# check that files $1 are generated under $(gen_dir), $(bin_dir), $(obj_dir) or $(lib_dir) directories
-cb_check_generated_at = $(if $(filter-out $(gen_dir)/% $(bin_dir)/% $(obj_dir)/% $(lib_dir)/%,$1),$(error \
-  these files are generated not under $$(gen_dir), $$(bin_dir), $$(obj_dir) or $$(lib_dir): $(filter-out \
-  $(gen_dir)/% $(bin_dir)/% $(obj_dir)/% $(lib_dir)/%,$1)))
+# optimize: do not call 'set_makefile_info' from 'cb_target_vars1', include code of 'set_makefile_info' directly
+ifndef cb_tracing
+# note: use value of 'cb_makefile_info' only if not tracing, else - it was modified for the tracing
+$(call define_prepend,cb_target_vars1,$(value cb_makefile_info)$(newline))
+else
+$(call define_prepend,cb_target_vars1,$$(cb_makefile_info)$(newline))
+endif
 
-$(call define_prepend,std_target_vars1,$$(cb_check_generated_at))
-
-endif # cb_checking
+endif # cb_makefile_info
 
 ifdef cb_mdebug
 
-# show what a template builds (prior building the targets)
-# $1 - files the template builds
-# $2 - optional suffix (order-only dependencies)
+# show what targets a template builds (prior building them)
+# $1 - targets the template builds
+# $2 - optional suffix (e.g. order-only dependencies)
 # note: 'cb_colorize' - defined in included above $(cb_dir)/core/suppress.mk
 # note: one space after $(call cb_colorize,TARGET,TARGET)
 cb_what_makefile_builds = $(info $(call cb_what_makefile_builds1,$1,$2,$(call cb_colorize,TARGET,TARGET) $(if $(is_tool_mode),[T]: )))
@@ -388,53 +392,46 @@ cb_what_makefile_builds1 = $3$(subst $(space),$2$(newline)$3,$(join $(patsubst $
 CBLD_TARGET_COLOR   ?= [32m
 CBLD_CB_BUILD_COLOR ?= [31;1m
 
-# fix template to print (while evaluating the template) what makefile builds
+# fix template to print (while evaluating the template) what targets current makefile builds
 # $1 - template name
-# $2 - expression that gives target file(s) the template builds
-# $3 - optional expression that gives order-only dependencies
+# $2 - expression that gives targets the template builds
+# $3 - optional expression that gives order-only dependencies of the targets
 # note: expressions $2 and $3 are expanded while expanding template $1, _before_ evaluating result of the expansion
-cb_add_what_makefile_builds = $(call define_append,$1,$$(call cb_what_makefile_builds,$2,$(if $3,$$(if $3, | $3))))
+cb_add_what_makefile_builds = $(call define_prepend,$1,$$(call cb_what_makefile_builds,$2,$(if $3,$$(if $3, | $3))))
 
-# patch 'std_target_vars1' template - print what makefile builds
-$(call cb_add_what_makefile_builds,std_target_vars1,$$1,$$(order_deps))
+# patch 'cb_target_vars1' template - print what targets current makefile builds
+$(call cb_add_what_makefile_builds,cb_target_vars1,$$1,$$(order_deps))
 
 endif # cb_mdebug
 
-# 'cb_makefile_info' - defined in "makefile info" mode (enabled via "$(MAKE) M=1")
-# note: 'suppress' and 'cb_makefile_info' macros - defined in included above $(cb_dir)/core/suppress.mk
-ifdef cb_makefile_info
+ifdef cb_checking
 
-# define target-specific variable for the 'suppress' function in "makefile info" mode
-# C.^ - holds a path to the current target makefile and a number of section in the target makefile after a call to $(make_continue)
-set_makefile_info = $(eval $(cb_makefile_info))
+# remember new value of 'cb_needed_dirs', without tracing calls to it because it's incremented
+$(call define_append,cb_target_vars1,$(newline)$$(call set_global1,cb_needed_dirs))
 
-# same as 'set_makefile_info', but return passed targets $1
-set_makefile_info_ret = $(set_makefile_info_ret)$1
+# check that files $1 are generated under $(gen_dir), $(bin_dir), $(obj_dir) or $(lib_dir) directories
+cb_check_generated_at = $(if $(filter-out $(gen_dir)/% $(bin_dir)/% $(obj_dir)/% $(lib_dir)/%,$1),$(error \
+  these files are generated not under $$(gen_dir), $$(bin_dir), $$(obj_dir) or $$(lib_dir): $(filter-out \
+  $(gen_dir)/% $(bin_dir)/% $(obj_dir)/% $(lib_dir)/%,$1)))
 
-# optimize: do not call 'set_makefile_info' from 'std_target_vars1', include code of 'set_makefile_info' directly
-ifndef cb_tracing
-# note: use value of 'cb_makefile_info' only if not tracing, else - it was modified for the tracing
-$(call define_prepend,std_target_vars1,$(value cb_makefile_info)$(newline))
-else
-$(call define_prepend,std_target_vars1,$$(cb_makefile_info)$(newline))
-endif
+$(call define_prepend,cb_target_vars1,$$(cb_check_generated_at))
 
-endif # cb_makefile_info
+endif # cb_checking
 
 # register targets - to properly count percent of building targets by the calls to 'suppress' macro
-# note: 'suppress_targets' and 'suppress_targets_ret' - are defined in $(cb_dir)/core/suppress.mk
+# note: 'suppress_targets' and 'suppress_targets_r' - are defined in $(cb_dir)/core/suppress.mk
 ifdef suppress_targets
-$(eval define std_target_vars1$(newline)$(subst $$1:|,$$(suppress_targets_ret):|,$(value std_target_vars1))$(newline)endef)
+$(eval define cb_target_vars1$(newline)$(subst $$1:|,$$(suppress_targets_r):|,$(value cb_target_vars1))$(newline)endef)
 endif
 
 # register targets as the main ones built by the current makefile, add standard target-specific variables
 # (main targets - that are not necessarily used as prerequisites for other targets in the same makefile)
 # $1 - generated file(s) (absolute paths)
-# note: callers of 'std_target_vars' may assume that it will protect new value of 'cb_needed_dirs', so callers
+# note: callers of 'cb_target_vars' may assume that it will protect new value of 'cb_needed_dirs', so callers
 #  _may_ change 'cb_needed_dirs' without protecting it - before the call. Protect 'cb_needed_dirs' here.
 # note: rules of the targets should contain only one call to the 'suppress' macro - to properly update percent of building targets
-# note: use 'suppress_more' macro instead of additional calls to 'suppress' macro - e.g. if a rule consists of multiple commands
-std_target_vars = $(call std_target_vars1,$1,$(patsubst %/,%,$(sort $(dir $1))))
+# note: if a rule consists of multiple commands - use 'suppress_more' macro instead of additional calls to the 'suppress' macro
+cb_target_vars = $(call cb_target_vars1,$1,$(patsubst %/,%,$(sort $(dir $1))))
 
 else # toclean
 
@@ -450,12 +447,12 @@ endif
 
 # just delete target files $1 (absolute paths)
 ifndef cb_checking
-std_target_vars = cb_to_clean+=$1
+cb_target_vars = cb_to_clean+=$1
 else
 # remember new values of 'cb_to_clean' and 'cb_needed_dirs' without tracing calls to them because they are incremented
-# note: callers of 'std_target_vars' may assume that it will protect new value of 'cb_needed_dirs', so callers
+# note: callers of 'cb_target_vars' may assume that it will protect new value of 'cb_needed_dirs', so callers
 #  _may_ change 'cb_needed_dirs' without protecting it - before the call. Protect 'cb_needed_dirs' here (do not optimize!).
-std_target_vars = cb_to_clean+=$1$(newline)$(call set_global1,cb_to_clean cb_needed_dirs)
+cb_target_vars = cb_to_clean+=$1$(newline)$(call set_global1,cb_to_clean cb_needed_dirs)
 endif
 
 # do nothing if cleaning up
@@ -463,16 +460,22 @@ add_order_deps:=
 
 endif # toclean
 
+# same as cb_target_vars, but add one line containing $1
+define cb_target_vars_r
+$(cb_target_vars)
+$1
+endef
+
 # add generated files $1 to build sequence
 # note: files must be generated under $(gen_dir), $(bin_dir), $(obj_dir) or $(lib_dir) directories (they in turn are under $(cb_build))
 # note: directories for generated files will be auto-created
 # note: generated files will be auto-deleted while completing the 'clean' goal
 # note: rules of the targets should contain only one call to the 'suppress' macro - to properly update percent of building targets
 # note: use 'suppress_more' macro instead of additional calls to 'suppress' macro - e.g. if a rule consists of multiple commands
-add_generated = $(eval $(std_target_vars))
+add_generated = $(eval $(cb_target_vars))
 
 # do the same as 'add_generated', but also return list of generated files $1
-add_generated_ret = $(add_generated)$1
+add_generated_r = $(add_generated)$1
 
 # register macro $1 as target makefile-specific:
 #  as alternative to 'set_global', define a macro that will be visible in rules of all targets built by the current target makefile
@@ -783,8 +786,8 @@ $(call config_remember_vars,CBLD_BUILD CBLD_TARGET CBLD_NO_DEPS)
 #  parsed makefile, so clear these variables before rule execution second phase
 cb_first_phase_vars += cb_needed_dirs build_system_goals bin_dir obj_dir lib_dir gen_dir order_deps cb_set_default_dirs \
   cb_tool_override_dirs toclean cb_target_makefile add_mdeps cb_what_makefile_builds cb_what_makefile_builds1 \
-  cb_add_what_makefile_builds set_makefile_info set_makefile_info_ret add_order_deps need_gen_dirs std_target_vars1 \
-  cb_check_generated_at std_target_vars add_generated add_generated_ret set_makefile_specific2 set_makefile_specific1 \
+  set_makefile_info set_makefile_info_r cb_add_what_makefile_builds add_order_deps need_gen_dirs cb_target_vars1 \
+  cb_check_generated_at cb_target_vars cb_target_vars_r add_generated add_generated_r set_makefile_specific2 set_makefile_specific1 \
   set_makefile_specific tool_mode is_tool_mode cb_tool_mode_adjust cb_tool_mode_access_error cb_include_level \
   cb_target_makefiles cb_head_eval cb_make_cont cb_def_head cb_show_leaf_mk cb_def_tail cb_def_targets define_targets \
   cb_prepare cb_save_vars cb_restore_vars make_continue
@@ -801,11 +804,11 @@ $(call set_global,MAKEFLAGS SHELL cb_needed_dirs cb_first_phase_vars CBLD_BUILD 
 $(call set_global,cb_project_vars clean_build_version cb_dir clean_build_required_version \
   cb_build project_supported_targets target_triplet def_bin_dir def_obj_dir def_lib_dir def_gen_dir \
   cb_set_default_dirs tool_base mk_tools_dir cb_tool_override_dirs tool_suffix get_tools get_tool cb_first_makefile \
-  cb_target_makefile add_mdeps cb_what_makefile_builds cb_what_makefile_builds1 cb_add_what_makefile_builds set_makefile_info \
-  set_makefile_info_ret add_order_deps=order_deps=order_deps need_gen_dirs std_target_vars1 cb_check_generated_at std_target_vars \
-  add_generated add_generated_ret set_makefile_specific2 set_makefile_specific1 set_makefile_specific is_tool_mode cb_tool_mode_adjust \
-  cb_tool_mode_access_error cb_def_head cb_show_leaf_mk cb_check_targets cb_def_tail cb_no_def_head_err cb_def_targets \
-  define_targets cb_prepare cb_save_vars cb_restore_vars make_continue product_version,core)
+  cb_target_makefile add_mdeps cb_what_makefile_builds cb_what_makefile_builds1 set_makefile_info set_makefile_info_r \
+  cb_add_what_makefile_builds add_order_deps=order_deps=order_deps need_gen_dirs cb_target_vars1 cb_check_generated_at cb_target_vars \
+  cb_target_vars_r add_generated add_generated_r set_makefile_specific2 set_makefile_specific1 set_makefile_specific is_tool_mode \
+  cb_tool_mode_adjust cb_tool_mode_access_error cb_def_head cb_show_leaf_mk cb_check_targets cb_def_tail cb_no_def_head_err \
+  cb_def_targets define_targets cb_prepare cb_save_vars cb_restore_vars make_continue product_version,core)
 
 # if 'toclean' value is non-empty, allow tracing calls to it (with trace namespace: toclean),
 # else - just protect 'toclean' from changes, do not make it's value non-empty - because 'toclean' is checked in ifdefs
@@ -815,6 +818,6 @@ else
 $(call set_global,toclean==cb_to_clean,toclean)
 endif
 
-# define auxiliary macros: 'non_parallel_execute', 'multi_target' and 'multi_target_ret'
+# define auxiliary macros: 'non_parallel_execute', 'multi_target' and 'multi_target_r'
 include $(cb_dir)/core/nonpar.mk
 include $(cb_dir)/core/multi.mk

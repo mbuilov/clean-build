@@ -25,9 +25,8 @@ CBLD_CMP_COLOR ?= [1;36m
 # $3 - absolute path to the file to compare outputs with
 # note: 'compare_files' - defined in $(utils_mk) makefile (such as $(cb_dir)/utils/unix.mk)
 define cmp_text_rule_templ
-$(std_target_vars)
 $(subst $(space),$(newline),$(join $(addsuffix :,$1),$2))
-$1:
+$(cb_target_vars_r):
 	$$(call suppress,CMP,$$@)$$(call compare_files,$$<,$3) > $$@
 endef
 

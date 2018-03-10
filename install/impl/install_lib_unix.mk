@@ -16,7 +16,7 @@
 # note: also do not install simlinks if $(modver) contains only one digit, e.g.: libmylib.so.1
 define install_lib_shared
 install_lib_$1_shared uninstall_lib_$1_shared: built_dlls := $$($1_built_dlls)
-install_lib_$1_shared: $$($1_built_dlls) | $$(call need_install_dir_ret,$3)
+install_lib_$1_shared: $$($1_built_dlls) | $$(call need_install_dir_r,$3)
 	$$(foreach d,$$(built_dlls),$$(call \
   do_install_files,$$d,$3/$$(notdir $$d)$(modver:%=.%),$(CBLD_SHARED_LIB_ACCESS_MODE))$$(newline))$(foreach \
   n,$(filter-out $(modver),$(firstword $(subst ., ,$(modver)))),$$(foreach d,$$(notdir $$(built_dlls)),$$(call \
@@ -38,7 +38,7 @@ define install_lib_simlinks
 install_lib_$1_simlinks uninstall_lib_$1_simlinks: built_dlls := $$(notdir $$($1_built_dlls))
 install_lib_$1_simlinks uninstall_lib_$1_simlinks: rel_prefix := $$(call \
   tospaces,$$(call relpath,$$(call unspaces,$2),$$(call unspaces,$3)))
-install_lib_$1_simlinks: install_lib_$1_shared | $$(call need_install_dir_ret,$2)
+install_lib_$1_simlinks: install_lib_$1_shared | $$(call need_install_dir_r,$2)
 	$$(foreach d,$$(built_dlls),$$(call \
   do_install_simlink,$$(rel_prefix)$$d.$(modver),$2/$$d)$$(newline))
 uninstall_lib_$1_simlinks:

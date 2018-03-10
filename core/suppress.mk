@@ -73,15 +73,15 @@ ifeq (,$(filter distclean clean,$(MAKECMDGOALS)))
 #  new values of 'cb_shown_percents' and 'cb_shown_remainder' variables
 ifdef quiet
 
-# add definition of 'cb_gen_seq' macro - used by the 'suppress_targets' macro defined below
+# define 'cb_gen_seq' macro - used by the 'suppress_targets' macro defined below
 include $(cb_dir)/core/gen_seq.mk
 
-# 'suppress_targets' - register (leaf) target(s) in those rules the 'suppress' macro is used (for updating percent of building targets)
+# 'suppress_targets' - register (leaf) targets in those rules the 'suppress' macro is used (for updating percent of building targets)
 # note: here 'cb_gen_seq' is used to count all targets while the first "makefiles parsing" phase - this value will be used in
 #  $(cb_dir)/core/all.mk for replacing placeholders <TRG_COUNT> and <TRG_COUNT1> in the defined below 'cb_add_shown_percents'
 suppress_targets = $(if $(foreach =,$1,$(cb_gen_seq)),)
 
-# same as 'suppress_targets', but return passed target(s) $1
+# same as 'suppress_targets', but return passed targets $1
 suppress_targets_r = $(suppress_targets)$1
 
 # used to hold current percent of building targets
