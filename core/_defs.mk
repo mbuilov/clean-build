@@ -36,11 +36,11 @@ endif
 # NOTE: Gnu Make will consider changed $(MAKEFLAGS) only after all makefiles are parsed,
 #  so it will first define builtin rules/variables, then undefine them,
 #  also, it will warn about undefined variables only while executing rules
-# - it's better to specify these flags in command line, e.g.:
+# - it's better to specify these flags in the command line, e.g.:
 # $ make -rR --warn-undefined-variables
 MAKEFLAGS += --no-builtin-rules --no-builtin-variables --warn-undefined-variables
 
-# drop make's default legacy rules - we'll use custom ones
+# drop make's default legacy rules - we'll use only custom ones
 .SUFFIXES:
 
 # delete target file if failed to execute any of commands to make it
@@ -198,13 +198,13 @@ target_triplet := $(CBLD_TARGET)-$(CBLD_OS)-$(CBLD_CPU)
 # bin - for executables, dlls
 # lib - for libraries, shared objects
 # obj - for object files
-# gen - for generated files (headers, sources, resources, etc)
+# gen - for generated source files (headers, sources, resources, etc)
 def_bin_dir := $(cb_build)/bin-$(target_triplet)
 def_obj_dir := $(cb_build)/obj-$(target_triplet)
 def_lib_dir := $(cb_build)/lib-$(target_triplet)
 def_gen_dir := $(cb_build)/gen-$(target_triplet)
 
-# code to evaluate for restoring default directories after the "tool" mode
+# code to evaluate for restoring default directories after "tool" mode
 define cb_set_default_dirs
 bin_dir:=$(def_bin_dir)
 obj_dir:=$(def_obj_dir)
@@ -225,7 +225,7 @@ endif
 # $2 - $(CBLD_TCPU)
 mk_tools_dir = $1/bin-tool-$2-$(CBLD_TARGET)
 
-# code to evaluate for overriding default directories in the "tool" mode
+# code to evaluate for overriding default directories in "tool" mode
 define cb_tool_override_dirs
 bin_dir:=$(call mk_tools_dir,$(tool_base),$(CBLD_TCPU))
 obj_dir:=$(tool_base)/obj-tool-$(CBLD_TCPU)-$(CBLD_TARGET)
@@ -274,18 +274,18 @@ else
 toclean = $(eval cb_to_clean+=$$1$(newline)$(call set_global1,cb_to_clean))
 endif
 
-# absolute path to the root target makefile the build was started from
+# path to the root target makefile the build was started from
 # note: when building from the command line one of out-of-project tree external modules, such as $(cb_dir)/extensions/version/Makefile,
 #  which cannot include project configuration makefiles directly (because external modules are project-independent), 'cb_first_makefile'
 #  may be auto-defined to a wrong value (not a target makefile), so it may be required to override 'cb_first_makefile' in the command
 #  line explicitly, e.g.:
 # $ make cb_first_makefile=/opt/clean-build/extensions/version/Makefile \
 #   --eval="include ./examples/hello/make/c_project.mk" -f /opt/clean-build/extensions/version/Makefile
-cb_first_makefile := $(abspath $(firstword $(MAKEFILE_LIST)))
+cb_first_makefile := $(firstword $(MAKEFILE_LIST))
 
 # absolute path to current target makefile
 # note: this variable is redefined by the clean-build for each processed target makefile
-cb_target_makefile := $(cb_first_makefile)
+cb_target_makefile := $(abspath $(cb_first_makefile))
 
 # append makefiles (really .PHONY goals created from them) to the 'order_deps' list
 # note: this function is useful to specify dependency on all targets built by the specified makefiles (a tree of makefiles)
@@ -364,16 +364,11 @@ ifdef cb_makefile_info
 
 # for the targets $1, define target-specific variable - used by the 'suppress' function in "makefile info" mode:
 # C.^ - makefile which specifies how to build the targets and a number of section in the makefile after a call to $(make_continue)
-set_makefile_info = $(eval $(cb_makefile_info))
+set_makefile_info = $(eval $(value cb_makefile_info))
 set_makefile_info_r = $(set_makefile_info)$1
 
 # optimize: do not call 'set_makefile_info' from 'cb_target_vars1', include code of 'set_makefile_info' directly
-ifndef cb_tracing
-# note: use value of 'cb_makefile_info' only if not tracing, else - it was modified for the tracing
 $(call define_prepend,cb_target_vars1,$(value cb_makefile_info)$(newline))
-else
-$(call define_prepend,cb_target_vars1,$$(cb_makefile_info)$(newline))
-endif
 
 endif # cb_makefile_info
 
@@ -460,7 +455,7 @@ add_order_deps:=
 
 endif # toclean
 
-# same as cb_target_vars, but add one line containing $1
+# same as 'cb_target_vars', but add one line containing $1
 define cb_target_vars_r
 $(cb_target_vars)
 $1
@@ -498,25 +493,25 @@ set_makefile_specific = $(if $(findstring $(space),$1),$(foreach =,$1,$(call set
 
 # 'tool_mode' may be set to non-empty value (likely T) at the beginning of target makefile
 #  (before including this file and so before evaluating $(cb_def_head))
-# if 'tool_mode' is not set - reset it - we are not in the "tool" mode
+# if 'tool_mode' is not set - reset it - we are not in "tool" mode
 # else - check its value while evaluation of 'cb_def_head'
 ifneq (file,$(origin tool_mode))
 tool_mode:=
 endif
 
-# non-empty (likely T) in the "tool" mode - 'tool_mode' variable was set to that value prior evaluating $(cb_def_head),
+# non-empty (likely T) in "tool" mode - 'tool_mode' variable was set to that value prior evaluating $(cb_def_head),
 #  empty in normal mode.
-# note: $(tool_mode) should not be used in rule templates - use $(is_tool_mode) instead, because 'tool_mode' variable may be set
+# note: 'tool_mode' variable should not be used in rule templates - use $(is_tool_mode) instead, because 'tool_mode' may be set
 #  to another value anywhere before $(make_continue), and so before the evaluation of rule templates.
-# reset the value: we are currently not in the "tool" mode
+# reset the value: we are currently not in "tool" mode
 is_tool_mode:=
 
-# define bin_dir/obj_dir/lib_dir/gen_dir according that we are not in the "tool" mode
+# define bin_dir/obj_dir/lib_dir/gen_dir according that we are not in "tool" mode
 $(eval $(cb_set_default_dirs))
 
-# code to evaluate at the beginning of target makefile to adjust variables for the "tool" mode
-# note: set 'is_tool_mode' variable to remember if we are in the "tool" mode - 'tool_mode' variable may be set to another value
-#  before calling $(make_continue), and this new value will affect the next sections of $(make_continue)
+# code to evaluate at the beginning of target makefile to adjust variables for "tool" mode
+# note: set 'is_tool_mode' variable to remember if we are in "tool" mode - 'tool_mode' variable may be set to another value
+#  before calling $(make_continue), and this new value will affect only the next sections of $(make_continue)
 define cb_tool_mode_adjust
 is_tool_mode:=$(tool_mode)
 $(if $(tool_mode),$(if \
@@ -534,12 +529,12 @@ endif
 
 ifdef cb_checking
 
-# do not allow to read 'tool_mode' in target makefiles, only to set it
-cb_tool_mode_access_error = $(error please use 'is_tool_mode' variable to check for the "tool" mode)
+# do not allow to read 'tool_mode' variable in target makefiles, only to set it
+cb_tool_mode_access_error = $(error please use 'is_tool_mode' variable to check for "tool" mode)
 
 # use 'tool_mode' only to set value of 'is_tool_mode' variable, forbid reading $(tool_mode) in target makefiles
 # note: do not trace calls to 'tool_mode' after resetting it to $$(cb_tool_mode_access_error) - this is needed to pass the (next)
-#  check if value of 'tool_mode' is '$(cb_tool_mode_access_error)' (or empty, or non-empty)
+#  check if a value of 'tool_mode' is '$(cb_tool_mode_access_error)' (or empty, or non-empty)
 # note: assume result of $(call set_global1,tool_mode) will give an empty line at end of expansion
 $(call define_prepend,cb_tool_mode_adjust,$$(if $$(findstring $$$$(cb_tool_mode_access_error),$$(value tool_mode)),$$(eval \
   tool_mode:=$$$$(is_tool_mode)))tool_mode=$$$$(cb_tool_mode_access_error)$(newline)$$(call set_global1,tool_mode))

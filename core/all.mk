@@ -30,10 +30,10 @@ $(call suppress_targets_r,$(addprefix $(dir $(cb_build)),$(cb_needed_dirs))):
 
 # fix 'cb_add_shown_percents' macro from $(cb_dir)/core/suppress.mk
 # note: 'suppress_targets' - defined in $(cb_dir)/core/suppress.mk
-# note: 'cb_gen_seq' - defined in $(cb_dir)/code/gen_seq.mk included by $(cb_dir)/core/suppress.mk
+# note: 'cb_seq' - defined in $(cb_dir)/code/seq.mk included by $(cb_dir)/core/suppress.mk
 # note: <TRG_COUNT> - number of targets - used to compute build completion percent
 ifdef suppress_targets
-$(eval cb_add_shown_percents = $(subst <TRG_COUNT>,$(cb_gen_seq),$(subst <TRG_COUNT1>,$(cb_gen_seq),$(value cb_add_shown_percents))))
+$(eval cb_add_shown_percents = $(subst <TRG_COUNT>,$(cb_seq),$(subst <TRG_COUNT1>,$(cb_seq),$(value cb_add_shown_percents))))
 endif
 
 # define rule for default goal 'all'

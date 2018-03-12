@@ -57,7 +57,7 @@ endif
 ifeq (,$(filter distclean clean,$(MAKECMDGOALS)))
 
 # define macros:
-# a) 'suppress' - suppress output of executed build tool and print some pretty message instead, like "CC  source.c" and update percent
+# a) 'suppress' - suppress output of executed build tool - print some pretty message instead, like "CC  source.c", update percent
 #   of building targets
 #  $1 - the tool
 #  $2 - tool arguments
@@ -69,17 +69,19 @@ ifeq (,$(filter distclean clean,$(MAKECMDGOALS)))
 #  $1 - the tool
 #  $2 - tool arguments
 #  $3 - if empty, then colorize argument of the called tool
-# note: 'cb_add_shown_percents' and 'cb_fomat_percents' macros - are used at second phase, after parsing makefiles, so no need to protect
+# note: 'cb_add_shown_percents' and 'cb_fmt_percents' macros - are used at second phase, after parsing makefiles, so no need to protect
 #  new values of 'cb_shown_percents' and 'cb_shown_remainder' variables
 ifdef quiet
 
-# define 'cb_gen_seq' macro - used by the 'suppress_targets' macro defined below
-include $(cb_dir)/core/gen_seq.mk
+# define 'cb_seq' macro - used by the 'suppress_targets' macro defined below
+# 'z' - sequence generator prefix
+z := cb_
+include $(cb_dir)/core/seq.mk
 
 # 'suppress_targets' - register (leaf) targets in those rules the 'suppress' macro is used (for updating percent of building targets)
-# note: here 'cb_gen_seq' is used to count all targets while the first "makefiles parsing" phase - this value will be used in
+# note: here 'cb_seq' is used to count all targets while the first "makefiles parsing" phase - this value will be used in
 #  $(cb_dir)/core/all.mk for replacing placeholders <TRG_COUNT> and <TRG_COUNT1> in the defined below 'cb_add_shown_percents'
-suppress_targets = $(if $(foreach =,$1,$(cb_gen_seq)),)
+suppress_targets = $(if $(foreach =,$1,$(cb_seq)),)
 
 # same as 'suppress_targets', but return passed targets $1
 suppress_targets_r = $(suppress_targets)$1
@@ -108,7 +110,7 @@ cb_update_percents = $(eval cb_shown_percents += $(call cb_add_shown_percents,$(
 
 # format percents for printing
 # $4 - if empty, then update percent of building targets
-cb_fomat_percents = $(if $4,,$(cb_update_percents))$(subst |,,$(subst \
+cb_fmt_percents = $(if $4,,$(cb_update_percents))$(subst |,,$(subst \
   |0%,00%,$(subst \
   |1%,01%,$(subst \
   |2%,02%,$(subst \
@@ -123,9 +125,9 @@ cb_fomat_percents = $(if $4,,$(cb_update_percents))$(subst |,,$(subst \
 
 ifdef cb_infomf
 # target-specific: C.^ - defined by the 'cb_makefile_info' macro (below)
-suppress = $(info $(call cb_print_percents,$(cb_fomat_percents))$(C.^):$(cb_show_tool))@
+suppress = $(info $(call cb_print_percents,$(cb_fmt_percents))$(C.^):$(cb_show_tool))@
 else
-suppress = $(info $(call cb_print_percents,$(cb_fomat_percents))$(cb_show_tool))@
+suppress = $(info $(call cb_print_percents,$(cb_fmt_percents))$(cb_show_tool))@
 endif
 
 else # !quiet (verbose)
@@ -159,7 +161,7 @@ endif
 # note: $(cb_make_cont) list is empty or 1 1 1 .. 1 ~ (inside 'make_continue') or 1 1 1 1... (before 'make_continue'):
 # note: 'make_continue' is equivalent of: ... cb_make_cont+=~ $(TAIL) cb_make_cont=$(subst ~,1,$(cb_make_cont)) $(HEAD) ...
 ifdef cb_infomf
-cb_makefile_info = $1:C.^:=$$(cb_target_makefile)$(subst +0,,+$(words $(subst ~,,$(cb_make_cont))))
+cb_makefile_info = $1:C.^:=$(cb_target_makefile)$(subst +0,,+$(words $(subst ~,,$(cb_make_cont))))
 else
 cb_makefile_info:=
 endif
@@ -177,10 +179,10 @@ cb_first_phase_vars += suppress_targets suppress_targets_r cb_makefile_info
 
 # protect macros from modifications in target makefiles,
 # do not trace calls to macros used in ifdefs, exported to the environment of called tools or modified via operator +=
-$(call set_global,verbose quiet cb_infomf cb_shown_percents cb_shown_remainder cb_add_shown_percents)
+# note: do not trace calls to 'cb_makefile_info' - its value is used for $(eval ...)
+$(call set_global,verbose quiet cb_infomf cb_shown_percents cb_shown_remainder cb_add_shown_percents cb_makefile_info)
 
 # protect macros from modifications in target makefiles, allow tracing calls to them
 # note: trace namespace: suppress
 $(call set_global,cb_print_percents cb_colorize cb_show_tool suppress_targets suppress_targets_r \
-  cb_update_percents=cb_shown_percents=cb_shown_percents cb_fomat_percents=cb_shown_percents \
-  suppress suppress_more cb_makefile_info,suppress)
+  cb_update_percents=cb_shown_percents=cb_shown_percents cb_fmt_percents=cb_shown_percents suppress suppress_more,suppress)
