@@ -45,8 +45,8 @@ endif
 # note: cannot use 'define_multiline' macro from $(cb_dir)/core/functions.mk because configuration makefile is read first
 cb_config_remember_var = $(if $(findstring simple,$(flavor $=)),$1$(call cb_config_rem_simple_var,$=,$(if \
   $(filter-out 1 $(words $(value $=)),$(words x$(value $=)x)),$$(empty))),define $=$(newline)$(subst \
-  define,$$(keyword_define),$(subst endef,$$(keyword_endef),$(subst \,$$(backslash),$(value $=))))$(newline)endef$(if \
-  $1,$(newline)$1$=))$(newline)
+  define ,$$(keyword_define) ,$(subst $(newline)endef,$(newline)$$(keyword_endef),$(subst \
+  \$(newline),$$(backslash)$(newline),$(value $=))))$(newline)endef$(if $1,$(newline)$1$=))$(newline)
 
 # $2 - $(empty) if value of simple variable $1 contains leading/training white-spaces
 cb_config_rem_simple_var = $1 := $2$(subst \,$$(backslash),$(subst \
@@ -131,14 +131,14 @@ CBLD_MAKEFILE_CONF_WRITE_BY_LINES ?= 10
 $(call config_remember_vars,PATH CBLD_MAKEFILE_CONF_WRITE_BY_LINES)
 
 # generate configuration makefile
-# note: 'suppress' - defined in $(cb_dir)/core/suppress.mk
+# note: 'suppress_more' - defined in $(cb_dir)/core/suppress.mk
 # note: 'write_lines' - defined in $(cb_dir)/utils/$(CBLD_UTILS).mk
 # note: 'config_text' - defined above as target-specific variable
-# note: define target-specific variable C.^ - for 'suppress' function
+# note: define target-specific variable C.^ - for 'suppress_more' function
 config: C.^ := $(abspath $(firstword $(MAKEFILE_LIST)))
 config: cf := $(abspath $(CBLD_CONFIG))
 config:| $(abspath $(dir $(CBLD_CONFIG)))
-	$(call suppress,GEN,$(cf))$(call write_lines,$(config_text)project_exported_vars := $(sort \
+	$(call suppress_more,GEN,$(cf))$(call write_lines,$(config_text)project_exported_vars := $(sort \
   $(project_exported_vars))$(newline)cb_config_saved_vars := $(strip $(cb_config_saved_vars)),$(cf),$(CBLD_MAKEFILE_CONF_WRITE_BY_LINES))
 
 # if $(CBLD_CONFIG) makefile is generated under $(cb_build), create that directory automatically,
