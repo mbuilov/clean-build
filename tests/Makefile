@@ -15,10 +15,13 @@ trace_tests_no_color:
 function_tests:
 	$(MAKE) -f $(c_dir)function_tests.mk
 
-all: trace_tests trace_tests_no_color function_tests
+seq_tests:
+	$(MAKE) -f $(c_dir)seq_tests.mk
+
+all: trace_tests trace_tests_no_color function_tests seq_tests
 
 # test shell utilities
 all clean distclean:
 	$(MAKE) -f $(c_dir)utils/Makefile $@
 
-.PHONY: all clean distclean traces_test trace_tests_no_color function_tests
+.PHONY: all clean distclean traces_test trace_tests_no_color function_tests seq_tests
