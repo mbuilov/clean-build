@@ -27,11 +27,10 @@ cb_norm_makefiles = $(if $1,$(call cb_norm_makefiles,$(wordlist 2,999999,$1),$$(
 $(eval cb_norm_makefiles = $(call cb_norm_makefiles,$(CBLD_MAKEFILE_PATTERNS),$$(addsuffix /$(CBLD_MAKEFILE_NAME),$$(call fixpath,$$1))))
 
 # $m - absolute path to sub-makefile to include
-# $2 - current 'tool_mode' value
-# note: 'tool_mode' value may be changed (set) in included sub-makefile, so restore 'tool_mode' before including next sub-makefile
+# note: 'tool_mode' value may be set in included sub-makefile, so reset 'tool_mode' before including next sub-makefile
 # note: last line must be empty to allow to join multiple $(cb_include_template)s together
 define cb_include_template
-tool_mode:=$2
+tool_mode:=
 cb_target_makefile:=$m
 include $m
 
@@ -47,7 +46,6 @@ endif
 
 # generate code for processing given list of sub-makefiles
 # $1 - absolute paths to sub-makefiles to include
-# $2 - current value of 'tool_mode'
 # note: restore value of 'cb_include_level' at end
 define cb_include_submakes
 cb_include_level+=>
@@ -145,21 +143,21 @@ endif
 # at end, check if it's needed to include $(cb_dir)/core/all.mk
 # note: make absolute paths to sub-makefiles
 process_submakes = $(eval define cb_submakes_code$(newline)$(call \
-  cb_include_submakes,$(cb_norm_makefiles),$(is_tool_mode))$(newline)endef)$(call \
+  cb_include_submakes,$(cb_norm_makefiles))$(newline)endef)$(call \
   cb_submakes_eval)$(if $(cb_include_level),,$(eval include $(cb_dir)/core/all.mk))
 
-# check the value of 'tool_mode' variable - assign it to 'is_tool_mode'
-# adjust values of bin_dir/obj_dir/lib_dir/gen_dir variables according to if we are in the "tool" mode
-# note: 'cb_tool_mode_adjust' - defined in $(cb_dir)/core/_defs.mk
-cb_submakes_prepare = $(eval $(cb_tool_mode_adjust))
+# code to be evaluated prior including makefiles
+cb_submakes_prepare:=
 
-# set 'cb_need_submakes_mk' to non-empty value before including sub-makefiles - to check if a sub-makefile calls 'process_submakes',
+# 1) check that 'tool_mode' variable is not set for a group of (target) makefiles:
+#  - each target makefile may be executed alone, if 'tool_mode' is set for a group, it will _not_ be set when a makefile is executed alone
+# 2) set 'cb_need_submakes_mk' to non-empty value before including sub-makefiles - to check if a sub-makefile calls 'process_submakes',
 #  it _must_ evaluate 'cb_submakes_prepare' prior calling 'process_submakes' - by including appropriate makefile of project build
 #  system, e.g. 'make/submakes.mk'
 # note: protect 'cb_need_submakes_mk' to not reset it as a "local" variable at head of target makefile, do not trace calls to it
 # note: assume result of $(call set_global1,cb_need_submakes_mk) will give an empty line at end of expansion
 ifdef cb_checking
-cb_submakes_prepare += $(eval cb_need_submakes_mk:=)
+cb_submakes_prepare = $(if $(tool_mode),$(error 'tool_mode' cannot be set for a group of makefiles))$(eval cb_need_submakes_mk:=)
 $(eval process_submakes = $$(if $$(cb_need_submakes_mk),$$(error submakes.mk was not included at head of makefile!))$(subst \
   eval define,eval cb_need_submakes_mk:=1$$(newline)$$(call set_global1,cb_need_submakes_mk)define,$(value process_submakes)))
 endif
