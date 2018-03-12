@@ -262,7 +262,7 @@ lazy_simple = $(eval $(findstring override,$(origin $1)) $$1:=$$2)$($1)
 # note: $1 may be expanded at time of eval to get variable name, for example, if $v contains variable name:
 #  $(eval $(call define_multiline,$$v,$(value $v)))
 define_multiline = define $1$(newline)$(subst define ,$$(keyword_define) ,$(subst \
-  $(newline)endef,$(newline)$$(keyword_endef),$(subst \,$$(backslash),$2)))$(newline)endef
+  $(newline)endef,$(newline)$$(keyword_endef),$(subst \$(newline),$$(backslash)$(newline),$2)))$(newline)endef
 
 # append/prepend text $2 to the value of variable $1
 # note: do not adds a space between joined $1 and $2, unlike operator += does
