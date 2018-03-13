@@ -13,7 +13,7 @@ $(error Unsupported goal(s): $(filter-out $(build_system_goals),$(MAKECMDGOALS))
 ,)Please select goal(s) from the list of supported ones: $(build_system_goals))
 endif
 
-# define rules for creating needed directories
+# define rules for creating needed directories (absolute paths)
 # note: to avoid races when creating directories, create parent directories before child sub-directories,
 #  for example, if need to create a/b/c1 and a/b/c2 - create a/b before creating a/b/c1 and a/b/c2 in parallel
 # note: assume all directories are created under the $(cb_build) directory
