@@ -50,7 +50,7 @@ cb_multi_target_dep = $(subst |,:| ,$(subst $(space),$(newline),$(filter-out \
 define cb_multi_target_rule
 $(cb_multi_target_dep)
 $(cb_target_vars_r): $(call fixpath,$2)
-	$$(if $$(filter $4,$$(cb_multi_targets)),,$$(eval cb_multi_targets+=$4)$$(call suppress,MGEN,$1)$3)
+	$$(if $$(filter $4,$$(cb_multi_targets)),,$$(eval cb_multi_targets+=$4)$$(call suppress,GEN,$1)$3)
 cb_multi_target_num+=1
 endef
 
