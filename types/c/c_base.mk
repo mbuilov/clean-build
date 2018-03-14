@@ -96,7 +96,7 @@ trg_include = $(call fixpath,$(include))
 # $t - target type: exe,lib,dll,drv,klib,kdll,...
 # $v - non-empty variant: R,P,D,S... (one of variants supported by the selected toolchain)
 # note: this macro may be overridden in the project configuration makefile, for example:
-# trg_defines = $(if $(debug),,NDEBUG) TARGET_$(CBLD_TARGET:D=) $(foreach \
+# trg_defines = $(if $(debug),,NDEBUG) TARGET_$(CBLD_TARGET:_DEBUG=) $(foreach \
 #   cpu,$(if $(filter drv klib kdll,$t),$(CBLD_KCPU),$(if $(is_tool_mode),$(CBLD_TCPU),$(CBLD_CPU))),$(if \
 #   $(filter sparc% mips% ppc%,$(cpu)),B_ENDIAN,L_ENDIAN) $(if \
 #   $(filter arm% sparc% mips% ppc%,$(cpu)),ADDRESS_NEEDALIGN)) $(defines)
