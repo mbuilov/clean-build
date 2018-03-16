@@ -54,13 +54,14 @@ repl09AZ = $(call repl09,$(subst \
   S,.,$(subst T,.,$(subst U,.,$(subst V,.,$(subst W,.,$(subst X,.,$(subst Y,.,$(subst Z,.,$1)))))))))))))))))))))))))))
 
 # return string of spaces to add to given argument to align total argument length to fixed width (8 chars)
+# $1 - result of 'repl09'/'repl09AZ'
 padto1 = $(subst .,       ,$(subst ..,      ,$(subst ...,     ,$(subst \
-  ....,    ,$(subst .....,   ,$(subst ......,  ,$(subst ......., ,$(repl09AZ))))))))
+  ....,    ,$(subst .....,   ,$(subst ......,  ,$(subst ......., ,$1)))))))
 
 # return string of spaces to add to given argument to align total argument length to fixed width (8 chars)
 # note: argument $1 must be non-empty, not bigger than 7 characters, all characters must be in range: [0-9A-Z]
 # note: cache computed padding values
-padto = $(if $(findstring undefined,$(origin $1.^pad)),$(eval $$1.^pad:=$$(padto1)))$($1.^pad)
+padto = $(if $(findstring undefined,$(origin $1.^pad)),$(eval $$1.^pad:=$$(call padto1,$(repl09AZ))))$($1.^pad)
 
 # 1) check number of digits: if $4 > $3 -> $2 > $1
 # 2) else if number of digits are equal, check number values
@@ -338,7 +339,7 @@ keyed_redefine = $(eval $(if $(findstring simple,$(flavor $1)),$$3^o.$$1 := $$($
 # note: this macro is not needed for non-recursive (i.e. simple) variables, simple target-specific variable may be defined just like:
 #  my_target: my_var := $(my_var)
 define_target_specific1 = $(eval $(findstring override,$(origin $1)) $(if $(findstring \
-  simple,$(flavor $1)),$$1 := $$($$1),$(call define_multiline,$$1$(value $1))))
+  simple,$(flavor $1)),$$1 := $$($$1),$(call define_multiline,$$1,$(value $1))))
 
 # define a list of recursive (multi-line) variables as target-specific variables, e.g.:
 # my_target: $(call define_target_specific,my_var1 my_var2 my_var3)
