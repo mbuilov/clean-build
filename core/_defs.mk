@@ -5,7 +5,7 @@
 #----------------------------------------------------------------------------------
 
 # generic rules and definitions for building targets,
-#  defines constants, such as: CBLD_TARGET, CBLD_OS, CBLD_BCPU, CBLD_TCPU, CBLD_CPU
+#  defines constants, such as: CBLD_TARGET, CBLD_TOOL_TARGET, CBLD_OS, CBLD_BCPU, CBLD_TCPU, CBLD_CPU
 #  different core macros, e.g.: 'toclean', 'add_generated', 'is_tool_mode', 'define_targets', 'make_continue', 'fixpath',
 #  'ospath' and many more
 
@@ -65,13 +65,13 @@ cb_project_vars := $(strip $(foreach =,$(filter-out SHELL MAKEFLAGS CURDIR MAKEF
 # clean-build version: major.minor.patch
 clean_build_version := 0.9.2
 
-# clean-build root directory (absolute path)
+# clean-build root directory
 # note: a project normally uses its own variable with the same value (e.g. CBLD_ROOT) for referencing clean-build files
 cb_dir := $(abspath $(dir $(lastword $(MAKEFILE_LIST)))..)
 
 # include functions library
 # note: assume project configuration makefile will not try to override macros defined in $(cb_dir)/core/functions.mk,
-#  but if it is absolutely needed, it is possible to do so using the 'override' keyword
+#  but if it's absolutely needed, it is possible to do so using the 'override' keyword
 include $(cb_dir)/core/functions.mk
 
 # clean_build_required_version - clean-build version required by the project makefiles,
@@ -86,8 +86,7 @@ $(error incompatible clean-build version: $(clean_build_version), project needs:
 endif
 
 # required variable: CBLD_BUILD - directory of built artifacts - must be defined prior including this makefile
-# note: we need non-recursive (simple) value of CBLD_BUILD to create later simple variables: 'def_out_dir', etc.
-# note: $(cb_build) path must be absolute - for absolute value of 'out_dir' and directories added to 'cb_needed_dirs'
+# note: must be an absolute path for the checks in included next $(cb_dir)/core/confsup.mk
 cb_build := $(abspath $(CBLD_BUILD))
 
 ifndef cb_build
@@ -98,7 +97,8 @@ ifneq (,$(findstring $(space),$(cb_build)))
 $(error CBLD_BUILD='$(cb_build)', path to directory of built artifacts must not contain spaces)
 endif
 
-# needed directories (absolute paths) - clean-build will create them in $(cb_dir)/core/all.mk
+# needed directories other than $(cb_build) - clean-build will define rules to create them in $(cb_dir)/core/all.mk
+# note: 'cb_needed_dirs' contains $(cb_build)-relative simple paths, like a/b, 1/2/3 and so on
 # note: 'cb_needed_dirs' is never cleared, only appended
 cb_needed_dirs:=
 
@@ -109,7 +109,7 @@ include $(cb_dir)/core/confsup.mk
 # clean-build always sets default values for the variables, to override these defaults
 #  by the ones specified in the project configuration makefile, here use the 'override' directive
 $(foreach =,$(cb_project_vars),$(eval override $(if $(findstring simple,$(flavor \
-  $=)),$$=:=$$($$=),define $$=$(newline)$(value $=)$(newline)endef)))
+  $=)),$$=:=$$($$=),$(call define_multiline,$$=,$(value $=)))))
 
 # include variables protection module - define 'cb_checking', 'cb_tracing', 'set_global', 'get_global', 'env_remember' and other macros
 # protect from changes project variables - which have the 'override' $(origin) and exported variables in the $(project_exported_vars)
@@ -142,6 +142,7 @@ else
 cb_mdebug:=
 endif
 
+# show sensible variables
 ifdef cb_mdebug
 $(call dump_vars,CBLD_BUILD CBLD_CONFIG CBLD_TARGET CBLD_TOOL_TARGET \
   CBLD_OS CBLD_BCPU CBLD_CPU CBLD_TCPU CBLD_UTILS cb_dir cb_build utils_mk)
@@ -199,73 +200,247 @@ $(info $(call cb_print_percents,use)$(if $(cb_infomf),$(cb_target_makefile):)$(c
 endif
 endif
 
-# base part of directory of built artifacts, e.g. DEBUG-LINUX-x86
+# to simplify target makefiles, define 'debug' variable:
+#  $(debug) is non-empty for debugging targets like "PROJECT_DEBUG" or "DEBUG"
+# note: define 'debug' assuming that we are not in "tool" mode
+debug := $(filter DEBUG %_DEBUG,$(CBLD_TARGET))
+
+# 'debug' variable is redefined in "tool" mode and restored in non-"tool" mode
+cb_set_default_vars   := debug:=$(debug)$(newline)
+cb_tool_override_vars := debug:=$(filter DEBUG %_DEBUG,$(CBLD_TOOL_TARGET))$(newline)
+
+# note: do not trace access to 'debug' variable - it may be used in ifdefs
+# note: assume result of $(call set_global1,debug) will give an empty line at end of expansion
+ifdef cb_checking
+cb_set_default_vars   := $(cb_set_default_vars)$(call set_global1,debug)
+cb_tool_override_vars := $(cb_tool_override_vars)$(call set_global1,debug)
+endif
+
+# ---------- output paths: 'o_dir' and 'o_path' ---------------
+
+# base part of sub-directory of built artifacts, e.g. DEBUG-LINUX-x86
 target_triplet := $(CBLD_TARGET)-$(CBLD_OS)-$(CBLD_CPU)
 
-# output directory (absolute path)
-def_out_dir := $(cb_build)/$(target_triplet)
+# private namespace - name of sub-directory of $(cb_build)/$(target_triplet) where modules create their files while the build
+ifndef cb_checking
+priv_prefix:=
+else
+priv_prefix := pp
+endif
+
+# check that paths are relative and simple: 1/2/3, but not /1/2/3 or 1//2/3 or 1/2/../3
+ifdef cb_checking
+cb_check_virt_paths = $(if $(filter-out $(addprefix /,$1),$(abspath $(addprefix /,$1))),$(error \
+  paths are not relative and simple: $(foreach p,$1,$(if $(filter-out /$p,$(abspath /$p)),$p))))
+endif
+
+# get absolute paths to output directories for given targets
+# $1 - simple paths relative to virtual $(out_dir), e.g.: gen/file.txt gen2/file2.txt
+# note: define 'o_dir' assuming that we are not in "tool" mode
+ifndef cb_checking
+o_dir = $(patsubst %,$(cb_build)/$(target_triplet),$1)
+else
+$(eval o_dir = $$(cb_check_virt_paths)$$(addprefix \
+  $(cb_build)/$(target_triplet)/$(priv_prefix)/,$$(subst /,-,$$1)))
+endif
+
+# get absolute paths to built files
+# $1 - simple paths relative to virtual $(out_dir), e.g.: gen/file.txt gen2/file2.txt
+ifndef cb_checking
+$(eval o_path = $$(addprefix $(cb_build)/$(target_triplet)/,$$1))
+else
+$(eval o_path = $$(cb_check_virt_paths)$$(addprefix \
+  $(cb_build)/$(target_triplet)/$(priv_prefix)/,$$(join $$(addsuffix /,$$(subst /,-,$$1)),$$1)))
+endif
 
 # code to evaluate for restoring default output directory after "tool" mode
-cb_set_default_vars := out_dir:=$(def_out_dir)
+cb_set_default_vars := $(cb_set_default_vars)o_dir=$(value o_dir)$(newline)o_path=$(value o_path)
 
-# base directory where auxiliary build tools are built (should be absolute path)
+# ---------- 'o_dir' and 'o_path' for the "tool" mode ---------
+
+# base directory where auxiliary build tools are built
+# note: path should be absolute for absolute values of 'o_dir' and 'o_path' in "tool" mode
 tool_base := $(cb_build)
 
-# $(tool_base) path must be absolute - for absolute value of 'out_dir' in "tool" mode and directories added to 'cb_needed_dirs'
+# check that $(tool_base) path is absolute
 ifneq ("$(tool_base)","$(abspath $(tool_base))")
-$(error tool_base=$(tool_base) path is not absolute: $(abspath $(tool_base)))
+$(error tool_base=$(tool_base) path is not absolute, should be: $(abspath $(tool_base)))
 endif
 
 # 'tool_base' may be redefined in the project configuration makefile, ensure $(tool_base) is under $(cb_build)
 ifeq (,$(filter $(cb_build)/%,$(tool_base)/))
-$(error tool_base=$(tool_base) is not cb_build=$(cb_build) or a subdirectory of it)
+$(error tool_base=$(tool_base) is not cb_build=$(cb_build) nor a subdirectory of it)
 endif
 
-# macro to form a path where tool executables are built
+# macro to form a path where tools are built
 # $1 - $(tool_base)
 # $2 - $(CBLD_TCPU)
 mk_tools_dir = $1/tool-$2-$(CBLD_TOOL_TARGET)
 
+# absolute path where tools are built, for the current 'tool_base' and CBLD_TCPU
+cb_tools_dir := $(call mk_tools_dir,$(tool_base),$(CBLD_TCPU))
+
 # code to evaluate for overriding default output directory in "tool" mode
-cb_tool_override_vars := out_dir:=$(call mk_tools_dir,$(tool_base),$(CBLD_TCPU))
+ifndef cb_checking
+cb_tool_override_vars := $(cb_tool_override_vars)o_dir=$$(patsubst \
+  %,$(cb_tools_dir),$$1)$(newline)o_path=$$(addprefix $(cb_tools_dir)/,$$1)
+else
+cb_tool_override_vars := $(cb_tool_override_vars)o_dir=$$(cb_check_virt_paths)$$(addprefix \
+  $(cb_tools_dir)/$(priv_prefix)/,$$(subst /,-,$$1))$(newline)o_path=$$(cb_check_virt_paths)$$(addprefix \
+  $(cb_tools_dir)/$(priv_prefix)/,$$(join $$(addsuffix /,$$(subst /,-,$$1)),$$1))
+endif
+
+# ---------------------------------------------
+
+# remember new values of 'o_dir' and 'o_path'
+# note: trace namespace: core
+ifdef set_global1
+cb_set_default_vars   := $(cb_set_default_vars)$(newline)$(call set_global1,o_dir o_path,core)
+cb_tool_override_vars := $(cb_tool_override_vars)$(newline)$(call set_global1,o_dir o_path,core)
+endif
+
+# ---------- deploying files ------------------
+
+ifndef cb_checking
+
+# files are built directly in "public" place, no need to copy there files from private directories
+deploy_files:=
+deploy_dirs:=
+
+else # cb_checking
+
+# deploy built target files
+# $1 - built files,    e.g.: /build/pp/bin-tool.exe/bin/tool.exe /build/pp/gen-tool.cfg/gen/tool.cfg
+# $2 - deployed paths, e.g.: /build/bin/tool.exe /build/gen/tool.cfg
+# note: assume deployed files are needed only by $(cb_target_makefile)-, so:
+#  1) set makefile info (target-specific variables) by 'set_makefile_info_r' macro only for the $(cb_target_makefile)- and
+#   assume that this makefile info will be properly inherited by the targets in copying rules
+#  2) create needed directories prior copying any deployed file
+define cb_deply_templ
+$(subst |,: ,$(subst $(space),$(newline),$(join $(2:=|),$1)))
+$(call set_makefile_info_r,$(cb_target_makefile)-): $2 | $(patsubst %/,%,$(sort $(dir $2)))
+$(call suppress_targets_r,$2):
+	$$(call suppress,COPY,$$@)$$(call copy_files,$$<,$$@)
+endef
+
+# deploy built tools
+# $1 - built files,    e.g.: /build/pp/bin-tool.exe/bin/tool.exe /build/pp/gen-tool.cfg/gen/tool.cfg
+# $2 - deployed paths, e.g.: /build/bin/tool.exe /build/gen/tool.cfg
+# note: deployed tools may be needed for building other targets, so:
+#  1) set makefile info (target-specific variables) by 'set_makefile_info_r' macro for all deployed tools
+#  2) create needed directory prior copying for each deployed tool
+define cb_deply_tools_templ
+$(subst |, | ,$(subst ||,: ,$(subst / ,$(newline),$(join $(join $(2:=||),$(1:=|)),$(dir $2)) )))$(cb_target_makefile)-: $2
+$(call set_makefile_info_r,$(call suppress_targets_r,$2)):
+	$$(call suppress,COPY,$$@)$$(call copy_files,$$<,$$@)
+endef
+
+# add files to "deployed tools group"
+# $1 - deployed files - simple paths relative to virtual $(out_dir), e.g.: bin/tool.exe gen/tool.cfg
+# $2 - alias of deployed files group
+cb_form_deployed_group = $(if $2,$$2.^d $(if $(findstring file,$(origin $2.^d)),+,:)= $$1$(newline),$(error \
+  deployed files group alias name is not specified))
+
+# $1 - deployed files - simple paths relative to virtual $(out_dir), e.g.: bin/tool.exe gen/tool.cfg
+# $2 - alias of deployed files group (used only in "tool" mode)
+deploy_files1 = $(if $(is_tool_mode),$(cb_form_deployed_group)$(call \
+  cb_deply_tools_templ,$(o_path),$(addprefix $(cb_tools_dir)/,$1)),$(call \
+  cb_deply_templ,$(o_path),$(addprefix $(cb_build)/$(target_triplet)/,$1)))
+
+# deploy files - copy them from target's private build directory to "public" place, where files may be accessed for ex. by an installer
+# $1 - deployed files - simple paths relative to virtual $(out_dir), e.g.: bin/tool.exe gen/tool.cfg
+# $2 - alias of deployed files group (used only in "tool" mode - when deploying build tools)
+deploy_files = $(eval $(deploy_files1))
+
+deploy_dirs = $(eval $(deploy_dirs1))
+
+endif # cb_checking
+
+# ----------
+
+
+# get absolute paths to the tools $2 needed by the target $1
+get_tools = 
+
+
+
+
+# macro to form absolute paths to the (built and deployed) tool executables
+# $1 - $(tool_base)
+# $2 - $(CBLD_TCPU)
+# $3 - tool paths - simple and relative to virtual $(out_dir), e.g.: ex/tool1 ex/tool2
+cb_built_tools = $(patsubst %,$(mk_tools_dir)/%$(tool_suffix),$3)
+
+/build/tool-x86-release/bin/tool.exe
+/build/tool-x86-release/gen/tool.cfg
+
+/build/tool-x86-release/pp/tool/bin/tool.exe -> /build/tool-x86-release/bin/tool.exe
+/build/tool-x86-release/pp/tool/gen/tool.cfg -> /build/tool-x86-release/gen/tool.cfg
+
+# in "check mode", tools are deployed to target's private directory $(o_dir)
+ifdef cb_checking
+$(eval get_tools1 = $(value get_tools))
+get_tools = $(call cb_deployed_tools,$(o_dir),$(CBLD_TCPU),$2)
+endif
+
+
+
 
 # executable file suffix of the generated tools
 tool_suffix := $(if $(filter WIN% CYGWIN% MINGW%,$(CBLD_OS)),.exe)
 
-# macro to form paths to the tool executables
-# $1 - $(tool_base)
-# $2 - $(CBLD_TCPU)
-# $3 - tool name(s)
-get_tools = $(addprefix $(mk_tools_dir)/,$(3:=$(tool_suffix)))
 
-# get (absolute) path to the tool $1 for the current 'tool_base' and CBLD_TCPU
-get_tool = $(call get_tools,$(tool_base),$(CBLD_TCPU),$1)
 
-# remember new value of 'out_dir'
-# note: trace namespace: out_dir
-ifdef set_global1
-cb_set_default_vars   := $(cb_set_default_vars)$(newline)$(call set_global1,out_dir,out_dir)
-cb_tool_override_vars := $(cb_tool_override_vars)$(newline)$(call set_global1,out_dir,out_dir)
-endif
 
-# to simplify target makefiles, define 'debug' variable:
-#  $(debug) is non-empty for debugging targets like "PROJECT_DEBUG" or "DEBUG"
-# note: 'debug' variable is redefined in "tool" mode (see below)
-cb_set_default_vars   := $(cb_set_default_vars)$(newline)debug:=$(filter DEBUG %_DEBUG,$(CBLD_TARGET))
-cb_tool_override_vars := $(cb_tool_override_vars)$(newline)debug:=$(filter DEBUG %_DEBUG,$(CBLD_TOOL_TARGET))
-
-# note: do not trace access to 'debug' variable - it may be used in ifdefs
+# note: 'cb_check_virt_paths' - defined in included below $(cb_dir)/core/path.mk
 ifdef cb_checking
-cb_set_default_vars   := $(cb_set_default_vars)$(newline)$(call set_global1,debug)
-cb_tool_override_vars := $(cb_tool_override_vars)$(newline)$(call set_global1,debug)
+$(eval cb_deployed_tools1 = $(value cb_deployed_tools))
+cb_deployed_tools = $(call cb_check_virt_paths,$3)$(cb_deployed_tools1)
 endif
 
-# 'cb_to_clean' - list of files/directories to recursively delete on "$(MAKE) clean"
+# get absolute paths to the tools $2 needed by the target $1, for the current 'tool_base' and CBLD_TCPU
+get_tools = $(call cb_deployed_tools,$(tool_base),$(CBLD_TCPU),$2)
+
+# in "check mode", tools are deployed to target's private directory $(o_dir)
+ifdef cb_checking
+$(eval get_tools1 = $(value get_tools))
+get_tools = $(call cb_deployed_tools,$(o_dir),$(CBLD_TCPU),$2)
+endif
+
+# declare that target $1 requires tools $2
+ifndef cb_checking
+need_tools:=
+else
+need_tools = $(call need_tools1,$(get_tools),$(call deployed_tools,$(tool_base),$(CBLD_TCPU),$2))
+
+need_tools1 = $(call need_tools2,$(get_tools1),
+endif
+
+# get absolute paths to the tools $2 needed by the target $1, for the current 'tool_base' and CBLD_TCPU, copy needed tools
+# 
+need_tools = $(get_tools)
+
+# get absolute path to the tool $2 needed by the targets $1, for the current 'tool_base' and CBLD_TCPU
+# $1 - simple paths relative to virtual $(out_dir), e.g.: gen/file.txt gen2/file2.txt
+# $2 - tool path - simple and relative to virtual $(out_dir), e.g.: ex/tool1
+ifndef cb_checking
+need_tool = $(call get_tools,$(tool_base),$(CBLD_TCPU),$2)
+else
+need_tool = $(cb_check_virt_paths)$(call get_tools,$(tool_base),$(CBLD_TCPU),$2)....
+endif
+
+
+
+
+
+
+# 'cb_to_clean' - list of $(cb_build)-relative paths to files/directories to recursively delete on "$(MAKE) clean"
 # note: 'cb_to_clean' list is never cleared, only appended via 'toclean' macro
 # note: 'cb_to_clean' variable should not be directly accessed/modified in target makefiles
 cb_to_clean:=
 
 # 'toclean' - function to add files/directories to delete to 'cb_to_clean' list
+# $1 - simple paths relative to virtual $(out_dir), e.g.: ex/tool1 bin/file.txt
 # note: do nothing if not cleaning up
 ifeq (,$(filter clean,$(MAKECMDGOALS)))
 toclean:=
@@ -273,6 +448,8 @@ else ifneq (,$(word 2,$(MAKECMDGOALS)))
 $(error 'clean' goal must be specified alone, current goals: $(MAKECMDGOALS))
 else ifndef cb_checking
 toclean = $(eval cb_to_clean+=$$1)
+
+
 else
 # remember new value of 'cb_to_clean' list, without tracing calls to it because it's incremented
 toclean = $(eval cb_to_clean+=$$1$(newline)$(call set_global1,cb_to_clean))
@@ -338,7 +515,8 @@ else
 add_order_deps = $(eval order_deps+=$$1$(newline)$(call set_global1,order_deps))
 endif
 
-# add directories $1 (absolute paths) to the list of auto-created ones - 'cb_needed_dirs'
+# add directories $1 (absolute virtual paths, e.g.: gen/sub_gen) to the list of auto-created ones - 'cb_needed_dirs'
+........
 # note: these directories are will be auto-deleted while cleaning up
 # note: callers of 'need_gen_dirs' may assume that it will protect new value of 'cb_needed_dirs', so callers
 #  _may_ change 'cb_needed_dirs' without protecting it - before the call. Protect 'cb_needed_dirs' here.
@@ -494,9 +672,6 @@ endif
 #  value anywhere before $(make_continue), and so before the evaluation of rule templates.
 # reset the value: we are currently not in "tool" mode
 is_tool_mode:=
-
-# define 'out_dir' and 'debug' according that we are not in "tool" mode
-$(eval $(cb_set_default_vars))
 
 # code to evaluate at the beginning of target makefile to adjust variables for "tool" mode
 # note: set 'is_tool_mode' variable to remember if we are in "tool" mode - 'tool_mode' variable may be set to another value
@@ -749,10 +924,6 @@ include $(cb_dir)/core/runtool.mk
 # note: $(cb_dir)/utils/cmd.mk overrides macros defined in $(cb_dir)/core/runtool.mk: 'pathsep', 'show_tool_vars', 'show_tool_vars_end'
 include $(utils_mk)
 
-# utilities colors - for the 'suppress' function (and cb_colorize/cb_show_tool macros)
-CBLD_GEN_COLOR   ?= [1;32m
-CBLD_MGEN_COLOR  ?= [1;32m
-
 # product version in form "major.minor" or "major.minor.patch"
 # Note: this is the default value of 'modver' variable - per-module version number defined by 'c_prepare_base_vars' template from
 #  $(cb_dir)/types/c/c_base.mk
@@ -769,10 +940,10 @@ product_version := 0.0.1
 $(call config_remember_vars,CBLD_BUILD CBLD_TARGET CBLD_TOOL_TARGET)
 
 # makefile parsing first phase variables
-# Note: bin_dir/obj_dir/lib_dir/gen_dir change their values depending on the value of 'tool_mode' variable set in the last
+# Note: 'o_dir', 'o_path' and 'debug' change their values depending on the value of 'tool_mode' variable set in the last
 #  parsed makefile, so clear these variables before rule execution second phase
-cb_first_phase_vars += cb_needed_dirs build_system_goals bin_dir obj_dir lib_dir gen_dir order_deps cb_set_default_dirs \
-  cb_tool_override_dirs toclean cb_target_makefile add_mdeps cb_what_makefile_builds cb_what_makefile_builds1 \
+cb_first_phase_vars += cb_needed_dirs build_system_goals debug cb_set_default_vars cb_tool_override_vars \
+  o_dir o_path order_deps toclean cb_target_makefile add_mdeps cb_what_makefile_builds cb_what_makefile_builds1 \
   set_makefile_info set_makefile_info_r cb_add_what_makefile_builds add_order_deps need_gen_dirs cb_target_vars1 \
   cb_check_generated_at cb_target_vars cb_target_vars_r add_generated add_generated_r set_makefile_specific2 set_makefile_specific1 \
   set_makefile_specific tool_mode is_tool_mode cb_tool_mode_adjust cb_tool_mode_access_error cb_include_level \
@@ -781,15 +952,15 @@ cb_first_phase_vars += cb_needed_dirs build_system_goals bin_dir obj_dir lib_dir
 
 # protect macros from modifications in target makefiles,
 # do not trace calls to macros used in ifdefs, exported to the environment of called tools or modified via operator +=
-$(call set_global,MAKEFLAGS SHELL cb_needed_dirs cb_first_phase_vars CBLD_BUILD CBLD_TARGET \
-  cb_mdebug build_system_goals no_clean_build_distclean_goal cb_to_clean order_deps CBLD_TARGET_COLOR CBLD_CB_BUILD_COLOR \
-  cb_include_level cb_target_makefiles cb_make_cont CBLD_LEAF_COLOR CBLD_LEVEL_COLOR CBLD_CONF_COLOR CBLD_GEN_COLOR CBLD_MGEN_COLOR)
+$(call set_global,MAKEFLAGS SHELL cb_needed_dirs cb_first_phase_vars CBLD_BUILD CBLD_TARGET CBLD_TOOL_TARGET \
+  cb_mdebug build_system_goals no_clean_build_distclean_goal debug cb_to_clean order_deps CBLD_TARGET_COLOR CBLD_CB_BUILD_COLOR \
+  cb_include_level cb_target_makefiles cb_make_cont CBLD_LEAF_COLOR CBLD_LEVEL_COLOR CBLD_CONF_COLOR)
 
 # protect macros from modifications in target makefiles, allow tracing calls to them
 # note: trace namespace: core
 $(call set_global,cb_project_vars clean_build_version cb_dir clean_build_required_version \
-  cb_build project_supported_targets target_triplet def_bin_dir def_obj_dir def_lib_dir def_gen_dir \
-  cb_set_default_dirs tool_base mk_tools_dir cb_tool_override_dirs tool_suffix get_tools get_tool cb_first_makefile \
+  cb_build project_supported_targets project_supported_tool_targets cb_set_default_vars cb_tool_override_vars \
+  target_triplet o_dir o_path tool_base mk_tools_dir tool_suffix get_tools get_tool cb_first_makefile \
   cb_target_makefile add_mdeps cb_what_makefile_builds cb_what_makefile_builds1 set_makefile_info set_makefile_info_r \
   cb_add_what_makefile_builds add_order_deps=order_deps=order_deps need_gen_dirs cb_target_vars1 cb_check_generated_at cb_target_vars \
   cb_target_vars_r add_generated add_generated_r set_makefile_specific2 set_makefile_specific1 set_makefile_specific is_tool_mode \
