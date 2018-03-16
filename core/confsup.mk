@@ -144,7 +144,7 @@ config:| $(abspath $(dir $(CBLD_CONFIG)))
 # if $(CBLD_CONFIG) makefile is generated under $(cb_build), create that directory automatically,
 # else - $(CBLD_CONFIG) makefile is outside of $(cb_build), configuration makefile directory must be created manually
 ifneq (,$(filter $(cb_build)/%,$(abspath $(CBLD_CONFIG))))
-cb_needed_dirs += $(abspath $(dir $(CBLD_CONFIG)))
+cb_needed_dirs += $(patsubst $(cb_build)/%,%,$(dir $(abspath $(CBLD_CONFIG))))
 else
 $(abspath $(dir $(CBLD_CONFIG))):
 	$(error config file directory '$@' does not exist, it is not under '$(cb_build)', so should be created manually)
