@@ -97,10 +97,13 @@ NUL ?= NUL
 DEL     ?= del
 RD      ?= rd
 CD      ?= cd
+CMD     ?= cmd
 FIND    ?= find
+EXIT    ?= exit
 FINDSTR ?= findstr
 COPY    ?= copy
 MOVE    ?= move
+DIR     ?= dir
 MD      ?= md
 FC      ?= fc
 TYPE    ?= type
@@ -201,12 +204,13 @@ del_files_or_dirs  = $(call xcmd,del_files_or_dirs1,$(ospath),$(CBLD_MAX_PATH_AR
 
 # filter the output of the 'copy' or 'move' command:
 #  - if there is anything other than the filtered-out string "        1", result will be zero - assume copy/move failed
-filter_copy_output := $(FIND) /V"        1"
+# note: send error messages to stderr
+filter_copy_output := >&2 $(FIND) /V"        1"
 
 # code for suppressing output of the 'copy' command, like
 # "        1 file(s) copied."
 # "Скопировано файлов:         1."
-suppress_copy_output := | $(filter_copy_output) & if errorlevel 1 (cmd /c) else cmd /c exit 1
+suppress_copy_output := | $(filter_copy_output) & if errorlevel 1 ($(CMD) /c) else $(CMD) /c $(EXIT) 1
 
 # code for suppressing output of the 'move' command, like
 # "        1 file(s) moved."
@@ -238,7 +242,7 @@ move_files  = $(if $(findstring $(space),$1),$(call xcmd,move_files1,$(ospath),$
 touch_files1 = $(if $6,$(quiet))for %%f in ($1) do if exist %%f ($(COPY) /y /b %%f+,, %%f$(suppress_copy_output)) else rem.> %%f
 touch_files  = $(call xcmd,touch_files1,$(ospath),$(CBLD_MAX_PATH_ARGS),,,,)
 
-# create a directory
+# create directory
 #
 # NOTE! there are races in mkdir - if make spawns two parallel jobs:
 #
@@ -251,6 +255,22 @@ touch_files  = $(call xcmd,touch_files1,$(ospath),$(CBLD_MAX_PATH_ARGS),,,,)
 # note: 'create_dir' must create intermediate parent directories of the destination directory
 # note: if path to directory $1 contains a space, use 'ifaddq' to add double-quotes: "1 2/3 4"
 create_dir = $(MD) $(ospath)
+
+# copy recursively contents of directory $1 (path may contain spaces) to directory $2 (path may contain spaces)
+# note: destination directory $2 must exist
+# note: if path to directory $1 or $2 contains a space, use 'ifaddq' to add double-quotes: "1 2/3 4"
+# note: send error messages to stderr
+# NOTE: to avoid races, there must be no other commands running in parallel creating sub-directories of destination directory $2
+copy_all = $(call copy_all1,$(ospath),$(call ospath,$2),$(subst "\%%y,\%%y",$(call ospath,$2)\%%y),$(words $(filter /,$(subst /, / ,$1))))
+
+# $1 - "C:\1\2\3 4"
+# $2 - "C:\1\2\5\6 7"
+# $3 - "C:\1\2\5\6 7\%%y"
+# $4 - 3
+copy_all1 = if not exist $2 ((>&2 echo destination path does not exist: $2) & $(CMD) /c $(EXIT) 2) else \
+  2>&1 (for /r $1 %%f in (.) do @for /f "tokens=$4* delims=$(backslash)" %%x in ("%%~pnf") do \
+  @^(if not exist $3 $(MD) $3^) & (>NUL 2>&1 $(DIR) /b /a-d "%%~dpnf" && >$(NUL) $(COPY) /y /b "%%~dpnf\*" $3)) | \
+  >&2 $(FIND) /V"" & if errorlevel 1 ($(CMD) /c) else $(CMD) /c $(EXIT) 1
 
 # compare content of two text files: $1 and $2
 # return an error code if they are differ
@@ -271,7 +291,7 @@ unquoted_escape = $(subst $(open_brace),^$(open_brace),$(subst $(close_brace),^$
 # note: surround whole set expression by braces to specify the end of argument (to not ignore trailing spaces)
 # note: ignore result of builtin command 'set' - it's failed always
 # NOTE: printed string length must not exceed the maximum command line length (8191 characters)
-print_short_options = ((set/p=$(unquoted_escape))<NUL & cmd /c)
+print_short_options = ((set/p=$(unquoted_escape))<NUL & $(CMD) /c)
 
 # write batch of text token groups to output file or to stdout (for redirecting it to output file)
 # $1 - list of token groups, where entries are processed by $(call hide,$(unquoted_escape))
@@ -285,7 +305,7 @@ print_short_options = ((set/p=$(unquoted_escape))<NUL & cmd /c)
 # note: ignore result of builtin command 'set' - it's failed always
 # note: if path to file $2 contains a space, use 'ifaddq' to add double-quotes: "1 2/3 4"
 # NOTE: printed batch length must not exceed the maximum command line length (8191 characters)
-write_options1 = $(if $6,$3,$4)((set/p=$(call unhide_comments,$(subst $(space),,$1)))<NUL & cmd /c)$(if $2,>$(if $6,>) $2)
+write_options1 = $(if $6,$3,$4)((set/p=$(call unhide_comments,$(subst $(space),,$1)))<NUL & $(CMD) /c)$(if $2,>$(if $6,>) $2)
 
 # tokenize string so each token group will not begin with $(space), $(tab) or '=', except if they are at the beginning
 # "1  2 =3" -> "1 $s  $s 2 $s =3" -> "1 $s  $s 2 $s = 3" -> "1 $s $s 2 $s = 3" -> "1$(space)$(space) 2$(space)= 3"
@@ -350,10 +370,10 @@ execute_in = $(CD) $(ospath) && $2
 
 # show info about command $2 executed in the directory $1, this info may be printed to build script
 # note: if path to directory $1 contains a space, use 'ifaddq' to add double-quotes: "1 2/3 4"
-execute_in_info = pushd $(ospath) && ($2 && popd || (popd & cmd /c exit 1))
+execute_in_info = pushd $(ospath) && ($2 && popd || (popd & $(CMD) /c $(EXIT) 1))
 
 # delete target file(s) (short list, no more than CBLD_MAX_PATH_ARGS) if failed to build them and exit shell with error code 1
-del_on_fail = || (($(delete_files)) & cmd /c exit 1)
+del_on_fail = || (($(delete_files)) & $(CMD) /c $(EXIT) 1)
 
 # create a directory (with intermediate parent directories) while installing things
 # $1 - path to the directory to create, path may contain spaces
@@ -398,20 +418,20 @@ filter_output = (($1 2>&1 &&^(echo ok^)>&2)$2)3>&2 2>&1 1>&3|$(FINDSTR) /XC:ok >
 
 # remember values of variables possibly taken from the environment
 $(call config_remember_vars,CBLD_DONT_FIX_MAKE_SHELL SHELL CBLD_DONT_FIX_ENV_PATH CBLD_MAX_PATH_ARGS \
-  NUL DEL RD CD FIND FINDSTR COPY MOVE MD FC TYPE)
+  NUL DEL RD CD CMD FIND EXIT FINDSTR COPY MOVE DIR MD FC TYPE)
 
 # protect macros from modifications in target makefiles,
 # do not trace calls to macros used in ifdefs, exported to the environment of called tools or modified via operator +=
 $(call set_global,CBLD_DONT_FIX_MAKE_SHELL SHELL CBLD_DONT_FIX_ENV_PATH CBLD_MAX_PATH_ARGS \
-  NUL DEL RD CD FIND FINDSTR COPY MOVE MD FC TYPE create_simlink change_mode)
+  NUL DEL RD CD CMD FIND EXIT FINDSTR COPY MOVE DIR MD FC TYPE create_simlink change_mode)
 
 # protect macros from modifications in target makefiles, allow tracing calls to them
 # note: trace namespace: utils
 $(call set_global,print_env=project_exported_vars shell_escape shell_args_to_unix delete_files delete_dirs try_delete_dirs \
   delete_files_in2 delete_files_in1 delete_files_in del_files_or_dirs1 del_files_or_dirs filter_copy_output \
   suppress_copy_output suppress_move_output copy_files1 copy_files move_files1 move_files touch_files1 touch_files \
-  create_dir compare_files cat_file unquoted_escape print_short_options write_options1 tokenize_options \
-  write_options print_short_line print_some_lines write_lines1 write_lines execute_in execute_in_info \
+  copy_files_in create_dir copy_all copy_all1 compare_files cat_file unquoted_escape print_short_options write_options1 \
+  tokenize_options write_options print_short_line print_some_lines write_lines1 write_lines execute_in execute_in_info \
   del_on_fail install_dir install_files filter_output,utils)
 
 # protect macros from modifications in target makefiles, allow tracing calls to them

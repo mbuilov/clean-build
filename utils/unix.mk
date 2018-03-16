@@ -125,6 +125,13 @@ touch_files  = $(call xcmd,touch_files1,$1,$(CBLD_MAX_PATH_ARGS),,,,)
 # note: $(cb_dir)/utils/gnu.mk overrides 'create_dir'
 create_dir = $(MKDIR) -p $1
 
+# copy recursively contents of directory $1 (path may contain spaces) to directory $2 (path may contain spaces)
+# note: destination directory $2 must exist
+# note: if path to directory $1 or $2 contains a space, use 'ifaddq' to add quotes: '1 2/3 4'
+# NOTE: to avoid races, there must be no other commands running in parallel creating sub-directories of destination directory $2
+# note: $(cb_dir)/utils/gnu.mk overrides 'copy_all'
+copy_all = $(CP) -r $1/* $2
+
 # compare content of two text files: $1 and $2
 # return an error code if they are differ
 # note: if path to a file contains a space, use 'ifaddq' to add quotes: '1 2/3 4'
@@ -251,6 +258,6 @@ $(call set_global,CBLD_MAX_PATH_ARGS NUL RM RMDIR TRUE FALSE CD CP MV TOUCH MKDI
 # note: trace namespace: utils
 $(call set_global,print_env=project_exported_vars shell_escape shell_args_to_unix delete_files delete_dirs try_delete_dirs \
   delete_files_in1 delete_files_in1_info delete_files_in del_files_or_dirs1 del_files_or_dirs copy_files2 copy_files1 copy_files \
-  move_files2 move_files1 move_files touch_files1 touch_files create_dir compare_files cat_file print_short_options \
+  move_files2 move_files1 move_files touch_files1 touch_files create_dir copy_all compare_files cat_file print_short_options \
   printf_line_escape write_options1 write_options print_short_line print_some_lines write_lines1 write_lines create_simlink \
   change_mode execute_in execute_in_info del_on_fail install_dir install_files2 install_files1 install_files,utils)
