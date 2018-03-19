@@ -31,10 +31,10 @@ cb_multi_target_dep = $(subst |,:| ,$(subst $(space),$(newline),$(filter-out \
 # $3 - rule
 # $4 - $(words $(cb_multi_target_num))
 #
-# note: all generated files must depend on the prerequisites, making a chain of
+# note: each generated file must depend on the prerequisites, making a chain of
 #  order-only dependencies between generated files is not enough - a target
 #  that depends on existing generated file will be rebuilt as result of changes
-#  in prerequisites only if generated file also depends on prerequisites, e.g.
+#  in prerequisites only if generated file also depends on the prerequisites, e.g.
 #
 #     [good]                     [bad]
 #   gen1:| gen2                gen1:| gen2
