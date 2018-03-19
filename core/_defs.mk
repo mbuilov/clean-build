@@ -201,7 +201,7 @@ endif
 endif
 
 # to simplify target makefiles, define 'debug' variable:
-#  $(debug) is non-empty for debugging targets like "PROJECT_DEBUG" or "DEBUG"
+#  $(debug) is non-empty for debugging targets like "DEBUG" or "PROJECT_DEBUG"
 # note: define 'debug' assuming that we are not in "tool" mode
 debug := $(filter DEBUG %_DEBUG,$(CBLD_TARGET))
 
@@ -216,168 +216,27 @@ cb_set_default_vars   := $(cb_set_default_vars)$(call set_global1,debug)
 cb_tool_override_vars := $(cb_tool_override_vars)$(call set_global1,debug)
 endif
 
-# check that paths are relative and simple: 1/2/3, but not /1/2/3 or 1//2/3 or 1/2/../3
-ifdef cb_checking
-cb_check_virt_paths = $(if $(filter-out $(addprefix /,$1),$(abspath $(addprefix /,$1))),$(error \
-  paths are not relative and simple: $(foreach p,$1,$(if $(filter-out /$p,$(abspath /$p)),$p))))
-endif
+# define 'o_dir' and 'o_path' macros
+include $(cb_dir)/o_path.mk
 
-# ---------- output paths: 'o_dir' and 'o_path' ---------------
+# define 'deploy_files' and 'deploy_dirs' macros
+include $(cb_dir)/deploy.mk
 
-# base part of sub-directory of built artifacts, e.g. DEBUG-LINUX-x86
-target_triplet := $(CBLD_TARGET)-$(CBLD_OS)-$(CBLD_CPU)
-
-# private namespace - name of sub-directory of $(cb_build)/$(target_triplet) where modules create their files while the build
-ifndef cb_checking
-priv_prefix:=
-else
-priv_prefix := pp
-endif
-
-# get absolute paths to output directories for given targets
-# $1 - simple paths relative to virtual $(out_dir), e.g.: gen/file.txt gen2/file2.txt
-# note: define 'o_dir' assuming that we are not in "tool" mode
-ifndef cb_checking
-o_dir = $(patsubst %,$(cb_build)/$(target_triplet),$1)
-else
-$(eval o_dir = $$(cb_check_virt_paths)$$(addprefix \
-  $(cb_build)/$(target_triplet)/$(priv_prefix)/,$$(subst /,-,$$1)))
-endif
-
-# get absolute paths to built files
-# $1 - simple paths relative to virtual $(out_dir), e.g.: gen/file.txt gen2/file2.txt
-ifndef cb_checking
-$(eval o_path = $$(addprefix $(cb_build)/$(target_triplet)/,$$1))
-else
-$(eval o_path = $$(cb_check_virt_paths)$$(addprefix \
-  $(cb_build)/$(target_triplet)/$(priv_prefix)/,$$(join $$(addsuffix /,$$(subst /,-,$$1)),$$1)))
-endif
-
-# code to evaluate for restoring default output directory after "tool" mode
-cb_set_default_vars := $(cb_set_default_vars)o_dir=$(value o_dir)$(newline)o_path=$(value o_path)
-
-# ---------- 'o_dir' and 'o_path' for the "tool" mode ---------
-
-# sub-directory of $(cb_build) where auxiliary build tools are built
-# note: path may be redefined in the project configuration makefile, must be relative and simple
-tool_base:=
-
-# macro to form a path where tools are built
-# $1 - $(tool_base)
-# $2 - $(CBLD_TCPU)
-ifndef cb_checking
-mk_tools_subdir = $(1:=/)tool-$2-$(CBLD_TOOL_TARGET)
-else
-mk_tools_subdir = $(cb_check_virt_paths)$(1:=/)tool-$2-$(CBLD_TOOL_TARGET)
-endif
-
-# sub-directory of $(cb_build) where tools are built, for the current values of 'tool_base' and CBLD_TCPU
-cb_tools_subdir := $(call mk_tools_subdir,$(tool_base),$(CBLD_TCPU))
-
-# code to evaluate for overriding default output directory in "tool" mode
-ifndef cb_checking
-cb_tool_override_vars := $(cb_tool_override_vars)o_dir=$$(patsubst \
-  %,$(cb_build)/$(cb_tools_subdir),$$1)$(newline)o_path=$$(addprefix $(cb_build)/$(cb_tools_subdir)/,$$1)
-else
-cb_tool_override_vars := $(cb_tool_override_vars)o_dir=$$(cb_check_virt_paths)$$(addprefix \
-  $(cb_build)/$(cb_tools_subdir)/$(priv_prefix)/,$$(subst /,-,$$1))$(newline)o_path=$$(cb_check_virt_paths)$$(addprefix \
-  $(cb_build)/$(cb_tools_subdir)/$(priv_prefix)/,$$(join $$(addsuffix /,$$(subst /,-,$$1)),$$1))
-endif
-
-# ---------------------------------------------
-
-# remember new values of 'o_dir' and 'o_path'
-# note: trace namespace: core
-ifdef set_global1
-cb_set_default_vars   := $(cb_set_default_vars)$(newline)$(call set_global1,o_dir o_path,core)
-cb_tool_override_vars := $(cb_tool_override_vars)$(newline)$(call set_global1,o_dir o_path,core)
-endif
-
-# ---------- deploying files ------------------
-
-ifndef cb_checking
-
-# files are built directly in "public" place, no need to copy there files from private modules build directories
-deploy_files:=
-deploy_dirs:=
-
-else # cb_checking
-
-# deploy built files - copy them from private modules build directories to "public" place
-# $1 - built files,    e.g.: /build/pp/bin-tool.exe/bin/tool.exe /build/pp/gen-tool.cfg/gen/tool.cfg
-# $2 - deployed paths, e.g.: /build/bin/tool.exe /build/gen/tool.cfg
-# note: assume deployed files are needed only by $(cb_target_makefile)-, so:
-#  1) set makefile info (target-specific variables) by 'set_makefile_info_r' macro only for the $(cb_target_makefile)-,
-#   assume that this makefile info will be properly inherited by targets of copying rules
-#  2) create needed directories prior copying any of deployed files
-define cb_deply_files_templ
-cb_needed_dirs += $(patsubst $(cb_build)/%/,%,$(dir $2))
-$(subst |,: ,$(subst $(space),$(newline),$(join $(2:=|),$1)))
-$(call set_makefile_info_r,$(cb_target_makefile)-): $2 | $(patsubst %/,%,$(dir $2))
-$(call suppress_targets_r,$2):
-	$$(call suppress,COPY,$$@)$$(call copy_files,$$<,$$@)
-endef
-
-# deploy built tools - copy them from private modules build directories to "public" place
-# $1 - built files,    e.g.: /build/pp/bin-tool.exe/bin/tool.exe /build/pp/gen-tool.cfg/gen/tool.cfg
-# $2 - deployed paths, e.g.: /build/bin/tool.exe /build/gen/tool.cfg
-# note: deployed tools are may be required for building other targets, so:
-#  1) set makefile info (target-specific variables) by 'set_makefile_info_r' macro for each deployed tool
-#  2) create needed directory prior copying for each deployed tool
-define cb_deply_tool_files_templ
-cb_needed_dirs += $(patsubst $(cb_build)/%/,%,$(dir $2))
-$(subst |, | ,$(subst ||,: ,$(subst / ,$(newline),$(join $(join $(2:=||),$(1:=|)),$(dir $2)) )))$(cb_target_makefile)-: $2
-$(call set_makefile_info_r,$(call suppress_targets_r,$2)):
-	$$(call suppress,COPY,$$@)$$(call copy_files,$$<,$$@)
-endef
-
-# add more files to "deployed tools group"
-# $1 - deployed files - simple paths relative to virtual $(out_dir), e.g.: bin/tool.exe gen/tool.cfg
-# $2 - alias name of deployed tools group
-cb_form_deployed_files_group = $(if $2,$$2.^d $(if $(findstring file,$(origin $2.^d)),+,:)= $$1$(newline),$(error \
-  deployed tools group alias name is not specified))
-
-# $1 - deployed files - simple paths relative to virtual $(out_dir), e.g.: bin/tool.exe gen/tool.cfg
-# $2 - alias name of deployed tools group (used only in "tool" mode)
-deploy_files1 = $(if $(is_tool_mode),$(cb_form_deployed_files_group)$(call \
-  cb_deply_tool_files_templ,$(o_path),$(addprefix $(cb_build)/$(cb_tools_subdir)/,$1)),$(call \
-  cb_deply_files_templ,$(o_path),$(addprefix $(cb_build)/$(target_triplet)/,$1)))
-
-# deploy files - copy them from target's private build directory to "public" place
-# $1 - deployed files - simple paths relative to virtual $(out_dir), e.g.: bin/tool.exe gen/tool.cfg
-# $2 - alias name of deployed tools group (used only in "tool" mode - when deploying build tools)
-deploy_files = $(eval $(deploy_files1))
+# define 'need_built_files', 'need_built_dirs', 'need_tool_files', 'need_tool_dirs' and 'need_tool_exe' macros
+include $(cb_dir)/need.mk
 
 
 
 
-# add more directories to "deployed tools group"
-# $1 - deployed tag file - simple path relative to virtual $(out_dir), e.g.: gen/tag1.tag
-# $2 - deployed directories - simple paths relative to virtual $(out_dir), e.g.: gen/gen1 gen/gen2
-# $3 - alias name of deployed tools group
-cb_form_deployed_dirs_group = $(if $3,$$3.^d $(if $(findstring file,$(origin $3.^d)),+,:)= $$(subst \
-  $$(space),|,$$1 $$2)$(newline),$(error deployed tools group alias name is not specified))
-
-# $1 - deployed tag file - simple path relative to virtual $(out_dir), e.g.: gen/tag1.tag
-# $2 - deployed directories - simple paths relative to virtual $(out_dir), e.g.: gen/gen1 gen/gen2
-# $3 - alias name of deployed tools group (used only in "tool" mode)
-...deploy_dirs1 = $(if $(is_tool_mode),$(cb_form_deployed_dirs_group)$(call \
-  cb_deply_tool_files_templ,$(o_path),$(addprefix $(cb_build)/$(cb_tools_subdir)/,$1)),$(call \
-  cb_deply_files_templ,$(o_path),$(addprefix $(cb_build)/$(target_triplet)/,$1)))
-
-# deploy directories - copy them from target's private build directory to "public" place
-# $1 - deployed tag file - simple path relative to virtual $(out_dir), e.g.: gen/tag1.tag
-# $2 - deployed directories - simple paths relative to virtual $(out_dir), e.g.: gen/gen1 gen/gen2
-# $3 - alias name of deployed tools group (used only in "tool" mode - when deploying build tools)
-# note: directories are copied only if tag file has been updated
-deploy_dirs = $(eval $(deploy_dirs1))
-
-endif # cb_checking
-
-# ----------
 
 
-cp f1 f2 f3 f4 -> d1
+$(call need_built_files,bin/1.txt,gen/2.txt gen/3.txt)
+$(call o_dir,bin/1.txt)/gen/2.txt
+
+$(call need_built_dirs,bin/1.txt,gen/gen_x gen/gen_y)
+$(call o_dir,bin/1.txt)/gen/gen_x	
+
+$(call o_path,bin/1.txt): $(call need_built_files,bin/1.txt,gen/2.txt gen/3.txt)
 
 
 # get absolute paths to the tools $2 needed by the target $1
@@ -999,3 +858,17 @@ endif
 # define auxiliary macros: 'non_parallel_execute', 'multi_target' and 'multi_target_r'
 include $(cb_dir)/core/nonpar.mk
 include $(cb_dir)/core/multi.mk
+
+# add more files to "deployed tools group"
+# $1 - deployed files - simple paths relative to virtual $(out_dir), e.g.: bin/tool.exe gen/tool.cfg
+# $2 - alias name of deployed tools group
+#cb_form_deployed_files_group = $(if $2,$$2.^d $(if $(findstring file,$(origin $2.^d)),+,:)= $$1$(newline),$(error \
+#  deployed tools group alias name is not specified))
+
+# add more directories to "deployed tools group"
+# $1 - deployed tag file - simple path relative to virtual $(out_dir), e.g.: gen/tag1.tag
+# $2 - deployed directories - simple paths relative to virtual $(out_dir), e.g.: gen/gen1 gen/gen2
+# $3 - alias name of deployed tools group
+#cb_form_deployed_dirs_group = $(if $3,$$3.^d $(if $(findstring file,$(origin $3.^d)),+,:)= $$(subst \
+#  $$(space),|,$$1 $$2)$(newline),$(error deployed tools group alias name is not specified))
+
