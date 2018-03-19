@@ -12,17 +12,17 @@
 # Note.
 #  Any variable defined in the environment or command line by default is exported to sub-processes spawned by make.
 #  Because it's not known in advance which variables are defined in the environment, it is possible to accidentally
-#   change the values of the environment variables due to collisions of the variable names in makefiles.
+#   change values of the environment variables due to collisions of the variable names in makefiles.
 #  To reduce the probability of collisions of the names, use the unique variable names in makefiles whenever possible.
 
 # Conventions:
-#  1) variables in lower case are always initialized with default values and _never_ taken from the environment,
-#  2) clean-build internal core macros are prefixed with 'cb_' (except some common names, possibly redefined for the project),
-#  3) user variables and parameters for build templates should also be in lower case,
-#  4) variables in UPPER case _may_ be taken from the environment or command line,
-#  5) clean-build specific variables that may be taken from the environment are in UPPER case and prefixed with 'CBLD_',
-#  6) default values for variables from the environment should be set via operator ?= - to not override values passed to sub-processes,
-#  7) ifdef/ifndef should only be used with previously initialized (possibly by empty values) variables.
+#  1) variables in lower case are always initialized with default values and _never_ taken from the environment
+#  2) clean-build internal core macros are prefixed with 'cb_' (except some common names, possibly redefined for the project)
+#  3) user variables and parameters for build templates should also be in lower case
+#  4) variables in UPPER case _may_ be taken from the environment or command line
+#  5) clean-build specific variables that may be taken from the environment are in UPPER case and prefixed with 'CBLD_'
+#  6) default values for variables from the environment should be set via operator ?= - to not override values passed to sub-processes
+#  7) ifdef/ifndef should only be used with previously initialized (possibly by empty values) variables
 
 ifeq (,$(MAKE_VERSION))
 $(error MAKE_VERSION is not defined, ensure you are using GNU Make of version 3.81 or later)
@@ -86,7 +86,7 @@ $(error incompatible clean-build version: $(clean_build_version), project needs:
 endif
 
 # required variable: CBLD_BUILD - directory of built artifacts - must be defined prior including this makefile
-# note: must be an absolute path for the checks in included next $(cb_dir)/core/confsup.mk
+# note: $(cb_build) - must be an absolute path for the checks in included next $(cb_dir)/core/confsup.mk
 cb_build := $(abspath $(CBLD_BUILD))
 
 ifndef cb_build
@@ -97,17 +97,17 @@ ifneq (,$(findstring $(space),$(cb_build)))
 $(error CBLD_BUILD='$(cb_build)', path to directory of built artifacts must not contain spaces)
 endif
 
-# needed directories other than $(cb_build) - clean-build will define rules to create them in $(cb_dir)/core/all.mk
+# needed build directories - clean-build will define rules to create them in $(cb_dir)/core/all.mk
 # note: 'cb_needed_dirs' contains $(cb_build)-relative simple paths, like a/b, 1/2/3 and so on
-# note: 'cb_needed_dirs' is never cleared, only appended
+# note: 'cb_needed_dirs' list is never cleared, only appended
 cb_needed_dirs:=
 
 # add support for generation of $(CBLD_CONFIG) configuration makefile as result of predefined 'config' goal,
 #  adjust values of 'cb_project_vars' and 'project_exported_vars' variables, define 'config_remember_vars' macro
 include $(cb_dir)/core/confsup.mk
 
-# clean-build always sets default values for the variables, to override these defaults
-#  by the ones specified in the project configuration makefile, here use the 'override' directive
+# clean-build always resets non-environment variables by setting default values, to override these defaults by the ones
+#  specified in the project configuration makefile, here use the 'override' directive
 $(foreach =,$(cb_project_vars),$(eval override $(if $(findstring simple,$(flavor \
   $=)),$$=:=$$($$=),$(call define_multiline,$$=,$(value $=)))))
 
@@ -124,7 +124,7 @@ include $(cb_dir)/core/aconf.mk
 project_supported_targets      := RELEASE DEBUG
 project_supported_tool_targets := RELEASE DEBUG
 
-# what target/tool target type to build (DEBUG, RELEASE, etc.) - must be a value from
+# what target/tool target type to build (RELEASE, DEBUG, PROJECT_DEBUG, etc.) - must be a value from
 #  $(project_supported_targets)/$(project_supported_tool_targets) lists
 # note: normally CBLD_TARGET/CBLD_TOOL_TARGET are overridden by specifying them in the command line
 ifeq (undefined,$(origin CBLD_TARGET))
@@ -216,6 +216,12 @@ cb_set_default_vars   := $(cb_set_default_vars)$(call set_global1,debug)
 cb_tool_override_vars := $(cb_tool_override_vars)$(call set_global1,debug)
 endif
 
+# check that paths are relative and simple: 1/2/3, but not /1/2/3 or 1//2/3 or 1/2/../3
+ifdef cb_checking
+cb_check_virt_paths = $(if $(filter-out $(addprefix /,$1),$(abspath $(addprefix /,$1))),$(error \
+  paths are not relative and simple: $(foreach p,$1,$(if $(filter-out /$p,$(abspath /$p)),$p))))
+endif
+
 # ---------- output paths: 'o_dir' and 'o_path' ---------------
 
 # base part of sub-directory of built artifacts, e.g. DEBUG-LINUX-x86
@@ -226,12 +232,6 @@ ifndef cb_checking
 priv_prefix:=
 else
 priv_prefix := pp
-endif
-
-# check that paths are relative and simple: 1/2/3, but not /1/2/3 or 1//2/3 or 1/2/../3
-ifdef cb_checking
-cb_check_virt_paths = $(if $(filter-out $(addprefix /,$1),$(abspath $(addprefix /,$1))),$(error \
-  paths are not relative and simple: $(foreach p,$1,$(if $(filter-out /$p,$(abspath /$p)),$p))))
 endif
 
 # get absolute paths to output directories for given targets
@@ -258,36 +258,30 @@ cb_set_default_vars := $(cb_set_default_vars)o_dir=$(value o_dir)$(newline)o_pat
 
 # ---------- 'o_dir' and 'o_path' for the "tool" mode ---------
 
-# base directory where auxiliary build tools are built
-# note: path should be absolute for absolute values of 'o_dir' and 'o_path' in "tool" mode
-tool_base := $(cb_build)
-
-# check that $(tool_base) path is absolute
-ifneq ("$(tool_base)","$(abspath $(tool_base))")
-$(error tool_base=$(tool_base) path is not absolute, should be: $(abspath $(tool_base)))
-endif
-
-# 'tool_base' may be redefined in the project configuration makefile, ensure $(tool_base) is under $(cb_build)
-ifeq (,$(filter $(cb_build)/%,$(tool_base)/))
-$(error tool_base=$(tool_base) is not cb_build=$(cb_build) nor a subdirectory of it)
-endif
+# sub-directory of $(cb_build) where auxiliary build tools are built
+# note: path may be redefined in the project configuration makefile, must be relative and simple
+tool_base:=
 
 # macro to form a path where tools are built
 # $1 - $(tool_base)
 # $2 - $(CBLD_TCPU)
-mk_tools_dir = $1/tool-$2-$(CBLD_TOOL_TARGET)
+ifndef cb_checking
+mk_tools_subdir = $(1:=/)tool-$2-$(CBLD_TOOL_TARGET)
+else
+mk_tools_subdir = $(cb_check_virt_paths)$(1:=/)tool-$2-$(CBLD_TOOL_TARGET)
+endif
 
-# absolute path where tools are built, for the current 'tool_base' and CBLD_TCPU
-cb_tools_dir := $(call mk_tools_dir,$(tool_base),$(CBLD_TCPU))
+# sub-directory of $(cb_build) where tools are built, for the current values of 'tool_base' and CBLD_TCPU
+cb_tools_subdir := $(call mk_tools_subdir,$(tool_base),$(CBLD_TCPU))
 
 # code to evaluate for overriding default output directory in "tool" mode
 ifndef cb_checking
 cb_tool_override_vars := $(cb_tool_override_vars)o_dir=$$(patsubst \
-  %,$(cb_tools_dir),$$1)$(newline)o_path=$$(addprefix $(cb_tools_dir)/,$$1)
+  %,$(cb_build)/$(cb_tools_subdir),$$1)$(newline)o_path=$$(addprefix $(cb_build)/$(cb_tools_subdir)/,$$1)
 else
 cb_tool_override_vars := $(cb_tool_override_vars)o_dir=$$(cb_check_virt_paths)$$(addprefix \
-  $(cb_tools_dir)/$(priv_prefix)/,$$(subst /,-,$$1))$(newline)o_path=$$(cb_check_virt_paths)$$(addprefix \
-  $(cb_tools_dir)/$(priv_prefix)/,$$(join $$(addsuffix /,$$(subst /,-,$$1)),$$1))
+  $(cb_build)/$(cb_tools_subdir)/$(priv_prefix)/,$$(subst /,-,$$1))$(newline)o_path=$$(cb_check_virt_paths)$$(addprefix \
+  $(cb_build)/$(cb_tools_subdir)/$(priv_prefix)/,$$(join $$(addsuffix /,$$(subst /,-,$$1)),$$1))
 endif
 
 # ---------------------------------------------
@@ -303,60 +297,87 @@ endif
 
 ifndef cb_checking
 
-# files are built directly in "public" place, no need to copy there files from private directories
+# files are built directly in "public" place, no need to copy there files from private modules build directories
 deploy_files:=
 deploy_dirs:=
 
 else # cb_checking
 
-# deploy built target files
+# deploy built files - copy them from private modules build directories to "public" place
 # $1 - built files,    e.g.: /build/pp/bin-tool.exe/bin/tool.exe /build/pp/gen-tool.cfg/gen/tool.cfg
 # $2 - deployed paths, e.g.: /build/bin/tool.exe /build/gen/tool.cfg
 # note: assume deployed files are needed only by $(cb_target_makefile)-, so:
-#  1) set makefile info (target-specific variables) by 'set_makefile_info_r' macro only for the $(cb_target_makefile)- and
-#   assume that this makefile info will be properly inherited by the targets in copying rules
-#  2) create needed directories prior copying any deployed file
-define cb_deply_templ
+#  1) set makefile info (target-specific variables) by 'set_makefile_info_r' macro only for the $(cb_target_makefile)-,
+#   assume that this makefile info will be properly inherited by targets of copying rules
+#  2) create needed directories prior copying any of deployed files
+define cb_deply_files_templ
+cb_needed_dirs += $(patsubst $(cb_build)/%/,%,$(dir $2))
 $(subst |,: ,$(subst $(space),$(newline),$(join $(2:=|),$1)))
-$(call set_makefile_info_r,$(cb_target_makefile)-): $2 | $(patsubst %/,%,$(sort $(dir $2)))
+$(call set_makefile_info_r,$(cb_target_makefile)-): $2 | $(patsubst %/,%,$(dir $2))
 $(call suppress_targets_r,$2):
 	$$(call suppress,COPY,$$@)$$(call copy_files,$$<,$$@)
 endef
 
-# deploy built tools
+# deploy built tools - copy them from private modules build directories to "public" place
 # $1 - built files,    e.g.: /build/pp/bin-tool.exe/bin/tool.exe /build/pp/gen-tool.cfg/gen/tool.cfg
 # $2 - deployed paths, e.g.: /build/bin/tool.exe /build/gen/tool.cfg
-# note: deployed tools may be needed for building other targets, so:
-#  1) set makefile info (target-specific variables) by 'set_makefile_info_r' macro for all deployed tools
+# note: deployed tools are may be required for building other targets, so:
+#  1) set makefile info (target-specific variables) by 'set_makefile_info_r' macro for each deployed tool
 #  2) create needed directory prior copying for each deployed tool
-define cb_deply_tools_templ
+define cb_deply_tool_files_templ
+cb_needed_dirs += $(patsubst $(cb_build)/%/,%,$(dir $2))
 $(subst |, | ,$(subst ||,: ,$(subst / ,$(newline),$(join $(join $(2:=||),$(1:=|)),$(dir $2)) )))$(cb_target_makefile)-: $2
 $(call set_makefile_info_r,$(call suppress_targets_r,$2)):
 	$$(call suppress,COPY,$$@)$$(call copy_files,$$<,$$@)
 endef
 
-# add files to "deployed tools group"
+# add more files to "deployed tools group"
 # $1 - deployed files - simple paths relative to virtual $(out_dir), e.g.: bin/tool.exe gen/tool.cfg
-# $2 - alias of deployed files group
-cb_form_deployed_group = $(if $2,$$2.^d $(if $(findstring file,$(origin $2.^d)),+,:)= $$1$(newline),$(error \
-  deployed files group alias name is not specified))
+# $2 - alias name of deployed tools group
+cb_form_deployed_files_group = $(if $2,$$2.^d $(if $(findstring file,$(origin $2.^d)),+,:)= $$1$(newline),$(error \
+  deployed tools group alias name is not specified))
 
 # $1 - deployed files - simple paths relative to virtual $(out_dir), e.g.: bin/tool.exe gen/tool.cfg
-# $2 - alias of deployed files group (used only in "tool" mode)
-deploy_files1 = $(if $(is_tool_mode),$(cb_form_deployed_group)$(call \
-  cb_deply_tools_templ,$(o_path),$(addprefix $(cb_tools_dir)/,$1)),$(call \
-  cb_deply_templ,$(o_path),$(addprefix $(cb_build)/$(target_triplet)/,$1)))
+# $2 - alias name of deployed tools group (used only in "tool" mode)
+deploy_files1 = $(if $(is_tool_mode),$(cb_form_deployed_files_group)$(call \
+  cb_deply_tool_files_templ,$(o_path),$(addprefix $(cb_build)/$(cb_tools_subdir)/,$1)),$(call \
+  cb_deply_files_templ,$(o_path),$(addprefix $(cb_build)/$(target_triplet)/,$1)))
 
-# deploy files - copy them from target's private build directory to "public" place, where files may be accessed for ex. by an installer
+# deploy files - copy them from target's private build directory to "public" place
 # $1 - deployed files - simple paths relative to virtual $(out_dir), e.g.: bin/tool.exe gen/tool.cfg
-# $2 - alias of deployed files group (used only in "tool" mode - when deploying build tools)
+# $2 - alias name of deployed tools group (used only in "tool" mode - when deploying build tools)
 deploy_files = $(eval $(deploy_files1))
 
+
+
+
+# add more directories to "deployed tools group"
+# $1 - deployed tag file - simple path relative to virtual $(out_dir), e.g.: gen/tag1.tag
+# $2 - deployed directories - simple paths relative to virtual $(out_dir), e.g.: gen/gen1 gen/gen2
+# $3 - alias name of deployed tools group
+cb_form_deployed_dirs_group = $(if $3,$$3.^d $(if $(findstring file,$(origin $3.^d)),+,:)= $$(subst \
+  $$(space),|,$$1 $$2)$(newline),$(error deployed tools group alias name is not specified))
+
+# $1 - deployed tag file - simple path relative to virtual $(out_dir), e.g.: gen/tag1.tag
+# $2 - deployed directories - simple paths relative to virtual $(out_dir), e.g.: gen/gen1 gen/gen2
+# $3 - alias name of deployed tools group (used only in "tool" mode)
+...deploy_dirs1 = $(if $(is_tool_mode),$(cb_form_deployed_dirs_group)$(call \
+  cb_deply_tool_files_templ,$(o_path),$(addprefix $(cb_build)/$(cb_tools_subdir)/,$1)),$(call \
+  cb_deply_files_templ,$(o_path),$(addprefix $(cb_build)/$(target_triplet)/,$1)))
+
+# deploy directories - copy them from target's private build directory to "public" place
+# $1 - deployed tag file - simple path relative to virtual $(out_dir), e.g.: gen/tag1.tag
+# $2 - deployed directories - simple paths relative to virtual $(out_dir), e.g.: gen/gen1 gen/gen2
+# $3 - alias name of deployed tools group (used only in "tool" mode - when deploying build tools)
+# note: directories are copied only if tag file has been updated
 deploy_dirs = $(eval $(deploy_dirs1))
 
 endif # cb_checking
 
 # ----------
+
+
+cp f1 f2 f3 f4 -> d1
 
 
 # get absolute paths to the tools $2 needed by the target $1
