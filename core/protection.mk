@@ -239,11 +239,12 @@ cb_reset_local_var = $(if $(filter !$$$(open_brace)error$$(space)%,$(subst \
 # note: do not touch GNU Make automatic variables (automatic, but, for example, $(origin CURDIR) gives 'file')
 # note: do not reset %.^s variables here - they are needed for 'cb_restore_vars' macro, which will reset them
 # note: do not reset %.^e variables - saved environment variables (see $(cb_dir)/stub/prepare.mk)
+# note: do not reset %.^d variables - generated directories holding a name of tag-file
 # note: do not reset trace variables %.^l, %.^t and protected variables %.^p
 # note: do not touch automatic/default/environment/command-line and $(dump_max) variables
 cb_reset_local_vars = $(foreach =,$(filter-out \
   CURDIR GNUMAKEFLAGS MAKECMDGOALS MAKEFILE_LIST MAKELEVEL MAKEOVERRIDES .SHELLSTATUS .DEFAULT_GOAL \
-  $(cb_protected_vars) %.^s %.^e %.^l %.^t %.^p $(dump_max),$(.VARIABLES)),$(if \
+  $(cb_protected_vars) %.^s %.^e %.^d %.^l %.^t %.^p $(dump_max),$(.VARIABLES)),$(if \
   $(filter file override,$(origin $=)),$(cb_reset_local_var)))
 
 # called by 'cb_restore_vars' macro to reset %.^s variables
