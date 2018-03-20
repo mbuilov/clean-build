@@ -219,7 +219,7 @@ endif
 # define 'o_dir' and 'o_path' macros
 include $(cb_dir)/o_path.mk
 
-# define 'deploy_files' and 'deploy_dirs' macros
+# define 'assoc_dirs', 'deploy_files' and 'deploy_dirs' macros
 include $(cb_dir)/deploy.mk
 
 # define 'need_built_files', 'need_built_dirs', 'need_tool_files', 'need_tool_dirs' and 'need_tool_exe' macros
