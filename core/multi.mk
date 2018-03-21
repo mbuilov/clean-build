@@ -40,7 +40,7 @@ cb_multi_target_dep = $(subst |,:| ,$(subst $(space),$(newline),$(filter-out \
 #   gen1:| gen2                gen1:| gen2
 #   gen1 gen2: prereq     vs   gen2: prereq
 #       touch gen1 gen2            touch gen1 gen2
-#   trg1: gen1                 trg1: gen1
+#   trg1: gen1                 trg1: gen1  <----------- may be rebuilt on second make invocation
 #   trg2: gen2                 trg2: gen2
 #
 # note: do not delete some of generated files manually, always do 'make clean' to delete them all,
