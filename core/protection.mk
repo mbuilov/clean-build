@@ -155,7 +155,7 @@ ifndef cb_tracing
 set_global:=
 set_global1:=
 
-else # cb_tracing
+else # cb_tracing && !cb_checking
 
 # trace calls to macros
 # $1 - list: AAA=b1;b2;$$1=e1;e2 BBB=b1;b2=e1;e2;...
@@ -169,7 +169,7 @@ set_global1 = $(if $(call cb_check_cannot_trace,$2),,$(call \
 #  $(cb_dir)/core/confsup.mk - now 'set_global1' macro is defined, so evaluate those calls
 $(eval $(value cb_protected_vars))
 
-endif # cb_tracing
+endif # cb_tracing && !cb_checking
 
 # list of first-phase variables - these are will be reset before the rule-execution second phase
 cb_first_phase_vars:=
@@ -190,17 +190,14 @@ cb_encode_var_value = <$(origin $1):$(if $(findstring undefined,$(origin $1)),,$
 cb_encode_var_name = $=.^p
 
 # store values of clean-build protected variables which must not be changed in target makefiles
-# note: after expansion, last line must be empty - callers of $(call set_global1,...) account on this
 define cb_protect_vars2
-cb_protected_vars := $$(sort $$(cb_protected_vars) $1)
-$(foreach =,cb_protected_vars $1,$(cb_encode_var_name):=$$(call cb_encode_var_value,$=)$(newline))
+cb_protected_vars := $$(sort $$(cb_protected_vars) $1)$(foreach \
+  =,cb_protected_vars $1,$(newline)$(cb_encode_var_name):=$$(call cb_encode_var_value,$=))
 endef
 
 # 'set_global1' - protect macros from modification in target makefiles or just trace calls to macros
 # $1 - list: AAA=b1;b2;$$1=e1;e2 BBB=b1;b2=e1;e2;... (must be without names of variables to dump if not tracing - i.e. $2 is empty)
 # $2 - optional namespace name, if not specified, then do not trace calls for given macros
-# note: if 'cb_checking' is defined and $2 is empty, expansion of $(call set_global1,...) must add an empty line at
-#  end of expansion - $(cb_dir)/core/_defs.mk accounts on this
 # 1.                                                       $(call set_global1,v) = just protect v, do not trace it
 # 2.                            $(call trace_calls,v)                            = trace unprotected v
 # 3.                            $(call trace_calls,v)   -> $(call set_global1,v) = trace protected v, protect new v
@@ -259,11 +256,11 @@ $(eval cb_reset_first_phase = $(subst <cb_reset_local_var>,$(value cb_reset_loca
 
 # reset "local" variables, check and set 'cb_need_tail_code' - $(cb_def_tail) must be evaluated after $(cb_def_head)
 # note: reset 'temporary_overridden' variable - it may be set before previous $(cb_def_tail)
-# note: expansion of $(call set_global1,cb_need_tail_code) gives an empty line at end of expansion
 define cb_check_at_head
 $(if $(cb_need_tail_code),$(error $$(define_targets) was not expanded at end of $(cb_need_tail_code)!))$$(cb_reset_local_vars)
 cb_need_tail_code := $(cb_target_makefile)
-$(call set_global1,cb_need_tail_code)temporary_overridden:=
+$(call set_global1,cb_need_tail_code)
+temporary_overridden:=
 endef
 
 # show an error about overwritten protected variable $=
