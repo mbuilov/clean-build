@@ -53,10 +53,9 @@ $(foreach m,$1,$(cb_include_template))cb_include_level:=$(cb_include_level)
 endef
 
 # remember new value of 'cb_include_level', without tracing calls to it because it is incremented
-# note: assume result of $(call set_global1,...) will give an empty line at end of expansion (because it's called without namespace name)
 ifdef cb_checking
 $(eval define cb_include_submakes$(newline)$(subst \
-  cb_include_level+=>$(newline),cb_include_level+=>$(newline)$$(call set_global1,cb_include_level),$(value \
+  cb_include_level+=>,cb_include_level+=>$(newline)$$(call set_global1,cb_include_level),$(value \
   cb_include_submakes))$(newline)$$(call set_global1,cb_include_level)$(newline)endef)
 endif
 
@@ -66,10 +65,9 @@ ifndef toclean
 $(call define_prepend,cb_include_template,order_deps:=$$(order_deps)$(newline))
 
 # remember new value of 'order_deps', without tracing calls to it because it is incremented
-# note: assume result of $(call set_global1,...) will give an empty line at end of expansion (because it's called without namespace name)
 ifdef cb_checking
 $(eval define cb_include_template$(newline)$(subst include,$$(call \
-  set_global1,order_deps)include,$(value cb_include_template))$(newline)endef)
+  set_global1,order_deps)$(newline)include,$(value cb_include_template))$(newline)endef)
 endif
 
 # append makefiles of the modules (really PHONY targets created from them) to 'order_deps' list
@@ -155,11 +153,10 @@ cb_submakes_prepare:=
 #  it _must_ evaluate 'cb_submakes_prepare' prior calling 'process_submakes' - by including appropriate makefile of project build
 #  system, e.g. 'make/submakes.mk'
 # note: protect 'cb_need_submakes_mk' to not reset it as a "local" variable at head of target makefile, do not trace calls to it
-# note: assume result of $(call set_global1,cb_need_submakes_mk) will give an empty line at end of expansion
 ifdef cb_checking
 cb_submakes_prepare = $(if $(tool_mode),$(error 'tool_mode' cannot be set for a group of makefiles))$(eval cb_need_submakes_mk:=)
 $(eval process_submakes = $$(if $$(cb_need_submakes_mk),$$(error submakes.mk was not included at head of makefile!))$(subst \
-  eval define,eval cb_need_submakes_mk:=1$$(newline)$$(call set_global1,cb_need_submakes_mk)define,$(value process_submakes)))
+  eval define,eval cb_need_submakes_mk:=1$$(newline)$$(call set_global1,cb_need_submakes_mk)$$(newline)define,$(value process_submakes)))
 endif
 
 # makefile parsing first phase variables
