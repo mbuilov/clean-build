@@ -2,7 +2,14 @@
 # associate built directories with given tag file (which is updated just after update of the directories)
 # $1 - tag file   - simple path relative to virtual $(out_dir),  e.g.: gen1/tag1.tag
 # $2 - built dirs - simple paths relative to virtual $(out_dir), e.g.: gen2/dir1 gen3/dir2/dir3
+# note: it is assumed that directories $2 are built in private namespace of the tag file $1
+ifdef cb_checking
+assoc_dirs = $(if $(cb_check_virt_paths_r),,$(if $2,$(error tag file is empty!)))$(foreach \
+  d,$(call cb_check_virt_paths_r,$2),$(if $(filter-out undefined,$(origin $d.^d)),$(error \
+  generated directory '$d' is already associated with tag file '$($d.^d)'),$(eval $$d.^d := $$1)))
+else
 assoc_dirs = $(foreach d,$2,$(eval $$d.^d := $$1))
+endif
 
 ifdef priv_prefix
 
@@ -12,13 +19,12 @@ ifdef priv_prefix
 # $1 - built files,    e.g.: /build/pp/bin-tool.exe/bin/tool.exe /build/pp/gen-tool.cfg/gen/tool.cfg
 # $2 - deployed paths, e.g.: /build/bin/tool.exe /build/gen/tool.cfg
 # note: assume deployed files are needed _only_ by $(cb_target_makefile)-, so:
-#  1) set makefile info (target-specific variables) by 'set_makefile_info_r' macro only for the $(cb_target_makefile)-,
+#  - set makefile info (target-specific variables) by 'set_makefile_info_r' macro only for the $(cb_target_makefile)-,
 #   assume that this makefile info will be properly inherited by targets of copying rules
-#  2) create all needed directories prior copying any of deployed files
 define cb_deploy_files
 cb_needed_dirs += $(patsubst $(cb_build)/%/,%,$(dir $2))
-$(subst |,: ,$(subst $(space),$(newline),$(join $(2:=|),$1)))
-$(call set_makefile_info_r,$(cb_target_makefile)-): $2 | $(patsubst %/,%,$(dir $2))
+$(subst |, | ,$(subst ||,: ,$(subst / ,$(newline),$(join $(join $(2:=||),$(1:=|)),$(dir $2)) )))$(call \
+  set_makefile_info_r,$(cb_target_makefile)-): $2
 $(call suppress_targets_r,$2):
 	$$(call suppress,COPY,$$@)$$(call copy_files,$$<,$$@)
 endef
@@ -27,8 +33,7 @@ endef
 # $1 - built files,    e.g.: /build/pp/bin-tool.exe/bin/tool.exe /build/pp/gen-tool.cfg/gen/tool.cfg
 # $2 - deployed paths, e.g.: /build/bin/tool.exe /build/gen/tool.cfg
 # note: deployed tools are may be required for building other targets, so:
-#  1) set makefile info (target-specific variables) by 'set_makefile_info_r' macro for each deployed tool
-#  2) create needed directory prior copying for each deployed tool
+#  - set makefile info (target-specific variables) by 'set_makefile_info_r' macro for each deployed tool
 define cb_deploy_tool_files
 cb_needed_dirs += $(patsubst $(cb_build)/%/,%,$(dir $2))
 $(subst |, | ,$(subst ||,: ,$(subst / ,$(newline),$(join $(join $(2:=||),$(1:=|)),$(dir $2)) )))$(cb_target_makefile)-: $2
@@ -40,6 +45,11 @@ endef
 deploy_files1 = $(if $(is_tool_mode),$(call \
   cb_deploy_tool_files,$(o_path),$(addprefix $(cb_build)/$(cb_tools_subdir)/,$1)),$(call \
   cb_deploy_files,$(o_path),$(addprefix $(cb_build)/$(target_triplet)/,$1)))
+
+# protect new value of 'cb_needed_dirs', do not trace calls to it because it's incremented
+ifdef cb_checking
+deploy_files1 += $(call set_global1,cb_needed_dirs)
+endif
 
 # deploy files - copy them from target's private build directory to "public" place
 # $1 - deployed files - simple paths relative to virtual $(out_dir), e.g.: bin/tool.exe gen/tool.cfg
@@ -69,15 +79,9 @@ $(call set_makefile_info_r,$(call suppress_targets_r,$2)): $1 | $(patsubst %/,%,
 	$$(call suppress,COPY,$$@)$$(call copy_files,$$<,$$@)
 endef
 
-# associate built directories with given tag file (which is updated just after update of the directories)
-# $1 - tag file   - simple path relative to virtual $(out_dir),  e.g.: gen1/tag1.tag
-# $2 - built dirs - simple paths relative to virtual $(out_dir), e.g.: gen2/dir1 gen3/dir2/dir3
-$(eval assoc_dirs1 = $(value assoc_dirs))
-assoc_dirs = $(foreach d,$(call cb_check_virt_paths_r,$2),$(if $(filter-out undefined,$(origin $d.^d)),$(error \
-  generated directory '$d' is already associated with tag file '$($d.^d)')))$(call assoc_dirs1,$(cb_check_virt_paths_r),$2)
-
 # $1 - deployed tag file - simple path relative to virtual $(out_dir),  e.g.: gen1/tag1.tag
 # $2 - deployed dirs     - simple paths relative to virtual $(out_dir), e.g.: gen2/dir1 gen3/dir2/dir3
+# note: it is assumed that directories $2 are built in private namespace of the tag file $1
 deploy_dirs1 = $(call cb_deploy_dirs,$(o_path),$(addprefix \
   $(cb_build)/$(if $(is_tool_mode),$(cb_tools_subdir),$(target_triplet))/,$1),$(addprefix $(o_dir)/,$2),$(addprefix \
   $(cb_build)/$(if $(is_tool_mode),$(cb_tools_subdir),$(target_triplet))/,$2))
@@ -90,8 +94,18 @@ deploy_dirs = $(assoc_dirs)$(eval $(deploy_dirs1))
 
 else # !priv_prefix
 
+ifdef cb_checking
+
+# files are built directly in "public" place, no need to copy there files from private modules build directories
+# $1 - deployed files - simple paths relative to virtual $(out_dir), e.g.: bin/tool.exe gen/tool.cfg
+deploy_files = $(if $(cb_check_virt_paths_r),)
+
+else # !cb_checking
+
 # files are built directly in "public" place, no need to copy there files from private modules build directories
 deploy_files:=
+
+endif # !cb_checking
 
 # associate each deployed directory with given tag file (which is updated just after update of the directories)
 # $1 - deployed tag file - simple path relative to virtual $(out_dir),  e.g.: gen1/tag1.tag
@@ -101,14 +115,14 @@ $(eval deploy_dirs = $(value assoc_dirs))
 endif # !priv_prefix
 
 # makefile parsing first phase variables
-cb_first_phase_vars += assoc_dirs cb_deploy_files cb_deploy_tool_files deploy_files1 deploy_files cb_deploy_dirs assoc_dirs1 \
+cb_first_phase_vars += assoc_dirs cb_deploy_files cb_deploy_tool_files deploy_files1 deploy_files cb_deploy_dirs \
   deploy_dirs1 deploy_dirs
+
+# protect macros from modifications in target makefiles, allow tracing calls to them
+# note: trace namespace: assoc_dirs
+$(call set_global,assoc_dirs,assoc_dirs)
 
 # protect macros from modifications in target makefiles, allow tracing calls to them
 # note: trace namespace: deploy
 $(call set_global,cb_deploy_files cb_deploy_tool_files deploy_files1 deploy_files cb_gen_dir_copying_rules cb_deploy_dirs \
   deploy_dirs1 deploy_dirs,deploy)
-
-# protect macros from modifications in target makefiles, allow tracing calls to them
-# note: trace namespace: assoc
-$(call set_global,assoc_dirs assoc_dirs1,assoc)

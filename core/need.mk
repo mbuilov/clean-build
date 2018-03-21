@@ -4,14 +4,11 @@ ifdef priv_prefix
 # $1 - absolute path to the target for which built files are needed
 # $2 - absolute paths to needed files
 # $3 - absolute paths to destination files
-# note: assume built files are needed in target's private namespace only by the target, so
-#  1) create all needed directories prior copying
 # note: a rule for creating target $1 may be defined elsewhere, so do not set current makefile info for it here,
 #  instead call 'set_makefile_info_r' for each copied file
 define cb_need_built_files
 cb_needed_dirs += $(patsubst $(cb_build)/%/,%,$(dir $3))
-$1: $3 | $(patsubst %/,%,$(dir $3))
-$(subst |,: ,$(subst $(space),$(newline),$(join $(3:=|),$2)))
+$(subst |, | ,$(subst ||,: ,$(subst / ,$(newline),$(join $(join $(3:=||),$(2:=|)),$(dir $3)) )))$1: $3
 $(call set_makefile_info_r,$(call suppress_targets_r,$3)):
 	$$(call suppress,COPY,$$@)$$(call copy_files,$$<,$$@)
 endef
@@ -26,8 +23,17 @@ need_built_files = $(eval $(call cb_need_built_files,$(o_path),$(call o_path,$2)
 # $1 - the target for which the files are needed - must be a simple path relative to virtual $(out_dir), e.g.: bin/test.exe
 # $2 - tool files, must be simple paths relative to virtual $(out_dir), e.g.: gen/file1.txt gen/file2.txt
 # note: tool files should be deployed to "public" place, so copy them from there
+ifdef cb_checking
 need_tool_files = $(eval $(call cb_need_built_files,$(o_path),$(addprefix \
   $(cb_build)/$(cb_tools_subdir)/,$(call cb_check_virt_paths_r,$2)),$(addprefix $(o_dir)/,$2)))
+else
+need_tool_files = $(eval $(call cb_need_built_files,$(o_path),$(addprefix \
+  $(cb_build)/$(cb_tools_subdir)/,$2),$(addprefix $(o_dir)/,$2)))
+endif
+
+
+
+
 
 # $1 - absolute path to the target for which the dirs are needed
 # $2 - absolute paths to needed tag files
@@ -88,16 +94,20 @@ $d: dst_dirs := $(patsubst $d|%,%,$(filter $d|%,$7)))
 endef
 
 # $1 - absolute path to the target for which the dirs are needed
+# $2 - absolute paths to destination dirs
+# $3 - unique tag files
+# $4 - absolute paths to needed tag files
+...
 # $2 - absolute paths to needed dirs
-# $3 - absolute paths to destination dirs
 # $4 - absolute paths to destination tag files
-# $5 - unique tag files
 need_built_dirs2 = $(call cb_need_built_dirs,$1,$2,$3,$4,$(call o_path,$5),$(addprefix $(o_dir)/,$5))
 
 # $1 - the target for which the dirs are needed - must be a simple path relative to virtual $(out_dir), e.g.: bin/test.exe
 # $2 - needed directories, must be simple paths relative to virtual $(out_dir), e.g.: gen/g1 gen/gen2/g3
 # $3 - needed tag files, must be simple paths relative to virtual $(out_dir), e.g.: gen/g1.tag gen/gen2/g3.tag
-need_built_dirs1 = $(call need_built_dirs2,$(o_path),$(call o_path,$2),$(addprefix $(o_dir)/,$2),$(addprefix $(o_dir)/,$3),$(sort $3))
+# note: it is assumed that directories are built in private namespaces of the tag files
+need_built_dirs1 = $(call need_built_dirs2,$(o_path),$(addprefix $(o_dir)/,$2),$(sort $3),$(call o_path,$3),  $(addprefix $(o_dir)/,$2),$(addprefix $(o_dir)/,$3)))
+d1 d2 d3 t1 t1 t3 -> t1|d1 t1|d2 t3|d3 ->
 
 # define rules for copying needed built directories to target's private namespace
 # $1 - the target for which the dirs are needed - must be a simple path relative to virtual $(out_dir), e.g.: bin/test.exe
