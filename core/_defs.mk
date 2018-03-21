@@ -23,6 +23,7 @@
 #  5) clean-build specific variables that may be taken from the environment are in UPPER case and prefixed with 'CBLD_'
 #  6) default values for variables from the environment should be set via operator ?= - to not override values passed to sub-processes
 #  7) ifdef/ifndef should only be used with previously initialized (possibly by empty values) variables
+#  8) variables with suffix defined by regexp .^[a-z]? are reserved for internal use by clean-build
 
 ifeq (,$(MAKE_VERSION))
 $(error MAKE_VERSION is not defined, ensure you are using GNU Make of version 3.81 or later)
@@ -206,14 +207,13 @@ endif
 debug := $(filter DEBUG %_DEBUG,$(CBLD_TARGET))
 
 # 'debug' variable is redefined in "tool" mode and restored in non-"tool" mode
-cb_set_default_vars   := debug:=$(debug)$(newline)
-cb_tool_override_vars := debug:=$(filter DEBUG %_DEBUG,$(CBLD_TOOL_TARGET))$(newline)
+cb_set_default_vars   := debug:=$(debug)
+cb_tool_override_vars := debug:=$(filter DEBUG %_DEBUG,$(CBLD_TOOL_TARGET))
 
 # note: do not trace access to 'debug' variable - it may be used in ifdefs
-# note: assume result of $(call set_global1,debug) will give an empty line at end of expansion
 ifdef cb_checking
-cb_set_default_vars   := $(cb_set_default_vars)$(call set_global1,debug)
-cb_tool_override_vars := $(cb_tool_override_vars)$(call set_global1,debug)
+cb_set_default_vars   := $(cb_set_default_vars)$(newline)$(call set_global1,debug)
+cb_tool_override_vars := $(cb_tool_override_vars)$(newline)$(call set_global1,debug)
 endif
 
 # define 'o_dir' and 'o_path' macros
@@ -579,9 +579,8 @@ cb_tool_mode_access_error = $(error please use 'is_tool_mode' variable to check 
 # use 'tool_mode' only to set value of 'is_tool_mode' variable, forbid reading $(tool_mode) in target makefiles
 # note: do not trace calls to 'tool_mode' after resetting it to $$(cb_tool_mode_access_error) - this is needed to pass the (next)
 #  check if a value of 'tool_mode' is '$(cb_tool_mode_access_error)' (or empty, or non-empty)
-# note: assume result of $(call set_global1,tool_mode) will give an empty line at end of expansion
 $(call define_prepend,cb_tool_mode_adjust,$$(if $$(findstring $$$$(cb_tool_mode_access_error),$$(value tool_mode)),$$(eval \
-  tool_mode:=$$$$(is_tool_mode)))tool_mode=$$$$(cb_tool_mode_access_error)$(newline)$$(call set_global1,tool_mode))
+  tool_mode:=$$$$(is_tool_mode)))tool_mode=$$$$(cb_tool_mode_access_error)$(newline)$$(call set_global1,tool_mode)$(newline))
 
 endif # cb_checking
 
@@ -645,9 +644,8 @@ $(eval define cb_def_head$(newline)$(subst ifneq,$$(cb_check_at_head)$(newline)i
 # 1) check that $(cb_target_makefile) was not already processed (note: check only before the first $(make_continue))
 # 2) add $(cb_target_makefile) to the list of processed target makefiles (note: only before the first $(make_continue) call)
 # 3) remember new value of 'cb_target_makefiles' variable, without tracing calls to it because it's incremented
-# note: assume result of $(call set_global1,cb_target_makefiles) will give an empty line at end of expansion
 $(eval define cb_def_head$(newline)$(subst \
-  else$(newline),else$(newline)$$(if $$(filter $$(cb_target_makefile),$$(cb_target_makefiles)),$$(error \
+  else,else$(newline)$$(if $$(filter $$(cb_target_makefile),$$(cb_target_makefiles)),$$(error \
   makefile $$(cb_target_makefile) was already processed!))cb_target_makefiles+=$$$$(cb_target_makefile)$(newline)$$(call \
   set_global1,cb_target_makefiles),$(value cb_def_head))$(newline)endef)
 
@@ -663,7 +661,6 @@ $(eval define cb_def_head$(newline)$(subst \
   else,else$(newline)$$$$(cb_target_makefile)-:; $$$$(cb_check_targets),$(value cb_def_head))$(newline)endef)
 
 # remember new value of 'cb_make_cont' (without tracing calls to it - it's modified via +=)
-# note: result of $(call set_global1,cb_make_cont) will give an empty line at end of expansion
 $(call define_append,cb_def_head,$(newline)$$(call set_global1,cb_make_cont))
 
 endif # cb_checking
