@@ -133,8 +133,8 @@ xcmd = $(call xargs,$1,$2,$3,$4,$5,$6,$7,$(newline))
 uniq = $(strip $(uniq1))
 uniq1 = $(if $1,$(firstword $1) $(call uniq1,$(filter-out $(firstword $1),$1)))
 
-# check if arguments are not equal
-neq = $(or $(subst x$1,,x$2),$(subst x$2,,x$1))
+# check if arguments are equal
+iseq = $(if $(findstring x$1,x$2),$(findstring x$2,x$1))
 
 # apply multiple pattern substitutions to a text
 # $1 - list of patterns
@@ -359,7 +359,7 @@ cb_protected_vars += $(call set_global,hide unhide_raw unhide_comments unhide hi
   tolower toupper repl09 repl09AZ padto1 padto is_less1 is_less repl090 \
   is_less_float6 is_less_float5 is_less_float4 is_less_float3 is_less_float2 is_less_float1 is_less_float \
   strip_leading0 sort_numbers2 sort_numbers1 sort_numbers reverse \
-  xargs1 xargs xcmd uniq uniq1 neq patsubst_multiple cut_heads cut_tails trim \
+  xargs1 xargs xcmd uniq uniq1 iseq patsubst_multiple cut_heads cut_tails trim \
   normp2 normp1 normp cmn_path1 cmn_path back_prefix relpath2 relpath1 relpath \
   ver_major ver_minor ver_patch ver_compatible1 ver_compatible \
   get_dir split_dirs1 split_dirs mk_dir_deps lazy_simple define_multiline \

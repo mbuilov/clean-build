@@ -393,25 +393,25 @@ $(error test failed!)
 endif
 
 #######################################
-# test 'neq'
+# test 'iseq'
 
-ifneq ("","$(call neq,1 2,1 2)")
+ifeq ("","$(call iseq,1 2,1 2)")
 $(error test failed!)
 endif
 
-ifeq ("","$(call neq,1 2,2 3)")
+ifneq ("","$(call iseq,1 2,2 3)")
 $(error test failed!)
 endif
 
-ifeq ("","$(call neq,1 2,1 2 )")
+ifneq ("","$(call iseq,1 2,1 2 )")
 $(error test failed!)
 endif
 
-ifeq ("","$(call neq,1 2, 1 2)")
+ifneq ("","$(call iseq,1 2, 1 2)")
 $(error test failed!)
 endif
 
-ifeq ("","$(call neq,1 2,1  2)")
+ifneq ("","$(call iseq,1 2,1  2)")
 $(error test failed!)
 endif
 
