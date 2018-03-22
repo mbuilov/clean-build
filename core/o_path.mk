@@ -19,8 +19,11 @@ endif
 
 # check that paths are virtual (i.e. relative and simple): 1/2/3, but not /1/2/3 or 1//2/3 or 1/2/../3
 ifdef cb_checking
-cb_check_virt_paths_r = $(if $(filter-out $(addprefix /,$1),$(abspath $(addprefix /,$1))),$(error \
-  paths are not relative and simple: $(foreach p,$1,$(if $(filter-out /$p,$(abspath /$p)),$p))),$1)
+cb_check_virt_paths   = $(if $(filter-out $(addprefix /,$1),$(abspath $(addprefix /,$1))),$(error \
+  path(s) are not relative and simple: $(foreach p,$1,$(if $(filter-out /$p,$(abspath /$p)),'$p'))))
+cb_check_virt_path    = $(if $(findstring $(space),$1),$(error path must not contain a space: '$1'),$(cb_check_virt_paths))
+cb_check_virt_paths_r = $(cb_check_virt_paths)$1
+cb_check_virt_path_r  = $(cb_check_virt_path)$1
 endif
 
 # form names of private namespace directories for the targets: 1/2/3 4/5 -> 1-2-3 4-5
@@ -68,7 +71,7 @@ tool_base:=
 # $1 - $(tool_base)
 # $2 - $(CBLD_TCPU)
 ifdef cb_checking
-mk_tools_subdir = $(cb_check_virt_paths_r:=/)tool-$2-$(CBLD_TOOL_TARGET)
+mk_tools_subdir = $(cb_check_virt_path_r:=/)tool-$2-$(CBLD_TOOL_TARGET)
 else
 mk_tools_subdir = $(1:=/)tool-$2-$(CBLD_TOOL_TARGET)
 endif
@@ -108,4 +111,5 @@ $(call set_global,priv_prefix)
 
 # protect macros from modifications in target makefiles, allow tracing calls to them
 # note: trace namespace: o_path
-$(call set_global,target_triplet cb_check_virt_paths_r cb_trg_priv o_dir o_path tool_base mk_tools_subdir cb_tools_subdir,o_path)
+$(call set_global,target_triplet cb_check_virt_paths cb_check_virt_path cb_check_virt_paths_r cb_check_virt_path_r \
+  cb_trg_priv o_dir o_path tool_base mk_tools_subdir cb_tools_subdir,o_path)
