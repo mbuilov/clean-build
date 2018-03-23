@@ -9,7 +9,7 @@ target_triplet := $(CBLD_TARGET)-$(CBLD_OS)-$(CBLD_CPU)
 
 # sub-directory of $(cb_build)/$(target_triplet) for the targets private namespaces
 # - where each target will have a private namespace directory, target files are built in this directory,
-#  target prerequisites are copied to this directory prior building the target
+#  target prerequisites are linked to this directory prior building the target
 # note: 'priv_prefix' may be overridden in project configuration makefile or in the command line
 ifdef cb_checking
 priv_prefix := pp
