@@ -7,12 +7,12 @@ ifdef priv_prefix
 # $2 - absolute paths to needed files
 # $3 - absolute paths to destination files
 # note: a rule for creating target $1 may be defined elsewhere, so do not set current makefile info for it here,
-#  instead call 'set_makefile_info_r' for each copied file
+#  instead call 'set_makefile_info_r' for each linked file
 define cb_need_files
 cb_needed_dirs += $(patsubst $(cb_build)/%/,%,$(dir $3))
 $(subst |, | ,$(subst ||,: ,$(subst / ,$(newline),$(join $(join $(3:=||),$(2:=|)),$(dir $3)) )))$1: $3
 $(call set_makefile_info_r,$(call suppress_targets_r,$3)):
-	$$(call suppress,COPY,$$@)$$(call copy_files,$$<,$$@)
+	$$(call suppress,LN,$$@)$$(call create_simlink,$$@,$$<)
 endef
 
 # protect new value of 'cb_needed_dirs', do not trace calls to it because it's incremented
@@ -20,20 +20,20 @@ ifdef cb_checking
 $(call define_append,cb_need_files,$(newline)$(call set_global1,cb_needed_dirs))
 endif
 
-# define rules for copying needed built files to target's private namespace
+# define rules for linking needed built files to target's private namespace
 # $1 - the target for which the files are needed - must be a simple path relative to virtual $(out_dir), e.g.: bin/test.exe
 # $2 - needed files, must be simple paths relative to virtual $(out_dir), e.g.: gen/file1.txt gen/file2.txt
-# note: built files are not deployed to "public" place by default (only via explicit 'deploy_files'), copy them from private places
+# note: built files are not deployed to "public" place by default (only via explicit 'deploy_files'), link them from private places
 ifdef cb_checking
 need_built_files = $(cb_check_virt_path)$(eval $(call cb_need_files,$(o_path),$(call o_path,$2),$(addprefix $(o_dir)/,$2)))
 else
 need_built_files = $(eval $(call cb_need_files,$(o_path),$(call o_path,$2),$(addprefix $(o_dir)/,$2)))
 endif
 
-# define rules for copying needed (previously deployed via 'deploy_files') tool files to target's private namespace
+# define rules for linking needed (previously deployed via 'deploy_files') tool files to target's private namespace
 # $1 - the target for which the files are needed - must be a simple path relative to virtual $(out_dir), e.g.: bin/test.exe
 # $2 - tool files, must be simple paths relative to virtual $(out_dir), e.g.: gen/file1.txt gen/file2.txt
-# note: tool files should be deployed to "public" place, so copy them from there
+# note: tool files should be deployed to "public" place, so link them from there
 ifdef cb_checking
 need_tool_files = $(cb_check_virt_path)$(eval $(call cb_need_files,$(o_path),$(addprefix \
   $(cb_build)/$(cb_tools_subdir)/,$(call cb_check_virt_paths_r,$2)),$(addprefix $(o_dir)/,$2)))
@@ -44,26 +44,33 @@ endif
 
 # ---------- needed directories ---------------
 
-# copy built dirs from tag file's private namespace directory
+# link built dirs from tag file's private namespace directory
 # $1 - needed tag file, e.g.: gen/g1.tag
 # $2 - absolute path to namespace directory of the target for which the dirs are needed, e.g.: /build/pp/bin-test.exe/
 # $3 - needed directories, e.g.: gen/g1
+# $4 - destination directories: $(addprefix $2,$3)
 define cb_need_built_dirs
-$(call set_makefile_info_r,$(call suppress_targets_r,$2$1)): $(o_path) | $(patsubst %/,%,$(dir $2$1)) $(addprefix $2,$3)
-	$$(call cb_gen_dir_copying_rules,$(addprefix $(o_dir)/,$3),$(addprefix $2,$3))
-	$$(call suppress,COPY,$$@)$$(call copy_files,$$<,$$@)
+$(call set_makefile_info_r,$(call suppress_targets_r,$2$1)): $(o_path) | $(patsubst %/,%,$(dir $2$1 $4))
+	$$(call cb_gen_dir_linking_rules,$(addprefix $(o_dir)/,$3),$4)
+	$$(call suppress,LN,$$@)$$(call create_simlink,$$@,$$<)
 endef
 
-# copy built dirs from "public" place
-..................
+# link tool dirs from "public" place
 # $1 - needed tag file, e.g.: gen/g1.tag
 # $2 - absolute path to namespace directory of the target for which the dirs are needed, e.g.: /build/pp/bin-test.exe/
 # $3 - needed directories, e.g.: gen/g1
-define cb_need_built_dirs
-$(call set_makefile_info_r,$(call suppress_targets_r,$2$1)): $(o_path) | $(patsubst %/,%,$(dir $2$1)) $(addprefix $2,$3)
-	$$(call cb_gen_dir_copying_rules,$(addprefix $(o_dir)/,$3),$(addprefix $2,$3))
-	$$(call suppress,COPY,$$@)$$(call copy_files,$$<,$$@)
+# $4 - destination directories: $(addprefix $2,$3)
+define cb_need_tool_dirs
+$(call set_makefile_info_r,$(call suppress_targets_r,$2$1)): $(cb_build)/$(cb_tools_subdir)/$1 | $(patsubst %/,%,$(dir $2$1 $4))
+	$$(call cb_gen_dir_linking_rules,$(addprefix $(cb_build)/$(cb_tools_subdir)/,$3),$4)
+	$$(call suppress,LN,$$@)$$(call create_simlink,$$@,$$<)
 endef
+
+# $1 - needed tag file, e.g.: gen/g1.tag
+# $2 - absolute path to namespace directory of the target for which the dirs are needed, e.g.: /build/pp/bin-test.exe/
+# $3 - needed directories, e.g.: gen/g1
+# $4 - 'cb_need_built_dirs'/'cb_need_tool_dirs'
+cb_need_dirs3 = $(call $4,$1,$2,$3,$(addprefix $2,$3))
 
 # $1 - absolute path to the target for which the dirs are needed,                        e.g.: /build/pp/bin-test.exe/bin/test.exe
 # $2 - absolute path to namespace directory of the target for which the dirs are needed, e.g.: /build/pp/bin-test.exe/
@@ -72,8 +79,8 @@ endef
 # $5 - sorted list of needed tag files, must be simple paths relative to virtual $(out_dir), e.g.: gen/g1.tag gen/gen2/g3.tag
 # $6 - join of tag files and needed directories, e.g.: gen/g1.tag|gen/g1 gen/gen2/g3.tag|gen/gen2/g3
 define cb_need_dirs2
-cb_needed_dirs += $(patsubst $(cb_build)/%/,%,$(dir $(addprefix $2,$5))) $(addprefix $(patsubst $(cb_build)/%,%,$2),$3)
-$(foreach t,$5,$(call $3,$t,$2,$(patsubst $t|%,%,$(filter $t|%,$6)))$(newline))$1: $(addprefix $2,$5)
+cb_needed_dirs += $(patsubst $(cb_build)/%/,%,$(dir $(addprefix $2,$5 $3)))
+$(foreach t,$5,$(call cb_need_dirs3,$t,$2,$(patsubst $t|%,%,$(filter $t|%,$6)),$4)$(newline))$1: $(addprefix $2,$5)
 endef
 
 # protect new value of 'cb_needed_dirs', do not trace calls to it because it's incremented
@@ -94,6 +101,9 @@ endif
 # $1 - the target for which the dirs are needed - must be a simple path relative to virtual $(out_dir), e.g.: bin/test.exe
 # $2 - needed directories, must be simple paths relative to virtual $(out_dir), e.g.: gen/g1 gen/gen2/g3
 # $3 - 'cb_need_built_dirs'/'cb_need_tool_dirs'
+....
+
+
 ifdef cb_checking
 cb_need_dirs = $(eval $(call cb_need_dirs1,$(cb_check_virt_path_r),$(call cb_check_virt_paths_r,$2),$3,$(foreach d,$2,$($d.^d))))
 else
