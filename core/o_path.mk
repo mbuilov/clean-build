@@ -1,3 +1,8 @@
+#----------------------------------------------------------------------------------
+# clean-build - non-recursive cross-platform build system based on GNU Make v3.81
+# Copyright (C) 2015-2018 Michael M. Builov, https://github.com/mbuilov/clean-build
+# Licensed under GPL version 3 or any later version, see COPYING
+#----------------------------------------------------------------------------------
 
 # define macros:
 #  'o_dir'  - for given target virtual path, get absolute path to output directory
@@ -19,17 +24,17 @@ endif
 
 # check that paths are virtual (i.e. relative and simple): 1/2/3, but not /1/2/3 or 1//2/3 or 1/2/../3
 ifdef cb_checking
-cb_check_virt_paths   = $(if $(filter-out $(addprefix /,$1),$(abspath $(addprefix /,$1))),$(error \
+cb_check_vpaths   = $(if $(filter-out $(addprefix /,$1),$(abspath $(addprefix /,$1))),$(error \
   path(s) are not relative and simple: $(foreach p,$1,$(if $(filter-out /$p,$(abspath /$p)),'$p'))))
-cb_check_virt_path    = $(if $(findstring $(space),$1),$(error path must not contain a space: '$1'),$(cb_check_virt_paths))
-cb_check_virt_paths_r = $(cb_check_virt_paths)$1
-cb_check_virt_path_r  = $(cb_check_virt_path)$1
+cb_check_vpath    = $(if $(findstring $(space),$1),$(error path must not contain a space: '$1'),$(cb_check_vpaths))
+cb_check_vpaths_r = $(cb_check_vpaths)$1
+cb_check_vpath_r  = $(cb_check_vpath)$1
 endif
 
 # form names of private namespace directories for the targets: 1/2/3 4/5 -> 1-2-3 4-5
 ifdef priv_prefix
 ifdef cb_checking
-cb_trg_priv = $(subst /,-,$(cb_check_virt_paths_r))
+cb_trg_priv = $(subst /,-,$(cb_check_vpaths_r))
 else
 cb_trg_priv = $(subst /,-,$1)
 endif
@@ -43,7 +48,7 @@ endif
 ifdef priv_prefix
 $(eval o_dir = $$(addprefix $(cb_build)/$(target_triplet)/$(priv_prefix)/,$$(cb_trg_priv)))
 else ifdef cb_checking
-$(eval o_dir = $$(patsubst %,$(cb_build)/$(target_triplet),$$(cb_check_virt_paths_r)))
+$(eval o_dir = $$(patsubst %,$(cb_build)/$(target_triplet),$$(cb_check_vpaths_r)))
 else
 $(eval o_dir = $$(patsubst %,$(cb_build)/$(target_triplet),$$1))
 endif
@@ -53,7 +58,7 @@ endif
 ifdef priv_prefix
 $(eval o_path = $$(addprefix $(cb_build)/$(target_triplet)/$(priv_prefix)/,$$(join $$(addsuffix /,$$(cb_trg_priv)),$$1)))
 else ifdef cb_checking
-$(eval o_path = $$(addprefix $(cb_build)/$(target_triplet)/,$$(cb_check_virt_paths_r)))
+$(eval o_path = $$(addprefix $(cb_build)/$(target_triplet)/,$$(cb_check_vpaths_r)))
 else
 $(eval o_path = $$(addprefix $(cb_build)/$(target_triplet)/,$$1))
 endif
@@ -71,7 +76,7 @@ tool_base:=
 # $1 - $(tool_base)
 # $2 - $(CBLD_TCPU)
 ifdef cb_checking
-mk_tools_subdir = $(cb_check_virt_path_r:=/)tool-$2-$(CBLD_TOOL_TARGET)
+mk_tools_subdir = $(cb_check_vpath_r:=/)tool-$2-$(CBLD_TOOL_TARGET)
 else
 mk_tools_subdir = $(1:=/)tool-$2-$(CBLD_TOOL_TARGET)
 endif
@@ -86,8 +91,8 @@ cb_tool_override_vars := $(cb_tool_override_vars)$(newline)o_dir=$$(addprefix \
   $(cb_build)/$(cb_tools_subdir)/$(priv_prefix)/,$$(join $$(addsuffix /,$$(cb_trg_priv)),$$1))
 else ifdef cb_checking
 cb_tool_override_vars := $(cb_tool_override_vars)$(newline)o_dir=$$(patsubst \
-  %,$(cb_build)/$(cb_tools_subdir),$$(cb_check_virt_paths_r))$(newline)o_path=$$(addprefix \
-  $(cb_build)/$(cb_tools_subdir)/,$$(cb_check_virt_paths_r))
+  %,$(cb_build)/$(cb_tools_subdir),$$(cb_check_vpaths_r))$(newline)o_path=$$(addprefix \
+  $(cb_build)/$(cb_tools_subdir)/,$$(cb_check_vpaths_r))
 else
 cb_tool_override_vars := $(cb_tool_override_vars)$(newline)o_dir=$$(patsubst \
   %,$(cb_build)/$(cb_tools_subdir),$$1)$(newline)o_path=$$(addprefix \
@@ -111,5 +116,5 @@ $(call set_global,priv_prefix)
 
 # protect macros from modifications in target makefiles, allow tracing calls to them
 # note: trace namespace: o_path
-$(call set_global,target_triplet cb_check_virt_paths cb_check_virt_path cb_check_virt_paths_r cb_check_virt_path_r \
+$(call set_global,target_triplet cb_check_vpaths cb_check_vpath cb_check_vpaths_r cb_check_vpath_r \
   cb_trg_priv o_dir o_path tool_base mk_tools_subdir cb_tools_subdir,o_path)
