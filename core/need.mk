@@ -163,7 +163,7 @@ endif
 # $2 - needed directories, must be simple paths relative to virtual $(out_dir), e.g.: gen/g1 gen/gen2/g3
 # note: multiple directories may be associated with a single tag file
 ifdef cb_checking
-need_built_dirs = $(eval $(call o_path,$(cb_check_vpath_r): $(sort $(foreach d,$2,$($d.^d)))))
+need_built_dirs = $(eval $(call o_path,$(cb_check_vpath_r): $(sort $(foreach d,$(call cb_check_vpaths_r,$2),$($d.^d)))))
 else
 need_built_dirs = $(eval $(call o_path,$1: $(sort $(foreach d,$2,$($d.^d)))))
 endif
@@ -173,10 +173,11 @@ endif
 # $2 - needed directories, must be simple paths relative to virtual $(out_dir), e.g.: gen/g1 gen/gen2/g3
 # note: multiple directories may be associated with a single tag file
 ifdef cb_checking
-need_tool_dirs1 = $(o_path): $(addprefix $(cb_build)/$(cb_tools_subdir)/,$(call cb_check_vpaths_r,$(sort $(foreach d,$(2:=/),$($d.^d)))))
+need_tool_dirs1 = $(o_path): $(addprefix $(cb_build)/$(cb_tools_subdir)/,$(call \
+  cb_check_vpaths_r,$(sort $(foreach d,$(call cb_check_vpaths_r,$2),$($d/.^d)))))
 need_tool_dirs = $(cb_check_vpath)$(eval $(need_tool_dirs1))
 else
-need_tool_dirs = $(eval $(o_path): $(sort $(foreach d,$(2:=/),$($d.^d)))))
+need_tool_dirs = $(eval $(o_path): $(sort $(foreach d,$2,$($d/.^d))))
 endif
 
 endif # !priv_prefix
