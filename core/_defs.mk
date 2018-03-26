@@ -281,7 +281,7 @@ need_tools1 = $(call need_tools2,$(get_tools1),
 endif
 
 # get absolute paths to the tools $2 needed by the target $1, for the current 'tool_base' and CBLD_TCPU, copy needed tools
-# 
+#
 need_tools = $(get_tools)
 
 # get absolute path to the tool $2 needed by the targets $1, for the current 'tool_base' and CBLD_TCPU
@@ -481,7 +481,7 @@ cb_target_vars = $(call cb_target_vars1,$1,$(patsubst %/,%,$(sort $(dir $1))))
 
 else # toclean
 
-# just delete (recursively, with all content) generated directories $1 (absolute paths) 
+# just delete (recursively, with all content) generated directories $1 (absolute paths)
 ifndef cb_checking
 need_gen_dirs = $(eval cb_to_clean+=$$1)
 else

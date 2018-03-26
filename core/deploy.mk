@@ -26,6 +26,7 @@ else # cb_checking
 # note: these lists contain simple relative paths like 1/2/3
 cb_tag_files:=
 cb_tag_files_t:=
+# note: 'cb_assoc_dirs' and 'cb_assoc_dirs_t' lists will not contain duplicates
 cb_assoc_dirs:=
 cb_assoc_dirs_t:=
 
@@ -37,24 +38,24 @@ cb_assoc_dirs_t:=
 #  5) must not try to re-associate already associated built directory with another tag file
 #  6) must not try to register tag file as a built directory
 #  7) must not try to build parent directories of other built directories, e.g. cannot build '1/2' if '1/2/3' is built
-#  8) $(cb_dir)/core/all.mk also checks that $(cb_needed_dirs) list do not contains any of $(cb_assoc_dirs) or $(cb_assoc_dirs_t) or
+#  8) $(cb_dir)/core/all.mk also checks that 'cb_needed_dirs' list do not contains any of $(cb_assoc_dirs) or $(cb_assoc_dirs_t) or
 #    their child sub-directories, except directories built in private namespaces of associated tag files
 
 # $1 - tag file   - simple path relative to virtual $(out_dir),  e.g.: gen1/tag1.tag
 # $2 - built dirs - simple paths relative to virtual $(out_dir), e.g.: gen2/dir1 gen3/dir2/dir3
 # $3 - 'cb_tag_files'/'cb_tag_files_t'
 # $4 - 'cb_assoc_dirs'/'cb_assoc_dirs_t'
-# $5 - / or empty
+# $5 - /.^d or .^d
 # note: do not trace access to 'cb_tag_files'/'cb_assoc_dirs' variables - they are incremented via operator +=
-assoc_dirs1 = $(if $(cb_check_vpath_r),$(if $(filter-out undefined,$(origin $1$5.^d)),$(error \
+assoc_dirs1 = $(if $(cb_check_vpath_r),$(if $(filter-out undefined,$(origin $1$5)),$(error \
   conflict: path '$1' is already registered as a name of built directory),$(eval \
   $$3 += $$1$(newline)$(call set_global1,$3))),$(if $2,$(error \
   tag file is empty!)))$(foreach d,$(call cb_check_vpaths_r,$2),$(if \
-  $(filter-out undefined,$(origin $d$5.^d)),$(if $(call iseq,$($d$5.^d),$1),,$(error \
-  built directory '$d' is already associated with another tag file '$($d$5.^d)')),$(if $(filter $d,$($3)),$(error \
+  $(filter-out undefined,$(origin $d$5)),$(if $(call iseq,$($d$5),$1),,$(error \
+  built directory '$d' is already associated with another tag file '$($d$5)')),$(if $(filter $d,$($3)),$(error \
   conflict: tag file '$d' is passed as a path to built directory),$(if $(filter $d/%,$($4)),$(error \
   building parent directory '$d' of other built directories: '$(filter $d/%,$($4))'),$(eval \
-  $$d$$5.^d := $$1$(newline)$$4 += $$d)))))$(call set_global,$4)
+  $$d$$5 := $$1$(newline)$$4 += $$d)))))$(call set_global,$4)
 
 # associate built directories with given tag file (which is updated just after update of the directories) - to be able to create
 #  rules for linking built directories specifying them only by their virtual path, without need for specifying tag file
@@ -62,8 +63,8 @@ assoc_dirs1 = $(if $(cb_check_vpath_r),$(if $(filter-out undefined,$(origin $1$5
 # $2 - built dirs - simple paths relative to virtual $(out_dir), e.g.: gen2/dir1 gen3/dir2/dir3
 # note: it is assumed that directories $2 are built in private namespace of the tag file $1
 assoc_dirs = $(if $(is_tool_mode),$(call \
-  assoc_dirs1,$1,$2,cb_tag_files_t,cb_assoc_dirs_t,/),$(call \
-  assoc_dirs1,$1,$2,cb_tag_files,cb_assoc_dirs,))
+  assoc_dirs1,$1,$2,cb_tag_files_t,cb_assoc_dirs_t,/.^d),$(call \
+  assoc_dirs1,$1,$2,cb_tag_files,cb_assoc_dirs,.^d))
 
 endif # cb_checking
 
@@ -72,7 +73,7 @@ ifdef priv_prefix
 # ---------- deploying files ------------------
 
 # deploy built files - link them from private modules build directories to "public" place
-# $1 - built files,    e.g.: /build/tt/pp/bin-tool.exe/bin/tool.exe /build/tt/pp/gen-tool.cfg/gen/tool.cfg
+# $1 - built files,    e.g.: /build/p/tt/bin-tool.exe@-/tt/bin/tool.exe /build/p/tt/gen-tool.cfg@-/tt/gen/tool.cfg
 # $2 - deployed paths, e.g.: /build/tt/bin/tool.exe /build/tt/gen/tool.cfg
 # note: assume deployed files are needed _only_ by $(cb_target_makefile)-, so:
 #  - set makefile info (target-specific variables) by 'set_makefile_info_r' macro only for the $(cb_target_makefile)-,
@@ -86,7 +87,7 @@ $(call suppress_targets_r,$2):
 endef
 
 # deploy built tools - link them from private modules build directories to "public" place
-# $1 - built files,    e.g.: /build/tt/pp/bin-tool.exe/bin/tool.exe /build/tt/pp/gen-tool.cfg/gen/tool.cfg
+# $1 - built files,    e.g.: /build/p/tt/bin-tool.exe@-/tt/bin/tool.exe /build/p/tt/gen-tool.cfg@-/tt/gen/tool.cfg
 # $2 - deployed paths, e.g.: /build/tt/bin/tool.exe /build/tt/gen/tool.cfg
 # note: deployed tools are may be required for building other targets, so:
 #  - set makefile info (target-specific variables) by 'set_makefile_info_r' macro for each deployed tool
@@ -98,7 +99,7 @@ $(call set_makefile_info_r,$(call suppress_targets_r,$2)):
 endef
 
 # $1 - deployed files - simple paths relative to virtual $(out_dir), e.g.: bin/tool.exe gen/tool.cfg
-# $2 - built files, e.g.: /build/tt/pp/bin-tool.exe/bin/tool.exe /build/tt/pp/gen-tool.cfg/gen/tool.cfg
+# $2 - built files, e.g.: /build/p/tt/bin-tool.exe@-/tt/bin/tool.exe /build/p/tt/gen-tool.cfg@-/tt/gen/tool.cfg
 deploy_files1 = $(if $(is_tool_mode),$(call \
   cb_deploy_tool_files,$2,$(addprefix $(cb_build)/$(cb_tools_subdir)/,$1)),$(call \
   cb_deploy_files,$2,$(addprefix $(cb_build)/$(target_triplet)/,$1)))
@@ -124,9 +125,9 @@ cb_gen_dir_linking_rules = $(subst $$(space), ,$(subst $(space),$(newline),$(joi
   $(patsubst %,$$(call$$(space)suppress_more,LN,%),$2),$(patsubst %,$$(call$$(space)simlink_dir,%),$(join $(2:=$(comma)),$1)))))
 
 # deploy built directories - link them from tag file's private build directory to "public" place
-# $1 - built tag file, e.g.: /build/tt/pp/gen1-tag1.tag/gen1/tag1.tag
+# $1 - built tag file, e.g.: /build/p/tt/gen1-tag1.tag@-/tt/gen1/tag1.tag
 # $2 - deployed path,  e.g.: /build/tt/gen1/tag1.tag
-# $3 - built dirs,     e.g.: /build/tt/pp/gen1-tag1.tag/gen2/dir1 /build/tt/pp/gen1-tag1.tag/gen3/dir2/dir3
+# $3 - built dirs,     e.g.: /build/p/tt/gen1-tag1.tag@-/tt/gen2/dir1 /build/p/tt/gen1-tag1.tag@-/tt/gen3/dir2/dir3
 # $4 - deployed dirs,  e.g.: /build/tt/gen2/dir1 /build/tt/gen3/dir2/dir3
 define cb_deploy_dirs
 cb_needed_dirs += $(patsubst $(cb_build)/%/,%,$(dir $2 $4))

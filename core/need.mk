@@ -49,13 +49,120 @@ endif
 # note: tool files should be deployed to "public" place, so link them from there
 ifdef cb_checking
 need_tool_files = $(cb_check_vpath)$(eval $(call cb_need_files,$(o_path),$(addprefix \
-  $(cb_build)/$(cb_tools_subdir)/,$(call cb_check_vpaths_r,$2)),$(addprefix $(o_dir)/,$2)))
+  $(cb_build)/$(cb_tools_subdir)/,$(call cb_check_vpaths_r,$2)),$(addprefix $(dir $(o_dir))$(cb_tools_subdir)/,$2)))
 else
 need_tool_files = $(eval $(call cb_need_files,$(o_path),$(addprefix \
-  $(cb_build)/$(cb_tools_subdir)/,$2),$(addprefix $(o_dir)/,$2)))
+  $(cb_build)/$(cb_tools_subdir)/,$2),$(addprefix $(dir $(o_dir))$(cb_tools_subdir)/,$2)))
 endif
 
 # ---------- needed directories ---------------
+
+# link built dirs from tag file's private namespace directory
+# $1 - needed tag file, e.g.: gen/g1.tag
+# $2 - absolute path to namespace directory of the target for which the dirs are needed, e.g.: /build/p/tt/bin-test.exe@-/tt/
+# $3 - needed directories, e.g.: gen/g1
+# $4 - destination directories: $(addprefix $2,$3)
+define cb_need_built_dirs
+$(call set_makefile_info_r,$(call suppress_targets_r,$2$1)): $(o_path) | $(patsubst %/,%,$(dir $2$1 $4))
+	$$(call cb_gen_dir_linking_rules,$(addprefix $(o_dir)/,$3),$4)
+	$$(call suppress,LN,$$@)$$(call create_simlink,$$@,$$<)
+endef
+
+# link tool dirs from "public" place
+# $1 - needed tag file, e.g.: gen/g1.tag
+# $2 - absolute path to namespace directory of the target for which the dirs are needed, e.g.: /build/p/tt/bin-test.exe@-/ts/
+# $3 - needed directories, e.g.: gen/g1
+# $4 - destination directories: $(addprefix $2,$3)
+define cb_need_tool_dirs
+$(call set_makefile_info_r,$(call suppress_targets_r,$2$1)): $(cb_build)/$(cb_tools_subdir)/$1 | $(patsubst %/,%,$(dir $2$1 $4))
+	$$(call cb_gen_dir_linking_rules,$(addprefix $(cb_build)/$(cb_tools_subdir)/,$3),$4)
+	$$(call suppress,LN,$$@)$$(call create_simlink,$$@,$$<)
+endef
+
+# $1 - needed tag file, e.g.: gen/g1.tag
+# $2 - absolute path to namespace directory of the target for which the dirs are needed, e.g.: /build/p/tt/bin-test.exe@-/tt/
+#   or absolute path to namespace directory of the target for which the dirs are needed, e.g.: /build/p/tt/bin-test.exe@-/ts/
+# $3 - needed directories, e.g.: gen/g1
+# $4 - 'cb_need_built_dirs' or 'cb_need_tool_dirs'
+cb_need_dirs3 = $(call $4,$1,$2,$3,$(addprefix $2,$3))
+
+# $1 - absolute path to the target for which the dirs are needed,                        e.g.: /build/p/tt/bin-test.exe@-/tt/bin/test.exe
+# $2 - absolute path to namespace directory of the target for which the dirs are needed, e.g.: /build/p/tt/bin-test.exe@-/tt/
+#   or absolute path to namespace directory of the target for which the dirs are needed, e.g.: /build/p/tt/bin-test.exe@-/ts/
+# $3 - needed directories, must be simple paths relative to virtual $(out_dir), e.g.: gen/g1 gen/gen2/g3
+# $4 - sorted list of needed tag files, must be simple paths relative to virtual $(out_dir), e.g.: gen/g1.tag gen/gen2/g3.tag
+# $5 - join of tag files and needed directories, e.g.: gen/g1.tag|gen/g1 gen/gen2/g3.tag|gen/gen2/g3
+# $6 - 'cb_need_built_dirs' or 'cb_need_tool_dirs'
+define cb_need_dirs2
+cb_needed_dirs += $(patsubst $(cb_build)/%/,%,$(dir $(addprefix $2,$4 $3)))
+$(foreach t,$4,$(call cb_need_dirs3,$t,$2,$(patsubst $t|%,%,$(filter $t|%,$5)),$6)$(newline))$1: $(addprefix $2,$4)
+endef
+
+# protect new value of 'cb_needed_dirs', do not trace calls to it because it's incremented
+ifdef cb_checking
+$(call define_append,cb_need_dirs2,$(newline)$(call set_global1,cb_needed_dirs))
+endif
+
+# $1 - the target for which the dirs are needed - must be a simple path relative to virtual $(out_dir), e.g.: bin/test.exe
+# $2 - needed directories, must be simple paths relative to virtual $(out_dir), e.g.: gen/g1 gen/gen2/g3
+# $3 - needed tag files, must be simple paths relative to virtual $(out_dir), e.g.: gen/g1.tag gen/gen2/g3.tag
+ifdef cb_checking
+cb_need_built_dirs1 = $(call cb_need_dirs2,$(o_path),$(o_dir)/,$2,$(call cb_check_vpaths_r,$(sort $3)),$(join $(3:=|),$2),cb_need_built_dirs)
+else
+cb_need_built_dirs1 = $(call cb_need_dirs2,$(o_path),$(o_dir)/,$2,$(sort $3),$(join $(3:=|),$2),cb_need_built_dirs)
+endif
+
+# $1 - the target for which the dirs are needed - must be a simple path relative to virtual $(out_dir), e.g.: bin/test.exe
+# $2 - needed directories, must be simple paths relative to virtual $(out_dir), e.g.: gen/g1 gen/gen2/g3
+ifdef cb_checking
+cb_need_built_dirs = $(eval $(call cb_need_built_dirs1,$(cb_check_vpath_r),$(call cb_check_vpaths_r,$2),$(foreach d,$2,$($d.^d))))
+else
+cb_need_built_dirs = $(eval $(call cb_need_built_dirs1,$1,$2,$(foreach d,$2,$($d.^d))))
+endif
+
+# define rules for linking needed (previously associated via 'assoc_dirs'/'deploy_dirs') built directories to target's private namespace
+# $1 - the target for which the dirs are needed - must be a simple path relative to virtual $(out_dir), e.g.: bin/test.exe
+# $2 - needed directories, must be simple paths relative to virtual $(out_dir), e.g.: gen/g1 gen/gen2/g3
+# note: built directories are not deployed to "public" place by default (only via explicit 'deploy_dirs'), link them from private places
+# note: multiple directories may be associated with a single tag file
+need_built_dirs = $(call cb_need_built_dirs,$1,$2)
+
+
+
+
+# $1 - the target for which the dirs are needed - must be a simple path relative to virtual $(out_dir), e.g.: bin/test.exe
+# $2 - needed directories, must be simple paths relative to virtual $(out_dir), e.g.: gen/g1 gen/gen2/g3
+# $3 - needed tag files, must be simple paths relative to virtual $(out_dir), e.g.: gen/g1.tag gen/gen2/g3.tag
+ifdef cb_checking
+cb_need_tool_dirs1 = $(call cb_need_tool_dirs2,$(o_path),$(dir $(o_dir))$(cb_tools_subdir)/,$2,$(call cb_check_vpaths_r,$(sort $3)),$(join $(3:=|),$2))
+else
+cb_need_tool_dirs1 = $(call cb_need_tool_dirs2,$(o_path),$(dir $(o_dir))$(cb_tools_subdir)/,$2,$(sort $3),$(join $(3:=|),$2))
+endif
+
+# $1 - the target for which the dirs are needed - must be a simple path relative to virtual $(out_dir), e.g.: bin/test.exe
+# $2 - needed directories, must be simple paths relative to virtual $(out_dir), e.g.: gen/g1 gen/gen2/g3
+ifdef cb_checking
+cb_need_tool_dirs = $(eval $(call cb_need_tool_dirs1,$(cb_check_vpath_r),$(call cb_check_vpaths_r,$2),$(foreach d,$3,$($d/.^d))))
+else
+cb_need_tool_dirs = $(eval $(call cb_need_tool_dirs1,$1,$2,$(foreach d,$3,$($d/.^d))))
+endif
+
+# define rules for linking needed (previously deployed via 'deploy_dirs') tool directories to target's private namespace
+# $1 - the target for which the dirs are needed - must be a simple path relative to virtual $(out_dir), e.g.: bin/test.exe
+# $2 - needed directories, must be simple paths relative to virtual $(out_dir), e.g.: gen/g1 gen/gen2/g3
+# note: tool directories should be deployed to "public" place, so link them from there
+# note: multiple directories may be associated with a single tag file
+need_tool_dirs = $(call cb_need_tool_dirs,$1,$2)
+
+
+
+
+
+
+
+
+
+
 
 # link built dirs from tag file's private namespace directory
 # $1 - needed tag file, e.g.: gen/g1.tag
