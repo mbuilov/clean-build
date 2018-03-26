@@ -13,11 +13,39 @@ $(error Unsupported goal(s): $(filter-out $(build_system_goals),$(MAKECMDGOALS))
 ,)Please select goal(s) from the list of supported ones: $(build_system_goals))
 endif
 
+# $(cb_needed_dirs) list likely contains duplicates - remove them by sorting the list
+cb_needed_dirs := $(sort $(cb_needed_dirs))
+
+ifdef priv_prefix
+ifdef cb_checking
+# check that $(cb_needed_dirs) list do not contains any of $(cb_assoc_dirs) or $(cb_assoc_dirs_t) or their child sub-directories,
+#  except directories built in private namespaces of associated tag files 
+# note: $(cb_needed_dirs) list contains $(cb_build)-relative simple paths, like:
+#  $(target_triplet)/m $(target_triplet)/$(priv_prefix)/a $(cb_tools_subdir)/n $(cb_tools_subdir)/$(priv_prefix)/b and so on
+# note: 'cb_assoc_dirs' and 'cb_assoc_dirs_t' lists contain simple relative paths like 1/2/3
+cb_needed_dirs_ck := $(patsubst $(target_triplet)/%,%,$(filter $(target_triplet)/%,$(cb_needed_dirs)))
+ifneq (,$(foreach d,$(cb_assoc_dirs),$(foreach c,$(filter %/$d,$(cb_needed_dirs_ck)),
+
+/build/tt/pp/1-2-3/dir1
+/build/tt/pp/3-4-5/dir1 - no no no
+
+ifneq (,$(filter $(cb_assoc_dirs:=/%),$(patsubst $(target_triplet)/%,%,$(filter $(target_triplet)/%,$(cb_needed_dirs)))))
+$(error conflict: creating deployed or linked directories or their child sub-directories: $(filter \
+  $(cb_assoc_dirs) $(cb_assoc_dirs:=/%),$(patsubst $(target_triplet)/%,%,$(filter $(target_triplet)/%,$(cb_needed_dirs)))))
+
+cb_needed_dirs1 := $(patsubst $(target_triplet)/%,%,$(patsubst $(cb_tools_subdir)/%,%,$(filter-out \
+  $(target_triplet) $(cb_tools_subdir),$(cb_needed_dirs))))
+
+ifneq (,$(filter $(cb_assoc_dirs) $(cb_assoc_dirs_t) $(cb_assoc_dirs:=/%) $(cb_assoc_dirs_t:=/%),$(patsubst $(target_triplet)$(cb_needed_dirs)
+
+cb_needed_dirs := $(notdir $(cb_build)) $(addprefix $(notdir $(cb_build))/,$(filter-out $(cb_build)/,$(sort $(cb_needed_dirs))))
+
+cb_needed_dirs := $(call split_dirs,$(cb_needed_dirs:$(dir $(cb_build))%=%))
+
 # define rules for creating needed directories (absolute paths)
 # note: to avoid races when creating directories, create parent directories before child sub-directories,
 #  for example, if need to create a/b/c1 and a/b/c2 - create a/b before creating a/b/c1 and a/b/c2 in parallel
-# note: assume all directories are created under the $(cb_build) directory
-cb_needed_dirs := $(call split_dirs,$(cb_needed_dirs:$(dir $(cb_build))%=%))
+# note: assume all directories are created under the $(cb_build) base directory
 
 # define order-only dependencies for the directories
 $(eval $(call mk_dir_deps,$(cb_needed_dirs),$(dir $(cb_build))))

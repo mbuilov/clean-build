@@ -99,7 +99,7 @@ $(error CBLD_BUILD='$(cb_build)', path to directory of built artifacts must not 
 endif
 
 # needed build directories - clean-build will define rules to create them in $(cb_dir)/core/all.mk
-# note: 'cb_needed_dirs' contains $(cb_build)-relative simple paths, like a/b, 1/2/3 and so on
+# note: 'cb_needed_dirs' contains $(cb_build)-relative simple paths, like $(target_triplet)/a/b, $(cb_tools_subdir)/1/2/3 and so on
 # note: 'cb_needed_dirs' list is never cleared, only appended
 cb_needed_dirs:=
 
@@ -222,25 +222,9 @@ include $(cb_dir)/o_path.mk
 # define 'assoc_dirs', 'deploy_files' and 'deploy_dirs' macros
 include $(cb_dir)/deploy.mk
 
-# define 'need_built_files', 'need_built_dirs', 'need_tool_files', 'need_tool_dirs' and 'need_tool_exe' macros
+# define 'need_built_files', 'need_built_dirs', 'need_tool_files', 'need_tool_dirs', 'need_tool_execs' and 'get_tool_execs' macros
 include $(cb_dir)/need.mk
 
-
-
-
-
-
-$(call need_built_files,bin/1.txt,gen/2.txt gen/3.txt)
-$(call o_dir,bin/1.txt)/gen/2.txt
-
-$(call need_built_dirs,bin/1.txt,gen/gen_x gen/gen_y)
-$(call o_dir,bin/1.txt)/gen/gen_x	
-
-$(call o_path,bin/1.txt): $(call need_built_files,bin/1.txt,gen/2.txt gen/3.txt)
-
-
-# get absolute paths to the tools $2 needed by the target $1
-get_tools = 
 
 
 
