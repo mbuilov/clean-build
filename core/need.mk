@@ -10,6 +10,7 @@
 #  'need_built_dirs'  - define rules for linking associated/deployed built directories to target's private namespace
 #  'need_tool_dirs'   - define rules for linking deployed tool directories to target's private namespace
 #  'need_tool_execs'  - define rules for linking built tool executables to target's private namespace
+#  'get_tool_execs'   - return absolute paths to tool executables for given target
 
 ifdef priv_prefix
 
@@ -58,7 +59,7 @@ endif
 
 # link built dirs from tag file's private namespace directory
 # $1 - needed tag file, e.g.: gen/g1.tag
-# $2 - absolute path to namespace directory of the target for which the dirs are needed, e.g.: /build/pp/bin-test.exe/
+# $2 - absolute path to namespace directory of the target for which the dirs are needed, e.g.: /build/tt/pp/bin-test.exe/
 # $3 - needed directories, e.g.: gen/g1
 # $4 - destination directories: $(addprefix $2,$3)
 define cb_need_built_dirs
@@ -69,7 +70,7 @@ endef
 
 # link tool dirs from "public" place
 # $1 - needed tag file, e.g.: gen/g1.tag
-# $2 - absolute path to namespace directory of the target for which the dirs are needed, e.g.: /build/pp/bin-test.exe/
+# $2 - absolute path to namespace directory of the target for which the dirs are needed, e.g.: /build/tt/pp/bin-test.exe/
 # $3 - needed directories, e.g.: gen/g1
 # $4 - destination directories: $(addprefix $2,$3)
 define cb_need_tool_dirs
@@ -79,13 +80,13 @@ $(call set_makefile_info_r,$(call suppress_targets_r,$2$1)): $(cb_build)/$(cb_to
 endef
 
 # $1 - needed tag file, e.g.: gen/g1.tag
-# $2 - absolute path to namespace directory of the target for which the dirs are needed, e.g.: /build/pp/bin-test.exe/
+# $2 - absolute path to namespace directory of the target for which the dirs are needed, e.g.: /build/tt/pp/bin-test.exe/
 # $3 - needed directories, e.g.: gen/g1
 # $4 - 'cb_need_built_dirs'/'cb_need_tool_dirs'
 cb_need_dirs3 = $(call $4,$1,$2,$3,$(addprefix $2,$3))
 
-# $1 - absolute path to the target for which the dirs are needed,                        e.g.: /build/pp/bin-test.exe/bin/test.exe
-# $2 - absolute path to namespace directory of the target for which the dirs are needed, e.g.: /build/pp/bin-test.exe/
+# $1 - absolute path to the target for which the dirs are needed,                        e.g.: /build/tt/pp/bin-test.exe/bin/test.exe
+# $2 - absolute path to namespace directory of the target for which the dirs are needed, e.g.: /build/tt/pp/bin-test.exe/
 # $3 - needed directories, must be simple paths relative to virtual $(out_dir), e.g.: gen/g1 gen/gen2/g3
 # $4 - sorted list of needed tag files, must be simple paths relative to virtual $(out_dir), e.g.: gen/g1.tag gen/gen2/g3.tag
 # $5 - join of tag files and needed directories, e.g.: gen/g1.tag|gen/g1 gen/gen2/g3.tag|gen/gen2/g3
@@ -154,7 +155,7 @@ ifdef cb_checking
 need_tool_files1 = $(o_path): $(addprefix $(cb_build)/$(cb_tools_subdir)/,$(call cb_check_vpaths_r,$2))
 need_tool_files = $(cb_check_vpath)$(eval $(need_tool_files1))
 else
-need_tool_files = $(eval $(o_path): $(addprefix $(cb_build)/$(cb_tools_subdir)/,$2))
+$(eval need_tool_files = $$(eval $$(o_path): $$(addprefix $(cb_build)/$(cb_tools_subdir)/,$$2)))
 endif
 
 # define dependency on tag files of needed (previously associated via 'assoc_dirs'/'deploy_dirs') built directories for the target
@@ -188,6 +189,21 @@ tool_exe_suffix := $(if $(filter WIN% CYGWIN% MINGW%,$(CBLD_OS)),.exe)
 # $2 - tool executable files, must be simple paths relative to virtual $(out_dir) _without_ extension, e.g.: bin/tool1 bin/tool2
 need_tool_execs = $(call need_tool_files,$1,$(addsuffix $(tool_exe_suffix),$2))
 
+# return absolute paths to tool executables needed for given target
+# $1 - the target for which the tools are needed - must be a simple path relative to virtual $(out_dir), e.g.: gen/file.txt
+# $2 - tool executable files, must be simple paths relative to virtual $(out_dir) _without_ extension, e.g.: bin/tool1 bin/tool2
+ifdef priv_prefix
+ifdef cb_checking
+get_tool_execs = $(cb_check_vpath)$(patsubst %,$(o_dir)/%$(tool_exe_suffix),$(call cb_check_vpaths_r,$2))
+else
+get_tool_execs = $(patsubst %,$(o_dir)/%$(tool_exe_suffix),$2)
+endif
+else ifdef cb_checking
+get_tool_execs = $(cb_check_vpath)$(patsubst %,$(cb_build)/$(cb_tools_subdir)/%$(tool_exe_suffix),$(call cb_check_vpaths_r,$2))
+else
+$(eval get_tool_execs = $$(patsubst %,$(cb_build)/$(cb_tools_subdir)/%$(tool_exe_suffix),$$2))
+endif
+
 # $1 - the target for which the files are needed - must be a simple path relative to virtual $(out_dir), e.g.: bin/test.exe
 need_built_files_r = $(need_built_files)$1
 need_tool_files_r  = $(need_tool_files)$1
@@ -198,11 +214,11 @@ need_tool_execs_r  = $(need_tool_execs)$1
 # makefile parsing first phase variables
 # note: 'o_dir' and 'o_path' change their values in "tool" mode
 cb_first_phase_vars += cb_need_files need_built_files need_tool_files cb_need_built_dirs cb_need_tool_dirs cb_need_dirs3 cb_need_dirs2 \
-  cb_need_dirs1 cb_need_dirs need_built_dirs need_tool_dirs need_tool_files1 need_tool_dirs1 need_tool_execs need_built_files_r \
-  need_tool_files_r need_built_dirs_r need_tool_dirs_r need_tool_execs_r
+  cb_need_dirs1 cb_need_dirs need_built_dirs need_tool_dirs need_tool_files1 need_tool_dirs1 need_tool_execs get_tool_execs \
+  need_built_files_r need_tool_files_r need_built_dirs_r need_tool_dirs_r need_tool_execs_r
 
 # protect macros from modifications in target makefiles, allow tracing calls to them
 # note: trace namespace: need
 $(call set_global,cb_need_files need_built_files need_tool_files cb_need_built_dirs cb_need_tool_dirs cb_need_dirs3 cb_need_dirs2 \
   cb_need_dirs1 cb_need_dirs need_built_dirs need_tool_dirs need_tool_files1 need_tool_dirs1 tool_exe_suffix need_tool_execs \
-  need_built_files_r need_tool_files_r need_built_dirs_r need_tool_dirs_r need_tool_execs_r,need)
+  get_tool_execs need_built_files_r need_tool_files_r need_built_dirs_r need_tool_dirs_r need_tool_execs_r,need)
