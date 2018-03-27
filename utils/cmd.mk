@@ -236,6 +236,14 @@ move_files1 = $(if $6,$(quiet))for %%f in ($1) do $(MOVE) /y %%f $2$(suppress_mo
 move_files  = $(if $(findstring $(space),$1),$(call xcmd,move_files1,$(ospath),$(CBLD_MAX_PATH_ARGS),$(call \
   ospath,$2),,,),$(MOVE) /y $(call ospath,$1 $2)$(suppress_move_output))
 
+# create symbolic link(s) to file(s) (long list):
+# - to file(s) $1 in directory $2 (paths to files $1 _must_ not contain spaces, but path to directory $2 may contain spaces) or
+# - to file $1 by simlink $2      (path to file $1 _must_ not contain spaces, but path to simlink $2 may contain spaces)
+# note: if path to directory/file $2 contains a space, use 'ifaddq' to add double-quotes: "1 2/3 4"
+# note: may be use mklink command - starting with Windows Vista, but mklink requires special privileges, see:
+#  https://superuser.com/questions/124679/how-do-i-create-a-link-in-windows-7-home-premium-as-a-regular-user/125981#125981
+simlink_files = $(copy_files)
+
 # update modification date of given file(s) or create file(s) if they do not exist
 # note: to support long list, the paths _must_ not contain spaces
 # note: $6 - empty on first call, $(newline) on next calls
@@ -256,21 +264,25 @@ touch_files  = $(call xcmd,touch_files1,$(ospath),$(CBLD_MAX_PATH_ARGS),,,,)
 # note: if path to directory $1 contains a space, use 'ifaddq' to add double-quotes: "1 2/3 4"
 create_dir = $(MD) $(ospath)
 
-# copy recursively contents of directory $1 (path may contain spaces) to directory $2 (path may contain spaces)
-# note: destination directory $2 must exist
+# copy recursively directory $1 (path may contain spaces) to parent directory $2 (path may contain spaces)
+# note: copy of the source directory $1 is created under the parent directory $2, which must exist
 # note: if path to directory $1 or $2 contains a space, use 'ifaddq' to add double-quotes: "1 2/3 4"
 # note: send error messages to stderr
-# NOTE: to avoid races, there must be no other commands running in parallel creating sub-directories of destination directory $2
-copy_all = $(call copy_all1,$(ospath),$(call ospath,$2),$(subst "\%%y,\%%y",$(call ospath,$2)\%%y),$(words $(filter /,$(subst /, / ,$1))))
+# NOTE: to avoid races, there must be no other commands running in parallel and creating child sub-directories of new sub-directories
+#  created while the copying by this command
+copy_dir = $(call copy_dir1,$(ospath),$(call ospath,$2),$(subst "\%%y,\%%y",$(call ospath,$2)\$(notdir $1)\%%y),$(words \
+  $(filter /,$(subst /, / ,$1))))
 
 # $1 - "C:\1\2\3 4"
 # $2 - "C:\1\2\5\6 7"
-# $3 - "C:\1\2\5\6 7\%%y"
+# $3 - "C:\1\2\5\6 7\3 4\%%y"
 # $4 - 3
-copy_all1 = if not exist $2 ((>&2 echo destination path does not exist: $2) & $(CMD) /c $(EXIT) 2) else \
-  2>&1 (for /r $1 %%f in (.) do @for /f "tokens=$4* delims=$(backslash)" %%x in ("%%~pnf") do \
+copy_dir1 = 2>&1 (for /r $1 %%f in (.) do @for /f "tokens=$4* delims=$(backslash)" %%x in ("%%~pnf") do \
   @^(if not exist $3 $(MD) $3^) & (>NUL 2>&1 $(DIR) /b /a-d "%%~dpnf" && >$(NUL) $(COPY) /y /b "%%~dpnf\*" $3)) | \
   >&2 $(FIND) /V"" & if errorlevel 1 ($(CMD) /c) else $(CMD) /c $(EXIT) 1
+
+2>&1 (for /r "C:\User\agent\ttt" %%f in (.) do for /f "tokens=2* delims=\" %%x in ("%%~pnf") do ^(if not exist "C:\User\agent\rrr\%%y" mkdir "C:\User\agent\rrr\%%y"^) & (>NUL 2>&1 dir /b /a-d "%%~dpnf" && >NUL copy /y /b "%%~dpnf\*" "C:\User\agent\rrr\%%y")) | >&2 find /V"" & if errorlevel 1 (cmd /c) else cmd /c exit 1
+
 
 # compare content of two text files: $1 and $2
 # return an error code if they are differ
@@ -429,8 +441,8 @@ $(call set_global,CBLD_DONT_FIX_MAKE_SHELL SHELL CBLD_DONT_FIX_ENV_PATH CBLD_MAX
 # note: trace namespace: utils
 $(call set_global,print_env=project_exported_vars shell_escape shell_args_to_unix delete_files delete_dirs try_delete_dirs \
   delete_files_in2 delete_files_in1 delete_files_in del_files_or_dirs1 del_files_or_dirs filter_copy_output \
-  suppress_copy_output suppress_move_output copy_files1 copy_files move_files1 move_files touch_files1 touch_files \
-  copy_files_in create_dir copy_all copy_all1 compare_files cat_file unquoted_escape print_short_options write_options1 \
+  suppress_copy_output suppress_move_output copy_files1 copy_files move_files1 move_files simlink_files touch_files1 touch_files \
+  copy_files_in create_dir copy_dir copy_dir1 compare_files cat_file unquoted_escape print_short_options write_options1 \
   tokenize_options write_options print_short_line print_some_lines write_lines1 write_lines execute_in execute_in_info \
   del_on_fail install_dir install_files filter_output,utils)
 
