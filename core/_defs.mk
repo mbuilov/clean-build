@@ -98,6 +98,10 @@ ifneq (,$(findstring $(space),$(cb_build)))
 $(error CBLD_BUILD='$(cb_build)', path to directory of built artifacts must not contain spaces)
 endif
 
+ifeq (,$(notdir $(cb_build)))
+$(error CBLD_BUILD='$(cb_build)', path to directory of built artifacts cannot be root)
+endif
+
 # needed build directories - clean-build will define rules to create them in $(cb_dir)/core/all.mk
 # note: 'cb_needed_dirs' contains $(cb_build)-relative simple paths, like $(target_triplet)/a/b, $(cb_tools_subdir)/1/2/3 and so on
 # note: 'cb_needed_dirs' list is never cleared, only appended
