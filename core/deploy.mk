@@ -68,7 +68,7 @@ assoc_dirs = $(if $(is_tool_mode),$(call \
 
 endif # cb_checking
 
-ifdef priv_prefix
+ifdef cb_namespaces
 
 # ---------- deploying files ------------------
 
@@ -141,7 +141,7 @@ endef
 # $2 - deployed dirs     - simple paths relative to virtual $(out_dir), e.g.: gen2/dir1 gen3/dir2/dir3
 # $3 - destination directory: $(cb_build)/$(if $(is_tool_mode),$(cb_tools_subdir),$(target_triplet))
 # note: it is assumed that directories $2 are built in private namespace of the tag file $1
-deploy_dirs1 = $(call cb_deploy_dirs,$(o_path),$(addprefix $3/,$1),$(addprefix $(o_dir)/,$2),$(addprefix $3/,$2))
+deploy_dirs1 = $(call cb_deploy_dirs,$(o_path),$3/$1,$(addprefix $(o_dir)/,$2),$(addprefix $3/,$2))
 
 # protect new value of 'cb_needed_dirs', do not trace calls to it because it's incremented
 ifdef cb_checking
@@ -154,7 +154,7 @@ endif
 # $2 - deployed dirs     - simple paths relative to virtual $(out_dir), e.g.: gen2/dir1 gen3/dir2/dir3
 deploy_dirs = $(assoc_dirs)$(eval $(call deploy_dirs1,$1,$2,$(cb_build)/$(if $(is_tool_mode),$(cb_tools_subdir),$(target_triplet))))
 
-else # !priv_prefix
+else # !cb_namespaces
 
 # files are built directly in "public" place, no need to link there them from private modules build directories
 ifndef cb_checking
@@ -171,7 +171,7 @@ endif
 # $2 - deployed dirs     - simple paths relative to virtual $(out_dir), e.g.: gen2/dir1 gen3/dir2/dir3
 deploy_dirs = $(assoc_dirs)
 
-endif # !priv_prefix
+endif # !cb_namespaces
 
 # $1 - tag file   - simple path relative to virtual $(out_dir),  e.g.: gen1/tag1.tag
 # $2 - built dirs - simple paths relative to virtual $(out_dir), e.g.: gen2/dir1 gen3/dir2/dir3
