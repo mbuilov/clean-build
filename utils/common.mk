@@ -18,8 +18,10 @@ CBLD_TOUCH_COLOR ?= [36m
 CBLD_CAT_COLOR   ?= [32m
 CBLD_CMP_COLOR   ?= [32m
 CBLD_GEN_COLOR   ?= [1;32m
+CBLD_LN_COLOR    ?= [36m
+CBLD_CHMOD_COLOR ?= [1;35m
 
 # protect macros from modifications in target makefiles,
 # do not trace calls to macros used in ifdefs, exported to the environment of called tools or modified via operator +=
 $(call set_global,CBLD_CP_COLOR CBLD_RM_COLOR CBLD_RMDIR_COLOR CBLD_MKDIR_COLOR CBLD_TOUCH_COLOR CBLD_CAT_COLOR CBLD_CMP_COLOR \
-  CBLD_GEN_COLOR)
+  CBLD_GEN_COLOR CBLD_LN_COLOR CBLD_CHMOD_COLOR)
