@@ -14,101 +14,119 @@ $(error Unsupported goal(s): $(filter-out $(build_system_goals),$(MAKECMDGOALS))
 endif
 
 # 'cb_needed_dirs' list is likely contains duplicates - remove them by sorting the list
-# note: 'cb_needed_dirs' list contains $(cb_build)-relative simple paths, like:
-#  $(target_triplet)/m $(target_triplet)/$(priv_prefix)/a $(cb_tools_subdir)/n $(cb_tools_subdir)/$(priv_prefix)/b and so on
+# note: 'cb_needed_dirs' list contains $(cb_build)-relative simple paths
 cb_needed_dirs := $(sort $(cb_needed_dirs))
 
 ifdef cb_checking
 
-# check that 'cb_needed_dirs' list do not contains any of $(cb_assoc_dirs) or $(cb_assoc_dirs_t) or their child sub-directories,
+# check that 'cb_needed_dirs' list does not contain any of $(cb_assoc_dirs) or $(cb_assoc_dirs_t) or their child sub-directories,
 #  except directories built in private namespaces of associated tag files
 # note: 'cb_assoc_dirs' and 'cb_assoc_dirs_t' lists contain simple relative paths like 1/2/3 without duplicates
 
-ifdef priv_prefix
+ifdef cb_namespaces
 
-# example:
-# (built)    pp/tt/a/b/c@-/tt/1/2/3
-# (deployed) tt/1/2"/3"             -> pp/tt/a/b/c@-/tt/1/2/3
-# (linked)   pp/tt/z/x@-/tt/1/2"/3" -> pp/tt/a/b/c@-/tt/1/2/3
-# (built)    pp/ts/d/e/@-/ts/4/5
-# (deployed) ts/4"/5"               -> pp/ts/d/e/@-/ts/4/5
-# (linked)   pp/ts/a/s/d@-/ts/4"/5" -> pp/ts/d/e/@-/ts/4/5
-# (linked)   pp/tt/7/8/9@-/ts/4"/5" -> ts/4"/5"
+# example of built files layout when using private targets namespaces:
+#
+# (built)    p/tt/a/b/c@-/tt/1/2/3
+# (deployed) tt/1/2"/3"            -> p/tt/a/b/c@-/tt/1/2/3
+# (linked)   p/tt/z/x@-/tt/1/2"/3" -> p/tt/a/b/c@-/tt/1/2/3
+# (built)    p/ts/d/e/@-/ts/4/5
+# (deployed) ts/4"/5"              -> p/ts/d/e/@-/ts/4/5
+# (linked)   p/ts/a/s/d@-/ts/4"/5" -> p/ts/d/e/@-/ts/4/5
+# (linked)   p/tt/7/8/9@-/ts/4"/5" -> ts/4"/5"
+#
+# where:
+#  'p'  - $(cb_ns_dir)
+#  'tt' - $(target_triplet)
+#  'ts' - $(cb_tools_subdir)
+#  '@-' - $(cb_ns_suffix)
 
 # list of associated directories that _must_ be created - in private namespaces of associated tag files
-# note: this list contains no duplicates, e.g.: tt/pp/a/b/c@-/1/2/3 ts/pp/d/e/@-/4/5
-cb_needed_accoc_dirs = $(join \
-  $(patsubst %,$(target_triplet)/$(priv_prefix)/%/,$(call cb_trg_priv,$(foreach d,$(cb_assoc_dirs),$($d.^d)))),$(cb_assoc_dirs)) $(join \
-  $(patsubst %,$(cb_tools_subdir)/$(priv_prefix)/%/,$(call cb_trg_priv,$(foreach d,$(cb_assoc_dirs_t),$($d/.^d)))),$(cb_assoc_dirs_t))
+# e.g.: 1/2/3 4/5 -> a/b/c@- d/e/@- -> p/tt/a/b/c@-/tt/ p/ts/d/e/@-/ts/ ->  p/tt/a/b/c@-/tt/1/2/3 p/ts/d/e/@-/ts/4/5
+cb_needed_accoc_dirs := \
+  $(join $(patsubst %,$(cb_ns_dir)/$(target_triplet)/%/$(target_triplet)/,$(call \
+    cb_trg_priv,$(foreach d,$(cb_assoc_dirs),$($d.^d)))),$(cb_assoc_dirs)) \
+  $(join $(patsubst %,$(cb_ns_dir)/$(cb_tools_subdir)/%/$(cb_tools_subdir)/,$(call \
+    cb_trg_priv,$(foreach d,$(cb_assoc_dirs_t),$($d/.^d)))),$(cb_assoc_dirs_t))
 
 # all associated directories must be in 'cb_needed_dirs' list
-ifneq ($(cb_needed_accoc_dirs),$(filter $(cb_needed_dirs),$(cb_needed_accoc_dirs)))
+ifneq (,$(filter-out $(cb_needed_dirs),$(cb_needed_accoc_dirs)))
 $(error these associated directories were not added to the list of auto-created ones: $(filter-out \
-  $(filter $(cb_needed_dirs),$(cb_needed_accoc_dirs)),$(cb_needed_accoc_dirs)))
+  $(cb_needed_dirs),$(cb_needed_accoc_dirs)))
 endif
 
-# next will check that $(cb_needed_dirs_ck) list of directories do not conflicts with $(cb_needed_accoc_dirs)
-# filter-out: (built) tt/pp/a/b/c@-/1/2/3 ts/pp/d/e/@-/4/5
-cb_needed_dirs_ck := $(filter-out $(cb_needed_accoc_dirs),$(cb_needed_dirs))
+# next check that there are no requests to create conflicting directories, for example, for
+#
+# (built)    p/tt/a/b/c@-/tt/1/2/3
+#
+# there must be no requests to create directories such as:
+#
+# (built)    p/tt/n/m/q@-/tt/1/2/3
+# (built)    p/tt/n/m/q@-/tt/1/2/3/4
+# (deployed) tt/1/2/3
+# (deployed) tt/1/2/3/4
+#
+cb_needed_non_assoc_dirs := $(filter-out $(cb_needed_accoc_dirs),$(cb_needed_dirs))
 
-# check non-tool directories
-# (deployed) tt/1/2"/3"          -> tt/pp/a/b/c@-/1/2/3
-# (linked)   tt/pp/z/x@-/1/2"/3" -> tt/pp/a/b/c@-/1/2/3
-# (linked)   tt/pp/7/8/9@-/4"/5" -> ts/4"/5"
-cb_needed_dirs_ck1 := $(patsubst $(target_triplet)/%,%,$(filter $(target_triplet)/%,$(cb_needed_dirs_ck)))
+# check for conflicts, e.g.:
+# tt/1/2/3
+# tt/1/2/3/4
+cb_needed_dirs_conflicts := $(filter \
+  $(addprefix $(target_triplet)/,$(cb_assoc_dirs) $(cb_assoc_dirs:=/%)) \
+  $(addprefix $(cb_tools_subdir)/,$(cb_assoc_dirs_t) $(cb_assoc_dirs_t:=/%)),$(sort \
+  $(call cb_trg_unpriv,$(cb_needed_non_assoc_dirs))))
 
-# 1/2"/3" pp/z/x@-/1/2"/3" pp/7/8/9@-/4"/5" -> 1/2"/3" 1/2"/3" 4"/5"
-cb_needed_dirs_ck1 := $(filter-out $(priv_prefix)/%,$(cb_needed_dirs_ck1)) $(call \
-  cb_trg_unpriv,$(patsubst $(priv_prefix)/%,%,$(filter $(priv_prefix)/%,$(cb_needed_dirs_ck1))))
+ifneq (,$(cb_needed_dirs_conflicts))
+$(error conflict: creating directories with the same path or child sub-directories of generated directories:$(newline)$(filter \
+  $(cb_needed_dirs_conflicts) $(addprefix %$(cb_ns_suffix)/,$(cb_needed_dirs_conflicts)),$(cb_needed_non_assoc_dirs))$(newline)generated \
+  directories:$(newline)$(addprefix $(target_triplet)/,$(cb_assoc_dirs)) $(addprefix $(cb_tools_subdir)/,$(cb_assoc_dirs_t)))
+endif
 
+else # !cb_namespaces
 
+# list of associated directories that _must_ be created - in private namespaces of associated tag files
+# e.g.: 1/2/3 4/5 -> tt/1/2/3 ts/4/5
+cb_needed_accoc_dirs := \
+  $(addprefix $(target_triplet)/,$(cb_assoc_dirs)) \
+  $(addprefix $(cb_tools_subdir)/,$(cb_assoc_dirs_t))
 
+# all associated directories must be in 'cb_needed_dirs' list
+ifneq (,$(filter-out $(cb_needed_dirs),$(cb_needed_accoc_dirs)))
+$(error these associated directories were not added to the list of auto-created ones: $(filter-out \
+  $(cb_needed_dirs),$(cb_needed_accoc_dirs)))
+endif
 
-cb_needed_dirs_ck1 = $(call cb_trg_unpriv,$(patsubst $(priv_prefix)/%,%,$(patsubst \
-  $(target_triplet)/%,%,$(filter $(target_triplet)/%,$(cb_needed_dirs_ck)))))
+# next check that there are no requests to create conflicting directories
+cb_needed_non_assoc_dirs := $(filter-out $(cb_needed_accoc_dirs),$(cb_needed_dirs))
 
-$(filter $(cb_assoc_dirs) $(cb_assoc_dirs:=/%),$(call cb_trg_unpriv,$(patsubst $(target_triplet)/$(priv_prefix)/%,%,$(filter $(target_triplet)/$(priv_prefix)/%,$(cb_needed_dirs_ck))))
+# check for conflicts
+cb_needed_dirs_conflicts := $(filter \
+  $(patsubst %,$(target_triplet)/%/%,$(cb_assoc_dirs)) \
+  $(patsubst %,$(cb_tools_subdir)/%/%,$(cb_assoc_dirs_t)),$(cb_needed_non_assoc_dirs))
 
-$(filter-out \
-  $(join $(addprefix $(target_triplet)/$(priv_prefix)/,$(foreach \
-    d,$(cb_assoc_dirs),$(call cb_trg_priv,$($d.^d))/)),$(cb_assoc_dirs)) \
-  $(join $(addprefix $(cb_tools_subdir)/$(priv_prefix)/,$(foreach \
-    d,$(cb_assoc_dirs_t),$(call cb_trg_priv,$($d/.^d))/)),$(cb_assoc_dirs_t)),$(cb_needed_dirs))
+ifneq (,$(cb_needed_dirs_conflicts))
+$(error conflict: creating child sub-directories of generated directories:$(newline)$(cb_needed_dirs_conflicts)$(newline)generated \
+  directories:$(newline)$(addprefix $(target_triplet)/,$(cb_assoc_dirs)) $(addprefix $(cb_tools_subdir)/,$(cb_assoc_dirs_t)))
+endif
 
+endif # !cb_namespaces
 
-
-cb_needed_dirs_ck := $(patsubst $(target_triplet)/%,%,$(filter $(target_triplet)/%,$(cb_needed_dirs)))
-ifneq (,$(foreach d,$(cb_assoc_dirs),$(foreach c,$(filter %/$d,$(cb_needed_dirs_ck)),
-
-/build/tt/pp/1-2-3/1/2/3
-/build/tt/1/2"/3"          -> /build/tt/pp/1-2-3/1/2/3
-/build/tt/pp/4-5-6/1/2"/3" -> /build/tt/pp/1-2-3/1/2/3
-
-/build/ts/pp/q-w-e/q/w/e
-/build/ts/q/w"/e"          -> /build/ts/pp/q-w-e/q/w/e
-/build/ts/pp/a-s-d/q/w"/e" -> /build/ts/pp/q-w-e/q/w/e
-/build/tt/pp/7-8-9/q/w"/e" -> /build/ts/q/w"/e"
-
-
-ifneq (,$(filter $(cb_assoc_dirs:=/%),$(patsubst $(target_triplet)/%,%,$(filter $(target_triplet)/%,$(cb_needed_dirs)))))
-$(error conflict: creating deployed or linked directories or their child sub-directories: $(filter \
-  $(cb_assoc_dirs) $(cb_assoc_dirs:=/%),$(patsubst $(target_triplet)/%,%,$(filter $(target_triplet)/%,$(cb_needed_dirs)))))
-
-cb_needed_dirs1 := $(patsubst $(target_triplet)/%,%,$(patsubst $(cb_tools_subdir)/%,%,$(filter-out \
-  $(target_triplet) $(cb_tools_subdir),$(cb_needed_dirs))))
-
-ifneq (,$(filter $(cb_assoc_dirs) $(cb_assoc_dirs_t) $(cb_assoc_dirs:=/%) $(cb_assoc_dirs_t:=/%),$(patsubst $(target_triplet)$(cb_needed_dirs)
-
-cb_needed_dirs := $(notdir $(cb_build)) $(addprefix $(notdir $(cb_build))/,$(filter-out $(cb_build)/,$(sort $(cb_needed_dirs))))
-
-cb_needed_dirs := $(call split_dirs,$(cb_needed_dirs:$(dir $(cb_build))%=%))
+endif # cb_checking
 
 # define rules for creating needed directories (absolute paths)
 # note: to avoid races when creating directories, create parent directories before child sub-directories,
 #  for example, if need to create a/b/c1 and a/b/c2 - create a/b before creating a/b/c1 and a/b/c2 in parallel
 # note: assume all directories are created under the $(cb_build) base directory
 
-# define order-only dependencies for the directories
+# note: will create at least $(cb_build) directory as it may be required by 'config' goal - see $(cb_dir)/confsup.mk
+# 1/2/3 -> build build/1 build/1/2 build/1/2/3
+cb_needed_dirs := $(notdir $(cb_build)) $(addprefix $(notdir $(cb_build))/,$(call split_dirs,$(cb_needed_dirs)))
+
+# define order-only dependencies for the directories:
+# build build/1 build/1/2 build/1/2/3 ->
+#  /path/build/1:| /path/build
+#  /path/build/1/2:| /path/build/1
+#  /path/build/1/2/3:| /path/build/1/2
 $(eval $(call mk_dir_deps,$(cb_needed_dirs),$(dir $(cb_build))))
 
 # define rules for creating $(cb_build)-relative directories
@@ -121,6 +139,7 @@ $(call suppress_targets_r,$(addprefix $(dir $(cb_build)),$(cb_needed_dirs))):
 # note: 'suppress_targets' - defined in $(cb_dir)/core/suppress.mk
 # note: 'cb_seq' - defined in $(cb_dir)/code/seq.mk included by $(cb_dir)/core/suppress.mk
 # note: <TRG_COUNT> - number of targets - used to compute build completion percent
+# note: each call to $(cb_seq) increments a counter
 ifdef suppress_targets
 $(eval cb_add_shown_percents = $(subst <TRG_COUNT>,$(cb_seq),$(subst <TRG_COUNT1>,$(cb_seq),$(value cb_add_shown_percents))))
 endif
