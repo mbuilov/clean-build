@@ -233,7 +233,7 @@ ver_compatible = $(call ver_compatible1,$(ver_major),$(call \
 # note: assume $1 - is a non-absolute path or it's parent directory is not / (e.g. /xxx is not allowed)
 get_dir = $(patsubst $2.,$2,$(patsubst %/,$2%,$(dir $1)))
 
-# split paths to list of intermediate directories: 1/2/3 -> 1/2/3 1/2 1
+# split paths to list of intermediate directories: 1/2/3 -> 1 1/2 1/2/3
 # note: assume $1 - is a non-absolute path or it's parent directory is not / (e.g. /xxx is not allowed)
 split_dirs1 = $(if $1,$1 $(call split_dirs1,$(get_dir)))
 split_dirs = $(sort $(split_dirs1))
