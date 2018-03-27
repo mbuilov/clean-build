@@ -21,7 +21,8 @@ else
 cb_namespaces:=
 endif
 
-# name of namespace directory, example:
+# example of built files layout when using private targets namespaces:
+#
 # (built)    p/tt/a/b/c@-/tt/1/2/3
 # (deployed) tt/1/2"/3"            -> p/tt/a/b/c@-/tt/1/2/3
 # (linked)   p/tt/z/x@-/tt/1/2"/3" -> p/tt/a/b/c@-/tt/1/2/3
@@ -29,11 +30,19 @@ endif
 # (deployed) ts/4"/5"              -> p/ts/d/e/@-/ts/4/5
 # (linked)   p/ts/a/s/d@-/ts/4"/5" -> p/ts/d/e/@-/ts/4/5
 # (linked)   p/tt/7/8/9@-/ts/4"/5" -> ts/4"/5"
+#
 # where:
 #  'p'  - $(cb_ns_dir)
 #  'tt' - $(target_triplet)
 #  'ts' - $(cb_tools_subdir)
 #  '@-' - $(cb_ns_suffix)
+#
+# and without namespaces:
+#
+# (built)    tt/1/2/3
+# (built)    ts/4/5
+
+# name of namespace directory
 cb_ns_dir := p
 
 # check that paths are virtual (i.e. relative and simple): 1/2/3, but not /1/2/3 or 1//2/3 or 1/2/../3 or 1/2/
