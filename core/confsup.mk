@@ -147,7 +147,7 @@ ifneq (,$(filter $(cb_build)/%,$(abspath $(CBLD_CONFIG))))
 cb_needed_dirs += $(patsubst $(cb_build)/%,%,$(dir $(abspath $(CBLD_CONFIG))))
 else
 $(abspath $(dir $(CBLD_CONFIG))):
-	$(error config file directory '$@' does not exist, it is not under '$(cb_build)', so should be created manually)
+	$(error config file directory '$@' does not exist, it is not under '$(cb_build)', so must be created manually)
 endif
 
 endif # config
