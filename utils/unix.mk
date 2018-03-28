@@ -56,7 +56,7 @@ shell_escape = '$(subst ','"'"',$1)'
 # do nothing, arguments are already in the required form
 shell_args_to_unix = $1
 
-# delete file(s) $1 (short list, no more than CBLD_MAX_PATH_ARGS)
+# delete files $1 (short list, no more than CBLD_MAX_PATH_ARGS)
 # note: if a path contains a space, use 'ifaddq' to add quotes: '1 2/3 4' '5 6/7 8/9' ...
 # note: $(cb_dir)/utils/gnu.mk overrides 'delete_files'
 delete_files = $(RM) -f $1
@@ -86,15 +86,15 @@ delete_files_in1 = $(info $(delete_files_in1_info))@$(CD) $2 && $(delete_files)
 endif # verbose
 delete_files_in  = $(call xcmd,delete_files_in1,$2,$(CBLD_MAX_PATH_ARGS),$1,,,)
 
-# delete files and/or directories (recursively) (long list)
+# delete files/directories (recursively) (long list)
 # note: to support long list, the paths _must_ not contain spaces
 # note: $6 - empty on first call, $(newline) on next calls
 del_files_or_dirs1 = $(if $6,$(quiet))$(delete_dirs)
 del_files_or_dirs  = $(call xcmd,del_files_or_dirs1,$1,$(CBLD_MAX_PATH_ARGS),,,,)
 
-# copy file(s) (long list) trying to preserve modification date, ownership and mode:
-# - file(s) $1 to directory $2 (paths to files $1 _must_ not contain spaces, but path to directory $2 may contain spaces) or
-# - file $1 to file $2         (path to file $1 _must_ not contain spaces, but path to file $2 may contain spaces)
+# copy files (long list) trying to preserve modification date, ownership and mode:
+# - files $1 to directory $2 (paths to files $1 _must_ not contain spaces, but path to directory $2 may contain spaces) or
+# - file $1 to file $2       (path to file $1 _must_ not contain spaces, but path to file $2 may contain spaces)
 # note: $6 - empty on first call, $(newline) on next calls
 # note: if path to directory/file $2 contains a space, use 'ifaddq' to add quotes: '1 2/3 4'
 # note: $(cb_dir)/utils/gnu.mk overrides 'copy_files2'
@@ -102,19 +102,21 @@ copy_files2 = $(CP) $1 $2
 copy_files1 = $(if $6,$(quiet))$(copy_files2)
 copy_files  = $(if $(findstring $(space),$1),$(call xcmd,copy_files1,$1,$(CBLD_MAX_PATH_ARGS),$2,,,),$(copy_files2))
 
-# move file(s) (long list) trying to preserve modification date, ownership and mode:
-# - file(s) $1 to directory $2 (paths to files $1 _must_ not contain spaces, but path to directory $2 may contain spaces) or
-# - file $1 to file $2         (path to file $1 _must_ not contain spaces, but path to file $2 may contain spaces)
+# move files/directories (long list) trying to preserve modification date, ownership and mode:
+# - files/directories $1 to directory $2 (paths to entries $1 _must_ not contain spaces, but path to directory $2 may contain spaces) or
+# - file $1 to file $2                   (path to file $1 _must_ not contain spaces, but path to file $2 may contain spaces) or
+# - directory $1 to directory $2         (path to directory $1 _must_ not contain spaces, but path to directory $2 may contain spaces)
+# note: if $2 is an existing directory, files/directories $1 are moved _under_ it
 # note: $6 - empty on first call, $(newline) on next calls
 # note: if path to directory/file $2 contains a space, use 'ifaddq' to add quotes: '1 2/3 4'
-# note: $(cb_dir)/utils/gnu.mk overrides 'move_files2'
-move_files2 = $(MV) $1 $2
-move_files1 = $(if $6,$(quiet))$(move_files2)
-move_files  = $(if $(findstring $(space),$1),$(call xcmd,move_files1,$1,$(CBLD_MAX_PATH_ARGS),$2,,,),$(move_files2))
+# note: $(cb_dir)/utils/gnu.mk overrides 'move_files_or_dirs2'
+move_files_or_dirs2 = $(MV) $1 $2
+move_files_or_dirs1 = $(if $6,$(quiet))$(move_files_or_dirs2)
+move_files_or_dirs = $(if $(findstring $(space),$1),$(call xcmd,move_files_or_dirs1,$1,$(CBLD_MAX_PATH_ARGS),$2,,,),$(move_files_or_dirs2))
 
-# create symbolic link(s) to file(s) (long list):
-# - to file(s) $1 in directory $2 (paths to files $1 _must_ not contain spaces, but path to directory $2 may contain spaces) or
-# - to file $1 by simlink $2      (path to file $1 _must_ not contain spaces, but path to simlink $2 may contain spaces)
+# create symbolic links to files (long list):
+# - to files $1 in directory $2 (paths to files $1 _must_ not contain spaces, but path to directory $2 may contain spaces) or
+# - to file $1 by simlink $2    (path to file $1 _must_ not contain spaces, but path to simlink $2 may contain spaces)
 # note: $6 - empty on first call, $(newline) on next calls
 # note: if path to directory/file $2 contains a space, use 'ifaddq' to add quotes: '1 2/3 4'
 # note: $(cb_dir)/utils/gnu.mk overrides 'simlink_files2'
@@ -122,7 +124,7 @@ simlink_files2 = $(LN) -sf $1 $2
 simlink_files1 = $(if $6,$(quiet))$(simlink_files2)
 simlink_files  = $(if $(findstring $(space),$1),$(call xcmd,simlink_files1,$1,$(CBLD_MAX_PATH_ARGS),$2,,,),$(simlink_files2))
 
-# update modification date of given file(s) or create file(s) if they do not exist
+# update modification date of given files or create them if they do not exist
 # note: to support long list, the paths _must_ not contain spaces
 # note: $6 - empty on first call, $(newline) on next calls
 touch_files1 = $(if $6,$(quiet))$(TOUCH) $1
@@ -132,19 +134,29 @@ touch_files  = $(call xcmd,touch_files1,$1,$(CBLD_MAX_PATH_ARGS),,,,)
 # note: to avoid races, 'create_dir' must be called only if it's known that destination directory does not exist
 # note: 'create_dir' must create intermediate parent directories of the destination directory
 # note: if path to directory $1 contains a space, use 'ifaddq' to add quotes: '1 2/3 4'
+# NOTE: to avoid races, there must be no other commands running in parallel and creating child sub-directories of new sub-directories
+#  created by this command
 # note: $(cb_dir)/utils/gnu.mk overrides 'create_dir'
 create_dir = $(MKDIR) -p $1
 
-# copy recursively directory $1 (path may contain spaces) to parent directory $2 (path may contain spaces)
-# note: copy of the source directory $1 is created under the parent directory $2, which must exist
+# copy recursively directory $1 (path may contain spaces) to directory $2 (path may contain spaces)
+# note: if $2 - is an existing directory, a copy is created _under_ it
 # note: if path to directory $1 or $2 contains a space, use 'ifaddq' to add quotes: '1 2/3 4'
+# note: try to preserve modification date, ownership and mode of copied files and directories
+# note: paths $1 and $2 _must_ be absolute (Windows-implementation specific requirement)
 # NOTE: to avoid races, there must be no other commands running in parallel and creating child sub-directories of new sub-directories
-#  created while the copying by this command
+#  created by this command
 # note: $(cb_dir)/utils/gnu.mk overrides 'copy_dir'
 copy_dir = $(CP) -r $1 $2
 
+# create symbolic link to directory $1 from $2
+# note: if $2 - is an existing directory, a simlink is created _under_ it
+# note: if path to directory $1 or $2 contains a space, use 'ifaddq' to add quotes: '1 2/3 4'
+# note: $(cb_dir)/utils/gnu.mk overrides 'simlink_dir'
+simlink_dir = $(LN) -sf $1 $2
+
 # compare content of two text files: $1 and $2
-# return an error code if they are differ
+# raise an error if they are differ
 # note: if path to a file contains a space, use 'ifaddq' to add quotes: '1 2/3 4'
 compare_files = $(CMP) $1 $2
 
@@ -211,7 +223,7 @@ write_lines1 = $(if $6,$3,$4)$(PRINTF) -- $(call \
 write_lines = $(call xargs,write_lines1,$(subst $(space) , $$(empty) ,$(subst $(space) , $$(empty) ,$(subst \
   $(newline), ,$$(empty)$(hide_tab_spaces)$$(empty)))),$3,$2,$(quiet),,,$(newline))
 
-# set mode $1 of given file(s) $2 (short list, no more than CBLD_MAX_PATH_ARGS)
+# set mode $1 of given files $2 (short list, no more than CBLD_MAX_PATH_ARGS)
 # note: UNIX-specific
 # note: if path to a file contains a space, use 'ifaddq' to add quotes: '1 2/3 4'
 # note: $(cb_dir)/utils/gnu.mk overrides 'change_mode'
@@ -226,18 +238,18 @@ execute_in = $(CD) $1 && $2
 # note: $(cb_dir)/utils/gnu.mk overrides 'execute_in_info'
 execute_in_info = ( $(CD) $1 && $2 )
 
-# delete target file(s) (short list, no more than CBLD_MAX_PATH_ARGS) if failed to build them and exit shell with error code 1
+# delete target files (short list, no more than CBLD_MAX_PATH_ARGS) if failed to build them and exit shell with error code 1
 del_on_fail = || { $(delete_files); $(FALSE); }
 
-# create a directory (with intermediate parent directories) while installing things
+# create directory (with intermediate parent directories) while installing things
 # $1 - path to the directory to create, path may contain spaces
 # note: if path to directory $1 contains a space, use 'ifaddq' to add quotes: '1 2/3 4'
 # note: directory $1 must not exist, 'install_dir' may be implemented via 'create_dir' (e.g. under WINDOWS)
 # note: $(cb_dir)/utils/gnu.mk overrides 'install_dir'
 install_dir = $(INSTALL) -d $1
 
-# install file(s) (long list) to directory or copy file to file
-# $1 - file(s) to install (to support long list, paths _must_ not contain spaces)
+# install files (long list) to directory or copy file to file
+# $1 - files to install (to support long list, paths _must_ not contain spaces)
 # $2 - destination directory or file, path may contain spaces
 # $3 - optional access mode, such as 644 (rw--r--r-) or 755 (rwxr-xr-x)
 # note: if path to directory/file $2 contains a space, use 'ifaddq' to add quotes: '1 2/3 4'
@@ -258,7 +270,7 @@ $(call set_global,CBLD_MAX_PATH_ARGS NUL RM RMDIR TRUE FALSE CD CP MV TOUCH MKDI
 # note: trace namespace: utils
 $(call set_global,print_env=project_exported_vars shell_escape shell_args_to_unix delete_files delete_dirs try_delete_dirs \
   delete_files_in1 delete_files_in1_info delete_files_in del_files_or_dirs1 del_files_or_dirs copy_files2 copy_files1 copy_files \
-  move_files2 move_files1 move_files simlink_files2 simlink_files1 simlink_files touch_files1 touch_files create_dir copy_dir \
-  compare_files cat_file print_short_options printf_line_escape write_options1 write_options print_short_line \
-  print_some_lines write_lines1 write_lines change_mode execute_in execute_in_info del_on_fail install_dir install_files2 \
-  install_files1 install_files,utils)
+  move_files_or_dirs2 move_files_or_dirs1 move_files_or_dirs simlink_files2 simlink_files1 simlink_files touch_files1 touch_files \
+  create_dir copy_dir simlink_dir compare_files cat_file print_short_options printf_line_escape write_options1 write_options \
+  print_short_line print_some_lines write_lines1 write_lines change_mode execute_in execute_in_info del_on_fail install_dir \
+  install_files2 install_files1 install_files,utils)
