@@ -16,11 +16,11 @@ dll_path_var := $(if $(filter WIN% CYGWIN% MINGW%,$(CBLD_OS)),PATH,LD_LIBRARY_PA
 
 # show environment variables prepared for running a tool in a modified environment
 # $1 - tool to execute (with parameters - escaped by 'shell_escape' macro)
-# $2 - additional path(s) separated by $(pathsep) to append to $(dll_path_var)
+# $2 - additional paths separated by $(pathsep) to append to $(dll_path_var)
 # $3 - directory to change to for executing a tool
 # $4 - names of variables to set in the environment (export) to run given tool
 # note: 'shell_escape', 'execute_in_info' macros - are defined in $(utils_mk) makefile
-# note: $(cb_dir)/utils/cmd.mk redefines show_tool_vars/show_tool_vars_end macros
+# note: $(cb_dir)/utils/cmd.mk redefines 'show_tool_vars'/'show_tool_vars_end' macros
 show_tool_vars1 = $(foreach =,$(if $2,$(dll_path_var)) $4,$==$(call shell_escape,$($=))) $1
 show_tool_vars = $(info $(if $3,$(call execute_in_info,$3,$(show_tool_vars1)),$(show_tool_vars1)))
 
@@ -29,7 +29,7 @@ show_tool_vars_end:=
 
 # run executable in a modified environment
 # $1 - tool to execute (with parameters - escaped by 'shell_escape' macro)
-# $2 - additional path(s) separated by $(pathsep) to append to $(dll_path_var)
+# $2 - additional paths separated by $(pathsep) to append to $(dll_path_var)
 # $3 - directory to change to for executing a tool
 # $4 - names of variables to set in the environment (export) to run given tool
 # note: this function should be used in rule body, where automatic variable $@ is defined
