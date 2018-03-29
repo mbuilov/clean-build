@@ -43,7 +43,7 @@ else
 cb_colorize = $(patsubst %,$(CBLD_$1_COLOR)%[m,$2)
 endif
 
-# print in short name of the called tool $1 with the argument $2
+# print short name of a called tool $1 with argument $2
 # $1 - tool, e.g. GEN
 # $2 - arguments (e.g. generated files)
 # $3 - if empty, then colorize arguments
@@ -59,28 +59,28 @@ ifeq (,$(filter distclean clean,$(MAKECMDGOALS)))
 # define macros:
 # a) 'suppress' - suppress output of executed build tool - print some pretty message instead, like "CC  source.c", update percent
 #   of building targets
-#  $1 - the tool
+#  $1 - a tool
 #  $2 - tool arguments
 #  $3 - if empty, then colorize argument of the called tool
 #  $4 - if empty, then update percent of building targets
-# b) 'suppress_targets' - register (leaf) targets in those rules the 'suppress' macro is used (for updating percent of building targets)
+# b) 'suppress_targets' - register (leaf) targets in those rules 'suppress' macro is used (for updating percent of building targets)
 #  $1 - targets
 # c) 'suppress_more' - to call 'suppress' without updating percent of building targets
-#  $1 - the tool
+#  $1 - a tool
 #  $2 - tool arguments
 #  $3 - if empty, then colorize argument of the called tool
 # note: 'cb_add_shown_percents' and 'cb_fmt_percents' macros - are used at second phase, after parsing makefiles, so no need to protect
 #  new values of 'cb_shown_percents' and 'cb_shown_remainder' variables
 ifdef quiet
 
-# define 'cb_seq' macro - used by the 'suppress_targets' macro defined below
+# define 'cb_seq' macro - used by 'suppress_targets' macro defined below
 # 'z' - sequence generator prefix
 z := cb_
 include $(cb_dir)/core/seq.mk
 
-# 'suppress_targets' - register (leaf) targets in those rules the 'suppress' macro is used (for updating percent of building targets)
-# note: here 'cb_seq' is used to count all targets while the first "makefiles parsing" phase - this value will be used in
-#  $(cb_dir)/core/all.mk for replacing placeholders <TRG_COUNT> and <TRG_COUNT1> in the defined below 'cb_add_shown_percents'
+# 'suppress_targets' - register (leaf) targets in those rules 'suppress' macro is used (for updating percent of building targets)
+# note: here 'cb_seq' is used to count all targets while first "makefiles parsing" phase - this value will be used in
+#  $(cb_dir)/core/all.mk for replacing placeholders <TRG_COUNT> and <TRG_COUNT1> in defined below 'cb_add_shown_percents'
 suppress_targets = $(if $(foreach =,$1,$(cb_seq)),)
 
 # same as 'suppress_targets', but return passed targets $1
@@ -98,7 +98,7 @@ cb_shown_remainder:=
 # 3) current = 2, percents2 = percents1 + int((remainder1 + 100)/total), remainder2 = rem((remainder1 + 100)/total)
 # 4) current = 3, percents3 = percents2 + int((remainder2 + 100)/total), remainder3 = rem((remainder2 + 100)/total)
 # ...
-# note: <TRG_COUNT> and <TRG_COUNT1> are replaced in the $(cb_dir)/core/all.mk
+# note: <TRG_COUNT> and <TRG_COUNT1> are replaced in $(cb_dir)/core/all.mk
 cb_add_shown_percents = $(if $(word <TRG_COUNT>,$1),+ $(call \
   cb_add_shown_percents,$(wordlist <TRG_COUNT1>,999999,$1)),$(newline)cb_shown_remainder:=$1)
 
@@ -124,7 +124,7 @@ cb_fmt_percents = $(if $4,,$(cb_update_percents))$(subst |,,$(subst \
   |100%,FIN,|$(words $(cb_shown_percents))%))))))))))))
 
 ifdef cb_infomf
-# target-specific: C.^ - defined by the 'cb_makefile_info' macro (below)
+# target-specific: C.^ - defined by 'cb_makefile_info' macro (below)
 suppress = $(info $(call cb_print_percents,$(cb_fmt_percents))$(C.^):$(cb_show_tool))@
 else
 suppress = $(info $(call cb_print_percents,$(cb_fmt_percents))$(cb_show_tool))@
@@ -132,12 +132,12 @@ endif
 
 else # !quiet (verbose)
 
-# do not need to replace <TRG_COUNT> and <TRG_COUNT1> in the $(cb_dir)/core/all.mk
+# do not need to replace <TRG_COUNT> and <TRG_COUNT1> in $(cb_dir)/core/all.mk
 suppress_targets:=
 suppress_targets_r = $1
 
 ifdef cb_infomf
-# target-specific: C.^ - defined by the 'cb_makefile_info' macro (below)
+# target-specific: C.^ - defined by 'cb_makefile_info' macro (below)
 suppress = $(info $(C.^):$(cb_show_tool))
 else
 suppress:=
@@ -147,7 +147,7 @@ endif # !quiet (verbose)
 
 # 'suppress' macro should be used only once in a rule of a target registered via 'suppress_targets', to show next commands of the rule
 #  - use 'suppress_more' macro, which do not updates percent of building targets
-# $1 - the tool
+# $1 - a tool
 # $2 - tool arguments
 # $3 - if empty, then colorize argument of the called tool
 ifdef suppress
@@ -168,7 +168,7 @@ endif
 
 else # distclean || clean
 
-# do not need to replace <TRG_COUNT> and <TRG_COUNT1> in the $(cb_dir)/core/all.mk
+# do not need to replace <TRG_COUNT> and <TRG_COUNT1> in $(cb_dir)/core/all.mk
 suppress_targets:=
 suppress_targets_r = $1
 
