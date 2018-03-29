@@ -150,10 +150,10 @@ endif
 all:
 	@:
 
-# cleanup built files
+# cleanup built files: 'cb_to_clean' list contains $(cb_build)-relative paths
 # note: 'del_files_or_dirs' macro is defined in the included before $(utils_mk) makefile
 clean:
-	$(quiet)$(call del_files_or_dirs,$(sort $(cb_to_clean)))
+	$(quiet)$(call del_files_or_dirs,$(addprefix $(cb_build)/,$(sort $(cb_to_clean))))
 
 # build 'all' goal to build or run tests
 # note: assume rules for the 'check' and 'tests' goals are defined elsewhere
