@@ -14,7 +14,7 @@
 
 ifdef cb_namespaces
 
-# ---------- needed files ---------------------
+# ---------- link needed files ----------------
 
 # $1 - absolute path to the target for which built files are needed
 # $2 - absolute paths to needed files
@@ -55,7 +55,7 @@ need_tool_files = $(eval $(call cb_need_files,$(o_path),$(addprefix \
   $(cb_build)/$(cb_tools_subdir)/,$2),$(addprefix $(dir $(o_dir))$(cb_tools_subdir)/,$2)))
 endif
 
-# ---------- needed directories ---------------
+# ---------- link needed directories ----------
 
 # link built dirs from tag file's private namespace directory
 # $1 - needed tag file, e.g.: gen/g1.tag
