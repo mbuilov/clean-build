@@ -213,16 +213,10 @@ need_tool_execs = $(call need_tool_files,$1,$(addsuffix $(tool_exe_suffix),$2))
 # return absolute paths to tool executables needed for given target
 # $1 - the target for which the tools are needed - must be a simple path relative to virtual $(out_dir), e.g.: gen/file.txt
 # $2 - tool executable files, must be simple paths relative to virtual $(out_dir) _without_ extension, e.g.: bin/tool1 bin/tool2
-ifdef cb_namespaces
 ifdef cb_checking
-get_tool_execs = $(cb_check_vpath)$(patsubst %,$(dir $(o_dir))$(cb_tools_subdir)/%$(tool_exe_suffix),$(call cb_check_vpaths_r,$2))
+get_tool_execs = $(patsubst %,$(get_tool_dir)/%$(tool_exe_suffix),$(call cb_check_vpaths_r,$2))
 else
-get_tool_execs = $(patsubst %,$(dir $(o_dir))$(cb_tools_subdir)/%$(tool_exe_suffix),$2)
-endif
-else ifdef cb_checking
-get_tool_execs = $(cb_check_vpath)$(patsubst %,$(cb_build)/$(cb_tools_subdir)/%$(tool_exe_suffix),$(call cb_check_vpaths_r,$2))
-else
-$(eval get_tool_execs = $$(patsubst %,$(cb_build)/$(cb_tools_subdir)/%$(tool_exe_suffix),$$2))
+get_tool_execs = $(patsubst %,$(get_tool_dir)/%$(tool_exe_suffix),$2)
 endif
 
 # $1 - the target for which the files are needed - must be a simple path relative to virtual $(out_dir), e.g.: bin/test.exe
@@ -233,7 +227,7 @@ need_tool_dirs_r   = $(need_tool_dirs)$1
 need_tool_execs_r  = $(need_tool_execs)$1
 
 # makefile parsing first phase variables
-# note: 'o_dir' and 'o_path' change their values in "tool" mode
+# note: 'o_dir', 'o_path' and 'get_tool_dir' change their values in "tool" mode
 cb_first_phase_vars += cb_need_files need_built_files need_tool_files cb_need_built_dirs cb_need_tool_dirs cb_need_dirs3 cb_need_dirs2 \
   need_built_dirs2 need_tool_dirs2 need_built_dirs1 need_tool_dirs1 need_built_dirs need_tool_dirs need_tool_files1 need_tool_execs \
   get_tool_execs need_built_files_r need_tool_files_r need_built_dirs_r need_tool_dirs_r need_tool_execs_r
