@@ -21,6 +21,7 @@ ifdef cb_namespaces
 # $3 - absolute paths to destination files
 # note: a rule for creating target $1 may be defined elsewhere, so do not set current makefile info for it here,
 #  instead call 'set_makefile_info_r' for each linked file
+# note: there must be a space between braces in '$(dir $3)) )))'
 define cb_need_files
 cb_needed_dirs += $(patsubst $(cb_build)/%/,%,$(dir $3))
 $(subst |, | ,$(subst ||,: ,$(subst / ,$(newline),$(join $(join $(3:=||),$(2:=|)),$(dir $3)) )))$1: $3
