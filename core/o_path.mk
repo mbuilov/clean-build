@@ -5,9 +5,9 @@
 #----------------------------------------------------------------------------------
 
 # define macros:
-#  'o_dir'        - for given target virtual path, get absolute path to output directory
-#  'o_path'       - for given target virtual path, get absolute path to output file
-#  'get_tool_dir' - for given target virtual path, get absolute path to tool directory
+#  'o_dir'        - for given target virtual path, get absolute path to output directory, e.g.: for a/b/c -> p/tt/a/b/c@-/tt
+#  'o_path'       - for given target virtual path, get absolute path to output file,      e.g.: for a/b/c -> p/tt/a/b/c@-/tt/a/b/c
+#  'get_tool_dir' - for given target virtual path, get absolute path to tool directory,   e.g.: for a/b/c -> p/tt/a/b/c@-/ts
 
 # base part of sub-directory of $(cb_build) where artifacts are built, e.g. DEBUG-LINUX-x86
 # note: build tools are built in another place - see 'tool_base' below
