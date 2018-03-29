@@ -5,8 +5,9 @@
 #----------------------------------------------------------------------------------
 
 # define macros:
-#  'o_dir'  - for given target virtual path, get absolute path to output directory
-#  'o_path' - for given target virtual path, get absolute path to output file
+#  'o_dir'        - for given target virtual path, get absolute path to output directory
+#  'o_path'       - for given target virtual path, get absolute path to output file
+#  'get_tool_dir' - for given target virtual path, get absolute path to tool directory
 
 # base part of sub-directory of $(cb_build) where artifacts are built, e.g. DEBUG-LINUX-x86
 # note: build tools are built in another place - see 'tool_base' below
@@ -133,6 +134,8 @@ cb_tool_override_vars := $(cb_tool_override_vars)$(newline)o_dir=$$(patsubst \
   $(cb_build)/$(cb_tools_subdir)/,$$1)
 endif
 
+# -------------------------------------------------------------
+
 # remember new values of 'o_dir' and 'o_path'
 # note: trace namespace: o_path
 ifdef set_global1
@@ -140,9 +143,17 @@ cb_set_default_vars   := $(cb_set_default_vars)$(newline)$(call set_global1,o_di
 cb_tool_override_vars := $(cb_tool_override_vars)$(newline)$(call set_global1,o_dir o_path,core)
 endif
 
+# return absolute path to tools base directory for given target
+# $1 - the target for which the path is returned - must be a simple path relative to virtual $(out_dir), e.g.: bin/test.exe
+ifdef cb_checking
+get_tool_dir = $(cb_check_vpath)$(dir $(o_dir))$(cb_tools_subdir)
+else
+get_tool_dir = $(dir $(o_dir))$(cb_tools_subdir)
+endif
+
 # makefile parsing first phase variables
 # note: 'o_dir' and 'o_path' change their values in "tool" mode
-cb_first_phase_vars += o_dir o_path
+cb_first_phase_vars += o_dir o_path get_tool_dir
 
 # protect macros from modifications in target makefiles,
 # do not trace calls to macros used in ifdefs, exported to the environment of called tools or modified via operator +=
@@ -151,4 +162,4 @@ $(call set_global,cb_namespaces)
 # protect macros from modifications in target makefiles, allow tracing calls to them
 # note: trace namespace: o_path
 $(call set_global,target_triplet cb_ns_dir cb_check_vpaths cb_check_vpath cb_check_vpaths_r cb_check_vpath_r \
-  cb_ns_suffix cb_trg_priv cb_trg_unpriv o_dir o_path tool_base mk_tools_subdir cb_tools_subdir,o_path)
+  cb_ns_suffix cb_trg_priv cb_trg_unpriv o_dir o_path tool_base mk_tools_subdir cb_tools_subdir get_tool_dir,o_path)
