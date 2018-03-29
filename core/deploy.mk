@@ -78,6 +78,7 @@ ifdef cb_namespaces
 # note: assume deployed files are needed _only_ by $(cb_target_makefile)-, so:
 #  - set makefile info (target-specific variables) by 'set_makefile_info_r' macro only for the $(cb_target_makefile)-,
 #   assume that this makefile info will be properly inherited by targets of linking rules
+# note: there must be a space between braces in '$(dir $2)) )))'
 define cb_deploy_files
 cb_needed_dirs += $(patsubst $(cb_build)/%/,%,$(dir $2))
 $(subst |, | ,$(subst ||,: ,$(subst / ,$(newline),$(join $(join $(2:=||),$(1:=|)),$(dir $2)) )))$(call \
@@ -91,6 +92,7 @@ endef
 # $2 - deployed paths, e.g.: /build/tt/bin/tool.exe /build/tt/gen/tool.cfg
 # note: deployed tools are may be required for building other targets, so:
 #  - set makefile info (target-specific variables) by 'set_makefile_info_r' macro for each deployed tool
+# note: there must be a space between braces in '$(dir $2)) )))'
 define cb_deploy_tool_files
 cb_needed_dirs += $(patsubst $(cb_build)/%/,%,$(dir $2))
 $(subst |, | ,$(subst ||,: ,$(subst / ,$(newline),$(join $(join $(2:=||),$(1:=|)),$(dir $2)) )))$(cb_target_makefile)-: $2
