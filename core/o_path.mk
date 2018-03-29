@@ -68,6 +68,7 @@ $(eval cb_trg_priv = $$(addsuffix $(cb_ns_suffix),$$1))
 endif
 
 # 'cb_trg_unpriv' - remove names of private namespace directories from the targets: a/b/c@-/1/2/3 d/e@-/d/e -> 1/2/3 d/e
+# note: there must be a space before ',$$1'
 $(eval cb_trg_unpriv = $$(filter-out %$(cb_ns_suffix),$$(subst $(cb_ns_suffix)/,$(cb_ns_suffix) ,$$1)))
 
 endif # cb_namespaces
