@@ -4,7 +4,13 @@
 # Licensed under GPL version 3 or any later version, see COPYING
 #----------------------------------------------------------------------------------
 
-# define 'fixpath' and 'ospath' functions
+# define:
+#  'fixpath'       - make paths absolute: prepend absolute path to directory of target makefile to given non-absolute paths
+#  'ospath'        - convert paths from Gnu Make representation to the form accepted by the native build tools, then shell-escape them
+#  'ifaddq'        - add (double-)quotes if Gnu Make or native path has an embedded spaces
+#  'path_unspaces' - replace spaces in a path by ? symbol
+#  'qpath'         - unhide spaces in native paths (result of $(ospath)) adding some prefix
+#  'gmake_path'    - unhide spaces in Gnu Make paths, e.g.: /a?b -> /a\ b
 
 # this file is included by $(cb_dir)/core/_defs.mk
 
@@ -90,7 +96,7 @@ ifaddq = $(if $(findstring $(space),$1),"$1",$1)
 endif # win-make
 
 # ***********************************************
-# replace spaces in a path by ?
+# replace spaces in a path by ? symbol
 path_unspaces = $(subst $(space),?,$1)
 
 # ***********************************************
