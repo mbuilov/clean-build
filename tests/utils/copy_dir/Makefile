@@ -1,4 +1,4 @@
-$(info ================ copy_all =================)
+$(info ================ sh_copy_dir ==============)
 
 # note: do not use full project infrastructure
 
@@ -30,7 +30,7 @@ $(g_dir)/stamp1.txt $(g_dir)/stamp2.txt: src := $(call fixpath,test_files)
 # here $| - automatic variable - list of order-only dependencies, dependency added in rule definition will be the first in list
 $(call add_generated_r,$(g_dir)/stamp1.txt):| $(call need_gen_dirs_r,$(g_dir)/dst)
 	$(call suppress,GEN,$@)$(call copy_all,$(src),$(firstword $|))
-	$(quiet)$(call touch_files,$@)
+	$(quiet)$(call sh_touch,$@)
 
 # create target-specific variable 'dst' - absolute path to the directory with copied files
 $(g_dir)/stamp2.txt: dst := $(g_dir)/dst
@@ -52,7 +52,7 @@ $(call add_generated_r,$(g_dir)/stamp2.txt):| $(g_dir)/stamp1.txt
   y/z/k/4 y/z/k/m \
   y/z/k/m/5 y/z/k/m/n \
   y/z/k/m/n/6))$(if \
-  $(not_copied),$(error these files were not copied: $(not_copied)))$(call suppress,GEN,$@)$(call touch_files,$@)
+  $(not_copied),$(error these files were not copied: $(not_copied)))$(call suppress,GEN,$@)$(call sh_touch,$@)
 
 # just delete whole 'g_dir' directory with generated files on cleanup
 $(call toclean,$(g_dir))
