@@ -185,9 +185,9 @@ endif
 ifndef no_clean_build_distclean_goal
 
 # define 'distclean' goal - delete all built artifacts, including directories
-# note: 'delete_dirs' macro is defined in included below $(utils_mk) makefile
+# note: 'sh_rm_some_dirs' macro is defined in included below $(utils_mk) makefile
 distclean:
-	$(quiet)$(call delete_dirs,$(cb_build))
+	$(quiet)$(call sh_rm_some_dirs,$(cb_build))
 
 endif # !no_clean_build_distclean_goal
 
@@ -424,7 +424,7 @@ endif
 # note: callers of 'cb_target_vars' may assume that it will protect new value of 'cb_needed_dirs', so callers
 #  _may_ change 'cb_needed_dirs' without protecting it - before the call. Protect 'cb_needed_dirs' here.
 # note: rules of the targets should contain only one call to 'suppress' macro - to properly update percent of building targets
-# note: if a rule consists of multiple commands - use 'suppress_more' macro instead of additional calls to the 'suppress' macro
+# note: if a rule consists of multiple commands - use 'suppress_more' macro instead of additional calls to 'suppress' macro
 ifdef cb_checking
 ....
 else
@@ -469,7 +469,7 @@ endef
 # note: directories for generated files will be auto-created
 # note: generated files will be auto-deleted while completing the 'clean' goal
 # note: rules of the targets should contain only one call to the 'suppress' macro - to properly update percent of building targets
-# note: use 'suppress_more' macro instead of additional calls to 'suppress' macro - e.g. if a rule consists of multiple commands
+# note: if a rule consists of multiple commands - use 'suppress_more' macro instead of additional calls to 'suppress' macro
 add_generated = $(eval $(cb_target_vars))
 
 # do the same as 'add_generated', but also return list of generated files $1
