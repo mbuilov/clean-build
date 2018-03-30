@@ -7,6 +7,6 @@ all clean distclean: c_dir := $(dir $(lastword $(MAKEFILE_LIST)))
 # tests
 all clean distclean:
 	$(MAKE) -f $(c_dir)shell_escape/Makefile $@
-	$(MAKE) -f $(c_dir)touch_files/Makefile $@
+	$(MAKE) -f $(c_dir)sh_touch/Makefile $@
 
 .PHONY: all clean distclean
