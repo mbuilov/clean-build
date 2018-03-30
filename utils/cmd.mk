@@ -77,8 +77,8 @@ $(call config_remember_vars,PATH,1,1)
 endif # !CBLD_DONT_FIX_ENV_PATH
 
 # script to print prepared environment in verbose mode (used for generating one-big-build instructions batch file)
-# note: 'print_env' - used by $(cb_dir)/core/all.mk
-print_env = $(if $(or $(cb_changed_env_vars),$(project_exported_vars)),setlocal$(newline)$(foreach \
+# note: 'sh_print_env' - used by $(cb_dir)/core/all.mk
+sh_print_env = $(if $(or $(cb_changed_env_vars),$(project_exported_vars)),setlocal$(newline)$(foreach \
   =,$(call uniq,$(project_exported_vars) $(cb_changed_env_vars)),SET "$==$($=)"$(newline)|))
 
 # command line length of cmd.exe is limited:
@@ -170,63 +170,63 @@ shell_args_to_unix = $(call unhide_comments,$(subst $(space),,$(eval _q:=)$(eval
   ",$x),$(eval _q:=1)',$(if $(findstring \
   +$$+,$x),$(eval _d:=')',$(subst \,\\,$x))))))))$(_d)
 
-# delete files $1 (short list, no more than CBLD_MAX_PATH_ARGS)
+# remove (delete) files $1 (short list, no more than CBLD_MAX_PATH_ARGS)
 # note: if a path contains a space, use 'ifaddq' to add double-quotes: "1 2/3 4" "5 6/7 8/9" ...
-delete_files = for %%f in ($(ospath)) do if exist %%f $(DEL) /f /q %%f
+sh_rm_some_files = for %%f in ($(ospath)) do if exist %%f $(DEL) /f /q %%f
 
-# delete directories $1 (recursively) (short list, no more than CBLD_MAX_PATH_ARGS)
+# remove (delete) directories $1 (recursively) (short list, no more than CBLD_MAX_PATH_ARGS)
 # note: if a path contains a space, use 'ifaddq' to add double-quotes: "1 2/3 4" "5 6/7 8/9" ...
-delete_dirs = for %%f in ($(ospath)) do if exist %%f $(RD) /s /q %%f
+sh_rm_some_dirs = for %%f in ($(ospath)) do if exist %%f $(RD) /s /q %%f
 
-# try to non-recursively delete directories $1 if they are empty (short list, no more than CBLD_MAX_PATH_ARGS)
+# try to non-recursively remove directories $1 if they are empty (short list, no more than CBLD_MAX_PATH_ARGS)
 # note: if a path contains a space, use 'ifaddq' to add double-quotes: "1 2/3 4" "5 6/7 8/9" ...
 # note: if directory is not empty, ignore an error
-try_delete_dirs = $(RD) $(ospath) 2>$(NUL)
+sh_try_rm_some_empty_dirs = $(RD) $(ospath) 2>$(NUL)
 
 # in directory $1 (path may contain spaces), delete files $2 (long list)
 # note: to support long list, paths in $2 _must_ not contain spaces
 # note: if path to directory $1 contains a space, use 'ifaddq' to add double-quotes: "1 2/3 4"
 # note: $6 - empty on first call, $(newline) on next calls
-delete_files_in2 = $(CD) $2 && for %%f in ($1) do if exist %%f $(DEL) /f /q %%f
+sh_rm_files_in2 = $(CD) $2 && for %%f in ($1) do if exist %%f $(DEL) /f /q %%f
 ifdef quiet
-delete_files_in1 = $(if $6,$(quiet))$(delete_files_in2)
+sh_rm_files_in1 = $(if $6,$(quiet))$(sh_rm_files_in2)
 else # verbose
-# show info about files $1 deleted in the directory $2, this info may be printed to build script
-delete_files_in1 = $(info ( $(delete_files_in2) ))@$(delete_files_in2)
+# show info about files $1 deleted in directory $2, this info may be printed to build script
+sh_rm_files_in1 = $(info ( $(sh_rm_files_in2) ))@$(sh_rm_files_in2)
 endif # verbose
-delete_files_in  = $(call xcmd,delete_files_in1,$(call ospath,$2),$(CBLD_MAX_PATH_ARGS),$(ospath),,,)
+sh_rm_files_in  = $(call xcmd,sh_rm_files_in1,$(call ospath,$2),$(CBLD_MAX_PATH_ARGS),$(ospath))
 
 # delete files/directories (recursively) (long list)
 # note: to support long list, the paths _must_ not contain spaces
 # note: $6 - empty on first call, $(newline) on next calls
-del_files_or_dirs1 = $(if $6,$(quiet))for %%f in ($1) do if exist %%f\. ($(RD) /s /q %%f) else if exist %%f $(DEL) /f /q %%f
-del_files_or_dirs  = $(call xcmd,del_files_or_dirs1,$(ospath),$(CBLD_MAX_PATH_ARGS),,,,)
+sh_rm_recursive1 = $(if $6,$(quiet))for %%f in ($1) do if exist %%f\. ($(RD) /s /q %%f) else if exist %%f $(DEL) /f /q %%f
+sh_rm_recursive  = $(call xcmd,sh_rm_recursive1,$(ospath),$(CBLD_MAX_PATH_ARGS))
 
-# filter the output of the 'copy' or 'move' command:
+# filter output of the 'copy' or 'move' command:
 #  - if there is anything other than the filtered-out string "        1", result will be zero - assume copy/move failed
 # note: send error messages to stderr
-filter_copy_output := >&2 $(FIND) /V"        1"
+cmd_filter_copy_output := >&2 $(FIND) /V"        1"
 
 # code for suppressing output of the 'copy' command, like
 # "        1 file(s) copied."
 # "Скопировано файлов:         1."
-suppress_copy_output := | $(filter_copy_output) & if errorlevel 1 ($(CMD) /c) else $(CMD) /c $(EXIT) 1
+cmd_suppress_copy_output := | $(cmd_filter_copy_output) & if errorlevel 1 ($(CMD) /c) else $(CMD) /c $(EXIT) 1
 
 # code for suppressing output of the 'move' command, like
 # "        1 file(s) moved."
 # "Перемещено файлов:         1."
 # "        1 папок перемещено."
 # note: WinXP's move doesn't output anything on success
-suppress_move_output := $(suppress_copy_output)
+cmd_suppress_move_output := $(cmd_suppress_copy_output)
 
 # copy files (long list) preserving modification date:
 # - files $1 to directory $2 (paths to files $1 _must_ not contain spaces, but path to directory $2 may contain spaces) or
 # - file $1 to file $2       (path to file $1 _must_ not contain spaces, but path to file $2 may contain spaces)
 # note: $6 - empty on first call, $(newline) on next calls
 # note: if path to directory/file $2 contains a space, use 'ifaddq' to add double-quotes: "1 2/3 4"
-copy_files1 = $(if $6,$(quiet))for %%f in ($1) do $(COPY) /y /b %%f $2$(suppress_copy_output)
-copy_files  = $(if $(findstring $(space),$1),$(call xcmd,copy_files1,$(ospath),$(CBLD_MAX_PATH_ARGS),$(call \
-  ospath,$2),,,),$(COPY) /y /b $(call ospath,$1 $2)$(suppress_copy_output))
+sh_copy_files1 = $(if $6,$(quiet))for %%f in ($1) do $(COPY) /y /b %%f $2$(cmd_suppress_copy_output)
+sh_copy_files  = $(if $(findstring $(space),$1),$(call xcmd,sh_copy_files1,$(ospath),$(CBLD_MAX_PATH_ARGS),$(call \
+  ospath,$2)),$(COPY) /y /b $(call ospath,$1 $2)$(cmd_suppress_copy_output))
 
 # move files/directories (long list) preserving modification date:
 # - files/directories $1 to directory $2 (paths to entries $1 _must_ not contain spaces, but path to directory $2 may contain spaces) or
@@ -235,9 +235,9 @@ copy_files  = $(if $(findstring $(space),$1),$(call xcmd,copy_files1,$(ospath),$
 # note: if $2 is an existing directory, files/directories $1 are moved _under_ it
 # note: $6 - empty on first call, $(newline) on next calls
 # note: if path to directory/file $2 contains a space, use 'ifaddq' to add double-quotes: "1 2/3 4"
-move_files_or_dirs1 = $(if $6,$(quiet))for %%f in ($1) do $(MOVE) /y %%f $2$(suppress_move_output)
-move_files_or_dirs  = $(if $(findstring $(space),$1),$(call xcmd,move_files_or_dirs1,$(ospath),$(CBLD_MAX_PATH_ARGS),$(call \
-  ospath,$2),,,),$(MOVE) /y $(call ospath,$1 $2)$(suppress_move_output))
+sh_move1 = $(if $6,$(quiet))for %%f in ($1) do $(MOVE) /y %%f $2$(cmd_suppress_move_output)
+sh_move  = $(if $(findstring $(space),$1),$(call xcmd,sh_move1,$(ospath),$(CBLD_MAX_PATH_ARGS),$(call \
+  ospath,$2)),$(MOVE) /y $(call ospath,$1 $2)$(cmd_suppress_move_output))
 
 # create symbolic links to files (long list):
 # - to files $1 in directory $2 (paths to files $1 _must_ not contain spaces, but path to directory $2 may contain spaces) or
@@ -246,13 +246,13 @@ move_files_or_dirs  = $(if $(findstring $(space),$1),$(call xcmd,move_files_or_d
 # note: may be use mklink command - starting with Windows Vista... but mklink requires special privileges, see:
 #  https://superuser.com/questions/124679/how-do-i-create-a-link-in-windows-7-home-premium-as-a-regular-user/125981#125981
 # note: for now, just copy files (preserving modification date)
-simlink_files = $(copy_files)
+sh_simlink_files = $(sh_copy_files)
 
-# update modification date of given files or create them if they do not exist
+# update modification date of given files (long list) or create them if they do not exist
 # note: to support long list, the paths _must_ not contain spaces
 # note: $6 - empty on first call, $(newline) on next calls
-touch_files1 = $(if $6,$(quiet))for %%f in ($1) do if exist %%f ($(COPY) /y /b %%f+,, %%f$(suppress_copy_output)) else rem.> %%f
-touch_files  = $(call xcmd,touch_files1,$(ospath),$(CBLD_MAX_PATH_ARGS),,,,)
+sh_touch1 = $(if $6,$(quiet))for %%f in ($1) do if exist %%f ($(COPY) /y /b %%f+,, %%f$(cmd_suppress_copy_output)) else rem.> %%f
+sh_touch  = $(call xcmd,sh_touch1,$(ospath),$(CBLD_MAX_PATH_ARGS))
 
 # create directory
 #
@@ -263,12 +263,12 @@ touch_files  = $(call xcmd,touch_files1,$(ospath),$(CBLD_MAX_PATH_ARGS),,,,)
 #                        mkdir aaa/bbb
 # mkdir aaa - fail
 #
-# note: to avoid races, 'create_dir' must be called only if it's known that destination directory does not exist
-# note: 'create_dir' must create intermediate parent directories of the destination directory
+# note: to avoid races, 'sh_mkdir' must be called only if it's known that destination directory does not exist
+# note: 'sh_mkdir' must create intermediate parent directories of the destination directory
 # note: if path to directory $1 contains a space, use 'ifaddq' to add double-quotes: "1 2/3 4"
 # NOTE: to avoid races, there must be no other commands running in parallel and creating child sub-directories of new sub-directories
 #  created by this command
-create_dir = $(MD) $(ospath)
+sh_mkdir = $(MD) $(ospath)
 
 # copy recursively directory $1 (path may contain spaces) to directory $2 (path may contain spaces)
 # note: if $2 - is an existing directory, a copy is created _under_ it
@@ -278,20 +278,20 @@ create_dir = $(MD) $(ospath)
 # note: send error messages to stderr
 # NOTE: to avoid races, there must be no other commands running in parallel and creating child sub-directories of new sub-directories
 #  created by this command
-copy_dir = $(call copy_dir1,$(call ospath,$(if $(findstring ",$1),$1,"$1")),$(call \
+sh_copy_dir = $(call sh_copy_dir1,$(call ospath,$(if $(findstring ",$1),$1,"$1")),$(call \
   ospath,$(if $(findstring ",$2),$2,"$2")),$(words $(filter /,$(subst /, / ,$1))))
 
 # $1 - "C:\1\2\3 4"
 # $2 - "C:\1\2\5\6 7"
 # $3 - 3
-copy_dir1 = $(call copy_dir2,$1,$2,$3,$(subst "%%x\%%y,%%x\%%y",$2%%x\%%y),$(subst "%%y,%%y",$2%%y))
+sh_copy_dir1 = $(call sh_copy_dir2,$1,$2,$3,$(subst "%%x\%%y,%%x\%%y",$2%%x\%%y),$(subst "%%y,%%y",$2%%y))
 
 # $1 - "C:\1\2\3 4"
 # $2 - "C:\1\2\5\6 7"
 # $3 - 3
 # $4 - "C:\1\2\5\6 7\%%x\%%y"
 # $5 - "C:\1\2\5\6 7\%%y"
-copy_dir2 = 2>&1 (^(if exist $2 \
+sh_copy_dir2 = 2>&1 (^(if exist $2 \
   ^(for /r $1 %%f in ^(.^) do @for /f "tokens=$3* delims=$(backslash)" %%x in ^("%%~pnf"^) do \
   @^(if not exist $4 $(MD) $4^) ^& ^(^>$(NUL) 2^>^&1 $(DIR) /b /a-d "%%~dpnf" ^&^& ^>$(NUL) $(COPY) /y /b "%%~dpnf\*" $4^)^) else \
     for /r $1 %%f in ^(.^) do @for /f "tokens=$3* delims=$(backslash)" %%x in ^("%%~pnf"^) do \
@@ -304,19 +304,19 @@ copy_dir2 = 2>&1 (^(if exist $2 \
 # note: may be use mklink command - starting with Windows Vista... but mklink requires special privileges, see:
 #  https://superuser.com/questions/124679/how-do-i-create-a-link-in-windows-7-home-premium-as-a-regular-user/125981#125981
 # note: for now, just copy files (preserving modification date)
-simlink_dir = $(copy_dir)
+sh_simlink_dir = $(sh_copy_dir)
 
 # compare content of two text files: $1 and $2
 # raise an error if they are differ
 # note: if path to a file contains a space, use 'ifaddq' to add double-quotes: "1 2/3 4"
-compare_files = $(FC) /t $(call ospath,$1 $2)
+sh_cmp_files = $(FC) /t $(call ospath,$1 $2)
 
 # print content of a given file (to stdout, for redirecting it to output file)
 # note: if path to file $1 contains a space, use 'ifaddq' to add double-quotes: "1 2/3 4"
-cat_file = $(TYPE) $(ospath)
+sh_cat = $(TYPE) $(ospath)
 
 # escape special characters in unquoted argument of 'echo' or 'set' builtin commands of cmd.exe
-unquoted_escape = $(subst $(open_brace),^$(open_brace),$(subst $(close_brace),^$(close_brace),$(subst \
+cmd_unquoted_escape = $(subst $(open_brace),^$(open_brace),$(subst $(close_brace),^$(close_brace),$(subst \
   %,%%,$(subst !,^!,$(subst <,^<,$(subst >,^>,$(subst |,^|,$(subst &,^&,$(subst ",^",$(subst ^,^^,$1))))))))))
 
 # print short string of options (to stdout, for redirecting it to output file)
@@ -325,10 +325,10 @@ unquoted_escape = $(subst $(open_brace),^$(open_brace),$(subst $(close_brace),^$
 # note: surround whole set expression by braces to specify the end of argument (to not ignore trailing spaces)
 # note: ignore result of builtin command 'set' - it's failed always
 # NOTE: printed string length must not exceed the maximum command line length (8191 characters)
-print_short_options = ((set/p=$(unquoted_escape))<NUL & $(CMD) /c)
+sh_print_some_options = ((set/p=$(cmd_unquoted_escape))<NUL & $(CMD) /c)
 
 # write batch of text token groups to output file or to stdout (for redirecting it to output file)
-# $1 - list of token groups, where entries are processed by $(call hide,$(unquoted_escape))
+# $1 - list of token groups, where entries are processed by $(call hide,$(cmd_unquoted_escape))
 # $2 - if not empty, then a file to print to (path to the file may contain spaces)
 # $3 - text to prepend before the command when $6 is non-empty
 # $4 - text to prepend before the command when $6 is empty
@@ -339,7 +339,7 @@ print_short_options = ((set/p=$(unquoted_escape))<NUL & $(CMD) /c)
 # note: ignore result of builtin command 'set' - it's failed always
 # note: if path to file $2 contains a space, use 'ifaddq' to add double-quotes: "1 2/3 4"
 # NOTE: printed batch length must not exceed the maximum command line length (8191 characters)
-write_options1 = $(if $6,$3,$4)((set/p=$(call unhide_comments,$(subst $(space),,$1)))<NUL & $(CMD) /c)$(if $2,>$(if $6,>) $2)
+sh_write_options1 = $(if $6,$3,$4)((set/p=$(call unhide_comments,$(subst $(space),,$1)))<NUL & $(CMD) /c)$(if $2,>$(if $6,>) $2)
 
 # tokenize string so each token group will not begin with $(space), $(tab) or '=', except if they are at the beginning
 # "1  2 =3" -> "1 $s  $s 2 $s =3" -> "1 $s  $s 2 $s = 3" -> "1 $s $s 2 $s = 3" -> "1$(space)$(space) 2$(space)= 3"
@@ -353,7 +353,7 @@ tokenize_options = $(wordlist 2,999999,$(subst $(space)=,=,$(subst $(space)$$t,$
 # note: if path to file $2 contains a space, use 'ifaddq' to add double-quotes: "1 2/3 4"
 # NOTE: number $3 must be adjusted so printed at one time text length will not exceed the maximum command length (8191 characters)
 # NOTE: nothing is printed if string $1 is empty, output file is _not_ created in this case
-write_options = $(call xargs,write_options1,$(call tokenize_options,$(unquoted_escape)),$3,$2,$(quiet),,,$(newline))
+sh_write_options = $(call xargs,sh_write_options1,$(call tokenize_options,$(cmd_unquoted_escape)),$3,$2,$(quiet),,,$(newline))
 
 # print one short line of text (to stdout, for redirecting it to output file)
 # note: line must not contain $(newline)s
@@ -361,17 +361,17 @@ write_options = $(call xargs,write_options1,$(call tokenize_options,$(unquoted_e
 # note: use dot '.' after 'echo' to print just an empty line if text $1 is empty
 # note: surround whole echo expression by braces to specify the end of argument (to not ignore trailing spaces)
 # NOTE: printed line length must not exceed the maximum command line length (8191 characters)
-print_short_line = (echo.$(unquoted_escape))
+sh_print_short_line = (echo.$(cmd_unquoted_escape))
 
 # print small batch of short text lines (to stdout, for redirecting it to output file)
 # note: each line will be ended with CRLF: line1$(newline)line2 -> line1\nline2\n
 # note: use dot '.' after 'echo' to print just an empty line if text line is empty
 # note: surround whole echo expression by braces to specify the end of argument (to not ignore trailing spaces)
 # NOTE: total text length must not exceed the maximum command line length (8191 characters)
-print_some_lines = ((echo.$(subst $(newline),$(close_brace)&&$(open_brace)echo.,$(unquoted_escape))))
+sh_print_some_lines = ((echo.$(subst $(newline),$(close_brace)&&$(open_brace)echo.,$(cmd_unquoted_escape))))
 
 # write batch of text lines to output file or to stdout (for redirecting it to output file)
-# $1 - lines list, where entries are processed by $(call hide_tab_spaces,$(unquoted_escape))
+# $1 - lines list, where entries are processed by $(call hide_tab_spaces,$(cmd_unquoted_escape))
 # $2 - if not empty, then a file to print to (path to the file may contain spaces)
 # $3 - text to prepend before the command when $6 is non-empty
 # $4 - text to prepend before the command when $6 is empty
@@ -379,7 +379,7 @@ print_some_lines = ((echo.$(subst $(newline),$(close_brace)&&$(open_brace)echo.,
 # note: if path to file $2 contains a space, use 'ifaddq' to add double-quotes: "1 2/3 4"
 # note: each line will be ended with CRLF: line1$(space)line2 -> line1\nline2\n
 # NOTE: printed batch length must not exceed the maximum command line length (8191 characters)
-write_lines1 = $(if $6,$3,$4)((echo.$(call \
+sh_write_lines1 = $(if $6,$3,$4)((echo.$(call \
   unhide_comments,$(subst $(space),$(close_brace)&&$(open_brace)echo.,$1))))$(if $2,>$(if $6,>) $2)
 
 # write lines of text $1 to file $2, by $3 lines at one time
@@ -387,36 +387,40 @@ write_lines1 = $(if $6,$3,$4)((echo.$(call \
 # NOTE: any line must be less than the maximum command length (8191 characters)
 # NOTE: number $3 must be adjusted so printed at one time text length will not exceed the maximum command length (8191 characters)
 # NOTE: nothing is printed if text $1 is empty, output file is _not_ created in this case
-write_lines = $(call xargs,write_lines1,$(subst $(space) , $$(empty) ,$(subst $(space) , $$(empty) ,$(subst \
-  $(newline), ,$$(empty)$(call hide_tab_spaces,$(unquoted_escape))$$(empty)))),$3,$2,$(quiet),,,$(newline))
+sh_write_lines = $(call xargs,sh_write_lines1,$(subst $(space) , $$(empty) ,$(subst $(space) , $$(empty) ,$(subst \
+  $(newline), ,$$(empty)$(call hide_tab_spaces,$(cmd_unquoted_escape))$$(empty)))),$3,$2,$(quiet),,,$(newline))
 
 # set mode $1 of given files $2 (short list, no more than CBLD_MAX_PATH_ARGS)
 # note: UNIX-specific, so not defined for WINDOWS
-change_mode:=
+sh_chmod_some_files:=
+
+# set mode $1 of given files $2 (long list)
+# note: UNIX-specific, so not defined for WINDOWS
+sh_chmod:=
 
 # execute command $2 in the directory $1
 # note: if path to directory $1 contains a space, use 'ifaddq' to add double-quotes: "1 2/3 4"
-execute_in = $(CD) $(ospath) && $2
+sh_execute_in = $(CD) $(ospath) && $2
 
 # show info about command $2 executed in the directory $1, this info may be printed to build script
 # note: if path to directory $1 contains a space, use 'ifaddq' to add double-quotes: "1 2/3 4"
-execute_in_info = pushd $(ospath) && ($2 && popd || (popd & $(CMD) /c $(EXIT) 1))
+sh_execute_in_info = pushd $(ospath) && ($2 && popd || (popd & $(CMD) /c $(EXIT) 1))
 
 # delete target files (short list, no more than CBLD_MAX_PATH_ARGS) if failed to build them and exit shell with error code 1
-del_on_fail = || (($(delete_files)) & $(CMD) /c $(EXIT) 1)
+del_on_fail = || (($(sh_rm_some_files)) & $(CMD) /c $(EXIT) 1)
 
 # create directory (with intermediate parent directories) while installing things
 # $1 - path to the directory to create, path may contain spaces
 # note: if path to directory $1 contains a space, use 'ifaddq' to add double-quotes: "1 2/3 4"
-# note: directory $1 must not exist, 'install_dir' may be implemented via 'create_dir' (e.g. under WINDOWS)
-install_dir = $(create_dir)
+# note: directory $1 must not exist, 'sh_install_dir' may be implemented via 'sh_mkdir' (e.g. under WINDOWS)
+sh_install_dir = $(sh_mkdir)
 
 # install files (long list) to directory or copy file to file
 # $1 - files to install (to support long list, paths _must_ not contain spaces)
 # $2 - destination directory or file, path may contain spaces
 # $3 - optional access mode, such as 644 (rw--r--r-) or 755 (rwxr-xr-x)
 # note: if path to directory/file $2 contains a space, use 'ifaddq' to add double-quotes: "1 2/3 4"
-install_files = $(copy_files)
+sh_install_files = $(sh_copy_files)
 
 # paths separator, as used in %PATH% environment variable
 # note: override 'pathsep' macro from $(cb_dir)/core/runtool.mk
@@ -429,7 +433,7 @@ pathsep := ;
 # $4 - names of variables to set in the environment (export) to run given tool
 # note: override 'show_tool_vars' macro from $(cb_dir)/core/runtool.mk
 show_tool_vars = $(info setlocal$(foreach =,$(if $2,PATH) $4,$(newline)set $==$(call \
-  unquoted_escape,$($=)))$(newline)$(if $3,$(call execute_in_info,$3,$1),$1))
+  cmd_unquoted_escape,$($=)))$(newline)$(if $3,$(call sh_execute_in_info,$3,$1),$1))
 
 # show after executing a command
 # note: override 'show_tool_vars_end' macro from $(cb_dir)/core/runtool.mk
@@ -443,7 +447,7 @@ show_tool_vars_end = $(newline)@echo endlocal
 #  3>&2 2>&1 1>&3 (echo a)>&2|c:\cygwin64\bin\xxd.exe      -> 00000000: 6120 0d0a
 #  3>&2 2>&1 1>&3 ^(echo a^)>&2|c:\cygwin64\bin\xxd.exe    -> invalid command
 #  (3>&2 2>&1 1>&3 ^(echo a^)>&2)|c:\cygwin64\bin\xxd.exe  -> 00000000: 610d 0a
-filter_output = (($1 2>&1 &&^(echo ok^)>&2)$2)3>&2 2>&1 1>&3|$(FINDSTR) /XC:ok >$(NUL)
+cmd_filter_output = (($1 2>&1 &&^(echo ok^)>&2)$2)3>&2 2>&1 1>&3|$(FINDSTR) /XC:ok >$(NUL)
 
 # remember values of variables possibly taken from the environment
 $(call config_remember_vars,CBLD_DONT_FIX_MAKE_SHELL SHELL CBLD_DONT_FIX_ENV_PATH CBLD_MAX_PATH_ARGS \
@@ -452,16 +456,16 @@ $(call config_remember_vars,CBLD_DONT_FIX_MAKE_SHELL SHELL CBLD_DONT_FIX_ENV_PAT
 # protect macros from modifications in target makefiles,
 # do not trace calls to macros used in ifdefs, exported to the environment of called tools or modified via operator +=
 $(call set_global,CBLD_DONT_FIX_MAKE_SHELL SHELL CBLD_DONT_FIX_ENV_PATH CBLD_MAX_PATH_ARGS \
-  NUL DEL RD CD CMD FIND EXIT FINDSTR COPY MOVE DIR MD FC TYPE change_mode)
+  NUL DEL RD CD CMD FIND EXIT FINDSTR COPY MOVE DIR MD FC TYPE sh_chmod_some_files sh_chmod)
 
 # protect macros from modifications in target makefiles, allow tracing calls to them
 # note: trace namespace: utils
-$(call set_global,print_env=project_exported_vars shell_escape shell_args_to_unix delete_files delete_dirs try_delete_dirs \
-  delete_files_in2 delete_files_in1 delete_files_in del_files_or_dirs1 del_files_or_dirs filter_copy_output \
-  suppress_copy_output suppress_move_output copy_files1 copy_files move_files_or_dirs1 move_files_or_dirs \
-  simlink_files touch_files1 touch_files create_dir copy_dir copy_dir1 copy_dir2 simlink_dir compare_files cat_file \
-  unquoted_escape print_short_options write_options1 tokenize_options write_options print_short_line print_some_lines \
-  write_lines1 write_lines execute_in execute_in_info del_on_fail install_dir install_files filter_output,utils)
+$(call set_global,sh_print_env=project_exported_vars shell_escape shell_args_to_unix sh_rm_some_files sh_rm_some_dirs \
+  sh_try_rm_some_empty_dirs sh_rm_files_in2 sh_rm_files_in1 sh_rm_files_in sh_rm_recursive1 sh_rm_recursive \
+  cmd_filter_copy_output cmd_suppress_copy_output cmd_suppress_move_output sh_copy_files1 sh_copy_files sh_move1 sh_move \
+  sh_simlink_files sh_touch1 sh_touch sh_mkdir sh_copy_dir sh_copy_dir1 sh_copy_dir2 sh_simlink_dir sh_cmp_files sh_cat \
+  cmd_unquoted_escape sh_print_some_options sh_write_options1 tokenize_options sh_write_options sh_print_short_line sh_print_some_lines \
+  sh_write_lines1 sh_write_lines sh_execute_in sh_execute_in_info del_on_fail sh_install_dir sh_install_files cmd_filter_output,utils)
 
 # protect macros from modifications in target makefiles, allow tracing calls to them
 # note: trace namespace: runtool
