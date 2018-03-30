@@ -37,7 +37,7 @@ endef
 define install_lib_simlinks
 install_lib_$1_simlinks uninstall_lib_$1_simlinks: built_dlls := $$(notdir $$($1_built_dlls))
 install_lib_$1_simlinks uninstall_lib_$1_simlinks: rel_prefix := $$(call \
-  tospaces,$$(call relpath,$$(call unspaces,$2),$$(call unspaces,$3)))
+  unhide_comments,$$(call relpath,$$(call hide_spaces,$2),$$(call hide_spaces,$3)))
 install_lib_$1_simlinks: install_lib_$1_shared | $$(call need_install_dir_r,$2)
 	$$(foreach d,$$(built_dlls),$$(call \
   do_install_simlink,$$(rel_prefix)$$d.$(modver),$2/$$d)$$(newline))
