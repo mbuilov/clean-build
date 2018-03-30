@@ -26,7 +26,7 @@ define cb_need_files
 cb_needed_dirs += $(patsubst $(cb_build)/%/,%,$(dir $3))
 $(subst |, | ,$(subst ||,: ,$(subst / ,$(newline),$(join $(join $(3:=||),$(2:=|)),$(dir $3)) )))$1: $3
 $(call set_makefile_info_r,$(call suppress_targets_r,$3)):
-	$$(call suppress,LN,$$@)$$(call simlink_files,$$<,$$@)
+	$$(call suppress,LN,$$@)$$(call sh_simlink_files,$$<,$$@)
 endef
 
 # protect new value of 'cb_needed_dirs', do not trace calls to it because it's incremented
@@ -66,7 +66,7 @@ endif
 define cb_need_built_dirs
 $(call set_makefile_info_r,$(call suppress_targets_r,$2$1)): $(o_path) | $(patsubst %/,%,$(dir $2$1 $4))
 	$$(call cb_gen_dir_linking_rules,$(addprefix $(o_dir)/,$3),$4)
-	$$(call suppress,LN,$$@)$$(call simlink_files,$$<,$$@)
+	$$(call suppress,LN,$$@)$$(call sh_simlink_files,$$<,$$@)
 endef
 
 # link tool dirs from "public" place
@@ -77,7 +77,7 @@ endef
 define cb_need_tool_dirs
 $(call set_makefile_info_r,$(call suppress_targets_r,$2$1)): $(cb_build)/$(cb_tools_subdir)/$1 | $(patsubst %/,%,$(dir $2$1 $4))
 	$$(call cb_gen_dir_linking_rules,$(addprefix $(cb_build)/$(cb_tools_subdir)/,$3),$4)
-	$$(call suppress,LN,$$@)$$(call simlink_files,$$<,$$@)
+	$$(call suppress,LN,$$@)$$(call sh_simlink_files,$$<,$$@)
 endef
 
 # $1 - needed tag file, e.g.: gen/g1.tag
