@@ -46,7 +46,7 @@ CBLD_LINK_ARGS_LIMIT ?= $(CBLD_MAX_PATH_ARGS)
 # note: gcc response file parsing code assumes that arguments are passed via unix shell, but cmd.exe may be used as a shell...
 #  convert gcc arguments to the form accepted by gcc response file parsing code via 'shell_args_to_unix' - defined in $(utils_mk)
 gcc_rsp_wrap1 = $(if $5,$(call suppress,GEN,$5)$(call \
-  write_options,$(call shell_args_to_unix,$4),$5,$(CBLD_LINK_ARGS_LIMIT))$(newline))$(call \
+  sh_write_options,$(call shell_args_to_unix,$4),$5,$(CBLD_LINK_ARGS_LIMIT))$(newline))$(call \
   suppress,$1,$2)$3 $(if $5,@$(call gcc_path,$5),$4)
 
 # check if linker command line is too long - it is needed to create a response file for passing arguments to the linker
