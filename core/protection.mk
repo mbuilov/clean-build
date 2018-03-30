@@ -112,7 +112,7 @@ endif
 
 # list of environment variables modified in makefiles
 # note: this list is updated via 'env_remember' macro
-# note: this list is used by 'print_env' macro of $(utils.mk) - e.g. $(cb_dir)/utils/unix.mk
+# note: this list is used by 'sh_print_env' macro of $(utils.mk) - e.g. $(cb_dir)/utils/unix.mk
 cb_changed_env_vars:=
 
 # remember new values of variables possibly defined in the environment
