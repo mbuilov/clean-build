@@ -32,7 +32,7 @@ $(call set_makefile_specific,src_text_templ seq)
 # note: use target makefile-specific variable 'src_text_templ' defined above
 # note: 'generated' - defined in $(top)/n.mk
 $(call add_generated_r,$(generated)):
-	$(call suppress,GEN,$@)$(call print_some_lines,$(call src_text_templ,$(patsubst f%,%,$(basename $(notdir $@))))) > $@
+	$(call suppress,GEN,$@)$(call sh_print_some_lines,$(call src_text_templ,$(patsubst f%,%,$(basename $(notdir $@))))) > $@
 
 # foo.c template
 # note: 'seq' - target makefile-specific variable registered above via 'set_makefile_specific'
@@ -49,7 +49,7 @@ endef
 # note: 'test_gen_dir' - defined in $(top)/n.mk
 $(test_gen_dir)/foo.c: $(call define_target_specific,foo_templ)
 $(call add_generated_r,$(test_gen_dir)/foo.c):
-	$(call suppress,GEN,$@)$(call write_lines,$(foo_templ),$@,$(CBLD_MAX_PATH_ARGS))
+	$(call suppress,GEN,$@)$(call sh_write_lines,$(foo_templ),$@,$(CBLD_MAX_PATH_ARGS))
 
 else # toclean
 
