@@ -33,9 +33,9 @@ out := $(exe_test_rule_r)
 # Note: must not use "local" variables (e.g. 'out') in rule bodies - may use only target-specific, automatic or "global"
 #  (registered by 'set_global' macro) variables, here use $| (automatic variable) - list of order-only dependencies of the target,
 #  for this rule it contains only the $(out)
-# Note: 'cat_file' - one of clean-build defined shell utilities functions
+# Note: 'sh_cat' - one of clean-build defined shell utilities functions
 $(call suppress_targets_r,$(call set_makefile_info_r,hello)): | $(out)
-	$(call suppress,CAT,$|)$(call cat_file,$|) >&2
+	$(call suppress,CAT,$|)$(call sh_cat,$|) >&2
 
 # to complete clean-build predefined 'check' goal, it is needed to update our target 'hello'
 check: hello
