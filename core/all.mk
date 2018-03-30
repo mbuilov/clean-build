@@ -131,9 +131,9 @@ $(eval $(call mk_dir_deps,$(cb_needed_dirs),$(dir $(cb_build))))
 
 # define rules for creating $(cb_build)-relative directories
 # note: 'suppress_targets_r' - defined in $(cb_dir)/core/suppress.mk
-# note: 'create_dir' - defined in the included before $(utils_mk) makefile
+# note: 'sh_mkdir' - defined in the included before $(utils_mk) makefile
 $(call suppress_targets_r,$(addprefix $(dir $(cb_build)),$(cb_needed_dirs))):
-	$(call suppress,MKDIR,$@)$(call create_dir,$@)
+	$(call suppress,MKDIR,$@)$(call sh_mkdir,$@)
 
 # fix 'cb_add_shown_percents' macro from $(cb_dir)/core/suppress.mk
 # note: 'suppress_targets' - defined in $(cb_dir)/core/suppress.mk
@@ -151,9 +151,9 @@ all:
 	@:
 
 # cleanup built files: 'cb_to_clean' list contains $(cb_build)-relative paths
-# note: 'del_files_or_dirs' macro is defined in the included before $(utils_mk) makefile
+# note: 'sh_rm_recursive' macro is defined in the included before $(utils_mk) makefile
 clean:
-	$(quiet)$(call del_files_or_dirs,$(addprefix $(cb_build)/,$(sort $(cb_to_clean))))
+	$(quiet)$(call sh_rm_recursive,$(addprefix $(cb_build)/,$(sort $(cb_to_clean))))
 
 # build 'all' goal to build or run tests
 # note: assume rules for the 'check' and 'tests' goals are defined elsewhere
@@ -165,7 +165,7 @@ check tests: all
 # at end of first phase - after all makefiles are parsed - print prepared environment variables for the rules
 ifdef verbose
 # note: strip-off last newline
-prepared_env := $(subst $(newline)|,,$(subst $(newline)| ,$(newline),$(print_env)))
+prepared_env := $(subst $(newline)|,,$(subst $(newline)| ,$(newline),$(sh_print_env)))
 ifdef prepared_env
 $(info $(prepared_env))
 endif
