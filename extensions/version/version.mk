@@ -63,7 +63,7 @@ $(generated): $(if $(product_build),,| $(call get_tool,buildnumber))
 	$(if \
   $(build),,$(eval $$@: build := $$(shell $$(firstword $$|)))$(if \
   $(build),,$(error 'product_build' is not defined and failed to determine it)))$(call \
-  suppress,GEN,$@)$(call print_some_lines,$(subst <build_date_time>,$(subst /,-,$(word \
+  suppress,GEN,$@)$(call sh_print_some_lines,$(subst <build_date_time>,$(subst /,-,$(word \
   2,$(build))) $(word 3,$(build)),$(subst <build_num>,$(firstword $(build)),$(templ)))) > $@
 
 $(define_targets)
