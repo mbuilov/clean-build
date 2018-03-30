@@ -23,11 +23,11 @@ CBLD_CMP_COLOR ?= [1;36m
 # $1 - $(addsuffix .cmp,$2)
 # $2 - list of outputs of tested executables (absolute paths)
 # $3 - absolute path to the file to compare outputs with
-# note: 'compare_files' - defined in $(utils_mk) makefile (such as $(cb_dir)/utils/unix.mk)
+# note: 'sh_cmp_files' - defined in $(utils_mk) makefile (such as $(cb_dir)/utils/unix.mk)
 define cmp_text_rule_templ
 $(subst $(space),$(newline),$(join $(addsuffix :,$1),$2))
 $(cb_target_vars_r):
-	$$(call suppress,CMP,$$@)$$(call compare_files,$$<,$3) > $$@
+	$$(call suppress,CMP,$$@)$$(call sh_cmp_files,$$<,$3) > $$@
 endef
 
 # for the 'check' goal, compare outputs of tested executables with given file:
