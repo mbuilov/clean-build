@@ -14,8 +14,8 @@ include $(dir $(lastword $(MAKEFILE_LIST)))inst_dirs.mk
 # create a directory (with intermediate parent directories) while installing things
 # $1 - path to the directory to create, path may contain spaces, such as: "C:/Program Files/AcmeCorp"
 # note: pass non-empty 3-d argument to 'suppress' function to not colorize tool arguments
-# note: 'install_dir' - defined in $(utils_mk) makefile (such as $(cb_dir)/utils/unix.mk)
-do_install_dirq = $(call suppress,MKDIR,$(ospath),1)$(install_dir)
+# note: 'sh_install_dir' - defined in $(utils_mk) makefile (such as $(cb_dir)/utils/unix.mk)
+do_install_dirq = $(call suppress,MKDIR,$(ospath),1)$(sh_install_dir)
 do_install_dir  = $(call do_install_dirq,$(ifaddq))
 
 # install file(s) (long list) to a directory or copy file to a file
@@ -23,8 +23,8 @@ do_install_dir  = $(call do_install_dirq,$(ifaddq))
 # $2 - destination directory or file, path may contain spaces
 # $3 - optional access mode, such as 644 (rw--r--r-) or 755 (rwxr-xr-x)
 # note: pass non-empty 3-d argument to 'suppress' function to not colorize tool arguments
-# note: 'install_files' - defined in $(utils_mk) makefile (such as $(cb_dir)/utils/unix.mk)
-do_install_filesq = $(call suppress,CP,$(ospath) -> $(call ospath,$2),1)$(install_files)
+# note: 'sh_install_files' - defined in $(utils_mk) makefile (such as $(cb_dir)/utils/unix.mk)
+do_install_filesq = $(call suppress,CP,$(ospath) -> $(call ospath,$2),1)$(sh_install_files)
 do_install_files  = $(call do_install_filesq,$1,$(call ifaddq,$2))
 
 # create symbolic link $2 -> $1 while installing things
@@ -32,37 +32,37 @@ do_install_files  = $(call do_install_filesq,$1,$(call ifaddq,$2))
 # $2 - simlink, such as '/opt/package 1/link', path may contain spaces
 # NOTE: for UNIX only
 # note: pass non-empty 3-d argument to 'suppress' function to not colorize tool arguments
-# note: 'create_simlink' - defined in $(utils_mk) makefile (such as $(cb_dir)/utils/unix.mk)
-do_install_simlinkqq = $(call suppress,LN,$2 -> $1,1)$(create_simlink)
+# note: 'sh_simlink_files' - defined in $(utils_mk) makefile (such as $(cb_dir)/utils/unix.mk)
+do_install_simlinkqq = $(call suppress,LN,$2 -> $1,1)$(sh_simlink_files)
 do_install_simlink   = $(call do_install_simlinkqq,$(ifaddq),$(call ifaddq,$2))
 
 # delete file or simlink while uninstalling things
 # $1 - file/simlink to delete, path may contain spaces, such as: "C:/Program Files/AcmeCorp/file 1.txt"
 # note: pass non-empty 3-d argument to 'suppress' function to not colorize tool arguments
-# note: 'delete_files' - defined in $(utils_mk) makefile (such as $(cb_dir)/utils/unix.mk)
-do_uninstall_fileq = $(call suppress,RM,$(ospath),1)$(delete_files)
+# note: 'sh_rm_some_files' - defined in $(utils_mk) makefile (such as $(cb_dir)/utils/unix.mk)
+do_uninstall_fileq = $(call suppress,RM,$(ospath),1)$(sh_rm_some_files)
 do_uninstall_file  = $(call do_uninstall_fileq,$(ifaddq))
 
 # delete files in a directory while uninstalling things
 # $1 - path to the directory where to delete files, path may contain spaces, such as: "C:/Program Files/AcmeCorp"
 # $2 - $1-relative paths to the files to delete (long list), to support long list, paths _must_ be without spaces
 # note: pass non-empty 3-d argument to 'suppress' function to not colorize tool arguments
-# note: 'delete_files_in' - defined in $(utils_mk) makefile (such as $(cb_dir)/utils/unix.mk)
-do_uninstall_files_inq = $(call suppress,RM,$(ospath) -> $(call ospath,$2),1)$(delete_files_in)
+# note: 'sh_rm_files_in' - defined in $(utils_mk) makefile (such as $(cb_dir)/utils/unix.mk)
+do_uninstall_files_inq = $(call suppress,RM,$(ospath) -> $(call ospath,$2),1)$(sh_rm_files_in)
 do_uninstall_files_in  = $(call do_uninstall_files_inq,$(ifaddq),$2)
 
 # recursively delete a directory (with files in it) while uninstalling things
 # $1 - directory to delete, path may contain spaces, such as: "C:/Program Files/AcmeCorp"
 # note: pass non-empty 3-d argument to 'suppress' function to not colorize tool arguments
-# note: 'delete_dirs' - defined in $(utils_mk) makefile (such as $(cb_dir)/utils/unix.mk)
-do_uninstall_dirq = $(call suppress,RMDIR,$(ospath),1)$(delete_dirs)
+# note: 'sh_rm_some_dirs' - defined in $(utils_mk) makefile (such as $(cb_dir)/utils/unix.mk)
+do_uninstall_dirq = $(call suppress,RMDIR,$(ospath),1)$(sh_rm_some_dirs)
 do_uninstall_dir  = $(call do_uninstall_dirq,$(ifaddq))
 
 # try to non-recursively delete a directory if it is empty while uninstalling things
 # $1 - directory to delete, path may contain spaces, such as: "C:/Program Files/AcmeCorp"
 # note: pass non-empty 3-d argument to 'suppress' function to not colorize tool arguments
-# note: 'try_delete_dirs' - defined in $(utils_mk) makefile (such as $(cb_dir)/utils/unix.mk)
-do_try_uninstall_dirq = $(call suppress,RMDIR,$(ospath),1)$(try_delete_dirs)
+# note: 'sh_try_rm_some_empty_dirs' - defined in $(utils_mk) makefile (such as $(cb_dir)/utils/unix.mk)
+do_try_uninstall_dirq = $(call suppress,RMDIR,$(ospath),1)$(sh_try_rm_some_empty_dirs)
 do_try_uninstall_dir  = $(call do_try_uninstall_dirq,$(ifaddq))
 
 # global list of directories to install
@@ -82,10 +82,10 @@ build_system_goals += install_dirs
 
 # define the rule for creating installation directories,
 #  add those directories to global list 'cb_needed_install_dirs'
-# $1 - result of $(call split_dirs,$1) on directories processed by $(call unspaces,...)
-# $2 - list of directories to create: $(subst $(space),\ ,$(tospaces))
+# $1 - result of $(call split_dirs,$1) on directories processed by $(call hide_spaces,...)
+# $2 - list of directories to create: $(subst $(space),\ ,$(unhide_comments))
 define add_install_dirs_templ
-$(subst :|,:| ,$(subst $(space),\ ,$(call tospaces,$(subst $(space),,$(mk_dir_deps)))))
+$(subst :|,:| ,$(subst $(space),\ ,$(call unhide_comments,$(subst $(space),,$(mk_dir_deps)))))
 $2:
 	$$(call do_install_dir,$$(subst \ , ,$$@))
 install_dirs: $2
@@ -100,8 +100,9 @@ endif
 
 # register a rule for creating a directory while installing things
 # $1 - directory to install, absolute (unix) path, may contain spaces: C:/Program Files/AcmeCorp
-need_install_dir1 = $(if $1,$(eval $(call add_install_dirs_templ,$1,$(subst $(space),\ ,$(tospaces)))))
-need_install_dir = $(call need_install_dir1,$(filter-out $(cb_needed_install_dirs),$(subst %,$$(percent),$(call split_dirs,$(unspaces)))))
+need_install_dir1 = $(if $1,$(eval $(call add_install_dirs_templ,$1,$(subst $(space),\ ,$(unhide_comments)))))
+need_install_dir  = $(call need_install_dir1,$(filter-out $(cb_needed_install_dirs),$(call \
+  split_dirs,$(subst %,$$(percent),$(hide_spaces)))))
 
 # same as 'need_install_dir', but return needed directory with spaces prefixed by slash: C:/Program\ Files/AcmeCorp
 need_install_dir_r = $(need_install_dir)$(subst $(space),\ ,$1)
