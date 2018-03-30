@@ -90,13 +90,13 @@ endif
 # $1 - linker with options
 # target-specific: 'imp' (may be empty) - defined by mod_exports_template/no_exports_template from $(cb_dir)/compilers/msvc/exp.mk
 # note: no diagnostic message is printed in debug build, so ignore <strip_expr>
-# note: 'filter_output' - sends command output to stderr, defined in $(cb_dir)/utils/cmd.mk
+# note: 'cmd_filter_output' - sends command output to stderr, defined in $(cb_dir)/utils/cmd.mk
 ifndef no_wrap_msvc_tools
 $(eval <wrap_linker> = $$(if $$(imp),$$(call \
-  filter_output,$$1,|$(FIND) /V "$$(basename $$(notdir $$(imp))).exp"),$(value <wrap_linker>)))
+  cmd_filter_output,$$1,|$(FIND) /V "$$(basename $$(notdir $$(imp))).exp"),$(value <wrap_linker>)))
 ifndef debug
 ifneq (,<strip_expr>)
-<wrap_linker> = $(call filter_output,$1,<strip_expr>$(patsubst %, |$(FIND) /V "%.exp",$(basename $(notdir $(imp)))))
+<wrap_linker> = $(call cmd_filter_output,$1,<strip_expr>$(patsubst %, |$(FIND) /V "%.exp",$(basename $(notdir $(imp)))))
 endif
 endif
 endif
@@ -129,17 +129,17 @@ msvc_deps_script = \
 -e "s/^$4 *//;$(subst ?, ,$(foreach x,$5,\@^$x.*@Id;))s/ /\\ /g;s@.*@&:\n$3: &@;w $(basename $3)$(c_dep_suffix)"
 
 # code to define compiler wrapper macros (for calling cl.exe with and without dependencies auto-generation)
-# note: 'filter_output' - defined in $(cb_dir)/utils/cmd.mk
+# note: 'cmd_filter_output' - defined in $(cb_dir)/utils/cmd.mk
 # note: 'c_dep_suffix' - defined in $(cb_dir)/types/c/c_base.mk
 define msvc_wrap_complier_templ
 
 # just strip-off names of compiled sources
 # $1 - compiler with options
 # $2 - path(s) to the source(s) (non-empty)
-# note: 'filter_output' sends command output to stderr
+# note: 'cmd_filter_output' sends command output to stderr
 # note: send output to stderr in verbose mode, this is needed for build script generation
 ifndef no_wrap_msvc_tools
-<wrap_cc_nodep> = $(call filter_output,$1,$(addprefix |$(FINDSTR) /VXC:,$(notdir $2)))
+<wrap_cc_nodep> = $(call cmd_filter_output,$1,$(addprefix |$(FINDSTR) /VXC:,$(notdir $2)))
 else ifdef verbose
 <wrap_cc_nodep> = $1 >&2
 else
