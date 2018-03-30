@@ -57,12 +57,12 @@ $(call add_generated_r,$(g_dir)/out.txt):
 	$(quiet)$(call test,$(t11)) >> $@
 	$(quiet)$(call test,$(t12)) >> $@
 
-# register generated file '$(g_dir)/cmp.txt', define a rule for generating it - call one of shell utilities macros 'compare_files'
+# register generated file '$(g_dir)/cmp.txt', define a rule for generating it - call one of shell utilities macros 'sh_cmp_files'
 # note: automatic variable $< - the name of the first prerequisite: $(a_dir)/result.txt
 # note: automatic variable $^ - names of all prerequisites:         $(a_dir)/result.txt $(g_dir)/out.txt
 # note: automatic variable $@ - target file:                        $(g_dir)/cmp.txt
 $(call add_generated_r,$(g_dir)/cmp.txt): $(a_dir)/result.txt $(g_dir)/out.txt
-	$(call suppress,CMP,$@)$(call compare_files,$<,$(lastword $^)) > $@
+	$(call suppress,CMP,$@)$(call sh_cmp_files,$<,$(lastword $^)) > $@
 
 # this macro must be expanded at end of target makefile, as required by 'cb_prepare' expanded at head
 $(define_targets)
