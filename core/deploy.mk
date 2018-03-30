@@ -84,7 +84,7 @@ cb_needed_dirs += $(patsubst $(cb_build)/%/,%,$(dir $2))
 $(subst |, | ,$(subst ||,: ,$(subst / ,$(newline),$(join $(join $(2:=||),$(1:=|)),$(dir $2)) )))$(call \
   set_makefile_info_r,$(cb_target_makefile)-): $2
 $(call suppress_targets_r,$2):
-	$$(call suppress,LN,$$@)$$(call simlink_files,$$<,$$@)
+	$$(call suppress,LN,$$@)$$(call sh_simlink_files,$$<,$$@)
 endef
 
 # deploy built tools - link them from private modules build directories to "public" place
@@ -97,7 +97,7 @@ define cb_deploy_tool_files
 cb_needed_dirs += $(patsubst $(cb_build)/%/,%,$(dir $2))
 $(subst |, | ,$(subst ||,: ,$(subst / ,$(newline),$(join $(join $(2:=||),$(1:=|)),$(dir $2)) )))$(cb_target_makefile)-: $2
 $(call set_makefile_info_r,$(call suppress_targets_r,$2)):
-	$$(call suppress,LN,$$@)$$(call simlink_files,$$<,$$@)
+	$$(call suppress,LN,$$@)$$(call sh_simlink_files,$$<,$$@)
 endef
 
 # $1 - deployed files - simple paths relative to virtual $(out_dir), e.g.: bin/tool.exe gen/tool.cfg
@@ -121,11 +121,11 @@ deploy_files = $(eval $(call deploy_files1,$1,$(o_path)))
 # $1 - source dirs,      e.g.: /build/tt/s1/1 /build/tt/s2/2
 # $2 - destination dirs, e.g.: /build/dd/s1/1 /build/dd/s2/2
 # result:
-#  $(call suppress_more,LN,/build/dd/s1/1)$(call simlink_dir,/build/tt/s1/1,/build/dd/s1)
-#  $(call suppress_more,LN,/build/dd/s2/2)$(call simlink_dir,/build/tt/s2/2,/build/dd/s2)
+#  $(call suppress_more,LN,/build/dd/s1/1)$(call sh_simlink_dir,/build/tt/s1/1,/build/dd/s1)
+#  $(call suppress_more,LN,/build/dd/s2/2)$(call sh_simlink_dir,/build/tt/s2/2,/build/dd/s2)
 cb_gen_dir_linking_rules = $(subst $$(space), ,$(subst $(space),$(newline),$(join $(patsubst \
   %,$$(call$$(space)suppress_more,LN,%),$2),$(patsubst \
-  %,$$(call$$(space)simlink_dir,%),$(join $(1:=,),$(patsubst %/,%,$(dir $2)))))))
+  %,$$(call$$(space)sh_simlink_dir,%),$(join $(1:=,),$(patsubst %/,%,$(dir $2)))))))
 
 # deploy built directories - link them from tag file's private build directory to "public" place
 # $1 - built tag file, e.g.: /build/p/tt/gen1-tag1.tag@-/tt/gen1/tag1.tag
@@ -137,7 +137,7 @@ cb_needed_dirs += $(patsubst $(cb_build)/%/,%,$(dir $2 $4))
 $(cb_target_makefile)-: $2
 $(call set_makefile_info_r,$(call suppress_targets_r,$2)): $1 | $(patsubst %/,%,$(dir $2 $4))
 	$$(call cb_gen_dir_linking_rules,$3,$4)
-	$$(call suppress,LN,$$@)$$(call simlink_files,$$<,$$@)
+	$$(call suppress,LN,$$@)$$(call sh_simlink_files,$$<,$$@)
 endef
 
 # $1 - deployed tag file - simple path relative to virtual $(out_dir),  e.g.: gen1/tag1.tag
