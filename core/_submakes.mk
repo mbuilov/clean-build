@@ -110,6 +110,7 @@ ifdef cb_mdebug
 
 # get debug info to show prior including sub-makefiles, e.g.: ">>>>/project/group.mk"
 # note: CBLD_LEVEL_COLOR and 'cb_colorize' - defined in $(cb_dir)/core/_defs.mk
+# note: one space after $(call cb_colorize,GROUP,GROUP)
 cb_submakefiles_info = $(call cb_colorize,GROUP,GROUP) $(call cb_colorize,LEVEL,$(subst $(space),,$(cb_include_level)))$(dir \
   $(cb_target_makefile))$(call cb_colorize,GROUP,$(notdir $(cb_target_makefile)))
 
