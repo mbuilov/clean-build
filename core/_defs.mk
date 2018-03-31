@@ -323,7 +323,7 @@ endef
 
 # remember new value of 'cb_needed_dirs', without tracing calls to it because it's incremented
 ifdef cb_checking
-$(call define_append,generate_dirs1,$(newline)$(call set_global1,cb_needed_dirs))
+$(call define_append,generate_dirs1,$(newline)$$(call set_global1,cb_needed_dirs))
 endif
 
 # add directories to the list of auto-created ones for a given target
@@ -428,7 +428,7 @@ cb_target_vars = $(call toclean,$1,$1)
 # note: callers of 'generate_dirs' or 'cb_target_vars' may assume that it will protect new value of 'cb_needed_dirs', so callers
 #  _may_ change 'cb_needed_dirs' without protecting it - before the call. Protect 'cb_needed_dirs' here (do not optimize!).
 # remember new value of 'cb_needed_dirs' without tracing calls to it because it is incremented
-ifndef cb_checking
+ifdef cb_checking
 $(eval generate_dirs = $(value generate_dirs)$$(call set_global,cb_needed_dirs))
 $(eval cb_target_vars = $(value cb_target_vars)$$(call set_global,cb_needed_dirs))
 endif
@@ -438,7 +438,10 @@ add_order_deps:=
 
 endif # toclean
 
-# same as 'cb_target_vars', but add one line containing $1 - simple paths relative to virtual $(out_dir), e.g.: gen/file.txt
+# same as 'generate_dirs', but return target $1 -  simple path relative to virtual $(out_dir), e.g.: gen/file.txt
+generate_dirs_r = $(generate_dirs)$1
+
+# same as 'cb_target_vars', but add one line containing targets $1 - simple paths relative to virtual $(out_dir), e.g.: gen/file.txt
 define cb_target_vars_r
 $(cb_target_vars)
 $1
@@ -599,23 +602,22 @@ endif # set_global1
 # ***********************************************
 # code to $(eval ...) at the end of each target makefile
 # include $(cb_dir)/core/all.mk only if $(cb_include_level) is empty and not inside a call of $(make_continue)
-# note: $(make_continue) before expanding $(cb_def_tail) adds ~ to $(cb_make_cont) list
+# note: $(make_continue) before expanding $(cb_def_tail) adds ~ to 'cb_make_cont' list
 cb_def_tail = $(if $(findstring ~,$(cb_make_cont)),,$(if $(cb_include_level),cb_head_eval:=,include $(cb_dir)/core/all.mk))
 
-# prepend 'cb_def_tail' with $(cb_check_at_tail) - it is defined in $(cb_dir)/core/protection.mk
+# prepend 'cb_def_tail' with $(cb_check_at_tail) - it's defined in $(cb_dir)/core/protection.mk
 ifdef cb_checking
 $(call define_prepend,cb_def_tail,$$(cb_check_at_tail)$(newline))
 endif
 
 # called by 'cb_def_targets' if it was not properly redefined in 'cb_def_head'
 cb_no_def_head_err = $(error $$(cb_def_head) was not evaluated at head of makefile!)
-....
 
 # 1) redefine 'cb_def_targets' macro to produce an error if $(cb_def_head) was not evaluated prior expanding it
 # note: the same check is performed in $(cb_check_at_tail), but it will be done only after expanding templates added by the
 #  previous target makefile - this may lead to errors, because templates were not prepared by the previous $(cb_head_eval)
 # 2) remember new values of 'cb_head_eval' (which was reset to empty) and 'cb_def_targets' (which produces an error),
-#  do not trace calls to them: value of 'cb_head_eval' is checked in 'cb_prepare' below
+#  do not trace calls to them: value of 'cb_head_eval' is checked in 'cb_prepare' below, 'cb_def_targets' already produces an error
 ifdef cb_checking
 $(eval define cb_def_tail$(newline)$(subst :=,:=$$(newline)cb_def_targets=$$$$(cb_no_def_head_err)$$(newline)$$(call \
   set_global1,cb_head_eval cb_def_targets),$(value cb_def_tail))$(newline)endef)
@@ -632,10 +634,10 @@ define_targets = $(eval $(cb_def_targets))
 
 # prepare template of target type (C, Java, etc.) for building (initialize its variables):
 # init1->init2...->initN <define variables of target type templates> rulesN->...->rules2->rules1
-# $1 - the name of the macro, the expansion of which gives the code for the initialization of target type template variables
-# $2 - the name of the macro, the expansion of which gives the code for defining target type rules (by expanding target type template)
+# $1 - name of a macro, expansion of which gives a code for initialization of target type template variables
+# $2 - name of a macro, expansion of which gives a code for defining target type rules (by expanding target type template)
 # NOTE: if $1 is empty, just evaluate $(cb_def_head), if it wasn't evaluated yet
-# NOTE: if $1 is non-empty, expand it now via $(call $1) to not pass any parameters into the expansion
+# NOTE: if $1 is non-empty, expand it now via $(call $1) - without arguments - to not pass any parameters into the expansion
 # NOTE: if $1 is non-empty, then $2 must also be non-empty: $1 - init template (now), $2 - expand template (later)
 cb_prepare = $(if $(value cb_head_eval),,$(eval $(cb_def_head)))$(if $1,$(eval \
   cb_head_eval=$(value cb_head_eval)$$(eval $$($1)))$(eval \
@@ -659,19 +661,17 @@ endif # set_global
 # ***********************************************
 
 # before $(make_continue): save variables to restore them after (via 'cb_restore_vars' macro)
-cb_save_vars = $(eval $(foreach v,$1,$(if $(findstring \
-  simple,$(flavor $v)),$v.^s:=$$($v),define $v.^s$(newline)$(value $v)$(newline)endef)$(newline)))
+cb_save_vars = $(foreach v,$1,$(eval \
+  $(if $(findstring simple,$(flavor $v)),$$v.^s:=$$($$v),$(call define_multiline,$$v.^s,$(value $v)))))
 
 # after $(make_continue): restore variables saved before (via 'cb_save_vars' macro)
-cb_restore_vars = $(eval $(foreach v,$1,$(if $(findstring \
-  simple,$(flavor $v.^s)),$v:=$$($v.^s),define $v$(newline)$(value $v.^s)$(newline)endef)$(newline)))
+cb_restore_vars = $(foreach v,$1,$(eval \
+  $(if $(findstring simple,$(flavor $v.^s)),$$v:=$$($$v.^s),$(call define_multiline,$$v,$(value $v.^s)))))
 
 # reset %.^s variables
 # note: 'cb_reset_saved_vars' - defined in $(cb_dir)/core/protection.mk
 ifdef cb_checking
-$(eval cb_restore_vars = $(subst \
-  $(close_brace)$(close_brace)$(close_brace),$(close_brace)$(close_brace)$$(cb_reset_saved_vars)$(close_brace),$(value \
-  cb_restore_vars)))
+$(eval cb_restore_vars = $(value cb_restore_vars)$$(eval $$(cb_reset_saved_vars)))
 endif
 
 # use $(make_continue) to define more than one targets in a single makefile
@@ -704,7 +704,7 @@ make_continue = $(if $1,$(cb_save_vars))$(eval cb_make_cont+=~)$(call define_tar
 
 # remember new value of 'cb_make_cont' (without tracing calls to it)
 ifdef cb_checking
-$(eval make_continue = $(subst $$(call define_targets),$$(call set_global,cb_make_cont)$$(call define_targets),$(value make_continue)))
+$(eval make_continue = $(subst ~,~$(newline)$$(call set_global1,cb_make_cont),$(value make_continue)))
 endif
 
 # define functions: 'fixpath', 'ospath', 'ifaddq', 'path_unspaces', 'qpath' and 'gmake_path'
@@ -718,30 +718,19 @@ include $(cb_dir)/core/runtool.mk
 # note: $(cb_dir)/utils/cmd.mk overrides macros defined in $(cb_dir)/core/runtool.mk: 'pathsep', 'show_tool_vars', 'show_tool_vars_end'
 include $(utils_mk)
 
-# product version in form "major.minor" or "major.minor.patch"
-# Note: this is the default value of 'modver' variable - per-module version number defined by 'c_prepare_base_vars' template from
-#  $(cb_dir)/types/c/c_base.mk
-product_version := 0.0.1
-
-# CBLD_NO_DEPS - if defined, then do not generate, process or cleanup previously generated auto-dependencies
-# note: by default, do not generate auto-dependencies for release builds
-#ifeq (undefined,$(origin CBLD_NO_DEPS))
-#CBLD_NO_DEPS := $(if $(debug),,1)
-#endif
-
 # remember values of variables possibly taken from the environment
 # note: CBLD_BUILD - initialized in the project configuration makefile - $(cb_dir)/stub/project.mk
 $(call config_remember_vars,CBLD_BUILD CBLD_TARGET CBLD_TOOL_TARGET)
 
 # makefile parsing first phase variables
-# Note: 'o_dir', 'o_path' and 'debug' change their values depending on the value of 'tool_mode' variable set in the last
-#  parsed makefile, so clear these variables before rule execution second phase
+# Note: 'debug' variable change its value depending on the value of 'tool_mode' variable set in the last
+#  parsed makefile, so clear this variables before rule execution second phase
 cb_first_phase_vars += cb_needed_dirs build_system_goals debug cb_set_default_vars cb_tool_override_vars \
   order_deps toclean cb_target_makefile add_mdeps set_makefile_info set_makefile_info_r cb_add_what_makefile_builds \
   add_order_deps generate_dirs1 generate_dirs cb_target_vars2 cb_what_makefile_builds cb_what_makefile_builds1 \
-  cb_target_vars1 cb_target_vars cb_target_vars_r add_generated add_generated_r tool_mode is_tool_mode cb_tool_mode_adjust \
-  cb_tool_mode_access_error cb_include_level cb_target_makefiles cb_head_eval cb_make_cont cb_def_head cb_show_leaf_mk \
-  cb_def_tail cb_def_targets define_targets cb_prepare cb_save_vars cb_restore_vars make_continue
+  cb_target_vars1 cb_target_vars generate_dirs_r cb_target_vars_r add_generated add_generated_r tool_mode is_tool_mode \
+  cb_tool_mode_adjust cb_tool_mode_access_error cb_include_level cb_target_makefiles cb_head_eval cb_make_cont cb_def_head \
+  cb_show_leaf_mk cb_def_tail cb_no_def_head_err cb_def_targets define_targets cb_prepare cb_save_vars cb_restore_vars make_continue
 
 # protect macros from modifications in target makefiles,
 # do not trace calls to macros used in ifdefs, exported to the environment of called tools or modified via operator +=
@@ -755,9 +744,9 @@ $(call set_global,cb_project_vars clean_build_version cb_dir clean_build_require
   cb_build project_supported_targets project_supported_tool_targets cb_set_default_vars cb_tool_override_vars \
   cb_first_makefile cb_target_makefile add_mdeps set_makefile_info set_makefile_info_r cb_add_what_makefile_builds \
   add_order_deps=order_deps=order_deps generate_dirs1 generate_dirs cb_target_vars2 cb_what_makefile_builds cb_what_makefile_builds1 \
-  cb_target_vars1 cb_target_vars cb_target_vars_r add_generated add_generated_r is_tool_mode cb_tool_mode_adjust \
+  cb_target_vars1 cb_target_vars generate_dirs_r cb_target_vars_r add_generated add_generated_r is_tool_mode cb_tool_mode_adjust \
   cb_tool_mode_access_error cb_def_head cb_show_leaf_mk cb_check_targets cb_def_tail cb_no_def_head_err \
-  cb_def_targets define_targets cb_prepare cb_save_vars cb_restore_vars make_continue product_version,core)
+  cb_def_targets define_targets cb_prepare cb_save_vars cb_restore_vars make_continue,core)
 
 # if 'toclean' value is non-empty, allow tracing calls to it (with trace namespace: toclean),
 # else - just protect 'toclean' from changes, do not make it's value non-empty - because 'toclean' is checked in ifdefs
@@ -770,17 +759,3 @@ endif
 # define auxiliary macros: 'non_parallel_execute', 'multi_target' and 'multi_target_r'
 include $(cb_dir)/core/nonpar.mk
 include $(cb_dir)/core/multi.mk
-
-# add more files to "deployed tools group"
-# $1 - deployed files - simple paths relative to virtual $(out_dir), e.g.: bin/tool.exe gen/tool.cfg
-# $2 - alias name of deployed tools group
-#cb_form_deployed_files_group = $(if $2,$$2.^d $(if $(findstring file,$(origin $2.^d)),+,:)= $$1$(newline),$(error \
-#  deployed tools group alias name is not specified))
-
-# add more directories to "deployed tools group"
-# $1 - deployed tag file - simple path relative to virtual $(out_dir), e.g.: gen/tag1.tag
-# $2 - deployed directories - simple paths relative to virtual $(out_dir), e.g.: gen/gen1 gen/gen2
-# $3 - alias name of deployed tools group
-#cb_form_deployed_dirs_group = $(if $3,$$3.^d $(if $(findstring file,$(origin $3.^d)),+,:)= $$(subst \
-#  $$(space),|,$$1 $$2)$(newline),$(error deployed tools group alias name is not specified))
-
