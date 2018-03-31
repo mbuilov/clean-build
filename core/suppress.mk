@@ -81,6 +81,7 @@ include $(cb_dir)/core/seq.mk
 # 'suppress_targets' - register (leaf) targets in those rules 'suppress' macro is used (for updating percent of building targets)
 # note: here 'cb_seq' is used to count all targets while first "makefiles parsing" phase - this value will be used in
 #  $(cb_dir)/core/all.mk for replacing placeholders <TRG_COUNT> and <TRG_COUNT1> in defined below 'cb_add_shown_percents'
+# note: surround $(foreach) expression with fake $(if) to not produce any text as result of expansion
 suppress_targets = $(if $(foreach =,$1,$(cb_seq)),)
 
 # same as 'suppress_targets', but return passed targets $1
@@ -99,6 +100,8 @@ cb_shown_remainder:=
 # 4) current = 3, percents3 = percents2 + int((remainder2 + 100)/total), remainder3 = rem((remainder2 + 100)/total)
 # ...
 # note: <TRG_COUNT> and <TRG_COUNT1> are replaced in $(cb_dir)/core/all.mk
+# TODO: optimize: $(word <TRG_COUNT>,$1)             -> $(findstring xxx,$1)
+# TODO: optimize: $(wordlist <TRG_COUNT1>,999999,$1) -> $(subst @xxx,,@$1)
 cb_add_shown_percents = $(if $(word <TRG_COUNT>,$1),+ $(call \
   cb_add_shown_percents,$(wordlist <TRG_COUNT1>,999999,$1)),$(newline)cb_shown_remainder:=$1)
 
