@@ -118,6 +118,12 @@ endif # cb_checking
 #  for example, if need to create a/b/c1 and a/b/c2 - create a/b before creating a/b/c1 and a/b/c2 in parallel
 # note: assume all directories are created under the $(cb_build) base directory
 
+ifndef cb_needed_dirs
+
+cb_needed_dirs := $(notdir $(cb_build))
+
+else # !cb_needed_dirs
+
 # note: will create at least $(cb_build) directory as it may be required by 'config' goal - see $(cb_dir)/confsup.mk
 # 1/2/3 -> build build/1 build/1/2 build/1/2/3
 cb_needed_dirs := $(notdir $(cb_build)) $(addprefix $(notdir $(cb_build))/,$(call split_dirs,$(cb_needed_dirs)))
@@ -128,6 +134,8 @@ cb_needed_dirs := $(notdir $(cb_build)) $(addprefix $(notdir $(cb_build))/,$(cal
 #  /path/build/1/2:| /path/build/1
 #  /path/build/1/2/3:| /path/build/1/2
 $(eval $(call mk_dir_deps,$(cb_needed_dirs),$(dir $(cb_build))))
+
+endif # !cb_needed_dirs
 
 # define rules for creating $(cb_build)-relative directories
 # note: 'suppress_targets_r' - defined in $(cb_dir)/core/suppress.mk
