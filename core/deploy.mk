@@ -70,6 +70,8 @@ endif # cb_checking
 
 ifdef cb_namespaces
 
+ifndef cleaning
+
 # ---------- deploying files ------------------
 
 # deploy built files - link them from private modules build directories to "public" place
@@ -108,7 +110,7 @@ deploy_files1 = $(if $(is_tool_mode),$(call \
 
 # protect new value of 'cb_needed_dirs', do not trace calls to it because it's incremented
 ifdef cb_checking
-$(eval deploy_files1 = $(value deploy_files1)$(newline)$(call set_global1,cb_needed_dirs))
+$(call define_append,deploy_files1,$(newline)$$(call set_global1,cb_needed_dirs))
 endif
 
 # deploy files - link them from private modules build directories to "public" place
@@ -148,7 +150,7 @@ deploy_dirs1 = $(call cb_deploy_dirs,$(o_path),$3/$1,$(addprefix $(o_dir)/,$2),$
 
 # protect new value of 'cb_needed_dirs', do not trace calls to it because it's incremented
 ifdef cb_checking
-$(eval deploy_dirs1 = $(value deploy_dirs1)$(newline)$(call set_global1,cb_needed_dirs))
+$(call define_append,deploy_dirs1,$(newline)$$(call set_global1,cb_needed_dirs))
 endif
 
 # 1) associate each deployed directory with given tag file (which is updated just after update of the directories)
@@ -156,6 +158,21 @@ endif
 # $1 - deployed tag file - simple path relative to virtual $(out_dir),  e.g.: gen1/tag1.tag
 # $2 - deployed dirs     - simple paths relative to virtual $(out_dir), e.g.: gen2/dir1 gen3/dir2/dir3
 deploy_dirs = $(assoc_dirs)$(eval $(call deploy_dirs1,$1,$2,$(cb_build)/$(if $(is_tool_mode),$(cb_tools_subdir),$(target_triplet))))
+
+else # cleaning
+
+# $1 - deployed files - simple paths relative to virtual $(out_dir), e.g.: bin/tool.exe gen/tool.cfg
+deploy_files = $(call toclean1,$(addprefix $(if $(is_tool_mode),$(cb_tools_subdir),$(target_triplet))/,$1))
+
+ifdef cb_checking
+$(eval deploy_files = $(subst $$1,$$(cb_check_vpaths_r),$(value deploy_files)))
+endif
+
+# $1 - deployed tag file - simple path relative to virtual $(out_dir),  e.g.: gen1/tag1.tag
+# $2 - deployed dirs     - simple paths relative to virtual $(out_dir), e.g.: gen2/dir1 gen3/dir2/dir3
+deploy_dirs = $(assoc_dirs)$(call toclean1,$(addprefix $(if $(is_tool_mode),$(cb_tools_subdir),$(target_triplet))/,$1 $2))
+
+endif # cleaning
 
 else # !cb_namespaces
 
@@ -178,14 +195,14 @@ endif # !cb_namespaces
 
 # $1 - tag file   - simple path relative to virtual $(out_dir),  e.g.: gen1/tag1.tag
 # $2 - built dirs - simple paths relative to virtual $(out_dir), e.g.: gen2/dir1 gen3/dir2/dir3
-assoc_dirs_r   = $(assoc_dirs)$1
+assoc_dirs_r = $(assoc_dirs)$1
 
 # $1 - deployed files - simple paths relative to virtual $(out_dir), e.g.: bin/tool.exe gen/tool.cfg
 deploy_files_r = $(deploy_files)$1
 
 # $1 - deployed tag file - simple path relative to virtual $(out_dir),  e.g.: gen1/tag1.tag
 # $2 - deployed dirs     - simple paths relative to virtual $(out_dir), e.g.: gen2/dir1 gen3/dir2/dir3
-deploy_dirs_r  = $(deploy_dirs)$1
+deploy_dirs_r = $(deploy_dirs)$1
 
 # makefile parsing first phase variables
 cb_first_phase_vars += assoc_dirs cb_tag_files cb_deploy_files cb_deploy_tool_files deploy_files1 deploy_files \
