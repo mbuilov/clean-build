@@ -191,8 +191,9 @@ cb_encode_var_name = $=.^p
 
 # store values of clean-build protected variables which must not be changed in target makefiles
 define cb_protect_vars2
-cb_protected_vars := $$(sort $$(cb_protected_vars) $1)$(foreach \
-  =,cb_protected_vars $1,$(newline)$(cb_encode_var_name):=$$(call cb_encode_var_value,$=))
+cb_protected_vars := $$(sort $$(cb_protected_vars) $1)
+$(foreach =,$1,$(cb_encode_var_name):=$$(call cb_encode_var_value,$=)$(newline))cb_protected_vars.^p:=$$(call \
+  cb_encode_var_value,cb_protected_vars)
 endef
 
 # 'set_global1' - protect macros from modification in target makefiles or just trace calls to macros
