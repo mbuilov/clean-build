@@ -473,6 +473,12 @@ add_generated = $(eval $(cb_target_vars))
 # do the same as 'add_generated', but also return list of generated files $1 - simple paths relative to virtual $(out_dir)
 add_generated_r = $(add_generated)$1
 
+# $1 - absolute paths to generated files
+add_generated1_r = $(eval $(call cb_target_vars1,$1))$1
+
+# do the same as 'add_generated', but also return absolute paths to generated files $1 - simple paths relative to virtual $(out_dir)
+add_generated_o = $(call add_generated1_r,$(o_path))
+
 # 'tool_mode' may be set to non-empty value (likely T) at the beginning of target makefile
 #  (before including this file and so before evaluating $(cb_def_head))
 # if 'tool_mode' is not set - reset it - we are not in "tool" mode
@@ -744,9 +750,9 @@ cb_first_phase_vars += cb_needed_dirs build_system_goals toclean toclean1 debug 
   order_deps cb_target_makefile add_mdeps set_makefile_info set_makefile_info_r cb_add_what_makefile_builds \
   add_order_deps generate_dirs1 generate_dirs cb_target_vars2 cb_what_makefile_builds cb_what_makefile_builds1 \
   cb_target_vars1 cb_target_vars cb_target_vars1_o cb_target_vars_o generate_dirs_r add_generated add_generated_r \
-  tool_mode is_tool_mode cb_tool_mode_adjust cb_tool_mode_access_error cb_include_level cb_target_makefiles cb_head_eval \
-  cb_make_cont cb_def_head cb_show_leaf_mk cb_def_tail cb_no_def_head_err cb_def_targets define_targets cb_prepare \
-  cb_save_vars cb_restore_vars make_continue
+  add_generated1_r add_generated_o tool_mode is_tool_mode cb_tool_mode_adjust cb_tool_mode_access_error cb_include_level \
+  cb_target_makefiles cb_head_eval cb_make_cont cb_def_head cb_show_leaf_mk cb_def_tail cb_no_def_head_err cb_def_targets \
+  define_targets cb_prepare cb_save_vars cb_restore_vars make_continue
 
 # protect macros from modifications in target makefiles,
 # do not trace calls to macros used in ifdefs, exported to the environment of called tools or modified via operator +=
@@ -760,9 +766,9 @@ $(call set_global,cb_project_vars clean_build_version cb_dir clean_build_require
   project_supported_targets project_supported_tool_targets toclean toclean1==cb_to_clean cb_set_default_vars cb_tool_override_vars \
   cb_first_makefile cb_target_makefile add_mdeps set_makefile_info set_makefile_info_r cb_add_what_makefile_builds \
   add_order_deps=order_deps=order_deps generate_dirs1 generate_dirs cb_target_vars2 cb_what_makefile_builds cb_what_makefile_builds1 \
-  cb_target_vars1 cb_target_vars cb_target_vars1_o cb_target_vars_o generate_dirs_r add_generated add_generated_r is_tool_mode \
-  cb_tool_mode_adjust cb_tool_mode_access_error cb_def_head cb_show_leaf_mk cb_check_targets cb_def_tail cb_no_def_head_err \
-  cb_def_targets define_targets cb_prepare cb_save_vars cb_restore_vars make_continue,core)
+  cb_target_vars1 cb_target_vars cb_target_vars1_o cb_target_vars_o generate_dirs_r add_generated add_generated_r add_generated1_r \
+  add_generated_o is_tool_mode cb_tool_mode_adjust cb_tool_mode_access_error cb_def_head cb_show_leaf_mk cb_check_targets cb_def_tail \
+  cb_no_def_head_err cb_def_targets define_targets cb_prepare cb_save_vars cb_restore_vars make_continue,core)
 
 # define auxiliary macros: 'non_parallel_execute', 'multi_target' and 'multi_target_r'
 include $(cb_dir)/core/nonpar.mk
