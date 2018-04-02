@@ -59,7 +59,7 @@ $(eval define cb_include_submakes$(newline)$(subst \
   cb_include_submakes))$(newline)$$(call set_global1,cb_include_level)$(newline)endef)
 endif
 
-ifndef toclean
+ifndef cleaning
 
 # note: 'order_deps' value may be changed in included sub-makefile, so restore 'order_deps' before including next sub-makefile
 $(call define_prepend,cb_include_template,order_deps:=$$(order_deps)$(newline))
@@ -104,7 +104,7 @@ endif # cb_checking
 $(call define_prepend,cb_include_submakes,.PHONY: $$(addsuffix \
   -,$$1)$(newline)$$(cb_target_makefile)-:| $$(addsuffix -,$$1)$(newline))
 
-endif # !toclean
+endif # !cleaning
 
 ifdef cb_mdebug
 
@@ -118,7 +118,7 @@ cb_submakefiles_info = $(call cb_colorize,GROUP,GROUP) $(call cb_colorize,LEVEL,
 CBLD_GROUP_COLOR ?= [35;1m
 
 # note: 'order_deps' is defined only if not cleaning up
-ifndef toclean
+ifndef cleaning
 $(eval cb_submakefiles_info = $(value cb_submakefiles_info)$$(if $$(order_deps), | $$(order_deps)))
 endif
 
