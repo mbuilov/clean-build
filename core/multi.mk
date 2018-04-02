@@ -6,7 +6,7 @@
 
 # support for rules that generate multiple files at once (e.g. bison)
 
-ifndef toclean
+ifndef cleaning
 
 # used to count each call of $(multi_target)
 # note: 'cb_multi_target_num' is never cleared, it's only appended (in makefile parsing first phase)
@@ -27,7 +27,7 @@ cb_multi_target_dep = $(subst |,:| ,$(subst $(space),$(newline),$(filter-out \
 #  number was already executed to generate one of its targets
 #
 # $1 - list of generated files (absolute paths)
-# $2 - prerequisites (either absolute or makefile-related)
+# $2 - prerequisites - static files, either absolute or makefile-related
 # $3 - rule
 # $4 - $(words $(cb_multi_target_num))
 #
@@ -81,12 +81,12 @@ $(eval multi_target = $$(cb_check_multi_rule)$(value multi_target))
 
 endif # cb_checking
 
-else # toclean
+else # cleaning
 
 # just delete files on 'clean'
 multi_target = $(eval $(cb_target_vars))
 
-endif # toclean
+endif # cleaning
 
 # same as 'multi_target', but return the list of generated files $1
 multi_target_r = $(multi_target)$1
