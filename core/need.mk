@@ -14,6 +14,8 @@
 
 ifdef cb_namespaces
 
+ifndef cleaning
+
 # ---------- link needed files ----------------
 
 # $1 - absolute path to the target for which built files are needed
@@ -31,7 +33,7 @@ endef
 
 # protect new value of 'cb_needed_dirs', do not trace calls to it because it's incremented
 ifdef cb_checking
-$(call define_append,cb_need_files,$(newline)$(call set_global1,cb_needed_dirs))
+$(call define_append,cb_need_files,$(newline)$$(call set_global1,cb_needed_dirs))
 endif
 
 # define rules for linking needed built files to target's private namespace
@@ -101,7 +103,7 @@ endef
 
 # protect new value of 'cb_needed_dirs', do not trace calls to it because it's incremented
 ifdef cb_checking
-$(call define_append,cb_need_dirs2,$(newline)$(call set_global1,cb_needed_dirs))
+$(call define_append,cb_need_dirs2,$(newline)$$(call set_global1,cb_needed_dirs))
 endif
 
 # $1 - the target for which the dirs are needed - must be a simple path relative to virtual $(out_dir), e.g.: bin/test.exe
@@ -156,7 +158,17 @@ need_built_dirs = $(call need_built_dirs1,$1,$2)
 # note: multiple directories may be associated with a single tag file
 need_tool_dirs = $(call need_tool_dirs1,$1,$2)
 
-else # !cb_namespaces
+else # cleaning
+
+# just delete simlinks to needed files/directories for the target
+need_built_files = $(toclean)
+need_tool_files = $(toclean)
+need_built_dirs = $(call toclean,$1,$2 $(sort $(foreach d,$2,$($d.^d))))
+need_tool_dirs = $(call toclean,$1,$2 $(sort $(foreach d,$2,$($d/.^d))))
+
+endif # cleaning
+
+else ifndef cleaning # !cb_namespaces
 
 # files and directories are built directly in "public" place, no need to link there them from private modules build directories
 
@@ -201,7 +213,23 @@ else
 need_tool_dirs = $(eval $(o_path): $(call o_path,$(sort $(foreach d,$2,$($d/.^d)))))
 endif
 
-endif # !cb_namespaces
+else ifdef cb_checking # !cb_namespaces && cleaning
+
+# just check that paths are simple and relative
+need_built_files = $(cb_check_vpath)$(call cb_check_vpaths,$2)
+need_tool_files = $(cb_check_vpath)$(call cb_check_vpaths,$2)
+need_built_dirs = $(cb_check_vpath)$(call cb_check_vpaths,$2)
+need_tool_dirs = $(cb_check_vpath)$(call cb_check_vpaths,$2)
+
+else # !cb_namespaces && cleaning && !cb_checking
+
+# do nothing
+need_built_files:=
+need_tool_files:=
+need_built_dirs:=
+need_tool_dirs:=
+
+endif # !cb_namespaces && cleaning && !cb_checking
 
 # executable file suffix of the generated tools
 tool_exe_suffix := $(if $(filter WIN% CYGWIN% MINGW%,$(CBLD_OS)),.exe)
