@@ -37,9 +37,28 @@ g_dir := $(gen_dir)/touch_files
 include $(a_dir)/files.mk
 
 # tag file - simple path relative to virtual $(out_dir)
-# note: 't' and 't1' - "local" variables - they will be reset just before second "rule execution" make phase
+# note: 't' - "local" variable - it will be reset just before second "rule execution" make phase
 t := $(g_dir)/touched$(test_phase).txt
+
+# tag file of the first test phase
+# note: 't1' - "local" variable - it will be reset just before second "rule execution" make phase
 t1 := $(g_dir)/touched1.txt
+
+# files will be touched in namespace directory of $(t1) tag file
+f := $(addprefix $(call o_dir,$(t1))/,$(files))
+
+# register output file '$t' as generated one and return absolute path to it
+# note: 'r' - "local" variable - it will be reset just before second "rule execution" make phase
+r := $(call add_generated_o,$t)
+
+# define target-specific variable 'f' for use in next rule
+$r: f := $f
+
+# note: touch file 'r' _after_ files 'f' - on second phase we will update them and check that they are not older than 'r'
+$(call add_generated_r,$t):
+	$(call suppress,TOUCH,$@)$(call sh_touch,$f)
+	$(quiet)$(call sh_touch,$@)
+
 
 # 'r' - real tag file - absolute paths
 # 'f' - real generated files - absolute paths
@@ -50,11 +69,6 @@ f := $(addprefix $(call o_dir,$(t1)/,$(files)))
 
 # define target-specific variable 'f' for use in next rule
 $r: f := $f
-
-# note: create 'r' file _after_ files 'f' - on second phase we will update them and check that they are not older than 'r'
-$(call add_generated_r,$t):
-	$(call suppress,TOUCH,$@)$(call sh_touch,$f)
-	$(quiet)$(call sh_touch,$@)
 
 # just delete whole 'g_dir' directory with generated files on cleanup
 $(call toclean,$(t1),$(g_dir))
