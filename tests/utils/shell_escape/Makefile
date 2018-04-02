@@ -30,12 +30,12 @@ $(cb_prepare)
 g_dir := gen/shell_escape
 
 # output file - simple path relative to virtual $(out_dir)
-# note: 'o' - "local" variable - it will be reset just before second "rule execution" make phase
-o := $(g_dir)/out.txt
+# note: 'f' - "local" variable - it will be reset just before second "rule execution" make phase
+f := $(g_dir)/out.txt
 
-# real target output file - absolute path
+# register output file '$f' as generated one and return absolute path to it
 # note: 'r' - "local" variable - it will be reset just before second "rule execution" make phase
-r := $(call o_path,$o)
+r := $(call add_generated_o,$f)
 
 # define target-specific recursive macro (function) 'test'
 # $1 - string to pass to $(MAKE) via shell
@@ -56,9 +56,9 @@ $r: t10 := '2'
 $r: t11 := \'2\'
 $r: t12 := } '\#$$2' " (e) " {\\\\"+\*} \( \a ^$$%\#@?
 
-# register output file '$o' as generated one and define a rule for generating it - call target-specific macro 'test' defined above
-# note: "local" variable '$o' is not available in second "rule execution" make phase, so use instead automatic variable '$@'
-$(call add_generated_r,$o):
+# define a rule for generating file output file '$f' - call target-specific macro 'test' defined above
+# note: "local" variable 'r' is not available in second "rule execution" make phase, so use instead automatic variable '@'
+$r:
 	$(call suppress,GEN,$@)$(call test,$(t1)) > $@
 	$(quiet)$(call test,$(t2)) >> $@
 	$(quiet)$(call test,$(t3)) >> $@
@@ -72,16 +72,16 @@ $(call add_generated_r,$o):
 	$(quiet)$(call test,$(t11)) >> $@
 	$(quiet)$(call test,$(t12)) >> $@
 
-# 1) register generated file '$(g_dir)/cmp.txt' - simple path relative to virtual $(out_dir)
-# 2) add dependency of it on generated file '$o'
+# 1) add dependency of '$(g_dir)/cmp.txt' on generated file '$f' (both are virtual paths)
+# 2) register file '$(g_dir)/cmp.txt' as generated one
 # 3) add dependency of '$(g_dir)/cmp.txt' on static file '$(a_dir)/result.txt' (absolute path)
 # 4) define a rule for generating '$(g_dir)/cmp.txt' - call one of shell utilities macros - 'sh_cmp_files'
-# note: automatic variable $< - the name of the first prerequisite: $(a_dir)/result.txt
-# note: automatic variable $^ - names of all prerequisites:         $(a_dir)/result.txt $(call o_dir,$(g_dir)/cmp.txt)/$o
-# note: automatic variable $@ - target file:                        $(call o_path,$(g_dir)/cmp.txt)
+# note: automatic variable '$<' - the name of the first prerequisite: $(a_dir)/result.txt
+# note: automatic variable '$^' - names of all prerequisites:         $(a_dir)/result.txt $(call o_dir,$(g_dir)/cmp.txt)/$f
+# note: automatic variable '$@' - target file:                        $(call o_path,$(g_dir)/cmp.txt)
 # note: prerequisites specified before defining a rule are added to the end of '$^' list, so the first prerequisite will be
 #  $(a_dir)/result.txt
-$(call need_built_files_r,$(call add_generated_r,$(g_dir)/cmp.txt),$o): $(a_dir)/result.txt
+$(call add_generated_o,$(call need_built_files_r,$(g_dir)/cmp.txt,$f)): $(a_dir)/result.txt
 	$(call suppress,CMP,$@)$(call sh_cmp_files,$<,$(lastword $^)) > $@
 
 # this macro must be expanded at end of target makefile, as required by 'cb_prepare' macro expanded at head
