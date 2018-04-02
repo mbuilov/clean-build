@@ -1,3 +1,9 @@
+#----------------------------------------------------------------------------------
+# clean-build - non-recursive cross-platform build system based on GNU Make v3.81
+# Copyright (C) 2015-2018 Michael M. Builov, https://github.com/mbuilov/clean-build
+# Licensed under GPL version 3 or any later version, see COPYING
+#----------------------------------------------------------------------------------
+
 # the first goal will be the default
 all:
 
@@ -9,4 +15,5 @@ all clean distclean:
 	$(MAKE) -f $(c_dir)shell_escape/Makefile $@
 	$(MAKE) -f $(c_dir)sh_touch/Makefile $@
 
+# these targets are not files
 .PHONY: all clean distclean

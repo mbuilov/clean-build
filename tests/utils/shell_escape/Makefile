@@ -1,50 +1,65 @@
+#----------------------------------------------------------------------------------
+# clean-build - non-recursive cross-platform build system based on GNU Make v3.81
+# Copyright (C) 2015-2018 Michael M. Builov, https://github.com/mbuilov/clean-build
+# Licensed under GPL version 3 or any later version, see COPYING
+#----------------------------------------------------------------------------------
+
 $(info ================ shell_escape =============)
 
 # note: do not use full project infrastructure
 
 # absolute path to the directory of this makefile
+# note: 'a_dir' - "project" variable - will be registered as "global" variable in included next core/_defs.mk
 a_dir := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
 
 # the only variable required by the core clean-build files
 CBLD_BUILD ?= $(a_dir)/build
 
 # add core clean-build definitions
-# note: all variables defined prior including this file are treated as 'project' variables - they are will be 'global'
-#  (protected from changes), so 'a_dir' does not need to be redefined as target-specific variable
+# note: all variables defined prior including this file are treated as "project" variables - they are will be registered
+#  as global" ones (protected from changes), so 'a_dir' does not need to be redefined as target-specific variable
 include $(a_dir)/../../../core/_defs.mk
 
 # this must be expanded at head of any target makefile
 # note: $(define_targets) must be expanded at tail of target makefile
 $(cb_prepare)
 
-# directory where to generate files
-# note: 'gen_dir' - defined in included above core/_defs.mk
+# directory where to generate files - must be simple path relative to virtual $(out_dir)
 # note: here 'shell_escape' - arbitrary directory name, should be unique to avoid names collision
-# note: 'g_dir' variable will be reset just before second "rule execution" make phase
-g_dir := $(gen_dir)/shell_escape
+# note: 'g_dir' - "local" variable - will be reset just before second "rule execution" make phase
+g_dir := gen/shell_escape
+
+# output file - simple path relative to virtual $(out_dir)
+# note: 'o' - "local" variable - it will be reset just before second "rule execution" make phase
+o := $(g_dir)/out.txt
+
+# real target output file - absolute path
+# note: 'r' - "local" variable - it will be reset just before second "rule execution" make phase
+r := $(call o_path,$o)
 
 # define target-specific recursive macro (function) 'test'
 # $1 - string to pass to $(MAKE) via shell
-$(g_dir)/out.txt: test = $(MAKE) --no-print-directory -f $(a_dir)/print_X.mk X=$(call shell_escape,$1)
+# note: 'a_dir' - "project" variable, registered as "global" one
+$r: test = $(MAKE) --no-print-directory -f $(a_dir)/print_X.mk X=$(call shell_escape,$1)
 
-# define variables for use in second "rule execution" phase
-$(g_dir)/out.txt: t1  := 1
-$(g_dir)/out.txt: t2  := 1 2
-$(g_dir)/out.txt: t3  := 1 \2
-$(g_dir)/out.txt: t4  := 1\ '2
-$(g_dir)/out.txt: t5  := '1\# 2
-$(g_dir)/out.txt: t6  := 1\\ 2
-$(g_dir)/out.txt: t7  := 1\"2
-$(g_dir)/out.txt: t8  := 1"2
-$(g_dir)/out.txt: t9  := "2
-$(g_dir)/out.txt: t10 := '2'
-$(g_dir)/out.txt: t11 := \'2\'
-$(g_dir)/out.txt: t12 := } '\#$$2' " (e) " {\\\\"+\*} \( \a ^$$%\#@?
+# define target-specific variables for use in second "rule execution" phase
+$r: t1  := 1
+$r: t2  := 1 2
+$r: t3  := 1 \2
+$r: t4  := 1\ '2
+$r: t5  := '1\# 2
+$r: t6  := 1\\ 2
+$r: t7  := 1\"2
+$r: t8  := 1"2
+$r: t9  := "2
+$r: t10 := '2'
+$r: t11 := \'2\'
+$r: t12 := } '\#$$2' " (e) " {\\\\"+\*} \( \a ^$$%\#@?
 
-# register generated file '$(g_dir)/out.txt', define a rule for generating it - call target-specific macro 'test' defined above
-# note: variable 'g_dir' is not available in the "rule execution" phase, so use instead automatic variable $@
-$(call add_generated_r,$(g_dir)/out.txt):
-	$(call suppress,GEN,$@)$(call test,$(t1)) >> $@
+# register output file '$o' as generated one and define a rule for generating it - call target-specific macro 'test' defined above
+# note: "local" variable '$o' is not available in second "rule execution" make phase, so use instead automatic variable '$@'
+$(call add_generated_r,$o):
+	$(call suppress,GEN,$@)$(call test,$(t1)) > $@
 	$(quiet)$(call test,$(t2)) >> $@
 	$(quiet)$(call test,$(t3)) >> $@
 	$(quiet)$(call test,$(t4)) >> $@
@@ -57,12 +72,17 @@ $(call add_generated_r,$(g_dir)/out.txt):
 	$(quiet)$(call test,$(t11)) >> $@
 	$(quiet)$(call test,$(t12)) >> $@
 
-# register generated file '$(g_dir)/cmp.txt', define a rule for generating it - call one of shell utilities macros 'sh_cmp_files'
+# 1) register generated file '$(g_dir)/cmp.txt' - simple path relative to virtual $(out_dir)
+# 2) add dependency of it on generated file '$o'
+# 3) add dependency of '$(g_dir)/cmp.txt' on static file '$(a_dir)/result.txt' (absolute path)
+# 4) define a rule for generating '$(g_dir)/cmp.txt' - call one of shell utilities macros - 'sh_cmp_files'
 # note: automatic variable $< - the name of the first prerequisite: $(a_dir)/result.txt
-# note: automatic variable $^ - names of all prerequisites:         $(a_dir)/result.txt $(g_dir)/out.txt
-# note: automatic variable $@ - target file:                        $(g_dir)/cmp.txt
-$(call add_generated_r,$(g_dir)/cmp.txt): $(a_dir)/result.txt $(g_dir)/out.txt
+# note: automatic variable $^ - names of all prerequisites:         $(a_dir)/result.txt $(call o_dir,$(g_dir)/cmp.txt)/$o
+# note: automatic variable $@ - target file:                        $(call o_path,$(g_dir)/cmp.txt)
+# note: prerequisites specified before defining a rule are added to the end of '$^' list, so the first prerequisite will be
+#  $(a_dir)/result.txt
+$(call need_built_files_r,$(call add_generated_r,$(g_dir)/cmp.txt),$o): $(a_dir)/result.txt
 	$(call suppress,CMP,$@)$(call sh_cmp_files,$<,$(lastword $^)) > $@
 
-# this macro must be expanded at end of target makefile, as required by 'cb_prepare' expanded at head
+# this macro must be expanded at end of target makefile, as required by 'cb_prepare' macro expanded at head
 $(define_targets)

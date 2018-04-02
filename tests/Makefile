@@ -30,4 +30,5 @@ all: trace_tests trace_tests_no_color function_tests seq_tests
 all clean distclean:
 	$(MAKE) -f $(c_dir)utils/Makefile $@
 
+# these targets are not files
 .PHONY: all clean distclean traces_test trace_tests_no_color function_tests seq_tests
