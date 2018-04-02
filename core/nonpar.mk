@@ -7,7 +7,7 @@
 # support for creating groups of targets that should not be executed in parallel
 #  (e.g. one linker may consume all available memory and put server to continuous swapping)
 
-ifndef toclean
+ifndef cleaning
 
 # create a chain of order-only dependent targets, so their rules will be executed one after each other
 # $1 - cb_$(group_name)_non_par_group
@@ -43,12 +43,12 @@ endif
 #  'non_parallel_execute' macro allows to define a group of targets only those rules must not be executed in parallel
 non_parallel_execute = $(eval $(call cb_non_par_rule,cb_$1_non_par_group,$$2))
 
-else # toclean
+else # cleaning
 
-# just delete files on 'clean'
+# do nothing on 'clean'
 non_parallel_execute:=
 
-endif # toclean
+endif # cleaning
 
 # makefile parsing first phase variables
 cb_first_phase_vars += cb_non_par_rule non_parallel_execute
