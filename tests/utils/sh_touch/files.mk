@@ -12,5 +12,5 @@ n := $n $n $n $n $n $n $n $n $n $n
 n := $n $n $n $n $n $n $n $n $n $n
 n := $n $n $n $n $n $n $n $n $n $n
 
-# files list
+# list of 1000 files
 files := $(eval c:=)$(foreach i,$n,t$(words $c).txt$(eval c+=1))
