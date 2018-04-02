@@ -11,7 +11,7 @@ ifndef cleaning
 
 # create a chain of order-only dependent targets, so their rules will be executed one after each other
 # $1 - cb_$(group_name)_non_par_group
-# $2 - target file
+# $2 - target file (absolute path)
 define cb_non_par_rule
 ifneq (undefined,$(origin $1))
 $2:| $$($1)
@@ -38,10 +38,10 @@ endif
 # $(call non_parallel_execute,my_group,target3)
 # ...
 # $1 - group name
-# $2 - target file
+# $2 - target file, must be simple path relative to virtual $(out_dir), e.g.: gen/file.txt
 # note: standard .NOTPARALLEL target, if defined, globally disables parallel execution of all rules, but
 #  'non_parallel_execute' macro allows to define a group of targets only those rules must not be executed in parallel
-non_parallel_execute = $(eval $(call cb_non_par_rule,cb_$1_non_par_group,$$2))
+non_parallel_execute = $(eval $(call cb_non_par_rule,cb_$1_non_par_group,$(call o_path,$2)))
 
 else # cleaning
 
