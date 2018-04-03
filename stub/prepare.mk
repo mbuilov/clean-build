@@ -17,4 +17,4 @@ $(foreach =,$(filter-out MAKELEVEL GNUMAKEFLAGS MFLAGS MAKEOVERRIDES,$(.VARIABLE
   $(findstring environment,$(origin $=)),$(eval $$=.^e:=$$(value $$=))))
 
 # version of the clean-build build system required by the project
-clean_build_required_version := 0.9.1
+clean_build_required_version := 0.9.2
