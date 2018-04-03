@@ -41,9 +41,9 @@ endif
 # $2 - needed files, must be simple paths relative to virtual $(out_dir), e.g.: gen/file1.txt gen/file2.txt
 # note: built files are not deployed to "public" place by default (only via explicit 'deploy_files'), link them from private places
 ifdef cb_checking
-need_built_files = $(cb_check_vpath)$(eval $(call cb_need_files,$(o_path),$(call o_path,$2),$(addprefix $(o_dir)/,$2)))
+need_built_files = $(cb_check_vpath)$(eval $(call cb_need_files,$(o_path),$(call o_path,$2),$(addprefix $(o_ns)/,$2)))
 else
-need_built_files = $(eval $(call cb_need_files,$(o_path),$(call o_path,$2),$(addprefix $(o_dir)/,$2)))
+need_built_files = $(eval $(call cb_need_files,$(o_path),$(call o_path,$2),$(addprefix $(o_ns)/,$2)))
 endif
 
 # define rules for linking needed (previously deployed via 'deploy_files') tool files to target's private namespace
@@ -52,10 +52,10 @@ endif
 # note: tool files should be deployed to "public" place, so link them from there
 ifdef cb_checking
 need_tool_files = $(cb_check_vpath)$(eval $(call cb_need_files,$(o_path),$(addprefix \
-  $(cb_build)/$(cb_tools_subdir)/,$(call cb_check_vpaths_r,$2)),$(addprefix $(dir $(o_dir))$(cb_tools_subdir)/,$2)))
+  $(cb_build)/$(cb_tools_subdir)/,$(call cb_check_vpaths_r,$2)),$(addprefix $(dir $(o_ns))$(cb_tools_subdir)/,$2)))
 else
 need_tool_files = $(eval $(call cb_need_files,$(o_path),$(addprefix \
-  $(cb_build)/$(cb_tools_subdir)/,$2),$(addprefix $(dir $(o_dir))$(cb_tools_subdir)/,$2)))
+  $(cb_build)/$(cb_tools_subdir)/,$2),$(addprefix $(dir $(o_ns))$(cb_tools_subdir)/,$2)))
 endif
 
 # ---------- link needed directories ----------
@@ -67,7 +67,7 @@ endif
 # $4 - destination directories: $(addprefix $2,$3)
 define cb_need_built_dirs
 $(call set_makefile_info_r,$(call suppress_targets_r,$2$1)): $(o_path) | $(patsubst %/,%,$(dir $2$1 $4))
-	$$(call cb_gen_dir_linking_rules,$(addprefix $(o_dir)/,$3),$4)
+	$$(call cb_gen_dir_linking_rules,$(addprefix $(o_ns)/,$3),$4)
 	$$(call suppress,LN,$$@)$$(call sh_simlink_files,$$<,$$@)
 endef
 
@@ -111,10 +111,10 @@ endif
 # $3 - needed tag files, must be simple paths relative to virtual $(out_dir), e.g.: gen/g1.tag gen/gen2/g3.tag
 ifdef cb_checking
 need_built_dirs2 = $(call \
-  cb_need_dirs2,$(o_path),$(o_dir)/,$2,$(call cb_check_vpaths_r,$(sort $3)),$(join $(3:=|),$2),cb_need_built_dirs)
+  cb_need_dirs2,$(o_path),$(o_ns)/,$2,$(call cb_check_vpaths_r,$(sort $3)),$(join $(3:=|),$2),cb_need_built_dirs)
 else
 need_built_dirs2 = $(call \
-  cb_need_dirs2,$(o_path),$(o_dir)/,$2,$(sort $3),$(join $(3:=|),$2),cb_need_built_dirs)
+  cb_need_dirs2,$(o_path),$(o_ns)/,$2,$(sort $3),$(join $(3:=|),$2),cb_need_built_dirs)
 endif
 
 # $1 - the target for which the dirs are needed - must be a simple path relative to virtual $(out_dir), e.g.: bin/test.exe
@@ -122,10 +122,10 @@ endif
 # $3 - needed tag files, must be simple paths relative to virtual $(out_dir), e.g.: gen/g1.tag gen/gen2/g3.tag
 ifdef cb_checking
 need_tool_dirs2 = $(call \
-  cb_need_dirs2,$(o_path),$(dir $(o_dir))$(cb_tools_subdir)/,$2,$(call cb_check_vpaths_r,$(sort $3)),$(join $(3:=|),$2),cb_need_tool_dirs)
+  cb_need_dirs2,$(o_path),$(dir $(o_ns))$(cb_tools_subdir)/,$2,$(call cb_check_vpaths_r,$(sort $3)),$(join $(3:=|),$2),cb_need_tool_dirs)
 else
 need_tool_dirs2 = $(call \
-  cb_need_dirs2,$(o_path),$(dir $(o_dir))$(cb_tools_subdir)/,$2,$(sort $3),$(join $(3:=|),$2),cb_need_tool_dirs)
+  cb_need_dirs2,$(o_path),$(dir $(o_ns))$(cb_tools_subdir)/,$2,$(sort $3),$(join $(3:=|),$2),cb_need_tool_dirs)
 endif
 
 # $1 - the target for which the dirs are needed - must be a simple path relative to virtual $(out_dir), e.g.: bin/test.exe
@@ -256,7 +256,7 @@ need_tool_dirs_r   = $(need_tool_dirs)$1
 need_tool_execs_r  = $(need_tool_execs)$1
 
 # makefile parsing first phase variables
-# note: 'o_dir', 'o_path' and 'get_tool_dir' change their values in "tool" mode
+# note: 'o_ns', 'o_path' and 'get_tool_dir' change their values in "tool" mode
 cb_first_phase_vars += cb_need_files need_built_files need_tool_files cb_need_built_dirs cb_need_tool_dirs cb_need_dirs3 cb_need_dirs2 \
   need_built_dirs2 need_tool_dirs2 need_built_dirs1 need_tool_dirs1 need_built_dirs need_tool_dirs need_tool_files1 need_tool_execs \
   get_tool_execs need_built_files_r need_tool_files_r need_built_dirs_r need_tool_dirs_r need_tool_execs_r
