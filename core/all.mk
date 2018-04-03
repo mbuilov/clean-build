@@ -113,6 +113,8 @@ endif # !cb_namespaces
 
 endif # cb_checking
 
+ifndef cleaning
+
 # define rules for creating needed directories (absolute paths)
 # note: to avoid races when creating directories, create parent directories before child sub-directories,
 #  for example, if need to create a/b/c1 and a/b/c2 - create a/b before creating a/b/c1 and a/b/c2 in parallel
@@ -144,11 +146,10 @@ $(call suppress_targets_r,$(addprefix $(dir $(cb_build)),$(cb_needed_dirs))):
 	$(call suppress,MKDIR,$@)$(call sh_mkdir,$@)
 
 # fix 'cb_add_shown_percents' macro from $(cb_dir)/core/suppress.mk
-# note: 'suppress_targets' - defined in $(cb_dir)/core/suppress.mk
 # note: 'cb_seq' - defined in $(cb_dir)/code/seq.mk included by $(cb_dir)/core/suppress.mk
 # note: <TRG_COUNT> - number of targets - used to compute build completion percent
 # note: each call to $(cb_seq) increments a counter
-ifdef suppress_targets
+ifdef quiet
 $(eval cb_add_shown_percents = $(subst <TRG_COUNT>,$(cb_seq),$(subst <TRG_COUNT1>,$(cb_seq),$(value cb_add_shown_percents))))
 endif
 
@@ -158,14 +159,18 @@ endif
 all:
 	@:
 
+# build 'all' goal to build or run tests
+# note: assume rules for the 'check' and 'tests' goals are defined elsewhere
+check tests: all
+
+else # cleaning
+
 # cleanup built files: 'cb_to_clean' list contains $(cb_build)-relative paths
 # note: 'sh_rm_recursive' macro is defined in the included before $(utils_mk) makefile
 clean:
 	$(quiet)$(call sh_rm_recursive,$(addprefix $(cb_build)/,$(sort $(cb_to_clean))))
 
-# build 'all' goal to build or run tests
-# note: assume rules for the 'check' and 'tests' goals are defined elsewhere
-check tests: all
+endif # cleaning
 
 # note: don't try to update makefiles in $(MAKEFILE_LIST) - mark them as .PHONY targets
 .PHONY: $(build_system_goals) $(MAKEFILE_LIST)
