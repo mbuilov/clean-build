@@ -219,28 +219,29 @@ cleaning := $(filter clean,$(MAKECMDGOALS))
 ifndef cleaning
 
 # do nothing if not cleaning up
+toclean1:=
+
 ifndef cb_checking
 toclean:=
-toclean1:=
 else
 toclean = $(if $(cb_check_vpath_r),$(call cb_check_vpaths,$2),$(if $2,$(error toclean: target is not specified)))
-toclean1:=
 endif
 
 else ifneq (,$(word 2,$(MAKECMDGOALS)))
+
 $(error 'clean' goal must be specified alone, current goals: $(MAKECMDGOALS))
 
 else ifndef cb_checking
-toclean = $(call toclean1,$(addprefix $(patsubst $(cb_build)/%,%,$(o_dir))/,$2))
+
 toclean1 = $(eval cb_to_clean+=$1)
+toclean = $(call toclean1,$(addprefix $(patsubst $(cb_build)/%,%,$(o_ns))/,$2))
 
 else # cb_checking
 
 # remember new value of 'cb_to_clean' list, without tracing calls to it because it's incremented
-toclean = $(if $(cb_check_vpath_r),$(call toclean1,$(addprefix $(patsubst $(cb_build)/%,%,$(o_dir))/,$(call \
-  cb_check_vpaths_r,$2))),$(if $2,$(error toclean: target is not specified)))
-
 toclean1 = $(eval cb_to_clean+=$1$(newline)$(call set_global1,cb_to_clean))
+toclean = $(if $(cb_check_vpath_r),$(call toclean1,$(addprefix $(patsubst $(cb_build)/%,%,$(o_ns))/,$(call \
+  cb_check_vpaths_r,$2))),$(if $2,$(error toclean: target is not specified)))
 
 endif # cb_checking
 
@@ -259,7 +260,7 @@ cb_set_default_vars   := $(cb_set_default_vars)$(newline)$(call set_global1,debu
 cb_tool_override_vars := $(cb_tool_override_vars)$(newline)$(call set_global1,debug)
 endif
 
-# define macros: 'o_dir', 'o_path', 'get_tool_dir'
+# define macros: 'o_ns', 'o_path', 'get_tool_dir'
 include $(cb_dir)/core/o_path.mk
 
 # define macros: 'assoc_dirs', 'deploy_files', 'deploy_dirs'
@@ -330,15 +331,20 @@ endif
 
 # $1 - target which needs directories, absolute path,       e.g.: /build/tt/a/b/c@-/tt/a/b/c
 # $2 - needed directories by the target $1, absolute paths, e.g.: /build/tt/a/b/c@-/tt/x/y/z
-define generate_dirs1
+define generate_dirs2
 $1:| $2
 cb_needed_dirs+=$(patsubst $(cb_build)/%,%,$2)
 endef
 
 # remember new value of 'cb_needed_dirs', without tracing calls to it because it's incremented
 ifdef cb_checking
-$(call define_append,generate_dirs1,$(newline)$$(call set_global1,cb_needed_dirs))
+$(call define_append,generate_dirs2,$(newline)$$(call set_global1,cb_needed_dirs))
 endif
+
+# $1 - target which needs the directories, must be simple path relative to virtual $(out_dir), e.g.: gen/file.txt
+# $2 - directories, must be paths relative to virtual $(out_dir), e.g.: ex/tool1 gen/gg2
+# $3 - namespace directory of the target: $(call o_ns,$1), e.g. /build/tt/gen/file.txt@-
+generate_dirs1 = $(call generate_dirs2,$3/$1,$(addprefix $3/,$2))
 
 # add directories to the list of auto-created ones for a given target
 # $1 - target which needs the directories, must be simple path relative to virtual $(out_dir), e.g.: gen/file.txt
@@ -347,10 +353,10 @@ endif
 # note: callers of 'generate_dirs' may assume that it will protect new value of 'cb_needed_dirs', so callers
 #  _may_ change 'cb_needed_dirs' without protecting it - before the call. Protect 'cb_needed_dirs' here.
 ifndef cb_checking
-generate_dirs = $(eval $(call generate_dirs1,$(o_path),$(addprefix $(o_dir)/,$2)))
+generate_dirs = $(eval $(call generate_dirs1,$1,$2,$(o_ns)))
 else
-generate_dirs = $(if $(cb_check_vpath_r),$(eval $(call generate_dirs1,$(o_path),$(addprefix $(o_dir)/,$(call \
-  cb_check_vpaths_r,$2)))),$(if $2,$(error generate_dirs: target is not specified)))
+generate_dirs = $(if $(cb_check_vpath_r),$(eval $(call generate_dirs1,$1,$(call \
+  cb_check_vpaths_r,$2),$(o_ns))),$(if $2,$(error generate_dirs: target is not specified)))
 endif
 
 # $1 - target files to build (absolute paths)
@@ -746,9 +752,9 @@ $(call config_remember_vars,CBLD_BUILD CBLD_TARGET CBLD_TOOL_TARGET)
 # makefile parsing first phase variables
 # Note: 'debug' variable change its value depending on the value of 'tool_mode' variable set in the last
 #  parsed makefile, so clear this variables before rule execution second phase
-cb_first_phase_vars += cb_needed_dirs build_system_goals toclean toclean1 debug cb_set_default_vars cb_tool_override_vars \
+cb_first_phase_vars += cb_needed_dirs build_system_goals toclean1 toclean debug cb_set_default_vars cb_tool_override_vars \
   order_deps cb_target_makefile add_mdeps set_makefile_info set_makefile_info_r cb_add_what_makefile_builds \
-  add_order_deps generate_dirs1 generate_dirs cb_target_vars2 cb_what_makefile_builds cb_what_makefile_builds1 \
+  add_order_deps generate_dirs2 generate_dirs1 generate_dirs cb_target_vars2 cb_what_makefile_builds cb_what_makefile_builds1 \
   cb_target_vars1 cb_target_vars cb_target_vars1_o cb_target_vars_o generate_dirs_r add_generated add_generated_r \
   add_generated1_r add_generated_o tool_mode is_tool_mode cb_tool_mode_adjust cb_tool_mode_access_error cb_include_level \
   cb_target_makefiles cb_head_eval cb_make_cont cb_def_head cb_show_leaf_mk cb_def_tail cb_no_def_head_err cb_def_targets \
@@ -763,12 +769,13 @@ $(call set_global,MAKEFLAGS SHELL cb_needed_dirs cb_first_phase_vars CBLD_BUILD 
 # protect macros from modifications in target makefiles, allow tracing calls to them
 # note: trace namespace: core
 $(call set_global,cb_project_vars clean_build_version cb_dir clean_build_required_version cb_build \
-  project_supported_targets project_supported_tool_targets toclean toclean1==cb_to_clean cb_set_default_vars cb_tool_override_vars \
+  project_supported_targets project_supported_tool_targets toclean1==cb_to_clean toclean cb_set_default_vars cb_tool_override_vars \
   cb_first_makefile cb_target_makefile add_mdeps set_makefile_info set_makefile_info_r cb_add_what_makefile_builds \
-  add_order_deps=order_deps=order_deps generate_dirs1 generate_dirs cb_target_vars2 cb_what_makefile_builds cb_what_makefile_builds1 \
-  cb_target_vars1 cb_target_vars cb_target_vars1_o cb_target_vars_o generate_dirs_r add_generated add_generated_r add_generated1_r \
-  add_generated_o is_tool_mode cb_tool_mode_adjust cb_tool_mode_access_error cb_def_head cb_show_leaf_mk cb_check_targets cb_def_tail \
-  cb_no_def_head_err cb_def_targets define_targets cb_prepare cb_save_vars cb_restore_vars make_continue,core)
+  add_order_deps=order_deps=order_deps generate_dirs2 generate_dirs1 generate_dirs cb_target_vars2 cb_what_makefile_builds \
+  cb_what_makefile_builds1 cb_target_vars1 cb_target_vars cb_target_vars1_o cb_target_vars_o generate_dirs_r add_generated \
+  add_generated_r add_generated1_r add_generated_o is_tool_mode cb_tool_mode_adjust cb_tool_mode_access_error cb_def_head \
+  cb_show_leaf_mk cb_check_targets cb_def_tail cb_no_def_head_err cb_def_targets define_targets cb_prepare cb_save_vars \
+  cb_restore_vars make_continue,core)
 
 # define auxiliary macros: 'non_parallel_execute', 'multi_target' and 'multi_target_r'
 include $(cb_dir)/core/nonpar.mk
