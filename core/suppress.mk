@@ -54,7 +54,7 @@ else
 cb_show_tool = $(CBLD_$1_COLOR)$1[m$(padto)$(if $3,$2,$(join $(dir $2),$(call cb_colorize,$1,$(notdir $2))))
 endif
 
-ifeq (,$(filter distclean clean,$(MAKECMDGOALS)))
+ifndef cleaning
 
 # define macros:
 # a) 'suppress' - suppress output of executed build tool - print some pretty message instead, like "CC  source.c", update percent
@@ -169,13 +169,13 @@ else
 cb_makefile_info:=
 endif
 
-else # distclean || clean
+else # cleaning
 
 # do not need to replace <TRG_COUNT> and <TRG_COUNT1> in $(cb_dir)/core/all.mk
 suppress_targets:=
 suppress_targets_r = $1
 
-endif # distclean || clean
+endif # cleaning
 
 # makefile parsing first phase variables
 cb_first_phase_vars += suppress_targets suppress_targets_r cb_makefile_info
