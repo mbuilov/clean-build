@@ -10,15 +10,15 @@
 # 2) to build everything and execute a test, run:
 # $ make check
 
-# 3) to delete built artifacts - 'build' directory, just run:
+# 3) to delete all built artifacts - whole 'build' directory, just run:
 # $ make distclean
 
-# add support for processing sub-makefiles
+# add support for processing sub-makefiles - define 'process_submakes' macro
 include $(dir $(lastword $(MAKEFILE_LIST)))make/submakes.mk
 
 # list of sub-makefiles
-# Note: may use any variable to specify a list of sub-makefiles,
-#  it is forbidden to redefine only specially registered "global" variables
+# Note: may use any variable to specify a list of sub-makefiles
+#  (it is forbidden to redefine only specially registered "global" variables)
 # Note: by convention, use variables in lower case as "local" ones,
 #  variables in upper case may be defined in the environment
 to_make:=
@@ -36,6 +36,8 @@ to_make += src/hello.mk
 # Generated resource file will include "product_names.h" - a header with version info constants.
 # CBLD_NEED_PRODUCT_NAMES_H - not empty and not 0 if "product_names.h" is needed (e.g. for the resource file)
 # note: CBLD_NEED_PRODUCT_NAMES_H may be already defined by the clean-build if building under Windows
+# Note: by convention, variables that may be defined in the environment, should be in UPPER case
+# Note: to not overwrite environment variables, use ?= operator
 CBLD_NEED_PRODUCT_NAMES_H ?=
 
 # generate "product_names.h" if needed
@@ -50,5 +52,4 @@ $(call config_remember_vars,CBLD_NEED_PRODUCT_NAMES_H)
 endif # !distclean
 
 # process sub-makefiles and directories specified in our local 'to_make' variable
-# Note: 'process_submakes' - macro defined by the included above 'make/submakes.mk'
 $(call process_submakes,$(to_make))
