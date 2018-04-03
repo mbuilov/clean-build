@@ -12,6 +12,7 @@ cb_checking:=
 cb_first_phase_vars:=
 set_global:=
 
+# path to the directory of this makefile
 c_dir := $(dir $(lastword $(MAKEFILE_LIST)))
 
 z := test_
