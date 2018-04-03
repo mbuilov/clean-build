@@ -8,6 +8,7 @@ $(info ================ tracing ==================)
 
 # test tracing macros
 
+# path to the directory of this makefile
 c_dir := $(dir $(lastword $(MAKEFILE_LIST)))
 
 include $(c_dir)../trace/trace.mk
