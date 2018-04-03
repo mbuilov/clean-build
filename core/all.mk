@@ -165,10 +165,14 @@ check tests: all
 
 else ifeq (,$(filter distclean,$(MAKECMDGOALS))) # cleaning
 
+# filter list of files/directories to delete: 1 1/2 1/2/3 -> 1
+clean: cb_filter_clean_list = $(call cb_filter_clean_list1,$(filter-out $(1:=/%),$1),$1)
+clean: cb_filter_clean_list1 = $(if $(call iseq,$1,$2),$1,$(cb_filter_clean_list))
+
 # cleanup built files: 'cb_to_clean' list contains $(cb_build)-relative paths
 # note: 'sh_rm_recursive' macro is defined in the included before $(utils_mk) makefile
 clean:
-	$(quiet)$(call sh_rm_recursive,$(addprefix $(cb_build)/,$(sort $(cb_to_clean))))
+	$(quiet)$(call sh_rm_recursive,$(addprefix $(cb_build)/,$(call cb_filter_clean_list,$(sort $(cb_to_clean)))))
 
 endif # cleaning
 
