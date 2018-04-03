@@ -5,9 +5,9 @@
 #----------------------------------------------------------------------------------
 
 # define macros:
-#  'o_dir'        - for given target virtual path, get absolute path to output directory, e.g.: for a/b/c -> p/tt/a/b/c@-/tt
-#  'o_path'       - for given target virtual path, get absolute path to output file,      e.g.: for a/b/c -> p/tt/a/b/c@-/tt/a/b/c
-#  'get_tool_dir' - for given target virtual path, get absolute path to tool directory,   e.g.: for a/b/c -> p/tt/a/b/c@-/ts
+#  'o_ns'         - for given target virtual path, get absolute path to namespace directory, e.g.: for a/b/c -> p/tt/a/b/c@-/tt
+#  'o_path'       - for given target virtual path, get absolute path to output file,         e.g.: for a/b/c -> p/tt/a/b/c@-/tt/a/b/c
+#  'get_tool_dir' - for given target virtual path, get absolute path to tool directory,      e.g.: for a/b/c -> p/tt/a/b/c@-/ts
 
 # base part of sub-directory of $(cb_build) where artifacts are built, e.g. DEBUG-LINUX-x86
 # note: build tools are built in another place - see 'tool_base' below
@@ -73,18 +73,18 @@ $(eval cb_trg_unpriv = $$(filter-out %$(cb_ns_suffix),$$(subst $(cb_ns_suffix)/,
 
 endif # cb_namespaces
 
-# ---------- output paths: 'o_dir' and 'o_path' ---------------
+# ---------- output paths: 'o_ns' and 'o_path' ---------------
 
-# get absolute paths to output directories for given targets
+# get absolute paths to namespace directories for given targets
 # $1 - simple paths relative to virtual $(out_dir), e.g.: gen/file.txt gen2/file2.txt
-# note: define 'o_dir' assuming that we are not in "tool" mode
+# note: define 'o_ns' assuming that we are not in "tool" mode
 ifdef cb_namespaces
 # 1/2/3 4/5 -> /build/p/tt/1/2/3@-/tt /build/p/tt/4/5@-/tt
-$(eval o_dir = $$(patsubst %,$(cb_build)/$(cb_ns_dir)/$(target_triplet)/%/$(target_triplet),$$(cb_trg_priv)))
+$(eval o_ns = $$(patsubst %,$(cb_build)/$(cb_ns_dir)/$(target_triplet)/%/$(target_triplet),$$(cb_trg_priv)))
 else ifdef cb_checking
-$(eval o_dir = $$(patsubst %,$(cb_build)/$(target_triplet),$$(cb_check_vpaths_r)))
+$(eval o_ns = $$(patsubst %,$(cb_build)/$(target_triplet),$$(cb_check_vpaths_r)))
 else
-$(eval o_dir = $$(patsubst %,$(cb_build)/$(target_triplet),$$1))
+$(eval o_ns = $$(patsubst %,$(cb_build)/$(target_triplet),$$1))
 endif
 
 # get absolute paths to built files
@@ -99,9 +99,9 @@ $(eval o_path = $$(addprefix $(cb_build)/$(target_triplet)/,$$1))
 endif
 
 # code to evaluate for restoring default output directory after "tool" mode
-cb_set_default_vars := $(cb_set_default_vars)$(newline)o_dir=$(value o_dir)$(newline)o_path=$(value o_path)
+cb_set_default_vars := $(cb_set_default_vars)$(newline)o_ns=$(value o_ns)$(newline)o_path=$(value o_path)
 
-# ---------- 'o_dir' and 'o_path' for "tool" mode -------------
+# ---------- 'o_ns' and 'o_path' for "tool" mode -------------
 
 # base path of sub-directory of $(cb_build) where auxiliary build tools are built
 # note: path may be redefined in the project configuration makefile, must be relative and simple
@@ -119,42 +119,42 @@ endif
 # sub-directory of $(cb_build) where tools are built, for the current values of 'tool_base' and CBLD_TCPU
 cb_tools_subdir := $(call mk_tools_subdir,$(tool_base),$(CBLD_TCPU))
 
-# code to evaluate for overriding default output directory in "tool" mode
+# code to evaluate for overriding namespace directory in "tool" mode
 ifdef cb_namespaces
 # 1/2/3 4/5 -> /build/p/ts/1/2/3@-/ts /build/p/ts/4/5@-/ts
-cb_tool_override_vars := $(cb_tool_override_vars)$(newline)o_dir=$$(patsubst \
+cb_tool_override_vars := $(cb_tool_override_vars)$(newline)o_ns=$$(patsubst \
   %,$(cb_build)/$(cb_ns_dir)/$(cb_tools_subdir)/%/$(cb_tools_subdir),$$(cb_trg_priv))$(newline)o_path=$$(join \
   $$(patsubst %,$(cb_build)/$(cb_ns_dir)/$(cb_tools_subdir)/%/$(cb_tools_subdir)/,$$(cb_trg_priv)),$$1)
 else ifdef cb_checking
-cb_tool_override_vars := $(cb_tool_override_vars)$(newline)o_dir=$$(patsubst \
+cb_tool_override_vars := $(cb_tool_override_vars)$(newline)o_ns=$$(patsubst \
   %,$(cb_build)/$(cb_tools_subdir),$$(cb_check_vpaths_r))$(newline)o_path=$$(addprefix \
   $(cb_build)/$(cb_tools_subdir)/,$$(cb_check_vpaths_r))
 else
-cb_tool_override_vars := $(cb_tool_override_vars)$(newline)o_dir=$$(patsubst \
+cb_tool_override_vars := $(cb_tool_override_vars)$(newline)o_ns=$$(patsubst \
   %,$(cb_build)/$(cb_tools_subdir),$$1)$(newline)o_path=$$(addprefix \
   $(cb_build)/$(cb_tools_subdir)/,$$1)
 endif
 
 # -------------------------------------------------------------
 
-# remember new values of 'o_dir' and 'o_path'
+# remember new values of 'o_ns' and 'o_path'
 # note: trace namespace: o_path
 ifdef set_global1
-cb_set_default_vars   := $(cb_set_default_vars)$(newline)$(call set_global1,o_dir o_path,core)
-cb_tool_override_vars := $(cb_tool_override_vars)$(newline)$(call set_global1,o_dir o_path,core)
+cb_set_default_vars   := $(cb_set_default_vars)$(newline)$(call set_global1,o_ns o_path,o_path)
+cb_tool_override_vars := $(cb_tool_override_vars)$(newline)$(call set_global1,o_ns o_path,o_path)
 endif
 
 # return absolute path to tools base directory for given target
 # $1 - the target for which the path is returned - must be a simple path relative to virtual $(out_dir), e.g.: bin/test.exe
 ifdef cb_checking
-get_tool_dir = $(cb_check_vpath)$(dir $(o_dir))$(cb_tools_subdir)
+get_tool_dir = $(cb_check_vpath)$(dir $(o_ns))$(cb_tools_subdir)
 else
-get_tool_dir = $(dir $(o_dir))$(cb_tools_subdir)
+get_tool_dir = $(dir $(o_ns))$(cb_tools_subdir)
 endif
 
 # makefile parsing first phase variables
-# note: 'o_dir' and 'o_path' change their values in "tool" mode
-cb_first_phase_vars += o_dir o_path get_tool_dir
+# note: 'o_ns' and 'o_path' change their values in "tool" mode
+cb_first_phase_vars += o_ns o_path get_tool_dir
 
 # protect macros from modifications in target makefiles,
 # do not trace calls to macros used in ifdefs, exported to the environment of called tools or modified via operator +=
@@ -163,4 +163,4 @@ $(call set_global,cb_namespaces)
 # protect macros from modifications in target makefiles, allow tracing calls to them
 # note: trace namespace: o_path
 $(call set_global,target_triplet cb_ns_dir cb_check_vpaths cb_check_vpath cb_check_vpaths_r cb_check_vpath_r \
-  cb_ns_suffix cb_trg_priv cb_trg_unpriv o_dir o_path tool_base mk_tools_subdir cb_tools_subdir get_tool_dir,o_path)
+  cb_ns_suffix cb_trg_priv cb_trg_unpriv o_ns o_path tool_base mk_tools_subdir cb_tools_subdir get_tool_dir,o_path)
