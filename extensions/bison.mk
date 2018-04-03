@@ -16,17 +16,21 @@ endif
 BISON ?= bison
 
 # default bison flags
-# -y emulate POSIX Yacc, output file name will be "y.tab.c"
-# -d generate header
-# -o specify output filename
+# -y emulate POSIX Yacc
+# -d generate header (in the same directory as output file)
+# -o output filename
+# example:
+#  $ bison.exe -y -d -o out/grammar.c src/grammar.y
+# produces two files: out/grammar.c and out/grammar.h
 BISON_FLAGS ?= -y -d -o
 
 # bison compiler
-# $1 - target
-# $2 - source
+# $1 - output filename (e.g.: out/grammar.c)
+# $2 - source (e.g.: src/grammar.y)
 # note: bison compiler called with default flags produces two files at once: header and source,
 #  to avoid calling bison multiple times (one - for a header, second - for a source), use 'multi_target' macro:
-#  $(call multi_target,$(gen_dir)/test/y.tab.h $(gen_dir)/test/y.tab.c,test.y,$$(call bison_compiler,$(gen_dir)/test/y.tab.c,$$<))
+#  $(call multi_target,gen/test/y.tab.h gen/test/y.tab.c,test.y,$$(call bison_compiler,gen/test/y.tab.c,$$<))
+#  (note: cannot use automatic variable $@ in a rule passed to 'multi_target' - it may be any of gen/test/y.tab.c or gen/test/y.tab.h)
 bison_compiler = $(call suppress,BISON,$2)$(BISON) $(BISON_FLAGS) $(call ospath,$1 $2)
 
 # tool color for the 'suppress' macro
