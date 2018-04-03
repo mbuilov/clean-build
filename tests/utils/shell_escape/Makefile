@@ -25,7 +25,8 @@ include $(a_dir)/../../../core/_defs.mk
 $(cb_prepare)
 
 # directory where to generate files - must be simple path relative to virtual $(out_dir)
-# note: here 'shell_escape' - arbitrary directory name, should be unique to avoid names collision
+# note: here 'gen' - common directory for generated files
+# note: here 'shell_escape' - arbitrary directory name, should be unique to avoid names collision in the common 'gen' directory
 # note: 'g_dir' - "local" variable - will be reset just before second "rule execution" make phase
 g_dir := gen/shell_escape
 
@@ -33,13 +34,14 @@ g_dir := gen/shell_escape
 # note: 'f' - "local" variable - it will be reset just before second "rule execution" make phase
 f := $(g_dir)/out.txt
 
-# register output file '$f' as generated one and return absolute path to it
+# register output file '$f' as generated one and store absolute path to it in variable 'r'
+# note: needed directory for output file will be created automatically
 # note: 'r' - "local" variable - it will be reset just before second "rule execution" make phase
 r := $(call add_generated_o,$f)
 
 # define target-specific recursive macro (function) 'test'
 # $1 - string to pass to $(MAKE) via shell
-# note: 'a_dir' - "project" variable, registered as "global" one
+# note: 'a_dir' - "project" variable, registered above as "global" one
 $r: test = $(MAKE) --no-print-directory -f $(a_dir)/print_X.mk X=$(call shell_escape,$1)
 
 # define target-specific variables for use in second "rule execution" phase
@@ -73,13 +75,14 @@ $r:
 	$(quiet)$(call test,$(t12)) >> $@
 
 # 1) add dependency of '$(g_dir)/cmp.txt' on generated file '$f' (both are virtual paths)
-# 2) register file '$(g_dir)/cmp.txt' as generated one
+#  note: 'need_built_files_r' - imports needed built file '$f' to namespace directory of '$(g_dir)/cmp.txt'
+# 2) register file '$(g_dir)/cmp.txt' as generated one (needed output directory will be created automatically)
 # 3) add dependency of '$(g_dir)/cmp.txt' on static file '$(a_dir)/result.txt' (absolute path)
 # 4) define a rule for generating '$(g_dir)/cmp.txt' - call one of shell utilities macros - 'sh_cmp_files'
 # note: automatic variable '$<' - the name of the first prerequisite: $(a_dir)/result.txt
-# note: automatic variable '$^' - names of all prerequisites:         $(a_dir)/result.txt $(call o_dir,$(g_dir)/cmp.txt)/$f
+# note: automatic variable '$^' - names of all prerequisites:         $(a_dir)/result.txt $(call o_ns,$(g_dir)/cmp.txt)/$f
 # note: automatic variable '$@' - target file:                        $(call o_path,$(g_dir)/cmp.txt)
-# note: prerequisites specified before defining a rule are added to the end of '$^' list, so the first prerequisite will be
+# note: prerequisites specified before defining a rule are added to the end of '$^' list, so the first prerequisite ($<) will be
 #  $(a_dir)/result.txt
 $(call add_generated_o,$(call need_built_files_r,$(g_dir)/cmp.txt,$f)): $(a_dir)/result.txt
 	$(call suppress,CMP,$@)$(call sh_cmp_files,$<,$(lastword $^)) > $@
