@@ -5,7 +5,7 @@
 #----------------------------------------------------------------------------------
 
 # first test phase:  touch non-existing files -> create them, touched1.txt should be created the last
-# second test phase: touch existing files     -> update their creation date, create touched2.txt
+# second test phase: touch existing files     -> update their creation date, check that they are not older than touched1.txt
 ifneq (command line,$(origin test_phase))
 test_phase := 1
 endif
@@ -29,11 +29,12 @@ include $(a_dir)/../../../core/_defs.mk
 $(cb_prepare)
 
 # directory where to generate files - must be simple path relative to virtual $(out_dir)
-# note: here 'touch_files' - arbitrary directory name, should be unique to avoid names collision
+# note: here 'gen' - common directory for generated files
+# note: here 'touch_files' - arbitrary directory name, should be unique to avoid names collision in the common 'gen' directory
 # note: 'g_dir' - "local" variable - will be reset just before second "rule execution" make phase
-g_dir := $(gen_dir)/touch_files
+g_dir := gen/touch_files
 
-# define 'files' variable
+# define 'files' "local" variable
 include $(a_dir)/files.mk
 
 # tag file - simple path relative to virtual $(out_dir)
@@ -44,33 +45,27 @@ t := $(g_dir)/touched$(test_phase).txt
 # note: 't1' - "local" variable - it will be reset just before second "rule execution" make phase
 t1 := $(g_dir)/touched1.txt
 
-# files will be touched in namespace directory of $(t1) tag file
-f := $(addprefix $(call o_dir,$(t1))/,$(files))
-
-# register output file '$t' as generated one and return absolute path to it
+# register output file '$t' as generated one and store absolute path to it in variable 'r'
+# note: needed directory for output file will be created automatically
 # note: 'r' - "local" variable - it will be reset just before second "rule execution" make phase
 r := $(call add_generated_o,$t)
 
-# define target-specific variable 'f' for use in next rule
-$r: f := $f
+# make absolute paths to files that are created/updated in the directory of $(t1) tag file
+#  and save them in target-specific variable 'f' - for use in next rule
+# note: "local" variables cannot be used in rules in the second "rule execution" make phase, so define target-specific ones
+$r: f := $(addprefix $(dir $(call o_path,$(t1))),$(files))
 
-# note: touch file 'r' _after_ files 'f' - on second phase we will update them and check that they are not older than 'r'
-$(call add_generated_r,$t):
+# note: touch file '$r' _after_ files '$f':
+#  - after the first test phase files '$f' are likely _older_ than '$r' (not newer, for certain)
+#  - in the second phase we will update them and check that they are now not older than '$r'
+# note: here 'f' - target-specific variable defined above
+# note: "local" variable 'r' is not available in second "rule execution" make phase, so use instead automatic variable '@'
+# note: assume second test phase is run after the first test phase, so directory of touched files $f is already exist
+$r:
 	$(call suppress,TOUCH,$@)$(call sh_touch,$f)
 	$(quiet)$(call sh_touch,$@)
 
-
-# 'r' - real tag file - absolute paths
-# 'f' - real generated files - absolute paths
-# note: 'r' and 'f' - "local" variables - they will be reset just before second "rule execution" make phase
-# note: files are generated on the first phase and then touched on the second phase in the same directory of $(t1) target
-r := $(call o_path,$t)
-f := $(addprefix $(call o_dir,$(t1)/,$(files)))
-
-# define target-specific variable 'f' for use in next rule
-$r: f := $f
-
-# just delete whole 'g_dir' directory with generated files on cleanup
+# just delete whole 'g_dir' directory with all generated files on cleanup (in the namespace of $(t1) tag file)
 $(call toclean,$(t1),$(g_dir))
 
 # this macro must be expanded at end of target makefile, as required by 'cb_prepare' expanded at head
