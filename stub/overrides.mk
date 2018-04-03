@@ -46,8 +46,8 @@ endif # !CBLD_CONFIG
 #  optional $(CBLD_OVERRIDES) makefile
 # Note: variable 'CBLD_ROOT' is not used by the core clean-build makefiles
 ifndef CBLD_ROOT
-$(error CBLD_ROOT - path to clean-build (https://github.com/mbuilov/clean-build) is not defined,\
- example: CBLD_ROOT=/usr/local/clean-build or CBLD_ROOT=C:\User\clean-build)
+$(error CBLD_ROOT - path to clean-build (https://github.com/mbuilov/clean-build) is not defined, example: CBLD_ROOT=$(if \
+  $(filter /cygdrive/%,$(CURDIR)),/cygdrive/c/clean-build,$(if $(filter /%,$(CURDIR)),/usr/local/clean-build,C:\clean-build)))
 endif
 
 # source clean-build base definitions
