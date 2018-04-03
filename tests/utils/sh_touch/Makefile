@@ -16,7 +16,7 @@ all clean distclean: c_dir := $(dir $(lastword $(MAKEFILE_LIST)))
 all clean distclean:
 	$(MAKE) -f $(c_dir)touch.mk $@
 	$(if $(filter all,$@),$(MAKE) -f $(c_dir)check.mk)
-	$(if $(filter all,$@),$(MAKE) -f $(c_dir)touch.mk test_phase:=2)
+	$(if $(filter all clean,$@),$(MAKE) -f $(c_dir)touch.mk test_phase:=2 $@)
 	$(if $(filter all,$@),$(MAKE) -f $(c_dir)check.mk test_phase:=2)
 
 # these targets are not files
