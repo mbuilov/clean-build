@@ -8,6 +8,7 @@ $(info ================ functions ================)
 
 # test functions
 
+# path to the directory of this makefile
 c_dir := $(dir $(lastword $(MAKEFILE_LIST)))
 
 include $(c_dir)../core/functions.mk
