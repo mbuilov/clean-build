@@ -163,7 +163,7 @@ all:
 # note: assume rules for the 'check' and 'tests' goals are defined elsewhere
 check tests: all
 
-else # cleaning
+else ifeq (,$(filter distclean,$(MAKECMDGOALS))) # cleaning
 
 # cleanup built files: 'cb_to_clean' list contains $(cb_build)-relative paths
 # note: 'sh_rm_recursive' macro is defined in the included before $(utils_mk) makefile
