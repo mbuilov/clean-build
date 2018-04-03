@@ -211,7 +211,7 @@ endif
 cb_to_clean:=
 
 # non-empty if cleaning up built files or directories
-cleaning := $(filter clean,$(MAKECMDGOALS))
+cleaning := $(filter clean distclean,$(MAKECMDGOALS))
 
 # 'toclean' - function to add files/directories to delete to 'cb_to_clean' list
 # $1 - target, whose built files/directories need to delete, must be simple path relative to virtual $(out_dir), e.g.: gen/file.txt
@@ -416,9 +416,11 @@ $(call cb_add_what_makefile_builds,cb_target_vars2,$$1,$$(order_deps))
 endif # cb_mdebug
 
 # register targets - to properly count percent of building targets by the calls to 'suppress' macro
-# note: 'suppress_targets' and 'suppress_targets_r' - are defined in $(cb_dir)/core/suppress.mk
-ifdef suppress_targets
+# note: 'suppress_targets_r' - defined in $(cb_dir)/core/suppress.mk
+ifndef cleaning
+ifdef quiet
 $(eval define cb_target_vars2$(newline)$(subst $$1:|,$$(suppress_targets_r):|,$(value cb_target_vars2))$(newline)endef)
+endif
 endif
 
 # $1 - target files to build (absolute paths), e.g.: /build/tt/a/b/c@-/tt/a/b/c
