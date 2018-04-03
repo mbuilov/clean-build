@@ -29,29 +29,33 @@ include $(a_dir)/../../../core/_defs.mk
 $(cb_prepare)
 
 # directory where to generate files - must be simple path relative to virtual $(out_dir)
-# note: here 'touch_files' - arbitrary directory name, should be unique to avoid names collision
+# note: here 'gen' - common directory for generated files
+# note: here 'touch_files' - arbitrary directory name, should be unique to avoid names collision in the common 'gen' directory
 # note: 'g_dir' - "local" variable - will be reset just before second "rule execution" make phase
 g_dir := gen/touch_files
 
-# define 'files' variable
+# define 'files' "local" variable
 include $(a_dir)/files.mk
 
-# tag file - simple path relative to virtual $(out_dir)
-# note: 't' - "local" variable - it will be reset just before second "rule execution" make phase
-t := $(g_dir)/touched1.txt
+# get absolute path to tag file of current test phase
+r := $(call o_path,$(g_dir)/touched$(test_phase).txt)
 
-# 'r' - real tag file - absolute paths
-# 'f' - real generated files - absolute paths
-# note: 'r' and 'f' - "local" variables - they will be reset just before second "rule execution" make phase
-r := $(call o_path,$t)
-f := $(addprefix $(call o_dir,$t)/,$(files))
+# get absolute path to tag file of the first test phase
+r1 := $(call o_path,$(g_dir)/touched1.txt)
 
-# 'all' goal will fail if any of $r or $f files were not created by the touch.mk
+# form absolute paths to generates files - in the directory of tag file of the first test phase
+f := $(addprefix $(dir $(r1)),$(files))
+
+# 'all' goal will fail if any of '$r' or '$f' files were not created by the touch.mk
 all: $r $f
 
-# check that creation date of files $f is not older than tag file $r
+# in the second test phase: check that creation date of files $f is not older than tag file of the first test phase $(r1)
+# note: 'r1', 'f' - are "local" variables, they will be reset before second "rule execution" make phase, so in next rule use
+#  automatic variables:
+# $@ - the target - one of files $f
+# $< - first prerequisite - $(r1)
 ifeq (2,$(test_phase))
-$f: $r
+$f: $(r1)
 	$(error file $@ must not be older than $<)
 endif
 
