@@ -146,7 +146,7 @@ endef
 # $2 - deployed dirs     - simple paths relative to virtual $(out_dir), e.g.: gen2/dir1 gen3/dir2/dir3
 # $3 - destination directory: $(cb_build)/$(if $(is_tool_mode),$(cb_tools_subdir),$(target_triplet))
 # note: it is assumed that directories $2 are built in private namespace of the tag file $1
-deploy_dirs1 = $(call cb_deploy_dirs,$(o_path),$3/$1,$(addprefix $(o_dir)/,$2),$(addprefix $3/,$2))
+deploy_dirs1 = $(call cb_deploy_dirs,$(o_path),$3/$1,$(addprefix $(o_ns)/,$2),$(addprefix $3/,$2))
 
 # protect new value of 'cb_needed_dirs', do not trace calls to it because it's incremented
 ifdef cb_checking
