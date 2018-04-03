@@ -11,11 +11,13 @@
 #
 # +- my_project/
 #   +- make/
-#   |  |- project.mk    (modified copy of this file)
-#   |  |- prepare.mk    (preparation for project configuration)
-#   |  |- overrides.mk  (support for 'config' goal and processing of CBLD_OVERRIDES variable)
-#   |  |- submakes.mk   (support for sub-makefiles)
-#   |  |- c.mk          (support for building C/C++ sources)
+#   |  |- project.mk    - modified copy of this file
+#   |  |- prepare.mk    - preparation for project configuration
+#   |  |- overrides.mk  - support for 'config' goal and processing of CBLD_OVERRIDES variable
+#   |  |- defs.mk       - support for building generic targets
+#   |  |- submakes.mk   - support for processing sub-makefiles
+#   |  |- c_project.mk  - redefined definitions needed for building application-level targets from C/C++ sources
+#   |  |- c.mk          - support for building application-level targets from C/C++ sources
 #   |  ...
 #   +-- src/
 #   +-- include/
@@ -62,7 +64,7 @@ product_version := 1.0.0
 #  project_exported_vars := MY_VAR
 # - this is needed to allow to override environment variables and to avoid tracing of exported variables
 
-# Note: may pre-define clean-build macros here - predefined values will override default ones, e.g:
+# Note: may pre-define clean-build macros here - predefined values will override default ones, e.g.:
 #  project_supported_targets := DEVEL PRODUCTION
 
 # CBLD_ROOT - path to clean-build build system
@@ -71,7 +73,7 @@ product_version := 1.0.0
 CBLD_ROOT := $(abspath $(top)/../..)
 
 # include core clean-build definitions, processing of CBLD_CONFIG and CBLD_OVERRIDES variables,
-#  check that CBLD_ROOT variable - path to the clean-build - is defined
+#  checking that CBLD_ROOT variable - path to clean-build - is defined
 include $(dir $(lastword $(MAKEFILE_LIST)))overrides.mk
 
 # Note: may redefine core clean-build macros here, e.g.:
