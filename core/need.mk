@@ -5,12 +5,13 @@
 #----------------------------------------------------------------------------------
 
 # define macros:
-#  'need_built_files' - define rules for linking built files to target's private namespace
-#  'need_tool_files'  - define rules for linking deployed tool files to target's private namespace
-#  'need_built_dirs'  - define rules for linking associated/deployed built directories to target's private namespace
-#  'need_tool_dirs'   - define rules for linking deployed tool directories to target's private namespace
-#  'need_tool_execs'  - define rules for linking built tool executables to target's private namespace
-#  'get_tool_execs'   - return absolute paths to tool executables for given target
+#  'need_built_files_a' - define rules for linking built files to target's private namespace
+#  'need_built_files'   - define rules for linking built files to target's private namespace
+#  'need_tool_files'    - define rules for linking deployed tool files to target's private namespace
+#  'need_built_dirs'    - define rules for linking associated/deployed built directories to target's private namespace
+#  'need_tool_dirs'     - define rules for linking deployed tool directories to target's private namespace
+#  'need_tool_execs'    - define rules for linking built tool executables to target's private namespace
+#  'get_tool_execs'     - return absolute paths to tool executables for given target
 
 ifdef cb_namespaces
 
@@ -38,7 +39,7 @@ endif
 
 # $1 - targets for which the files are needed - must be simple paths relative to virtual $(out_dir), e.g.: bin/test.exe
 # $2 - needed files, must be simple paths relative to virtual $(out_dir), e.g.: gen/file1.txt gen/file2.txt
-# $3 - absolute paths to needed files: $(addsuffix |,$(call o_path,$2))
+# $3 - absolute paths to needed files ended with |
 need_built_files1 = $(if $(foreach t,$1,$(eval $(call \
   cb_need_files,$(call o_path,$t),$(addprefix $(call o_ns,$t)/,$2),$3))),)
 
@@ -51,8 +52,13 @@ need_tool_files1 = $(if $(foreach t,$1,$(eval $(call \
 # define rules for linking needed built files to target's private namespace
 # $1 - targets for which the files are needed - must be simple paths relative to virtual $(out_dir), e.g.: bin/test.exe
 # $2 - needed files, must be simple paths relative to virtual $(out_dir), e.g.: gen/file1.txt gen/file2.txt
+# $3 - absolute paths to needed files
 # note: built files are not deployed to "public" place by default (only via explicit 'deploy_files'), link them from private places
-need_built_files = $(call need_built_files1,$1,$2,$(addsuffix |,$(call o_path,$2)))
+ifdef cb_checking
+need_built_files_a = $(call need_built_files1,$1,$(call cb_check_vpaths_r,$2),$(addsuffix |,$(call cb_check_apaths_r,$3)))
+else
+need_built_files_a = $(call need_built_files1,$1,$2,$(3:=|))
+endif
 
 # define rules for linking needed (previously deployed via 'deploy_files') tool files to target's private namespace
 # $1 - targets for which the files are needed - must be simple paths relative to virtual $(out_dir), e.g.: bin/test.exe
@@ -148,11 +154,17 @@ need_tool_dirs = $(call cb_need_dirs1,$1,$2,$(foreach d,$2,$($d/.^d)),need_tool_
 else # cleaning
 
 # just delete simlinks to needed files/directories for the target
+need_built_files_a = $(if $(foreach t,$1,$(call toclean,$t,$2)),)
 need_built_files = $(if $(foreach t,$1,$(call toclean,$t,$2)),)
 need_tool_files = $(if $(foreach t,$1,$(call toclean,$t,$2)),)
 cb_need_dirs1 = $(if $(foreach t,$1,$(call toclean,$t,$2)),)
 need_built_dirs = $(call cb_need_dirs1,$1,$2 $(sort $(foreach d,$2,$($d.^d))))
 need_tool_dirs = $(call cb_need_dirs1,$1,$2 $(sort $(foreach d,$2,$($d/.^d))))
+
+# check that paths $3 are absolute
+ifdef cb_checking
+$(eval need_built_files_a = $$(call cb_check_apaths,$$3)$(value need_built_files_a))
+endif
 
 endif # cleaning
 
@@ -160,11 +172,20 @@ else ifndef cleaning # !cb_namespaces
 
 # files and directories are built directly in "public" place, no need to link there them from private modules build directories
 
+# $1 - targets for which the files are needed - must be simple paths relative to virtual $(out_dir), e.g.: bin/test.exe
+# $2 - needed files, must be simple paths relative to virtual $(out_dir), e.g.: gen/file1.txt gen/file2.txt
+# $3 - absolute paths to needed files
+ifdef cb_checking
+need_built_files1 = $(call cb_check_vpaths,$2)$(o_path): $(call cb_check_apaths_r,$3)
+else
+need_built_files1 = $(o_path): $3
+endif
+
 # define dependencies on needed built files for the targets
 # $1 - targets for which the files are needed - must be simple paths relative to virtual $(out_dir), e.g.: bin/test.exe
 # $2 - needed files, must be simple paths relative to virtual $(out_dir), e.g.: gen/file1.txt gen/file2.txt
-need_built_files1 = $(o_path): $(call o_path,$2)
-need_built_files = $(eval $(value need_built_files1))
+# $3 - absolute paths to needed files
+need_built_files_a = $(eval $(value need_built_files1))
 
 # define dependencies on needed tool files for the targets
 # $1 - targets for which the files are needed - must be simple paths relative to virtual $(out_dir), e.g.: bin/test.exe
@@ -202,6 +223,7 @@ need_tool_dirs = $(eval $(value need_tool_dirs1))
 else ifdef cb_checking # !cb_namespaces && cleaning
 
 # just check that paths are simple and relative
+need_built_files_a = $(call cb_check_vpaths,$1 $2)$(call cb_check_apaths,$3)
 need_built_files = $(call cb_check_vpaths,$1 $2)
 need_tool_files = $(call cb_check_vpaths,$1 $2)
 need_built_dirs = $(call cb_check_vpaths,$1 $2)
@@ -210,12 +232,31 @@ need_tool_dirs = $(call cb_check_vpaths,$1 $2)
 else # !cb_namespaces && cleaning && !cb_checking
 
 # do nothing
+need_built_files_a:=
 need_built_files:=
 need_tool_files:=
 need_built_dirs:=
 need_tool_dirs:=
 
 endif # !cb_namespaces && cleaning && !cb_checking
+
+ifndef cleaning
+
+# define rules for linking needed built files to target's private namespace
+# $1 - targets for which the files are needed - must be simple paths relative to virtual $(out_dir), e.g.: bin/test.exe
+# $2 - needed files, must be simple paths relative to virtual $(out_dir), e.g.: gen/file1.txt gen/file2.txt
+# note: built files are not deployed to "public" place by default (only via explicit 'deploy_files'), link them from private places
+need_built_files = $(call need_built_files_a,$1,$2,$(call o_path,$2))
+
+# define dependencies on needed built files for the targets
+# $1 - targets for which the files are needed - must be simple paths relative to virtual $(out_dir), e.g.: bin/test.exe
+# $2 - needed files, must be simple paths relative to virtual $(out_dir), e.g.: gen/file1.txt gen/file2.txt
+need_built_files = $(call need_built_files_a,$1,$2,$(call o_path,$2))
+
+endif # cleaning
+
+
+
 
 # executable file suffix of the generated tools
 tool_exe_suffix := $(if $(filter WIN% CYGWIN% MINGW%,$(CBLD_OS)),.exe)
@@ -244,14 +285,14 @@ need_tool_execs_r  = $(need_tool_execs)$1
 
 # makefile parsing first phase variables
 # note: 'o_ns', 'o_path' and 'get_tool_dir' change their values in "tool" mode
-cb_first_phase_vars += cb_need_files need_built_files1 need_tool_files1 need_built_files need_tool_files cb_need_built_dirs \
-  cb_need_tool_dirs cb_need_dirs3 cb_need_dirs2 need_built_dirs2 need_tool_dirs2 cb_need_dirs1 need_built_dirs need_tool_dirs \
-  need_built_dirs1 need_tool_dirs1 need_tool_execs get_tool_execs need_built_files_r need_tool_files_r need_built_dirs_r \
+cb_first_phase_vars += cb_need_files need_built_files1 need_tool_files1 need_built_files_a need_built_files need_tool_files \
+  cb_need_built_dirs cb_need_tool_dirs cb_need_dirs3 cb_need_dirs2 need_built_dirs2 need_tool_dirs2 cb_need_dirs1 need_built_dirs \
+  need_tool_dirs need_built_dirs1 need_tool_dirs1 need_tool_execs get_tool_execs need_built_files_r need_tool_files_r need_built_dirs_r \
   need_tool_dirs_r need_tool_execs_r
 
 # protect macros from modifications in target makefiles, allow tracing calls to them
 # note: trace namespace: need
-$(call set_global,cb_need_files need_built_files1 need_tool_files1 need_built_files need_tool_files cb_need_built_dirs \
-  cb_need_tool_dirs cb_need_dirs3 cb_need_dirs2 need_built_dirs2 need_tool_dirs2 cb_need_dirs1 need_built_dirs need_tool_dirs \
-  need_built_dirs1 need_tool_dirs1 tool_exe_suffix need_tool_execs get_tool_execs need_built_files_r need_tool_files_r \
+$(call set_global,cb_need_files need_built_files1 need_tool_files1 need_built_files_a need_built_files need_tool_files \
+  cb_need_built_dirs cb_need_tool_dirs cb_need_dirs3 cb_need_dirs2 need_built_dirs2 need_tool_dirs2 cb_need_dirs1 need_built_dirs \
+  need_tool_dirs need_built_dirs1 need_tool_dirs1 tool_exe_suffix need_tool_execs get_tool_execs need_built_files_r need_tool_files_r \
   need_built_dirs_r need_tool_dirs_r need_tool_execs_r,need)
