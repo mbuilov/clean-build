@@ -233,13 +233,13 @@ $(error 'clean' goal must be specified alone, current goals: $(MAKECMDGOALS))
 
 else ifndef cb_checking
 
-toclean1 = $(eval cb_to_clean+=$1)
+toclean1 = $(eval cb_to_clean+=$$1)
 toclean = $(call toclean1,$(addprefix $(patsubst $(cb_build)/%,%,$(o_ns))/,$2))
 
 else # cb_checking
 
 # remember new value of 'cb_to_clean' list, without tracing calls to it because it's incremented
-toclean1 = $(eval cb_to_clean+=$1$(newline)$(call set_global1,cb_to_clean))
+toclean1 = $(eval cb_to_clean+=$$1$(newline)$(call set_global1,cb_to_clean))
 toclean = $(if $(cb_check_vpath_r),$(call toclean1,$(addprefix $(patsubst $(cb_build)/%,%,$(o_ns))/,$(call \
   cb_check_vpaths_r,$2))),$(if $2,$(error toclean: target is not specified)))
 
