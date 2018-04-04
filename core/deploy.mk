@@ -115,7 +115,18 @@ endif
 
 # deploy files - link them from private modules build directories to "public" place
 # $1 - deployed files - simple paths relative to virtual $(out_dir), e.g.: bin/tool.exe gen/tool.cfg
-deploy_files = $(eval $(call deploy_files1,$1,$(o_path)))
+# $2 - absolute paths to places where deployed files are built, e.g.:
+#  /build/p/tt/bin-tool.exe@-/tt/bin/tool.exe /build/p/tt/gen-tool.cfg@-/tt/gen/tool.cfg
+deploy_files_a = $(eval $(deploy_files1))
+
+# check that paths $1 - are simple and relative to virtual $(out_dir), e.g.: bin/tool.exe gen/tool.cfg
+ifdef cb_checking
+$(eval deploy_files_a = $$(cb_check_vpaths)$(value deploy_files_a))
+endif
+
+# deploy files - link them from private modules build directories to "public" place
+# $1 - deployed files - simple paths relative to virtual $(out_dir), e.g.: bin/tool.exe gen/tool.cfg
+deploy_files = $(call deploy_files_a,$1,$(o_path))
 
 # ---------- deploying directories ------------
 
@@ -162,11 +173,15 @@ deploy_dirs = $(assoc_dirs)$(eval $(call deploy_dirs1,$1,$2,$(cb_build)/$(if $(i
 else # cleaning
 
 # $1 - deployed files - simple paths relative to virtual $(out_dir), e.g.: bin/tool.exe gen/tool.cfg
-deploy_files = $(call toclean1,$(addprefix $(if $(is_tool_mode),$(cb_tools_subdir),$(target_triplet))/,$1))
+deploy_files_a = $(call toclean1,$(addprefix $(if $(is_tool_mode),$(cb_tools_subdir),$(target_triplet))/,$1))
 
+# check that paths $1 - are simple and relative to virtual $(out_dir), e.g.: bin/tool.exe gen/tool.cfg
 ifdef cb_checking
-$(eval deploy_files = $(subst $$1,$$(cb_check_vpaths_r),$(value deploy_files)))
+$(eval deploy_files_a = $(subst $$1,$$(cb_check_vpaths_r),$(value deploy_files_a)))
 endif
+
+# $1 - deployed files - simple paths relative to virtual $(out_dir), e.g.: bin/tool.exe gen/tool.cfg
+deploy_files = $(deploy_files_a)
 
 # $1 - deployed tag file - simple path relative to virtual $(out_dir),  e.g.: gen1/tag1.tag
 # $2 - deployed dirs     - simple paths relative to virtual $(out_dir), e.g.: gen2/dir1 gen3/dir2/dir3
@@ -178,10 +193,12 @@ else # !cb_namespaces
 
 # files are built directly in "public" place, no need to link there them from private modules build directories
 ifndef cb_checking
+deploy_files_a:=
 deploy_files:=
 else
 # check parameters:
 # $1 - deployed files - simple paths relative to virtual $(out_dir), e.g.: bin/tool.exe gen/tool.cfg
+deploy_files_a = $(cb_check_vpaths)
 deploy_files = $(cb_check_vpaths)
 endif
 
@@ -198,6 +215,11 @@ endif # !cb_namespaces
 assoc_dirs_r = $(assoc_dirs)$1
 
 # $1 - deployed files - simple paths relative to virtual $(out_dir), e.g.: bin/tool.exe gen/tool.cfg
+# $2 - absolute paths to places where deployed files are built, e.g.:
+#  /build/p/tt/bin-tool.exe@-/tt/bin/tool.exe /build/p/tt/gen-tool.cfg@-/tt/gen/tool.cfg
+deploy_files_a_r = $(deploy_files_a)$1
+
+# $1 - deployed files - simple paths relative to virtual $(out_dir), e.g.: bin/tool.exe gen/tool.cfg
 deploy_files_r = $(deploy_files)$1
 
 # $1 - deployed tag file - simple path relative to virtual $(out_dir),  e.g.: gen1/tag1.tag
@@ -205,8 +227,8 @@ deploy_files_r = $(deploy_files)$1
 deploy_dirs_r = $(deploy_dirs)$1
 
 # makefile parsing first phase variables
-cb_first_phase_vars += assoc_dirs cb_tag_files cb_deploy_files cb_deploy_tool_files deploy_files1 deploy_files \
-  cb_deploy_dirs deploy_dirs1 deploy_dirs assoc_dirs_r deploy_files_r deploy_dirs_r
+cb_first_phase_vars += assoc_dirs cb_tag_files cb_deploy_files cb_deploy_tool_files deploy_files1 deploy_files_a deploy_files \
+  cb_deploy_dirs deploy_dirs1 deploy_dirs assoc_dirs_r deploy_files_a_r deploy_files_r deploy_dirs_r
 
 # protect macros from modifications in target makefiles, allow tracing calls to them
 # note: trace namespace: assoc_dirs
@@ -218,5 +240,5 @@ $(call set_global,cb_tag_files cb_tag_files_t cb_assoc_dirs cb_assoc_dirs_t)
 
 # protect macros from modifications in target makefiles, allow tracing calls to them
 # note: trace namespace: deploy
-$(call set_global,cb_deploy_files cb_deploy_tool_files deploy_files1 deploy_files cb_gen_dir_linking_rules cb_deploy_dirs \
-  deploy_dirs1 deploy_dirs deploy_files_r deploy_dirs_r,deploy)
+$(call set_global,cb_deploy_files cb_deploy_tool_files deploy_files1 deploy_files_a deploy_files cb_gen_dir_linking_rules \
+  cb_deploy_dirs deploy_dirs1 deploy_dirs deploy_files_a_r deploy_files_r deploy_dirs_r,deploy)
