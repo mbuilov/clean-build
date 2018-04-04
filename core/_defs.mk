@@ -424,7 +424,7 @@ endif
 endif
 
 # $1 - target files to build (absolute paths), e.g.: /build/tt/a/b/c@-/tt/a/b/c
-cb_target_vars1 = $(call cb_target_vars2,$1,$(patsubst $(cb_build)/%/,%,$(dir $1)))
+cb_target_vars_a = $(call cb_target_vars2,$1,$(patsubst $(cb_build)/%/,%,$(dir $1)))
 
 else # ---------------------- cleaning ---------------------
 
@@ -435,14 +435,14 @@ generate_dirs = $(toclean)
 
 # just delete target files
 # $1 - target files to delete (absolute paths), e.g.: /build/tt/a/b/c@-/tt/a/b/c
-cb_target_vars1 = $(call toclean1,$(patsubst $(cb_build)/%,%,$1))
+cb_target_vars_a = $(call toclean1,$(patsubst $(cb_build)/%,%,$1))
 
 # note: callers of 'generate_dirs' or 'cb_target_vars' may assume that it will protect new value of 'cb_needed_dirs', so callers
 #  _may_ change 'cb_needed_dirs' without protecting it - before the call. Protect 'cb_needed_dirs' here (do not optimize!).
 # remember new value of 'cb_needed_dirs' without tracing calls to it because it is incremented
 ifdef cb_checking
 $(eval generate_dirs = $(value generate_dirs)$$(call set_global,cb_needed_dirs))
-$(eval cb_target_vars1 = $(value cb_target_vars1)$$(call set_global,cb_needed_dirs))
+$(eval cb_target_vars_a = $(value cb_target_vars_a)$$(call set_global,cb_needed_dirs))
 endif
 
 # do nothing if cleaning up
@@ -458,14 +458,14 @@ endif # cleaning
 #  _may_ change 'cb_needed_dirs' without protecting it - before the call. Protect 'cb_needed_dirs' here.
 # note: rules of the targets should contain only one call to 'suppress' macro - to properly update percent of building targets
 # note: if a rule consists of multiple commands - use 'suppress_more' macro instead of additional calls to 'suppress' macro
-cb_target_vars = $(call cb_target_vars1,$(o_path))
+cb_target_vars = $(call cb_target_vars_a,$(o_path))
 
-# same as 'cb_target_vars1', but add one line containing absolute paths to output files, e.g.: /build/tt/a/b/c@-/tt/a/b/c
-cb_target_vars1_o = $(cb_target_vars1)$(newline)$1
+# same as 'cb_target_vars_a', but add one line containing absolute paths to output files, e.g.: /build/tt/a/b/c@-/tt/a/b/c
+cb_target_vars_a_o = $(cb_target_vars_a)$(newline)$1
 
 # same as 'cb_target_vars', but add one line containing absolute paths to output files, e.g.: /build/tt/a/b/c@-/tt/a/b/c
 # note: this macro may be used for defining a rule in place, e.g.: $(eval $(call cb_target_vars_o,a/b/c):; <rule>)
-cb_target_vars_o = $(call cb_target_vars1_o,$(o_path))
+cb_target_vars_o = $(call cb_target_vars_a_o,$(o_path))
 
 # same as 'generate_dirs', but return target $1 -  simple path relative to virtual $(out_dir), e.g.: gen/file.txt
 generate_dirs_r = $(generate_dirs)$1
@@ -482,10 +482,10 @@ add_generated = $(eval $(cb_target_vars))
 add_generated_r = $(add_generated)$1
 
 # $1 - absolute paths to generated files
-add_generated1_r = $(eval $(call cb_target_vars1,$1))$1
+add_generated_a_o = $(eval $(call cb_target_vars_a,$1))$1
 
 # do the same as 'add_generated', but also return absolute paths to generated files $1 - simple paths relative to virtual $(out_dir)
-add_generated_o = $(call add_generated1_r,$(o_path))
+add_generated_o = $(call add_generated_a_o,$(o_path))
 
 # 'tool_mode' may be set to non-empty value (likely T) at the beginning of target makefile
 #  (before including this file and so before evaluating $(cb_def_head))
@@ -757,8 +757,8 @@ $(call config_remember_vars,CBLD_BUILD CBLD_TARGET CBLD_TOOL_TARGET)
 cb_first_phase_vars += cb_needed_dirs build_system_goals toclean1 toclean debug cb_set_default_vars cb_tool_override_vars \
   order_deps cb_target_makefile add_mdeps set_makefile_info set_makefile_info_r cb_add_what_makefile_builds \
   add_order_deps generate_dirs2 generate_dirs1 generate_dirs cb_target_vars2 cb_what_makefile_builds cb_what_makefile_builds1 \
-  cb_target_vars1 cb_target_vars cb_target_vars1_o cb_target_vars_o generate_dirs_r add_generated add_generated_r \
-  add_generated1_r add_generated_o tool_mode is_tool_mode cb_tool_mode_adjust cb_tool_mode_access_error cb_include_level \
+  cb_target_vars_a cb_target_vars cb_target_vars_a_o cb_target_vars_o generate_dirs_r add_generated add_generated_r \
+  add_generated_a_o add_generated_o tool_mode is_tool_mode cb_tool_mode_adjust cb_tool_mode_access_error cb_include_level \
   cb_target_makefiles cb_head_eval cb_make_cont cb_def_head cb_show_leaf_mk cb_def_tail cb_no_def_head_err cb_def_targets \
   define_targets cb_prepare cb_save_vars cb_restore_vars make_continue
 
@@ -774,8 +774,8 @@ $(call set_global,cb_project_vars clean_build_version cb_dir clean_build_require
   project_supported_targets project_supported_tool_targets toclean1==cb_to_clean toclean cb_set_default_vars cb_tool_override_vars \
   cb_first_makefile cb_target_makefile add_mdeps set_makefile_info set_makefile_info_r cb_add_what_makefile_builds \
   add_order_deps=order_deps=order_deps generate_dirs2 generate_dirs1 generate_dirs cb_target_vars2 cb_what_makefile_builds \
-  cb_what_makefile_builds1 cb_target_vars1 cb_target_vars cb_target_vars1_o cb_target_vars_o generate_dirs_r add_generated \
-  add_generated_r add_generated1_r add_generated_o is_tool_mode cb_tool_mode_adjust cb_tool_mode_access_error cb_def_head \
+  cb_what_makefile_builds1 cb_target_vars_a cb_target_vars cb_target_vars_a_o cb_target_vars_o generate_dirs_r add_generated \
+  add_generated_r add_generated_a_o add_generated_o is_tool_mode cb_tool_mode_adjust cb_tool_mode_access_error cb_def_head \
   cb_show_leaf_mk cb_check_targets cb_def_tail cb_no_def_head_err cb_def_targets define_targets cb_prepare cb_save_vars \
   cb_restore_vars make_continue,core)
 
