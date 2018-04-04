@@ -28,7 +28,7 @@ cb_multi_target_dep_o = $(subst |,:| ,$(subst $(space),$(newline),$(filter-out \
 #
 # $1 - generated files, must be simple paths relative to virtual $(out_dir), e.g.: gen/file.txt gen/file1.txt gen/file2.txt
 # $2 - static prerequisites - either absolute or makefile-related file names
-# $3 - rule
+# $3 - rule, which generates each file in its own namespace
 # $4 - $(o_path) - absolute paths to generated files $1
 # $5 - $(words $(cb_multi_target_num))
 #
@@ -63,7 +63,7 @@ endif
 # if some tool generates multiple files at one call, it is needed to call the tool only once if any of generated files need to be updated
 # $1 - generated files, must be simple paths relative to virtual $(out_dir), e.g.: gen/file.txt gen/file1.txt gen/file2.txt
 # $2 - static prerequisites - either absolute or makefile-related file names
-# $3 - rule
+# $3 - rule, which generates each file in its own namespace
 # note: directories for generated files will be auto-created
 # note: rule must update _all_ targets at once
 multi_target = $(eval $(call cb_multi_target_rule,$1,$2,$3,$(o_path),$(words $(cb_multi_target_num))))
@@ -73,7 +73,7 @@ ifdef cb_checking
 # must _not_ use $@ in multi-target rule because it may have different values (any file from a list of generated files)
 #  - rule must update all targets at once
 # $1 - generated files, simple paths relative to virtual $(out_dir), e.g.: gen/file.txt gen/file1.txt gen/file2.txt
-# $3 - rule
+# $3 - rule, which generates each file in its own namespace
 cb_check_multi_rule = $(if $(findstring $$@,$(subst $$$$,,$3)),$(error $$@ cannot be used in multi-target rule:$(newline)$3))
 
 $(eval multi_target = $$(cb_check_multi_rule)$(value multi_target))
