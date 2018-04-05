@@ -44,16 +44,27 @@ endif
 # (built)    ts/4/5
 
 # name of namespace directory
+ifdef cb_namespaces
 cb_ns_dir := p
+endif
+
+ifdef cb_checking
 
 # check that paths are virtual (i.e. relative and simple): 1/2/3, but not /1/2/3 or 1//2/3 or 1/2/../3 or 1/2/
-ifdef cb_checking
 cb_check_vpaths   = $(if $(filter-out $(addprefix /,$1),$(abspath $(addprefix /,$1))),$(error \
   path(s) are not relative and simple: $(foreach p,$1,$(if $(filter-out /$p,$(abspath /$p)),'$p'))))
 cb_check_vpath    = $(if $(findstring $(space),$1),$(error path must not contain a space: '$1'),$(cb_check_vpaths))
 cb_check_vpaths_r = $(cb_check_vpaths)$1
 cb_check_vpath_r  = $(cb_check_vpath)$1
-endif
+
+# check that paths are absolute and simple: /1/2/3, but not 1/2/3 or /1//2/3 or /1/2/../3 or /1/2/
+cb_check_apaths   = $(if $(filter-out $1,$(abspath $1)),$(error \
+  path(s) are not absolute and simple: $(foreach p,$1,$(if $(filter-out $p,$(abspath $p)),'$p'))))
+cb_check_apath    = $(if $(findstring $(space),$1),$(error path must not contain a space: '$1'),$(cb_check_apaths))
+cb_check_apaths_r = $(cb_check_apaths)$1
+cb_check_apath_r  = $(cb_check_apath)$1
+
+endif # cb_checking
 
 ifdef cb_namespaces
 
@@ -162,5 +173,7 @@ $(call set_global,cb_namespaces)
 
 # protect macros from modifications in target makefiles, allow tracing calls to them
 # note: trace namespace: o_path
-$(call set_global,target_triplet cb_ns_dir cb_check_vpaths cb_check_vpath cb_check_vpaths_r cb_check_vpath_r \
+$(call set_global,target_triplet cb_ns_dir \
+  cb_check_vpaths cb_check_vpath cb_check_vpaths_r cb_check_vpath_r \
+  cb_check_apaths cb_check_apath cb_check_apaths_r cb_check_apath_r \
   cb_ns_suffix cb_trg_priv cb_trg_unpriv o_ns o_path tool_base mk_tools_subdir cb_tools_subdir get_tool_dir,o_path)
