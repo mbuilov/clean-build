@@ -64,7 +64,7 @@ endif
 # $2 - static prerequisites - either absolute or makefile-related file names
 # $3 - rule, which generates all files in the namespace of the first generated file
 # note: directories for generated files will be auto-created
-# note: rule must update _all_ targets at once
+# note: rule must update _all_ targets at once - in the namespace directory of the first generated file
 multi_target = $(eval $(call cb_multi_target_rule,$(addprefix $(call o_ns,$(firstword $1))/,$1),$2,$3,$(words $(cb_multi_target_num))))
 
 ifdef cb_checking
