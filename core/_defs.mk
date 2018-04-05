@@ -210,10 +210,10 @@ endif
 
 # to simplify target makefiles, define 'debug' variable:
 #  $(debug) is non-empty for debugging targets like "DEBUG" or "PROJECT_DEBUG"
-# note: define 'debug' assuming that we are not in "tool" mode
+# note: define 'debug' assuming that we are not in the "tool" mode
 debug := $(filter DEBUG %_DEBUG,$(CBLD_TARGET))
 
-# 'debug' variable is redefined in "tool" mode and restored in non-"tool" mode
+# 'debug' variable is redefined in the "tool" mode and restored in non-"tool" mode
 cb_set_default_vars   := debug:=$(debug)
 cb_tool_override_vars := debug:=$(filter DEBUG %_DEBUG,$(CBLD_TOOL_TARGET))
 
@@ -223,7 +223,7 @@ cb_set_default_vars   := $(cb_set_default_vars)$(newline)$(call set_global1,debu
 cb_tool_override_vars := $(cb_tool_override_vars)$(newline)$(call set_global1,debug)
 endif
 
-# define macros: 'o_ns', 'o_path', 'get_tool_dir'
+# define macros: 'o_ns', 'o_path', 'get_tool_dir', 'get_tools', 'get_deps'
 include $(cb_dir)/core/o_path.mk
 
 # 'toclean' - function to add files/directories to delete to 'cb_to_clean' list
@@ -270,7 +270,8 @@ endif # cleaning
 # define macros: 'assoc_dirs', 'deploy_files_from', 'deploy_files', 'deploy_dirs'
 include $(cb_dir)/core/deploy.mk
 
-# define macros: 'need_built_files', 'need_built_dirs', 'need_tool_files', 'need_tool_dirs', 'need_tool_execs', 'get_tool_execs'
+# define macros: 'need_built_files_from', 'need_built_files', 'need_tool_files',
+#  'need_built_dirs', 'need_tool_dirs', 'need_tool_execs', 'get_tool_execs'
 include $(cb_dir)/core/need.mk
 
 # path to the root target makefile the build was started from
@@ -493,20 +494,20 @@ add_generated_o = $(call cb_add_generated_a_o,$(o_path))
 
 # 'tool_mode' may be set to non-empty value (likely T) at the beginning of target makefile
 #  (before including this file and so before evaluating $(cb_def_head))
-# if 'tool_mode' is not set - reset it - we are not in "tool" mode
+# if 'tool_mode' is not set - reset it - we are not in the "tool" mode
 # else - check its value while evaluation of 'cb_def_head'
 ifneq (file,$(origin tool_mode))
 tool_mode:=
 endif
 
-# non-empty (likely T) in "tool" mode - 'tool_mode' variable was set to that value prior evaluating $(cb_def_head), empty in normal mode.
+# non-empty (e.g. T) in the "tool" mode - 'tool_mode' variable was set to that value prior evaluating $(cb_def_head), empty in normal mode.
 # note: 'tool_mode' variable should not be used in rule templates - use $(is_tool_mode) instead, because 'tool_mode' may be set to another
 #  value anywhere before $(make_continue), and so before the evaluation of rule templates.
-# reset the value: we are currently not in "tool" mode
+# reset the value: we are currently not in the "tool" mode
 is_tool_mode:=
 
 # code to evaluate at the beginning of target makefile to adjust variables for "tool" mode
-# note: set 'is_tool_mode' variable to remember if we are in "tool" mode - 'tool_mode' variable may be set to another value
+# note: set 'is_tool_mode' variable to remember if we are in the "tool" mode - 'tool_mode' variable may be set to another value
 #  before calling $(make_continue), and this new value will affect only the next sections of $(make_continue)
 define cb_tool_mode_adjust
 is_tool_mode:=$(tool_mode)
