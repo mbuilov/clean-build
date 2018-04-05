@@ -87,11 +87,11 @@ multi_target = $(eval $(call cb_target_vars_a,$(addprefix $(call o_ns,$(firstwor
 
 endif # cleaning
 
-# same as 'multi_target', but return list of generated files $1 (simple paths relative to virtual $(out_dir), e.g.: gen/file.txt)
-multi_target_r = $(multi_target)$1
+# same as 'multi_target', but return absolute paths to generated files $1 (in namespace directory of the first generated file)
+multi_target_o = $(multi_target)$(addprefix $(call o_ns,$(firstword $1))/,$1)
 
 # makefile parsing first phase variables
-cb_first_phase_vars += cb_multi_target_num cb_multi_target_dep_r cb_multi_target_rule multi_target cb_check_multi_rule multi_target_r
+cb_first_phase_vars += cb_multi_target_num cb_multi_target_dep_r cb_multi_target_rule multi_target cb_check_multi_rule multi_target_o
 
 # protect macros from modifications in target makefiles,
 # do not trace calls to macros used in ifdefs, exported to the environment of called tools or modified via operator +=
@@ -100,4 +100,4 @@ $(call set_global,cb_first_phase_vars cb_multi_target_num cb_multi_targets)
 # protect macros from modifications in target makefiles, allow tracing calls to them
 # note: trace namespace: multi
 $(call set_global,cb_multi_target_dep_r cb_multi_target_rule=cb_multi_target_num=cb_multi_target_num \
-  multi_target cb_check_multi_rule multi_target_r,multi)
+  multi_target cb_check_multi_rule multi_target_o,multi)
