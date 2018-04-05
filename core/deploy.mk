@@ -5,10 +5,11 @@
 #----------------------------------------------------------------------------------
 
 # define macros:
-#  'assoc_dirs'   - associate built directories with given tag file
-#  'deploy_files' - deploy files - link them from private modules build directories to "public" place
-#  'deploy_dirs'  - associate each deployed directory with given tag file and
-#                   deploy dirs - link them from tag file's private build directory to "public" place
+#  'assoc_dirs'        - associate built directories with given tag file
+#  'deploy_files_from' - deploy files - link them from private modules build directories to "public" place
+#  'deploy_files'      - deploy files - link them from private modules build directories to "public" place
+#  'deploy_dirs'       - associate each deployed directory with given tag file and
+#                         deploy dirs - link them from tag file's private build directory to "public" place
 
 ifndef cb_checking
 
@@ -26,6 +27,7 @@ else # cb_checking
 # note: these lists contain simple relative paths like 1/2/3
 cb_tag_files:=
 cb_tag_files_t:=
+
 # note: 'cb_assoc_dirs' and 'cb_assoc_dirs_t' lists will not contain duplicates
 cb_assoc_dirs:=
 cb_assoc_dirs_t:=
@@ -117,16 +119,17 @@ endif
 # $1 - deployed files - simple paths relative to virtual $(out_dir), e.g.: bin/tool.exe gen/tool.cfg
 # $2 - absolute paths to places where deployed files are built, e.g.:
 #  /build/p/tt/bin-tool.exe@-/tt/bin/tool.exe /build/p/tt/gen-tool.cfg@-/tt/gen/tool.cfg
-deploy_files_a = $(eval $(deploy_files1))
-
+ifndef cb_checking
+deploy_files_from = $(eval $(deploy_files1))
+else
 # check that paths $1 - are simple and relative to virtual $(out_dir), e.g.: bin/tool.exe gen/tool.cfg
-ifdef cb_checking
-$(eval deploy_files_a = $$(cb_check_vpaths)$(value deploy_files_a))
+# check that paths $2 - are simple and absolute, e.g.: /build/p/tt/bin-tool.exe@-/tt/bin/tool.exe
+deploy_files_from = $(eval $(call deploy_files1,$(cb_check_vpaths_r),$(call cb_check_apaths_r,$2)))
 endif
 
 # deploy files - link them from private modules build directories to "public" place
 # $1 - deployed files - simple paths relative to virtual $(out_dir), e.g.: bin/tool.exe gen/tool.cfg
-deploy_files = $(call deploy_files_a,$1,$(o_path))
+deploy_files = $(eval $(call deploy_files1,$1,$(o_path)))
 
 # ---------- deploying directories ------------
 
@@ -173,19 +176,30 @@ deploy_dirs = $(assoc_dirs)$(eval $(call deploy_dirs1,$1,$2,$(cb_build)/$(if $(i
 else # cleaning
 
 # $1 - deployed files - simple paths relative to virtual $(out_dir), e.g.: bin/tool.exe gen/tool.cfg
-deploy_files_a = $(call toclean1,$(addprefix $(if $(is_tool_mode),$(cb_tools_subdir),$(target_triplet))/,$1))
+deploy_files1 = $(call cb_to_clean_add,$(addprefix $(if $(is_tool_mode),$(cb_tools_subdir),$(target_triplet))/,$1))
 
 # check that paths $1 - are simple and relative to virtual $(out_dir), e.g.: bin/tool.exe gen/tool.cfg
 ifdef cb_checking
-$(eval deploy_files_a = $(subst $$1,$$(cb_check_vpaths_r),$(value deploy_files_a)))
+$(eval deploy_files1 = $(subst $$1,$$(cb_check_vpaths_r),$(value deploy_files1)))
 endif
 
+# delete deployed files
 # $1 - deployed files - simple paths relative to virtual $(out_dir), e.g.: bin/tool.exe gen/tool.cfg
-deploy_files = $(deploy_files_a)
+ifndef cb_checking
+deploy_files_from = $(deploy_files1)
+else
+# check that paths $2 - are simple and absolute, e.g.: /build/p/tt/bin-tool.exe@-/tt/bin/tool.exe
+deploy_files_from = $(deploy_files1)$(call cb_check_apaths,$2)
+endif
 
+# delete deployed files
+# $1 - deployed files - simple paths relative to virtual $(out_dir), e.g.: bin/tool.exe gen/tool.cfg
+deploy_files = $(deploy_files1)
+
+# associate and delete deployed directories
 # $1 - deployed tag file - simple path relative to virtual $(out_dir),  e.g.: gen1/tag1.tag
 # $2 - deployed dirs     - simple paths relative to virtual $(out_dir), e.g.: gen2/dir1 gen3/dir2/dir3
-deploy_dirs = $(assoc_dirs)$(call toclean1,$(addprefix $(if $(is_tool_mode),$(cb_tools_subdir),$(target_triplet))/,$1 $2))
+deploy_dirs = $(assoc_dirs)$(call cb_to_clean_add,$(addprefix $(if $(is_tool_mode),$(cb_tools_subdir),$(target_triplet))/,$1 $2))
 
 endif # cleaning
 
@@ -193,12 +207,14 @@ else # !cb_namespaces
 
 # files are built directly in "public" place, no need to link there them from private modules build directories
 ifndef cb_checking
-deploy_files_a:=
+deploy_files_from:=
 deploy_files:=
 else
 # check parameters:
 # $1 - deployed files - simple paths relative to virtual $(out_dir), e.g.: bin/tool.exe gen/tool.cfg
-deploy_files_a = $(cb_check_vpaths)
+# $2 - absolute paths to places where deployed files are built, e.g.:
+#  /build/p/tt/bin-tool.exe@-/tt/bin/tool.exe /build/p/tt/gen-tool.cfg@-/tt/gen/tool.cfg
+deploy_files_from = $(cb_check_vpaths)$(call cb_check_apaths,$2)
 deploy_files = $(cb_check_vpaths)
 endif
 
@@ -217,7 +233,7 @@ assoc_dirs_r = $(assoc_dirs)$1
 # $1 - deployed files - simple paths relative to virtual $(out_dir), e.g.: bin/tool.exe gen/tool.cfg
 # $2 - absolute paths to places where deployed files are built, e.g.:
 #  /build/p/tt/bin-tool.exe@-/tt/bin/tool.exe /build/p/tt/gen-tool.cfg@-/tt/gen/tool.cfg
-deploy_files_a_r = $(deploy_files_a)$1
+deploy_files_from_r = $(deploy_files_from)$1
 
 # $1 - deployed files - simple paths relative to virtual $(out_dir), e.g.: bin/tool.exe gen/tool.cfg
 deploy_files_r = $(deploy_files)$1
@@ -227,8 +243,8 @@ deploy_files_r = $(deploy_files)$1
 deploy_dirs_r = $(deploy_dirs)$1
 
 # makefile parsing first phase variables
-cb_first_phase_vars += assoc_dirs cb_tag_files cb_deploy_files cb_deploy_tool_files deploy_files1 deploy_files_a deploy_files \
-  cb_deploy_dirs deploy_dirs1 deploy_dirs assoc_dirs_r deploy_files_a_r deploy_files_r deploy_dirs_r
+cb_first_phase_vars += assoc_dirs cb_tag_files cb_deploy_files cb_deploy_tool_files deploy_files1 deploy_files_from deploy_files \
+  cb_deploy_dirs deploy_dirs1 deploy_dirs assoc_dirs_r deploy_files_from_r deploy_files_r deploy_dirs_r
 
 # protect macros from modifications in target makefiles, allow tracing calls to them
 # note: trace namespace: assoc_dirs
@@ -240,5 +256,5 @@ $(call set_global,cb_tag_files cb_tag_files_t cb_assoc_dirs cb_assoc_dirs_t)
 
 # protect macros from modifications in target makefiles, allow tracing calls to them
 # note: trace namespace: deploy
-$(call set_global,cb_deploy_files cb_deploy_tool_files deploy_files1 deploy_files_a deploy_files cb_gen_dir_linking_rules \
-  cb_deploy_dirs deploy_dirs1 deploy_dirs deploy_files_a_r deploy_files_r deploy_dirs_r,deploy)
+$(call set_global,cb_deploy_files cb_deploy_tool_files deploy_files1 deploy_files_from deploy_files cb_gen_dir_linking_rules \
+  cb_deploy_dirs deploy_dirs1 deploy_dirs deploy_files_from_r deploy_files_r deploy_dirs_r,deploy)
