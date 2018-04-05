@@ -193,6 +193,9 @@ endif # !no_clean_build_distclean_goal
 
 endif # distclean
 
+# non-empty if cleaning up built files or directories
+cleaning := $(filter clean distclean,$(MAKECMDGOALS))
+
 # define 'verbose' and 'quiet' constants, 'suppress' function and other macros
 include $(cb_dir)/core/suppress.mk
 
@@ -204,46 +207,6 @@ CBLD_CONF_COLOR ?= [1;32m
 $(info $(call cb_print_percents,use)$(if $(cb_infomf),$(cb_target_makefile):)$(call cb_show_tool,CONF,$(CBLD_CONFIG)))
 endif
 endif
-
-# 'cb_to_clean' - list of $(cb_build)-relative paths to files/directories to recursively delete on "$(MAKE) clean"
-# note: this list is never cleared, only appended - via 'toclean1' macro
-# note: 'cb_to_clean' variable should not be directly accessed/modified in target makefiles
-cb_to_clean:=
-
-# non-empty if cleaning up built files or directories
-cleaning := $(filter clean distclean,$(MAKECMDGOALS))
-
-# 'toclean' - function to add files/directories to delete to 'cb_to_clean' list
-# $1 - target, whose built files/directories need to delete, must be simple path relative to virtual $(out_dir), e.g.: gen/file.txt
-# $2 - built files/directories of the target $1 to delete, must be paths relative to virtual $(out_dir), e.g.: ex/tool1 gen/file.txt
-ifndef cleaning
-
-# do nothing if not cleaning up
-toclean1:=
-
-ifndef cb_checking
-toclean:=
-else
-toclean = $(if $(cb_check_vpath_r),$(call cb_check_vpaths,$2),$(if $2,$(error toclean: target is not specified)))
-endif
-
-else ifneq (,$(word 2,$(MAKECMDGOALS)))
-
-$(error 'clean' goal must be specified alone, current goals: $(MAKECMDGOALS))
-
-else ifndef cb_checking
-
-toclean1 = $(eval cb_to_clean+=$$1)
-toclean = $(call toclean1,$(addprefix $(patsubst $(cb_build)/%,%,$(o_ns))/,$2))
-
-else # cb_checking
-
-# remember new value of 'cb_to_clean' list, without tracing calls to it because it's incremented
-toclean1 = $(eval cb_to_clean+=$$1$(newline)$(call set_global1,cb_to_clean))
-toclean = $(if $(cb_check_vpath_r),$(call toclean1,$(addprefix $(patsubst $(cb_build)/%,%,$(o_ns))/,$(call \
-  cb_check_vpaths_r,$2))),$(if $2,$(error toclean: target is not specified)))
-
-endif # cb_checking
 
 # to simplify target makefiles, define 'debug' variable:
 #  $(debug) is non-empty for debugging targets like "DEBUG" or "PROJECT_DEBUG"
@@ -263,7 +226,48 @@ endif
 # define macros: 'o_ns', 'o_path', 'get_tool_dir'
 include $(cb_dir)/core/o_path.mk
 
-# define macros: 'assoc_dirs', 'deploy_files', 'deploy_dirs'
+# 'toclean' - function to add files/directories to delete to 'cb_to_clean' list
+# $1 - target, whose built files/directories need to delete, must be simple path relative to virtual $(out_dir), e.g.: gen/file.txt
+# $2 - built files/directories of the target $1 to delete, must be paths relative to virtual $(out_dir), e.g.: ex/tool1 gen/file.txt
+ifndef cleaning
+
+# do nothing if not cleaning up
+cb_to_clean_add:=
+
+ifndef cb_checking
+toclean:=
+else
+toclean = $(if $(cb_check_vpath_r),$(call cb_check_vpaths,$2),$(if $2,$(error toclean: target is not specified)))
+endif
+
+else ifneq (,$(word 2,$(MAKECMDGOALS)))
+
+$(error 'clean' goal must be specified alone, current goals: $(MAKECMDGOALS))
+
+else # cleaning
+
+# 'cb_to_clean' - list of $(cb_build)-relative paths to files/directories to recursively delete on "$(MAKE) clean"
+# note: this list is never cleared, only appended - via 'cb_to_clean_add' macro
+# note: 'cb_to_clean' variable should not be directly accessed/modified in target makefiles
+cb_to_clean:=
+
+ifndef cb_checking
+
+cb_to_clean_add = $(eval cb_to_clean+=$$1)
+toclean = $(call cb_to_clean_add,$(addprefix $(patsubst $(cb_build)/%,%,$(o_ns))/,$2))
+
+else # cb_checking
+
+# remember new value of 'cb_to_clean' list, without tracing calls to it because it's incremented
+cb_to_clean_add = $(eval cb_to_clean+=$$1$(newline)$(call set_global1,cb_to_clean))
+toclean = $(if $(cb_check_vpath_r),$(call cb_to_clean_add,$(addprefix $(patsubst $(cb_build)/%,%,$(o_ns))/,$(call \
+  cb_check_vpaths_r,$2))),$(if $2,$(error toclean: target is not specified)))
+
+endif # cb_checking
+
+endif # cleaning
+
+# define macros: 'assoc_dirs', 'deploy_files_from', 'deploy_files', 'deploy_dirs'
 include $(cb_dir)/core/deploy.mk
 
 # define macros: 'need_built_files', 'need_built_dirs', 'need_tool_files', 'need_tool_dirs', 'need_tool_execs', 'get_tool_execs'
@@ -435,7 +439,7 @@ generate_dirs = $(toclean)
 
 # just delete target files
 # $1 - target files to delete (absolute paths), e.g.: /build/tt/a/b/c@-/tt/a/b/c
-cb_target_vars_a = $(call toclean1,$(patsubst $(cb_build)/%,%,$1))
+cb_target_vars_a = $(call cb_to_clean_add,$(patsubst $(cb_build)/%,%,$1))
 
 # note: callers of 'generate_dirs' or 'cb_target_vars' may assume that it will protect new value of 'cb_needed_dirs', so callers
 #  _may_ change 'cb_needed_dirs' without protecting it - before the call. Protect 'cb_needed_dirs' here (do not optimize!).
@@ -482,10 +486,10 @@ add_generated = $(eval $(cb_target_vars))
 add_generated_r = $(add_generated)$1
 
 # $1 - absolute paths to generated files
-add_generated_a_o = $(eval $(call cb_target_vars_a,$1))$1
+cb_add_generated_a_o = $(eval $(cb_target_vars_a))$1
 
 # do the same as 'add_generated', but also return absolute paths to generated files $1 - simple paths relative to virtual $(out_dir)
-add_generated_o = $(call add_generated_a_o,$(o_path))
+add_generated_o = $(call cb_add_generated_a_o,$(o_path))
 
 # 'tool_mode' may be set to non-empty value (likely T) at the beginning of target makefile
 #  (before including this file and so before evaluating $(cb_def_head))
@@ -754,30 +758,30 @@ $(call config_remember_vars,CBLD_BUILD CBLD_TARGET CBLD_TOOL_TARGET)
 # makefile parsing first phase variables
 # Note: 'debug' variable change its value depending on the value of 'tool_mode' variable set in the last
 #  parsed makefile, so clear this variables before rule execution second phase
-cb_first_phase_vars += cb_needed_dirs build_system_goals toclean1 toclean debug cb_set_default_vars cb_tool_override_vars \
-  order_deps cb_target_makefile add_mdeps set_makefile_info set_makefile_info_r cb_add_what_makefile_builds \
+cb_first_phase_vars += cb_needed_dirs build_system_goals debug cb_set_default_vars cb_tool_override_vars cb_to_clean_add \
+  toclean order_deps cb_target_makefile add_mdeps set_makefile_info set_makefile_info_r cb_add_what_makefile_builds \
   add_order_deps generate_dirs2 generate_dirs1 generate_dirs cb_target_vars2 cb_what_makefile_builds cb_what_makefile_builds1 \
   cb_target_vars_a cb_target_vars cb_target_vars_a_o cb_target_vars_o generate_dirs_r add_generated add_generated_r \
-  add_generated_a_o add_generated_o tool_mode is_tool_mode cb_tool_mode_adjust cb_tool_mode_access_error cb_include_level \
+  cb_add_generated_a_o add_generated_o tool_mode is_tool_mode cb_tool_mode_adjust cb_tool_mode_access_error cb_include_level \
   cb_target_makefiles cb_head_eval cb_make_cont cb_def_head cb_show_leaf_mk cb_def_tail cb_no_def_head_err cb_def_targets \
   define_targets cb_prepare cb_save_vars cb_restore_vars make_continue
 
 # protect macros from modifications in target makefiles,
 # do not trace calls to macros used in ifdefs, exported to the environment of called tools or modified via operator +=
 $(call set_global,MAKEFLAGS SHELL cb_needed_dirs cb_first_phase_vars CBLD_BUILD CBLD_TARGET CBLD_TOOL_TARGET \
-  cb_mdebug build_system_goals no_clean_build_distclean_goal cb_to_clean cleaning debug order_deps CBLD_TARGET_COLOR \
+  cb_mdebug build_system_goals no_clean_build_distclean_goal cleaning debug cb_to_clean order_deps CBLD_TARGET_COLOR \
   CBLD_CB_BUILD_COLOR cb_include_level cb_target_makefiles cb_make_cont CBLD_LEAF_COLOR CBLD_LEVEL_COLOR CBLD_CONF_COLOR)
 
 # protect macros from modifications in target makefiles, allow tracing calls to them
 # note: trace namespace: core
 $(call set_global,cb_project_vars clean_build_version cb_dir clean_build_required_version cb_build \
-  project_supported_targets project_supported_tool_targets toclean1==cb_to_clean toclean cb_set_default_vars cb_tool_override_vars \
-  cb_first_makefile cb_target_makefile add_mdeps set_makefile_info set_makefile_info_r cb_add_what_makefile_builds \
-  add_order_deps=order_deps=order_deps generate_dirs2 generate_dirs1 generate_dirs cb_target_vars2 cb_what_makefile_builds \
-  cb_what_makefile_builds1 cb_target_vars_a cb_target_vars cb_target_vars_a_o cb_target_vars_o generate_dirs_r add_generated \
-  add_generated_r add_generated_a_o add_generated_o is_tool_mode cb_tool_mode_adjust cb_tool_mode_access_error cb_def_head \
-  cb_show_leaf_mk cb_check_targets cb_def_tail cb_no_def_head_err cb_def_targets define_targets cb_prepare cb_save_vars \
-  cb_restore_vars make_continue,core)
+  project_supported_targets project_supported_tool_targets cb_set_default_vars cb_tool_override_vars \
+  cb_to_clean_add==cb_to_clean toclean cb_first_makefile cb_target_makefile add_mdeps set_makefile_info set_makefile_info_r \
+  cb_add_what_makefile_builds add_order_deps=order_deps=order_deps generate_dirs2 generate_dirs1 generate_dirs cb_target_vars2 \
+  cb_what_makefile_builds cb_what_makefile_builds1 cb_target_vars_a cb_target_vars cb_target_vars_a_o cb_target_vars_o \
+  generate_dirs_r add_generated add_generated_r cb_add_generated_a_o add_generated_o is_tool_mode cb_tool_mode_adjust \
+  cb_tool_mode_access_error cb_def_head cb_show_leaf_mk cb_check_targets cb_def_tail cb_no_def_head_err cb_def_targets \
+  define_targets cb_prepare cb_save_vars cb_restore_vars make_continue,core)
 
 # define auxiliary macros: 'non_parallel_execute', 'multi_target' and 'multi_target_r'
 include $(cb_dir)/core/nonpar.mk
