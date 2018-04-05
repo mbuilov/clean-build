@@ -5,9 +5,13 @@
 #----------------------------------------------------------------------------------
 
 # define macros:
-#  'o_ns'         - for given target virtual path, get absolute path to namespace directory, e.g.: for a/b/c -> p/tt/a/b/c@-/tt
-#  'o_path'       - for given target virtual path, get absolute path to output file,         e.g.: for a/b/c -> p/tt/a/b/c@-/tt/a/b/c
-#  'get_tool_dir' - for given target virtual path, get absolute path to tool directory,      e.g.: for a/b/c -> p/tt/a/b/c@-/ts
+#  'o_ns'         - for given target virtual path, get absolute path to namespace directory, e.g.: for a/b -> /build/p/tt/a/b@-/tt
+#  'o_path'       - for given target virtual path, get absolute path to output file,         e.g.: for a/b -> /build/p/tt/a/b@-/tt/a/b
+#  'get_tool_dir' - for given target virtual path, get absolute path to its tool directory,  e.g.: for a/b -> /build/p/tt/a/b@-/ts
+#  'get_tools'    - for given target virtual path and virtual paths to tool files, get absolute paths to the tool files, e.g.:
+#                    $(call get_tools,a/b,c/d e) -> /build/p/tt/a/b@-/ts/c/d /build/p/tt/a/b@-/ts/e
+#  'get_deps'     - for given target virtual path and virtual paths to dependencies, get absolute paths to the dependencies, e.g.:
+#                    $(call get_deps,a/b,c/d e)  -> /build/p/tt/a/b@-/tt/c/d /build/p/tt/a/b@-/tt/e
 
 # base part of sub-directory of $(cb_build) where artifacts are built, e.g. DEBUG-LINUX-x86
 # note: build tools are built in another place - see 'tool_base' below
@@ -155,17 +159,31 @@ cb_set_default_vars   := $(cb_set_default_vars)$(newline)$(call set_global1,o_ns
 cb_tool_override_vars := $(cb_tool_override_vars)$(newline)$(call set_global1,o_ns o_path,o_path)
 endif
 
-# return absolute path to tools base directory for given target
-# $1 - the target for which the path is returned - must be a simple path relative to virtual $(out_dir), e.g.: bin/test.exe
+# return absolute paths to the tools base directories for given targets
+# $1 - the targets for which the paths are returned - must be simple paths relative to virtual $(out_dir), e.g.: bin/test.exe
+get_tool_dir = $(addsuffix $(cb_tools_subdir),$(dir $(o_ns)))
+
+# for given target virtual path and virtual paths to tool files, get absolute paths to the tool files
+# $1 - a target for which the paths are returned - must be a simple path relative to virtual $(out_dir), e.g.: bin/test.exe
+# $2 - tool files - must be a simple paths relative to virtual $(out_dir), e.g.: tool/t1 tool/t2
 ifdef cb_checking
-get_tool_dir = $(cb_check_vpath)$(dir $(o_ns))$(cb_tools_subdir)
+get_tools = $(cb_check_vpath)$(addprefix $(get_tool_dir)/,$(call cb_check_vpaths_r,$2))
 else
-get_tool_dir = $(dir $(o_ns))$(cb_tools_subdir)
+get_tools = $(addprefix $(get_tool_dir)/,$2)
+endif
+
+# for given target virtual path and virtual paths to dependencies, get absolute paths to the dependencies
+# $1 - a target for which the paths are returned - must be a simple path relative to virtual $(out_dir), e.g.: bin/test.exe
+# $2 - dependencies - must be a simple paths relative to virtual $(out_dir), e.g.: gen/dep.c gen/dep.h
+ifdef cb_checking
+get_deps = $(cb_check_vpath)$(addprefix $(o_ns)/,$(call cb_check_vpaths_r,$2))
+else
+get_deps = $(addprefix $(o_ns)/,$2)
 endif
 
 # makefile parsing first phase variables
 # note: 'o_ns' and 'o_path' change their values in "tool" mode
-cb_first_phase_vars += o_ns o_path get_tool_dir
+cb_first_phase_vars += o_ns o_path get_tool_dir get_tools get_deps
 
 # protect macros from modifications in target makefiles,
 # do not trace calls to macros used in ifdefs, exported to the environment of called tools or modified via operator +=
@@ -176,4 +194,4 @@ $(call set_global,cb_namespaces)
 $(call set_global,target_triplet cb_ns_dir \
   cb_check_vpaths cb_check_vpath cb_check_vpaths_r cb_check_vpath_r \
   cb_check_apaths cb_check_apath cb_check_apaths_r cb_check_apath_r \
-  cb_ns_suffix cb_trg_priv cb_trg_unpriv o_ns o_path tool_base mk_tools_subdir cb_tools_subdir get_tool_dir,o_path)
+  cb_ns_suffix cb_trg_priv cb_trg_unpriv o_ns o_path tool_base mk_tools_subdir cb_tools_subdir get_tool_dir get_tools get_deps,o_path)
