@@ -5,12 +5,12 @@
 #----------------------------------------------------------------------------------
 
 # define macros:
-#  'o_ns'         - for given target virtual path, get absolute path to namespace directory, e.g.: for a/b -> /build/p/tt/a/b@-/tt
-#  'o_path'       - for given target virtual path, get absolute path to output file,         e.g.: for a/b -> /build/p/tt/a/b@-/tt/a/b
-#  'get_tool_dir' - for given target virtual path, get absolute path to its tool directory,  e.g.: for a/b -> /build/p/tt/a/b@-/ts
-#  'get_tools'    - for given target virtual path and virtual paths to tool files, get absolute paths to the tool files, e.g.:
+#  'o_ns'         - for a given target virtual path, get absolute path to namespace directory, e.g.: for a/b -> /build/p/tt/a/b@-/tt
+#  'o_path'       - for a given target virtual path, get absolute path to output file,         e.g.: for a/b -> /build/p/tt/a/b@-/tt/a/b
+#  'get_tool_dir' - for a given target virtual path, get absolute path to its tool directory,  e.g.: for a/b -> /build/p/tt/a/b@-/ts
+#  'get_tools'    - for a given target virtual path and virtual paths to tool files, get absolute paths to the tool files, e.g.:
 #                    $(call get_tools,a/b,c/d e) -> /build/p/tt/a/b@-/ts/c/d /build/p/tt/a/b@-/ts/e
-#  'get_deps'     - for given target virtual path and virtual paths to dependencies, get absolute paths to the dependencies, e.g.:
+#  'get_deps'     - for a given target virtual path and virtual paths to dependencies, get absolute paths to the dependencies, e.g.:
 #                    $(call get_deps,a/b,c/d e)  -> /build/p/tt/a/b@-/tt/c/d /build/p/tt/a/b@-/tt/e
 
 # base part of sub-directory of $(cb_build) where artifacts are built, e.g. DEBUG-LINUX-x86
@@ -90,7 +90,7 @@ endif # cb_namespaces
 
 # ---------- output paths: 'o_ns' and 'o_path' ---------------
 
-# get absolute paths to namespace directories for given targets
+# get absolute paths to namespace directories for a given targets
 # $1 - simple paths relative to virtual $(out_dir), e.g.: gen/file.txt gen2/file2.txt
 # note: define 'o_ns' assuming that we are not in "tool" mode
 ifdef cb_namespaces
@@ -159,22 +159,22 @@ cb_set_default_vars   := $(cb_set_default_vars)$(newline)$(call set_global1,o_ns
 cb_tool_override_vars := $(cb_tool_override_vars)$(newline)$(call set_global1,o_ns o_path,o_path)
 endif
 
-# return absolute paths to the tools base directories for given targets
+# return absolute paths to the tools base directories for a given targets
 # $1 - the targets for which the paths are returned - must be simple paths relative to virtual $(out_dir), e.g.: bin/test.exe
 get_tool_dir = $(addsuffix $(cb_tools_subdir),$(dir $(o_ns)))
 
-# for given target virtual path and virtual paths to tool files, get absolute paths to the tool files
+# for a given target virtual path and virtual paths to tool files, get absolute paths to the tool files
 # $1 - a target for which the paths are returned - must be a simple path relative to virtual $(out_dir), e.g.: bin/test.exe
-# $2 - tool files - must be a simple paths relative to virtual $(out_dir), e.g.: tool/t1 tool/t2
+# $2 - tool files - must be simple paths relative to virtual $(out_dir), e.g.: tool/t1 tool/t2
 ifdef cb_checking
 get_tools = $(cb_check_vpath)$(addprefix $(get_tool_dir)/,$(call cb_check_vpaths_r,$2))
 else
 get_tools = $(addprefix $(get_tool_dir)/,$2)
 endif
 
-# for given target virtual path and virtual paths to dependencies, get absolute paths to the dependencies
+# for a given target virtual path and virtual paths to built dependencies, get absolute paths to the dependencies
 # $1 - a target for which the paths are returned - must be a simple path relative to virtual $(out_dir), e.g.: bin/test.exe
-# $2 - dependencies - must be a simple paths relative to virtual $(out_dir), e.g.: gen/dep.c gen/dep.h
+# $2 - dependencies - must be simple paths relative to virtual $(out_dir), e.g.: gen/dep.c gen/dep.h
 ifdef cb_checking
 get_deps = $(cb_check_vpath)$(addprefix $(o_ns)/,$(call cb_check_vpaths_r,$2))
 else
