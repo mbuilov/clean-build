@@ -270,8 +270,9 @@ endif # cleaning
 # define macros: 'assoc_dirs', 'deploy_files_from', 'deploy_files', 'deploy_dirs'
 include $(cb_dir)/core/deploy.mk
 
-# define macros: 'need_built_files_from', 'need_built_files', 'need_tool_files',
-#  'need_built_dirs', 'need_tool_dirs', 'need_tool_execs', 'get_tool_execs'
+# define macros:
+#  'need_built_files_from', 'need_built_files', 'need_tool_files', 'need_built_dirs', 'need_tool_dirs', 'need_tool_execs',
+#  'get_tool_execs', 'get_dep_dir_tags', 'get_tool_dir_tags
 include $(cb_dir)/core/need.mk
 
 # path to the root target makefile the build was started from
