@@ -13,7 +13,7 @@ all clean distclean: c_dir := $(dir $(lastword $(MAKEFILE_LIST)))
 # tests
 all clean distclean:
 	$(MAKE) -f $(c_dir)shell_escape/Makefile $@
-	$(MAKE) -f $(c_dir)sh_touch/Makefile $@
+	$(MAKE) -f $(c_dir)touch/Makefile $@
 
 # these targets are not files
 .PHONY: all clean distclean

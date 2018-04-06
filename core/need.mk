@@ -287,14 +287,16 @@ else
 get_tool_dir_tags = $(call get_tools,$1,$(sort $(foreach d,$2,$($d/.^d))))
 endif
 
-# form dependency of a target on needed built files/directories, then return absolute paths to the dependencies
+# form dependency of a target on needed built files/directories, then return absolute paths to the dependencies/tags
 # $1 - a target for which files/directories are needed - must be a simple path relative to virtual $(out_dir), e.g.: bin/test.exe
 # $2 - needed files/directories, must be simple paths relative to virtual $(out_dir), e.g.: gen/file1.txt gen/file2.txt
 need_built_files_from_d = $(need_built_files_from)$(get_deps)
 need_built_files_d      = $(need_built_files)$(get_deps)
 need_tool_files_d       = $(need_tool_files)$(get_tools)
-need_built_dirs_d       = $(need_built_dirs)$(get_dep_dir_tags)
-need_tool_dirs_d        = $(need_tool_dirs)$(get_tool_dir_tags)
+need_built_dirs_d       = $(need_built_dirs)$(get_deps)
+need_tool_dirs_d        = $(need_tool_dirs)$(get_tools)
+need_built_dirs_t       = $(need_built_dirs)$(get_dep_dir_tags)
+need_tool_dirs_t        = $(need_tool_dirs)$(get_tool_dir_tags)
 need_tool_execs_d       = $(need_tool_execs)$(get_tool_execs)
 
 # form dependency of a target on needed built files/directories, then return target $1
@@ -312,13 +314,13 @@ need_tool_execs_r       = $(need_tool_execs)$1
 cb_first_phase_vars += cb_need_files need_built_files1 need_tool_files1 need_built_files_from need_tool_files cb_need_built_dirs \
   cb_need_tool_dirs cb_need_dirs3 cb_need_dirs2 need_built_dirs2 need_tool_dirs2 cb_need_dirs1 need_built_dirs need_tool_dirs \
   need_built_files need_built_dirs1 need_tool_dirs1 need_tool_execs get_tool_execs get_dep_dir_tags get_tool_dir_tags \
-  need_built_files_from_d need_built_files_d need_tool_files_d need_built_dirs_d need_tool_dirs_d need_tool_execs_d \
-  need_built_files_from_r need_built_files_r need_tool_files_r need_built_dirs_r need_tool_dirs_r need_tool_execs_r
+  need_built_files_from_d need_built_files_d need_tool_files_d need_built_dirs_d need_tool_dirs_d need_built_dirs_t need_tool_dirs_t \
+  need_tool_execs_d need_built_files_from_r need_built_files_r need_tool_files_r need_built_dirs_r need_tool_dirs_r need_tool_execs_r
 
 # protect macros from modifications in target makefiles, allow tracing calls to them
 # note: trace namespace: need
 $(call set_global,cb_need_files need_built_files1 need_tool_files1 need_built_files_from need_tool_files cb_need_built_dirs \
   cb_need_tool_dirs cb_need_dirs3 cb_need_dirs2 need_built_dirs2 need_tool_dirs2 cb_need_dirs1 need_built_dirs need_tool_dirs \
   need_built_files need_built_dirs1 need_tool_dirs1 tool_exe_suffix need_tool_execs get_tool_execs get_dep_dir_tags get_tool_dir_tags \
-  need_built_files_from_d need_built_files_d need_tool_files_d need_built_dirs_d need_tool_dirs_d need_tool_execs_d \
-  need_built_files_from_r need_built_files_r need_tool_files_r need_built_dirs_r need_tool_dirs_r need_tool_execs_r,need)
+  need_built_files_from_d need_built_files_d need_tool_files_d need_built_dirs_d need_tool_dirs_d need_built_dirs_t need_tool_dirs_t \
+  need_tool_execs_d need_built_files_from_r need_built_files_r need_tool_files_r need_built_dirs_r need_tool_dirs_r need_tool_execs_r,need)

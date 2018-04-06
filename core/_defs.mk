@@ -337,32 +337,32 @@ endif
 
 # $1 - target which needs directories, absolute path,       e.g.: /build/tt/a/b/c@-/tt/a/b/c
 # $2 - needed directories by the target $1, absolute paths, e.g.: /build/tt/a/b/c@-/tt/x/y/z
-define generate_dirs2
+define create_dirs2
 $1:| $2
 cb_needed_dirs+=$(patsubst $(cb_build)/%,%,$2)
 endef
 
 # remember new value of 'cb_needed_dirs', without tracing calls to it because it's incremented
 ifdef cb_checking
-$(call define_append,generate_dirs2,$(newline)$$(call set_global1,cb_needed_dirs))
+$(call define_append,create_dirs2,$(newline)$$(call set_global1,cb_needed_dirs))
 endif
 
 # $1 - target which needs the directories, must be simple path relative to virtual $(out_dir), e.g.: gen/file.txt
 # $2 - directories, must be paths relative to virtual $(out_dir), e.g.: ex/tool1 gen/gg2
 # $3 - namespace directory of the target: $(call o_ns,$1), e.g. /build/tt/gen/file.txt@-
-generate_dirs1 = $(call generate_dirs2,$3/$1,$(addprefix $3/,$2))
+create_dirs1 = $(call create_dirs2,$3/$1,$(addprefix $3/,$2))
 
 # add directories to the list of auto-created ones for a given target
 # $1 - target which needs the directories, must be simple path relative to virtual $(out_dir), e.g.: gen/file.txt
 # $2 - directories, must be paths relative to virtual $(out_dir), e.g.: ex/tool1 gen/gg2
 # note: these directories are will be auto-deleted while cleaning up
-# note: callers of 'generate_dirs' may assume that it will protect new value of 'cb_needed_dirs', so callers
+# note: callers of 'create_dirs' may assume that it will protect new value of 'cb_needed_dirs', so callers
 #  _may_ change 'cb_needed_dirs' without protecting it - before the call. Protect 'cb_needed_dirs' here.
 ifndef cb_checking
-generate_dirs = $(eval $(call generate_dirs1,$1,$2,$(o_ns)))
+create_dirs = $(eval $(call create_dirs1,$1,$2,$(o_ns)))
 else
-generate_dirs = $(if $(cb_check_vpath_r),$(eval $(call generate_dirs1,$1,$(call \
-  cb_check_vpaths_r,$2),$(o_ns))),$(if $2,$(error generate_dirs: target is not specified)))
+create_dirs = $(if $(cb_check_vpath_r),$(eval $(call create_dirs1,$1,$(call \
+  cb_check_vpaths_r,$2),$(o_ns))),$(if $2,$(error create_dirs: target is not specified)))
 endif
 
 # $1 - target files to build (absolute paths)
@@ -437,17 +437,17 @@ else # ---------------------- cleaning ---------------------
 # just delete (recursively, with all content) generated directories
 # $1 - target which needs the directories, must be simple path relative to virtual $(out_dir), e.g.: gen/file.txt
 # $2 - directories, must be paths relative to virtual $(out_dir), e.g.: ex/tool1 gen/gg2
-generate_dirs = $(toclean)
+create_dirs = $(toclean)
 
 # just delete target files
 # $1 - target files to delete (absolute paths), e.g.: /build/tt/a/b/c@-/tt/a/b/c
 cb_target_vars_a = $(call cb_to_clean_add,$(patsubst $(cb_build)/%,%,$1))
 
-# note: callers of 'generate_dirs' or 'cb_target_vars' may assume that it will protect new value of 'cb_needed_dirs', so callers
+# note: callers of 'create_dirs' or 'cb_target_vars' may assume that it will protect new value of 'cb_needed_dirs', so callers
 #  _may_ change 'cb_needed_dirs' without protecting it - before the call. Protect 'cb_needed_dirs' here (do not optimize!).
 # remember new value of 'cb_needed_dirs' without tracing calls to it because it is incremented
 ifdef cb_checking
-$(eval generate_dirs = $(value generate_dirs)$$(call set_global,cb_needed_dirs))
+$(eval create_dirs = $(value create_dirs)$$(call set_global,cb_needed_dirs))
 $(eval cb_target_vars_a = $(value cb_target_vars_a)$$(call set_global,cb_needed_dirs))
 endif
 
@@ -473,8 +473,15 @@ cb_target_vars_a_o = $(cb_target_vars_a)$(newline)$1
 # note: this macro may be used for defining a rule in place, e.g.: $(eval $(call cb_target_vars_o,a/b/c):; <rule>)
 cb_target_vars_o = $(call cb_target_vars_a_o,$(o_path))
 
-# same as 'generate_dirs', but return target $1 -  simple path relative to virtual $(out_dir), e.g.: gen/file.txt
-generate_dirs_r = $(generate_dirs)$1
+# same as 'create_dirs', but return target $1 -  simple path relative to virtual $(out_dir), e.g.: gen/file.txt
+# $1 - target which needs the directories, must be simple path relative to virtual $(out_dir), e.g.: gen/file.txt
+# $2 - directories, must be paths relative to virtual $(out_dir), e.g.: ex/tool1 gen/gg2
+create_dirs_r = $(create_dirs)$1
+
+# same as 'create_dirs', but return absolute paths to generated directories
+# $1 - target which needs the directories, must be simple path relative to virtual $(out_dir), e.g.: gen/file.txt
+# $2 - directories, must be paths relative to virtual $(out_dir), e.g.: ex/tool1 gen/gg2
+create_dirs_o = $(create_dirs)$(addprefix $(o_ns)/,$2)
 
 # add generated files to build sequence
 # $1 - generated files, must be simple paths relative to virtual $(out_dir), e.g.: gen/file.txt gen2/22.33
@@ -485,12 +492,14 @@ generate_dirs_r = $(generate_dirs)$1
 add_generated = $(eval $(cb_target_vars))
 
 # do the same as 'add_generated', but also return list of generated files $1 - simple paths relative to virtual $(out_dir)
+# $1 - generated files, must be simple paths relative to virtual $(out_dir), e.g.: gen/file.txt gen2/22.33
 add_generated_r = $(add_generated)$1
 
 # $1 - absolute paths to generated files
 cb_add_generated_a_o = $(eval $(cb_target_vars_a))$1
 
-# do the same as 'add_generated', but also return absolute paths to generated files $1 - simple paths relative to virtual $(out_dir)
+# do the same as 'add_generated', but also return absolute paths to generated files $1
+# $1 - generated files, must be simple paths relative to virtual $(out_dir), e.g.: gen/file.txt gen2/22.33
 add_generated_o = $(call cb_add_generated_a_o,$(o_path))
 
 # 'tool_mode' may be set to non-empty value (likely T) at the beginning of target makefile
@@ -762,8 +771,8 @@ $(call config_remember_vars,CBLD_BUILD CBLD_TARGET CBLD_TOOL_TARGET)
 #  parsed makefile, so clear this variables before rule execution second phase
 cb_first_phase_vars += cb_needed_dirs build_system_goals debug cb_set_default_vars cb_tool_override_vars cb_to_clean_add \
   toclean order_deps cb_target_makefile add_mdeps set_makefile_info set_makefile_info_r cb_add_what_makefile_builds \
-  add_order_deps generate_dirs2 generate_dirs1 generate_dirs cb_target_vars2 cb_what_makefile_builds cb_what_makefile_builds1 \
-  cb_target_vars_a cb_target_vars cb_target_vars_a_o cb_target_vars_o generate_dirs_r add_generated add_generated_r \
+  add_order_deps create_dirs2 create_dirs1 create_dirs cb_target_vars2 cb_what_makefile_builds cb_what_makefile_builds1 \
+  cb_target_vars_a cb_target_vars cb_target_vars_a_o cb_target_vars_o create_dirs_r create_dirs_o add_generated add_generated_r \
   cb_add_generated_a_o add_generated_o tool_mode is_tool_mode cb_tool_mode_adjust cb_tool_mode_access_error cb_include_level \
   cb_target_makefiles cb_head_eval cb_make_cont cb_def_head cb_show_leaf_mk cb_def_tail cb_no_def_head_err cb_def_targets \
   define_targets cb_prepare cb_save_vars cb_restore_vars make_continue
@@ -779,9 +788,9 @@ $(call set_global,MAKEFLAGS SHELL cb_needed_dirs cb_first_phase_vars CBLD_BUILD 
 $(call set_global,cb_project_vars clean_build_version cb_dir clean_build_required_version cb_build \
   project_supported_targets project_supported_tool_targets cb_set_default_vars cb_tool_override_vars \
   cb_to_clean_add==cb_to_clean toclean cb_first_makefile cb_target_makefile add_mdeps set_makefile_info set_makefile_info_r \
-  cb_add_what_makefile_builds add_order_deps=order_deps=order_deps generate_dirs2 generate_dirs1 generate_dirs cb_target_vars2 \
+  cb_add_what_makefile_builds add_order_deps=order_deps=order_deps create_dirs2 create_dirs1 create_dirs cb_target_vars2 \
   cb_what_makefile_builds cb_what_makefile_builds1 cb_target_vars_a cb_target_vars cb_target_vars_a_o cb_target_vars_o \
-  generate_dirs_r add_generated add_generated_r cb_add_generated_a_o add_generated_o is_tool_mode cb_tool_mode_adjust \
+  create_dirs_r create_dirs_o add_generated add_generated_r cb_add_generated_a_o add_generated_o is_tool_mode cb_tool_mode_adjust \
   cb_tool_mode_access_error cb_def_head cb_show_leaf_mk cb_check_targets cb_def_tail cb_no_def_head_err cb_def_targets \
   define_targets cb_prepare cb_save_vars cb_restore_vars make_continue,core)
 

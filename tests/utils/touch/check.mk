@@ -21,7 +21,7 @@ CBLD_BUILD ?= $(a_dir)/build
 
 # add core clean-build definitions
 # note: all variables defined prior including this file are treated as "project" variables - they are will be registered
-#  as global" ones (protected from changes), so 'a_dir' does not need to be redefined as target-specific variable
+#  as "global" ones (protected from changes), so 'a_dir' does not need to be redefined as target-specific variable
 include $(a_dir)/../../../core/_defs.mk
 
 # this must be expanded at head of any target makefile

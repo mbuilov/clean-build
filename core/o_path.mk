@@ -165,7 +165,7 @@ get_tool_dir = $(addsuffix $(cb_tools_subdir),$(dir $(o_ns)))
 
 # for a given target virtual path and virtual paths to tool files, get absolute paths to the tool files
 # $1 - a target for which the paths are returned - must be a simple path relative to virtual $(out_dir), e.g.: bin/test.exe
-# $2 - tool files - must be simple paths relative to virtual $(out_dir), e.g.: tool/t1 tool/t2
+# $2 - tool files/directories - must be simple paths relative to virtual $(out_dir), e.g.: tool/t1 tool/t2
 ifdef cb_checking
 get_tools = $(cb_check_vpath)$(addprefix $(get_tool_dir)/,$(call cb_check_vpaths_r,$2))
 else
@@ -174,7 +174,7 @@ endif
 
 # for a given target virtual path and virtual paths to built dependencies, get absolute paths to the dependencies
 # $1 - a target for which the paths are returned - must be a simple path relative to virtual $(out_dir), e.g.: bin/test.exe
-# $2 - dependencies - must be simple paths relative to virtual $(out_dir), e.g.: gen/dep.c gen/dep.h
+# $2 - dependent files/directories - must be simple paths relative to virtual $(out_dir), e.g.: gen/dep.c gen/dep.h
 ifdef cb_checking
 get_deps = $(cb_check_vpath)$(addprefix $(o_ns)/,$(call cb_check_vpaths_r,$2))
 else
