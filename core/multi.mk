@@ -90,8 +90,21 @@ endif # cleaning
 # same as 'multi_target', but return absolute paths to generated files $1 (in namespace directory of the first generated file)
 multi_target_o = $(multi_target)$(addprefix $(call o_ns,$(firstword $1))/,$1)
 
+# define rules for linking needed built multi-files to the target's private namespace
+# $1 - targets for which the files are needed - must be simple paths relative to virtual $(out_dir), e.g.: bin/test.exe
+# $2 - needed files, must be simple paths relative to virtual $(out_dir), e.g.: gen/file1.txt gen/file2.txt
+# note: multi-files are built in the namespace directory of the first multi-file, link multi-files from there
+# note: 'need_built_files_from' - defined in $(cb_build)/core/need.mk
+need_multi_files = $(call need_built_files_from,$1,$2,$(addprefix $(call o_ns,$(firstword $2))/,$2))
+
+# form dependency of a target on needed built multi-files, then return absolute paths to the dependencies
+# $1 - a target for which the files are needed - must be a simple path relative to virtual $(out_dir), e.g.: bin/test.exe
+# $2 - needed files, must be simple paths relative to virtual $(out_dir), e.g.: gen/file1.txt gen/file2.txt
+need_multi_files_n = $(need_multi_files)$(get_deps)
+
 # makefile parsing first phase variables
-cb_first_phase_vars += cb_multi_target_num cb_multi_target_dep_r cb_multi_target_rule multi_target cb_check_multi_rule multi_target_o
+cb_first_phase_vars += cb_multi_target_num cb_multi_target_dep_r cb_multi_target_rule multi_target cb_check_multi_rule \
+  multi_target_o need_multi_files need_multi_files_n
 
 # protect macros from modifications in target makefiles,
 # do not trace calls to macros used in ifdefs, exported to the environment of called tools or modified via operator +=
@@ -100,4 +113,4 @@ $(call set_global,cb_first_phase_vars cb_multi_target_num cb_multi_targets)
 # protect macros from modifications in target makefiles, allow tracing calls to them
 # note: trace namespace: multi
 $(call set_global,cb_multi_target_dep_r cb_multi_target_rule=cb_multi_target_num=cb_multi_target_num \
-  multi_target cb_check_multi_rule multi_target_o,multi)
+  multi_target cb_check_multi_rule multi_target_o need_multi_files need_multi_files_n,multi)
