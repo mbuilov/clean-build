@@ -100,11 +100,16 @@ need_multi_files = $(call need_built_files_from,$1,$2,$(addprefix $(call o_ns,$(
 # form dependency of a target on needed built multi-files, then return absolute paths to the dependencies
 # $1 - a target for which the files are needed - must be a simple path relative to virtual $(out_dir), e.g.: bin/test.exe
 # $2 - needed files, must be simple paths relative to virtual $(out_dir), e.g.: gen/file1.txt gen/file2.txt
-need_multi_files_n = $(need_multi_files)$(get_deps)
+need_multi_files_d = $(need_multi_files)$(get_deps)
+
+# form dependency of a target on needed built multi-files, then return target $1
+# $1 - a target for which the files are needed - must be a simple path relative to virtual $(out_dir), e.g.: bin/test.exe
+# $2 - needed files, must be simple paths relative to virtual $(out_dir), e.g.: gen/file1.txt gen/file2.txt
+need_multi_files_r = $(need_multi_files)$1
 
 # makefile parsing first phase variables
 cb_first_phase_vars += cb_multi_target_num cb_multi_target_dep_r cb_multi_target_rule multi_target cb_check_multi_rule \
-  multi_target_o need_multi_files need_multi_files_n
+  multi_target_o need_multi_files need_multi_files_d need_multi_files_r
 
 # protect macros from modifications in target makefiles,
 # do not trace calls to macros used in ifdefs, exported to the environment of called tools or modified via operator +=
@@ -113,4 +118,4 @@ $(call set_global,cb_first_phase_vars cb_multi_target_num cb_multi_targets)
 # protect macros from modifications in target makefiles, allow tracing calls to them
 # note: trace namespace: multi
 $(call set_global,cb_multi_target_dep_r cb_multi_target_rule=cb_multi_target_num=cb_multi_target_num \
-  multi_target cb_check_multi_rule multi_target_o need_multi_files need_multi_files_n,multi)
+  multi_target cb_check_multi_rule multi_target_o need_multi_files need_multi_files_d need_multi_files_r,multi)
