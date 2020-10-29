@@ -350,9 +350,21 @@ UMTINC := $(UMINC)
 
 endif # WDK10
 
+# for WDK 10.0.15063.0 and later
+ifeq (,$(call is_less,$(WDK_VER),10)$(call is_less,$(word 3,$(subst ., ,$(WDK_TARGET))),15063))
+
+TMC1 := $(call qpath,$(WDKN)\bin\$(WDK_TARGET)\$(TCPU:x86_64=x64)\mc.exe)
+TRC1 := $(call qpath,$(WDKN)\bin\$(WDK_TARGET)\$(TCPU:x86_64=x64)\rc.exe)
+TMT1 := $(call qpath,$(WDKN)\bin\$(WDK_TARGET)\$(TCPU:x86_64=x64)\mt.exe)
+
+else # !WDK 10.0.15063.0
+
 TMC1 := $(call qpath,$(WDKN)\bin\$(TCPU:x86_64=x64)\mc.exe)
 TRC1 := $(call qpath,$(WDKN)\bin\$(TCPU:x86_64=x64)\rc.exe)
 TMT1 := $(call qpath,$(WDKN)\bin\$(TCPU:x86_64=x64)\mt.exe)
+
+endif # !WDK 10.0.15063.0
+
 MC1  := $(TMC1)
 RC1  := $(TRC1)
 MT1  := $(TMT1)
